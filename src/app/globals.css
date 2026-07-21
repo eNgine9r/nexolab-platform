@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+:root {
+  --background: #06142a;
+  --foreground: #e6ecf2;
+  --panel: rgba(10, 31, 61, 0.88);
+  --panel-strong: rgba(13, 39, 76, 0.95);
+  --border: rgba(148, 163, 184, 0.08);
+  --accent: #0077ff;
+  --cyan: #00c6e0;
+  --success: #22c55e;
+  --warning: #f5b301;
+  --danger: #ff4d4f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 84% 6%, rgba(0, 119, 255, 0.075), transparent 24rem),
+    radial-gradient(circle at 30% 90%, rgba(0, 198, 224, 0.035), transparent 28rem), var(--background);
+  color: var(--foreground);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(0, 119, 255, 0.45);
+  color: white;
+}
+
+.panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.075);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(13, 39, 76, 0.9), rgba(6, 24, 49, 0.94)), rgba(7, 24, 48, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
+}
+
+.panel::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 198, 224, 0.13), transparent);
+}
+
+.icon-button {
+  height: 2.5rem;
+  width: 2.5rem;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  color: #94a3b8;
+  transition: 160ms ease;
+}
+
+.icon-button:hover {
+  border-color: rgba(0, 198, 224, 0.22);
+  background: rgba(0, 119, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.topbar-control {
+  height: 2.5rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0 0.85rem;
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  transition: 160ms ease;
+}
+
+.topbar-control:hover {
+  border-color: rgba(0, 198, 224, 0.18);
+  background: rgba(0, 119, 255, 0.05);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  height: 2.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0 0.85rem;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  outline: none;
+  transition: 160ms ease;
+}
+
+.form-input:focus {
+  border-color: rgba(0, 119, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(0, 119, 255, 0.08);
+}
+
+.form-input option {
+  background: #0b1d3a;
+  color: #e2e8f0;
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  transition: 160ms ease;
+}
+
+.primary-button {
+  border: 1px solid #0077ff;
+  background: #0077ff;
+  color: white;
+  box-shadow: 0 10px 28px rgba(0, 119, 255, 0.22);
+}
+
+.primary-button:hover {
+  background: #1684ff;
+}
+
+.secondary-button {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(255, 255, 255, 0.025);
+  color: #94a3b8;
+}
+
+.secondary-button:hover {
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+.lab-grid {
+  background-image:
+    linear-gradient(rgba(0, 119, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 119, 255, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.camera-scene {
+  background-color: #0b2749;
+  background-image:
+    linear-gradient(90deg, transparent 48%, rgba(0, 198, 224, 0.13) 49%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 70% 32%, rgba(0, 198, 224, 0.2), transparent 28%),
+    linear-gradient(145deg, #183c64, #07182f);
+  background-size:
+    100% 100%,
+    100% 18px,
+    24px 100%,
+    100% 100%,
+    100% 100%;
+  filter: saturate(0.82) contrast(1.06);
+  transition:
+    transform 300ms ease,
+    filter 300ms ease;
+}
+
+.group:hover .camera-scene {
+  transform: scale(1.035);
+  filter: saturate(1.05) contrast(1.08);
+}
+
+.camera-scene-2 {
+  background-position:
+    center,
+    0 4px,
+    7px 0,
+    center,
+    center;
+}
+
+.camera-scene-3 {
+  background-image:
+    linear-gradient(28deg, transparent 48%, rgba(255, 255, 255, 0.11) 49%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 30% 30%, rgba(0, 119, 255, 0.23), transparent 25%),
+    linear-gradient(155deg, #21466d, #08192f);
+}
+
+.camera-scene-4 {
+  background-position:
+    center,
+    0 10px,
+    12px 0,
+    center,
+    center;
+}
+
+.camera-scene-5 {
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 62%, rgba(0, 198, 224, 0.16) 63%, transparent 64%),
+    radial-gradient(circle at 20% 36%, rgba(0, 119, 255, 0.22), transparent 30%),
+    linear-gradient(145deg, #153b62, #06172e);
+  background-size:
+    28px 100%,
+    100% 19px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+.camera-scene-6 {
+  background-position:
+    10px 0,
+    0 8px,
+    center,
+    center,
+    center;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.28) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

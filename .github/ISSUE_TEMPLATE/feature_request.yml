@@ -1,0 +1,25 @@
+name: Feature request
+description: Запропонувати нову функцію або покращення
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Проблема
+      description: Яку користувацьку або технічну проблему потрібно вирішити?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Пропозиція
+      description: Як має працювати рішення?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерії приймання
+      placeholder: |
+        - [ ] ...
+        - [ ] ...

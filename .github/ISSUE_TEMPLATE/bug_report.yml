@@ -1,0 +1,32 @@
+name: Bug report
+description: Повідомити про відтворювану помилку
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Опис
+      description: Що сталося?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Кроки відтворення
+      placeholder: |
+        1. Відкрити...
+        2. Натиснути...
+        3. Побачити...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Очікувана поведінка
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Середовище
+      placeholder: Chrome 130, Windows 11
