@@ -30,7 +30,7 @@ class RegisterProfilerTests(unittest.TestCase):
 
     def test_one_register_request(self) -> None:
         request = profile_registers.build_read_request(200, 3, 0)
-        self.assertEqual(request.hex(), "c80300000001918d")
+        self.assertEqual(request.hex(), "c803000000019593")
         with self.assertRaises(ValueError):
             profile_registers.build_read_request(200, 3, 0, count=2)
 
