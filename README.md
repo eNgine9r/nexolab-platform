@@ -49,6 +49,20 @@ curl http://127.0.0.1:8081/health
 
 Повна інструкція: [`docs/edge-bootstrap.md`](docs/edge-bootstrap.md).
 
+## RS-485 discovery
+
+Для пошуку Modbus RTU пристроїв із невідомими параметрами додано read-only сканер. Він перебирає baud rate, parity, stop bits і unit ID, пробує стандартну ідентифікацію `43/14`, формує fingerprint і записує локальний JSON-реєстр.
+
+```bash
+python tools/rs485_discovery/scan_rs485.py \
+  --port /dev/serial/by-id/<adapter> \
+  --quick \
+  --deep \
+  --progress
+```
+
+Інструкція та обмеження: [`tools/rs485_discovery/README.md`](tools/rs485_discovery/README.md).
+
 ## Перевірки якості
 
 ```bash
@@ -75,6 +89,9 @@ infrastructure/
 ├── compose/              # Development та production Edge stack
 └── ansible/              # Provisioning Raspberry Pi
 
+tools/
+└── rs485_discovery/      # Read-only пошук Modbus RTU endpoints
+
 docs/
 ├── architecture.md
 ├── design-system.md
@@ -90,16 +107,18 @@ docs/
 - UI адаптується від мобільного формату до широких операторських екранів.
 - Edge-вузол продовжує збір без хмари та догружає локальну чергу після відновлення MQTT.
 - Production images мають версіонуватися; тег `edge` використовується лише як канал початкової інтеграції.
+- Діагностика RS-485 не виконує записів у регістри та не змінює налаштування приладів.
 
 ## Наступні етапи
 
-1. Прив'язати перший Raspberry Pi через Tailscale та GitHub Environment `edge-01`.
-2. Додати перший Modbus RTU adapter через `/dev/serial/by-id/...`.
-3. Підключити Supabase Auth і RBAC.
-4. Додати REST/WebSocket adapter для live-телеметрії.
-5. Реалізувати сторінки вузлів, сесій, обладнання та звітів.
-6. Додати E2E-тести основних операторських сценаріїв.
-7. Підключити Vercel Preview Deployments.
+1. Просканувати поточну RS-485 шину та підтвердити знайдені endpoints.
+2. Додати перевірені профілі регістрів LE-01MP і Dixell XJP60D.
+3. Підключити Modbus RTU adapter до Device Agent через `/dev/serial/by-id/...`.
+4. Підключити Supabase Auth і RBAC.
+5. Додати REST/WebSocket adapter для live-телеметрії.
+6. Реалізувати сторінки вузлів, сесій, обладнання та звітів.
+7. Додати E2E-тести основних операторських сценаріїв.
+8. Підключити Vercel Preview Deployments.
 
 ## Ліцензування
 

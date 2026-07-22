@@ -20,6 +20,10 @@
 # production
 /build
 
+# local Python and edge runtime
+/.venv-rs485/
+/runtime/
+
 # misc
 .DS_Store
 *.pem

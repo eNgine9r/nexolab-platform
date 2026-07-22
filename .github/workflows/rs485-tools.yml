@@ -1,0 +1,46 @@
+name: RS485 tools
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/rs485_discovery/**"
+      - ".github/workflows/rs485-tools.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/rs485_discovery/**"
+      - ".github/workflows/rs485-tools.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rs485-tools-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/rs485_discovery/requirements.txt
+
+      - name: Install dependency
+        run: python -m pip install -r tools/rs485_discovery/requirements.txt
+
+      - name: Compile
+        run: python -m py_compile tools/rs485_discovery/scan_rs485.py
+
+      - name: Test
+        run: python -m unittest -v tools/rs485_discovery/test_scan_rs485.py
