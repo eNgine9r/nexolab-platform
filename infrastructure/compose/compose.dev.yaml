@@ -1,0 +1,4 @@
+services:
+  device-agent:
+    build:
+      context: ../../services/device-agent
