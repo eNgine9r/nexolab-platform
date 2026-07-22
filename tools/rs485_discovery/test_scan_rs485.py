@@ -5,12 +5,19 @@ import sys
 import unittest
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).with_name("scan_rs485.py")
-SPEC = importlib.util.spec_from_file_location("scan_rs485", MODULE_PATH)
-assert SPEC and SPEC.loader
-scan_rs485 = importlib.util.module_from_spec(SPEC)
-sys.modules["scan_rs485"] = scan_rs485
-SPEC.loader.exec_module(scan_rs485)
+
+def load_module(name: str, filename: str):
+    module_path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(name, module_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+scan_rs485 = load_module("scan_rs485", "scan_rs485.py")
+verify_candidates = load_module("verify_candidates", "verify_candidates.py")
 
 
 class ModbusFrameTests(unittest.TestCase):
@@ -46,6 +53,21 @@ class ModbusFrameTests(unittest.TestCase):
         )
         self.assertEqual(result[0], "dixell-xjp60d")
         self.assertEqual(result[2], 1.0)
+
+    def test_strict_verifier_accepts_exact_register_count(self) -> None:
+        response = verify_candidates.add_crc(bytes.fromhex("0103021234"))
+        extracted = verify_candidates.extract_strict_response(response, 1, 3, 1)
+        self.assertEqual(extracted, response)
+
+    def test_strict_verifier_rejects_zero_byte_read(self) -> None:
+        malformed = verify_candidates.add_crc(bytes.fromhex("c80300"))
+        extracted = verify_candidates.extract_strict_response(malformed, 200, 3, 1)
+        self.assertIsNone(extracted)
+
+    def test_strict_verifier_accepts_exception(self) -> None:
+        response = verify_candidates.add_crc(bytes((1, 0x83, 0x02)))
+        extracted = verify_candidates.extract_strict_response(response, 1, 3, 1)
+        self.assertEqual(extracted, response)
 
 
 if __name__ == "__main__":
