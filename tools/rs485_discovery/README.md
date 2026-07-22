@@ -36,7 +36,7 @@ python -m pip install -r tools/rs485_discovery/requirements.txt
 Confirm that no other process owns the adapter:
 
 ```bash
-SERIAL_DEVICE="/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+SERIAL_DEVICE="/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0"
 sudo fuser -v "$SERIAL_DEVICE" || true
 ```
 
@@ -106,10 +106,96 @@ python tools/rs485_discovery/scan_rs485.py \
 
 A full deep scan can take tens of minutes because every combination must be tested safely and sequentially.
 
+## Strict candidate verification
+
+Use the strict verifier before registering scanner candidates. It requires exact response lengths and stores raw evidence:
+
+```bash
+python tools/rs485_discovery/verify_candidates.py \
+  --port "$SERIAL_DEVICE" \
+  --unit-ids "101-114,126-138,200-203" \
+  --baudrate 9600 \
+  --parities N \
+  --stopbits 1 \
+  --timeout 0.30
+```
+
+## One-register-at-a-time profiling
+
+`profile_registers.py` reads exactly one register in each request. It repeats sampling, records unsigned and signed 16-bit values, marks dynamic registers and writes both JSON and CSV.
+
+Start with a narrow register range. Do not profile all 65,536 addresses.
+
+Energy meters:
+
+```bash
+python tools/rs485_discovery/profile_registers.py \
+  --port "$SERIAL_DEVICE" \
+  --unit-ids "200-203" \
+  --addresses "0-63" \
+  --function 3 \
+  --samples 5 \
+  --sample-interval 3 \
+  --progress \
+  --output runtime/discovery/energy-meters-profile.json
+```
+
+Dixell climate chamber 2:
+
+```bash
+python tools/rs485_discovery/profile_registers.py \
+  --port "$SERIAL_DEVICE" \
+  --unit-ids "101-114" \
+  --addresses "0-63" \
+  --function 3 \
+  --samples 3 \
+  --sample-interval 3 \
+  --progress \
+  --output runtime/discovery/dixell-chamber-02-profile.json
+```
+
+Dixell climate chamber 1:
+
+```bash
+python tools/rs485_discovery/profile_registers.py \
+  --port "$SERIAL_DEVICE" \
+  --unit-ids "126-138" \
+  --addresses "0-63" \
+  --function 3 \
+  --samples 3 \
+  --sample-interval 3 \
+  --progress \
+  --output runtime/discovery/dixell-chamber-01-profile.json
+```
+
+Show only dynamic registers:
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+for path in sorted(Path("runtime/discovery").glob("*-profile.json")):
+    report = json.loads(path.read_text())
+    print(f"\n{path.name}")
+    for item in report["dynamic_registers"]:
+        print(
+            f'  unit={item["unit_id"]:3d} '
+            f'address={item["address"]:5d} '
+            f'values={item["values_u16"]} '
+            f'signed={item["values_s16"]}'
+        )
+PY
+```
+
+A changing register is only a candidate for temperature, voltage, current or another live value. Its meaning and scale must be confirmed against the device display or an official register map.
+
 ## Result states
 
 - `discovered`: identity confidence is at least 90%;
 - `pending_confirmation`: an endpoint exists but the exact model is not proven;
 - `warnings`: bytes were received without a valid frame, commonly caused by duplicate addresses, reversed/noisy wiring, local echo or wrong serial settings.
+
+The confirmed bus topology is stored in `config/edge/rs485-device-registry.yaml`.
 
 Do not switch the production Device Agent from `simulator` to `hardware` until the discovered endpoints and register profiles are reviewed.
