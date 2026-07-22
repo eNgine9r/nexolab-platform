@@ -1,0 +1,42 @@
+name: nexolab-edge
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 6s
+      retries: 5
+      start_period: 10s
+
+  device-agent:
+    image: ${DEVICE_AGENT_IMAGE:-ghcr.io/engine9r/nexolab-device-agent:edge}
+    restart: unless-stopped
+    environment:
+      NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:-edge-01}
+      DEVICE_MODE: ${DEVICE_MODE:-simulator}
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      MQTT_TOPIC: ${MQTT_TOPIC:-nexolab/telemetry}
+      SAMPLE_INTERVAL_SECONDS: ${SAMPLE_INTERVAL_SECONDS:-5}
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: 8081
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - edge-data:/var/lib/nexolab
+    depends_on:
+      mqtt:
+        condition: service_healthy
+
+volumes:
+  mqtt-data:
+  edge-data:
