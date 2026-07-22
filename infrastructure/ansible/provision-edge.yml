@@ -1,0 +1,131 @@
+---
+- name: Provision NEXOLAB Raspberry Pi edge node
+  hosts: nexolab_edge
+  become: true
+  vars:
+    nexolab_root: /opt/nexolab
+    nexolab_user: nexolab
+    docker_keyring: /etc/apt/keyrings/docker.asc
+
+  tasks:
+    - name: Install provisioning prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - chrony
+          - fail2ban
+          - git
+          - unattended-upgrades
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Read Debian package architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: docker_arch
+      changed_when: false
+
+    - name: Create APT keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Install Docker repository signing key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: "{{ docker_keyring }}"
+        mode: "0644"
+
+    - name: Configure Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ docker_arch.stdout }} signed-by={{ docker_keyring }}]
+          https://download.docker.com/linux/debian
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+
+    - name: Install Docker Engine and Compose plugin
+      ansible.builtin.apt:
+        name:
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-ce
+          - docker-ce-cli
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker is enabled and running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create NEXOLAB service account
+      ansible.builtin.user:
+        name: "{{ nexolab_user }}"
+        groups: docker
+        append: true
+        create_home: true
+        shell: /bin/bash
+
+    - name: Create NEXOLAB directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ nexolab_user }}"
+        group: "{{ nexolab_user }}"
+        mode: "0750"
+      loop:
+        - "{{ nexolab_root }}"
+        - "{{ nexolab_root }}/compose"
+        - "{{ nexolab_root }}/data"
+        - "{{ nexolab_root }}/backups"
+
+    - name: Install edge compose definition
+      ansible.builtin.copy:
+        src: ../compose/compose.edge.yaml
+        dest: "{{ nexolab_root }}/compose/compose.yaml"
+        owner: "{{ nexolab_user }}"
+        group: "{{ nexolab_user }}"
+        mode: "0640"
+      notify: Restart NEXOLAB edge stack
+
+    - name: Install MQTT broker configuration
+      ansible.builtin.copy:
+        src: ../compose/mosquitto.conf
+        dest: "{{ nexolab_root }}/compose/mosquitto.conf"
+        owner: "{{ nexolab_user }}"
+        group: "{{ nexolab_user }}"
+        mode: "0640"
+      notify: Restart NEXOLAB edge stack
+
+    - name: Seed edge environment without overwriting local values
+      ansible.builtin.copy:
+        src: ../compose/.env.edge.example
+        dest: "{{ nexolab_root }}/compose/.env"
+        owner: "{{ nexolab_user }}"
+        group: "{{ nexolab_user }}"
+        mode: "0640"
+        force: false
+      notify: Restart NEXOLAB edge stack
+
+    - name: Start edge services
+      ansible.builtin.command:
+        cmd: docker compose up -d --remove-orphans
+        chdir: "{{ nexolab_root }}/compose"
+      register: compose_start
+      changed_when: >-
+        'Started' in compose_start.stderr or
+        'Created' in compose_start.stderr or
+        'Recreated' in compose_start.stderr
+
+  handlers:
+    - name: Restart NEXOLAB edge stack
+      ansible.builtin.command:
+        cmd: docker compose up -d --remove-orphans
+        chdir: "{{ nexolab_root }}/compose"
+      changed_when: true
