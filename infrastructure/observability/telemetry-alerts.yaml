@@ -1,0 +1,63 @@
+groups:
+  - name: nexolab-telemetry-service
+    rules:
+      - alert: NexolabTelemetryDatabaseUnavailable
+        expr: nexolab_telemetry_database_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB telemetry database is unavailable
+          description: PostgreSQL has been unavailable to the telemetry service for more than two minutes.
+
+      - alert: NexolabTelemetryMqttUnavailable
+        expr: nexolab_telemetry_mqtt_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: NEXOLAB telemetry MQTT subscription is unavailable
+          description: The telemetry service has not held an active MQTT subscription for more than two minutes.
+
+      - alert: NexolabTelemetryQueueBacklog
+        expr: nexolab_telemetry_queue_size > 5000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB telemetry persistence queue is growing
+          description: More than 5000 telemetry or dead-letter items have remained queued for five minutes.
+
+      - alert: NexolabTelemetryPersistenceFailures
+        expr: increase(nexolab_telemetry_persistence_failure_total[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB telemetry persistence attempts are failing
+          description: At least one PostgreSQL persistence attempt failed during the last five minutes.
+
+      - alert: NexolabTelemetryDeadLetterBurst
+        expr: increase(nexolab_telemetry_dead_letter_persisted_total[10m]) > 20
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB telemetry dead-letter volume increased
+          description: More than 20 rejected MQTT payloads were retained during the last ten minutes.
+
+      - alert: NexolabTelemetryIngestionLag
+        expr: nexolab_telemetry_ingestion_lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB telemetry ingestion lag is high
+          description: Capture-to-persistence lag has exceeded 60 seconds for five minutes.
+
+      - alert: NexolabTelemetryNoRecentPersistence
+        expr: time() - nexolab_telemetry_last_persisted_timestamp_seconds > 180
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: NEXOLAB telemetry has not persisted recently
+          description: No successful telemetry persistence has been observed for at least three minutes.
