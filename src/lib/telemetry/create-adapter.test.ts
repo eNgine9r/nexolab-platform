@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { createTelemetryAdapter } from "./create-adapter";
 import { DemoTelemetryAdapter } from "./demo-adapter";
 import { LiveTelemetryAdapter } from "./live-adapter";
