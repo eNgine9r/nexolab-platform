@@ -65,6 +65,22 @@ Index(
     TelemetrySample.metric,
     TelemetrySample.captured_at,
 )
+Index(
+    "ix_telemetry_latest_lookup",
+    TelemetrySample.node_id,
+    TelemetrySample.equipment_id,
+    TelemetrySample.channel_id,
+    TelemetrySample.metric,
+    TelemetrySample.captured_at,
+    TelemetrySample.event_id,
+)
+Index(
+    "ix_telemetry_history_lookup",
+    TelemetrySample.node_id,
+    TelemetrySample.channel_id,
+    TelemetrySample.captured_at,
+    TelemetrySample.event_id,
+)
 
 
 @dataclass(frozen=True)
