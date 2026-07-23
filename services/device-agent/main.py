@@ -23,6 +23,14 @@ from xjp60d import XJP60DReader
 LOG = logging.getLogger("nexolab.device_agent")
 
 
+def mode_uses_xjp60d(device_mode: str) -> bool:
+    return device_mode in {"xjp60d", "modbus"}
+
+
+def mode_uses_le01mp(device_mode: str) -> bool:
+    return device_mode in {"le01mp", "modbus"}
+
+
 def parse_xjp60d_points(value: str) -> tuple[tuple[int, int], ...]:
     points: list[tuple[int, int]] = []
     for token in value.split(","):
@@ -210,18 +218,26 @@ class AgentState:
                 setattr(self, key, value)
 
     def snapshot(self, queue_size: int, settings: Settings) -> dict[str, Any]:
+        configured_points = (
+            [
+                f"{unit_id}-{channel:02d}"
+                for unit_id, channel in settings.xjp60d_points
+            ]
+            if mode_uses_xjp60d(settings.device_mode)
+            else []
+        )
+        configured_devices = (
+            [f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids]
+            if mode_uses_le01mp(settings.device_mode)
+            else []
+        )
         with self._lock:
             return {
                 "status": "ok" if self.last_error is None else "degraded",
                 "node_id": settings.node_id,
                 "device_mode": settings.device_mode,
-                "configured_points": [
-                    f"{unit_id}-{channel:02d}"
-                    for unit_id, channel in settings.xjp60d_points
-                ],
-                "configured_devices": [
-                    f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids
-                ],
+                "configured_points": configured_points,
+                "configured_devices": configured_devices,
                 "mqtt_connected": self.mqtt_connected,
                 "queue_size": queue_size,
                 "samples_total": self.samples_total,
@@ -238,7 +254,10 @@ class DeviceAgent:
         self.queue = OfflineQueue(settings.database_path)
         self.state = AgentState()
         self.stop_event = threading.Event()
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=settings.node_id)
+        self.client = mqtt.Client(
+            mqtt.CallbackAPIVersion.VERSION2,
+            client_id=settings.node_id,
+        )
         self.client.enable_logger(LOG)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
@@ -256,7 +275,7 @@ class DeviceAgent:
                 retries=settings.serial_retries,
             )
 
-        if settings.device_mode in {"xjp60d", "modbus"} and settings.xjp60d_points:
+        if mode_uses_xjp60d(settings.device_mode) and settings.xjp60d_points:
             if self.modbus_client is None:
                 raise RuntimeError("Modbus client was not initialized")
             self.xjp60d_reader = XJP60DReader(
@@ -265,7 +284,7 @@ class DeviceAgent:
                 unit="degC",
             )
 
-        if settings.device_mode in {"le01mp", "modbus"} and settings.le01mp_unit_ids:
+        if mode_uses_le01mp(settings.device_mode) and settings.le01mp_unit_ids:
             if self.modbus_client is None:
                 raise RuntimeError("Modbus client was not initialized")
             self.le01mp_reader = LE01MPReader(self.modbus_client)
@@ -295,7 +314,11 @@ class DeviceAgent:
 
     def connect(self) -> None:
         self.client.reconnect_delay_set(min_delay=1, max_delay=30)
-        self.client.connect_async(self.settings.mqtt_host, self.settings.mqtt_port, keepalive=30)
+        self.client.connect_async(
+            self.settings.mqtt_host,
+            self.settings.mqtt_port,
+            keepalive=30,
+        )
         self.client.loop_start()
 
     def _sample_xjp60d(
@@ -425,8 +448,10 @@ class DeviceAgent:
         captured_at = datetime.now(timezone.utc).isoformat()
         records: list[TelemetryRecord] = []
         errors: list[str] = []
-        self._sample_xjp60d(captured_at, records, errors)
-        self._sample_le01mp(captured_at, records, errors)
+        if mode_uses_xjp60d(self.settings.device_mode):
+            self._sample_xjp60d(captured_at, records, errors)
+        if mode_uses_le01mp(self.settings.device_mode):
+            self._sample_le01mp(captured_at, records, errors)
 
         if not records:
             raise RuntimeError("No Modbus telemetry sources are configured")
@@ -461,7 +486,9 @@ class DeviceAgent:
             if result.rc != mqtt.MQTT_ERR_SUCCESS:
                 return False
             self.queue.delete(record_id)
-            self.state.update(last_publish_at=datetime.now(timezone.utc).isoformat())
+            self.state.update(
+                last_publish_at=datetime.now(timezone.utc).isoformat(),
+            )
         return True
 
     def run(self) -> None:
@@ -505,7 +532,10 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        payload = self.agent.state.snapshot(self.agent.queue.size(), self.agent.settings)
+        payload = self.agent.state.snapshot(
+            self.agent.queue.size(),
+            self.agent.settings,
+        )
         status = 200 if payload["status"] in {"ok", "degraded"} else 503
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -526,7 +556,10 @@ def main() -> None:
     settings = Settings.from_env()
     agent = DeviceAgent(settings)
     HealthHandler.agent = agent
-    server = ThreadingHTTPServer((settings.health_host, settings.health_port), HealthHandler)
+    server = ThreadingHTTPServer(
+        (settings.health_host, settings.health_port),
+        HealthHandler,
+    )
 
     def stop(signum: int, frame: Any) -> None:
         LOG.info("Received signal %s", signum)
@@ -536,9 +569,17 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    worker = threading.Thread(target=agent.run, name="device-agent", daemon=True)
+    worker = threading.Thread(
+        target=agent.run,
+        name="device-agent",
+        daemon=True,
+    )
     worker.start()
-    LOG.info("Health endpoint listening on %s:%s", settings.health_host, settings.health_port)
+    LOG.info(
+        "Health endpoint listening on %s:%s",
+        settings.health_host,
+        settings.health_port,
+    )
     server.serve_forever(poll_interval=0.5)
     worker.join(timeout=10)
 
