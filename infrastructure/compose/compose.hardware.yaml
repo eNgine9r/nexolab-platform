@@ -1,0 +1,16 @@
+services:
+  device-agent:
+    environment:
+      DEVICE_MODE: xjp60d
+      SERIAL_DEVICE: /dev/rs485
+      SERIAL_BAUDRATE: 9600
+      SERIAL_PARITY: N
+      SERIAL_STOPBITS: 1
+      SERIAL_TIMEOUT_SECONDS: ${SERIAL_TIMEOUT_SECONDS:-0.30}
+      SERIAL_RETRIES: ${SERIAL_RETRIES:-1}
+      XJP60D_POINTS: ${XJP60D_POINTS:-106:3,106:4}
+      XJP60D_SCALE: ${XJP60D_SCALE:-0.1}
+    devices:
+      - "${RS485_HOST_DEVICE:?Set RS485_HOST_DEVICE to the stable /dev/serial/by-id path}:/dev/rs485"
+    group_add:
+      - "${RS485_GROUP_GID:-20}"

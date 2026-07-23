@@ -16,7 +16,34 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 
+from modbus_rtu import ModbusError, ModbusRTUClient
+from xjp60d import XJP60DReader
+
 LOG = logging.getLogger("nexolab.device_agent")
+
+
+def parse_xjp60d_points(value: str) -> tuple[tuple[int, int], ...]:
+    points: list[tuple[int, int]] = []
+    for token in value.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            unit_text, channel_text = token.split(":", maxsplit=1)
+            unit_id = int(unit_text)
+            channel = int(channel_text)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid XJP60D point {token!r}; expected UNIT_ID:CHANNEL"
+            ) from exc
+        if not 1 <= unit_id <= 247:
+            raise ValueError(f"XJP60D unit ID must be 1..247, got {unit_id}")
+        if not 1 <= channel <= 6:
+            raise ValueError(f"XJP60D channel must be 1..6, got {channel}")
+        point = (unit_id, channel)
+        if point not in points:
+            points.append(point)
+    return tuple(points)
 
 
 @dataclass(frozen=True)
@@ -30,10 +57,18 @@ class Settings:
     health_host: str
     health_port: int
     device_mode: str
+    serial_device: str
+    serial_baudrate: int
+    serial_parity: str
+    serial_stopbits: int
+    serial_timeout_seconds: float
+    serial_retries: int
+    xjp60d_points: tuple[tuple[int, int], ...]
+    xjp60d_scale: float
 
     @classmethod
     def from_env(cls) -> "Settings":
-        return cls(
+        settings = cls(
             node_id=os.getenv("NEXOLAB_NODE_ID", "edge-01"),
             mqtt_host=os.getenv("MQTT_HOST", "mqtt"),
             mqtt_port=int(os.getenv("MQTT_PORT", "1883")),
@@ -42,8 +77,21 @@ class Settings:
             database_path=Path(os.getenv("DATABASE_PATH", "/var/lib/nexolab/edge.db")),
             health_host=os.getenv("HEALTH_HOST", "0.0.0.0"),
             health_port=int(os.getenv("HEALTH_PORT", "8081")),
-            device_mode=os.getenv("DEVICE_MODE", "simulator"),
+            device_mode=os.getenv("DEVICE_MODE", "simulator").strip().casefold(),
+            serial_device=os.getenv("SERIAL_DEVICE", "/dev/rs485"),
+            serial_baudrate=int(os.getenv("SERIAL_BAUDRATE", "9600")),
+            serial_parity=os.getenv("SERIAL_PARITY", "N").strip().upper(),
+            serial_stopbits=int(os.getenv("SERIAL_STOPBITS", "1")),
+            serial_timeout_seconds=float(os.getenv("SERIAL_TIMEOUT_SECONDS", "0.30")),
+            serial_retries=int(os.getenv("SERIAL_RETRIES", "1")),
+            xjp60d_points=parse_xjp60d_points(os.getenv("XJP60D_POINTS", "")),
+            xjp60d_scale=float(os.getenv("XJP60D_SCALE", "0.1")),
         )
+        if settings.device_mode not in {"simulator", "xjp60d"}:
+            raise ValueError("DEVICE_MODE must be simulator or xjp60d")
+        if settings.device_mode == "xjp60d" and not settings.xjp60d_points:
+            raise ValueError("XJP60D_POINTS is required when DEVICE_MODE=xjp60d")
+        return settings
 
 
 @dataclass(frozen=True)
@@ -52,10 +100,15 @@ class TelemetryRecord:
     node_id: str
     captured_at: str
     metric: str
-    value: float
+    value: float | None
     unit: str
     quality: str
     source: str
+    equipment_id: str | None = None
+    channel_id: str | None = None
+    alarm: str | None = None
+    raw_value: int | None = None
+    raw_status: int | None = None
 
 
 class OfflineQueue:
@@ -125,6 +178,10 @@ class AgentState:
                 "status": "ok" if self.last_error is None else "degraded",
                 "node_id": settings.node_id,
                 "device_mode": settings.device_mode,
+                "configured_points": [
+                    f"{unit_id}-{channel:02d}"
+                    for unit_id, channel in settings.xjp60d_points
+                ],
                 "mqtt_connected": self.mqtt_connected,
                 "queue_size": queue_size,
                 "samples_total": self.samples_total,
@@ -145,6 +202,23 @@ class DeviceAgent:
         self.client.enable_logger(LOG)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
+        self.modbus_client: ModbusRTUClient | None = None
+        self.xjp60d_reader: XJP60DReader | None = None
+
+        if settings.device_mode == "xjp60d":
+            self.modbus_client = ModbusRTUClient(
+                settings.serial_device,
+                baudrate=settings.serial_baudrate,
+                parity=settings.serial_parity,
+                stopbits=settings.serial_stopbits,
+                timeout=settings.serial_timeout_seconds,
+                retries=settings.serial_retries,
+            )
+            self.xjp60d_reader = XJP60DReader(
+                self.modbus_client,
+                scale=settings.xjp60d_scale,
+                unit="degC",
+            )
 
     def _on_connect(
         self,
@@ -155,7 +229,7 @@ class DeviceAgent:
         properties: mqtt.Properties | None,
     ) -> None:
         connected = reason_code == 0
-        self.state.update(mqtt_connected=connected, last_error=None if connected else str(reason_code))
+        self.state.update(mqtt_connected=connected)
         LOG.info("MQTT connection result: %s", reason_code)
 
     def _on_disconnect(
@@ -174,26 +248,77 @@ class DeviceAgent:
         self.client.connect_async(self.settings.mqtt_host, self.settings.mqtt_port, keepalive=30)
         self.client.loop_start()
 
-    def sample(self) -> TelemetryRecord:
-        if self.settings.device_mode != "simulator":
-            raise RuntimeError(
-                "Hardware mode is reserved for the first Modbus adapter. "
-                "Set DEVICE_MODE=simulator until a driver is configured."
+    def sample_batch(self) -> tuple[list[TelemetryRecord], str | None]:
+        if self.settings.device_mode == "simulator":
+            now = datetime.now(timezone.utc).isoformat()
+            return (
+                [
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=now,
+                        metric="temperature.air",
+                        value=round(random.uniform(2.0, 8.0), 2),
+                        unit="degC",
+                        quality="valid",
+                        source="simulator",
+                    )
+                ],
+                None,
             )
 
-        now = datetime.now(timezone.utc).isoformat()
-        return TelemetryRecord(
-            event_id=str(uuid.uuid4()),
-            node_id=self.settings.node_id,
-            captured_at=now,
-            metric="temperature.air",
-            value=round(random.uniform(2.0, 8.0), 2),
-            unit="degC",
-            quality="good",
-            source="simulator",
-        )
+        if self.xjp60d_reader is None:
+            raise RuntimeError("XJP60D reader was not initialized")
 
-    def publish_or_queue(self, record: TelemetryRecord) -> None:
+        captured_at = datetime.now(timezone.utc).isoformat()
+        records: list[TelemetryRecord] = []
+        errors: list[str] = []
+        for unit_id, channel in self.settings.xjp60d_points:
+            equipment_id = f"K{unit_id}"
+            channel_id = f"{unit_id}-{channel:02d}"
+            try:
+                reading = self.xjp60d_reader.read_channel(unit_id, channel)
+            except (ModbusError, OSError, RuntimeError) as exc:
+                LOG.warning("XJP60D read failed for %s: %s", channel_id, exc)
+                errors.append(f"{channel_id}: {exc}")
+                records.append(
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric="temperature.probe",
+                        value=None,
+                        unit="degC",
+                        quality="communication_error",
+                        source="dixell-xjp60d",
+                        equipment_id=equipment_id,
+                        channel_id=channel_id,
+                    )
+                )
+                continue
+
+            records.append(
+                TelemetryRecord(
+                    event_id=str(uuid.uuid4()),
+                    node_id=self.settings.node_id,
+                    captured_at=captured_at,
+                    metric="temperature.probe",
+                    value=reading.value,
+                    unit=reading.unit,
+                    quality=reading.quality,
+                    source="dixell-xjp60d",
+                    equipment_id=equipment_id,
+                    channel_id=channel_id,
+                    alarm=reading.alarm,
+                    raw_value=reading.raw_value,
+                    raw_status=reading.raw_status,
+                )
+            )
+
+        error = "; ".join(errors) if errors else None
+        return records, error
+
+    def publish_or_queue(self, record: TelemetryRecord) -> bool:
         payload = json.dumps(asdict(record), separators=(",", ":"), ensure_ascii=False)
         if self.state.mqtt_connected:
             try:
@@ -202,47 +327,57 @@ class DeviceAgent:
                 if result.rc == mqtt.MQTT_ERR_SUCCESS:
                     self.state.update(
                         last_publish_at=datetime.now(timezone.utc).isoformat(),
-                        last_error=None,
                     )
-                    return
+                    return True
             except (RuntimeError, ValueError, OSError) as exc:
                 LOG.warning("MQTT publish failed; queueing event: %s", exc)
 
         self.queue.enqueue(self.settings.mqtt_topic, payload, record.event_id)
-        self.state.update(last_error="MQTT unavailable; telemetry queued locally")
+        return False
 
-    def flush_queue(self) -> None:
+    def flush_queue(self) -> bool:
         if not self.state.mqtt_connected:
-            return
+            return False
 
         for record_id, topic, payload in self.queue.oldest():
             result = self.client.publish(topic, payload, qos=1)
             result.wait_for_publish(timeout=5)
             if result.rc != mqtt.MQTT_ERR_SUCCESS:
-                break
+                return False
             self.queue.delete(record_id)
-            self.state.update(last_publish_at=datetime.now(timezone.utc).isoformat(), last_error=None)
+            self.state.update(last_publish_at=datetime.now(timezone.utc).isoformat())
+        return True
 
     def run(self) -> None:
         self.connect()
         LOG.info("Starting device agent for %s", self.settings.node_id)
 
-        while not self.stop_event.is_set():
-            try:
-                record = self.sample()
-                self.publish_or_queue(record)
-                self.flush_queue()
-                self.state.update(
-                    last_sample_at=record.captured_at,
-                    samples_total=self.state.samples_total + 1,
-                )
-            except Exception as exc:  # noqa: BLE001
-                LOG.exception("Device-agent cycle failed")
-                self.state.update(last_error=str(exc))
-            self.stop_event.wait(self.settings.sample_interval_seconds)
-
-        self.client.loop_stop()
-        self.client.disconnect()
+        try:
+            while not self.stop_event.is_set():
+                try:
+                    records, sample_error = self.sample_batch()
+                    publish_results = [
+                        self.publish_or_queue(record) for record in records
+                    ]
+                    publish_ok = all(publish_results)
+                    flush_ok = self.flush_queue()
+                    last_error = sample_error
+                    if last_error is None and (not publish_ok or not flush_ok):
+                        last_error = "MQTT unavailable; telemetry queued locally"
+                    self.state.update(
+                        last_sample_at=records[-1].captured_at if records else None,
+                        samples_total=self.state.samples_total + len(records),
+                        last_error=last_error,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    LOG.exception("Device-agent cycle failed")
+                    self.state.update(last_error=str(exc))
+                self.stop_event.wait(self.settings.sample_interval_seconds)
+        finally:
+            if self.modbus_client is not None:
+                self.modbus_client.close()
+            self.client.loop_stop()
+            self.client.disconnect()
 
 
 class HealthHandler(BaseHTTPRequestHandler):
