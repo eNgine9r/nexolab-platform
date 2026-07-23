@@ -1,4 +1,5 @@
-import { TelemetryClientError } from "./errors";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { TelemetryRestClient, type TelemetryFetch } from "./rest-client";
 
 const collection = {
@@ -17,6 +18,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe("TelemetryRestClient", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("builds deterministic latest and history queries", async () => {
     const fetchMock = vi.fn<TelemetryFetch>().mockResolvedValue(jsonResponse(collection));
     const client = new TelemetryRestClient("http://127.0.0.1:8082", {
@@ -80,7 +85,7 @@ describe("TelemetryRestClient", () => {
 
     controller.abort();
 
-    await expect(request).rejects.toMatchObject<TelemetryClientError>({
+    await expect(request).rejects.toMatchObject({
       code: "aborted",
     });
   });
@@ -103,11 +108,10 @@ describe("TelemetryRestClient", () => {
 
     await vi.advanceTimersByTimeAsync(250);
 
-    await expect(request).rejects.toMatchObject<TelemetryClientError>({
+    await expect(request).rejects.toMatchObject({
       code: "timeout",
       message: "Telemetry request exceeded 250 ms",
     });
-    vi.useRealTimers();
   });
 
   it("rejects a malformed successful response", async () => {
