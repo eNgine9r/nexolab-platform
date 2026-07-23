@@ -121,9 +121,7 @@ export function parseTelemetryCollection(input: unknown): TelemetryCollection {
   const nextOffset = input.next_offset;
   if (
     nextOffset !== null &&
-    (typeof nextOffset !== "number" ||
-      !Number.isInteger(nextOffset) ||
-      nextOffset < 0)
+    (typeof nextOffset !== "number" || !Number.isInteger(nextOffset) || nextOffset < 0)
   ) {
     throw new TelemetryPayloadError("next_offset must be a non-negative integer or null");
   }
