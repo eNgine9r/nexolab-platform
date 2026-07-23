@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://nexolab:nexolab@postgres:5432/nexolab"
     )
+    database_connect_timeout_seconds: int = Field(default=3, ge=1, le=30)
+    database_retry_initial_seconds: float = Field(default=0.25, ge=0.05, le=30.0)
+    database_retry_max_seconds: float = Field(default=5.0, ge=0.1, le=300.0)
     auto_create_schema: bool = False
 
     mqtt_enabled: bool = True
@@ -28,6 +31,8 @@ class Settings(BaseSettings):
     mqtt_qos: int = Field(default=1, ge=0, le=2)
 
     ingestion_queue_maxsize: int = Field(default=10_000, ge=1)
+    ingestion_payload_max_bytes: int = Field(default=262_144, ge=1024)
+    dead_letter_payload_max_bytes: int = Field(default=65_536, ge=256)
     api_max_page_size: int = Field(default=1000, ge=1, le=1000)
     history_max_range_days: int = Field(default=31, ge=1, le=366)
 
@@ -35,3 +40,10 @@ class Settings(BaseSettings):
     websocket_heartbeat_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
     websocket_send_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
     websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)
+
+    retention_enabled: bool = True
+    telemetry_retention_days: int = Field(default=365, ge=1, le=3650)
+    raw_payload_retention_days: int = Field(default=30, ge=1, le=3650)
+    dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
+    retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
+    retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
