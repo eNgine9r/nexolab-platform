@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -64,6 +65,34 @@ Index(
     TelemetrySample.metric,
     TelemetrySample.captured_at,
 )
+Index(
+    "ix_telemetry_latest_lookup",
+    TelemetrySample.node_id,
+    TelemetrySample.equipment_id,
+    TelemetrySample.channel_id,
+    TelemetrySample.metric,
+    TelemetrySample.captured_at,
+    TelemetrySample.event_id,
+)
+Index(
+    "ix_telemetry_history_lookup",
+    TelemetrySample.node_id,
+    TelemetrySample.channel_id,
+    TelemetrySample.captured_at,
+    TelemetrySample.event_id,
+)
+
+
+@dataclass(frozen=True)
+class TelemetryQuery:
+    node_id: str | None = None
+    equipment_id: str | None = None
+    channel_id: str | None = None
+    metric: str | None = None
+    quality: str | None = None
+    alarm: str | None = None
+    from_at: datetime | None = None
+    to_at: datetime | None = None
 
 
 class Database:
@@ -124,25 +153,112 @@ class Database:
                     postgresql_insert(table)
                     .values(**values)
                     .on_conflict_do_nothing(index_elements=["event_id"])
+                    .returning(table.c.event_id)
                 )
-            elif dialect == "sqlite":
+                inserted_event_id = connection.execute(statement).scalar_one_or_none()
+                return inserted_event_id is not None
+
+            if dialect == "sqlite":
                 statement = (
                     sqlite_insert(table)
                     .values(**values)
                     .on_conflict_do_nothing(index_elements=["event_id"])
                 )
-            else:
-                existing = connection.execute(
-                    select(TelemetrySample.id).where(
-                        TelemetrySample.event_id == str(event.event_id)
-                    )
-                ).first()
-                if existing is not None:
-                    return False
-                statement = table.insert().values(**values)
+                result = connection.execute(statement)
+                return result.rowcount == 1
 
-            result = connection.execute(statement)
-            return result.rowcount == 1
+            existing = connection.execute(
+                select(TelemetrySample.id).where(
+                    TelemetrySample.event_id == str(event.event_id)
+                )
+            ).first()
+            if existing is not None:
+                return False
+            connection.execute(table.insert().values(**values))
+            return True
+
+    @staticmethod
+    def _apply_filters(statement: Any, query: TelemetryQuery) -> Any:
+        filters = []
+        if query.node_id is not None:
+            filters.append(TelemetrySample.node_id == query.node_id)
+        if query.equipment_id is not None:
+            filters.append(TelemetrySample.equipment_id == query.equipment_id)
+        if query.channel_id is not None:
+            filters.append(TelemetrySample.channel_id == query.channel_id)
+        if query.metric is not None:
+            filters.append(TelemetrySample.metric == query.metric)
+        if query.quality is not None:
+            filters.append(TelemetrySample.quality == query.quality)
+        if query.alarm is not None:
+            filters.append(TelemetrySample.alarm == query.alarm)
+        if query.from_at is not None:
+            filters.append(TelemetrySample.captured_at >= query.from_at)
+        if query.to_at is not None:
+            filters.append(TelemetrySample.captured_at < query.to_at)
+        if filters:
+            statement = statement.where(*filters)
+        return statement
+
+    def latest_samples(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+    ) -> list[TelemetrySample]:
+        rank = func.row_number().over(
+            partition_by=(
+                TelemetrySample.node_id,
+                TelemetrySample.equipment_id,
+                TelemetrySample.channel_id,
+                TelemetrySample.metric,
+            ),
+            order_by=(
+                TelemetrySample.captured_at.desc(),
+                TelemetrySample.id.desc(),
+            ),
+        ).label("sample_rank")
+        ranked_statement = select(
+            TelemetrySample.id.label("sample_id"),
+            rank,
+        )
+        ranked_statement = self._apply_filters(ranked_statement, query)
+        ranked = ranked_statement.subquery()
+
+        statement = (
+            select(TelemetrySample)
+            .join(ranked, TelemetrySample.id == ranked.c.sample_id)
+            .where(ranked.c.sample_rank == 1)
+            .order_by(
+                TelemetrySample.captured_at.desc(),
+                TelemetrySample.event_id.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+        with self._sessions() as session:
+            return list(session.scalars(statement))
+
+    def history_samples(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+    ) -> list[TelemetrySample]:
+        statement = select(TelemetrySample)
+        statement = self._apply_filters(statement, query)
+        statement = (
+            statement.order_by(
+                TelemetrySample.captured_at.desc(),
+                TelemetrySample.event_id.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+        with self._sessions() as session:
+            return list(session.scalars(statement))
 
     def count_samples(self) -> int:
         with self._sessions() as session:

@@ -7,11 +7,15 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from app.api import create_api_router
 from app.config import Settings
 from app.db import Database
 from app.ingestion import TelemetryIngestor
 from app.mqtt_consumer import MqttConsumer
 from app.state import RuntimeState
+
+
+SERVICE_VERSION = "0.2.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -56,19 +60,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="NEXOLAB Telemetry Service",
-        version="0.1.0",
+        version=SERVICE_VERSION,
         lifespan=lifespan,
     )
     app.state.settings = resolved
     app.state.database = database
     app.state.runtime = state
     app.state.ingestor = ingestor
+    app.include_router(
+        create_api_router(
+            database,
+            max_history_days=resolved.history_max_range_days,
+            max_page_size=resolved.api_max_page_size,
+        )
+    )
 
     @app.get("/")
     def root() -> dict[str, str]:
         return {
             "service": resolved.service_name,
-            "version": "0.1.0",
+            "version": SERVICE_VERSION,
         }
 
     @app.get("/health/live")

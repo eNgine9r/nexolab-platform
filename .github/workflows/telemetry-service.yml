@@ -28,6 +28,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nexolab_test
+          POSTGRES_USER: nexolab
+          POSTGRES_PASSWORD: nexolab-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexolab -d nexolab_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://nexolab:nexolab-test@localhost:5432/nexolab_test
+      MQTT_ENABLED: "false"
+      AUTO_CREATE_SCHEMA: "false"
     defaults:
       run:
         working-directory: services/telemetry-service
@@ -41,11 +59,11 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Compile
         run: python -m compileall -q app tests migrations
-      - name: Test
+      - name: Apply migrations to PostgreSQL
+        run: alembic upgrade head
+      - name: Test with PostgreSQL integration
         run: python -m pytest -q
-      - name: Validate migration SQL
-        env:
-          DATABASE_URL: postgresql+psycopg://nexolab:nexolab@localhost:5432/nexolab
+      - name: Validate offline migration SQL
         run: alembic upgrade head --sql > /tmp/telemetry-migration.sql
       - name: Build container
         working-directory: ${{ github.workspace }}

@@ -41,6 +41,8 @@ services:
       MQTT_PORT: 1883
       MQTT_TOPIC: ${MQTT_TOPIC:-nexolab/telemetry}
       MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-nexolab-telemetry-ingestion}
+      API_MAX_PAGE_SIZE: ${API_MAX_PAGE_SIZE:-1000}
+      HISTORY_MAX_RANGE_DAYS: ${HISTORY_MAX_RANGE_DAYS:-31}
     command: ["alembic", "upgrade", "head"]
     depends_on:
       postgres:
