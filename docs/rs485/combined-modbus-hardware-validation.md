@@ -17,11 +17,11 @@ The complete batch timestamp was `2026-07-23T10:14:01.033804+00:00`.
 
 ## Validation summary
 
-| Family | Expected records | Valid records | Result |
-| --- | ---: | ---: | --- |
-| Dixell XJP60D | 2 | 2 | passed |
-| F&F LE-01MP | 32 | 32 | passed |
-| Total | 34 | 34 | passed |
+| Family        | Expected records | Valid records | Result |
+| ------------- | ---------------: | ------------: | ------ |
+| Dixell XJP60D |                2 |             2 | passed |
+| F&F LE-01MP   |               32 |            32 | passed |
+| Total         |               34 |            34 | passed |
 
 Operational checks also passed:
 
@@ -33,8 +33,8 @@ Operational checks also passed:
 
 ## XJP60D values
 
-| Point | Value | Quality | Alarm |
-| --- | ---: | --- | --- |
+| Point    |   Value | Quality | Alarm  |
+| -------- | ------: | ------- | ------ |
 | `106-03` | 26.0 °C | `valid` | `high` |
 | `106-04` | 25.6 °C | `valid` | `high` |
 
@@ -42,12 +42,12 @@ The `high` state is a controller alarm state, not a communication failure. Both 
 
 ## LE-01MP values
 
-| Unit | Voltage | Current | Frequency | Active power | Reactive power | Apparent power | Power factor | Internal temperature |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `200` | 226.4 V | 0.0 A | 50.0 Hz | 0 W | 0 var | 0 VA | 0.000 | 33 °C |
-| `201` | 226.9 V | 3.3 A | 50.0 Hz | 716 W | 184 var | 750 VA | 0.956 | 34 °C |
-| `202` | 227.6 V | 0.0 A | 50.0 Hz | 0 W | 0 var | 0 VA | 0.000 | 34 °C |
-| `203` | 228.7 V | 0.0 A | 50.0 Hz | 0 W | 0 var | 0 VA | 0.000 | 36 °C |
+|  Unit | Voltage | Current | Frequency | Active power | Reactive power | Apparent power | Power factor | Internal temperature |
+| ----: | ------: | ------: | --------: | -----------: | -------------: | -------------: | -----------: | -------------------: |
+| `200` | 226.4 V |   0.0 A |   50.0 Hz |          0 W |          0 var |           0 VA |        0.000 |                33 °C |
+| `201` | 226.9 V |   3.3 A |   50.0 Hz |        716 W |        184 var |         750 VA |        0.956 |                34 °C |
+| `202` | 227.6 V |   0.0 A |   50.0 Hz |          0 W |          0 var |           0 VA |        0.000 |                34 °C |
+| `203` | 228.7 V |   0.0 A |   50.0 Hz |          0 W |          0 var |           0 VA |        0.000 |                36 °C |
 
 The meter registers are read sequentially as separate FC03 requests. Cross-metric arithmetic must therefore not be treated as an atomic electrical snapshot.
 
