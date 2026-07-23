@@ -1,8 +1,24 @@
 # NEXOLAB Platform
 
-**NEXOLAB** — вебінтерфейс industrial IoT-платформи для лабораторного моніторингу, холодильного обладнання та smart locker infrastructure.
+**NEXOLAB** — industrial IoT-платформа для лабораторного моніторингу, холодильного обладнання та smart locker infrastructure.
 
-Поточний milestone реалізує адаптивну стартову сторінку операційного центру: KPI, edge-вузли, live-телеметрію, активні випробування, тривоги, схему лабораторії та камери.
+Поточний production slice замикає реальний маршрут:
+
+```text
+XJP60D 106-03, 106-04 + LE-01MP 200–203
+                  ↓
+        edge-01 Device Agent
+                  ↓ MQTT QoS 1
+        Central Telemetry Service
+                  ↓
+              PostgreSQL
+                  ↓
+       REST latest/history + WebSocket
+                  ↓
+          NEXOLAB Dashboard
+```
+
+Повний цикл містить **34 telemetry records**. Edge-вузол працює offline-first: Modbus polling і локальна SQLite outbox не залежать від доступності central backend або dashboard.
 
 ## Технології
 
@@ -10,13 +26,17 @@
 - React 19
 - TypeScript
 - Tailwind CSS 4
-- Lucide icons
+- FastAPI
+- PostgreSQL 16
+- Eclipse Mosquitto
+- SQLAlchemy + Alembic
+- Docker Compose
 - Vitest + Testing Library
+- Pytest
 - ESLint + Prettier
-- Husky + lint-staged + Commitlint
 - GitHub Actions + Dependabot
 
-## Швидкий старт
+## Frontend quick start
 
 ```bash
 nvm use
@@ -26,32 +46,85 @@ npm run dev
 
 Відкрийте `http://localhost:3000`.
 
-## Edge-контур Raspberry Pi
+### Demo mode
 
-Перший вертикальний зріз Edge-платформи включає:
-
-- симулятор телеметрії;
-- локальну SQLite offline-чергу;
-- MQTT broker;
-- health endpoint;
-- Docker Compose для development і Raspberry Pi;
-- Ansible provisioning;
-- складання `linux/arm64` image у GitHub Actions.
-
-Локальний запуск:
-
-```bash
-cp infrastructure/compose/.env.edge.example infrastructure/compose/.env
-cd infrastructure/compose
-docker compose -f compose.edge.yaml -f compose.dev.yaml up --build
-curl http://127.0.0.1:8081/health
+```dotenv
+NEXT_PUBLIC_NEXOLAB_DATA_MODE=demo
 ```
 
-Повна інструкція: [`docs/edge-bootstrap.md`](docs/edge-bootstrap.md).
+### Live mode
+
+```dotenv
+NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
+NEXT_PUBLIC_NEXOLAB_API_BASE_URL=http://<trusted-central-host>:8082
+NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=ws://<trusted-central-host>:8082/api/v1/telemetry/live
+```
+
+Live mode має явні `connecting`, `live`, `reconnecting`, `stale`, `offline` та `error` states і ніколи не підміняє недоступний backend demo-даними.
+
+## M3 deployment and operations
+
+Canonical operator entry point:
+
+[`docs/operations/m3-operator-runbook.md`](docs/operations/m3-operator-runbook.md)
+
+Supporting procedures:
+
+- controlled central deployment: [`docs/operations/central-deployment.md`](docs/operations/central-deployment.md);
+- edge-to-dashboard cutover and rollback: [`docs/operations/m3-cutover-validation.md`](docs/operations/m3-cutover-validation.md);
+- backend incidents, retention, backup and restore: [`docs/operations/telemetry-backend-runbook.md`](docs/operations/telemetry-backend-runbook.md);
+- acceptance evidence template: [`docs/operations/m3-validation-evidence-template.md`](docs/operations/m3-validation-evidence-template.md).
+
+Read-only status bundle:
+
+```bash
+cd infrastructure/compose
+bash m3-status.sh .env.central
+```
+
+Controlled cutover on `edge-01`:
+
+```bash
+bash m3-cutover.sh .env.edge-central
+```
+
+The cutover recreates only local Mosquitto with an outgoing persistent bridge. It proves that the `device-agent` container and `DEVICE_MODE=modbus` remain unchanged.
+
+## Edge-контур Raspberry Pi
+
+Edge stack includes:
+
+- XJP60D and LE-01MP read-only Modbus drivers;
+- sequential combined polling;
+- local SQLite offline queue;
+- MQTT QoS 1 publishing;
+- health and readiness endpoints;
+- Docker Compose hardware override;
+- Ansible provisioning;
+- `linux/arm64` image delivery.
+
+Production hardware launch:
+
+```bash
+cd infrastructure/compose
+
+docker compose \
+  --env-file .env.edge \
+  -f compose.edge.yaml \
+  -f compose.hardware.yaml \
+  up -d device-agent
+
+curl -fsS http://127.0.0.1:8081/health \
+  | python3 -m json.tool
+```
+
+The serial adapter must use a stable `/dev/serial/by-id/...` path. No production path permits Modbus writes.
+
+Full Edge instructions: [`docs/edge-bootstrap.md`](docs/edge-bootstrap.md).
 
 ## RS-485 discovery
 
-Для пошуку Modbus RTU пристроїв із невідомими параметрами додано read-only сканер. Він перебирає baud rate, parity, stop bits і unit ID, пробує стандартну ідентифікацію `43/14`, формує fingerprint і записує локальний JSON-реєстр.
+The read-only scanner enumerates baud rate, parity, stop bits and unit IDs, validates CRC and standard Device Identification, and records evidence without write functions.
 
 ```bash
 python tools/rs485_discovery/scan_rs485.py \
@@ -61,9 +134,11 @@ python tools/rs485_discovery/scan_rs485.py \
   --progress
 ```
 
-Інструкція та обмеження: [`tools/rs485_discovery/README.md`](tools/rs485_discovery/README.md).
+Instructions and safety constraints: [`tools/rs485_discovery/README.md`](tools/rs485_discovery/README.md).
 
-## Перевірки якості
+## Quality gates
+
+Frontend:
 
 ```bash
 npm run format:check
@@ -73,26 +148,42 @@ npm test
 npm run build
 ```
 
-## Структура
+Telemetry Service:
+
+```bash
+cd services/telemetry-service
+python -m pip install -r requirements-dev.txt
+python -m compileall -q app tests migrations
+python -m pytest -q
+```
+
+Deployment contracts are additionally validated in GitHub Actions through shell syntax checks, Python compilation and `docker compose config --quiet`.
+
+## Repository structure
 
 ```text
 src/
-├── app/                  # App Router, metadata, global styles
-├── components/dashboard # Компоненти стартового dashboard
-├── data/                 # Типізовані demo-дані
-└── test/                 # Налаштування тестів
+├── app/                       # Next.js App Router and global UI
+├── components/dashboard/      # Operational dashboard components
+├── data/                      # Isolated demo-only data
+├── hooks/                     # Live dashboard state integration
+└── lib/telemetry/             # Typed REST/WebSocket adapter and state model
 
 services/
-└── device-agent/         # Edge-збір, offline queue, MQTT і health
+├── device-agent/              # Modbus, SQLite outbox, MQTT and health
+└── telemetry-service/         # Ingestion, PostgreSQL, REST, WebSocket and metrics
 
 infrastructure/
-├── compose/              # Development та production Edge stack
-└── ansible/              # Provisioning Raspberry Pi
+├── compose/                   # Edge, central, bridge, validation and rollback profiles
+├── observability/             # Prometheus alert rules
+└── ansible/                   # Raspberry Pi provisioning
 
 tools/
-└── rs485_discovery/      # Read-only пошук Modbus RTU endpoints
+└── rs485_discovery/           # Read-only Modbus discovery and profiling
 
 docs/
+├── adr/                       # Architecture decisions
+├── operations/                # Deployment, incidents, cutover and evidence
 ├── architecture.md
 ├── design-system.md
 └── edge-bootstrap.md
@@ -100,25 +191,31 @@ docs/
 
 ## Архітектурні принципи
 
-- Server Components за замовчуванням; Client Components тільки для інтерактивності.
-- Компоненти не залежать від конкретного backend API.
-- Demo-дані ізольовані в `src/data/dashboard.ts` і надалі можуть бути замінені на API adapter.
-- Критичні стани мають текстові та іконографічні індикатори, а не лише колір.
-- UI адаптується від мобільного формату до широких операторських екранів.
-- Edge-вузол продовжує збір без хмари та догружає локальну чергу після відновлення MQTT.
-- Production images мають версіонуватися; тег `edge` використовується лише як канал початкової інтеграції.
-- Діагностика RS-485 не виконує записів у регістри та не змінює налаштування приладів.
+- Offline-first acquisition: edge polling does not depend on cloud or central services.
+- Server Components by default; Client Components only where interaction is required.
+- Explicit `demo` and `live` runtime modes.
+- Stable typed REST/WebSocket contract with runtime payload validation.
+- Newest `captured_at` wins; repeated `event_id` values are deduplicated.
+- Stale records are never presented as live.
+- Critical states include text and icon indicators, not color alone.
+- PostgreSQL migrations complete before application readiness.
+- Central PostgreSQL is not published to the host.
+- Persistent volumes survive container recreation and rollback.
+- MQTT, PostgreSQL, backend and WebSocket failures are diagnosed independently.
+- No operational script uses `docker compose down -v`.
+- No discovery, deployment or dashboard procedure performs Modbus writes.
 
-## Наступні етапи
+## Current milestone boundary
 
-1. Просканувати поточну RS-485 шину та підтвердити знайдені endpoints.
-2. Додати перевірені профілі регістрів LE-01MP і Dixell XJP60D.
-3. Підключити Modbus RTU adapter до Device Agent через `/dev/serial/by-id/...`.
-4. Підключити Supabase Auth і RBAC.
-5. Додати REST/WebSocket adapter для live-телеметрії.
-6. Реалізувати сторінки вузлів, сесій, обладнання та звітів.
-7. Додати E2E-тести основних операторських сценаріїв.
-8. Підключити Vercel Preview Deployments.
+Repository implementation is complete for:
+
+- controlled central deployment contract;
+- typed frontend telemetry adapter;
+- live operational dashboard state;
+- reversible edge-to-central MQTT cutover;
+- operator runbooks and evidence tooling.
+
+M3 operational acceptance still requires execution on real `edge-01` and the controlled central host, including outage, persistence, backup/restore and rollback evidence.
 
 ## Ліцензування
 
