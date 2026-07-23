@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,8 +21,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,19 +36,17 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Capture formatter patch
+      - name: Apply formatter
         run: |
           npm run format
-          git diff --binary > /tmp/prettier.patch
-          git checkout -- .
-
-      - name: Upload formatter patch
-        uses: actions/upload-artifact@v4
-        with:
-          name: telemetry-prettier-patch
-          path: /tmp/prettier.patch
-          if-no-files-found: error
-          retention-days: 1
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/telemetry
+          git commit -m "style(frontend): format telemetry adapter"
+          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: Check formatting
         run: npm run format:check
