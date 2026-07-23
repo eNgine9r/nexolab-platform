@@ -119,7 +119,12 @@ export function parseTelemetryCollection(input: unknown): TelemetryCollection {
   }
 
   const nextOffset = input.next_offset;
-  if (nextOffset !== null && (!Number.isInteger(nextOffset) || nextOffset < 0)) {
+  if (
+    nextOffset !== null &&
+    (typeof nextOffset !== "number" ||
+      !Number.isInteger(nextOffset) ||
+      nextOffset < 0)
+  ) {
     throw new TelemetryPayloadError("next_offset must be a non-negative integer or null");
   }
 
@@ -128,7 +133,7 @@ export function parseTelemetryCollection(input: unknown): TelemetryCollection {
     count: nonNegativeInteger(input, "count"),
     limit: nonNegativeInteger(input, "limit"),
     offset: nonNegativeInteger(input, "offset"),
-    next_offset: nextOffset as number | null,
+    next_offset: nextOffset,
   };
 }
 
