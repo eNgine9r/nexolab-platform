@@ -3,7 +3,6 @@ import {
   parseTelemetryLiveMessage,
   parseTelemetryReadiness,
 } from "./contract";
-import { TelemetryClientError } from "./errors";
 
 const sample = {
   event_id: "event-1",
@@ -82,9 +81,12 @@ describe("telemetry contract parsers", () => {
     [{ ...sample, value: Number.NaN }, "value"],
     [{ items: {}, count: 0, limit: 1, offset: 0, next_offset: null }, "items"],
   ])("rejects malformed payloads", (payload, path) => {
-    const parse = "items" in payload ? parseTelemetryCollection : parseTelemetryLiveMessage;
+    const parse =
+      "items" in payload
+        ? parseTelemetryCollection
+        : parseTelemetryLiveMessage;
     expect(() => parse(payload)).toThrowError(
-      expect.objectContaining<TelemetryClientError>({
+      expect.objectContaining({
         code: "contract",
         message: expect.stringContaining(path),
       }),
