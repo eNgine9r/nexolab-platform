@@ -50,3 +50,24 @@ Store the following files under `runtime/validation/combined-modbus-soak/`:
 - Do not change physical wiring while equipment is energized.
 - Do not use any Modbus write function.
 - Stop the test and roll back to `simulator` after repeated CRC failures, persistent timeouts, or unexpected bus contention.
+
+## Log classification
+
+MQTT interruption messages are transport-recovery diagnostics and must not be counted as RS-485 failures. Expected outage diagnostics include:
+
+- `MQTT disconnected`;
+- `MQTT publish failed; queueing event`;
+- `MQTT queue flush deferred`;
+- `MQTT unavailable; telemetry queued locally` in the health state.
+
+Count only the following patterns as serial or Modbus failures:
+
+```text
+XJP60D read failed
+LE-01MP read failed
+CRC mismatch
+Modbus exception
+permission denied
+```
+
+`Device-agent cycle failed` is a separate application-level failure and must remain zero after the MQTT queue recovery fix. It is reported separately from the serial error count.

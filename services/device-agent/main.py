@@ -481,10 +481,20 @@ class DeviceAgent:
             return False
 
         for record_id, topic, payload in self.queue.oldest():
-            result = self.client.publish(topic, payload, qos=1)
-            result.wait_for_publish(timeout=5)
-            if result.rc != mqtt.MQTT_ERR_SUCCESS:
+            try:
+                result = self.client.publish(topic, payload, qos=1)
+                result.wait_for_publish(timeout=5)
+            except (RuntimeError, ValueError, OSError) as exc:
+                LOG.warning("MQTT queue flush deferred: %s", exc)
                 return False
+
+            if result.rc != mqtt.MQTT_ERR_SUCCESS:
+                LOG.warning(
+                    "MQTT queue flush deferred: publish rc=%s",
+                    result.rc,
+                )
+                return False
+
             self.queue.delete(record_id)
             self.state.update(
                 last_publish_at=datetime.now(timezone.utc).isoformat(),
