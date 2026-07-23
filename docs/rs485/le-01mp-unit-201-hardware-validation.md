@@ -19,16 +19,16 @@ The read-only Device Agent hardware smoke test for F&F LE-01MP Modbus unit `201`
 
 All eight production metrics were published with `quality=valid`, `source=f-and-f-le-01mp`, and `equipment_id=LE01MP-201`.
 
-| Metric | Register | Raw | Published value |
-|---|---:|---:|---:|
-| `electrical.voltage` | 0 | 2273 | 227.3 V |
-| `electrical.current` | 1 | 5 | 0.5 A |
-| `electrical.frequency` | 2 | 500 | 50.0 Hz |
-| `electrical.power.active` | 3 | 123 | 123 W |
-| `electrical.power.reactive` | 4 | 17 | 17 var |
-| `electrical.power.apparent` | 5 | 131 | 131 VA |
-| `electrical.power_factor` | 6 | 1000 | 1.000 |
-| `temperature.internal` | 37 | 35 | 35 °C |
+| Metric                      | Register |  Raw | Published value |
+| --------------------------- | -------: | ---: | --------------: |
+| `electrical.voltage`        |        0 | 2273 |         227.3 V |
+| `electrical.current`        |        1 |    5 |           0.5 A |
+| `electrical.frequency`      |        2 |  500 |         50.0 Hz |
+| `electrical.power.active`   |        3 |  123 |           123 W |
+| `electrical.power.reactive` |        4 |   17 |          17 var |
+| `electrical.power.apparent` |        5 |  131 |          131 VA |
+| `electrical.power_factor`   |        6 | 1000 |           1.000 |
+| `temperature.internal`      |       37 |   35 |           35 °C |
 
 All records in the batch used the timestamp `2026-07-23T09:27:52.785640+00:00`.
 
