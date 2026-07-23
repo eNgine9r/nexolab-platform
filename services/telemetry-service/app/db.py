@@ -153,25 +153,29 @@ class Database:
                     postgresql_insert(table)
                     .values(**values)
                     .on_conflict_do_nothing(index_elements=["event_id"])
+                    .returning(table.c.event_id)
                 )
-            elif dialect == "sqlite":
+                inserted_event_id = connection.execute(statement).scalar_one_or_none()
+                return inserted_event_id is not None
+
+            if dialect == "sqlite":
                 statement = (
                     sqlite_insert(table)
                     .values(**values)
                     .on_conflict_do_nothing(index_elements=["event_id"])
                 )
-            else:
-                existing = connection.execute(
-                    select(TelemetrySample.id).where(
-                        TelemetrySample.event_id == str(event.event_id)
-                    )
-                ).first()
-                if existing is not None:
-                    return False
-                statement = table.insert().values(**values)
+                result = connection.execute(statement)
+                return result.rowcount == 1
 
-            result = connection.execute(statement)
-            return result.rowcount == 1
+            existing = connection.execute(
+                select(TelemetrySample.id).where(
+                    TelemetrySample.event_id == str(event.event_id)
+                )
+            ).first()
+            if existing is not None:
+                return False
+            connection.execute(table.insert().values(**values))
+            return True
 
     @staticmethod
     def _apply_filters(statement: Any, query: TelemetryQuery) -> Any:
