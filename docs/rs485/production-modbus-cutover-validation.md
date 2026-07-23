@@ -2,7 +2,7 @@
 
 ## Result
 
-The controlled production Modbus cutover and reboot persistence check passed on `nexolab-edge-01` on 2026-07-23.
+The controlled production Modbus cutover, reboot persistence check, and final hardware activation passed on `nexolab-edge-01` on 2026-07-23.
 
 The validated runtime state after reboot was:
 
@@ -30,7 +30,7 @@ last_error: null
 
 The Device Agent started at `2026-07-23T11:57:49.703696+00:00`. The last observed sample timestamp was `2026-07-23T11:58:17.768837+00:00`, and the last publish timestamp was `2026-07-23T11:58:22.669245+00:00`.
 
-## Operator rollback
+## Controlled rollback verification
 
 After the successful reboot verification, the operator intentionally ran the base Compose stack without `compose.hardware.yaml`:
 
@@ -40,14 +40,11 @@ docker compose \
   up -d --force-recreate device-agent
 ```
 
-This returned the node to the safe base `simulator` configuration. Therefore:
+This confirmed that rollback to the safe base `simulator` configuration remained available as a single command.
 
-- production hardware mode is technically validated and approved;
-- reboot persistence is validated;
-- the node's current mode is `simulator`;
-- `production_hardware_mode_enabled` remains `false` until the operator explicitly reactivates the hardware override and leaves it running.
+## Final production activation
 
-## Re-activation command
+The operator then re-applied the validated hardware override and left it running:
 
 ```bash
 cd ~/nexolab-platform/infrastructure/compose
@@ -58,4 +55,40 @@ docker compose \
   up -d --force-recreate device-agent
 ```
 
-After re-activation, verify `/health` returns `device_mode=modbus`, `queue_size=0`, and `last_error=null` before marking production hardware mode as enabled in the registry.
+The final observed runtime state was:
+
+```text
+status: ok
+device_mode: modbus
+configured_points: [106-03, 106-04]
+configured_devices: [LE01MP-200, LE01MP-201, LE01MP-202, LE01MP-203]
+mqtt_connected: true
+queue_size: 0
+samples_total: 68
+last_error: null
+```
+
+The Device Agent started at `2026-07-23T12:05:09.277274+00:00`. The last observed sample timestamp was `2026-07-23T12:05:20.442225+00:00`, and the last publish timestamp was `2026-07-23T12:05:26.879040+00:00`.
+
+The error-log acceptance filter returned:
+
+```text
+Production Modbus logs: clean
+```
+
+No XJP60D read failure, LE-01MP read failure, CRC mismatch, Modbus exception, permission error, or Device Agent cycle failure was observed.
+
+## Deployment decision
+
+The production hardware mode is enabled.
+
+The active profile remains:
+
+```text
+compose.edge.yaml + compose.hardware.yaml
+HARDWARE_DEVICE_MODE=modbus
+XJP60D_POINTS=106:3,106:4
+LE01MP_UNIT_IDS=200,201,202,203
+```
+
+The base `.env` still keeps `DEVICE_MODE=simulator`, preserving the tested one-command rollback path.
