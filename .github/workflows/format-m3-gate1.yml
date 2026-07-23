@@ -13,13 +13,15 @@ on:
       - "src/lib/telemetry/**"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -36,14 +38,20 @@ jobs:
             infrastructure/compose/compose.backend.production.yaml \
             infrastructure/compose/compose.backend.yaml \
             src/lib/telemetry
-      - uses: actions/upload-artifact@v4
-        with:
-          name: m3-gate1-prettier-output
-          path: |
-            .github/workflows/telemetry-service-image.yml
-            .github/workflows/telemetry-service.yml
-            docs/deployment/central-backend.md
-            infrastructure/compose/compose.backend.production.yaml
-            infrastructure/compose/compose.backend.yaml
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/telemetry-service-image.yml \
+            .github/workflows/telemetry-service.yml \
+            docs/deployment/central-backend.md \
+            infrastructure/compose/compose.backend.production.yaml \
+            infrastructure/compose/compose.backend.yaml \
             src/lib/telemetry
-          if-no-files-found: error
+          git commit -m "style: format M3 gate 1 files"
+          git push origin HEAD:${{ github.head_ref }}
