@@ -22,8 +22,8 @@ services:
     environment:
       NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:-edge-01}
       DEVICE_MODE: ${DEVICE_MODE:-simulator}
-      MQTT_HOST: mqtt
-      MQTT_PORT: 1883
+      MQTT_HOST: ${MQTT_HOST:-mqtt}
+      MQTT_PORT: ${MQTT_PORT:-1883}
       MQTT_TOPIC: ${MQTT_TOPIC:-nexolab/telemetry}
       SAMPLE_INTERVAL_SECONDS: ${SAMPLE_INTERVAL_SECONDS:-5}
       DATABASE_PATH: /var/lib/nexolab/edge.db
