@@ -1,7 +1,13 @@
 import type { TelemetryAlarm, TelemetryConnectionState, TelemetryQuality, TelemetrySample } from "./types";
 
 export type DashboardTelemetryStatus =
-  "demo" | "connecting" | "live" | "reconnecting" | "stale" | "offline" | "error";
+  | "demo"
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "stale"
+  | "offline"
+  | "error";
 
 export interface DashboardTelemetryStore {
   samples: Record<string, TelemetrySample>;
@@ -173,7 +179,15 @@ function isUsable(sample: TelemetrySample): sample is UsableTelemetrySample {
 }
 
 function normalizedMetric(metric: string): string {
-  return metric.trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
+  return metric
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[.\s-]+/g, "_");
+}
+
+function isTemperatureMetric(metric: string): boolean {
+  const normalized = normalizedMetric(metric);
+  return normalized === "temperature" || normalized.startsWith("temperature_");
 }
 
 function belongsToEnergyUnit(sample: TelemetrySample): boolean {
@@ -182,8 +196,13 @@ function belongsToEnergyUnit(sample: TelemetrySample): boolean {
   );
 }
 
+function isActivePowerMetric(metric: string): boolean {
+  const normalized = normalizedMetric(metric);
+  return normalized === "active_power" || normalized === "electrical_power_active";
+}
+
 function powerInKw(sample: TelemetrySample): number | null {
-  if (!isUsable(sample) || normalizedMetric(sample.metric) !== "active_power") {
+  if (!isUsable(sample) || !isActivePowerMetric(sample.metric)) {
     return null;
   }
 
@@ -253,9 +272,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const activeRecords = good.length;
   const alarmSamples = fresh.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
   const temperatures = good.filter(
-    (sample) =>
-      normalizedMetric(sample.metric) === "temperature" &&
-      PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
   const averageTemperature =
     temperatures.length === 0
@@ -332,8 +349,6 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
 
 export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
   return view.samples.filter(
-    (sample) =>
-      normalizedMetric(sample.metric) === "temperature" &&
-      PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
 }
