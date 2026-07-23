@@ -1,4 +1,3 @@
-import { TelemetryClientError } from "./errors";
 import { validateTelemetryRuntimeConfig } from "./runtime-config";
 
 describe("validateTelemetryRuntimeConfig", () => {
@@ -46,7 +45,7 @@ describe("validateTelemetryRuntimeConfig", () => {
     ],
   ])("rejects an invalid configuration", (input, message) => {
     expect(() => validateTelemetryRuntimeConfig(input)).toThrowError(
-      expect.objectContaining<TelemetryClientError>({
+      expect.objectContaining({
         code: "configuration",
         message: expect.stringContaining(message),
       }),
