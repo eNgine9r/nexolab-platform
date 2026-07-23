@@ -10,7 +10,7 @@ RUN useradd --create-home --uid 10001 nexolab \
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY main.py ./
+COPY *.py ./
 
 USER nexolab
 EXPOSE 8081
