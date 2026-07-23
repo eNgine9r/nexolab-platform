@@ -40,27 +40,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Capture typecheck diagnostics
-        run: |
-          set +e
-          npm run typecheck > /tmp/typecheck.log 2>&1
-          status=$?
-          cat /tmp/typecheck.log
-          printf '%s\n' "$status" > /tmp/typecheck.status
-          exit 0
-
-      - name: Upload typecheck diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: telemetry-typecheck-log
-          path: |
-            /tmp/typecheck.log
-            /tmp/typecheck.status
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Enforce typecheck result
-        run: test "$(cat /tmp/typecheck.status)" = "0"
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Test
         run: npm test
