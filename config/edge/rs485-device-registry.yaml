@@ -37,7 +37,21 @@ bus:
     cycle_failure_lines: 0
     rollback_to_simulator: passed
     result: passed
-    next_gate: controlled_persistent_modbus_cutover
+    next_gate: passed
+  production_modbus_cutover_validation:
+    status: passed
+    verified_at_utc: 2026-07-23T11:58:22.669245+00:00
+    device_mode: modbus
+    xjp60d_points: [106-03, 106-04]
+    le01mp_unit_ids: [200, 201, 202, 203]
+    mqtt_connected: true
+    queue_size: 0
+    samples_total: 136
+    last_error: null
+    reboot_persistence: passed
+    rollback_to_simulator_after_verification: completed
+    node_current_mode: simulator
+    next_gate: operator_activation_decision
 
 profiles:
   - id: climate-chamber-02-dixell
@@ -96,4 +110,6 @@ safety:
   production_hardware_mode_enabled: false
   explicit_compose_override_required: true
   combined_modbus_soak_test: passed
-  next_gate: controlled_persistent_modbus_cutover
+  production_modbus_cutover_validation: passed
+  node_current_mode: simulator
+  next_gate: operator_activation_decision
