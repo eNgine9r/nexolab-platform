@@ -50,8 +50,12 @@ bus:
     last_error: null
     reboot_persistence: passed
     rollback_to_simulator_after_verification: completed
-    node_current_mode: simulator
-    next_gate: operator_activation_decision
+    final_activation_at_utc: 2026-07-23T12:05:26.879040+00:00
+    final_activation_samples_total: 68
+    final_activation_logs: clean
+    node_current_mode: modbus
+    result: passed
+    next_gate: production_monitoring
 
 profiles:
   - id: climate-chamber-02-dixell
@@ -107,9 +111,9 @@ safety:
   read_only_profiling: true
   allowed_functions: [3, 4]
   production_hardware_mode_approved: true
-  production_hardware_mode_enabled: false
+  production_hardware_mode_enabled: true
   explicit_compose_override_required: true
   combined_modbus_soak_test: passed
   production_modbus_cutover_validation: passed
-  node_current_mode: simulator
-  next_gate: operator_activation_decision
+  node_current_mode: modbus
+  next_gate: production_monitoring
