@@ -4,17 +4,17 @@
 
 ## Run identity
 
-| Field | Value |
-| --- | --- |
-| Validation ID | `M3-YYYYMMDD-NN` |
-| Date | `YYYY-MM-DD` |
-| Start UTC | `YYYY-MM-DDTHH:MM:SSZ` |
-| Completion UTC | `YYYY-MM-DDTHH:MM:SSZ` |
-| Operator | `<name>` |
-| Reviewer | `<name>` |
-| Repository revision | `<git rev-parse HEAD>` |
-| Central host role | `<hostname / asset ID>` |
-| Edge host role | `edge-01` |
+| Field               | Value                        |
+| ------------------- | ---------------------------- |
+| Validation ID       | `M3-YYYYMMDD-NN`             |
+| Date                | `YYYY-MM-DD`                 |
+| Start UTC           | `YYYY-MM-DDTHH:MM:SSZ`       |
+| Completion UTC      | `YYYY-MM-DDTHH:MM:SSZ`       |
+| Operator            | `<name>`                     |
+| Reviewer            | `<name>`                     |
+| Repository revision | `<git rev-parse HEAD>`       |
+| Central host role   | `<hostname / asset ID>`      |
+| Edge host role      | `edge-01`                    |
 | Dashboard host role | `<hostname / deployment ID>` |
 
 ## Approved production scope
@@ -29,14 +29,14 @@
 
 ## Network boundary
 
-| Item | Evidence |
-| --- | --- |
+| Item                                | Evidence                                  |
+| ----------------------------------- | ----------------------------------------- |
 | Central bind address classification | `loopback / trusted LAN / IoT VLAN / VPN` |
-| Central MQTT port | `1884` |
-| Central API port | `8082` |
-| PostgreSQL published to host | `No` |
-| Public port forwarding | `No` |
-| CORS dashboard origin | `<origin without credentials>` |
+| Central MQTT port                   | `1884`                                    |
+| Central API port                    | `8082`                                    |
+| PostgreSQL published to host        | `No`                                      |
+| Public port forwarding              | `No`                                      |
+| CORS dashboard origin               | `<origin without credentials>`            |
 
 Security confirmation:
 
@@ -60,26 +60,26 @@ Security confirmation:
 
 Evidence file: `<runtime/evidence/.../edge-health-before.json>`
 
-| Check | Result |
-| --- | --- |
-| Health HTTP status | `<200>` |
-| Device mode | `<modbus>` |
-| Last error | `<null / value>` |
-| Queue depth | `<value>` |
+| Check                     | Result           |
+| ------------------------- | ---------------- |
+| Health HTTP status        | `<200>`          |
+| Device mode               | `<modbus>`       |
+| Last error                | `<null / value>` |
+| Queue depth               | `<value>`        |
 | Device Agent container ID | `<container ID>` |
 
 ### Central readiness before cutover
 
 Evidence file: `<runtime/evidence/.../central-ready-before.json>`
 
-| Check | Result |
-| --- | --- |
-| `status` | `<ready>` |
-| `database` | `<ready>` |
-| `mqtt` | `<ready>` |
-| Migration exit code | `<0>` |
-| PostgreSQL volume | `<present>` |
-| MQTT volume | `<present>` |
+| Check               | Result      |
+| ------------------- | ----------- |
+| `status`            | `<ready>`   |
+| `database`          | `<ready>`   |
+| `mqtt`              | `<ready>`   |
+| Migration exit code | `<0>`       |
+| PostgreSQL volume   | `<present>` |
+| MQTT volume         | `<present>` |
 
 ## Cutover execution
 
@@ -91,17 +91,17 @@ bash m3-cutover.sh .env.edge-central
 
 Evidence directory: `<runtime/evidence/m3-cutover-...>`
 
-| Check | Result |
-| --- | --- |
-| Cutover script exit code | `<0>` |
-| Start UTC | `<timestamp>` |
-| Completion UTC | `<timestamp>` |
-| Device Agent container ID before | `<ID>` |
-| Device Agent container ID after | `<ID>` |
-| Container ID preserved | `<true>` |
-| Modbus mode preserved | `<true>` |
-| Edge broker recovered | `<true>` |
-| Bridge connection observed | `<true / evidence>` |
+| Check                            | Result              |
+| -------------------------------- | ------------------- |
+| Cutover script exit code         | `<0>`               |
+| Start UTC                        | `<timestamp>`       |
+| Completion UTC                   | `<timestamp>`       |
+| Device Agent container ID before | `<ID>`              |
+| Device Agent container ID after  | `<ID>`              |
+| Container ID preserved           | `<true>`            |
+| Modbus mode preserved            | `<true>`            |
+| Edge broker recovered            | `<true>`            |
+| Bridge connection observed       | `<true / evidence>` |
 
 ## Telemetry validation
 
@@ -109,16 +109,16 @@ Evidence file: `<telemetry-validation.json>`
 
 ### Latest REST
 
-| Check | Expected | Actual |
-| --- | ---: | ---: |
-| Production unique series | 34 | `<value>` |
-| XJP60D `106-03` present | yes | `<yes/no>` |
-| XJP60D `106-04` present | yes | `<yes/no>` |
-| LE-01MP 200 series | 8 | `<value>` |
-| LE-01MP 201 series | 8 | `<value>` |
-| LE-01MP 202 series | 8 | `<value>` |
-| LE-01MP 203 series | 8 | `<value>` |
-| Oldest sample age | `≤ configured limit` | `<seconds>` |
+| Check                    |             Expected |      Actual |
+| ------------------------ | -------------------: | ----------: |
+| Production unique series |                   34 |   `<value>` |
+| XJP60D `106-03` present  |                  yes |  `<yes/no>` |
+| XJP60D `106-04` present  |                  yes |  `<yes/no>` |
+| LE-01MP 200 series       |                    8 |   `<value>` |
+| LE-01MP 201 series       |                    8 |   `<value>` |
+| LE-01MP 202 series       |                    8 |   `<value>` |
+| LE-01MP 203 series       |                    8 |   `<value>` |
+| Oldest sample age        | `≤ configured limit` | `<seconds>` |
 
 Quality counts:
 
@@ -140,25 +140,25 @@ Alarm counts:
 
 ### History REST
 
-| Check | Result |
-| --- | --- |
-| Recent history HTTP status | `<200>` |
-| Recent history count | `<value>` |
-| Earliest captured UTC | `<timestamp>` |
-| Latest captured UTC | `<timestamp>` |
+| Check                      | Result        |
+| -------------------------- | ------------- |
+| Recent history HTTP status | `<200>`       |
+| Recent history count       | `<value>`     |
+| Earliest captured UTC      | `<timestamp>` |
+| Latest captured UTC        | `<timestamp>` |
 
 ### WebSocket
 
-| Check | Result |
-| --- | --- |
-| Handshake | `<passed>` |
-| Newly committed event ID | `<event_id>` |
-| Event captured UTC | `<timestamp>` |
-| Equipment | `<equipment_id>` |
-| Channel | `<channel_id>` |
-| Metric | `<metric>` |
-| Quality | `<quality>` |
-| Alarm | `<alarm/null>` |
+| Check                    | Result           |
+| ------------------------ | ---------------- |
+| Handshake                | `<passed>`       |
+| Newly committed event ID | `<event_id>`     |
+| Event captured UTC       | `<timestamp>`    |
+| Equipment                | `<equipment_id>` |
+| Channel                  | `<channel_id>`   |
+| Metric                   | `<metric>`       |
+| Quality                  | `<quality>`      |
+| Alarm                    | `<alarm/null>`   |
 
 - [ ] WebSocket event was not already present in the initial REST snapshot;
 - [ ] dashboard updated without full-page reload.
@@ -189,16 +189,16 @@ Screenshots or screen recording references:
 
 ### Central MQTT outage
 
-| Field | Evidence |
-| --- | --- |
-| Stop UTC | `<timestamp>` |
-| Central readiness state | `<mqtt=not_ready>` |
-| Database readiness | `<ready>` |
-| Edge Modbus mode | `<modbus>` |
-| Dashboard state | `<reconnecting/stale/offline>` |
-| Demo fallback observed | `<no>` |
-| Restore UTC | `<timestamp>` |
-| Recovery validation evidence | `<path>` |
+| Field                        | Evidence                       |
+| ---------------------------- | ------------------------------ |
+| Stop UTC                     | `<timestamp>`                  |
+| Central readiness state      | `<mqtt=not_ready>`             |
+| Database readiness           | `<ready>`                      |
+| Edge Modbus mode             | `<modbus>`                     |
+| Dashboard state              | `<reconnecting/stale/offline>` |
+| Demo fallback observed       | `<no>`                         |
+| Restore UTC                  | `<timestamp>`                  |
+| Recovery validation evidence | `<path>`                       |
 
 - [ ] local edge acquisition continued;
 - [ ] bridge reconnect was observed;
@@ -206,39 +206,39 @@ Screenshots or screen recording references:
 
 ### PostgreSQL outage
 
-| Field | Evidence |
-| --- | --- |
-| Stop UTC | `<timestamp>` |
-| Central readiness state | `<database=not_ready>` |
-| Queue size maximum | `<value>` |
-| Database retry counter delta | `<value>` |
-| Device Agent restarted | `<no>` |
-| Restore UTC | `<timestamp>` |
-| Database recovery counter delta | `<value>` |
-| Queue drained | `<yes>` |
+| Field                           | Evidence               |
+| ------------------------------- | ---------------------- |
+| Stop UTC                        | `<timestamp>`          |
+| Central readiness state         | `<database=not_ready>` |
+| Queue size maximum              | `<value>`              |
+| Database retry counter delta    | `<value>`              |
+| Device Agent restarted          | `<no>`                 |
+| Restore UTC                     | `<timestamp>`          |
+| Database recovery counter delta | `<value>`              |
+| Queue drained                   | `<yes>`                |
 
 - [ ] Telemetry Service was not restarted while PostgreSQL was down;
 - [ ] fresh 34-series validation passed after recovery.
 
 ### WebSocket/backend restart
 
-| Field | Evidence |
-| --- | --- |
-| Restart UTC | `<timestamp>` |
+| Field                          | Evidence         |
+| ------------------------------ | ---------------- |
+| Restart UTC                    | `<timestamp>`    |
 | Dashboard state during restart | `<reconnecting>` |
-| Resume cursor | `<captured_at>` |
-| Duplicate UI series observed | `<no>` |
-| Return to live UTC | `<timestamp>` |
-| New event ID | `<event_id>` |
+| Resume cursor                  | `<captured_at>`  |
+| Duplicate UI series observed   | `<no>`           |
+| Return to live UTC             | `<timestamp>`    |
+| New event ID                   | `<event_id>`     |
 
 ### Duplicate suppression
 
-| Layer | Evidence |
-| --- | --- |
+| Layer                                               | Evidence                |
+| --------------------------------------------------- | ----------------------- |
 | PostgreSQL duplicate `event_id` rejected/idempotent | `<test or observation>` |
-| Frontend repeated `event_id` ignored | `<test or observation>` |
-| UI series count before | `<value>` |
-| UI series count after duplicate | `<same value>` |
+| Frontend repeated `event_id` ignored                | `<test or observation>` |
+| UI series count before                              | `<value>`               |
+| UI series count after duplicate                     | `<same value>`          |
 
 ## Restart persistence
 
@@ -249,27 +249,27 @@ from=<UTC>
 to=<UTC>
 ```
 
-| Check | Before restart | After restart |
-| --- | ---: | ---: |
-| History count | `<value>` | `<value>` |
-| Known event ID present | `<yes>` | `<yes>` |
-| PostgreSQL volume ID | `<ID>` | `<same ID>` |
+| Check                  | Before restart | After restart |
+| ---------------------- | -------------: | ------------: |
+| History count          |      `<value>` |     `<value>` |
+| Known event ID present |        `<yes>` |       `<yes>` |
+| PostgreSQL volume ID   |         `<ID>` |   `<same ID>` |
 
 - [ ] historical records survived backend/PostgreSQL restart;
 - [ ] no volume deletion occurred.
 
 ## Backup and restore drill
 
-| Field | Evidence |
-| --- | --- |
-| Backup file | `<secure path>` |
-| Backup UTC | `<timestamp>` |
-| Backup size | `<bytes>` |
-| Restore test database | `<name>` |
-| Telemetry row count | `<value>` |
-| Dead-letter row count | `<value>` |
-| Restore result | `<passed>` |
-| Test database removed | `<yes>` |
+| Field                 | Evidence        |
+| --------------------- | --------------- |
+| Backup file           | `<secure path>` |
+| Backup UTC            | `<timestamp>`   |
+| Backup size           | `<bytes>`       |
+| Restore test database | `<name>`        |
+| Telemetry row count   | `<value>`       |
+| Dead-letter row count | `<value>`       |
+| Restore result        | `<passed>`      |
+| Test database removed | `<yes>`         |
 
 ## Rollback
 
@@ -319,8 +319,8 @@ Reason:
 
 ## Deviations and known issues
 
-| ID | Observation | Impact | Owner | Disposition |
-| --- | --- | --- | --- | --- |
+| ID       | Observation     | Impact     | Owner     | Disposition            |
+| -------- | --------------- | ---------- | --------- | ---------------------- |
 | `M3-D01` | `<description>` | `<impact>` | `<owner>` | `<accepted/fix/block>` |
 
 ## Final decision

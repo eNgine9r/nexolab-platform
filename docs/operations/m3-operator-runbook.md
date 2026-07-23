@@ -60,12 +60,12 @@ The cutover is MQTT-only. It must never modify:
 
 ## Operator responsibilities
 
-| Role | Responsibility |
-| --- | --- |
-| Edge operator | Preserve Modbus polling, stable USB path and local Device Agent health |
-| Central operator | Deploy Mosquitto, PostgreSQL, migrations and Telemetry Service |
-| Dashboard operator | Select `demo` or `live` explicitly and verify freshness states |
-| Incident owner | Capture evidence before restart, preserve volumes and follow the subsystem-specific procedure |
+| Role               | Responsibility                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| Edge operator      | Preserve Modbus polling, stable USB path and local Device Agent health                        |
+| Central operator   | Deploy Mosquitto, PostgreSQL, migrations and Telemetry Service                                |
+| Dashboard operator | Select `demo` or `live` explicitly and verify freshness states                                |
+| Incident owner     | Capture evidence before restart, preserve volumes and follow the subsystem-specific procedure |
 
 One person may perform all roles during the pilot, but the boundaries remain explicit.
 
@@ -108,14 +108,14 @@ Not approved:
 
 Default ports:
 
-| Service | Host port | Binding |
-| --- | ---: | --- |
-| Edge Mosquitto | 1883 | loopback only |
-| Central Mosquitto | 1884 | loopback by default, trusted interface for remote edge |
-| Telemetry REST/WebSocket | 8082 | loopback by default, trusted interface for dashboard |
-| PostgreSQL | not published | internal Compose network only |
-| Device Agent health | 8081 | loopback only |
-| Dashboard | 3000 | operator-selected trusted interface |
+| Service                  |     Host port | Binding                                                |
+| ------------------------ | ------------: | ------------------------------------------------------ |
+| Edge Mosquitto           |          1883 | loopback only                                          |
+| Central Mosquitto        |          1884 | loopback by default, trusted interface for remote edge |
+| Telemetry REST/WebSocket |          8082 | loopback by default, trusted interface for dashboard   |
+| PostgreSQL               | not published | internal Compose network only                          |
+| Device Agent health      |          8081 | loopback only                                          |
+| Dashboard                |          3000 | operator-selected trusted interface                    |
 
 ### Edge hardware contract
 
