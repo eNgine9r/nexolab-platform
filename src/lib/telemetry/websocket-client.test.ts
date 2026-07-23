@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
 import type { TelemetryConnectionState, TelemetrySample } from "./types";
 import { TelemetryWebSocketClient } from "./websocket-client";
 
