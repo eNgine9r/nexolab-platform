@@ -23,7 +23,7 @@ describe("TelemetryRestClient", () => {
   });
 
   it("builds deterministic latest and history queries", async () => {
-    const fetchMock = vi.fn<TelemetryFetch>().mockResolvedValue(jsonResponse(collection));
+    const fetchMock = vi.fn<TelemetryFetch>().mockImplementation(async () => jsonResponse(collection));
     const client = new TelemetryRestClient("http://127.0.0.1:8082", {
       fetch: fetchMock,
     });
@@ -82,12 +82,13 @@ describe("TelemetryRestClient", () => {
     });
     const controller = new AbortController();
     const request = client.latest({}, controller.signal);
+    const assertion = expect(request).rejects.toMatchObject({
+      code: "aborted",
+    });
 
     controller.abort();
 
-    await expect(request).rejects.toMatchObject({
-      code: "aborted",
-    });
+    await assertion;
   });
 
   it("enforces the configured timeout", async () => {
@@ -105,13 +106,14 @@ describe("TelemetryRestClient", () => {
       timeoutMs: 250,
     });
     const request = client.latest();
-
-    await vi.advanceTimersByTimeAsync(250);
-
-    await expect(request).rejects.toMatchObject({
+    const assertion = expect(request).rejects.toMatchObject({
       code: "timeout",
       message: "Telemetry request exceeded 250 ms",
     });
+
+    await vi.advanceTimersByTimeAsync(250);
+
+    await assertion;
   });
 
   it("rejects a malformed successful response", async () => {
