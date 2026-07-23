@@ -1,21 +1,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     DateTime,
     Float,
     Index,
     Integer,
     JSON,
+    LargeBinary,
     String,
     create_engine,
+    delete,
     func,
     select,
     text,
+    update,
 )
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -48,6 +52,27 @@ class TelemetrySample(Base):
     raw_value: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     raw_status: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    raw_payload_retained: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default=text("true"),
+    )
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class DeadLetterEvent(Base):
+    __tablename__ = "telemetry_dead_letters"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    topic: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    reason_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason_detail: Mapped[str] = mapped_column(String(2048), nullable=False)
+    payload: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    payload_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    payload_truncated: Mapped[bool] = mapped_column(Boolean, nullable=False)
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -81,6 +106,15 @@ Index(
     TelemetrySample.captured_at,
     TelemetrySample.event_id,
 )
+Index(
+    "ix_dead_letter_reason_received",
+    DeadLetterEvent.reason_code,
+    DeadLetterEvent.received_at,
+)
+Index(
+    "ix_dead_letter_received",
+    DeadLetterEvent.received_at,
+)
 
 
 @dataclass(frozen=True)
@@ -95,11 +129,25 @@ class TelemetryQuery:
     to_at: datetime | None = None
 
 
+@dataclass(frozen=True)
+class RetentionResult:
+    telemetry_deleted: int = 0
+    raw_payloads_redacted: int = 0
+    dead_letters_deleted: int = 0
+
+
 class Database:
-    def __init__(self, database_url: str) -> None:
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        connect_timeout_seconds: int = 3,
+    ) -> None:
         connect_args: dict[str, Any] = {}
         if database_url.startswith("sqlite"):
             connect_args["check_same_thread"] = False
+        elif database_url.startswith("postgresql"):
+            connect_args["connect_timeout"] = connect_timeout_seconds
 
         self.engine = create_engine(
             database_url,
@@ -142,6 +190,7 @@ class Database:
             "raw_value": event.raw_value,
             "raw_status": event.raw_status,
             "raw_payload": raw_payload,
+            "raw_payload_retained": True,
         }
 
         table = TelemetrySample.__table__
@@ -176,6 +225,28 @@ class Database:
                 return False
             connection.execute(table.insert().values(**values))
             return True
+
+    def persist_dead_letter(
+        self,
+        *,
+        payload: bytes,
+        payload_size: int,
+        payload_truncated: bool,
+        reason_code: str,
+        reason_detail: str,
+        topic: str | None,
+    ) -> int:
+        statement = DeadLetterEvent.__table__.insert().values(
+            topic=topic,
+            reason_code=reason_code,
+            reason_detail=reason_detail[:2048],
+            payload=payload,
+            payload_size=payload_size,
+            payload_truncated=payload_truncated,
+        )
+        with self.engine.begin() as connection:
+            result = connection.execute(statement)
+            return int(result.inserted_primary_key[0])
 
     @staticmethod
     def _apply_filters(statement: Any, query: TelemetryQuery) -> Any:
@@ -260,9 +331,104 @@ class Database:
         with self._sessions() as session:
             return list(session.scalars(statement))
 
+    def cleanup_retention(
+        self,
+        *,
+        now: datetime,
+        telemetry_retention_days: int,
+        raw_payload_retention_days: int,
+        dead_letter_retention_days: int,
+        batch_size: int,
+    ) -> RetentionResult:
+        telemetry_cutoff = now - timedelta(days=telemetry_retention_days)
+        raw_payload_cutoff = now - timedelta(days=raw_payload_retention_days)
+        dead_letter_cutoff = now - timedelta(days=dead_letter_retention_days)
+
+        with self.engine.begin() as connection:
+            telemetry_ids = list(
+                connection.scalars(
+                    select(TelemetrySample.id)
+                    .where(TelemetrySample.captured_at < telemetry_cutoff)
+                    .order_by(TelemetrySample.id)
+                    .limit(batch_size)
+                )
+            )
+            if telemetry_ids:
+                connection.execute(
+                    delete(TelemetrySample).where(
+                        TelemetrySample.id.in_(telemetry_ids)
+                    )
+                )
+
+            raw_payload_ids = list(
+                connection.scalars(
+                    select(TelemetrySample.id)
+                    .where(
+                        TelemetrySample.received_at < raw_payload_cutoff,
+                        TelemetrySample.raw_payload_retained.is_(True),
+                    )
+                    .order_by(TelemetrySample.id)
+                    .limit(batch_size)
+                )
+            )
+            if raw_payload_ids:
+                connection.execute(
+                    update(TelemetrySample)
+                    .where(TelemetrySample.id.in_(raw_payload_ids))
+                    .values(raw_payload={}, raw_payload_retained=False)
+                )
+
+            dead_letter_ids = list(
+                connection.scalars(
+                    select(DeadLetterEvent.id)
+                    .where(DeadLetterEvent.received_at < dead_letter_cutoff)
+                    .order_by(DeadLetterEvent.id)
+                    .limit(batch_size)
+                )
+            )
+            if dead_letter_ids:
+                connection.execute(
+                    delete(DeadLetterEvent).where(
+                        DeadLetterEvent.id.in_(dead_letter_ids)
+                    )
+                )
+
+        return RetentionResult(
+            telemetry_deleted=len(telemetry_ids),
+            raw_payloads_redacted=len(raw_payload_ids),
+            dead_letters_deleted=len(dead_letter_ids),
+        )
+
     def count_samples(self) -> int:
         with self._sessions() as session:
             return int(
                 session.scalar(select(func.count()).select_from(TelemetrySample))
                 or 0
             )
+
+    def count_dead_letters(self) -> int:
+        with self._sessions() as session:
+            return int(
+                session.scalar(select(func.count()).select_from(DeadLetterEvent))
+                or 0
+            )
+
+    def count_retained_raw_payloads(self) -> int:
+        with self._sessions() as session:
+            return int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(TelemetrySample)
+                    .where(TelemetrySample.raw_payload_retained.is_(True))
+                )
+                or 0
+            )
+
+    def list_dead_letters(self, limit: int = 100) -> list[DeadLetterEvent]:
+        statement = (
+            select(DeadLetterEvent)
+            .order_by(DeadLetterEvent.received_at.desc(), DeadLetterEvent.id.desc())
+            .limit(limit)
+        )
+        with self._sessions() as session:
+            return list(session.scalars(statement))
