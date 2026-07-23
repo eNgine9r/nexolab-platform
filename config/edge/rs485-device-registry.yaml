@@ -12,24 +12,30 @@ bus:
 profiles:
   - id: climate-chamber-02-dixell
     name: Кліматична камера №2
-    device_type: dixell
+    device_type: dixell-xjp60d
     unit_ids: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114]
     status: confirmed
-    register_map_status: profiling
+    register_map_status: validated
+    register_map: config/edge/dixell-xjp60d-v1.6-register-map.yaml
+    production_driver: implemented
 
   - id: climate-chamber-01-dixell
     name: Кліматична камера №1
-    device_type: dixell
+    device_type: dixell-xjp60d
     unit_ids: [126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138]
     status: confirmed
-    register_map_status: profiling
+    register_map_status: validated
+    register_map: config/edge/dixell-xjp60d-v1.6-register-map.yaml
+    production_driver: implemented
 
   - id: energy-meters
     name: Лічильники електроенергії
-    device_type: energy-meter
+    device_type: f-and-f-le-01mp
     unit_ids: [200, 201, 202, 203]
     status: confirmed
-    register_map_status: profiling
+    register_map_status: validated_high_confidence_subset
+    register_map: config/edge/le-01mp-register-map.yaml
+    production_driver: implemented
 
   - id: unknown-unit-01
     name: Невідомий Modbus endpoint
@@ -37,8 +43,10 @@ profiles:
     unit_ids: [1]
     status: quarantined
     register_map_status: unknown
+    production_driver: disabled
 
 safety:
   read_only_profiling: true
   allowed_functions: [3, 4]
   production_hardware_mode_enabled: false
+  explicit_compose_override_required: true

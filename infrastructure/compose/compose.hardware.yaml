@@ -1,7 +1,7 @@
 services:
   device-agent:
     environment:
-      DEVICE_MODE: xjp60d
+      DEVICE_MODE: ${HARDWARE_DEVICE_MODE:-xjp60d}
       SERIAL_DEVICE: /dev/rs485
       SERIAL_BAUDRATE: 9600
       SERIAL_PARITY: N
@@ -10,6 +10,7 @@ services:
       SERIAL_RETRIES: ${SERIAL_RETRIES:-1}
       XJP60D_POINTS: ${XJP60D_POINTS:-106:3,106:4}
       XJP60D_SCALE: ${XJP60D_SCALE:-0.1}
+      LE01MP_UNIT_IDS: ${LE01MP_UNIT_IDS:-200,201,202,203}
     devices:
       - "${RS485_HOST_DEVICE:?Set RS485_HOST_DEVICE to the stable /dev/serial/by-id path}:/dev/rs485"
     group_add:

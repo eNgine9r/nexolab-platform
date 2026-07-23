@@ -1,0 +1,100 @@
+schema_version: 1
+source:
+  vendor: F&F
+  model: LE-01MP
+  validation: field-profiled
+  validated_unit_ids: [200, 201, 202, 203]
+
+serial:
+  baudrate: 9600
+  bytesize: 8
+  parity: N
+  stopbits: 1
+
+read_policy:
+  function: 3
+  one_register_per_request: true
+  read_only: true
+
+registers:
+  - key: voltage
+    address: 0
+    register_type: uint16
+    multiplier: 0.1
+    decimals: 1
+    unit: V
+    metric: electrical.voltage
+    confidence: high
+
+  - key: current
+    address: 1
+    register_type: uint16
+    multiplier: 0.1
+    decimals: 1
+    unit: A
+    metric: electrical.current
+    confidence: high
+
+  - key: frequency
+    address: 2
+    register_type: uint16
+    multiplier: 0.1
+    decimals: 1
+    unit: Hz
+    metric: electrical.frequency
+    confidence: high
+
+  - key: active_power
+    address: 3
+    register_type: uint16
+    multiplier: 1.0
+    decimals: 0
+    unit: W
+    metric: electrical.power.active
+    confidence: high
+
+  - key: reactive_power
+    address: 4
+    register_type: uint16
+    multiplier: 1.0
+    decimals: 0
+    unit: var
+    metric: electrical.power.reactive
+    confidence: medium
+
+  - key: apparent_power
+    address: 5
+    register_type: uint16
+    multiplier: 1.0
+    decimals: 0
+    unit: VA
+    metric: electrical.power.apparent
+    confidence: high
+
+  - key: power_factor
+    address: 6
+    register_type: uint16
+    multiplier: 0.001
+    decimals: 3
+    unit: ratio
+    metric: electrical.power_factor
+    confidence: high
+
+  - key: internal_temperature
+    address: 37
+    register_type: int16
+    multiplier: 1.0
+    decimals: 0
+    unit: degC
+    metric: temperature.internal
+    confidence: high
+
+excluded_candidates:
+  - address: 7
+    observed_role: cumulative_energy
+    reason: Scale, rollover behavior, and final engineering unit are not yet confirmed.
+
+service_registers:
+  - address: 43
+    observed_role: modbus_unit_id
+    production_telemetry: false
