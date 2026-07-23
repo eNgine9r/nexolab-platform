@@ -14,11 +14,11 @@ It does not change the production Raspberry Pi Modbus polling configuration.
 
 ## Default retention policy
 
-| Data class | Default retention | Action |
-| --- | ---: | --- |
-| Normalized telemetry | 365 days | Delete rows in bounded batches |
-| Original raw JSON payload | 30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
-| Dead-letter payload | 30 days | Delete rows in bounded batches |
+| Data class                | Default retention | Action                                                          |
+| ------------------------- | ----------------: | --------------------------------------------------------------- |
+| Normalized telemetry      |          365 days | Delete rows in bounded batches                                  |
+| Original raw JSON payload |           30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
+| Dead-letter payload       |           30 days | Delete rows in bounded batches                                  |
 
 Each scheduled cleanup processes at most `RETENTION_BATCH_SIZE` rows per data class. The default interval is one hour. This prevents cleanup from creating an unbounded transaction or long database lock.
 
