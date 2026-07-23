@@ -2,6 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveTelemetryClientConfig } from "./config";
 import { TelemetryLiveClient, type TelemetryLiveCallbacks, type TelemetrySocket } from "./live-client";
+import type {
+  TelemetryConnectionStatus,
+  TelemetryEvent,
+  TelemetryHeartbeat,
+} from "./types";
 
 const event = {
   event_id: "56bb5d38-1c20-48c7-bfaf-8d3101da9e21",
@@ -45,18 +50,15 @@ class FakeSocket implements TelemetrySocket {
   }
 }
 
-function callbacks(): TelemetryLiveCallbacks & {
-  onTelemetry: ReturnType<typeof vi.fn>;
-  onStatus: ReturnType<typeof vi.fn>;
-  onHeartbeat: ReturnType<typeof vi.fn>;
-  onError: ReturnType<typeof vi.fn>;
-} {
-  return {
-    onTelemetry: vi.fn(),
-    onStatus: vi.fn(),
-    onHeartbeat: vi.fn(),
-    onError: vi.fn(),
-  };
+function callbacks() {
+  const result = {
+    onTelemetry: vi.fn<(event: TelemetryEvent) => void>(),
+    onStatus: vi.fn<(status: TelemetryConnectionStatus) => void>(),
+    onHeartbeat: vi.fn<(heartbeat: TelemetryHeartbeat) => void>(),
+    onError: vi.fn<(error: Error) => void>(),
+  } satisfies TelemetryLiveCallbacks;
+
+  return result;
 }
 
 describe("TelemetryLiveClient", () => {
