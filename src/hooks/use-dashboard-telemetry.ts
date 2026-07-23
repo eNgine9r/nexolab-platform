@@ -23,6 +23,7 @@ import type {
   TelemetrySubscription,
 } from "@/lib/telemetry/types";
 
+// Recompute freshness independently of socket traffic so stalled streams become visibly stale.
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
 
