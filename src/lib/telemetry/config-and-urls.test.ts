@@ -1,9 +1,5 @@
 import { resolveTelemetryClientConfig } from "./config";
-import {
-  buildHistoryTelemetryUrl,
-  buildLatestTelemetryUrl,
-  buildLiveTelemetryUrl,
-} from "./urls";
+import { buildHistoryTelemetryUrl, buildLatestTelemetryUrl, buildLiveTelemetryUrl } from "./urls";
 
 describe("telemetry public configuration", () => {
   it("uses explicit demo mode and same-origin proxy defaults", () => {
@@ -59,12 +55,8 @@ describe("telemetry URL builders", () => {
     });
     const parsed = new URL(url);
 
-    expect(parsed.pathname).toBe(
-      "/telemetry-api/api/v1/telemetry/history",
-    );
-    expect(parsed.searchParams.get("from")).toBe(
-      "2026-07-23T12:00:00+00:00",
-    );
+    expect(parsed.pathname).toBe("/telemetry-api/api/v1/telemetry/history");
+    expect(parsed.searchParams.get("from")).toBe("2026-07-23T12:00:00+00:00");
     expect(parsed.searchParams.get("channel_id")).toBe("106-03");
   });
 

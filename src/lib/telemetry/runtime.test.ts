@@ -27,12 +27,12 @@ describe("telemetry runtime validation", () => {
   });
 
   it("rejects naive timestamps and unsupported quality values", () => {
-    expect(() =>
-      parseTelemetryEvent({ ...event, captured_at: "2026-07-23T12:05:20" }),
-    ).toThrow(TelemetryPayloadError);
-    expect(() =>
-      parseTelemetryEvent({ ...event, quality: "excellent" }),
-    ).toThrow("quality has an unsupported value");
+    expect(() => parseTelemetryEvent({ ...event, captured_at: "2026-07-23T12:05:20" })).toThrow(
+      TelemetryPayloadError,
+    );
+    expect(() => parseTelemetryEvent({ ...event, quality: "excellent" })).toThrow(
+      "quality has an unsupported value",
+    );
   });
 
   it("requires a numeric value for valid telemetry", () => {

@@ -1,10 +1,5 @@
 import type { TelemetryClientConfig } from "./config";
-import {
-  isHeartbeat,
-  parseHeartbeat,
-  parseTelemetryEvent,
-  TelemetryPayloadError,
-} from "./runtime";
+import { isHeartbeat, parseHeartbeat, parseTelemetryEvent, TelemetryPayloadError } from "./runtime";
 import type {
   TelemetryConnectionStatus,
   TelemetryEvent,
@@ -107,9 +102,7 @@ export class TelemetryLiveClient {
         ),
       );
     } catch (error) {
-      this.callbacks?.onError?.(
-        error instanceof Error ? error : new Error(String(error)),
-      );
+      this.callbacks?.onError?.(error instanceof Error ? error : new Error(String(error)));
       this.scheduleReconnect();
       return;
     }
@@ -145,9 +138,7 @@ export class TelemetryLiveClient {
 
   private handleMessage(data: unknown): void {
     if (typeof data !== "string") {
-      this.callbacks?.onError?.(
-        new TelemetryPayloadError("Telemetry WebSocket message must be text"),
-      );
+      this.callbacks?.onError?.(new TelemetryPayloadError("Telemetry WebSocket message must be text"));
       return;
     }
 
@@ -159,17 +150,12 @@ export class TelemetryLiveClient {
       }
 
       const event = parseTelemetryEvent(payload);
-      if (
-        this.resumeAfter === undefined ||
-        Date.parse(event.captured_at) > Date.parse(this.resumeAfter)
-      ) {
+      if (this.resumeAfter === undefined || Date.parse(event.captured_at) > Date.parse(this.resumeAfter)) {
         this.resumeAfter = event.captured_at;
       }
       this.callbacks?.onTelemetry(event);
     } catch (error) {
-      this.callbacks?.onError?.(
-        error instanceof Error ? error : new Error(String(error)),
-      );
+      this.callbacks?.onError?.(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -178,10 +164,7 @@ export class TelemetryLiveClient {
     this.setStatus("reconnecting");
 
     const exponent = Math.min(this.reconnectAttempt, 30);
-    const baseDelay = Math.min(
-      this.config.reconnectMaxMs,
-      this.config.reconnectMinMs * 2 ** exponent,
-    );
+    const baseDelay = Math.min(this.config.reconnectMaxMs, this.config.reconnectMinMs * 2 ** exponent);
     this.reconnectAttempt += 1;
     const jitterRange = baseDelay * this.config.reconnectJitterRatio;
     const jitter = (this.random() * 2 - 1) * jitterRange;

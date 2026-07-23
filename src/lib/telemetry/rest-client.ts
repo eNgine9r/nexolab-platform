@@ -6,11 +6,7 @@ import type {
   TelemetryHistoryQuery,
   TelemetryPagination,
 } from "./types";
-import {
-  buildHistoryTelemetryUrl,
-  buildLatestTelemetryUrl,
-  type TelemetryEndpointConfig,
-} from "./urls";
+import { buildHistoryTelemetryUrl, buildLatestTelemetryUrl, type TelemetryEndpointConfig } from "./urls";
 
 export class TelemetryRequestError extends Error {
   constructor(
@@ -51,9 +47,7 @@ export class TelemetryRestClient {
     filters: TelemetryFilters = {},
     pagination: TelemetryPagination = {},
   ): Promise<TelemetryCollection> {
-    return this.request(
-      buildLatestTelemetryUrl(this.endpoints, filters, pagination),
-    );
+    return this.request(buildLatestTelemetryUrl(this.endpoints, filters, pagination));
   }
 
   async history(query: TelemetryHistoryQuery): Promise<TelemetryCollection> {
@@ -91,13 +85,9 @@ export class TelemetryRestClient {
     } catch (error) {
       if (error instanceof TelemetryRequestError) throw error;
       if (controller.signal.aborted) {
-        throw new TelemetryRequestError(
-          `Telemetry request timed out after ${this.requestTimeoutMs} ms`,
-        );
+        throw new TelemetryRequestError(`Telemetry request timed out after ${this.requestTimeoutMs} ms`);
       }
-      throw new TelemetryRequestError(
-        `Telemetry request failed: ${String(error)}`,
-      );
+      throw new TelemetryRequestError(`Telemetry request failed: ${String(error)}`);
     } finally {
       clearTimeout(timeout);
     }

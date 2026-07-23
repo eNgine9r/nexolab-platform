@@ -20,11 +20,7 @@ export interface TelemetryClientConfig {
   reconnectJitterRatio: number;
 }
 
-function positiveInteger(
-  value: string | undefined,
-  fallback: number,
-  field: string,
-): number {
+function positiveInteger(value: string | undefined, fallback: number, field: string): number {
   if (!value) return fallback;
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -37,9 +33,7 @@ function boundedRatio(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
-    throw new Error(
-      "NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO must be between 0 and 1",
-    );
+    throw new Error("NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO must be between 0 and 1");
   }
   return parsed;
 }
@@ -47,17 +41,12 @@ function boundedRatio(value: string | undefined, fallback: number): number {
 export function publicTelemetryEnvironment(): PublicTelemetryEnvironment {
   return {
     NEXT_PUBLIC_TELEMETRY_MODE: process.env.NEXT_PUBLIC_TELEMETRY_MODE,
-    NEXT_PUBLIC_TELEMETRY_API_BASE_URL:
-      process.env.NEXT_PUBLIC_TELEMETRY_API_BASE_URL,
+    NEXT_PUBLIC_TELEMETRY_API_BASE_URL: process.env.NEXT_PUBLIC_TELEMETRY_API_BASE_URL,
     NEXT_PUBLIC_TELEMETRY_WS_URL: process.env.NEXT_PUBLIC_TELEMETRY_WS_URL,
-    NEXT_PUBLIC_TELEMETRY_REQUEST_TIMEOUT_MS:
-      process.env.NEXT_PUBLIC_TELEMETRY_REQUEST_TIMEOUT_MS,
-    NEXT_PUBLIC_TELEMETRY_RECONNECT_MIN_MS:
-      process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_MIN_MS,
-    NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS:
-      process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS,
-    NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO:
-      process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO,
+    NEXT_PUBLIC_TELEMETRY_REQUEST_TIMEOUT_MS: process.env.NEXT_PUBLIC_TELEMETRY_REQUEST_TIMEOUT_MS,
+    NEXT_PUBLIC_TELEMETRY_RECONNECT_MIN_MS: process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_MIN_MS,
+    NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS: process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS,
+    NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO: process.env.NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO,
   };
 }
 
@@ -80,18 +69,13 @@ export function resolveTelemetryClientConfig(
     "NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS",
   );
   if (reconnectMaxMs < reconnectMinMs) {
-    throw new Error(
-      "NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS must be greater than or equal to the minimum",
-    );
+    throw new Error("NEXT_PUBLIC_TELEMETRY_RECONNECT_MAX_MS must be greater than or equal to the minimum");
   }
 
   return {
     mode: modeValue,
-    apiBaseUrl:
-      environment.NEXT_PUBLIC_TELEMETRY_API_BASE_URL?.trim() ||
-      "/telemetry-api",
-    websocketUrl:
-      environment.NEXT_PUBLIC_TELEMETRY_WS_URL?.trim() || undefined,
+    apiBaseUrl: environment.NEXT_PUBLIC_TELEMETRY_API_BASE_URL?.trim() || "/telemetry-api",
+    websocketUrl: environment.NEXT_PUBLIC_TELEMETRY_WS_URL?.trim() || undefined,
     requestTimeoutMs: positiveInteger(
       environment.NEXT_PUBLIC_TELEMETRY_REQUEST_TIMEOUT_MS,
       10_000,
@@ -99,9 +83,6 @@ export function resolveTelemetryClientConfig(
     ),
     reconnectMinMs,
     reconnectMaxMs,
-    reconnectJitterRatio: boundedRatio(
-      environment.NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO,
-      0.2,
-    ),
+    reconnectJitterRatio: boundedRatio(environment.NEXT_PUBLIC_TELEMETRY_RECONNECT_JITTER_RATIO, 0.2),
   };
 }

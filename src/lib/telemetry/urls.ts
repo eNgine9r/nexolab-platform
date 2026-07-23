@@ -1,17 +1,6 @@
-import type {
-  TelemetryFilters,
-  TelemetryHistoryQuery,
-  TelemetryPagination,
-} from "./types";
+import type { TelemetryFilters, TelemetryHistoryQuery, TelemetryPagination } from "./types";
 
-const FILTER_KEYS = [
-  "node_id",
-  "equipment_id",
-  "channel_id",
-  "metric",
-  "quality",
-  "alarm",
-] as const;
+const FILTER_KEYS = ["node_id", "equipment_id", "channel_id", "metric", "quality", "alarm"] as const;
 
 export interface TelemetryEndpointConfig {
   apiBaseUrl: string;
@@ -31,10 +20,7 @@ function absoluteUrl(value: string, origin?: string): URL {
 }
 
 function appendPath(baseUrl: string, path: string, origin?: string): URL {
-  const base = absoluteUrl(
-    baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`,
-    origin,
-  );
+  const base = absoluteUrl(baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`, origin);
   return new URL(path.replace(/^\/+/, ""), base);
 }
 
@@ -61,11 +47,7 @@ export function buildLatestTelemetryUrl(
   filters: TelemetryFilters = {},
   pagination: TelemetryPagination = {},
 ): string {
-  const url = appendPath(
-    config.apiBaseUrl,
-    "/api/v1/telemetry/latest",
-    config.origin,
-  );
+  const url = appendPath(config.apiBaseUrl, "/api/v1/telemetry/latest", config.origin);
   appendFilters(url, filters);
   appendPagination(url, pagination);
   return url.toString();
@@ -75,11 +57,7 @@ export function buildHistoryTelemetryUrl(
   config: TelemetryEndpointConfig,
   query: TelemetryHistoryQuery,
 ): string {
-  const url = appendPath(
-    config.apiBaseUrl,
-    "/api/v1/telemetry/history",
-    config.origin,
-  );
+  const url = appendPath(config.apiBaseUrl, "/api/v1/telemetry/history", config.origin);
   appendFilters(url, query);
   appendPagination(url, query);
   url.searchParams.set("from", query.from);
@@ -94,11 +72,7 @@ export function buildLiveTelemetryUrl(
 ): string {
   const url = config.websocketUrl
     ? absoluteUrl(config.websocketUrl, config.origin)
-    : appendPath(
-        config.apiBaseUrl,
-        "/api/v1/telemetry/live",
-        config.origin,
-      );
+    : appendPath(config.apiBaseUrl, "/api/v1/telemetry/live", config.origin);
 
   if (url.protocol === "http:") url.protocol = "ws:";
   if (url.protocol === "https:") url.protocol = "wss:";

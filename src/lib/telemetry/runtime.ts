@@ -9,8 +9,7 @@ import {
   type TelemetrySample,
 } from "./types";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TIMEZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/;
 
 export class TelemetryPayloadError extends Error {
@@ -42,10 +41,7 @@ function requiredString(
   return value;
 }
 
-function nullableFiniteNumber(
-  record: Record<string, unknown>,
-  field: string,
-): number | null {
+function nullableFiniteNumber(record: Record<string, unknown>, field: string): number | null {
   const value = record[field];
   if (value === null) return null;
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -84,11 +80,7 @@ export function parseTelemetryEvent(input: unknown): TelemetryEvent {
     throw new TelemetryPayloadError("telemetry payload must be an object");
   }
 
-  const quality = enumValue<TelemetryQuality>(
-    input,
-    "quality",
-    TELEMETRY_QUALITIES,
-  );
+  const quality = enumValue<TelemetryQuality>(input, "quality", TELEMETRY_QUALITIES);
   const value = nullableFiniteNumber(input, "value");
   if (quality === "valid" && value === null) {
     throw new TelemetryPayloadError("valid telemetry requires a numeric value");

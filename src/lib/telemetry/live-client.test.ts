@@ -1,9 +1,5 @@
 import { resolveTelemetryClientConfig } from "./config";
-import {
-  TelemetryLiveClient,
-  type TelemetryLiveCallbacks,
-  type TelemetrySocket,
-} from "./live-client";
+import { TelemetryLiveClient, type TelemetryLiveCallbacks, type TelemetrySocket } from "./live-client";
 
 const event = {
   event_id: "56bb5d38-1c20-48c7-bfaf-8d3101da9e21",
@@ -102,9 +98,7 @@ describe("TelemetryLiveClient", () => {
     vi.advanceTimersByTime(1);
 
     expect(FakeSocket.instances).toHaveLength(2);
-    expect(FakeSocket.instances[1]!.url).toContain(
-      "after=2026-07-23T12%3A05%3A20.442225%2B00%3A00",
-    );
+    expect(FakeSocket.instances[1]!.url).toContain("after=2026-07-23T12%3A05%3A20.442225%2B00%3A00");
     client.disconnect();
     expect(handlers.onStatus).toHaveBeenLastCalledWith("stopped");
   });

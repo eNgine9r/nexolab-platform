@@ -30,11 +30,12 @@ function collection(items: unknown[]) {
 
 describe("TelemetryRestClient", () => {
   it("requests and validates latest telemetry", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify(collection([sample])), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify(collection([sample])), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     );
     const client = new TelemetryRestClient({
       config: resolveTelemetryClientConfig({
@@ -57,16 +58,15 @@ describe("TelemetryRestClient", () => {
       config: resolveTelemetryClientConfig({
         NEXT_PUBLIC_TELEMETRY_API_BASE_URL: "https://api.nexolab.example",
       }),
-      fetchImpl: vi.fn(async () =>
-        new Response(JSON.stringify({ items: "not-an-array" }), {
-          status: 200,
-        }),
+      fetchImpl: vi.fn(
+        async () =>
+          new Response(JSON.stringify({ items: "not-an-array" }), {
+            status: 200,
+          }),
       ) as typeof fetch,
     });
 
-    await expect(client.latest()).rejects.toThrow(
-      "telemetry collection has an invalid shape",
-    );
+    await expect(client.latest()).rejects.toThrow("telemetry collection has an invalid shape");
   });
 
   it("surfaces backend status and response detail", async () => {
@@ -74,9 +74,7 @@ describe("TelemetryRestClient", () => {
       config: resolveTelemetryClientConfig({
         NEXT_PUBLIC_TELEMETRY_API_BASE_URL: "https://api.nexolab.example",
       }),
-      fetchImpl: vi.fn(async () =>
-        new Response("database unavailable", { status: 503 }),
-      ) as typeof fetch,
+      fetchImpl: vi.fn(async () => new Response("database unavailable", { status: 503 })) as typeof fetch,
     });
 
     await expect(client.latest()).rejects.toEqual(

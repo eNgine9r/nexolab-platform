@@ -1,9 +1,4 @@
-export const TELEMETRY_QUALITIES = [
-  "valid",
-  "sensor_error",
-  "communication_error",
-  "unknown",
-] as const;
+export const TELEMETRY_QUALITIES = ["valid", "sensor_error", "communication_error", "unknown"] as const;
 
 export const TELEMETRY_ALARMS = ["low", "high"] as const;
 
@@ -64,9 +59,4 @@ export interface TelemetryHeartbeat {
 
 export type TelemetryLiveMessage = TelemetryEvent | TelemetryHeartbeat;
 
-export type TelemetryConnectionStatus =
-  | "idle"
-  | "connecting"
-  | "live"
-  | "reconnecting"
-  | "stopped";
+export type TelemetryConnectionStatus = "idle" | "connecting" | "live" | "reconnecting" | "stopped";
