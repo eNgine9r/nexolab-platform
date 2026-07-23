@@ -1,6 +1,7 @@
 import { parseTelemetryLiveMessage } from "./contract";
 import { TelemetryClientError } from "./errors";
 import type {
+  TelemetryConnectionState,
   TelemetryFilters,
   TelemetryLiveHandlers,
   TelemetrySubscription,
@@ -56,9 +57,17 @@ export class TelemetryWebSocketClient {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempt = 0;
     let closed = false;
+    let lastState: TelemetryConnectionState | null = null;
     let lastCommittedCapturedAt: string | null = null;
     const seenEventIds = new Set<string>();
     const seenOrder: string[] = [];
+
+    const setState = (state: TelemetryConnectionState) => {
+      if (state !== lastState) {
+        lastState = state;
+        handlers.onStateChange?.(state);
+      }
+    };
 
     const reportError = (error: unknown, message: string) => {
       handlers.onError?.(
@@ -84,15 +93,14 @@ export class TelemetryWebSocketClient {
         return;
       }
 
-      handlers.onStateChange?.(
-        reconnectAttempt === 0 ? "connecting" : "reconnecting",
-      );
+      setState(reconnectAttempt === 0 ? "connecting" : "reconnecting");
       socket = this.createSocket(
         buildUrl(this.websocketUrl, filters, lastCommittedCapturedAt),
       );
 
       socket.addEventListener("open", () => {
-        handlers.onStateChange?.("connected");
+        reconnectAttempt = 0;
+        setState("connected");
       });
 
       socket.addEventListener("message", (event) => {
@@ -101,7 +109,6 @@ export class TelemetryWebSocketClient {
             JSON.parse(String(event.data)) as unknown,
           );
           if (message.kind === "heartbeat") {
-            reconnectAttempt = 0;
             handlers.onHeartbeat?.(message.serverTime);
             return;
           }
@@ -118,7 +125,6 @@ export class TelemetryWebSocketClient {
           handlers.onSample(message.sample);
           remember(message.sample.event_id);
           lastCommittedCapturedAt = message.sample.captured_at;
-          reconnectAttempt = 0;
         } catch (error) {
           reportError(error, "Invalid WebSocket telemetry message");
         }
@@ -131,12 +137,12 @@ export class TelemetryWebSocketClient {
       socket.addEventListener("close", () => {
         socket = null;
         if (closed) {
-          handlers.onStateChange?.("disconnected");
+          setState("disconnected");
           return;
         }
 
         if (reconnectAttempt >= this.reconnectDelaysMs.length) {
-          handlers.onStateChange?.("disconnected");
+          setState("disconnected");
           handlers.onError?.(
             new TelemetryClientError(
               "websocket",
@@ -148,7 +154,7 @@ export class TelemetryWebSocketClient {
 
         const delay = this.reconnectDelaysMs[reconnectAttempt];
         reconnectAttempt += 1;
-        handlers.onStateChange?.("reconnecting");
+        setState("reconnecting");
         reconnectTimer = setTimeout(connect, delay);
       });
     };
@@ -164,7 +170,7 @@ export class TelemetryWebSocketClient {
         }
         socket?.close(1000, "dashboard subscription closed");
         socket = null;
-        handlers.onStateChange?.("disconnected");
+        setState("disconnected");
       },
     };
   }
