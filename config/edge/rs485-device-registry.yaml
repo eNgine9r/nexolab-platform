@@ -18,7 +18,26 @@ bus:
     communication_errors: 0
     mqtt_publish: passed
     rollback_to_simulator: passed
-    next_gate: combined_modbus_soak_test
+    next_gate: passed
+  combined_modbus_soak_test:
+    status: passed
+    initial_run_started_at_utc: 2026-07-23T10:37:54+00:00
+    recovery_retest_started_at_utc: 2026-07-23T11:32:17+00:00
+    xjp60d_points: [106-03, 106-04]
+    le01mp_unit_ids: [200, 201, 202, 203]
+    initial_samples_before: 102
+    initial_samples_after: 5848
+    recovery_samples_before: 136
+    recovery_samples_after: 612
+    outage_queue_size: 34
+    mqtt_recovery: passed
+    offline_queue_drain: passed
+    device_agent_restart: passed
+    serial_error_lines: 0
+    cycle_failure_lines: 0
+    rollback_to_simulator: passed
+    result: passed
+    next_gate: controlled_persistent_modbus_cutover
 
 profiles:
   - id: climate-chamber-02-dixell
@@ -73,6 +92,8 @@ profiles:
 safety:
   read_only_profiling: true
   allowed_functions: [3, 4]
+  production_hardware_mode_approved: true
   production_hardware_mode_enabled: false
   explicit_compose_override_required: true
-  combined_modbus_soak_test: pending
+  combined_modbus_soak_test: passed
+  next_gate: controlled_persistent_modbus_cutover
