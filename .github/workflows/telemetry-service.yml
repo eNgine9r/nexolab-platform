@@ -86,6 +86,7 @@ jobs:
           bash -n infrastructure/compose/m3-cutover.sh
           bash -n infrastructure/compose/m3-edge-rollback.sh
           bash -n infrastructure/compose/m3-central-stop.sh
+          bash -n infrastructure/compose/m3-status.sh
           python -m py_compile infrastructure/compose/m3-validate-cutover.py
           docker compose \
             --env-file infrastructure/compose/.env.central.example \
