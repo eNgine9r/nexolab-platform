@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, ChevronRight, X } from "lucide-react";
 
 import type { EdgeNode } from "@/data/dashboard";
@@ -114,7 +114,11 @@ function SessionModal({ onClose }: { onClose: () => void }) {
 
 function liveNode(status: ReturnType<typeof useDashboardTelemetry>["status"], records: number): EdgeNode {
   const state: EdgeNode["state"] =
-    status === "live" ? "online" : status === "offline" || status === "error" ? "offline" : "warning";
+    status === "live"
+      ? "online"
+      : status === "offline" || status === "error"
+        ? "offline"
+        : "warning";
 
   return {
     id: "edge-01",
@@ -132,13 +136,10 @@ export function DashboardShell() {
   const [activeItem, setActiveItem] = useState("Огляд");
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const telemetry = useDashboardTelemetry();
-  const nodes = useMemo(
-    () =>
-      telemetry.mode === "live"
-        ? [liveNode(telemetry.status, telemetry.view?.freshSamples.length ?? 0)]
-        : undefined,
-    [telemetry.mode, telemetry.status, telemetry.view?.freshSamples.length],
-  );
+  const nodes =
+    telemetry.mode === "live"
+      ? [liveNode(telemetry.status, telemetry.view?.freshSamples.length ?? 0)]
+      : undefined;
   const liveSamples = telemetry.view?.samples ?? [];
   const mobileStatusTone =
     telemetry.status === "live"
@@ -168,10 +169,14 @@ export function DashboardShell() {
           <div className="relative mx-auto max-w-[1800px]">
             <div className="mb-4 flex items-end justify-between gap-4 px-1 lg:hidden">
               <div>
-                <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">Control center</p>
+                <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">
+                  Control center
+                </p>
                 <h1 className="mt-1 text-xl font-semibold text-white">Огляд лабораторії</h1>
               </div>
-              <span className={`rounded-full border px-3 py-1.5 text-[9px] capitalize ${mobileStatusTone}`}>
+              <span
+                className={`rounded-full border px-3 py-1.5 text-[9px] capitalize ${mobileStatusTone}`}
+              >
                 ● {telemetry.status}
               </span>
             </div>
@@ -204,7 +209,11 @@ export function DashboardShell() {
                 <NodesPanel nodes={nodes} />
               </Panel>
               <Panel
-                title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
+                title={
+                  telemetry.mode === "live"
+                    ? "XJP60D температури"
+                    : "Температури · demo preview"
+                }
                 className="xl:col-span-6"
               >
                 <TemperatureChart
