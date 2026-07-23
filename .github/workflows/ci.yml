@@ -43,27 +43,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Capture test diagnostics
-        run: |
-          set +e
-          npm test > /tmp/test.log 2>&1
-          status=$?
-          cat /tmp/test.log
-          printf '%s\n' "$status" > /tmp/test.status
-          exit 0
-
-      - name: Upload test diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: telemetry-test-log
-          path: |
-            /tmp/test.log
-            /tmp/test.status
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Enforce test result
-        run: test "$(cat /tmp/test.status)" = "0"
+      - name: Test
+        run: npm test
 
       - name: Build
         env:
