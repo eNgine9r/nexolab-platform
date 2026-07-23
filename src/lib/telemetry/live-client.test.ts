@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveTelemetryClientConfig } from "./config";
 import { TelemetryLiveClient, type TelemetryLiveCallbacks, type TelemetrySocket } from "./live-client";
-import type {
-  TelemetryConnectionStatus,
-  TelemetryEvent,
-  TelemetryHeartbeat,
-} from "./types";
+import type { TelemetryConnectionStatus, TelemetryEvent, TelemetryHeartbeat } from "./types";
 
 const event = {
   event_id: "56bb5d38-1c20-48c7-bfaf-8d3101da9e21",
