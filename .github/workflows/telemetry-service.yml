@@ -7,7 +7,12 @@ on:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/.env.central.example"
+      - "infrastructure/compose/mosquitto.central.conf"
+      - "infrastructure/compose/central-smoke.sh"
       - "infrastructure/observability/**"
+      - "docs/adr/**"
       - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
   pull_request:
@@ -16,7 +21,12 @@ on:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/.env.central.example"
+      - "infrastructure/compose/mosquitto.central.conf"
+      - "infrastructure/compose/central-smoke.sh"
       - "infrastructure/observability/**"
+      - "docs/adr/**"
       - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
   workflow_dispatch:
@@ -63,6 +73,14 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Validate central deployment contract
+        working-directory: ${{ github.workspace }}
+        run: |
+          bash -n infrastructure/compose/central-smoke.sh
+          docker compose \
+            --env-file infrastructure/compose/.env.central.example \
+            -f infrastructure/compose/compose.central.yaml \
+            config --quiet
       - name: Start isolated Mosquitto broker
         working-directory: ${{ github.workspace }}
         run: |
