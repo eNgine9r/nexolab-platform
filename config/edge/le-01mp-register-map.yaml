@@ -4,7 +4,7 @@ source:
   model: LE-01MP
   validation: field-profiled-and-hardware-smoke-tested
   validated_unit_ids: [200, 201, 202, 203]
-  production_smoke_tested_unit_ids: [201]
+  production_smoke_tested_unit_ids: [200, 201, 202, 203]
 
 serial:
   baudrate: 9600
@@ -17,25 +17,64 @@ read_policy:
   one_register_per_request: true
   read_only: true
 
-hardware_validation:
-  unit_id: 201
-  tested_at_utc: 2026-07-23T09:27:52.785640+00:00
-  result: passed
-  mqtt_publish: passed
-  rollback_to_simulator: passed
-  communication_errors: 0
-  observed_values:
-    voltage: { raw: 2273, value: 227.3, unit: V }
-    current: { raw: 5, value: 0.5, unit: A }
-    frequency: { raw: 500, value: 50.0, unit: Hz }
-    active_power: { raw: 123, value: 123.0, unit: W }
-    reactive_power: { raw: 17, value: 17.0, unit: var }
-    apparent_power: { raw: 131, value: 131.0, unit: VA }
-    power_factor: { raw: 1000, value: 1.0, unit: ratio }
-    internal_temperature: { raw: 35, value: 35.0, unit: degC }
-  notes:
-    - Registers are read sequentially, so cross-metric arithmetic must not be treated as an atomic snapshot.
-    - Cumulative energy register 7 remains excluded pending scale and rollover validation.
+hardware_validations:
+  - unit_ids: [201]
+    tested_at_utc: 2026-07-23T09:27:52.785640+00:00
+    result: passed
+    mqtt_publish: passed
+    rollback_to_simulator: passed
+    communication_errors: 0
+    observed_values:
+      201:
+        voltage: { raw: 2273, value: 227.3, unit: V }
+        current: { raw: 5, value: 0.5, unit: A }
+        frequency: { raw: 500, value: 50.0, unit: Hz }
+        active_power: { raw: 123, value: 123.0, unit: W }
+        reactive_power: { raw: 17, value: 17.0, unit: var }
+        apparent_power: { raw: 131, value: 131.0, unit: VA }
+        power_factor: { raw: 1000, value: 1.0, unit: ratio }
+        internal_temperature: { raw: 35, value: 35.0, unit: degC }
+
+  - unit_ids: [200, 202, 203]
+    tested_at_utc: 2026-07-23T09:56:28.889977+00:00
+    result: passed
+    mqtt_publish: passed
+    rollback_to_simulator: passed
+    communication_errors: 0
+    observed_values:
+      200:
+        voltage: { raw: 2249, value: 224.9, unit: V }
+        current: { raw: 0, value: 0.0, unit: A }
+        frequency: { raw: 500, value: 50.0, unit: Hz }
+        active_power: { raw: 0, value: 0.0, unit: W }
+        reactive_power: { raw: 0, value: 0.0, unit: var }
+        apparent_power: { raw: 0, value: 0.0, unit: VA }
+        power_factor: { raw: 0, value: 0.0, unit: ratio }
+        internal_temperature: { raw: 33, value: 33.0, unit: degC }
+      202:
+        voltage: { raw: 2264, value: 226.4, unit: V }
+        current: { raw: 0, value: 0.0, unit: A }
+        frequency: { raw: 500, value: 50.0, unit: Hz }
+        active_power: { raw: 0, value: 0.0, unit: W }
+        reactive_power: { raw: 0, value: 0.0, unit: var }
+        apparent_power: { raw: 0, value: 0.0, unit: VA }
+        power_factor: { raw: 0, value: 0.0, unit: ratio }
+        internal_temperature: { raw: 34, value: 34.0, unit: degC }
+      203:
+        voltage: { raw: 2273, value: 227.3, unit: V }
+        current: { raw: 0, value: 0.0, unit: A }
+        frequency: { raw: 500, value: 50.0, unit: Hz }
+        active_power: { raw: 0, value: 0.0, unit: W }
+        reactive_power: { raw: 0, value: 0.0, unit: var }
+        apparent_power: { raw: 0, value: 0.0, unit: VA }
+        power_factor: { raw: 1000, value: 1.0, unit: ratio }
+        internal_temperature: { raw: 36, value: 36.0, unit: degC }
+
+hardware_validation_notes:
+  - Registers are read sequentially, so cross-metric arithmetic must not be treated as an atomic snapshot.
+  - Zero current and power values are valid for unloaded meters.
+  - Power factor at zero load is device-defined and must not be used as a load-validity signal.
+  - Cumulative energy register 7 remains excluded pending scale and rollover validation.
 
 registers:
   - key: voltage
