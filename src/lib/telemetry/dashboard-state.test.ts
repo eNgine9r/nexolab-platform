@@ -14,12 +14,12 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
     event_id: "event-1",
     node_id: "edge-01",
     captured_at: "2026-07-23T18:00:00Z",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: 4.2,
     unit: "degC",
     quality: "valid",
-    source: "modbus",
-    equipment_id: "xjp60d-106",
+    source: "dixell-xjp60d",
+    equipment_id: "K106",
     channel_id: "106-03",
     alarm: null,
     raw_value: 42,
@@ -133,30 +133,31 @@ describe("dashboard telemetry state", () => {
     expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("2");
   });
 
-  it("maps production temperature and power channels", () => {
+  it("maps production Device Agent temperature and power metrics", () => {
     const store = mergeDashboardTelemetry(
       createDashboardTelemetryStore(),
       [
         sample(),
         sample({
           event_id: "temp-2",
-          equipment_id: "xjp60d-106",
           channel_id: "106-04",
           value: 5.2,
         }),
         sample({
           event_id: "power-200",
-          equipment_id: "le01mp-200",
+          source: "f-and-f-le-01mp",
+          equipment_id: "LE01MP-200",
           channel_id: "200",
-          metric: "active_power",
+          metric: "electrical.power.active",
           value: 1200,
           unit: "W",
         }),
         sample({
           event_id: "power-201",
-          equipment_id: "le01mp-201",
+          source: "f-and-f-le-01mp",
+          equipment_id: "LE01MP-201",
           channel_id: "201",
-          metric: "active_power",
+          metric: "electrical.power.active",
           value: 0.8,
           unit: "kW",
         }),
