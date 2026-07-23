@@ -131,11 +131,7 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
           return;
         }
         setHasLoadedSnapshot(true);
-        setError(
-          nextError instanceof Error
-            ? nextError
-            : new Error("Failed to load telemetry snapshot"),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Failed to load telemetry snapshot"));
       })
       .finally(() => {
         if (!disposed) {
