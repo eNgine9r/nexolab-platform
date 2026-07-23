@@ -1,0 +1,39 @@
+name: Format M3 tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/format-m3-tests.yml"
+      - "src/lib/telemetry/*.test.ts"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Format tests
+        run: npx prettier --write src/lib/telemetry/*.test.ts
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/telemetry/*.test.ts
+          git commit -m "style: format telemetry client tests"
+          git push origin HEAD:${{ github.head_ref }}
