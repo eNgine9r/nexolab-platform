@@ -27,7 +27,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -45,6 +45,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://nexolab:nexolab-test@localhost:5432/nexolab_test
       MQTT_ENABLED: "false"
+      MQTT_E2E: "true"
       AUTO_CREATE_SCHEMA: "false"
     defaults:
       run:
@@ -57,14 +58,36 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Start isolated Mosquitto broker
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker run --detach \
+            --name nexolab-mqtt-ci \
+            --publish 1883:1883 \
+            --volume "${{ github.workspace }}/services/telemetry-service/tests/e2e/mosquitto-ci.conf:/mosquitto/config/mosquitto.conf:ro" \
+            eclipse-mosquitto:2.0.22
+          for attempt in $(seq 1 20); do
+            if docker exec nexolab-mqtt-ci \
+              mosquitto_sub -h 127.0.0.1 -t '$SYS/broker/version' -C 1 -W 2 \
+              >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs nexolab-mqtt-ci
+          exit 1
       - name: Compile
         run: python -m compileall -q app tests migrations
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
-      - name: Test with PostgreSQL integration
+      - name: Test PostgreSQL MQTT REST and WebSocket integration
         run: python -m pytest -q
       - name: Validate offline migration SQL
         run: alembic upgrade head --sql > /tmp/telemetry-migration.sql
       - name: Build container
         working-directory: ${{ github.workspace }}
         run: docker build -t nexolab-telemetry-service:test services/telemetry-service
+      - name: Stop isolated Mosquitto broker
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: docker rm --force nexolab-mqtt-ci >/dev/null 2>&1 || true
