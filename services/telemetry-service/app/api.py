@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
+from app.contracts import Alarm, Quality
 from app.db import Database, TelemetryQuery
 
 
@@ -18,11 +19,11 @@ class TelemetrySampleResponse(BaseModel):
     metric: str
     value: float | None
     unit: str
-    quality: str
+    quality: Quality
     source: str
     equipment_id: str
     channel_id: str
-    alarm: str | None
+    alarm: Alarm | None
     raw_value: int | None
     raw_status: int | None
     received_at: datetime
@@ -74,8 +75,8 @@ def create_api_router(
         equipment_id: str | None = None,
         channel_id: str | None = None,
         metric: str | None = None,
-        quality: str | None = None,
-        alarm: str | None = None,
+        quality: Quality | None = None,
+        alarm: Alarm | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
@@ -103,8 +104,8 @@ def create_api_router(
         equipment_id: str | None = None,
         channel_id: str | None = None,
         metric: str | None = None,
-        quality: str | None = None,
-        alarm: str | None = None,
+        quality: Quality | None = None,
+        alarm: Alarm | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
