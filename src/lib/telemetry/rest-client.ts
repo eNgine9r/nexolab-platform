@@ -27,6 +27,15 @@ interface ManagedSignal {
   didTimeout: () => boolean;
 }
 
+const FILTER_KEYS: readonly (keyof TelemetryFilters)[] = [
+  "node_id",
+  "equipment_id",
+  "channel_id",
+  "metric",
+  "quality",
+  "alarm",
+];
+
 function createManagedSignal(
   externalSignal: AbortSignal | undefined,
   timeoutMs: number,
@@ -41,7 +50,7 @@ function createManagedSignal(
     externalSignal?.addEventListener("abort", onAbort, { once: true });
   }
 
-  const timer = window.setTimeout(() => {
+  const timer = setTimeout(() => {
     timedOut = true;
     controller.abort(new DOMException("Request timed out", "TimeoutError"));
   }, timeoutMs);
@@ -50,7 +59,7 @@ function createManagedSignal(
     signal: controller.signal,
     didTimeout: () => timedOut,
     cleanup: () => {
-      window.clearTimeout(timer);
+      clearTimeout(timer);
       externalSignal?.removeEventListener("abort", onAbort);
     },
   };
@@ -60,7 +69,8 @@ function appendFilters(
   params: URLSearchParams,
   filters: TelemetryFilters,
 ): void {
-  for (const [key, value] of Object.entries(filters)) {
+  for (const key of FILTER_KEYS) {
+    const value = filters[key];
     if (value !== undefined) {
       params.set(key, String(value));
     }
@@ -87,6 +97,11 @@ function timestamp(value: Date | string): string {
   return value;
 }
 
+function pathWithQuery(path: string, params: URLSearchParams): string {
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export class TelemetryRestClient {
   private readonly fetchImpl: TelemetryFetch;
   private readonly timeoutMs: number;
@@ -110,7 +125,7 @@ export class TelemetryRestClient {
     const params = new URLSearchParams();
     appendPage(params, query);
     return this.request(
-      `/api/v1/telemetry/latest?${params.toString()}`,
+      pathWithQuery("/api/v1/telemetry/latest", params),
       parseTelemetryCollection,
       signal,
     );
@@ -125,7 +140,7 @@ export class TelemetryRestClient {
     params.set("from", timestamp(query.from));
     params.set("to", timestamp(query.to));
     return this.request(
-      `/api/v1/telemetry/history?${params.toString()}`,
+      pathWithQuery("/api/v1/telemetry/history", params),
       parseTelemetryCollection,
       signal,
     );
