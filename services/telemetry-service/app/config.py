@@ -30,3 +30,8 @@ class Settings(BaseSettings):
     ingestion_queue_maxsize: int = Field(default=10_000, ge=1)
     api_max_page_size: int = Field(default=1000, ge=1, le=1000)
     history_max_range_days: int = Field(default=31, ge=1, le=366)
+
+    websocket_client_queue_maxsize: int = Field(default=256, ge=1, le=10_000)
+    websocket_heartbeat_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
+    websocket_send_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
+    websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)

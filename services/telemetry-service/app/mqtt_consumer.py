@@ -34,9 +34,11 @@ class MqttConsumer:
         self._client.reconnect_delay_set(min_delay=1, max_delay=30)
         self._client.on_connect = self._on_connect
         self._client.on_disconnect = self._on_disconnect
+        self._client.on_subscribe = self._on_subscribe
         self._client.on_message = self._on_message
 
     def start(self) -> None:
+        self._state.set_mqtt_connected(False)
         self._client.connect_async(
             self._settings.mqtt_host,
             self._settings.mqtt_port,
@@ -61,15 +63,34 @@ class MqttConsumer:
     ) -> None:
         del userdata, flags, properties
         if reason_code == 0:
-            self._state.set_mqtt_connected(True)
-            client.subscribe(
+            self._state.set_mqtt_connected(False)
+            result, _ = client.subscribe(
                 self._settings.mqtt_topic,
                 qos=self._settings.mqtt_qos,
             )
-            LOGGER.info("Subscribed to MQTT topic %s", self._settings.mqtt_topic)
+            if result != self._mqtt.MQTT_ERR_SUCCESS:
+                self._state.set_error(f"MQTT subscribe failed: {result}")
         else:
             self._state.set_mqtt_connected(False)
             self._state.set_error(f"MQTT connection rejected: {reason_code}")
+
+    def _on_subscribe(
+        self,
+        client: Any,
+        userdata: Any,
+        mid: int,
+        reason_code_list: Any,
+        properties: Any,
+    ) -> None:
+        del client, userdata, mid, properties
+        failed = any(getattr(code, "is_failure", False) for code in reason_code_list)
+        if failed:
+            self._state.set_mqtt_connected(False)
+            self._state.set_error("MQTT subscription was rejected")
+            return
+        self._state.set_mqtt_connected(True)
+        self._state.set_error(None)
+        LOGGER.info("Subscribed to MQTT topic %s", self._settings.mqtt_topic)
 
     def _on_disconnect(
         self,

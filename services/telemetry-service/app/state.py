@@ -17,6 +17,16 @@ class RuntimeSnapshot:
     rejected_total: int = 0
     queue_dropped_total: int = 0
     queue_size: int = 0
+    websocket_clients: int = 0
+    websocket_connect_total: int = 0
+    websocket_disconnect_total: int = 0
+    websocket_broadcast_total: int = 0
+    websocket_filtered_total: int = 0
+    websocket_slow_consumer_total: int = 0
+    websocket_send_timeout_total: int = 0
+    websocket_heartbeat_total: int = 0
+    websocket_resume_total: int = 0
+    websocket_publish_error_total: int = 0
     last_persisted_at: str | None = None
     last_error: str | None = None
 
@@ -37,6 +47,10 @@ class RuntimeState:
     def set_queue_size(self, value: int) -> None:
         with self._lock:
             self._snapshot.queue_size = value
+
+    def set_websocket_clients(self, value: int) -> None:
+        with self._lock:
+            self._snapshot.websocket_clients = value
 
     def increment(self, field: str, value: int = 1) -> None:
         with self._lock:
