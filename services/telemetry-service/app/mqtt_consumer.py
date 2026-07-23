@@ -52,6 +52,7 @@ class MqttConsumer:
         finally:
             self._client.loop_stop()
             self._state.set_mqtt_connected(False)
+            self._state.set_mqtt_error(None)
 
     def _on_connect(
         self,
@@ -69,10 +70,12 @@ class MqttConsumer:
                 qos=self._settings.mqtt_qos,
             )
             if result != self._mqtt.MQTT_ERR_SUCCESS:
-                self._state.set_error(f"MQTT subscribe failed: {result}")
+                self._state.set_mqtt_error(f"MQTT subscribe failed: {result}")
         else:
             self._state.set_mqtt_connected(False)
-            self._state.set_error(f"MQTT connection rejected: {reason_code}")
+            self._state.set_mqtt_error(
+                f"MQTT connection rejected: {reason_code}"
+            )
 
     def _on_subscribe(
         self,
@@ -86,10 +89,10 @@ class MqttConsumer:
         failed = any(getattr(code, "is_failure", False) for code in reason_code_list)
         if failed:
             self._state.set_mqtt_connected(False)
-            self._state.set_error("MQTT subscription was rejected")
+            self._state.set_mqtt_error("MQTT subscription was rejected")
             return
         self._state.set_mqtt_connected(True)
-        self._state.set_error(None)
+        self._state.set_mqtt_error(None)
         LOGGER.info("Subscribed to MQTT topic %s", self._settings.mqtt_topic)
 
     def _on_disconnect(
@@ -103,8 +106,10 @@ class MqttConsumer:
         del client, userdata, disconnect_flags, properties
         self._state.set_mqtt_connected(False)
         if reason_code != 0:
-            LOGGER.warning("Unexpected MQTT disconnect: %s", reason_code)
+            message = f"unexpected MQTT disconnect: {reason_code}"
+            self._state.set_mqtt_error(message)
+            LOGGER.warning(message)
 
     def _on_message(self, client: Any, userdata: Any, message: Any) -> None:
         del client, userdata
-        self._ingestor.submit_payload(message.payload)
+        self._ingestor.submit_payload(message.payload, topic=message.topic)

@@ -7,10 +7,13 @@ Central backend service for M2 Backend Telemetry Ingestion.
 - subscribe to `nexolab/telemetry` with MQTT QoS 1;
 - validate version-1 telemetry events;
 - persist samples idempotently by `event_id`;
-- preserve the raw JSON payload for audit and forward compatibility;
-- expose liveness, readiness and ingestion counters;
+- retain rejected MQTT payloads with structured reason codes;
+- preserve raw JSON for a bounded audit period;
+- retry transient PostgreSQL failures with bounded exponential backoff;
+- expose Prometheus metrics and structured readiness state;
 - return latest values and bounded telemetry history through REST;
-- stream successfully committed telemetry through filtered WebSocket clients.
+- stream successfully committed telemetry through filtered WebSocket clients;
+- run bounded telemetry, raw-payload and dead-letter retention cleanup.
 
 ## Run locally
 
@@ -34,13 +37,16 @@ docker compose --env-file .env.backend -f compose.backend.yaml \
   run --rm telemetry-service alembic upgrade head
 ```
 
-## Health and OpenAPI
+## Health, metrics and OpenAPI
 
 ```bash
 curl http://127.0.0.1:8082/health/live
 curl http://127.0.0.1:8082/health/ready
 curl http://127.0.0.1:8082/metrics
+curl http://127.0.0.1:8082/metrics/json
 ```
+
+`/metrics` uses Prometheus text exposition. `/metrics/json` preserves the detailed runtime snapshot for diagnostics. Readiness distinguishes MQTT subscription state from PostgreSQL availability and includes the active database outage timestamp, queue depth, last successful persistence time and ingestion lag.
 
 Interactive OpenAPI documentation is available at `http://127.0.0.1:8082/docs`.
 
@@ -107,6 +113,43 @@ ws://127.0.0.1:8082/api/v1/telemetry/live?channel_id=106-03&after=2026-07-23T12:
 
 Each client has a bounded queue. A slow client is isolated and closed with WebSocket code `1013`; ingestion and other clients continue without waiting for it.
 
+## Dead-letter handling
+
+Rejected payloads never enter `telemetry_samples`. The service stores their bounded raw bytes, MQTT topic, original size, truncation flag, reason code and reason detail in `telemetry_dead_letters`.
+
+Reason codes:
+
+```text
+payload_too_large
+invalid_utf8
+invalid_json
+payload_not_object
+schema_validation
+```
+
+The original payload retained in a dead-letter row is capped by `DEAD_LETTER_PAYLOAD_MAX_BYTES`.
+
+## PostgreSQL recovery
+
+The persistence worker keeps the active telemetry or dead-letter item during a transient PostgreSQL outage and retries it with bounded exponential backoff. Subsequent work accumulates in the bounded ingestion queue. When PostgreSQL returns, the active item and queued items continue in order. Restarting the process during an outage can abandon in-memory work; the operations runbook explicitly covers this constraint.
+
+## Retention
+
+Default policy:
+
+- normalized telemetry: 365 days;
+- raw JSON: 30 days, then redacted while normalized columns remain;
+- dead-letter payloads: 30 days;
+- maximum cleanup batch per data class: 1000 rows;
+- cleanup interval: one hour.
+
+Run cleanup immediately:
+
+```bash
+docker compose --env-file .env.backend -f compose.backend.yaml \
+  run --rm telemetry-service python -m app.retention
+```
+
 ## End-to-end CI gate
 
 The Telemetry service workflow starts isolated PostgreSQL 16 and Mosquitto 2.0.22 instances, applies Alembic migrations, then verifies:
@@ -119,6 +162,9 @@ MQTT QoS 1 fixture
   → latest REST
   → history REST
   → duplicate idempotency
+  → poison-message dead letter
+  → bounded retention
+  → PostgreSQL stop/restart recovery
 ```
 
-The service is transport-configurable and is not yet deployed on the production Raspberry Pi. The current Edge hardware polling remains unchanged.
+The complete operational procedure is in `docs/operations/telemetry-backend-runbook.md`. The service remains separate from the production Raspberry Pi Edge runtime; Modbus polling is unchanged.

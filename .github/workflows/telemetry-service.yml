@@ -7,6 +7,8 @@ on:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/observability/**"
+      - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
   pull_request:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/observability/**"
+      - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
   workflow_dispatch:
 
@@ -27,7 +31,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16-alpine
@@ -47,6 +51,7 @@ jobs:
       MQTT_ENABLED: "false"
       MQTT_E2E: "true"
       AUTO_CREATE_SCHEMA: "false"
+      RETENTION_ENABLED: "false"
     defaults:
       run:
         working-directory: services/telemetry-service
@@ -80,8 +85,19 @@ jobs:
         run: python -m compileall -q app tests migrations
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
-      - name: Test PostgreSQL MQTT REST and WebSocket integration
-        run: python -m pytest -q
+      - name: Test PostgreSQL MQTT REST WebSocket dead-letter and retention
+        run: python -m pytest -q -m "not database_outage"
+      - name: Test PostgreSQL outage recovery
+        run: |
+          POSTGRES_CONTAINER_ID="$(
+            docker ps \
+              --filter 'ancestor=postgres:16-alpine' \
+              --format '{{.ID}}' \
+            | head -n 1
+          )"
+          test -n "$POSTGRES_CONTAINER_ID"
+          POSTGRES_CONTAINER_ID="$POSTGRES_CONTAINER_ID" \
+            python -m pytest -q -m database_outage
       - name: Validate offline migration SQL
         run: alembic upgrade head --sql > /tmp/telemetry-migration.sql
       - name: Build container
