@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { resolveTelemetryClientConfig } from "./config";
 import { buildHistoryTelemetryUrl, buildLatestTelemetryUrl, buildLiveTelemetryUrl } from "./urls";
 
