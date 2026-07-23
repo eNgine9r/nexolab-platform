@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
@@ -101,6 +102,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=SERVICE_VERSION,
         lifespan=lifespan,
     )
+    cors_origins = resolved.parsed_cors_allowed_origins
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=resolved.cors_allow_credentials,
+            allow_methods=["GET"],
+            allow_headers=["*"],
+            max_age=600,
+        )
+
     app.state.settings = resolved
     app.state.database = database
     app.state.runtime = state
