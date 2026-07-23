@@ -38,14 +38,14 @@ The controlled profile is `infrastructure/compose/compose.central.yaml` with env
 
 ## Service ownership
 
-| Concern | Owner |
-| --- | --- |
-| Modbus RTU polling and local SQLite outbox | `edge-01` Device Agent |
-| Canonical M3 MQTT ingress | central Mosquitto |
-| Schema migration | one-shot `telemetry-migrate` service |
-| Persistence, latest/history and live fan-out | central Telemetry Service |
-| Durable telemetry store | central PostgreSQL |
-| Demo/live selection | NEXOLAB frontend runtime configuration |
+| Concern                                      | Owner                                  |
+| -------------------------------------------- | -------------------------------------- |
+| Modbus RTU polling and local SQLite outbox   | `edge-01` Device Agent                 |
+| Canonical M3 MQTT ingress                    | central Mosquitto                      |
+| Schema migration                             | one-shot `telemetry-migrate` service   |
+| Persistence, latest/history and live fan-out | central Telemetry Service              |
+| Durable telemetry store                      | central PostgreSQL                     |
+| Demo/live selection                          | NEXOLAB frontend runtime configuration |
 
 The later edge cutover is MQTT-only. It must not modify `DEVICE_MODE`, `compose.hardware.yaml`, RS-485 device paths, register profiles or polling intervals.
 
@@ -53,11 +53,11 @@ The later edge cutover is MQTT-only. It must not modify `DEVICE_MODE`, `compose.
 
 The default binding is loopback:
 
-| Service | Container port | Default host binding |
-| --- | ---: | --- |
-| MQTT | 1883 | `127.0.0.1:1884` |
-| Telemetry REST/WebSocket | 8082 | `127.0.0.1:8082` |
-| PostgreSQL | 5432 | not published |
+| Service                  | Container port | Default host binding |
+| ------------------------ | -------------: | -------------------- |
+| MQTT                     |           1883 | `127.0.0.1:1884`     |
+| Telemetry REST/WebSocket |           8082 | `127.0.0.1:8082`     |
+| PostgreSQL               |           5432 | not published        |
 
 `CENTRAL_BIND_ADDRESS` may be changed only to an explicit trusted LAN, IoT VLAN or VPN interface address. `0.0.0.0` is not an approved pilot value.
 
