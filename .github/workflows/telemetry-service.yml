@@ -1,0 +1,52 @@
+name: Telemetry service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/telemetry-service/**"
+      - "contracts/telemetry-event.v1.schema.json"
+      - "infrastructure/compose/compose.backend.yaml"
+      - ".github/workflows/telemetry-service.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/telemetry-service/**"
+      - "contracts/telemetry-event.v1.schema.json"
+      - "infrastructure/compose/compose.backend.yaml"
+      - ".github/workflows/telemetry-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telemetry-service-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/telemetry-service
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Compile
+        run: python -m compileall -q app tests migrations
+      - name: Test
+        run: python -m pytest -q
+      - name: Validate migration SQL
+        env:
+          DATABASE_URL: postgresql+psycopg://nexolab:nexolab@localhost:5432/nexolab
+        run: alembic upgrade head --sql > /tmp/telemetry-migration.sql
+      - name: Build container
+        working-directory: ${{ github.workspace }}
+        run: docker build -t nexolab-telemetry-service:test services/telemetry-service
