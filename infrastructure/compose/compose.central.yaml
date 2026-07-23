@@ -43,11 +43,7 @@ services:
       - ./mosquitto.central.conf:/mosquitto/config/mosquitto.conf:ro
       - central-mqtt-data:/mosquitto/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1",
-        ]
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1"]
       interval: 10s
       timeout: 6s
       retries: 5
