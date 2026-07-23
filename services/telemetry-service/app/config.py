@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     service_name: str = "nexolab-telemetry-service"
     log_level: str = "INFO"
+    cors_allowed_origins: str = ""
 
     database_url: str = (
         "postgresql+psycopg://nexolab:nexolab@postgres:5432/nexolab"
@@ -27,6 +28,8 @@ class Settings(BaseSettings):
     mqtt_port: int = Field(default=1883, ge=1, le=65535)
     mqtt_topic: str = "nexolab/telemetry"
     mqtt_client_id: str = "nexolab-telemetry-ingestion"
+    mqtt_username: str | None = None
+    mqtt_password: str | None = None
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
 
@@ -47,3 +50,11 @@ class Settings(BaseSettings):
     dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
     retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
+
+    @property
+    def parsed_cors_allowed_origins(self) -> list[str]:
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
