@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import shutil
 import stat
@@ -19,6 +20,7 @@ import analyze_dixell_library as library_analyzer
 MAX_ARCHIVE_DEPTH = 5
 MAX_ARCHIVE_MEMBERS = 10_000
 MAX_EXPANDED_BYTES = 256 * 1024 * 1024
+GZIP_MAGIC = b"\x1f\x8b"
 
 
 def _safe_target(destination: Path, member_name: str) -> Path:
@@ -94,6 +96,40 @@ def extract_tar(archive: Path, destination: Path) -> list[Path]:
     return extracted
 
 
+def is_gzip_file(path: Path) -> bool:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(2) == GZIP_MAGIC
+    except OSError:
+        return False
+
+
+def extract_gzip(archive: Path, destination: Path) -> list[Path]:
+    """Expand one GZIP stream without assuming that its payload is a TAR."""
+    lower_name = archive.name.casefold()
+    output_name = archive.name[:-3] if lower_name.endswith(".gz") else f"{archive.name}.out"
+    output_name = output_name or "gzip-payload"
+    target = _safe_target(destination, output_name)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    total_bytes = 0
+    try:
+        with gzip.open(archive, "rb") as source, target.open("wb") as output:
+            while True:
+                chunk = source.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > MAX_EXPANDED_BYTES:
+                    raise ValueError("Expanded GZIP exceeds the safety size limit")
+                output.write(chunk)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+
+    return [target]
+
+
 def archive_kind(path: Path) -> str | None:
     if zipfile.is_zipfile(path):
         return "zip"
@@ -101,7 +137,9 @@ def archive_kind(path: Path) -> str | None:
         if tarfile.is_tarfile(path):
             return "tar"
     except OSError:
-        return None
+        pass
+    if is_gzip_file(path):
+        return "gzip"
     return None
 
 
@@ -120,11 +158,13 @@ def expand_bundle(source: Path, workspace: Path) -> list[dict[str, Any]]:
         extraction_counter += 1
         destination = workspace / f"archive-{extraction_counter:04d}"
         destination.mkdir(parents=True, exist_ok=True)
-        files = (
-            extract_zip(archive, destination)
-            if kind == "zip"
-            else extract_tar(archive, destination)
-        )
+        if kind == "zip":
+            files = extract_zip(archive, destination)
+        elif kind == "tar":
+            files = extract_tar(archive, destination)
+        else:
+            files = extract_gzip(archive, destination)
+
         manifest.append(
             {
                 "source": label,
@@ -140,7 +180,7 @@ def expand_bundle(source: Path, workspace: Path) -> list[dict[str, Any]]:
                 continue
             relative = child.relative_to(destination).as_posix()
             expand(child, f"{label}!/{relative}", depth + 1)
-            # Prevent the downstream directory analyzer from expanding ZIPs again.
+            # Keep only terminal payloads for the downstream JSON/XML analyzer.
             child.unlink()
 
     expand(source, source.name, 0)
@@ -150,7 +190,7 @@ def expand_bundle(source: Path, workspace: Path) -> list[dict[str, Any]]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Recursively unpack ZIP/TAR.GZ Copeland bundles and run the offline "
+            "Recursively unpack ZIP/TAR/GZIP Copeland bundles and run the offline "
             "Dixell register-map analyzer. No hardware is contacted."
         )
     )
@@ -165,7 +205,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         type=Path,
         default=Path(
-            "runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v3.json"
+            "runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v4.json"
         ),
     )
     parser.add_argument("--csv-output", type=Path)
@@ -199,11 +239,17 @@ def main() -> int:
                 args.version,
                 keywords,
             )
-    except (OSError, ValueError, tarfile.TarError, zipfile.BadZipFile) as exc:
+    except (
+        OSError,
+        ValueError,
+        gzip.BadGzipFile,
+        tarfile.TarError,
+        zipfile.BadZipFile,
+    ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    report["schema_version"] = 3
+    report["schema_version"] = 4
     report["tool"] = "nexolab-dixell-package-analyzer"
     report["source"] = {
         "path": str(source),

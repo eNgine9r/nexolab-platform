@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import importlib.util
 import io
 import json
@@ -64,6 +65,59 @@ class AnalyzeDixellPackageTests(unittest.TestCase):
             )
             self.assertEqual(report["statistics"]["candidate_count"], 1)
             self.assertEqual(report["candidates"][0]["address"], 288)
+
+    def test_expand_zip_with_generic_gzip_document(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            payload = json.dumps(
+                {
+                    "name": "Probe 4 temperature",
+                    "address": 289,
+                    "function": 3,
+                    "scale": 0.1,
+                    "unit": "degC",
+                }
+            ).encode()
+
+            nested = root / "vendor-payload.tar.gz"
+            with gzip.open(nested, "wb") as package:
+                package.write(payload)
+
+            outer = root / "library.zip"
+            with zipfile.ZipFile(outer, "w") as package:
+                package.write(nested, "LIBPackage-XJP60D.tar.gz")
+
+            workspace = root / "workspace"
+            workspace.mkdir()
+            manifest = module.expand_bundle(outer, workspace)
+
+            self.assertEqual([item["kind"] for item in manifest], ["zip", "gzip"])
+            report = module.library_analyzer.analyze(
+                workspace,
+                "XJP60D",
+                "1.6",
+                module.library_analyzer.DEFAULT_KEYWORDS,
+            )
+            self.assertEqual(report["statistics"]["candidate_count"], 1)
+            self.assertEqual(report["candidates"][0]["address"], 289)
+
+    def test_gzip_size_limit_removes_partial_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            archive = root / "payload.gz"
+            with gzip.open(archive, "wb") as package:
+                package.write(b"A" * 32)
+
+            original_limit = module.MAX_EXPANDED_BYTES
+            module.MAX_EXPANDED_BYTES = 16
+            try:
+                destination = root / "extract"
+                destination.mkdir()
+                with self.assertRaises(ValueError):
+                    module.extract_gzip(archive, destination)
+                self.assertEqual(list(destination.iterdir()), [])
+            finally:
+                module.MAX_EXPANDED_BYTES = original_limit
 
     def test_tar_rejects_parent_traversal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
