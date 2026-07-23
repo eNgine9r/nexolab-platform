@@ -8,9 +8,12 @@ on:
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.edge-central-bridge.yaml"
       - "infrastructure/compose/.env.central.example"
+      - "infrastructure/compose/.env.edge-central.example"
       - "infrastructure/compose/mosquitto.central.conf"
       - "infrastructure/compose/central-smoke.sh"
+      - "infrastructure/compose/m3-*"
       - "infrastructure/observability/**"
       - "docs/adr/**"
       - "docs/operations/**"
@@ -22,9 +25,12 @@ on:
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.edge-central-bridge.yaml"
       - "infrastructure/compose/.env.central.example"
+      - "infrastructure/compose/.env.edge-central.example"
       - "infrastructure/compose/mosquitto.central.conf"
       - "infrastructure/compose/central-smoke.sh"
+      - "infrastructure/compose/m3-*"
       - "infrastructure/observability/**"
       - "docs/adr/**"
       - "docs/operations/**"
@@ -73,13 +79,23 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Validate central deployment contract
+      - name: Validate central deployment and cutover contracts
         working-directory: ${{ github.workspace }}
         run: |
           bash -n infrastructure/compose/central-smoke.sh
+          bash -n infrastructure/compose/m3-cutover.sh
+          bash -n infrastructure/compose/m3-edge-rollback.sh
+          bash -n infrastructure/compose/m3-central-stop.sh
+          python -m py_compile infrastructure/compose/m3-validate-cutover.py
           docker compose \
             --env-file infrastructure/compose/.env.central.example \
             -f infrastructure/compose/compose.central.yaml \
+            config --quiet
+          docker compose \
+            --env-file infrastructure/compose/.env.edge-central.example \
+            -f infrastructure/compose/compose.edge.yaml \
+            -f infrastructure/compose/compose.hardware.yaml \
+            -f infrastructure/compose/compose.edge-central-bridge.yaml \
             config --quiet
       - name: Start isolated Mosquitto broker
         working-directory: ${{ github.workspace }}
