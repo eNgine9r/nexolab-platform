@@ -37,9 +37,9 @@ profiles:
     register_map: config/edge/le-01mp-register-map.yaml
     production_driver: implemented
     hardware_smoke_test:
-      status: partial_pass
-      passed_unit_ids: [201]
-      pending_unit_ids: [200, 202, 203]
+      status: passed
+      passed_unit_ids: [200, 201, 202, 203]
+      pending_unit_ids: []
       validated_metrics:
         - electrical.voltage
         - electrical.current
@@ -49,6 +49,7 @@ profiles:
         - electrical.power.apparent
         - electrical.power_factor
         - temperature.internal
+      combined_modbus_mode: pending
 
   - id: unknown-unit-01
     name: Невідомий Modbus endpoint
