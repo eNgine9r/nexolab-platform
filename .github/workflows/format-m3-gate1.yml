@@ -1,0 +1,49 @@
+name: Format M3 gate 1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/format-m3-gate1.yml"
+      - ".github/workflows/telemetry-service-image.yml"
+      - ".github/workflows/telemetry-service.yml"
+      - "docs/deployment/central-backend.md"
+      - "infrastructure/compose/compose.backend.production.yaml"
+      - "infrastructure/compose/compose.backend.yaml"
+      - "src/lib/telemetry/**"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Format files
+        run: |
+          npx prettier --write \
+            .github/workflows/telemetry-service-image.yml \
+            .github/workflows/telemetry-service.yml \
+            docs/deployment/central-backend.md \
+            infrastructure/compose/compose.backend.production.yaml \
+            infrastructure/compose/compose.backend.yaml \
+            src/lib/telemetry
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m3-gate1-prettier-output
+          path: |
+            .github/workflows/telemetry-service-image.yml
+            .github/workflows/telemetry-service.yml
+            docs/deployment/central-backend.md
+            infrastructure/compose/compose.backend.production.yaml
+            infrastructure/compose/compose.backend.yaml
+            src/lib/telemetry
+          if-no-files-found: error
