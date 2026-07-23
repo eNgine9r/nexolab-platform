@@ -45,11 +45,16 @@ python tools/rs485_discovery/analyze_dixell_library.py \
 
 The analyzer:
 
-- reads JSON files from the ZIP without executing vendor code;
+- never contacts hardware and never executes vendor code;
 - rejects unsafe ZIP paths;
+- recursively opens nested ZIP payloads;
+- detects `.json`, `.JSON`, `.jsn` and JSON-like files without relying only on a case-sensitive suffix;
+- parses XML payloads when a vendor package uses XML instead of JSON;
 - records the package SHA-256;
 - finds probable register definitions;
+- matches semantic keywords in both field names and values;
 - scores temperature, probe, channel, input, sensor and alarm candidates;
+- inventories package members and records normalized schema keys;
 - produces JSON and CSV outputs.
 
 Outputs:
@@ -59,6 +64,60 @@ runtime/vendor/dixell/xjp60d-v1.6/library-analysis.json
 runtime/vendor/dixell/xjp60d-v1.6/library-analysis.csv
 ```
 
+## When the first report contains zero candidates
+
+A zero-candidate result does not prove that the library has no register map. Older analyzer versions could miss nested archives, uppercase `.JSON` files or vendor-specific schemas.
+
+Update the repository and rerun:
+
+```bash
+git switch main
+git pull --ff-only
+
+python tools/rs485_discovery/analyze_dixell_library.py \
+  --input runtime/vendor/dixell/xjp60d-v1.6/library.zip \
+  --model XJP60D \
+  --version 1.6 \
+  --output runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v2.json
+```
+
+Inspect the package diagnostics:
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+report = json.loads(
+    Path("runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v2.json").read_text()
+)
+
+print("statistics:", report["statistics"])
+print("\ndocuments:")
+for item in report["diagnostics"]["documents"]:
+    print(item)
+
+print("\ninventory:")
+for item in report["diagnostics"]["inventory"][:100]:
+    print(item)
+
+print("\nnormalized keys:")
+for item in report["diagnostics"]["normalized_key_counts"][:100]:
+    print(item)
+
+print("\nunknown address-like fields:")
+for item in report["diagnostics"]["unknown_address_like_fields"][:100]:
+    print(item)
+PY
+```
+
+This distinguishes four cases:
+
+1. `document_count = 0`: the useful payload is in an unsupported or opaque file format;
+2. documents found but parse errors exist: encoding or malformed payload problem;
+3. documents parsed but no candidates: vendor field names need additional aliases;
+4. candidates found: proceed to a narrow read-only hardware correlation.
+
 ## Show the strongest candidates
 
 ```bash
@@ -66,7 +125,7 @@ python3 - <<'PY'
 import json
 from pathlib import Path
 
-path = Path("runtime/vendor/dixell/xjp60d-v1.6/library-analysis.json")
+path = Path("runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v2.json")
 report = json.loads(path.read_text())
 
 print("statistics:", report["statistics"])
@@ -79,6 +138,7 @@ for item in report["candidates"][:40]:
         f'scale={item["scale"]!r} '
         f'unit={item["unit"]!r} '
         f'keywords={item["matched_keywords"]} '
+        f'file={item["source_file"]} '
         f'path={item["json_path"]}'
     )
 PY
