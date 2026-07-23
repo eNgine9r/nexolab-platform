@@ -1,18 +1,7 @@
-import type {
-  TelemetryAlarm,
-  TelemetryConnectionState,
-  TelemetryQuality,
-  TelemetrySample,
-} from "./types";
+import type { TelemetryAlarm, TelemetryConnectionState, TelemetryQuality, TelemetrySample } from "./types";
 
 export type DashboardTelemetryStatus =
-  | "demo"
-  | "connecting"
-  | "live"
-  | "reconnecting"
-  | "stale"
-  | "offline"
-  | "error";
+  "demo" | "connecting" | "live" | "reconnecting" | "stale" | "offline" | "error";
 
 export interface DashboardTelemetryStore {
   samples: Record<string, TelemetrySample>;
@@ -70,12 +59,7 @@ export function createDashboardTelemetryStore(): DashboardTelemetryStore {
 }
 
 export function telemetrySeriesKey(sample: TelemetrySample): string {
-  return [
-    sample.node_id,
-    sample.equipment_id,
-    sample.channel_id,
-    sample.metric,
-  ].join(":");
+  return [sample.node_id, sample.equipment_id, sample.channel_id, sample.metric].join(":");
 }
 
 function milliseconds(value: Date | number | undefined): number {
@@ -152,9 +136,7 @@ export function deriveDashboardTelemetry(
   );
   const latestTimestamp = samples[0]?.captured_at ?? null;
   const ageMs = latestTimestamp === null ? null : Math.max(0, nowMs - Date.parse(latestTimestamp));
-  const freshSamples = samples.filter(
-    (sample) => nowMs - capturedAtMs(sample) <= staleAfterMs,
-  );
+  const freshSamples = samples.filter((sample) => nowMs - capturedAtMs(sample) <= staleAfterMs);
 
   let status: DashboardTelemetryStatus;
   if (options.error && samples.length === 0) {
@@ -264,9 +246,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const good = fresh.filter(isUsable);
   const nodeCount = new Set(fresh.map((sample) => sample.node_id)).size;
   const activeRecords = good.length;
-  const alarmSamples = fresh.filter(
-    (sample) => sample.alarm !== null || sample.quality !== "valid",
-  );
+  const alarmSamples = fresh.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
   const temperatures = good.filter(
     (sample) =>
       normalizedMetric(sample.metric) === "temperature" &&
@@ -275,8 +255,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const averageTemperature =
     temperatures.length === 0
       ? null
-      : temperatures.reduce((sum, sample) => sum + (sample.value ?? 0), 0) /
-        temperatures.length;
+      : temperatures.reduce((sum, sample) => sum + (sample.value ?? 0), 0) / temperatures.length;
   const powerSamples = good.filter(belongsToEnergyUnit);
   const totalPower = powerSamples.reduce((sum, sample) => sum + (powerInKw(sample) ?? 0), 0);
   const hasPower = powerSamples.some((sample) => powerInKw(sample) !== null);
@@ -335,14 +314,9 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
     },
     {
       label: "Середня температура",
-      value:
-        averageTemperature === null
-          ? "—"
-          : `${formatNumber(averageTemperature, 1)} °C`,
+      value: averageTemperature === null ? "—" : `${formatNumber(averageTemperature, 1)} °C`,
       detail:
-        temperatures.length === 0
-          ? "106-03 / 106-04 недоступні"
-          : `${temperatures.length}/2 каналів valid`,
+        temperatures.length === 0 ? "106-03 / 106-04 недоступні" : `${temperatures.length}/2 каналів valid`,
       trend: "XJP60D production channels",
       tone: averageTemperature === null ? "red" : "blue",
       icon: "temperature",
@@ -351,9 +325,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   ];
 }
 
-export function selectProductionTemperatures(
-  view: DashboardTelemetryView,
-): TelemetrySample[] {
+export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
   return view.samples.filter(
     (sample) =>
       normalizedMetric(sample.metric) === "temperature" &&

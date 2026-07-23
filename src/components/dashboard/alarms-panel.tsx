@@ -66,9 +66,7 @@ export function AlarmsPanel({
   samples?: TelemetrySample[];
 }) {
   if (mode === "live") {
-    const active = samples.filter(
-      (sample) => sample.alarm !== null || sample.quality !== "valid",
-    );
+    const active = samples.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
 
     if (active.length === 0) {
       return (
@@ -102,9 +100,7 @@ export function AlarmsPanel({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className={`text-[10px] font-semibold ${style.icon}`}>
-                    {telemetryAlarmTitle(sample)}
-                  </h3>
+                  <h3 className={`text-[10px] font-semibold ${style.icon}`}>{telemetryAlarmTitle(sample)}</h3>
                   <span className={`shrink-0 text-[9px] font-semibold ${style.value}`}>
                     {telemetryValue(sample)}
                   </span>
@@ -142,9 +138,7 @@ export function AlarmsPanel({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <h3 className={`text-[10px] font-semibold ${style.icon}`}>{alarm.title}</h3>
-                <span className={`shrink-0 text-[9px] font-semibold ${style.value}`}>
-                  {alarm.value}
-                </span>
+                <span className={`shrink-0 text-[9px] font-semibold ${style.value}`}>{alarm.value}</span>
               </div>
               <p className="mt-1 truncate text-[9px] text-slate-500">{alarm.source}</p>
               <p className="mt-1.5 flex items-center gap-1 text-[8px] text-slate-600">

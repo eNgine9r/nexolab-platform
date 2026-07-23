@@ -55,8 +55,7 @@ function loadRuntimeConfig(): RuntimeConfigResult {
 export function useDashboardTelemetry(): DashboardTelemetryModel {
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
-  const [connectionState, setConnectionState] =
-    useState<TelemetryConnectionState>("disconnected");
+  const [connectionState, setConnectionState] = useState<TelemetryConnectionState>("disconnected");
   const [hasLoadedSnapshot, setHasLoadedSnapshot] = useState(false);
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(() => Date.now());
@@ -129,11 +128,7 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
           return;
         }
         setHasLoadedSnapshot(true);
-        setError(
-          nextError instanceof Error
-            ? nextError
-            : new Error("Failed to load telemetry snapshot"),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Failed to load telemetry snapshot"));
       })
       .finally(() => {
         if (!disposed) {

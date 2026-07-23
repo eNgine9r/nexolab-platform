@@ -33,11 +33,9 @@ const NOW = new Date("2026-07-23T18:00:10Z");
 describe("dashboard telemetry state", () => {
   it("deduplicates event ids and keeps the newest series sample", () => {
     const initial = createDashboardTelemetryStore();
-    const first = mergeDashboardTelemetry(
-      initial,
-      [sample(), sample({ event_id: "event-duplicate" })],
-      { now: NOW },
-    );
+    const first = mergeDashboardTelemetry(initial, [sample(), sample({ event_id: "event-duplicate" })], {
+      now: NOW,
+    });
     const updated = mergeDashboardTelemetry(
       first,
       [
@@ -72,11 +70,7 @@ describe("dashboard telemetry state", () => {
   });
 
   it("distinguishes live, reconnecting, stale and offline", () => {
-    const store = mergeDashboardTelemetry(
-      createDashboardTelemetryStore(),
-      [sample()],
-      { now: NOW },
-    );
+    const store = mergeDashboardTelemetry(createDashboardTelemetryStore(), [sample()], { now: NOW });
 
     expect(
       deriveDashboardTelemetry(store, {

@@ -66,9 +66,7 @@ function LiveTemperatureView({
     <div className="p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">
-            Production telemetry
-          </p>
+          <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">Production telemetry</p>
           <p className="mt-1 text-[11px] text-slate-400">
             XJP60D · edge-01 · фактичні latest/WebSocket records
           </p>
@@ -133,9 +131,8 @@ function LiveTemperatureView({
 
       <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/[0.055] bg-white/[0.018] p-3 text-[9px] leading-5 text-slate-500">
         <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
-        Історичні криві в live mode не симулюються. Панель графіка використовуватиме лише
-        реальні records з <code className="text-slate-300">/telemetry/history</code> після
-        підключення history view.
+        Історичні криві в live mode не симулюються. Панель графіка використовуватиме лише реальні records з{" "}
+        <code className="text-slate-300">/telemetry/history</code> після підключення history view.
       </div>
     </div>
   );
@@ -164,12 +161,8 @@ export function TemperatureChart({
     <div className="p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] tracking-[0.14em] text-blue-300 uppercase">
-            Demo telemetry
-          </p>
-          <p className="mt-1 text-[11px] text-slate-400">
-            Ізольований preview · не production measurements
-          </p>
+          <p className="text-[10px] tracking-[0.14em] text-blue-300 uppercase">Demo telemetry</p>
+          <p className="mt-1 text-[11px] text-slate-400">Ізольований preview · не production measurements</p>
         </div>
         <div className="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-black/10 p-1">
           {ranges.map((item) => (
@@ -211,26 +204,10 @@ export function TemperatureChart({
             </filter>
           </defs>
           {[28, 55, 82, 109, 136, 163].map((y) => (
-            <line
-              key={y}
-              x1="32"
-              y1={y}
-              x2="600"
-              y2={y}
-              stroke="rgba(148,163,184,.11)"
-              strokeWidth="1"
-            />
+            <line key={y} x1="32" y1={y} x2="600" y2={y} stroke="rgba(148,163,184,.11)" strokeWidth="1" />
           ))}
           {[32, 145, 258, 371, 484, 600].map((x) => (
-            <line
-              key={x}
-              x1={x}
-              y1="20"
-              x2={x}
-              y2="163"
-              stroke="rgba(148,163,184,.055)"
-              strokeWidth="1"
-            />
+            <line key={x} x1={x} y1="20" x2={x} y2="163" stroke="rgba(148,163,184,.055)" strokeWidth="1" />
           ))}
           <path d={`${paths[2].path} L600 163 L32 163 Z`} fill="url(#chartFade)" />
           {paths.map((series) => (
@@ -260,29 +237,20 @@ export function TemperatureChart({
               })}
             </g>
           ))}
-          {["00:00", "04:00", "08:00", "12:00", "16:00", "24:00"].map(
-            (label, index) => (
-              <text
-                key={label}
-                x={32 + index * 113.6}
-                y="181"
-                textAnchor={index === 0 ? "start" : index === 5 ? "end" : "middle"}
-                fill="#64748b"
-                fontSize="9"
-              >
-                {label}
-              </text>
-            ),
-          )}
-          {["20", "10", "0", "−10", "−20", "−30"].map((label, index) => (
+          {["00:00", "04:00", "08:00", "12:00", "16:00", "24:00"].map((label, index) => (
             <text
               key={label}
-              x="24"
-              y={31 + index * 27}
-              textAnchor="end"
+              x={32 + index * 113.6}
+              y="181"
+              textAnchor={index === 0 ? "start" : index === 5 ? "end" : "middle"}
               fill="#64748b"
               fontSize="9"
             >
+              {label}
+            </text>
+          ))}
+          {["20", "10", "0", "−10", "−20", "−30"].map((label, index) => (
+            <text key={label} x="24" y={31 + index * 27} textAnchor="end" fill="#64748b" fontSize="9">
               {label}
             </text>
           ))}
@@ -296,15 +264,10 @@ export function TemperatureChart({
             className="rounded-xl border border-white/[0.055] bg-white/[0.018] p-2.5 text-left transition hover:border-white/[0.1] hover:bg-white/[0.03]"
           >
             <div className="flex items-center gap-1.5 text-[9px] text-slate-500">
-              <span
-                className="h-2 w-2 rounded-[3px]"
-                style={{ backgroundColor: series.color }}
-              />
+              <span className="h-2 w-2 rounded-[3px]" style={{ backgroundColor: series.color }} />
               {series.id}
             </div>
-            <p className="mt-1.5 text-lg font-medium tracking-tight text-slate-100">
-              {series.value}
-            </p>
+            <p className="mt-1.5 text-lg font-medium tracking-tight text-slate-100">{series.value}</p>
           </button>
         ))}
       </div>

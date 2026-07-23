@@ -1,11 +1,4 @@
-import {
-  AlertCircle,
-  CheckCircle2,
-  CircleDot,
-  Clock3,
-  RefreshCw,
-  WifiOff,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, CircleDot, Clock3, RefreshCw, WifiOff } from "lucide-react";
 
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 
@@ -134,15 +127,14 @@ export function TelemetryStatusBar({
 
       <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-slate-400">
         <span>
-          Останній пакет: <strong className="font-medium text-slate-200">{timestampLabel(lastCapturedAt)}</strong>
+          Останній пакет:{" "}
+          <strong className="font-medium text-slate-200">{timestampLabel(lastCapturedAt)}</strong>
         </span>
         <span>
           Freshness: <strong className="font-medium text-slate-200">{ageLabel(ageMs)}</strong>
         </span>
         {rejectedFutureSamples > 0 && (
-          <span className="text-amber-300">
-            Відхилено future timestamps: {rejectedFutureSamples}
-          </span>
+          <span className="text-amber-300">Відхилено future timestamps: {rejectedFutureSamples}</span>
         )}
         {canRetry && (
           <button

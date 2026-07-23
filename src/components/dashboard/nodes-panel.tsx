@@ -47,9 +47,7 @@ export function NodesPanel({ nodes = demoEdgeNodes }: { nodes?: EdgeNode[] }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h3 className="text-[11px] font-semibold text-slate-100">{node.id}</h3>
-              <span className={`text-[8px] font-medium ${stateColor(node)}`}>
-                {stateLabel(node)}
-              </span>
+              <span className={`text-[8px] font-medium ${stateColor(node)}`}>{stateLabel(node)}</span>
             </div>
             <p className="mt-0.5 truncate text-[9px] text-slate-500">
               {node.name} · {node.channels}
@@ -57,10 +55,7 @@ export function NodesPanel({ nodes = demoEdgeNodes }: { nodes?: EdgeNode[] }) {
           </div>
           {node.spark.length > 0 && (
             <div className="hidden w-24 shrink-0 xl:block">
-              <Sparkline
-                points={node.spark}
-                stroke={node.state === "warning" ? "#f5b301" : "#0077ff"}
-              />
+              <Sparkline points={node.spark} stroke={node.state === "warning" ? "#f5b301" : "#0077ff"} />
             </div>
           )}
           <div className="w-[68px] shrink-0 space-y-1 text-[8px] text-slate-500">
@@ -69,18 +64,14 @@ export function NodesPanel({ nodes = demoEdgeNodes }: { nodes?: EdgeNode[] }) {
                 <Cpu className="h-2.5 w-2.5" />
                 CPU
               </span>
-              <span className="text-slate-300">
-                {node.cpu === null ? "—" : `${node.cpu}%`}
-              </span>
+              <span className="text-slate-300">{node.cpu === null ? "—" : `${node.cpu}%`}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-1">
                 <Database className="h-2.5 w-2.5" />
                 RAM
               </span>
-              <span className="text-slate-300">
-                {node.ram === null ? "—" : `${node.ram}%`}
-              </span>
+              <span className="text-slate-300">{node.ram === null ? "—" : `${node.ram}%`}</span>
             </div>
           </div>
         </article>
