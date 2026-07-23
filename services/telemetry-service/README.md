@@ -96,7 +96,7 @@ npx wscat -c \
 Only events committed successfully to PostgreSQL are broadcast. Duplicate MQTT deliveries are not broadcast again. Telemetry messages use the canonical event payload. Idle connections receive heartbeat objects:
 
 ```json
-{"type":"heartbeat","server_time":"2026-07-23T13:00:00+00:00"}
+{ "type": "heartbeat", "server_time": "2026-07-23T13:00:00+00:00" }
 ```
 
 Resume after reconnect by supplying a timezone-aware `after` timestamp. Persisted matching events are replayed oldest first before new live events:
