@@ -16,6 +16,7 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 
+from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
 from xjp60d import XJP60DReader
 
@@ -46,6 +47,23 @@ def parse_xjp60d_points(value: str) -> tuple[tuple[int, int], ...]:
     return tuple(points)
 
 
+def parse_unit_ids(value: str, *, label: str) -> tuple[int, ...]:
+    unit_ids: list[int] = []
+    for token in value.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            unit_id = int(token)
+        except ValueError as exc:
+            raise ValueError(f"Invalid {label} unit ID: {token!r}") from exc
+        if not 1 <= unit_id <= 247:
+            raise ValueError(f"{label} unit ID must be 1..247, got {unit_id}")
+        if unit_id not in unit_ids:
+            unit_ids.append(unit_id)
+    return tuple(unit_ids)
+
+
 @dataclass(frozen=True)
 class Settings:
     node_id: str
@@ -65,6 +83,7 @@ class Settings:
     serial_retries: int
     xjp60d_points: tuple[tuple[int, int], ...]
     xjp60d_scale: float
+    le01mp_unit_ids: tuple[int, ...]
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -86,11 +105,29 @@ class Settings:
             serial_retries=int(os.getenv("SERIAL_RETRIES", "1")),
             xjp60d_points=parse_xjp60d_points(os.getenv("XJP60D_POINTS", "")),
             xjp60d_scale=float(os.getenv("XJP60D_SCALE", "0.1")),
+            le01mp_unit_ids=parse_unit_ids(
+                os.getenv("LE01MP_UNIT_IDS", ""),
+                label="LE-01MP",
+            ),
         )
-        if settings.device_mode not in {"simulator", "xjp60d"}:
-            raise ValueError("DEVICE_MODE must be simulator or xjp60d")
+        allowed_modes = {"simulator", "xjp60d", "le01mp", "modbus"}
+        if settings.device_mode not in allowed_modes:
+            raise ValueError(
+                "DEVICE_MODE must be simulator, xjp60d, le01mp, or modbus"
+            )
         if settings.device_mode == "xjp60d" and not settings.xjp60d_points:
             raise ValueError("XJP60D_POINTS is required when DEVICE_MODE=xjp60d")
+        if settings.device_mode == "le01mp" and not settings.le01mp_unit_ids:
+            raise ValueError("LE01MP_UNIT_IDS is required when DEVICE_MODE=le01mp")
+        if (
+            settings.device_mode == "modbus"
+            and not settings.xjp60d_points
+            and not settings.le01mp_unit_ids
+        ):
+            raise ValueError(
+                "At least one XJP60D point or LE-01MP unit is required "
+                "when DEVICE_MODE=modbus"
+            )
         return settings
 
 
@@ -182,6 +219,9 @@ class AgentState:
                     f"{unit_id}-{channel:02d}"
                     for unit_id, channel in settings.xjp60d_points
                 ],
+                "configured_devices": [
+                    f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids
+                ],
                 "mqtt_connected": self.mqtt_connected,
                 "queue_size": queue_size,
                 "samples_total": self.samples_total,
@@ -204,8 +244,9 @@ class DeviceAgent:
         self.client.on_disconnect = self._on_disconnect
         self.modbus_client: ModbusRTUClient | None = None
         self.xjp60d_reader: XJP60DReader | None = None
+        self.le01mp_reader: LE01MPReader | None = None
 
-        if settings.device_mode == "xjp60d":
+        if settings.device_mode != "simulator":
             self.modbus_client = ModbusRTUClient(
                 settings.serial_device,
                 baudrate=settings.serial_baudrate,
@@ -214,11 +255,20 @@ class DeviceAgent:
                 timeout=settings.serial_timeout_seconds,
                 retries=settings.serial_retries,
             )
+
+        if settings.device_mode in {"xjp60d", "modbus"} and settings.xjp60d_points:
+            if self.modbus_client is None:
+                raise RuntimeError("Modbus client was not initialized")
             self.xjp60d_reader = XJP60DReader(
                 self.modbus_client,
                 scale=settings.xjp60d_scale,
                 unit="degC",
             )
+
+        if settings.device_mode in {"le01mp", "modbus"} and settings.le01mp_unit_ids:
+            if self.modbus_client is None:
+                raise RuntimeError("Modbus client was not initialized")
+            self.le01mp_reader = LE01MPReader(self.modbus_client)
 
     def _on_connect(
         self,
@@ -248,31 +298,17 @@ class DeviceAgent:
         self.client.connect_async(self.settings.mqtt_host, self.settings.mqtt_port, keepalive=30)
         self.client.loop_start()
 
-    def sample_batch(self) -> tuple[list[TelemetryRecord], str | None]:
-        if self.settings.device_mode == "simulator":
-            now = datetime.now(timezone.utc).isoformat()
-            return (
-                [
-                    TelemetryRecord(
-                        event_id=str(uuid.uuid4()),
-                        node_id=self.settings.node_id,
-                        captured_at=now,
-                        metric="temperature.air",
-                        value=round(random.uniform(2.0, 8.0), 2),
-                        unit="degC",
-                        quality="valid",
-                        source="simulator",
-                    )
-                ],
-                None,
-            )
-
+    def _sample_xjp60d(
+        self,
+        captured_at: str,
+        records: list[TelemetryRecord],
+        errors: list[str],
+    ) -> None:
+        if not self.settings.xjp60d_points:
+            return
         if self.xjp60d_reader is None:
             raise RuntimeError("XJP60D reader was not initialized")
 
-        captured_at = datetime.now(timezone.utc).isoformat()
-        records: list[TelemetryRecord] = []
-        errors: list[str] = []
         for unit_id, channel in self.settings.xjp60d_points:
             equipment_id = f"K{unit_id}"
             channel_id = f"{unit_id}-{channel:02d}"
@@ -314,6 +350,86 @@ class DeviceAgent:
                     raw_status=reading.raw_status,
                 )
             )
+
+    def _sample_le01mp(
+        self,
+        captured_at: str,
+        records: list[TelemetryRecord],
+        errors: list[str],
+    ) -> None:
+        if not self.settings.le01mp_unit_ids:
+            return
+        if self.le01mp_reader is None:
+            raise RuntimeError("LE-01MP reader was not initialized")
+
+        for unit_id in self.settings.le01mp_unit_ids:
+            equipment_id = f"LE01MP-{unit_id}"
+            for register in LE01MP_REGISTERS:
+                channel_id = f"{unit_id}-{register.key.replace('_', '-')}"
+                try:
+                    reading = self.le01mp_reader.read_metric(unit_id, register.key)
+                except (ModbusError, OSError, RuntimeError) as exc:
+                    LOG.warning("LE-01MP read failed for %s: %s", channel_id, exc)
+                    errors.append(f"{channel_id}: {exc}")
+                    records.append(
+                        TelemetryRecord(
+                            event_id=str(uuid.uuid4()),
+                            node_id=self.settings.node_id,
+                            captured_at=captured_at,
+                            metric=register.metric,
+                            value=None,
+                            unit=register.unit,
+                            quality="communication_error",
+                            source="f-and-f-le-01mp",
+                            equipment_id=equipment_id,
+                            channel_id=channel_id,
+                        )
+                    )
+                    continue
+
+                records.append(
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source="f-and-f-le-01mp",
+                        equipment_id=equipment_id,
+                        channel_id=channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                )
+
+    def sample_batch(self) -> tuple[list[TelemetryRecord], str | None]:
+        if self.settings.device_mode == "simulator":
+            now = datetime.now(timezone.utc).isoformat()
+            return (
+                [
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=now,
+                        metric="temperature.air",
+                        value=round(random.uniform(2.0, 8.0), 2),
+                        unit="degC",
+                        quality="valid",
+                        source="simulator",
+                    )
+                ],
+                None,
+            )
+
+        captured_at = datetime.now(timezone.utc).isoformat()
+        records: list[TelemetryRecord] = []
+        errors: list[str] = []
+        self._sample_xjp60d(captured_at, records, errors)
+        self._sample_le01mp(captured_at, records, errors)
+
+        if not records:
+            raise RuntimeError("No Modbus telemetry sources are configured")
 
         error = "; ".join(errors) if errors else None
         return records, error
