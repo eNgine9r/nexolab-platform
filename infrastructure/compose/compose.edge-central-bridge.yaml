@@ -1,0 +1,46 @@
+services:
+  mqtt:
+    environment:
+      CENTRAL_MQTT_HOST: ${CENTRAL_MQTT_HOST:?Set CENTRAL_MQTT_HOST to the trusted central host address}
+      CENTRAL_MQTT_PORT: ${CENTRAL_MQTT_PORT:-1884}
+      CENTRAL_MQTT_TOPIC: ${CENTRAL_MQTT_TOPIC:-nexolab/telemetry}
+      CENTRAL_BRIDGE_CLIENT_ID: ${CENTRAL_BRIDGE_CLIENT_ID:-nexolab-edge-01-bridge}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${CENTRAL_MQTT_HOST:?CENTRAL_MQTT_HOST is required}"
+        : "$${CENTRAL_MQTT_PORT:?CENTRAL_MQTT_PORT is required}"
+        : "$${CENTRAL_MQTT_TOPIC:?CENTRAL_MQTT_TOPIC is required}"
+        : "$${CENTRAL_BRIDGE_CLIENT_ID:?CENTRAL_BRIDGE_CLIENT_ID is required}"
+
+        umask 077
+        cat > /tmp/mosquitto.edge-central.conf <<EOF
+        persistence true
+        persistence_location /mosquitto/data/
+        autosave_interval 30
+
+        log_dest stdout
+        connection_messages true
+
+        listener 1883 0.0.0.0
+        allow_anonymous true
+
+        max_packet_size 1048576
+        max_queued_messages 10000
+        max_inflight_messages 100
+
+        connection edge-01-to-central
+        address $${CENTRAL_MQTT_HOST}:$${CENTRAL_MQTT_PORT}
+        remote_clientid $${CENTRAL_BRIDGE_CLIENT_ID}
+        bridge_protocol_version mqttv311
+        start_type automatic
+        restart_timeout 5 30
+        cleansession false
+        try_private false
+        notifications true
+        notification_topic nexolab/bridge/edge-01/status
+        queue_qos0_messages false
+        topic $${CENTRAL_MQTT_TOPIC} out 1
+        EOF
+
+        exec mosquitto -c /tmp/mosquitto.edge-central.conf
