@@ -36,6 +36,19 @@ profiles:
     register_map_status: validated_high_confidence_subset
     register_map: config/edge/le-01mp-register-map.yaml
     production_driver: implemented
+    hardware_smoke_test:
+      status: partial_pass
+      passed_unit_ids: [201]
+      pending_unit_ids: [200, 202, 203]
+      validated_metrics:
+        - electrical.voltage
+        - electrical.current
+        - electrical.frequency
+        - electrical.power.active
+        - electrical.power.reactive
+        - electrical.power.apparent
+        - electrical.power_factor
+        - temperature.internal
 
   - id: unknown-unit-01
     name: Невідомий Modbus endpoint
