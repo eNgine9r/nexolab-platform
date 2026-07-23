@@ -8,6 +8,17 @@ bus:
   bytesize: 8
   parity: N
   stopbits: 1
+  combined_modbus_validation:
+    status: passed
+    tested_at_utc: 2026-07-23T10:14:01.033804+00:00
+    xjp60d_points: [106-03, 106-04]
+    le01mp_unit_ids: [200, 201, 202, 203]
+    telemetry_records_per_cycle: 34
+    valid_records: 34
+    communication_errors: 0
+    mqtt_publish: passed
+    rollback_to_simulator: passed
+    next_gate: combined_modbus_soak_test
 
 profiles:
   - id: climate-chamber-02-dixell
@@ -49,7 +60,7 @@ profiles:
         - electrical.power.apparent
         - electrical.power_factor
         - temperature.internal
-      combined_modbus_mode: pending
+      combined_modbus_mode: passed
 
   - id: unknown-unit-01
     name: Невідомий Modbus endpoint
@@ -64,3 +75,4 @@ safety:
   allowed_functions: [3, 4]
   production_hardware_mode_enabled: false
   explicit_compose_override_required: true
+  combined_modbus_soak_test: pending
