@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
 from app.config import Settings
@@ -14,11 +14,14 @@ from app.db import Database
 from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
+from app.metrics import render_prometheus
 from app.mqtt_consumer import MqttConsumer
+from app.retention import RetentionWorker
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.3.0"
+SERVICE_VERSION = "0.4.0"
+PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -28,7 +31,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 
-    database = Database(resolved.database_url)
+    database = Database(
+        resolved.database_url,
+        connect_timeout_seconds=resolved.database_connect_timeout_seconds,
+    )
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
         state=state,
@@ -39,6 +45,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         state=state,
         queue_maxsize=resolved.ingestion_queue_maxsize,
         on_persisted=live_hub.publish_from_thread,
+        payload_max_bytes=resolved.ingestion_payload_max_bytes,
+        dead_letter_payload_max_bytes=resolved.dead_letter_payload_max_bytes,
+        database_retry_initial_seconds=resolved.database_retry_initial_seconds,
+        database_retry_max_seconds=resolved.database_retry_max_seconds,
+    )
+    retention_worker = RetentionWorker(
+        database=database,
+        state=state,
+        interval_seconds=resolved.retention_interval_seconds,
+        batch_size=resolved.retention_batch_size,
+        telemetry_retention_days=resolved.telemetry_retention_days,
+        raw_payload_retention_days=resolved.raw_payload_retention_days,
+        dead_letter_retention_days=resolved.dead_letter_retention_days,
     )
     mqtt_consumer: MqttConsumer | None = None
 
@@ -49,15 +68,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if resolved.auto_create_schema:
             database.create_schema()
 
-        state.set_database_ready(database.ping())
+        if database.ping():
+            state.mark_database_success()
+        else:
+            state.mark_database_failure("database ping failed")
+
         live_hub.start(asyncio.get_running_loop())
         ingestor.start()
+        if resolved.retention_enabled:
+            retention_worker.start()
 
         if resolved.mqtt_enabled:
             mqtt_consumer = MqttConsumer(resolved, ingestor, state)
             mqtt_consumer.start()
         else:
             state.set_mqtt_connected(True)
+            state.set_mqtt_error(None)
 
         try:
             yield
@@ -65,6 +91,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if mqtt_consumer is not None:
                 mqtt_consumer.stop()
             await asyncio.to_thread(ingestor.stop)
+            if resolved.retention_enabled:
+                await asyncio.to_thread(retention_worker.stop)
             live_hub.stop()
             database.dispose()
 
@@ -78,6 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
+    app.state.retention_worker = retention_worker
     app.include_router(
         create_api_router(
             database,
@@ -110,7 +139,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/health/ready")
     def readiness() -> JSONResponse:
         database_ready = database.ping()
-        state.set_database_ready(database_ready)
+        if database_ready:
+            state.mark_database_success()
+        else:
+            state.mark_database_failure("database ping failed")
+
         snapshot = state.snapshot()
         ready = bool(database_ready and snapshot["mqtt_connected"])
         payload = {
@@ -121,12 +154,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ),
             "queue_size": snapshot["queue_size"],
             "websocket_clients": snapshot["websocket_clients"],
+            "database_outage_since": snapshot["database_outage_since"],
+            "last_persisted_at": snapshot["last_persisted_at"],
+            "ingestion_lag_seconds": snapshot["ingestion_lag_seconds"],
+            "mqtt_error": snapshot["mqtt_error"],
+            "database_error": snapshot["database_error"],
             "last_error": snapshot["last_error"],
         }
         return JSONResponse(payload, status_code=200 if ready else 503)
 
-    @app.get("/metrics")
-    def metrics() -> dict[str, object]:
+    @app.get("/metrics", response_class=PlainTextResponse)
+    def metrics() -> PlainTextResponse:
+        return PlainTextResponse(
+            render_prometheus(state.snapshot()),
+            media_type=PROMETHEUS_CONTENT_TYPE,
+        )
+
+    @app.get("/metrics/json")
+    def metrics_json() -> dict[str, object]:
         return state.snapshot()
 
     return app
