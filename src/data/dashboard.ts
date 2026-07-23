@@ -1,12 +1,12 @@
-export type NodeState = "online" | "standby" | "warning";
+export type NodeState = "online" | "standby" | "warning" | "offline";
 export type AlarmSeverity = "critical" | "warning" | "info";
 
 export interface EdgeNode {
   id: string;
   name: string;
   channels: string;
-  cpu: number;
-  ram: number;
+  cpu: number | null;
+  ram: number | null;
   state: NodeState;
   spark: number[];
 }
