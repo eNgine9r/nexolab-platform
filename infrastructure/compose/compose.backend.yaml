@@ -1,0 +1,72 @@
+name: nexolab-backend
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1884:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 6s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexolab}
+      POSTGRES_USER: ${POSTGRES_USER:-nexolab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexolab-dev-only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - backend-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  telemetry-migrate:
+    build:
+      context: ../../services/telemetry-service
+    environment: &telemetry-environment
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexolab}:${POSTGRES_PASSWORD:-nexolab-dev-only}@postgres:5432/${POSTGRES_DB:-nexolab}
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      MQTT_TOPIC: ${MQTT_TOPIC:-nexolab/telemetry}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-nexolab-telemetry-ingestion}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  telemetry-service:
+    build:
+      context: ../../services/telemetry-service
+    restart: unless-stopped
+    environment: *telemetry-environment
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      telemetry-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  backend-postgres-data:
