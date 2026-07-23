@@ -24,6 +24,9 @@
 /.venv-rs485/
 /runtime/
 
+# deployment secrets
+/infrastructure/compose/secrets/
+
 # misc
 .DS_Store
 *.pem
