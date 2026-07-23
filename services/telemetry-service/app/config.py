@@ -28,3 +28,5 @@ class Settings(BaseSettings):
     mqtt_qos: int = Field(default=1, ge=0, le=2)
 
     ingestion_queue_maxsize: int = Field(default=10_000, ge=1)
+    api_max_page_size: int = Field(default=1000, ge=1, le=1000)
+    history_max_range_days: int = Field(default=31, ge=1, le=366)
