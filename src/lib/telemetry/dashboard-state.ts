@@ -43,6 +43,11 @@ export interface DashboardKpiValue {
   badgeTone: "demo" | "live" | "stale" | "offline" | "error";
 }
 
+type UsableTelemetrySample = TelemetrySample & {
+  quality: "valid";
+  value: number;
+};
+
 const DEFAULT_MAX_FUTURE_SKEW_MS = 30_000;
 const DEFAULT_MAX_SEEN_EVENT_IDS = 10_000;
 const DEFAULT_STALE_AFTER_MS = 30_000;
@@ -163,7 +168,7 @@ export function deriveDashboardTelemetry(
   };
 }
 
-function isUsable(sample: TelemetrySample): boolean {
+function isUsable(sample: TelemetrySample): sample is UsableTelemetrySample {
   return sample.quality === "valid" && sample.value !== null;
 }
 
@@ -255,7 +260,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const averageTemperature =
     temperatures.length === 0
       ? null
-      : temperatures.reduce((sum, sample) => sum + (sample.value ?? 0), 0) / temperatures.length;
+      : temperatures.reduce((sum, sample) => sum + sample.value, 0) / temperatures.length;
   const powerSamples = good.filter(belongsToEnergyUnit);
   const totalPower = powerSamples.reduce((sum, sample) => sum + (powerInKw(sample) ?? 0), 0);
   const hasPower = powerSamples.some((sample) => powerInKw(sample) !== null);
