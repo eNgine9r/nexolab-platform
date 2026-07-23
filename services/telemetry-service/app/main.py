@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
@@ -20,7 +21,7 @@ from app.retention import RetentionWorker
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.4.0"
+SERVICE_VERSION = "0.5.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -101,6 +102,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=SERVICE_VERSION,
         lifespan=lifespan,
     )
+    cors_origins = resolved.parsed_cors_allowed_origins
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "OPTIONS"],
+            allow_headers=["*"],
+        )
+
     app.state.settings = resolved
     app.state.database = database
     app.state.runtime = state

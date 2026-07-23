@@ -6,18 +6,20 @@ on:
     paths:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
-      - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/compose/**"
       - "infrastructure/observability/**"
       - "docs/operations/**"
+      - "docs/deployment/**"
       - ".github/workflows/telemetry-service.yml"
   pull_request:
     branches: [main]
     paths:
       - "services/telemetry-service/**"
       - "contracts/telemetry-event.v1.schema.json"
-      - "infrastructure/compose/compose.backend.yaml"
+      - "infrastructure/compose/**"
       - "infrastructure/observability/**"
       - "docs/operations/**"
+      - "docs/deployment/**"
       - ".github/workflows/telemetry-service.yml"
   workflow_dispatch:
 
@@ -100,6 +102,17 @@ jobs:
             python -m pytest -q -m database_outage
       - name: Validate offline migration SQL
         run: alembic upgrade head --sql > /tmp/telemetry-migration.sql
+      - name: Validate production Compose contract
+        working-directory: ${{ github.workspace }}/infrastructure/compose
+        run: |
+          mkdir -p secrets
+          touch secrets/mosquitto.passwd
+          docker compose \
+            --env-file .env.backend.production.example \
+            -f compose.backend.production.yaml \
+            config > /tmp/nexolab-central-backend.yaml
+          grep -F 'ghcr.io/engine9r/nexolab-telemetry-service:sha-' \
+            /tmp/nexolab-central-backend.yaml
       - name: Build container
         working-directory: ${{ github.workspace }}
         run: docker build -t nexolab-telemetry-service:test services/telemetry-service
