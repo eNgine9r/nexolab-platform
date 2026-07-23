@@ -1,0 +1,37 @@
+name: M3 typecheck diagnostics
+
+on:
+  push:
+    branches:
+      - feat/m3-live-dashboard-state
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Capture typecheck output
+        id: typecheck
+        continue-on-error: true
+        run: npm run typecheck > typecheck.log 2>&1
+      - name: Upload typecheck output
+        uses: actions/upload-artifact@v4
+        with:
+          name: m3-live-dashboard-typecheck
+          path: typecheck.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail when typecheck failed
+        if: steps.typecheck.outcome == 'failure'
+        run: exit 1
