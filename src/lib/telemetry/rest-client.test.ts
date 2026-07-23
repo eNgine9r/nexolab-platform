@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from "vitest";
+
 import { resolveTelemetryClientConfig } from "./config";
 import { TelemetryRequestError, TelemetryRestClient } from "./rest-client";
 
