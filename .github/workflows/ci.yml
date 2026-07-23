@@ -37,27 +37,8 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Capture lint diagnostics
-        run: |
-          set +e
-          npm run lint > /tmp/lint.log 2>&1
-          status=$?
-          cat /tmp/lint.log
-          printf '%s\n' "$status" > /tmp/lint.status
-          exit 0
-
-      - name: Upload lint diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: telemetry-lint-log
-          path: |
-            /tmp/lint.log
-            /tmp/lint.status
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Enforce lint result
-        run: test "$(cat /tmp/lint.status)" = "0"
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
