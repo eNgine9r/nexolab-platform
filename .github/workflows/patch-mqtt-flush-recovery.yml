@@ -1,0 +1,210 @@
+name: Patch MQTT flush recovery
+
+on:
+  push:
+    branches:
+      - fix/mqtt-flush-recovery
+    paths:
+      - ".github/workflows/patch-mqtt-flush-recovery.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout patch branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/mqtt-flush-recovery
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Apply targeted patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          main_path = Path("services/device-agent/main.py")
+          main_text = main_path.read_text(encoding="utf-8")
+
+          old_flush = '''    def flush_queue(self) -> bool:
+                  if not self.state.mqtt_connected:
+                      return False
+
+                  for record_id, topic, payload in self.queue.oldest():
+                      result = self.client.publish(topic, payload, qos=1)
+                      result.wait_for_publish(timeout=5)
+                      if result.rc != mqtt.MQTT_ERR_SUCCESS:
+                          return False
+                      self.queue.delete(record_id)
+                      self.state.update(
+                          last_publish_at=datetime.now(timezone.utc).isoformat(),
+                      )
+                  return True
+          '''
+
+          new_flush = '''    def flush_queue(self) -> bool:
+                  if not self.state.mqtt_connected:
+                      return False
+
+                  for record_id, topic, payload in self.queue.oldest():
+                      try:
+                          result = self.client.publish(topic, payload, qos=1)
+                          result.wait_for_publish(timeout=5)
+                      except (RuntimeError, ValueError, OSError) as exc:
+                          LOG.warning("MQTT queue flush deferred: %s", exc)
+                          return False
+
+                      if result.rc != mqtt.MQTT_ERR_SUCCESS:
+                          LOG.warning(
+                              "MQTT queue flush deferred: publish rc=%s",
+                              result.rc,
+                          )
+                          return False
+
+                      self.queue.delete(record_id)
+                      self.state.update(
+                          last_publish_at=datetime.now(timezone.utc).isoformat(),
+                      )
+                  return True
+          '''
+
+          if old_flush in main_text:
+              main_text = main_text.replace(old_flush, new_flush, 1)
+          elif "MQTT queue flush deferred" not in main_text:
+              raise SystemExit("Expected flush_queue block was not found")
+
+          main_path.write_text(main_text, encoding="utf-8")
+
+          tests_path = Path("services/device-agent/tests/test_main.py")
+          tests_text = tests_path.read_text(encoding="utf-8")
+          test_marker = "class MQTTQueueRecoveryTests(unittest.TestCase):"
+
+          if test_marker not in tests_text:
+              test_block = '''
+
+          class MQTTQueueRecoveryTests(unittest.TestCase):
+              @staticmethod
+              def _agent() -> DeviceAgent:
+                  agent = object.__new__(DeviceAgent)
+                  agent.state = AgentState()
+                  agent.state.update(mqtt_connected=True)
+                  agent.client = Mock()
+                  agent.queue = Mock()
+                  agent.queue.oldest.return_value = [
+                      (1, "nexolab/telemetry", '{"event_id":"queued"}')
+                  ]
+                  return agent
+
+              def test_flush_queue_defers_runtime_error_without_deleting_record(self) -> None:
+                  agent = self._agent()
+                  publish_result = Mock()
+                  publish_result.wait_for_publish.side_effect = RuntimeError(
+                      "Message publish failed: client not connected"
+                  )
+                  agent.client.publish.return_value = publish_result
+
+                  with self.assertLogs("nexolab.device_agent", level="WARNING") as logs:
+                      result = DeviceAgent.flush_queue(agent)
+
+                  self.assertFalse(result)
+                  agent.queue.delete.assert_not_called()
+                  self.assertTrue(
+                      any("MQTT queue flush deferred" in line for line in logs.output)
+                  )
+
+              def test_flush_queue_deletes_record_after_successful_publish(self) -> None:
+                  agent = self._agent()
+                  publish_result = Mock()
+                  publish_result.rc = 0
+                  agent.client.publish.return_value = publish_result
+
+                  result = DeviceAgent.flush_queue(agent)
+
+                  self.assertTrue(result)
+                  publish_result.wait_for_publish.assert_called_once_with(timeout=5)
+                  agent.queue.delete.assert_called_once_with(1)
+          '''
+
+              insertion = '\n\nif __name__ == "__main__":\n'
+              if insertion not in tests_text:
+                  raise SystemExit("Test insertion point was not found")
+              tests_text = tests_text.replace(
+                  insertion,
+                  test_block + insertion,
+                  1,
+              )
+              tests_path.write_text(tests_text, encoding="utf-8")
+
+          docs_path = Path("docs/rs485/combined-modbus-soak-test.md")
+          docs_text = docs_path.read_text(encoding="utf-8")
+          docs_marker = "## Log classification"
+
+          if docs_marker not in docs_text:
+              docs_text += '''
+
+          ## Log classification
+
+          MQTT interruption messages are transport-recovery diagnostics and must not be counted as RS-485 failures. Expected outage diagnostics include:
+
+          - `MQTT disconnected`;
+          - `MQTT publish failed; queueing event`;
+          - `MQTT queue flush deferred`;
+          - `MQTT unavailable; telemetry queued locally` in the health state.
+
+          Count only the following patterns as serial or Modbus failures:
+
+          ```text
+          XJP60D read failed
+          LE-01MP read failed
+          CRC mismatch
+          Modbus exception
+          permission denied
+          ```
+
+          `Device-agent cycle failed` is a separate application-level failure and must remain zero after the MQTT queue recovery fix. It is reported separately from the serial error count.
+          '''
+              docs_path.write_text(docs_text, encoding="utf-8")
+          PY
+
+      - name: Install Python dependencies
+        run: python -m pip install -r services/device-agent/requirements.txt
+
+      - name: Install Node dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format documentation
+        run: npx prettier --write docs/rs485/combined-modbus-soak-test.md
+
+      - name: Compile and test Device Agent
+        run: |
+          python -m compileall -q services/device-agent
+          cd services/device-agent
+          python -m unittest discover -s tests -v
+
+      - name: Commit patched files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/device-agent/main.py \
+            services/device-agent/tests/test_main.py \
+            docs/rs485/combined-modbus-soak-test.md
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(device-agent): harden MQTT queue recovery"
+          git push origin HEAD:fix/mqtt-flush-recovery
