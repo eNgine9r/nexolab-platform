@@ -18,7 +18,7 @@ const sample: TelemetrySample = {
 };
 
 class MockWebSocket extends EventTarget {
-  readonly close = vi.fn((_code?: number, _reason?: string) => {
+  readonly close = vi.fn(() => {
     this.dispatchEvent(new CloseEvent("close"));
   });
 
