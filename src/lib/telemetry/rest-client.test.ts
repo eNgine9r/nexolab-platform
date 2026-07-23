@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveTelemetryClientConfig } from "./config";
-import { TelemetryRequestError, TelemetryRestClient } from "./rest-client";
+import { TelemetryRestClient } from "./rest-client";
 
 const sample = {
   event_id: "56bb5d38-1c20-48c7-bfaf-8d3101da9e21",
@@ -80,9 +80,10 @@ describe("TelemetryRestClient", () => {
     });
 
     await expect(client.latest()).rejects.toEqual(
-      expect.objectContaining<TelemetryRequestError>({
+      expect.objectContaining({
         name: "TelemetryRequestError",
         status: 503,
+        message: expect.stringContaining("database unavailable"),
       }),
     );
   });
