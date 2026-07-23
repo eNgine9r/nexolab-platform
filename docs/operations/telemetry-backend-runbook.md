@@ -90,13 +90,14 @@ Inspect recent records:
 cd infrastructure/compose
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '
-    SELECT id, received_at, topic, reason_code,
-           payload_size, payload_truncated, reason_detail
-    FROM telemetry_dead_letters
-    ORDER BY received_at DESC
-    LIMIT 50;
+  exec -T postgres sh -c '
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+      SELECT id, received_at, topic, reason_code,
+             payload_size, payload_truncated, reason_detail
+      FROM telemetry_dead_letters
+      ORDER BY received_at DESC
+      LIMIT 50;
+    "
   '
 ```
 
@@ -175,8 +176,8 @@ mkdir -p ../../runtime/backups
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres \
-  pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc \
+  exec -T postgres sh -c \
+  'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
   > "../../runtime/backups/nexolab-telemetry-$STAMP.dump"
 ```
 
@@ -196,18 +197,20 @@ cd infrastructure/compose
 BACKUP="../../runtime/backups/nexolab-telemetry-YYYYMMDDTHHMMSSZ.dump"
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres createdb -U "$POSTGRES_USER" nexolab_restore_test
+  exec -T postgres sh -c \
+  'createdb -U "$POSTGRES_USER" nexolab_restore_test'
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres \
-  pg_restore -U "$POSTGRES_USER" -d nexolab_restore_test --clean --if-exists \
+  exec -T postgres sh -c \
+  'pg_restore -U "$POSTGRES_USER" -d nexolab_restore_test --clean --if-exists' \
   < "$BACKUP"
 
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres \
-  psql -U "$POSTGRES_USER" -d nexolab_restore_test -c '
-    SELECT COUNT(*) AS telemetry_samples FROM telemetry_samples;
-    SELECT COUNT(*) AS dead_letters FROM telemetry_dead_letters;
+  exec -T postgres sh -c '
+    psql -U "$POSTGRES_USER" -d nexolab_restore_test -c "
+      SELECT COUNT(*) AS telemetry_samples FROM telemetry_samples;
+      SELECT COUNT(*) AS dead_letters FROM telemetry_dead_letters;
+    "
   '
 ```
 
@@ -215,7 +218,8 @@ Drop the drill database after verification:
 
 ```bash
 docker compose --env-file .env.backend -f compose.backend.yaml \
-  exec -T postgres dropdb -U "$POSTGRES_USER" nexolab_restore_test
+  exec -T postgres sh -c \
+  'dropdb -U "$POSTGRES_USER" nexolab_restore_test'
 ```
 
 ## Safe restart
