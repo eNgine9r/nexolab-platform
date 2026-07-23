@@ -1,4 +1,5 @@
 import { Activity, AlertTriangle, Bolt, Network, Radio, Thermometer } from "lucide-react";
+
 import { Sparkline } from "./sparkline";
 
 const icons = {
@@ -18,15 +19,27 @@ const toneStyles = {
   amber: { icon: "text-amber-300", bg: "bg-amber-400/10", line: "#f5b301" },
 } as const;
 
+const badgeStyles = {
+  demo: "border-blue-300/10 bg-blue-400/[0.045] text-blue-300",
+  live: "border-emerald-300/10 bg-emerald-400/[0.045] text-emerald-300",
+  stale: "border-amber-300/10 bg-amber-400/[0.045] text-amber-300",
+  offline: "border-slate-300/10 bg-slate-400/[0.045] text-slate-400",
+  error: "border-red-300/10 bg-red-400/[0.045] text-red-300",
+} as const;
+
+export interface KpiCardItem {
+  label: string;
+  value: string;
+  detail: string;
+  trend: string;
+  tone: keyof typeof toneStyles;
+  icon: keyof typeof icons;
+  badge?: string;
+  badgeTone?: keyof typeof badgeStyles;
+}
+
 interface KpiCardProps {
-  item: {
-    label: string;
-    value: string;
-    detail: string;
-    trend: string;
-    tone: keyof typeof toneStyles;
-    icon: keyof typeof icons;
-  };
+  item: KpiCardItem;
   index: number;
 }
 
@@ -42,6 +55,7 @@ const fallbackSparks = [
 export function KpiCard({ item, index }: KpiCardProps) {
   const Icon = icons[item.icon];
   const tone = toneStyles[item.tone];
+  const badgeTone = item.badgeTone ?? "demo";
 
   return (
     <article className="group relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.065] bg-[linear-gradient(145deg,rgba(16,39,76,.93),rgba(8,24,49,.95))] p-3.5 shadow-[0_12px_36px_rgba(0,0,0,.16)] transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:shadow-[0_15px_42px_rgba(0,119,255,.12)]">
@@ -50,8 +64,10 @@ export function KpiCard({ item, index }: KpiCardProps) {
         <div className={`grid h-9 w-9 place-items-center rounded-xl ${tone.bg}`}>
           <Icon className={`h-[18px] w-[18px] ${tone.icon}`} strokeWidth={1.9} />
         </div>
-        <span className="rounded-full border border-white/[0.06] bg-white/[0.025] px-2 py-1 text-[9px] tracking-[0.12em] text-slate-500 uppercase">
-          live
+        <span
+          className={`rounded-full border px-2 py-1 text-[9px] tracking-[0.12em] uppercase ${badgeStyles[badgeTone]}`}
+        >
+          {item.badge ?? "demo"}
         </span>
       </div>
       <p className="mt-3 truncate text-[10px] font-medium text-slate-400">{item.label}</p>
