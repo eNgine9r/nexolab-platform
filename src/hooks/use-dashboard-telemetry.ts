@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { kpis as demoKpis } from "@/data/dashboard";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
 import {
   buildLiveDashboardKpis,
@@ -21,7 +22,6 @@ import type {
   TelemetrySample,
   TelemetrySubscription,
 } from "@/lib/telemetry/types";
-import { kpis as demoKpis } from "@/data/dashboard";
 
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
@@ -55,7 +55,9 @@ function loadRuntimeConfig(): RuntimeConfigResult {
 export function useDashboardTelemetry(): DashboardTelemetryModel {
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
-  const [connectionState, setConnectionState] = useState<TelemetryConnectionState>("disconnected");
+  const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
+    runtime.config?.mode === "live" ? "connecting" : "disconnected",
+  );
   const [hasLoadedSnapshot, setHasLoadedSnapshot] = useState(false);
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(() => Date.now());
@@ -65,6 +67,12 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
     if (runtime.config?.mode !== "live") {
       return;
     }
+
+    setConnectionState("connecting");
+    setHasLoadedSnapshot(false);
+    setError(null);
+    setStore(createDashboardTelemetryStore());
+    setClock(Date.now());
     setGeneration((value) => value + 1);
   }, [runtime.config]);
 
@@ -83,11 +91,6 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
     const adapter = createTelemetryAdapter(config);
     let subscription: TelemetrySubscription | null = null;
     let disposed = false;
-
-    setConnectionState("connecting");
-    setHasLoadedSnapshot(false);
-    setError(null);
-    setStore(createDashboardTelemetryStore());
 
     const commit = (samples: readonly TelemetrySample[]) => {
       if (disposed) {
@@ -128,7 +131,11 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
           return;
         }
         setHasLoadedSnapshot(true);
-        setError(nextError instanceof Error ? nextError : new Error("Failed to load telemetry snapshot"));
+        setError(
+          nextError instanceof Error
+            ? nextError
+            : new Error("Failed to load telemetry snapshot"),
+        );
       })
       .finally(() => {
         if (!disposed) {
