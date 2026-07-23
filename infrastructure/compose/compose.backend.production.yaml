@@ -1,0 +1,122 @@
+name: nexolab-central
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    environment:
+      MQTT_USERNAME: ${MQTT_USERNAME:?set MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:?set MQTT_PASSWORD}
+    ports:
+      - "${BACKEND_MQTT_BIND_ADDRESS:-127.0.0.1}:${BACKEND_MQTT_PORT:-1884}:1883"
+    volumes:
+      - ./mosquitto.production.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./secrets/mosquitto.passwd:/mosquitto/config/password_file:ro
+      - central-mqtt-data:/mosquitto/data
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mosquitto_sub -h 127.0.0.1 -u '$$MQTT_USERNAME' -P '$$MQTT_PASSWORD' -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 6s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - central-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  telemetry-migrate:
+    image: ${TELEMETRY_SERVICE_IMAGE:?set immutable TELEMETRY_SERVICE_IMAGE}
+    pull_policy: always
+    environment: &telemetry-environment
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_CONNECT_TIMEOUT_SECONDS: ${DATABASE_CONNECT_TIMEOUT_SECONDS:-3}
+      DATABASE_RETRY_INITIAL_SECONDS: ${DATABASE_RETRY_INITIAL_SECONDS:-0.25}
+      DATABASE_RETRY_MAX_SECONDS: ${DATABASE_RETRY_MAX_SECONDS:-5}
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+      MQTT_TOPIC: ${MQTT_TOPIC:-nexolab/telemetry}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-nexolab-central-ingestion}
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      INGESTION_QUEUE_MAXSIZE: ${INGESTION_QUEUE_MAXSIZE:-10000}
+      INGESTION_PAYLOAD_MAX_BYTES: ${INGESTION_PAYLOAD_MAX_BYTES:-262144}
+      DEAD_LETTER_PAYLOAD_MAX_BYTES: ${DEAD_LETTER_PAYLOAD_MAX_BYTES:-65536}
+      API_MAX_PAGE_SIZE: ${API_MAX_PAGE_SIZE:-1000}
+      HISTORY_MAX_RANGE_DAYS: ${HISTORY_MAX_RANGE_DAYS:-31}
+      WEBSOCKET_CLIENT_QUEUE_MAXSIZE: ${WEBSOCKET_CLIENT_QUEUE_MAXSIZE:-256}
+      WEBSOCKET_HEARTBEAT_SECONDS: ${WEBSOCKET_HEARTBEAT_SECONDS:-20}
+      WEBSOCKET_SEND_TIMEOUT_SECONDS: ${WEBSOCKET_SEND_TIMEOUT_SECONDS:-5}
+      WEBSOCKET_RESUME_LIMIT: ${WEBSOCKET_RESUME_LIMIT:-1000}
+      RETENTION_ENABLED: ${RETENTION_ENABLED:-true}
+      TELEMETRY_RETENTION_DAYS: ${TELEMETRY_RETENTION_DAYS:-365}
+      RAW_PAYLOAD_RETENTION_DAYS: ${RAW_PAYLOAD_RETENTION_DAYS:-30}
+      DEAD_LETTER_RETENTION_DAYS: ${DEAD_LETTER_RETENTION_DAYS:-30}
+      RETENTION_INTERVAL_SECONDS: ${RETENTION_INTERVAL_SECONDS:-3600}
+      RETENTION_BATCH_SIZE: ${RETENTION_BATCH_SIZE:-1000}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
+  telemetry-service:
+    image: ${TELEMETRY_SERVICE_IMAGE:?set immutable TELEMETRY_SERVICE_IMAGE}
+    pull_policy: always
+    restart: unless-stopped
+    environment: *telemetry-environment
+    ports:
+      - "${BACKEND_API_BIND_ADDRESS:-127.0.0.1}:${BACKEND_API_PORT:-8082}:8082"
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      telemetry-migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+
+volumes:
+  central-mqtt-data:
+  central-postgres-data:
