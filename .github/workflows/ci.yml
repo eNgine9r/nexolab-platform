@@ -34,6 +34,20 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Capture formatter patch
+        run: |
+          npm run format
+          git diff --binary > /tmp/prettier.patch
+          git checkout -- .
+
+      - name: Upload formatter patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-prettier-patch
+          path: /tmp/prettier.patch
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Check formatting
         run: npm run format:check
 
