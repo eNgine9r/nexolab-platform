@@ -18,17 +18,17 @@ The validated production scope is:
 
 The initial run started at `2026-07-23T10:37:54+00:00`.
 
-| Check | Result |
-| --- | --- |
-| Combined Modbus precheck | passed |
-| Continuous hardware polling | passed |
-| Samples before | 102 |
-| Samples after | 5848 |
+| Check                           | Result     |
+| ------------------------------- | ---------- |
+| Combined Modbus precheck        | passed     |
+| Continuous hardware polling     | passed     |
+| Samples before                  | 102        |
+| Samples after                   | 5848       |
 | Queue growth during MQTT outage | 34 records |
-| MQTT reconnect | passed |
-| Offline queue drain | passed |
-| Device Agent restart | passed |
-| Rollback to simulator | passed |
+| MQTT reconnect                  | passed     |
+| Offline queue drain             | passed     |
+| Device Agent restart            | passed     |
+| Rollback to simulator           | passed     |
 
 The initial validator reported a failure because its log classifier counted the application-level message `Device-agent cycle failed` as a serial error. Investigation established that `flush_queue()` allowed an MQTT publish exception to escape when the broker disappeared between the connection-state check and the queued-message publish.
 
@@ -50,19 +50,19 @@ The change does not alter Modbus polling behavior.
 
 The focused recovery retest started at `2026-07-23T11:32:17+00:00`.
 
-| Check | Result |
-| --- | --- |
-| Healthy combined-mode precheck | passed |
-| Queue growth during MQTT outage | passed |
-| MQTT recovery | passed |
-| Continuous polling after recovery | passed |
-| Serial or Modbus error lines | 0 |
-| Device Agent cycle failures | 0 |
-| Expected MQTT diagnostics present | yes |
-| Rollback to simulator | passed |
-| Samples before | 136 |
-| Samples after | 612 |
-| Outage queue size | 34 records |
+| Check                             | Result     |
+| --------------------------------- | ---------- |
+| Healthy combined-mode precheck    | passed     |
+| Queue growth during MQTT outage   | passed     |
+| MQTT recovery                     | passed     |
+| Continuous polling after recovery | passed     |
+| Serial or Modbus error lines      | 0          |
+| Device Agent cycle failures       | 0          |
+| Expected MQTT diagnostics present | yes        |
+| Rollback to simulator             | passed     |
+| Samples before                    | 136        |
+| Samples after                     | 612        |
+| Outage queue size                 | 34 records |
 
 The final retest result was `PASSED`.
 
