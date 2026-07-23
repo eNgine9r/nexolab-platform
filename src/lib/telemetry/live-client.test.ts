@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { resolveTelemetryClientConfig } from "./config";
 import { TelemetryLiveClient, type TelemetryLiveCallbacks, type TelemetrySocket } from "./live-client";
 
