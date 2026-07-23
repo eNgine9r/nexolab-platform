@@ -1,0 +1,94 @@
+schema_version: 1
+source:
+  vendor: Copeland/Dixell
+  model: XJP60D
+  profile_version: "1.6"
+  library_id: XJP60D_000E00100001
+  package_sha256: e1a4e160ba9ac0ea0e2a610f2e5fc3aa581b1f6d2c69c61f0853852cdfd0ffa3
+
+serial:
+  baudrate: 9600
+  bytesize: 8
+  parity: N
+  stopbits: 1
+
+read_policy:
+  function: 3
+  one_register_per_request: true
+  notes:
+    - The vendor commands read exactly one register at a time.
+    - Multi-register reads may return Modbus exception 03.
+
+value_encoding:
+  register_type: int16
+  configured_scales:
+    - multiplier: 0.1
+      decimals: 1
+      units: [degC, degF, V]
+    - multiplier: 1.0
+      decimals: 0
+      units: [degC, degF, V]
+  selection: Determined by the XJP60D input and resolution configuration; confirm against a known live probe.
+
+status_encoding:
+  register_type: uint16
+  mask: 0x0003
+  states:
+    0: normal
+    1: low
+    2: high
+    3: probe_error
+  notes:
+    - probe_error includes a failed or disconnected probe; hardware correlation is required to distinguish physical causes.
+
+probes:
+  - channel: 1
+    value_address: 256
+    value_address_hex: 0x0100
+    status_address: 257
+    status_address_hex: 0x0101
+  - channel: 2
+    value_address: 258
+    value_address_hex: 0x0102
+    status_address: 259
+    status_address_hex: 0x0103
+  - channel: 3
+    value_address: 260
+    value_address_hex: 0x0104
+    status_address: 261
+    status_address_hex: 0x0105
+  - channel: 4
+    value_address: 262
+    value_address_hex: 0x0106
+    status_address: 263
+    status_address_hex: 0x0107
+  - channel: 5
+    value_address: 264
+    value_address_hex: 0x0108
+    status_address: 265
+    status_address_hex: 0x0109
+  - channel: 6
+    value_address: 266
+    value_address_hex: 0x010A
+    status_address: 267
+    status_address_hex: 0x010B
+
+nexolab_topology:
+  chamber_2:
+    controllers: K101-K114
+    observed_online_unit_ids: 101-114
+    active_connector:
+      panel_connector: 503
+      controller: K106
+      unit_id: 106
+      channels: [3, 4]
+  chamber_1:
+    controllers: K115-K138
+    observed_online_unit_ids: 126-138
+    observed_unreachable_unit_ids: 115-125
+    active_connector:
+      panel_connector: 200
+      controller: K115
+      unit_id: 115
+      channels: [4]
+      communication_status: unreachable
