@@ -1,6 +1,6 @@
 # NEXOLAB Edge bootstrap
 
-Цей контур є першим вертикальним зрізом NEXOLAB: симулятор температури → локальна SQLite-черга → MQTT → health endpoint.
+Цей контур є першим вертикальним зрізом NEXOLAB: збір телеметрії → локальна SQLite-черга → MQTT → health endpoint.
 
 ## Локальний запуск
 
@@ -66,6 +66,26 @@ curl --fail http://127.0.0.1:8081/health
 
 Автоматичний deployment через Tailscale буде додано після прив'язки першого Pi та створення GitHub Environment `edge-01`.
 
-## Наступний адаптер
+## Production Modbus deployment
 
-Після перевірки offline-черги додаємо перший Modbus RTU драйвер. Для старту рекомендовано LE-01MP або Dixell XJP60D через ізольований USB–RS485 адаптер. Апаратний порт потрібно вказувати через `/dev/serial/by-id/...`, а не `/dev/ttyUSB0`.
+Комбінований read-only профіль пройшов smoke test, 30-хвилинний soak test і MQTT recovery retest. Затверджений scope:
+
+- XJP60D: `106-03`, `106-04`;
+- LE-01MP: `200`, `201`, `202`, `203`;
+- Modbus RTU `9600 8N1`;
+- FC03, один регістр на запит.
+
+Базовий `DEVICE_MODE` залишається `simulator`. Постійний hardware mode запускається тільки явним накладанням `compose.hardware.yaml`:
+
+```bash
+cd infrastructure/compose
+
+docker compose \
+  -f compose.edge.yaml \
+  -f compose.hardware.yaml \
+  up -d --force-recreate device-agent
+```
+
+Повний preflight, acceptance check, reboot persistence check і rollback описані в [`docs/rs485/production-modbus-cutover.md`](rs485/production-modbus-cutover.md).
+
+RS-485 adapter завжди потрібно вказувати через стабільний `/dev/serial/by-id/...` path, а не `/dev/ttyUSB0`.
