@@ -1,7 +1,4 @@
-import {
-  parseTelemetryCollection,
-  parseTelemetryReadiness,
-} from "./contract";
+import { parseTelemetryCollection, parseTelemetryReadiness } from "./contract";
 import { TelemetryClientError, asTelemetryError } from "./errors";
 import type {
   TelemetryCollectionResponse,
@@ -11,10 +8,7 @@ import type {
   TelemetryReadinessResponse,
 } from "./types";
 
-export type TelemetryFetch = (
-  input: RequestInfo | URL,
-  init?: RequestInit,
-) => Promise<Response>;
+export type TelemetryFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export interface TelemetryRestClientOptions {
   fetch?: TelemetryFetch;
@@ -36,10 +30,7 @@ const FILTER_KEYS: readonly (keyof TelemetryFilters)[] = [
   "alarm",
 ];
 
-function createManagedSignal(
-  externalSignal: AbortSignal | undefined,
-  timeoutMs: number,
-): ManagedSignal {
+function createManagedSignal(externalSignal: AbortSignal | undefined, timeoutMs: number): ManagedSignal {
   const controller = new AbortController();
   let timedOut = false;
 
@@ -65,10 +56,7 @@ function createManagedSignal(
   };
 }
 
-function appendFilters(
-  params: URLSearchParams,
-  filters: TelemetryFilters,
-): void {
+function appendFilters(params: URLSearchParams, filters: TelemetryFilters): void {
   for (const key of FILTER_KEYS) {
     const value = filters[key];
     if (value !== undefined) {
@@ -77,10 +65,7 @@ function appendFilters(
   }
 }
 
-function appendPage(
-  params: URLSearchParams,
-  query: TelemetryPageQuery,
-): void {
+function appendPage(params: URLSearchParams, query: TelemetryPageQuery): void {
   appendFilters(params, query);
   if (query.limit !== undefined) {
     params.set("limit", String(query.limit));
@@ -118,32 +103,18 @@ export class TelemetryRestClient {
     return this.request("/health/ready", parseTelemetryReadiness, signal);
   }
 
-  latest(
-    query: TelemetryPageQuery = {},
-    signal?: AbortSignal,
-  ): Promise<TelemetryCollectionResponse> {
+  latest(query: TelemetryPageQuery = {}, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
     const params = new URLSearchParams();
     appendPage(params, query);
-    return this.request(
-      pathWithQuery("/api/v1/telemetry/latest", params),
-      parseTelemetryCollection,
-      signal,
-    );
+    return this.request(pathWithQuery("/api/v1/telemetry/latest", params), parseTelemetryCollection, signal);
   }
 
-  history(
-    query: TelemetryHistoryQuery,
-    signal?: AbortSignal,
-  ): Promise<TelemetryCollectionResponse> {
+  history(query: TelemetryHistoryQuery, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
     const params = new URLSearchParams();
     appendPage(params, query);
     params.set("from", timestamp(query.from));
     params.set("to", timestamp(query.to));
-    return this.request(
-      pathWithQuery("/api/v1/telemetry/history", params),
-      parseTelemetryCollection,
-      signal,
-    );
+    return this.request(pathWithQuery("/api/v1/telemetry/history", params), parseTelemetryCollection, signal);
   }
 
   private async request<T>(
@@ -188,11 +159,7 @@ export class TelemetryRestClient {
     try {
       body = await response.json();
     } catch (error) {
-      throw new TelemetryClientError(
-        "contract",
-        "Telemetry service returned invalid JSON",
-        { cause: error },
-      );
+      throw new TelemetryClientError("contract", "Telemetry service returned invalid JSON", { cause: error });
     }
 
     return parser(body);

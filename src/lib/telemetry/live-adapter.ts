@@ -21,24 +21,15 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
     return this.rest.readiness(signal);
   }
 
-  latest(
-    query: TelemetryPageQuery = {},
-    signal?: AbortSignal,
-  ): Promise<TelemetryCollectionResponse> {
+  latest(query: TelemetryPageQuery = {}, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
     return this.rest.latest(query, signal);
   }
 
-  history(
-    query: TelemetryHistoryQuery,
-    signal?: AbortSignal,
-  ): Promise<TelemetryCollectionResponse> {
+  history(query: TelemetryHistoryQuery, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
     return this.rest.history(query, signal);
   }
 
-  subscribe(
-    filters: TelemetryFilters,
-    handlers: TelemetryLiveHandlers,
-  ): TelemetrySubscription {
+  subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
     return this.live.subscribe(filters, handlers);
   }
 }

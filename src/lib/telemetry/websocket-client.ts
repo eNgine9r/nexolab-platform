@@ -17,11 +17,7 @@ export interface TelemetryWebSocketClientOptions {
 
 const DEFAULT_RECONNECT_DELAYS_MS = [500, 1_000, 2_000, 5_000, 10_000] as const;
 
-function buildUrl(
-  baseUrl: string,
-  filters: TelemetryFilters,
-  after: string | null,
-): string {
+function buildUrl(baseUrl: string, filters: TelemetryFilters, after: string | null): string {
   const url = new URL(baseUrl);
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined) {
@@ -44,15 +40,11 @@ export class TelemetryWebSocketClient {
     options: TelemetryWebSocketClientOptions = {},
   ) {
     this.createSocket = options.createSocket ?? ((url) => new WebSocket(url));
-    this.reconnectDelaysMs =
-      options.reconnectDelaysMs ?? DEFAULT_RECONNECT_DELAYS_MS;
+    this.reconnectDelaysMs = options.reconnectDelaysMs ?? DEFAULT_RECONNECT_DELAYS_MS;
     this.maxSeenEventIds = options.maxSeenEventIds ?? 10_000;
   }
 
-  subscribe(
-    filters: TelemetryFilters,
-    handlers: TelemetryLiveHandlers,
-  ): TelemetrySubscription {
+  subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempt = 0;
@@ -71,9 +63,7 @@ export class TelemetryWebSocketClient {
 
     const reportError = (error: unknown, message: string) => {
       handlers.onError?.(
-        error instanceof Error
-          ? error
-          : new TelemetryClientError("websocket", message, { cause: error }),
+        error instanceof Error ? error : new TelemetryClientError("websocket", message, { cause: error }),
       );
     };
 
@@ -94,9 +84,7 @@ export class TelemetryWebSocketClient {
       }
 
       setState(reconnectAttempt === 0 ? "connecting" : "reconnecting");
-      socket = this.createSocket(
-        buildUrl(this.websocketUrl, filters, lastCommittedCapturedAt),
-      );
+      socket = this.createSocket(buildUrl(this.websocketUrl, filters, lastCommittedCapturedAt));
 
       socket.addEventListener("open", () => {
         reconnectAttempt = 0;
@@ -105,17 +93,13 @@ export class TelemetryWebSocketClient {
 
       socket.addEventListener("message", (event) => {
         try {
-          const message = parseTelemetryLiveMessage(
-            JSON.parse(String(event.data)) as unknown,
-          );
+          const message = parseTelemetryLiveMessage(JSON.parse(String(event.data)) as unknown);
           if (message.kind === "heartbeat") {
             handlers.onHeartbeat?.(message.serverTime);
             return;
           }
           if (message.kind === "error") {
-            handlers.onError?.(
-              new TelemetryClientError("websocket", message.detail),
-            );
+            handlers.onError?.(new TelemetryClientError("websocket", message.detail));
             return;
           }
           if (seenEventIds.has(message.sample.event_id)) {
@@ -144,10 +128,7 @@ export class TelemetryWebSocketClient {
         if (reconnectAttempt >= this.reconnectDelaysMs.length) {
           setState("disconnected");
           handlers.onError?.(
-            new TelemetryClientError(
-              "websocket",
-              "Telemetry WebSocket reconnect limit reached",
-            ),
+            new TelemetryClientError("websocket", "Telemetry WebSocket reconnect limit reached"),
           );
           return;
         }

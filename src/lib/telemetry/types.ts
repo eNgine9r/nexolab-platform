@@ -1,10 +1,6 @@
 export type TelemetryMode = "demo" | "live";
 
-export type TelemetryQuality =
-  | "valid"
-  | "sensor_error"
-  | "communication_error"
-  | "unknown";
+export type TelemetryQuality = "valid" | "sensor_error" | "communication_error" | "unknown";
 
 export type TelemetryAlarm = "low" | "high";
 
@@ -72,11 +68,7 @@ export interface TelemetryRuntimeConfig {
   websocketUrl: string | null;
 }
 
-export type TelemetryConnectionState =
-  | "connecting"
-  | "connected"
-  | "reconnecting"
-  | "disconnected";
+export type TelemetryConnectionState = "connecting" | "connected" | "reconnecting" | "disconnected";
 
 export interface TelemetryLiveHandlers {
   onSample: (sample: TelemetrySample) => void;
@@ -91,16 +83,7 @@ export interface TelemetrySubscription {
 
 export interface TelemetryAdapter {
   readiness: (signal?: AbortSignal) => Promise<TelemetryReadinessResponse>;
-  latest: (
-    query?: TelemetryPageQuery,
-    signal?: AbortSignal,
-  ) => Promise<TelemetryCollectionResponse>;
-  history: (
-    query: TelemetryHistoryQuery,
-    signal?: AbortSignal,
-  ) => Promise<TelemetryCollectionResponse>;
-  subscribe: (
-    filters: TelemetryFilters,
-    handlers: TelemetryLiveHandlers,
-  ) => TelemetrySubscription;
+  latest: (query?: TelemetryPageQuery, signal?: AbortSignal) => Promise<TelemetryCollectionResponse>;
+  history: (query: TelemetryHistoryQuery, signal?: AbortSignal) => Promise<TelemetryCollectionResponse>;
+  subscribe: (filters: TelemetryFilters, handlers: TelemetryLiveHandlers) => TelemetrySubscription;
 }

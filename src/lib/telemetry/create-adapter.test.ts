@@ -27,12 +27,10 @@ describe("createTelemetryAdapter", () => {
     );
 
     expect(adapter).toBeInstanceOf(DemoTelemetryAdapter);
-    await expect(adapter.latest({ channel_id: "106-03" })).resolves.toMatchObject(
-      {
-        count: 1,
-        items: [sample],
-      },
-    );
+    await expect(adapter.latest({ channel_id: "106-03" })).resolves.toMatchObject({
+      count: 1,
+      items: [sample],
+    });
   });
 
   it("creates a live adapter without browser-side credentials", () => {

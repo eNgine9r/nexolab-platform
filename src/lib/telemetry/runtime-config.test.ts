@@ -14,8 +14,7 @@ describe("validateTelemetryRuntimeConfig", () => {
       validateTelemetryRuntimeConfig({
         mode: "live",
         apiBaseUrl: "http://127.0.0.1:8082/",
-        websocketUrl:
-          "ws://127.0.0.1:8082/api/v1/telemetry/live?ignored=true",
+        websocketUrl: "ws://127.0.0.1:8082/api/v1/telemetry/live?ignored=true",
       }),
     ).toEqual({
       mode: "live",

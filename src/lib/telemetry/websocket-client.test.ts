@@ -31,9 +31,7 @@ class MockWebSocket extends EventTarget {
   }
 
   message(payload: unknown): void {
-    this.dispatchEvent(
-      new MessageEvent("message", { data: JSON.stringify(payload) }),
-    );
+    this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(payload) }));
   }
 
   disconnect(): void {
@@ -51,17 +49,14 @@ describe("TelemetryWebSocketClient", () => {
     const sockets: MockWebSocket[] = [];
     const samples: TelemetrySample[] = [];
     const states: TelemetryConnectionState[] = [];
-    const client = new TelemetryWebSocketClient(
-      "ws://127.0.0.1:8082/api/v1/telemetry/live",
-      {
-        createSocket: (url) => {
-          const socket = new MockWebSocket(url);
-          sockets.push(socket);
-          return socket as unknown as WebSocket;
-        },
-        reconnectDelaysMs: [50, 100],
+    const client = new TelemetryWebSocketClient("ws://127.0.0.1:8082/api/v1/telemetry/live", {
+      createSocket: (url) => {
+        const socket = new MockWebSocket(url);
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
       },
-    );
+      reconnectDelaysMs: [50, 100],
+    });
 
     const subscription = client.subscribe(
       { node_id: "edge-01", channel_id: "106-03" },

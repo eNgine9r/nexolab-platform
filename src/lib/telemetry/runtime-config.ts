@@ -13,40 +13,23 @@ function parseMode(value: string | undefined): TelemetryMode {
     return mode;
   }
 
-  throw new TelemetryClientError(
-    "configuration",
-    `Unsupported telemetry mode: ${mode}`,
-  );
+  throw new TelemetryClientError("configuration", `Unsupported telemetry mode: ${mode}`);
 }
 
-function parseUrl(
-  value: string | undefined,
-  field: string,
-  protocols: readonly string[],
-): string {
+function parseUrl(value: string | undefined, field: string, protocols: readonly string[]): string {
   if (!value?.trim()) {
-    throw new TelemetryClientError(
-      "configuration",
-      `${field} is required in live mode`,
-    );
+    throw new TelemetryClientError("configuration", `${field} is required in live mode`);
   }
 
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch (error) {
-    throw new TelemetryClientError(
-      "configuration",
-      `${field} must be an absolute URL`,
-      { cause: error },
-    );
+    throw new TelemetryClientError("configuration", `${field} must be an absolute URL`, { cause: error });
   }
 
   if (!protocols.includes(parsed.protocol)) {
-    throw new TelemetryClientError(
-      "configuration",
-      `${field} must use ${protocols.join(" or ")}`,
-    );
+    throw new TelemetryClientError("configuration", `${field} must use ${protocols.join(" or ")}`);
   }
 
   parsed.hash = "";
@@ -54,9 +37,7 @@ function parseUrl(
   return parsed.toString().replace(/\/$/, "");
 }
 
-export function validateTelemetryRuntimeConfig(
-  input: TelemetryRuntimeConfigInput,
-): TelemetryRuntimeConfig {
+export function validateTelemetryRuntimeConfig(input: TelemetryRuntimeConfigInput): TelemetryRuntimeConfig {
   const mode = parseMode(input.mode);
   if (mode === "demo") {
     return Object.freeze({
@@ -68,14 +49,8 @@ export function validateTelemetryRuntimeConfig(
 
   return Object.freeze({
     mode,
-    apiBaseUrl: parseUrl(input.apiBaseUrl, "Telemetry API URL", [
-      "http:",
-      "https:",
-    ]),
-    websocketUrl: parseUrl(input.websocketUrl, "Telemetry WebSocket URL", [
-      "ws:",
-      "wss:",
-    ]),
+    apiBaseUrl: parseUrl(input.apiBaseUrl, "Telemetry API URL", ["http:", "https:"]),
+    websocketUrl: parseUrl(input.websocketUrl, "Telemetry WebSocket URL", ["ws:", "wss:"]),
   });
 }
 

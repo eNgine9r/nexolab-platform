@@ -27,20 +27,15 @@ const DEMO_READINESS: TelemetryReadinessResponse = {
 function matches(sample: TelemetrySample, filters: TelemetryFilters): boolean {
   return (
     (filters.node_id === undefined || sample.node_id === filters.node_id) &&
-    (filters.equipment_id === undefined ||
-      sample.equipment_id === filters.equipment_id) &&
-    (filters.channel_id === undefined ||
-      sample.channel_id === filters.channel_id) &&
+    (filters.equipment_id === undefined || sample.equipment_id === filters.equipment_id) &&
+    (filters.channel_id === undefined || sample.channel_id === filters.channel_id) &&
     (filters.metric === undefined || sample.metric === filters.metric) &&
     (filters.quality === undefined || sample.quality === filters.quality) &&
     (filters.alarm === undefined || sample.alarm === filters.alarm)
   );
 }
 
-function page(
-  samples: TelemetrySample[],
-  query: TelemetryPageQuery,
-): TelemetryCollectionResponse {
+function page(samples: TelemetrySample[], query: TelemetryPageQuery): TelemetryCollectionResponse {
   const offset = query.offset ?? 0;
   const limit = query.limit ?? 200;
   const filtered = samples.filter((sample) => matches(sample, query));
@@ -64,9 +59,7 @@ export class DemoTelemetryAdapter implements TelemetryAdapter {
     return this.readinessSnapshot;
   }
 
-  async latest(
-    query: TelemetryPageQuery = {},
-  ): Promise<TelemetryCollectionResponse> {
+  async latest(query: TelemetryPageQuery = {}): Promise<TelemetryCollectionResponse> {
     const latestByChannel = new Map<string, TelemetrySample>();
     for (const sample of this.samples) {
       const key = `${sample.node_id}:${sample.equipment_id}:${sample.channel_id}:${sample.metric}`;
@@ -78,9 +71,7 @@ export class DemoTelemetryAdapter implements TelemetryAdapter {
     return page([...latestByChannel.values()], query);
   }
 
-  async history(
-    query: TelemetryHistoryQuery,
-  ): Promise<TelemetryCollectionResponse> {
+  async history(query: TelemetryHistoryQuery): Promise<TelemetryCollectionResponse> {
     const from = new Date(query.from).getTime();
     const to = new Date(query.to).getTime();
     return page(
@@ -92,10 +83,7 @@ export class DemoTelemetryAdapter implements TelemetryAdapter {
     );
   }
 
-  subscribe(
-    filters: TelemetryFilters,
-    handlers: TelemetryLiveHandlers,
-  ): TelemetrySubscription {
+  subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
     let closed = false;
     handlers.onStateChange?.("connected");
 

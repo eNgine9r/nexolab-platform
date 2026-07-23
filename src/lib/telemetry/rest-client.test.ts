@@ -18,9 +18,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe("TelemetryRestClient", () => {
   it("builds deterministic latest and history queries", async () => {
-    const fetchMock = vi.fn<TelemetryFetch>().mockResolvedValue(
-      jsonResponse(collection),
-    );
+    const fetchMock = vi.fn<TelemetryFetch>().mockResolvedValue(jsonResponse(collection));
     const client = new TelemetryRestClient("http://127.0.0.1:8082", {
       fetch: fetchMock,
     });
@@ -53,9 +51,7 @@ describe("TelemetryRestClient", () => {
 
   it("returns a structured HTTP error", async () => {
     const client = new TelemetryRestClient("http://127.0.0.1:8082", {
-      fetch: vi
-        .fn<TelemetryFetch>()
-        .mockResolvedValue(new Response("not ready", { status: 503 })),
+      fetch: vi.fn<TelemetryFetch>().mockResolvedValue(new Response("not ready", { status: 503 })),
     });
 
     await expect(client.readiness()).rejects.toMatchObject({
@@ -116,9 +112,7 @@ describe("TelemetryRestClient", () => {
 
   it("rejects a malformed successful response", async () => {
     const client = new TelemetryRestClient("http://127.0.0.1:8082", {
-      fetch: vi
-        .fn<TelemetryFetch>()
-        .mockResolvedValue(jsonResponse({ items: "invalid" })),
+      fetch: vi.fn<TelemetryFetch>().mockResolvedValue(jsonResponse({ items: "invalid" })),
     });
 
     await expect(client.latest()).rejects.toMatchObject({

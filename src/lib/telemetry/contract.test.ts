@@ -1,8 +1,4 @@
-import {
-  parseTelemetryCollection,
-  parseTelemetryLiveMessage,
-  parseTelemetryReadiness,
-} from "./contract";
+import { parseTelemetryCollection, parseTelemetryLiveMessage, parseTelemetryReadiness } from "./contract";
 
 const sample = {
   event_id: "event-1",
@@ -65,9 +61,10 @@ describe("telemetry contract parsers", () => {
       kind: "heartbeat",
       serverTime: "2026-07-23T18:00:02Z",
     });
-    expect(
-      parseTelemetryLiveMessage({ type: "error", detail: "resume limit" }),
-    ).toEqual({ kind: "error", detail: "resume limit" });
+    expect(parseTelemetryLiveMessage({ type: "error", detail: "resume limit" })).toEqual({
+      kind: "error",
+      detail: "resume limit",
+    });
   });
 
   it("parses readiness state", () => {
@@ -81,10 +78,7 @@ describe("telemetry contract parsers", () => {
     [{ ...sample, value: Number.NaN }, "value"],
     [{ items: {}, count: 0, limit: 1, offset: 0, next_offset: null }, "items"],
   ])("rejects malformed payloads", (payload, path) => {
-    const parse =
-      "items" in payload
-        ? parseTelemetryCollection
-        : parseTelemetryLiveMessage;
+    const parse = "items" in payload ? parseTelemetryCollection : parseTelemetryLiveMessage;
     expect(() => parse(payload)).toThrowError(
       expect.objectContaining({
         code: "contract",

@@ -7,12 +7,7 @@ import type {
   TelemetrySample,
 } from "./types";
 
-const QUALITIES: readonly TelemetryQuality[] = [
-  "valid",
-  "sensor_error",
-  "communication_error",
-  "unknown",
-];
+const QUALITIES: readonly TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARMS: readonly TelemetryAlarm[] = ["low", "high"];
 
 export type ParsedTelemetryLiveMessage =
@@ -21,10 +16,7 @@ export type ParsedTelemetryLiveMessage =
   | { kind: "error"; detail: string };
 
 function fail(path: string, detail: string): never {
-  throw new TelemetryClientError(
-    "contract",
-    `Invalid telemetry response at ${path}: ${detail}`,
-  );
+  throw new TelemetryClientError("contract", `Invalid telemetry response at ${path}: ${detail}`);
 }
 
 function asRecord(value: unknown, path: string): Record<string, unknown> {
@@ -85,32 +77,21 @@ function asNullableTimestamp(value: unknown, path: string): string | null {
   return asTimestamp(value, path);
 }
 
-function asEnum<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-  path: string,
-): T {
+function asEnum<T extends string>(value: unknown, allowed: readonly T[], path: string): T {
   if (typeof value !== "string" || !allowed.includes(value as T)) {
     fail(path, `expected one of ${allowed.join(", ")}`);
   }
   return value as T;
 }
 
-function asNullableEnum<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-  path: string,
-): T | null {
+function asNullableEnum<T extends string>(value: unknown, allowed: readonly T[], path: string): T | null {
   if (value === null) {
     return null;
   }
   return asEnum(value, allowed, path);
 }
 
-export function parseTelemetrySample(
-  value: unknown,
-  path = "sample",
-): TelemetrySample {
+export function parseTelemetrySample(value: unknown, path = "sample"): TelemetrySample {
   const record = asRecord(value, path);
   const receivedAt = record.received_at;
 
@@ -128,15 +109,11 @@ export function parseTelemetrySample(
     alarm: asNullableEnum(record.alarm, ALARMS, `${path}.alarm`),
     raw_value: asNullableNumber(record.raw_value, `${path}.raw_value`),
     raw_status: asNullableNumber(record.raw_status, `${path}.raw_status`),
-    ...(receivedAt === undefined
-      ? {}
-      : { received_at: asTimestamp(receivedAt, `${path}.received_at`) }),
+    ...(receivedAt === undefined ? {} : { received_at: asTimestamp(receivedAt, `${path}.received_at`) }),
   };
 }
 
-export function parseTelemetryCollection(
-  value: unknown,
-): TelemetryCollectionResponse {
+export function parseTelemetryCollection(value: unknown): TelemetryCollectionResponse {
   const record = asRecord(value, "collection");
   if (!Array.isArray(record.items)) {
     fail("collection.items", "expected an array");
@@ -144,60 +121,35 @@ export function parseTelemetryCollection(
 
   const nextOffset = record.next_offset;
   return {
-    items: record.items.map((item, index) =>
-      parseTelemetrySample(item, `collection.items[${index}]`),
-    ),
+    items: record.items.map((item, index) => parseTelemetrySample(item, `collection.items[${index}]`)),
     count: asInteger(record.count, "collection.count"),
     limit: asInteger(record.limit, "collection.limit"),
     offset: asInteger(record.offset, "collection.offset"),
-    next_offset:
-      nextOffset === null
-        ? null
-        : asInteger(nextOffset, "collection.next_offset"),
+    next_offset: nextOffset === null ? null : asInteger(nextOffset, "collection.next_offset"),
   };
 }
 
-export function parseTelemetryReadiness(
-  value: unknown,
-): TelemetryReadinessResponse {
+export function parseTelemetryReadiness(value: unknown): TelemetryReadinessResponse {
   const record = asRecord(value, "readiness");
   return {
     status: asEnum(record.status, ["ready", "not_ready"], "readiness.status"),
-    database: asEnum(
-      record.database,
-      ["ready", "not_ready"],
-      "readiness.database",
-    ),
+    database: asEnum(record.database, ["ready", "not_ready"], "readiness.database"),
     mqtt: asEnum(record.mqtt, ["ready", "not_ready"], "readiness.mqtt"),
     queue_size: asInteger(record.queue_size, "readiness.queue_size"),
-    websocket_clients: asInteger(
-      record.websocket_clients,
-      "readiness.websocket_clients",
-    ),
+    websocket_clients: asInteger(record.websocket_clients, "readiness.websocket_clients"),
     database_outage_since: asNullableTimestamp(
       record.database_outage_since,
       "readiness.database_outage_since",
     ),
-    last_persisted_at: asNullableTimestamp(
-      record.last_persisted_at,
-      "readiness.last_persisted_at",
-    ),
-    ingestion_lag_seconds: asNullableNumber(
-      record.ingestion_lag_seconds,
-      "readiness.ingestion_lag_seconds",
-    ),
+    last_persisted_at: asNullableTimestamp(record.last_persisted_at, "readiness.last_persisted_at"),
+    ingestion_lag_seconds: asNullableNumber(record.ingestion_lag_seconds, "readiness.ingestion_lag_seconds"),
     mqtt_error: asNullableString(record.mqtt_error, "readiness.mqtt_error"),
-    database_error: asNullableString(
-      record.database_error,
-      "readiness.database_error",
-    ),
+    database_error: asNullableString(record.database_error, "readiness.database_error"),
     last_error: asNullableString(record.last_error, "readiness.last_error"),
   };
 }
 
-export function parseTelemetryLiveMessage(
-  value: unknown,
-): ParsedTelemetryLiveMessage {
+export function parseTelemetryLiveMessage(value: unknown): ParsedTelemetryLiveMessage {
   const record = asRecord(value, "live");
   if (record.type === "heartbeat") {
     return {

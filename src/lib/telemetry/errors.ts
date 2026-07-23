@@ -1,11 +1,5 @@
 export type TelemetryErrorCode =
-  | "configuration"
-  | "timeout"
-  | "aborted"
-  | "network"
-  | "http"
-  | "contract"
-  | "websocket";
+  "configuration" | "timeout" | "aborted" | "network" | "http" | "contract" | "websocket";
 
 export interface TelemetryClientErrorOptions {
   status?: number;
@@ -16,11 +10,7 @@ export class TelemetryClientError extends Error {
   readonly code: TelemetryErrorCode;
   readonly status?: number;
 
-  constructor(
-    code: TelemetryErrorCode,
-    message: string,
-    options: TelemetryClientErrorOptions = {},
-  ) {
+  constructor(code: TelemetryErrorCode, message: string, options: TelemetryClientErrorOptions = {}) {
     super(message, { cause: options.cause });
     this.name = "TelemetryClientError";
     this.code = code;
@@ -28,10 +18,7 @@ export class TelemetryClientError extends Error {
   }
 }
 
-export function asTelemetryError(
-  error: unknown,
-  fallbackMessage: string,
-): TelemetryClientError {
+export function asTelemetryError(error: unknown, fallbackMessage: string): TelemetryClientError {
   if (error instanceof TelemetryClientError) {
     return error;
   }
