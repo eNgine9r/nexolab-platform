@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexolab.local/contracts/telemetry-event.v1.schema.json",
+  "title": "NEXOLAB Telemetry Event v1",
+  "type": "object",
+  "required": [
+    "event_id",
+    "node_id",
+    "captured_at",
+    "metric",
+    "value",
+    "unit",
+    "quality",
+    "source",
+    "equipment_id",
+    "channel_id",
+    "alarm",
+    "raw_value",
+    "raw_status"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "node_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "metric": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "value": { "type": ["number", "null"] },
+    "unit": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "quality": {
+      "enum": ["valid", "sensor_error", "communication_error", "unknown"]
+    },
+    "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "equipment_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "channel_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "alarm": { "enum": ["low", "high", null] },
+    "raw_value": { "type": ["integer", "null"] },
+    "raw_status": { "type": ["integer", "null"] }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "quality": { "const": "valid" } },
+        "required": ["quality"]
+      },
+      "then": {
+        "properties": { "value": { "type": "number" } }
+      }
+    }
+  ],
+  "additionalProperties": true
+}
