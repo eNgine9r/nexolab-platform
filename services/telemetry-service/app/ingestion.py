@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from queue import Empty, Full, Queue
 from threading import Event, Thread
 from typing import Any
@@ -21,9 +22,11 @@ class TelemetryIngestor:
         database: Database,
         state: RuntimeState,
         queue_maxsize: int,
+        on_persisted: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         self._database = database
         self._state = state
+        self._on_persisted = on_persisted
         self._queue: Queue[tuple[TelemetryEvent, dict[str, Any]]] = Queue(
             maxsize=queue_maxsize
         )
@@ -80,6 +83,15 @@ class TelemetryIngestor:
                 self._state.set_database_ready(True)
                 if inserted:
                     self._state.mark_persisted()
+                    if self._on_persisted is not None:
+                        try:
+                            self._on_persisted(event.normalized_payload())
+                        except Exception:  # noqa: BLE001 - callback boundary
+                            self._state.increment("websocket_publish_error_total")
+                            LOGGER.exception(
+                                "Failed to publish persisted event %s to live clients",
+                                event.event_id,
+                            )
                 else:
                     self._state.increment("duplicate_total")
                     self._state.set_error(None)
