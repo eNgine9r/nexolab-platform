@@ -2,9 +2,18 @@ from __future__ import annotations
 
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from main import Settings, parse_unit_ids, parse_xjp60d_points
+from main import (
+    AgentState,
+    DeviceAgent,
+    Settings,
+    TelemetryRecord,
+    mode_uses_le01mp,
+    mode_uses_xjp60d,
+    parse_unit_ids,
+    parse_xjp60d_points,
+)
 
 
 class SettingsTests(unittest.TestCase):
@@ -54,6 +63,84 @@ class SettingsTests(unittest.TestCase):
         with patch.dict(os.environ, {"DEVICE_MODE": "modbus"}, clear=True):
             with self.assertRaisesRegex(ValueError, "At least one"):
                 Settings.from_env()
+
+
+class DriverModeGatingTests(unittest.TestCase):
+    @staticmethod
+    def _settings(device_mode: str) -> Settings:
+        environment = {
+            "DEVICE_MODE": device_mode,
+            "XJP60D_POINTS": "106:3,106:4",
+            "LE01MP_UNIT_IDS": "201",
+        }
+        with patch.dict(os.environ, environment, clear=True):
+            return Settings.from_env()
+
+    @staticmethod
+    def _record(source: str) -> TelemetryRecord:
+        return TelemetryRecord(
+            event_id="test-event",
+            node_id="edge-01",
+            captured_at="2026-07-23T00:00:00+00:00",
+            metric="test.metric",
+            value=1.0,
+            unit="test",
+            quality="valid",
+            source=source,
+        )
+
+    def test_mode_helpers(self) -> None:
+        self.assertTrue(mode_uses_xjp60d("xjp60d"))
+        self.assertTrue(mode_uses_xjp60d("modbus"))
+        self.assertFalse(mode_uses_xjp60d("le01mp"))
+        self.assertTrue(mode_uses_le01mp("le01mp"))
+        self.assertTrue(mode_uses_le01mp("modbus"))
+        self.assertFalse(mode_uses_le01mp("xjp60d"))
+
+    def test_health_hides_inactive_driver_inventory(self) -> None:
+        meter_settings = self._settings("le01mp")
+        meter_snapshot = AgentState().snapshot(0, meter_settings)
+        self.assertEqual(meter_snapshot["configured_points"], [])
+        self.assertEqual(meter_snapshot["configured_devices"], ["LE01MP-201"])
+
+        xjp_settings = self._settings("xjp60d")
+        xjp_snapshot = AgentState().snapshot(0, xjp_settings)
+        self.assertEqual(xjp_snapshot["configured_points"], ["106-03", "106-04"])
+        self.assertEqual(xjp_snapshot["configured_devices"], [])
+
+    def test_le01mp_mode_does_not_call_xjp60d_poller(self) -> None:
+        agent = object.__new__(DeviceAgent)
+        agent.settings = self._settings("le01mp")
+        agent._sample_xjp60d = Mock()
+        agent._sample_le01mp = Mock(
+            side_effect=lambda _captured_at, records, _errors: records.append(
+                self._record("f-and-f-le-01mp")
+            )
+        )
+
+        records, error = DeviceAgent.sample_batch(agent)
+
+        agent._sample_xjp60d.assert_not_called()
+        agent._sample_le01mp.assert_called_once()
+        self.assertEqual([record.source for record in records], ["f-and-f-le-01mp"])
+        self.assertIsNone(error)
+
+    def test_xjp60d_mode_does_not_call_le01mp_poller(self) -> None:
+        agent = object.__new__(DeviceAgent)
+        agent.settings = self._settings("xjp60d")
+        agent._sample_xjp60d = Mock(
+            side_effect=lambda _captured_at, records, _errors: records.append(
+                self._record("dixell-xjp60d")
+            )
+        )
+        agent._sample_le01mp = Mock()
+
+        records, error = DeviceAgent.sample_batch(agent)
+
+        agent._sample_xjp60d.assert_called_once()
+        agent._sample_le01mp.assert_not_called()
+        self.assertEqual([record.source for record in records], ["dixell-xjp60d"])
+        self.assertIsNone(error)
 
 
 if __name__ == "__main__":
