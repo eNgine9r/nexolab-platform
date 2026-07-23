@@ -25,14 +25,14 @@ hardware_validation:
   rollback_to_simulator: passed
   communication_errors: 0
   observed_values:
-    voltage: {raw: 2273, value: 227.3, unit: V}
-    current: {raw: 5, value: 0.5, unit: A}
-    frequency: {raw: 500, value: 50.0, unit: Hz}
-    active_power: {raw: 123, value: 123.0, unit: W}
-    reactive_power: {raw: 17, value: 17.0, unit: var}
-    apparent_power: {raw: 131, value: 131.0, unit: VA}
-    power_factor: {raw: 1000, value: 1.0, unit: ratio}
-    internal_temperature: {raw: 35, value: 35.0, unit: degC}
+    voltage: { raw: 2273, value: 227.3, unit: V }
+    current: { raw: 5, value: 0.5, unit: A }
+    frequency: { raw: 500, value: 50.0, unit: Hz }
+    active_power: { raw: 123, value: 123.0, unit: W }
+    reactive_power: { raw: 17, value: 17.0, unit: var }
+    apparent_power: { raw: 131, value: 131.0, unit: VA }
+    power_factor: { raw: 1000, value: 1.0, unit: ratio }
+    internal_temperature: { raw: 35, value: 35.0, unit: degC }
   notes:
     - Registers are read sequentially, so cross-metric arithmetic must not be treated as an atomic snapshot.
     - Cumulative energy register 7 remains excluded pending scale and rollover validation.
