@@ -1,3 +1,7 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -20,9 +24,9 @@ import { clsx } from "clsx";
 import { BrandLogo } from "./brand-logo";
 
 const navItems = [
-  { label: "Огляд", icon: Home },
+  { label: "Огляд", icon: Home, href: "/" },
   { label: "Вузли", icon: Network },
-  { label: "Сесії випробувань", icon: ClipboardCheck },
+  { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions" },
   { label: "Live дані", icon: ChartNoAxesCombined },
   { label: "Схеми обладнання", icon: Boxes },
   { label: "Поштомати", icon: LockKeyhole },
@@ -43,6 +47,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
+  const pathname = usePathname();
+
   return (
     <>
       <button
@@ -71,22 +77,17 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
             Платформа
           </p>
           <div className="space-y-1">
-            {navItems.map(({ label, icon: Icon, badge }) => {
-              const active = activeItem === label;
-              return (
-                <button
-                  key={label}
-                  onClick={() => {
-                    onSelect(label);
-                    onClose();
-                  }}
-                  className={clsx(
-                    "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
-                    active
-                      ? "border-blue-400/45 bg-blue-500/12 text-white shadow-[inset_0_0_22px_rgba(0,119,255,.07)]"
-                      : "border-transparent text-slate-400 hover:border-white/[0.055] hover:bg-white/[0.035] hover:text-slate-100",
-                  )}
-                >
+            {navItems.map(({ label, icon: Icon, badge, href }) => {
+              const routeActive = href === "/" ? pathname === "/" : href ? pathname.startsWith(href) : false;
+              const active = routeActive || (!href && activeItem === label);
+              const classes = clsx(
+                "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
+                active
+                  ? "border-blue-400/45 bg-blue-500/12 text-white shadow-[inset_0_0_22px_rgba(0,119,255,.07)]"
+                  : "border-transparent text-slate-400 hover:border-white/[0.055] hover:bg-white/[0.035] hover:text-slate-100",
+              );
+              const content = (
+                <>
                   <Icon
                     className={clsx(
                       "h-[17px] w-[17px]",
@@ -107,6 +108,23 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
                       )}
                     />
                   )}
+                </>
+              );
+
+              return href ? (
+                <Link key={label} href={href} className={classes} onClick={onClose}>
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  key={label}
+                  onClick={() => {
+                    onSelect(label);
+                    onClose();
+                  }}
+                  className={classes}
+                >
+                  {content}
                 </button>
               );
             })}
