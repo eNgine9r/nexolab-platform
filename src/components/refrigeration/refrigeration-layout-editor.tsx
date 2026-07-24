@@ -57,12 +57,9 @@ interface DragState {
 }
 
 const markerTone = {
-  normal:
-    "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning:
-    "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm:
-    "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
+  normal: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
+  warning: "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
+  alarm: "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
   "no-data": "border-slate-400/60 bg-slate-600/40 text-slate-200",
 };
 
@@ -82,10 +79,7 @@ export function RefrigerationLayoutEditor({
     () => equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
     [equipment.sensors],
   );
-  const slots = useMemo(
-    () => initialPlacements.map(({ x, y }) => ({ x, y })),
-    [initialPlacements],
-  );
+  const slots = useMemo(() => initialPlacements.map(({ x, y }) => ({ x, y })), [initialPlacements]);
 
   const [persistedPlacements, setPersistedPlacements] = useState<LayoutPlacement[]>(initialPlacements);
   const [draftPlacements, setDraftPlacements] = useState<LayoutPlacement[]>(initialPlacements);
@@ -161,10 +155,7 @@ export function RefrigerationLayoutEditor({
     setSaveMessage(null);
   };
 
-  const handleMarkerKeyDown = (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => {
+  const handleMarkerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => {
     if (mode !== "edit") return;
 
     const placement = draftPlacementsRef.current.find((item) => item.sensorId === sensorId);
@@ -185,10 +176,7 @@ export function RefrigerationLayoutEditor({
     );
   };
 
-  const handleMarkerPointerDown = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => {
+  const handleMarkerPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => {
     onSelect(sensorId);
     if (mode !== "edit") return;
 
@@ -447,12 +435,18 @@ export function RefrigerationLayoutEditor({
         </div>
 
         {imageError ? (
-          <p className="mb-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200" role="alert">
+          <p
+            className="mb-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
+            role="alert"
+          >
             {imageError}
           </p>
         ) : null}
         {saveMessage ? (
-          <p className="mb-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200" role="status">
+          <p
+            className="mb-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+            role="status"
+          >
             <Check className="h-3.5 w-3.5" />
             {saveMessage}
           </p>
@@ -474,7 +468,7 @@ export function RefrigerationLayoutEditor({
               unoptimized
               draggable={false}
               sizes="(min-width: 1536px) 900px, 70vw"
-              className="select-none object-cover"
+              className="object-cover select-none"
               onLoad={handleImageLoad}
             />
           ) : (
@@ -510,7 +504,7 @@ export function RefrigerationLayoutEditor({
                   markerTone[sensor.status],
                   sensor.id === selectedId && "z-20 scale-110 ring-2 ring-white/80",
                   mode === "edit"
-                    ? "touch-none cursor-grab hover:z-20 hover:scale-110 active:cursor-grabbing"
+                    ? "cursor-grab touch-none hover:z-20 hover:scale-110 active:cursor-grabbing"
                     : "cursor-pointer hover:z-20 hover:scale-110",
                 )}
                 style={{ left: `${placement.x * 100}%`, top: `${placement.y * 100}%` }}
@@ -527,7 +521,11 @@ export function RefrigerationLayoutEditor({
                 ? `${draftImage.fileName} · ${formatFileSize(draftImage.sizeBytes)}${draftImage.widthPx > 0 ? ` · ${draftImage.widthPx}×${draftImage.heightPx}` : ""}`
                 : "Фото ще не завантажено"}
             </span>
-            <span>{mode === "edit" ? "Перетягніть маркер або використовуйте стрілки" : "Клікніть маркер для вибору"}</span>
+            <span>
+              {mode === "edit"
+                ? "Перетягніть маркер або використовуйте стрілки"
+                : "Клікніть маркер для вибору"}
+            </span>
           </div>
         </div>
       </div>
@@ -576,7 +574,11 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
   );
 }
 
-function pointFromPointer(clientX: number, clientY: number, stage: HTMLDivElement | null): NormalizedPoint | null {
+function pointFromPointer(
+  clientX: number,
+  clientY: number,
+  stage: HTMLDivElement | null,
+): NormalizedPoint | null {
   if (!stage) return null;
 
   const rect = stage.getBoundingClientRect();
@@ -610,10 +612,7 @@ function placementsEqual(first: readonly LayoutPlacement[], second: readonly Lay
   });
 }
 
-function imagesEqual(
-  first: EquipmentImageMetadata | null,
-  second: EquipmentImageMetadata | null,
-): boolean {
+function imagesEqual(first: EquipmentImageMetadata | null, second: EquipmentImageMetadata | null): boolean {
   if (first === null || second === null) return first === second;
   return first.id === second.id && first.sourceUrl === second.sourceUrl;
 }

@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 
-import {
-  RefrigerationLayoutEditor,
-  type LayoutEditorMode,
-} from "./refrigeration-layout-editor";
+import { RefrigerationLayoutEditor, type LayoutEditorMode } from "./refrigeration-layout-editor";
 
 vi.mock("next/image", () => ({
   default: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (

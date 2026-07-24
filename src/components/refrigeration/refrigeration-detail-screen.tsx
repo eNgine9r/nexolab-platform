@@ -4,15 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
-import {
-  ArrowLeft,
-  CircleDot,
-  Edit3,
-  Filter,
-  Thermometer,
-  Wifi,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -20,11 +12,7 @@ import {
   RefrigerationLayoutEditor,
   type LayoutEditorMode,
 } from "@/components/refrigeration/refrigeration-layout-editor";
-import type {
-  EquipmentStatus,
-  RefrigerationEquipment,
-  SensorSide,
-} from "@/data/refrigeration";
+import type { EquipmentStatus, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -61,9 +49,7 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) =>
-          (side === "all" || sensor.side === side) &&
-          (shelf === "all" || sensor.shelf === shelf),
+        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
@@ -154,18 +140,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                 </Panel>
 
                 <Panel title="Фото обладнання">
-                  <Info
-                    label="Стан"
-                    value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"}
-                  />
-                  <Info
-                    label="Формати"
-                    value="JPEG, PNG, WebP · до 15 МБ"
-                  />
-                  <Info
-                    label="Координати"
-                    value="Нормалізовані 0..1"
-                  />
+                  <Info label="Стан" value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"} />
+                  <Info label="Формати" value="JPEG, PNG, WebP · до 15 МБ" />
+                  <Info label="Координати" value="Нормалізовані 0..1" />
                 </Panel>
               </aside>
 
@@ -234,16 +211,8 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     value={`${equipment.averageTemperatureC} °C`}
                     icon={Thermometer}
                   />
-                  <Metric
-                    label="Мінімальна"
-                    value={`${equipment.minTemperatureC} °C`}
-                    icon={Thermometer}
-                  />
-                  <Metric
-                    label="Максимальна"
-                    value={`${equipment.maxTemperatureC} °C`}
-                    icon={Thermometer}
-                  />
+                  <Metric label="Мінімальна" value={`${equipment.minTemperatureC} °C`} icon={Thermometer} />
+                  <Metric label="Максимальна" value={`${equipment.maxTemperatureC} °C`} icon={Thermometer} />
                   <Metric
                     label="Online датчики"
                     value={`${equipment.onlineSensors}/${equipment.totalSensors}`}
@@ -268,9 +237,7 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3"
                     aria-live="polite"
                   >
-                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">
-                      Вибраний датчик
-                    </p>
+                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">Вибраний датчик</p>
                     <div className="mt-2 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-semibold text-white">
@@ -317,9 +284,7 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                         {sensor.label}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] text-slate-300">
-                          {sensor.name}
-                        </span>
+                        <span className="block truncate text-[11px] text-slate-300">{sensor.name}</span>
                         <span className="text-[9px] text-slate-600">Полиця {sensor.shelf}</span>
                       </span>
                       <span className="text-xs font-semibold text-white">
@@ -384,10 +349,7 @@ function Sparkline({ values }: { values: number[] }) {
   const max = Math.max(...values);
   const range = Math.max(0.1, max - min);
   const points = values
-    .map(
-      (value, index) =>
-        `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`,
-    )
+    .map((value, index) => `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`)
     .join(" ");
 
   return (
