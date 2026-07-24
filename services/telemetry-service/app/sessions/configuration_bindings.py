@@ -85,40 +85,55 @@ class BindingRepositoryMixin:
                         )
 
                     state = self._assert_configuration_change_allowed(record, payload)
-                    duplicate = db_session.scalar(
-                        select(SessionChannelBinding).where(
+                    binding = db_session.scalar(
+                        select(SessionChannelBinding)
+                        .where(
                             SessionChannelBinding.session_id == session_id,
                             SessionChannelBinding.node_id == payload.node_id,
                             SessionChannelBinding.equipment_id == payload.equipment_id,
                             SessionChannelBinding.channel_id == payload.channel_id,
                             SessionChannelBinding.metric == payload.metric,
                         )
+                        .with_for_update()
                     )
-                    if duplicate is not None:
+                    if binding is not None and binding.released_at is None:
                         raise SessionConflictError(
                             "duplicate_session_binding",
                             "the channel is already bound to this session",
                         )
 
-                    binding = SessionChannelBinding(
-                        id=str(uuid4()),
-                        session_id=session_id,
-                        node_id=payload.node_id,
-                        equipment_id=payload.equipment_id,
-                        channel_id=payload.channel_id,
-                        metric=payload.metric,
-                        unit=specification.unit,
-                        binding_metadata={
+                    if binding is None:
+                        binding = SessionChannelBinding(
+                            id=str(uuid4()),
+                            session_id=session_id,
+                            node_id=payload.node_id,
+                            equipment_id=payload.equipment_id,
+                            channel_id=payload.channel_id,
+                            metric=payload.metric,
+                            unit=specification.unit,
+                            binding_metadata={
+                                **payload.binding_metadata,
+                                **specification.metadata,
+                            },
+                            activated_at=(
+                                payload.occurred_at
+                                if state in ACTIVE_STATES
+                                else None
+                            ),
+                            released_at=None,
+                            created_at=payload.occurred_at,
+                        )
+                        db_session.add(binding)
+                    else:
+                        binding.unit = specification.unit
+                        binding.binding_metadata = {
                             **payload.binding_metadata,
                             **specification.metadata,
-                        },
-                        activated_at=(
+                        }
+                        binding.activated_at = (
                             payload.occurred_at if state in ACTIVE_STATES else None
-                        ),
-                        released_at=None,
-                        created_at=payload.occurred_at,
-                    )
-                    db_session.add(binding)
+                        )
+                        binding.released_at = None
                     db_session.flush()
 
                     snapshot = None
@@ -206,13 +221,13 @@ class BindingRepositoryMixin:
                         )
 
                     state = self._assert_configuration_change_allowed(record, payload)
-                    existing_identities = {
+                    existing_by_identity = {
                         (
                             item.node_id,
                             item.equipment_id,
                             item.channel_id,
                             item.metric,
-                        )
+                        ): item
                         for item in self._bindings_for_session(
                             db_session,
                             session_id,
@@ -221,29 +236,43 @@ class BindingRepositoryMixin:
                     }
                     added_ids: list[str] = []
                     for specification in PRODUCTION_CHANNELS:
-                        if specification.identity in existing_identities:
+                        binding = existing_by_identity.get(specification.identity)
+                        if binding is not None and binding.released_at is None:
                             continue
-                        binding = SessionChannelBinding(
-                            id=str(uuid4()),
-                            session_id=session_id,
-                            node_id=specification.node_id,
-                            equipment_id=specification.equipment_id,
-                            channel_id=specification.channel_id,
-                            metric=specification.metric,
-                            unit=specification.unit,
-                            binding_metadata={
+                        if binding is None:
+                            binding = SessionChannelBinding(
+                                id=str(uuid4()),
+                                session_id=session_id,
+                                node_id=specification.node_id,
+                                equipment_id=specification.equipment_id,
+                                channel_id=specification.channel_id,
+                                metric=specification.metric,
+                                unit=specification.unit,
+                                binding_metadata={
+                                    **payload.binding_metadata,
+                                    **specification.metadata,
+                                },
+                                activated_at=(
+                                    payload.occurred_at
+                                    if state in ACTIVE_STATES
+                                    else None
+                                ),
+                                released_at=None,
+                                created_at=payload.occurred_at,
+                            )
+                            db_session.add(binding)
+                        else:
+                            binding.unit = specification.unit
+                            binding.binding_metadata = {
                                 **payload.binding_metadata,
                                 **specification.metadata,
-                            },
-                            activated_at=(
+                            }
+                            binding.activated_at = (
                                 payload.occurred_at
                                 if state in ACTIVE_STATES
                                 else None
-                            ),
-                            released_at=None,
-                            created_at=payload.occurred_at,
-                        )
-                        db_session.add(binding)
+                            )
+                            binding.released_at = None
                         added_ids.append(binding.id)
                     db_session.flush()
 
@@ -358,19 +387,18 @@ class BindingRepositoryMixin:
                         "binding has already been removed",
                     )
 
+                if binding.activated_at is None:
+                    binding.activated_at = payload.occurred_at
+                elif as_utc(payload.occurred_at) < as_utc(binding.activated_at):
+                    raise SessionConflictError(
+                        "binding_release_time_invalid",
+                        "binding removal cannot precede activation",
+                    )
+                binding.released_at = payload.occurred_at
+                db_session.flush()
+
                 snapshot = None
                 if state in ACTIVE_STATES:
-                    if (
-                        binding.activated_at is not None
-                        and as_utc(payload.occurred_at)
-                        < as_utc(binding.activated_at)
-                    ):
-                        raise SessionConflictError(
-                            "binding_release_time_invalid",
-                            "binding removal cannot precede activation",
-                        )
-                    binding.released_at = payload.occurred_at
-                    db_session.flush()
                     snapshot = self._freeze_configuration(
                         db_session,
                         record,
@@ -378,9 +406,6 @@ class BindingRepositoryMixin:
                         captured_at=payload.occurred_at,
                         source="active_binding_change",
                     )
-                else:
-                    db_session.delete(binding)
-                    db_session.flush()
 
                 event = self._configuration_event(
                     record,
