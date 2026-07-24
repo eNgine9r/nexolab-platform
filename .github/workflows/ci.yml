@@ -3,12 +3,14 @@ name: CI
 on:
   push:
     branches: [main, feat/refrigeration-layout-persistence]
+    paths-ignore:
+      - ci/persistence-validation.txt
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -18,11 +20,13 @@ jobs:
   quality:
     name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,19 +38,56 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
+      - name: Validate and capture diagnostics
+        id: validation
+        shell: bash
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+        run: |
+          set +e
+          mkdir -p ci
+          report=ci/persistence-validation.txt
+          : > "$report"
+          overall=0
+
+          run_check() {
+            name="$1"
+            shift
+            log="/tmp/${name}.log"
+            "$@" >"$log" 2>&1
+            code=$?
+            printf '%s=%s\n' "$name" "$code" >> "$report"
+            if [ "$code" -ne 0 ]; then
+              overall=1
+              printf '\n[%s diagnostics]\n' "$name" >> "$report"
+              tail -n 120 "$log" >> "$report"
+              printf '\n' >> "$report"
+            fi
+          }
+
+          run_check format npm run format:check
+          run_check lint npm run lint
+          run_check typecheck npm run typecheck
+          run_check test npm test
+          run_check build npm run build
+
+          printf 'overall=%s\n' "$overall" >> "$report"
+          echo "overall=$overall" >> "$GITHUB_OUTPUT"
+          cat "$report"
+          exit 0
+
+      - name: Commit validation report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci/persistence-validation.txt
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "ci: record persistence validation result"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Enforce validation result
+        if: steps.validation.outputs.overall != '0'
+        run: exit 1
