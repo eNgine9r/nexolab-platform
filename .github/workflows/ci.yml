@@ -47,8 +47,8 @@ jobs:
 
           runtime = Path("src/features/refrigeration/layout-repository-runtime.ts")
           text = runtime.read_text()
-          marker = "export function createRefrigerationLayoutRuntime("
           selection = '''type RefrigerationLayoutRuntimeSelection =\n  | { mode: "demo"; apiBaseUrl: null }\n  | { mode: "live"; apiBaseUrl: string };\n\n'''
+          marker = "export function createRefrigerationLayoutRuntime("
           if selection not in text:
               text = text.replace(marker, selection + marker)
           text = text.replace(
@@ -59,11 +59,11 @@ jobs:
 
           workspace = Path("src/components/refrigeration/refrigeration-layout-workspace.tsx")
           text = workspace.read_text()
-          text = text.replace(
-              '''  useEffect(() => {\n    void loadWorkspace();\n  }, [loadWorkspace]);''',
-              '''  useEffect(() => {\n    const timeoutId = window.setTimeout(() => {\n      void loadWorkspace();\n    }, 0);\n    return () => window.clearTimeout(timeoutId);\n  }, [loadWorkspace]);''',
-          )
-          workspace.write_text(text)
+          old_effect = '''  useEffect(() => {\n    void loadWorkspace();\n  }, [loadWorkspace]);'''
+          new_effect = '''  useEffect(() => {\n    const timeoutId = window.setTimeout(() => {\n      void loadWorkspace();\n    }, 0);\n    return () => window.clearTimeout(timeoutId);\n  }, [loadWorkspace]);'''
+          if old_effect not in text:
+              raise SystemExit("workspace load effect not found")
+          workspace.write_text(text.replace(old_effect, new_effect))
 
           http_test = Path("src/features/refrigeration/http-layout-repository.test.ts")
           text = http_test.read_text()
@@ -71,11 +71,11 @@ jobs:
               "vi.fn(async () =>",
               "vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>",
           )
-          old_queue = '''    const fetchImpl = vi\n      .fn()\n      .mockResolvedValueOnce(\n        jsonResponse({ items: [revisionPayload(1), revisionPayload(3)] }),\n      )\n      .mockResolvedValueOnce(\n        jsonResponse(draftPayload(7), {\n          headers: { ETag: 'W/"layout-draft-v7"' },\n        }),\n      );'''
-          new_queue = '''    const responses = [\n      jsonResponse({ items: [revisionPayload(1), revisionPayload(3)] }),\n      jsonResponse(draftPayload(7), {\n        headers: { ETag: 'W/"layout-draft-v7"' },\n      }),\n    ];\n    const fetchImpl = vi.fn(\n      async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {\n        const response = responses.shift();\n        if (!response) throw new Error("Unexpected fetch call");\n        return response;\n      },\n    );'''
-          if old_queue not in text:
-              raise SystemExit("history fetch mock block not found")
-          text = text.replace(old_queue, new_queue)
+          text = text.replace(
+              '''    const fetchImpl = vi\n      .fn()\n      .mockResolvedValueOnce''',
+              '''    const fetchImpl = vi\n      .fn<typeof fetch>()\n      .mockResolvedValueOnce''',
+              1,
+          )
           text = text.replace(
               '''    expect((init?.body as FormData).get("file")).toBe(file);''',
               '''    const uploadedFile = (init?.body as FormData).get("file");\n    expect(uploadedFile).toBeInstanceOf(File);\n    expect((uploadedFile as File).name).toBe(file.name);\n    expect((uploadedFile as File).type).toBe(file.type);\n    expect((uploadedFile as File).size).toBe(file.size);''',
