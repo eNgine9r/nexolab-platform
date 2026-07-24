@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     object_storage_backend: Literal["disabled", "s3"] = "disabled"
     object_storage_bucket: str = "nexolab-equipment-images"
     object_storage_endpoint_url: str | None = None
+    object_storage_public_endpoint_url: str | None = None
     object_storage_region: str = "us-east-1"
     object_storage_access_key_id: str | None = None
     object_storage_secret_access_key: str | None = None
