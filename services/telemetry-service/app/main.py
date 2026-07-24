@@ -16,6 +16,7 @@ from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
 from app.metrics import render_prometheus
+from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
 from app.retention import RetentionWorker
 from app.state import RuntimeState
@@ -32,6 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 
+    register_models()
     database = Database(
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
