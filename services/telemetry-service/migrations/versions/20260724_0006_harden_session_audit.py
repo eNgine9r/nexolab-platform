@@ -15,7 +15,12 @@ branch_labels = None
 depends_on = None
 
 
-def _replace_audit_foreign_keys(*, deferred: bool) -> None:
+def _replace_transaction_foreign_keys(*, deferred: bool) -> None:
+    op.drop_constraint(
+        "fk_session_events_session_id",
+        "session_events",
+        type_="foreignkey",
+    )
     for constraint_name in (
         "fk_audit_log_session_id",
         "fk_audit_log_session_event_id",
@@ -30,6 +35,15 @@ def _replace_audit_foreign_keys(*, deferred: bool) -> None:
         {"deferrable": True, "initially": "DEFERRED"}
         if deferred
         else {}
+    )
+    op.create_foreign_key(
+        "fk_session_events_session_id",
+        "session_events",
+        "test_sessions",
+        ["session_id"],
+        ["id"],
+        ondelete="RESTRICT",
+        **options,
     )
     op.create_foreign_key(
         "fk_audit_log_session_id",
@@ -73,7 +87,7 @@ def upgrade() -> None:
 
     dialect = op.get_bind().dialect.name
     if dialect == "postgresql":
-        _replace_audit_foreign_keys(deferred=True)
+        _replace_transaction_foreign_keys(deferred=True)
         op.execute(
             """
             CREATE OR REPLACE FUNCTION nexolab_reject_audit_mutation()
@@ -127,7 +141,7 @@ def downgrade() -> None:
                 f"ON {table_name}"
             )
         op.execute("DROP FUNCTION IF EXISTS nexolab_reject_audit_mutation()")
-        _replace_audit_foreign_keys(deferred=False)
+        _replace_transaction_foreign_keys(deferred=False)
     elif dialect == "sqlite":
         for table_name in ("session_events", "audit_log"):
             op.execute(
