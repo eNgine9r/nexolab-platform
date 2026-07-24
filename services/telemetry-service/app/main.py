@@ -11,7 +11,6 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
 from app.config import Settings
-from app.db import Database
 from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
@@ -22,10 +21,12 @@ from app.retention import RetentionWorker
 from app.sessions.api import create_session_router
 from app.sessions.configuration import ConfiguredSessionRepository
 from app.sessions.configuration_api import create_session_configuration_router
+from app.sessions.telemetry_api import create_session_telemetry_router
+from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.6.0"
+SERVICE_VERSION = "0.7.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -37,7 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     register_models()
-    database = Database(
+    database = SessionAwareDatabase(
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
@@ -135,6 +136,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(create_session_router(session_repository))
     app.include_router(create_session_configuration_router(session_repository))
+    app.include_router(
+        create_session_telemetry_router(
+            database,
+            max_history_days=resolved.history_max_range_days,
+            max_page_size=resolved.api_max_page_size,
+        )
+    )
     app.include_router(
         create_live_router(
             database,
