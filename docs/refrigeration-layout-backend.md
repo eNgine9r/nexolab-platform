@@ -8,6 +8,7 @@ The production refrigeration-layout backend is owned by Telemetry Service and us
 - `refrigeration_layout_drafts` stores one mutable, equipment-scoped draft with a monotonically increasing version.
 - `refrigeration_layout_revisions` stores append-only published revisions. PostgreSQL rejects `UPDATE` and `DELETE` on this table.
 - Placements remain normalized to the inclusive range `0..1` and sensor identifiers must be unique within a layout.
+- Alembic revision `20260724_0007` follows the existing audit-hardening revision `20260724_0006`.
 
 ## REST contract
 
