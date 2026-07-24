@@ -36,6 +36,61 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Apply final effect fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path("src/components/sessions/sessions-list-screen.tsx"): (
+                  '''  useEffect(() => {
+            const controller = new AbortController();
+            void load(controller.signal);
+            return () => controller.abort();
+          }, [generation, load]);''',
+                  '''  useEffect(() => {
+            const controller = new AbortController();
+            const initialLoad = window.setTimeout(() => void load(controller.signal), 0);
+            return () => {
+              controller.abort();
+              window.clearTimeout(initialLoad);
+            };
+          }, [generation, load]);''',
+              ),
+              Path("src/components/sessions/use-session-workspace.ts"): (
+                  '''  useEffect(() => {
+            const controller = new AbortController();
+            void load(controller.signal);
+            const poller = window.setInterval(() => void load(controller.signal), POLL_INTERVAL_MS);
+            const ticker = window.setInterval(() => setClock(Date.now()), 1_000);
+            return () => {
+              controller.abort();
+              window.clearInterval(poller);
+              window.clearInterval(ticker);
+            };
+          }, [generation, load]);''',
+                  '''  useEffect(() => {
+            const controller = new AbortController();
+            const initialLoad = window.setTimeout(() => void load(controller.signal), 0);
+            const poller = window.setInterval(() => void load(controller.signal), POLL_INTERVAL_MS);
+            const ticker = window.setInterval(() => setClock(Date.now()), 1_000);
+            return () => {
+              controller.abort();
+              window.clearTimeout(initialLoad);
+              window.clearInterval(poller);
+              window.clearInterval(ticker);
+            };
+          }, [generation, load]);''',
+              ),
+          }
+
+          for path, (old, new) in replacements.items():
+              content = path.read_text()
+              if old not in content:
+                  raise SystemExit(f"expected effect block not found in {path}")
+              path.write_text(content.replace(old, new, 1))
+          PY
+
       - name: Format latest Gate 81 fixes
         run: >-
           npm run format --
@@ -45,10 +100,10 @@ jobs:
           src/components/sessions/use-session-workspace.ts
           src/lib/sessions/api-client.test.ts
 
-      - name: Commit formatter output
+      - name: Commit final source fixes
         run: |
           if git diff --quiet; then
-            echo "Formatter produced no changes."
+            echo "Source tree already contains final effect fixes."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -58,7 +113,7 @@ jobs:
               src/components/sessions/sessions-list-screen.tsx \
               src/components/sessions/use-session-workspace.ts \
               src/lib/sessions/api-client.test.ts
-            git commit -m "style(m4): format sessions fixes"
+            git commit -m "fix(m4): schedule initial session loads"
             git push origin "HEAD:${{ github.head_ref }}"
           fi
 
