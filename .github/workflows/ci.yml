@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/refrigeration-layout-persistence]
   pull_request:
     branches: [main]
   workflow_dispatch:
