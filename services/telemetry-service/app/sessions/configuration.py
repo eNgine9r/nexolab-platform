@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -29,7 +30,7 @@ from app.sessions.repository import (
     SessionRepository,
     TransitionResult,
 )
-from app.sessions.schemas import SessionTransitionRequest
+from app.sessions.schemas import SessionCreate, SessionTransitionRequest
 from app.sessions.stage_repository import StageRepositoryMixin
 from app.sessions.time_utils import as_utc
 
@@ -43,6 +44,78 @@ class ConfiguredSessionRepository(
 ):
     def __init__(self, database: Database) -> None:
         SessionRepository.__init__(self, database)
+
+    def create(
+        self,
+        payload: SessionCreate,
+        *,
+        idempotency_key: str,
+    ) -> TransitionResult:
+        now = datetime.now(UTC)
+        session_id = str(uuid4())
+        normalized_key = self._normalize_idempotency_key(idempotency_key)
+        record = TestSession(
+            id=session_id,
+            session_number=payload.session_number,
+            node_id=payload.node_id,
+            state=SessionState.DRAFT.value,
+            title=payload.title,
+            customer=payload.customer,
+            test_object=payload.test_object,
+            model=payload.model,
+            serial_number=payload.serial_number,
+            standard=payload.standard,
+            method=payload.method,
+            operator_id=payload.operator_id,
+            responsible_engineer_id=payload.responsible_engineer_id,
+            metadata_payload=payload.metadata_payload,
+            lock_version=1,
+            created_at=now,
+            updated_at=now,
+        )
+        event = SessionEvent(
+            id=str(uuid4()),
+            session_id=session_id,
+            event_type="session_created",
+            previous_state=None,
+            next_state=SessionState.DRAFT.value,
+            actor_id=payload.actor_id,
+            actor_source="dashboard",
+            reason=None,
+            payload={"session_number": payload.session_number},
+            idempotency_key=normalized_key,
+            occurred_at=now,
+            inserted_at=now,
+        )
+        audit = self._audit_for_event(event, entity_type="test_session")
+
+        with Session(self._engine, expire_on_commit=False) as db_session:
+            try:
+                with db_session.begin():
+                    db_session.add(record)
+                    db_session.flush()
+                    db_session.add(event)
+                    db_session.flush()
+                    db_session.add(audit)
+                    db_session.flush()
+            except IntegrityError as error:
+                db_session.rollback()
+                existing = db_session.scalar(
+                    select(TestSession).where(
+                        TestSession.session_number == payload.session_number
+                    )
+                )
+                if existing is not None:
+                    raise SessionConflictError(
+                        "session_number_conflict",
+                        f"session number {payload.session_number!r} already exists",
+                    ) from error
+                raise SessionConflictError(
+                    "session_create_conflict",
+                    "session could not be created because of a persistence conflict",
+                ) from error
+
+        return TransitionResult(session=record, event=event, replayed=False)
 
     def transition(
         self,
@@ -175,6 +248,17 @@ class ConfiguredSessionRepository(
                         occurred_at=request.occurred_at,
                         inserted_at=request.occurred_at,
                     )
+                    record.state = transition.next_state.value
+                    record.lock_version += 1
+                    record.updated_at = request.occurred_at
+                    self._apply_transition_timestamp(
+                        record,
+                        action=action,
+                        occurred_at=request.occurred_at,
+                    )
+
+                    db_session.add(event)
+                    db_session.flush()
                     if start_stage is not None:
                         db_session.add(
                             SessionStageTransition(
@@ -191,16 +275,7 @@ class ConfiguredSessionRepository(
                                 inserted_at=request.occurred_at,
                             )
                         )
-
-                    record.state = transition.next_state.value
-                    record.lock_version += 1
-                    record.updated_at = request.occurred_at
-                    self._apply_transition_timestamp(
-                        record,
-                        action=action,
-                        occurred_at=request.occurred_at,
-                    )
-                    db_session.add(event)
+                        db_session.flush()
                     db_session.add(
                         self._audit_for_event(event, entity_type="test_session")
                     )
