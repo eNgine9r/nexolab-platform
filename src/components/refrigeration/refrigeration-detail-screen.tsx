@@ -4,23 +4,27 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
-import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleDot,
+  Edit3,
+  Filter,
+  Thermometer,
+  Wifi,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import {
+  RefrigerationLayoutEditor,
+  type LayoutEditorMode,
+} from "@/components/refrigeration/refrigeration-layout-editor";
 import type {
   EquipmentStatus,
   RefrigerationEquipment,
-  RefrigerationSensor,
   SensorSide,
 } from "@/data/refrigeration";
-
-const markerTone = {
-  normal: "border-emerald-300/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning: "border-amber-300/80 bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm: "border-rose-300/80 bg-rose-500/25 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
-  "no-data": "border-slate-400/60 bg-slate-600/30 text-slate-200",
-};
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -52,11 +56,14 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
+  const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
 
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
+        (sensor) =>
+          (side === "all" || sensor.side === side) &&
+          (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
@@ -116,12 +123,12 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   </button>
                   <button
                     type="button"
-                    disabled
-                    title="Редактор розміщення буде додано в наступному Gate"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-blue-400/15 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200/60"
+                    onClick={() => setLayoutMode("edit")}
+                    disabled={layoutMode === "edit"}
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-default disabled:opacity-60"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
-                    Редагувати схему
+                    {layoutMode === "edit" ? "Редагування активне" : "Редагувати схему"}
                   </button>
                 </div>
               </div>
@@ -145,15 +152,30 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   <State label="Двері" value="Зачинені" />
                   <State label="Живлення" value="Норма" />
                 </Panel>
+
+                <Panel title="Фото обладнання">
+                  <Info
+                    label="Стан"
+                    value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"}
+                  />
+                  <Info
+                    label="Формати"
+                    value="JPEG, PNG, WebP · до 15 МБ"
+                  />
+                  <Info
+                    label="Координати"
+                    value="Нормалізовані 0..1"
+                  />
+                </Panel>
               </aside>
 
               <section className="min-w-0 space-y-3">
                 <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
-                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-white">Інтерактивна схема вітрини</h2>
+                      <h2 className="text-sm font-semibold text-white">Фільтри датчиків</h2>
                       <p className="mt-1 text-[11px] text-slate-500">
-                        {equipment.totalSensors} датчиків · нормалізовані координати · front/rear
+                        {equipment.totalSensors} датчиків · передній і задній фронт · 4 полиці
                       </p>
                     </div>
 
@@ -195,50 +217,16 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                       </select>
                     </div>
                   </div>
-
-                  <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-cyan-300/[0.1] bg-[radial-gradient(circle_at_50%_10%,rgba(34,211,238,.12),transparent_42%),linear-gradient(160deg,#0a1f37,#030b15)]">
-                    <div className="absolute inset-x-[8%] top-[5%] bottom-[3%] rounded-xl border border-slate-500/30 bg-[linear-gradient(90deg,#111c27_0_2.5%,#26394a_2.5%_49%,#101b25_49%_51%,#26394a_51%_97.5%,#111c27_97.5%)] shadow-[0_20px_45px_rgba(0,0,0,.38),0_0_40px_rgba(34,211,238,.05)]">
-                      {[20, 40, 60, 80].map((top, index) => (
-                        <div
-                          key={top}
-                          className="absolute right-[3%] left-[3%] h-[2px] bg-gradient-to-r from-slate-500/10 via-cyan-200/35 to-slate-500/10"
-                          style={{ top: `${top}%` }}
-                        >
-                          <span className="absolute -top-2 -left-[9%] text-[9px] text-slate-600">
-                            П{index + 1}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="absolute inset-[3%] bg-[repeating-linear-gradient(90deg,transparent_0_15.9%,rgba(255,255,255,.04)_16%_16.2%,transparent_16.3%_16.66%)]" />
-                    </div>
-
-                    {visibleSensors.map((sensor) => (
-                      <SensorMarker
-                        key={sensor.id}
-                        sensor={sensor}
-                        selected={sensor.id === activeSelectedId}
-                        onSelect={() => setSelectedId(sensor.id)}
-                      />
-                    ))}
-
-                    <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg border border-white/[0.07] bg-slate-950/65 px-3 py-2 text-[9px] text-slate-500 backdrop-blur">
-                      <span>
-                        <span
-                          aria-hidden="true"
-                          className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-400"
-                        />
-                        Передній
-                      </span>
-                      <span>
-                        <span
-                          aria-hidden="true"
-                          className="mr-1 inline-block h-2 w-2 rounded-full bg-blue-400"
-                        />
-                        Задній
-                      </span>
-                    </div>
-                  </div>
                 </div>
+
+                <RefrigerationLayoutEditor
+                  equipment={equipment}
+                  visibleSensors={visibleSensors}
+                  selectedId={activeSelectedId}
+                  mode={layoutMode}
+                  onModeChange={setLayoutMode}
+                  onSelect={setSelectedId}
+                />
 
                 <div className="grid gap-3 md:grid-cols-4">
                   <Metric
@@ -246,8 +234,16 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     value={`${equipment.averageTemperatureC} °C`}
                     icon={Thermometer}
                   />
-                  <Metric label="Мінімальна" value={`${equipment.minTemperatureC} °C`} icon={Thermometer} />
-                  <Metric label="Максимальна" value={`${equipment.maxTemperatureC} °C`} icon={Thermometer} />
+                  <Metric
+                    label="Мінімальна"
+                    value={`${equipment.minTemperatureC} °C`}
+                    icon={Thermometer}
+                  />
+                  <Metric
+                    label="Максимальна"
+                    value={`${equipment.maxTemperatureC} °C`}
+                    icon={Thermometer}
+                  />
                   <Metric
                     label="Online датчики"
                     value={`${equipment.onlineSensors}/${equipment.totalSensors}`}
@@ -272,7 +268,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3"
                     aria-live="polite"
                   >
-                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">Вибраний датчик</p>
+                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">
+                      Вибраний датчик
+                    </p>
                     <div className="mt-2 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-semibold text-white">
@@ -319,7 +317,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                         {sensor.label}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] text-slate-300">{sensor.name}</span>
+                        <span className="block truncate text-[11px] text-slate-300">
+                          {sensor.name}
+                        </span>
                         <span className="text-[9px] text-slate-600">Полиця {sensor.shelf}</span>
                       </span>
                       <span className="text-xs font-semibold text-white">
@@ -335,34 +335,6 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
         </main>
       </div>
     </div>
-  );
-}
-
-function SensorMarker({
-  sensor,
-  selected,
-  onSelect,
-}: {
-  sensor: RefrigerationSensor;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-label={`Вибрати датчик ${sensor.label} на схемі`}
-      aria-pressed={selected}
-      className={clsx(
-        "absolute z-10 min-w-10 -translate-x-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-center text-[8px] leading-tight font-bold backdrop-blur-sm transition hover:z-20 hover:scale-110 focus:ring-2 focus:ring-cyan-300 focus:outline-none",
-        markerTone[sensor.status],
-        selected && "z-20 scale-110 ring-2 ring-white/80",
-      )}
-      style={{ left: `${sensor.x * 100}%`, top: `${sensor.y * 100}%` }}
-    >
-      <span className="block">{sensor.label}</span>
-      <span className="block font-semibold">{formatTemperature(sensor.temperatureC, false)}</span>
-    </button>
   );
 }
 
@@ -412,7 +384,10 @@ function Sparkline({ values }: { values: number[] }) {
   const max = Math.max(...values);
   const range = Math.max(0.1, max - min);
   const points = values
-    .map((value, index) => `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`)
+    .map(
+      (value, index) =>
+        `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`,
+    )
     .join(" ");
 
   return (
