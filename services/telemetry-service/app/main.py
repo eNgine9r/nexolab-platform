@@ -19,10 +19,12 @@ from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
 from app.retention import RetentionWorker
+from app.sessions.api import create_session_router
+from app.sessions.repository import SessionRepository
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.4.0"
+SERVICE_VERSION = "0.5.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -38,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
+    session_repository = SessionRepository(database)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
         state=state,
@@ -110,13 +113,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=cors_origins,
             allow_credentials=resolved.cors_allow_credentials,
-            allow_methods=["GET"],
+            allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
             allow_headers=["*"],
             max_age=600,
         )
 
     app.state.settings = resolved
     app.state.database = database
+    app.state.session_repository = session_repository
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
@@ -128,6 +132,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_page_size=resolved.api_max_page_size,
         )
     )
+    app.include_router(create_session_router(session_repository))
     app.include_router(
         create_live_router(
             database,
