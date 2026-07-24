@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,115 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-
-      - name: Apply reviewed Gate 82 source fixes
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          test_path = Path("services/telemetry-service/tests/test_session_restart_recovery.py")
-          test_content = test_path.read_text(encoding="utf-8")
-          test_content = test_content.replace(
-              'assert evidence_after_second_restart["events"]["count"] == 9',
-              'assert evidence_after_second_restart["events"]["count"] == 10',
-          )
-          test_content = test_content.replace(
-              'assert evidence_after_second_restart["audit"]["count"] == 9',
-              'assert evidence_after_second_restart["audit"]["count"] == 10',
-          )
-          test_path.write_text(test_content, encoding="utf-8")
-
-          harness_path = Path("infrastructure/compose/m4-session-acceptance.py")
-          harness = harness_path.read_text(encoding="utf-8")
-          harness = harness.replace(
-              'It never runs Docker\nCompose with ``down --volumes`` and never writes Modbus registers.',
-              'It never deletes Docker named volumes and never writes Modbus registers.',
-          )
-          harness = harness.replace(
-              '''        if self.edge_values.get("RS485_HOST_DEVICE", "").startswith("/dev/ttyUSB"):
-            raise AcceptanceFailure("RS485_HOST_DEVICE must use a stable /dev/serial/by-id path")''',
-              '''        serial_device = self.edge_values.get("RS485_HOST_DEVICE", "")
-        if not serial_device.startswith("/dev/serial/by-id/"):
-            raise AcceptanceFailure(
-                "RS485_HOST_DEVICE must use a stable /dev/serial/by-id path"
-            )''',
-          )
-          harness = harness.replace(
-              '''        script = (
-            "import asyncio, websockets; "
-            "asyncio.run(websockets.connect("
-            "'ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=edge-01', "
-            "open_timeout=8, close_timeout=3).__aenter__())"
-        )''',
-              '''        script = """
-import asyncio
-import websockets
-
-
-async def main() -> None:
-    uri = "ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=edge-01"
-    async with websockets.connect(uri, open_timeout=8, close_timeout=3):
-        return
-
-
-asyncio.run(main())
-"""''',
-          )
-          old_rollback = '''        rollback_evidence = sorted((REPO_ROOT / "runtime" / "evidence").glob("m3-rollback-*/manifest.json"))
-        rollback_manifest: object | None = None
-        if rollback_evidence:
-            rollback_manifest = read_json(rollback_evidence[-1])
-            if not rollback_manifest.get("device_agent_container_preserved"):
-                raise AcceptanceFailure("latest rollback evidence did not preserve Device Agent")
-            if not rollback_manifest.get("modbus_mode_preserved"):
-                raise AcceptanceFailure("latest rollback evidence did not preserve Modbus mode")
-            if rollback_manifest.get("volumes_deleted"):
-                raise AcceptanceFailure("latest rollback evidence reports deleted volumes")'''
-          new_rollback = '''        rollback_evidence = sorted(
-            (REPO_ROOT / "runtime" / "evidence").glob(
-                "m3-rollback-*/manifest.json"
-            )
-        )
-        if not rollback_evidence:
-            raise AcceptanceFailure(
-                "missing required M3 rollback evidence under runtime/evidence"
-            )
-        rollback_manifest = read_json(rollback_evidence[-1])
-        if not rollback_manifest.get("device_agent_container_preserved"):
-            raise AcceptanceFailure(
-                "latest rollback evidence did not preserve Device Agent"
-            )
-        if not rollback_manifest.get("modbus_mode_preserved"):
-            raise AcceptanceFailure(
-                "latest rollback evidence did not preserve Modbus mode"
-            )
-        if rollback_manifest.get("volumes_deleted"):
-            raise AcceptanceFailure(
-                "latest rollback evidence reports deleted volumes"
-            )'''
-          if old_rollback not in harness:
-              raise SystemExit("expected rollback block was not found")
-          harness = harness.replace(old_rollback, new_rollback, 1)
-          harness_path.write_text(harness, encoding="utf-8")
-          PY
-
-      - name: Commit reviewed Gate 82 source fixes
-        run: |
-          if git diff --quiet; then
-            echo "Gate 82 source fixes are already present."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add \
-              services/telemetry-service/tests/test_session_restart_recovery.py \
-              infrastructure/compose/m4-session-acceptance.py
-            git commit -m "fix(m4): harden recovery acceptance evidence"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
