@@ -1,10 +1,14 @@
+import type { EquipmentImageMetadata } from "@/data/refrigeration";
+
 import type { LayoutPlacement } from "./layout-editor";
 
 export type RefrigerationLayoutDraft = {
   id: string;
   equipmentId: string;
   version: number;
+  etag: string;
   imageId: string | null;
+  image: EquipmentImageMetadata | null;
   placements: LayoutPlacement[];
   createdAt: string;
   updatedAt: string;
@@ -16,7 +20,9 @@ export type PublishedLayoutRevision = {
   revision: number;
   sourceDraftVersion: number;
   imageId: string;
+  image: EquipmentImageMetadata;
   placements: LayoutPlacement[];
+  publishedBy: string;
   publishedAt: string;
 };
 
@@ -26,7 +32,10 @@ export type LayoutValidationIssue = {
     | "PLACEMENTS_REQUIRED"
     | "DUPLICATE_SENSOR"
     | "INVALID_SENSOR_ID"
-    | "INVALID_COORDINATE";
+    | "INVALID_COORDINATE"
+    | "SERVER_VALIDATION"
+    | "REQUEST_FAILED"
+    | "INVALID_RESPONSE";
   message: string;
   sensorId?: string;
 };
@@ -65,6 +74,7 @@ export type SaveLayoutDraftInput = {
 export type PublishLayoutDraftInput = {
   equipmentId: string;
   expectedVersion: number;
+  actorId?: string;
 };
 
 export type RestoreLayoutRevisionInput = {
@@ -73,15 +83,25 @@ export type RestoreLayoutRevisionInput = {
   expectedVersion: number;
 };
 
+export type UploadEquipmentImageInput = {
+  equipmentId: string;
+  file: File;
+  actorId: string;
+};
+
 export interface RefrigerationLayoutRepository {
   getDraft(equipmentId: string): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
   getPublished(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision | null>>;
   saveDraft(input: SaveLayoutDraftInput): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
-  publishDraft(
-    input: PublishLayoutDraftInput,
-  ): Promise<RepositoryResult<{ draft: RefrigerationLayoutDraft; published: PublishedLayoutRevision }>>;
+  publishDraft(input: PublishLayoutDraftInput): Promise<
+    RepositoryResult<{
+      draft: RefrigerationLayoutDraft;
+      published: PublishedLayoutRevision;
+    }>
+  >;
   listHistory(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision[]>>;
   restoreRevision(input: RestoreLayoutRevisionInput): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
+  uploadImage(input: UploadEquipmentImageInput): Promise<RepositoryResult<EquipmentImageMetadata>>;
 }
 
 type LayoutAggregate = {
@@ -94,18 +114,25 @@ type InMemoryRepositoryOptions = {
   drafts?: readonly RefrigerationLayoutDraft[];
   now?: () => string;
   createId?: () => string;
+  createImageId?: () => string;
 };
 
 export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayoutRepository {
   private readonly aggregates = new Map<string, LayoutAggregate>();
+  private readonly images = new Map<string, EquipmentImageMetadata>();
   private readonly now: () => string;
   private readonly createId: () => string;
+  private readonly createImageId: () => string;
 
   constructor(options: InMemoryRepositoryOptions = {}) {
     this.now = options.now ?? (() => new Date().toISOString());
     this.createId = options.createId ?? (() => crypto.randomUUID());
+    this.createImageId = options.createImageId ?? (() => crypto.randomUUID());
 
     for (const draft of options.drafts ?? []) {
+      if (draft.image) {
+        this.images.set(draft.image.id, cloneImage(draft.image));
+      }
       this.aggregates.set(draft.equipmentId, {
         draft: cloneDraft(draft),
         activePublishedRevisionId: null,
@@ -154,10 +181,13 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     }
 
     const updatedAt = this.now();
+    const image = resolveImage(this.images, input.imageId, aggregate.draft.image, updatedAt);
     aggregate.draft = {
       ...aggregate.draft,
       version: aggregate.draft.version + 1,
+      etag: draftEtag(aggregate.draft.version + 1),
       imageId: input.imageId,
+      image,
       placements: clonePlacements(input.placements),
       updatedAt,
     };
@@ -186,13 +216,19 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     }
 
     const publishedAt = this.now();
+    const image =
+      aggregate.draft.image ??
+      syntheticImage(aggregate.draft.imageId as string, input.equipmentId, publishedAt);
+    this.images.set(image.id, cloneImage(image));
     const published: PublishedLayoutRevision = {
       id: this.createId(),
       equipmentId: input.equipmentId,
       revision: (aggregate.revisions.at(-1)?.revision ?? 0) + 1,
       sourceDraftVersion: aggregate.draft.version,
-      imageId: aggregate.draft.imageId as string,
+      imageId: image.id,
+      image,
       placements: clonePlacements(aggregate.draft.placements),
+      publishedBy: input.actorId?.trim() || "dashboard-operator",
       publishedAt,
     };
 
@@ -201,6 +237,9 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     aggregate.draft = {
       ...aggregate.draft,
       version: aggregate.draft.version + 1,
+      etag: draftEtag(aggregate.draft.version + 1),
+      imageId: image.id,
+      image: cloneImage(image),
       updatedAt: publishedAt,
     };
 
@@ -250,12 +289,31 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     aggregate.draft = {
       ...aggregate.draft,
       version: aggregate.draft.version + 1,
+      etag: draftEtag(aggregate.draft.version + 1),
       imageId: revision.imageId,
+      image: cloneImage(revision.image),
       placements: clonePlacements(revision.placements),
       updatedAt: this.now(),
     };
 
     return success(cloneDraft(aggregate.draft));
+  }
+
+  async uploadImage(input: UploadEquipmentImageInput): Promise<RepositoryResult<EquipmentImageMetadata>> {
+    const timestamp = this.now();
+    const image: EquipmentImageMetadata = {
+      id: this.createImageId(),
+      fileName: input.file.name,
+      mimeType: input.file.type as EquipmentImageMetadata["mimeType"],
+      widthPx: 0,
+      heightPx: 0,
+      sizeBytes: input.file.size,
+      sourceUrl: null,
+      alt: `Фото обладнання ${input.equipmentId}`,
+      updatedAt: timestamp,
+    };
+    this.images.set(image.id, cloneImage(image));
+    return success(cloneImage(image));
   }
 }
 
@@ -318,18 +376,36 @@ export function createLayoutDraft(input: {
   id: string;
   equipmentId: string;
   imageId?: string | null;
+  image?: EquipmentImageMetadata | null;
   placements: readonly LayoutPlacement[];
   createdAt: string;
 }): RefrigerationLayoutDraft {
+  const image = input.image ? cloneImage(input.image) : null;
+  const imageId = input.imageId ?? image?.id ?? null;
+
   return {
     id: input.id,
     equipmentId: input.equipmentId,
     version: 1,
-    imageId: input.imageId ?? null,
+    etag: draftEtag(1),
+    imageId,
+    image,
     placements: clonePlacements(input.placements),
     createdAt: input.createdAt,
     updatedAt: input.createdAt,
   };
+}
+
+export function draftEtag(version: number): string {
+  return `W/"layout-draft-v${version}"`;
+}
+
+export function requestFailed<T>(
+  equipmentId: string,
+  message: string,
+  code: LayoutValidationIssue["code"] = "REQUEST_FAILED",
+): RepositoryResult<T> {
+  return validationFailed(equipmentId, [{ code, message }]);
 }
 
 function isNormalizedCoordinate(value: number): boolean {
@@ -379,6 +455,7 @@ function success<T>(value: T): RepositoryResult<T> {
 function cloneDraft(draft: RefrigerationLayoutDraft): RefrigerationLayoutDraft {
   return {
     ...draft,
+    image: draft.image ? cloneImage(draft.image) : null,
     placements: clonePlacements(draft.placements),
   };
 }
@@ -386,10 +463,41 @@ function cloneDraft(draft: RefrigerationLayoutDraft): RefrigerationLayoutDraft {
 function cloneRevision(revision: PublishedLayoutRevision): PublishedLayoutRevision {
   return {
     ...revision,
+    image: cloneImage(revision.image),
     placements: clonePlacements(revision.placements),
   };
 }
 
+function cloneImage(image: EquipmentImageMetadata): EquipmentImageMetadata {
+  return { ...image };
+}
+
 function clonePlacements(placements: readonly LayoutPlacement[]): LayoutPlacement[] {
   return placements.map((placement) => ({ ...placement }));
+}
+
+function resolveImage(
+  images: ReadonlyMap<string, EquipmentImageMetadata>,
+  imageId: string | null,
+  current: EquipmentImageMetadata | null,
+  timestamp: string,
+): EquipmentImageMetadata | null {
+  if (!imageId) return null;
+  if (current?.id === imageId) return cloneImage(current);
+  const stored = images.get(imageId);
+  return stored ? cloneImage(stored) : syntheticImage(imageId, "equipment", timestamp);
+}
+
+function syntheticImage(imageId: string, equipmentId: string, timestamp: string): EquipmentImageMetadata {
+  return {
+    id: imageId,
+    fileName: `${imageId}.jpg`,
+    mimeType: "image/jpeg",
+    widthPx: 0,
+    heightPx: 0,
+    sizeBytes: 0,
+    sourceUrl: null,
+    alt: `Фото обладнання ${equipmentId}`,
+    updatedAt: timestamp,
+  };
 }

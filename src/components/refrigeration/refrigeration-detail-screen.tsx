@@ -8,10 +8,8 @@ import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import {
-  RefrigerationLayoutEditor,
-  type LayoutEditorMode,
-} from "@/components/refrigeration/refrigeration-layout-editor";
+import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
+import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
 import type { EquipmentStatus, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
@@ -196,7 +194,7 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   </div>
                 </div>
 
-                <RefrigerationLayoutEditor
+                <RefrigerationLayoutWorkspace
                   equipment={equipment}
                   visibleSensors={visibleSensors}
                   selectedId={activeSelectedId}
