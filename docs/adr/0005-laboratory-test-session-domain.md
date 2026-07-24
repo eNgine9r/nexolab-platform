@@ -29,14 +29,13 @@ The session state machine is implemented as a pure Python domain module without 
 
 ### Session lifecycle
 
-Canonical states:
+Canonical lifecycle paths:
 
 ```text
 draft → ready → running ⇄ paused → completed → archived
-   ↘       ↘                 ↘              
-cancelled ←──────────────────┘
-   ↓
-archived
+draft → cancelled → archived
+ready → cancelled → archived
+paused → cancelled → archived
 ```
 
 Allowed transition commands:
@@ -141,14 +140,14 @@ The database layer introduced in #76 must enforce uniqueness of the idempotency 
 
 The initial stable domain error codes are:
 
-| Code                          | Meaning                                              |
-| ----------------------------- | ---------------------------------------------------- |
-| `invalid_transition_command`  | malformed actor, key, timestamp or reason            |
-| `transition_reason_required`  | cancellation was requested without a reason          |
-| `invalid_session_transition`  | command is not allowed from the current active state |
-| `session_immutable`           | mutation was attempted on a terminal session         |
-| `invalid_stage_plan`          | configured stage plan is empty or invalid            |
-| `invalid_stage_transition`    | stage entry is out of order or workflow is not live  |
+| Code                         | Meaning                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `invalid_transition_command` | malformed actor, key, timestamp or reason            |
+| `transition_reason_required` | cancellation was requested without a reason          |
+| `invalid_session_transition` | command is not allowed from the current active state |
+| `session_immutable`          | mutation was attempted on a terminal session         |
+| `invalid_stage_plan`         | configured stage plan is empty or invalid            |
+| `invalid_stage_transition`   | stage entry is out of order or workflow is not live  |
 
 API adapters will map these codes to typed HTTP error responses without changing their meaning.
 
