@@ -119,7 +119,6 @@ function LifecycleButton({
   disabled: boolean;
   onClick: () => void;
 }) {
-  const Icon = actionIcon(action);
   const danger = action === "cancel";
   const complete = action === "complete" || action === "archive";
   return (
@@ -134,15 +133,15 @@ function LifecycleButton({
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon className="h-4 w-4" />
+      <ActionIcon action={action} />
       {SESSION_ACTION_LABELS[action]}
     </button>
   );
 }
 
-function actionIcon(action: SessionAction) {
-  if (action === "start" || action === "resume") return Play;
-  if (action === "pause") return Pause;
-  if (action === "complete" || action === "archive") return CheckCircle2;
-  return Square;
+function ActionIcon({ action }: { action: SessionAction }) {
+  if (action === "start" || action === "resume") return <Play className="h-4 w-4" />;
+  if (action === "pause") return <Pause className="h-4 w-4" />;
+  if (action === "complete" || action === "archive") return <CheckCircle2 className="h-4 w-4" />;
+  return <Square className="h-4 w-4" />;
 }
