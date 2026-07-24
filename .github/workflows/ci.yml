@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,10 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,49 +34,53 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Format Gate 81 files
-        run: >-
-          npm run format --
-          src/app/sessions
-          src/components/sessions
-          src/lib/sessions
-          src/components/dashboard/dashboard-shell.tsx
-          src/components/dashboard/sessions-panel.tsx
-          src/components/dashboard/sidebar.tsx
-          src/components/dashboard/topbar.tsx
-
-      - name: Commit formatter output
-        run: |
-          if git diff --quiet; then
-            echo "Formatter produced no changes."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            src/app/sessions \
-            src/components/sessions \
-            src/lib/sessions \
-            src/components/dashboard/dashboard-shell.tsx \
-            src/components/dashboard/sessions-panel.tsx \
-            src/components/dashboard/sidebar.tsx \
-            src/components/dashboard/topbar.tsx
-          git commit -m "style(m4): format sessions UI"
-          git push origin "HEAD:${{ github.head_ref }}"
-
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
+      - name: Diagnose Gate 81 quality gates
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+        run: |
+          set +e
+          LOG=/tmp/gate81-diagnostics.log
+          : > "$LOG"
+
+          echo "===== FORMAT =====" >> "$LOG"
+          npm run format:check >> "$LOG" 2>&1
+          FORMAT_STATUS=$?
+
+          echo "===== LINT =====" >> "$LOG"
+          npm run lint >> "$LOG" 2>&1
+          LINT_STATUS=$?
+
+          echo "===== TYPECHECK =====" >> "$LOG"
+          npm run typecheck >> "$LOG" 2>&1
+          TYPECHECK_STATUS=$?
+
+          echo "===== TEST =====" >> "$LOG"
+          npm test >> "$LOG" 2>&1
+          TEST_STATUS=$?
+
+          echo "===== BUILD =====" >> "$LOG"
+          npm run build >> "$LOG" 2>&1
+          BUILD_STATUS=$?
+
+          echo "===== STATUS =====" >> "$LOG"
+          echo "format=$FORMAT_STATUS" >> "$LOG"
+          echo "lint=$LINT_STATUS" >> "$LOG"
+          echo "typecheck=$TYPECHECK_STATUS" >> "$LOG"
+          echo "test=$TEST_STATUS" >> "$LOG"
+          echo "build=$BUILD_STATUS" >> "$LOG"
+
+          cat "$LOG"
+          test "$FORMAT_STATUS" -eq 0 \
+            -a "$LINT_STATUS" -eq 0 \
+            -a "$TYPECHECK_STATUS" -eq 0 \
+            -a "$TEST_STATUS" -eq 0 \
+            -a "$BUILD_STATUS" -eq 0
+
+      - name: Upload Gate 81 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate81-diagnostics-${{ github.run_id }}
+          path: /tmp/gate81-diagnostics.log
+          if-no-files-found: error
+          retention-days: 3
