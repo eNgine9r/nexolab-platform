@@ -229,6 +229,7 @@ def _create_object_storage(settings: Settings) -> S3ObjectStorage | UnavailableO
     return S3ObjectStorage(
         bucket=settings.object_storage_bucket,
         endpoint_url=settings.object_storage_endpoint_url,
+        public_endpoint_url=settings.object_storage_public_endpoint_url,
         region=settings.object_storage_region,
         access_key_id=settings.object_storage_access_key_id,
         secret_access_key=settings.object_storage_secret_access_key,
