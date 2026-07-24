@@ -64,7 +64,10 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
   const [clock, setClock] = useState(() => Date.now());
   const mutationKeys = useRef(new Map<string, string>());
 
-  const refresh = useCallback(() => setGeneration((value) => value + 1), []);
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setGeneration((value) => value + 1);
+  }, []);
 
   const load = useCallback(
     async (signal: AbortSignal) => {
@@ -124,7 +127,6 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading((current) => current || data === null);
     void load(controller.signal);
     const poller = window.setInterval(() => void load(controller.signal), POLL_INTERVAL_MS);
     const ticker = window.setInterval(() => setClock(Date.now()), 1_000);
