@@ -26,12 +26,9 @@ export type HttpRefrigerationLayoutRepositoryOptions = {
 type JsonRecord = Record<string, unknown>;
 
 type TransportResult =
-  | { ok: true; response: Response; payload: unknown }
-  | { ok: false; error: LayoutRepositoryError };
+  { ok: true; response: Response; payload: unknown } | { ok: false; error: LayoutRepositoryError };
 
-export class HttpRefrigerationLayoutRepository
-  implements RefrigerationLayoutRepository
-{
+export class HttpRefrigerationLayoutRepository implements RefrigerationLayoutRepository {
   private readonly apiBaseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
@@ -42,9 +39,7 @@ export class HttpRefrigerationLayoutRepository
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  async getDraft(
-    equipmentId: string,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
+  async getDraft(equipmentId: string): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
     const result = await this.send(
       equipmentId,
       `/api/v1/equipment/${encodeURIComponent(equipmentId)}/layout/draft`,
@@ -54,9 +49,7 @@ export class HttpRefrigerationLayoutRepository
     return parseDraftResult(equipmentId, result.response, result.payload);
   }
 
-  async getPublished(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
+  async getPublished(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
     const result = await this.send(
       equipmentId,
       `/api/v1/equipment/${encodeURIComponent(equipmentId)}/layout/published`,
@@ -70,18 +63,13 @@ export class HttpRefrigerationLayoutRepository
       if (detail?.code === "layout_not_published") {
         return { ok: true, value: null };
       }
-      return requestFailed(
-        equipmentId,
-        detail?.message ?? "Опубліковану схему не знайдено.",
-      );
+      return requestFailed(equipmentId, detail?.message ?? "Опубліковану схему не знайдено.");
     }
 
     return parseRevisionResult(equipmentId, result.payload);
   }
 
-  async saveDraft(
-    input: SaveLayoutDraftInput,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
+  async saveDraft(input: SaveLayoutDraftInput): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
     const result = await this.send(
       input.equipmentId,
       `/api/v1/equipment/${encodeURIComponent(input.equipmentId)}/layout/draft`,
@@ -106,9 +94,7 @@ export class HttpRefrigerationLayoutRepository
     return parseDraftResult(input.equipmentId, result.response, result.payload);
   }
 
-  async publishDraft(
-    input: PublishLayoutDraftInput,
-  ): Promise<
+  async publishDraft(input: PublishLayoutDraftInput): Promise<
     RepositoryResult<{
       draft: RefrigerationLayoutDraft;
       published: PublishedLayoutRevision;
@@ -132,28 +118,15 @@ export class HttpRefrigerationLayoutRepository
 
     const record = asRecord(result.payload);
     if (!record) {
-      return invalidResponse(
-        input.equipmentId,
-        "Publish response must be an object.",
-      );
+      return invalidResponse(input.equipmentId, "Publish response must be an object.");
     }
 
-    const draft = parseDraftResult(
-      input.equipmentId,
-      result.response,
-      record.draft,
-    );
+    const draft = parseDraftResult(input.equipmentId, result.response, record.draft);
     if (!draft.ok) return draft;
 
-    const published = parseRevisionResult(
-      input.equipmentId,
-      record.published,
-    );
+    const published = parseRevisionResult(input.equipmentId, record.published);
     if (!published.ok || published.value === null) {
-      return invalidResponse(
-        input.equipmentId,
-        "Publish response has no published revision.",
-      );
+      return invalidResponse(input.equipmentId, "Publish response has no published revision.");
     }
 
     return {
@@ -162,9 +135,7 @@ export class HttpRefrigerationLayoutRepository
     };
   }
 
-  async listHistory(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
+  async listHistory(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
     const result = await this.send(
       equipmentId,
       `/api/v1/equipment/${encodeURIComponent(equipmentId)}/layout/history`,
@@ -173,10 +144,7 @@ export class HttpRefrigerationLayoutRepository
 
     const record = asRecord(result.payload);
     if (!record || !Array.isArray(record.items)) {
-      return invalidResponse(
-        equipmentId,
-        "History response has no items array.",
-      );
+      return invalidResponse(equipmentId, "History response has no items array.");
     }
 
     const items: PublishedLayoutRevision[] = [];
@@ -184,19 +152,14 @@ export class HttpRefrigerationLayoutRepository
       const parsed = parseRevisionResult(equipmentId, item);
       if (!parsed.ok) return parsed;
       if (parsed.value === null) {
-        return invalidResponse(
-          equipmentId,
-          "History response contains an empty revision.",
-        );
+        return invalidResponse(equipmentId, "History response contains an empty revision.");
       }
       items.push(parsed.value);
     }
 
     return {
       ok: true,
-      value: items.sort(
-        (first, second) => second.revision - first.revision,
-      ),
+      value: items.sort((first, second) => second.revision - first.revision),
     };
   }
 
@@ -216,9 +179,7 @@ export class HttpRefrigerationLayoutRepository
     return parseDraftResult(input.equipmentId, result.response, result.payload);
   }
 
-  async uploadImage(
-    input: UploadEquipmentImageInput,
-  ): Promise<RepositoryResult<EquipmentImageMetadata>> {
+  async uploadImage(input: UploadEquipmentImageInput): Promise<RepositoryResult<EquipmentImageMetadata>> {
     const form = new FormData();
     form.append("file", input.file, input.file.name);
 
@@ -236,10 +197,7 @@ export class HttpRefrigerationLayoutRepository
     const image = parseImage(result.payload, input.equipmentId);
     return image
       ? { ok: true, value: image }
-      : invalidResponse(
-          input.equipmentId,
-          "Image upload response is invalid.",
-        );
+      : invalidResponse(input.equipmentId, "Image upload response is invalid.");
   }
 
   private async send(
@@ -301,8 +259,7 @@ function parseDraftResult(
   const createdAt = readString(record.created_at);
   const updatedAt = readString(record.updated_at);
   const placements = parsePlacements(record.placements);
-  const image =
-    record.image === null ? null : parseImage(record.image, equipmentId);
+  const image = record.image === null ? null : parseImage(record.image, equipmentId);
   const etag = response.headers.get("ETag");
 
   if (
@@ -315,10 +272,7 @@ function parseDraftResult(
     (record.image !== null && !image) ||
     etag !== draftEtag(version)
   ) {
-    return invalidResponse(
-      equipmentId,
-      "Draft response or ETag does not match the API contract.",
-    );
+    return invalidResponse(equipmentId, "Draft response or ETag does not match the API contract.");
   }
 
   return {
@@ -343,10 +297,7 @@ function parseRevisionResult(
 ): RepositoryResult<PublishedLayoutRevision | null> {
   const record = asRecord(payload);
   if (!record) {
-    return invalidResponse(
-      equipmentId,
-      "Revision response must be an object.",
-    );
+    return invalidResponse(equipmentId, "Revision response must be an object.");
   }
 
   const id = readString(record.id);
@@ -368,10 +319,7 @@ function parseRevisionResult(
     placements === null ||
     !image
   ) {
-    return invalidResponse(
-      equipmentId,
-      "Revision response does not match the API contract.",
-    );
+    return invalidResponse(equipmentId, "Revision response does not match the API contract.");
   }
 
   return {
@@ -390,10 +338,7 @@ function parseRevisionResult(
   };
 }
 
-function parseImage(
-  payload: unknown,
-  equipmentId: string,
-): EquipmentImageMetadata | null {
+function parseImage(payload: unknown, equipmentId: string): EquipmentImageMetadata | null {
   const record = asRecord(payload);
   if (!record) return null;
 
@@ -453,11 +398,7 @@ function parsePlacements(payload: unknown): LayoutPlacement[] | null {
   return placements;
 }
 
-function mapHttpError(
-  equipmentId: string,
-  payload: unknown,
-  status: number,
-): LayoutRepositoryError {
+function mapHttpError(equipmentId: string, payload: unknown, status: number): LayoutRepositoryError {
   const detail = readErrorDetail(payload);
   if (
     detail?.code === "layout_version_conflict" &&
@@ -487,13 +428,9 @@ function mapHttpError(
   return {
     code: "LAYOUT_VALIDATION_FAILED",
     equipmentId,
-    issues: (
-      detail?.issues?.length
-        ? detail.issues
-        : [
-            detail?.message ??
-              `Layout API request failed with HTTP ${status}.`,
-          ]
+    issues: (detail?.issues?.length
+      ? detail.issues
+      : [detail?.message ?? `Layout API request failed with HTTP ${status}.`]
     ).map((message) => ({
       code: status >= 500 ? "REQUEST_FAILED" : "SERVER_VALIDATION",
       message,
@@ -518,17 +455,12 @@ function readErrorDetail(payload: unknown): {
     expectedVersion: readPositiveInteger(detail.expected_version),
     actualVersion: readPositiveInteger(detail.actual_version),
     issues: Array.isArray(detail.issues)
-      ? detail.issues.filter(
-          (issue): issue is string => typeof issue === "string",
-        )
+      ? detail.issues.filter((issue): issue is string => typeof issue === "string")
       : [],
   };
 }
 
-function invalidResponse<T>(
-  equipmentId: string,
-  message: string,
-): RepositoryResult<T> {
+function invalidResponse<T>(equipmentId: string, message: string): RepositoryResult<T> {
   return requestFailed(equipmentId, message, "INVALID_RESPONSE");
 }
 
@@ -553,11 +485,7 @@ function normalizeBaseUrl(value: string): string {
 }
 
 function asRecord(value: unknown): JsonRecord | null {
-  return value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value)
-    ? (value as JsonRecord)
-    : null;
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
 }
 
 function readString(value: unknown): string | null {
@@ -565,30 +493,17 @@ function readString(value: unknown): string | null {
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return Number.isInteger(value) && Number(value) >= 1
-    ? Number(value)
-    : null;
+  return Number.isInteger(value) && Number(value) >= 1 ? Number(value) : null;
 }
 
 function readNonNegativeInteger(value: unknown): number | null {
-  return Number.isInteger(value) && Number(value) >= 0
-    ? Number(value)
-    : null;
+  return Number.isInteger(value) && Number(value) >= 0 ? Number(value) : null;
 }
 
 function readNormalizedNumber(value: unknown): number | null {
-  return typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= 0 &&
-    value <= 1
-    ? value
-    : null;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
 }
 
-function isImageMimeType(
-  value: string | null,
-): value is EquipmentImageMetadata["mimeType"] {
-  return (
-    value === "image/jpeg" || value === "image/png" || value === "image/webp"
-  );
+function isImageMimeType(value: string | null): value is EquipmentImageMetadata["mimeType"] {
+  return value === "image/jpeg" || value === "image/png" || value === "image/webp";
 }
