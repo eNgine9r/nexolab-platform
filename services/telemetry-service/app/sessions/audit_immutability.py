@@ -19,6 +19,19 @@ def register_audit_immutability() -> None:
     if _registered:
         return
 
+    event.listen(
+        SessionEvent.__table__,
+        "after_create",
+        DDL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+                uq_session_created_idempotency_key
+            ON session_events(idempotency_key)
+            WHERE event_type = 'session_created'
+            """
+        ).execute_if(dialect="sqlite"),
+    )
+
     for model, table_name in (
         (SessionEvent, "session_events"),
         (AuditLog, "audit_log"),
