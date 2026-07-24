@@ -44,4 +44,4 @@ Signed object-storage URLs are treated as temporary display URLs. Layout persist
 
 ## Validation coverage
 
-Frontend tests cover runtime mode selection, ETag and `If-Match` transport semantics, multipart upload, publication history, restoration and stale-writer recovery while preserving local marker state.
+Frontend tests cover runtime mode selection, ETag and `If-Match` transport semantics, multipart upload, publication history, restoration and stale-writer recovery while preserving local marker state. Existing sensor filtering and marker/list synchronization are also verified after the asynchronous production workspace load.
