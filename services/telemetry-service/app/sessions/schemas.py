@@ -8,6 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.sessions.domain import SessionState
 
 
+def _persisted_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 class SessionCreate(BaseModel):
     session_number: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=256)
@@ -157,6 +165,24 @@ class SessionRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_validator(
+        "prepared_at",
+        "started_at",
+        "paused_at",
+        "completed_at",
+        "cancelled_at",
+        "archived_at",
+        "created_at",
+        "updated_at",
+        mode="before",
+    )
+    @classmethod
+    def normalize_persisted_timestamps(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return _persisted_utc(value)
+
 
 class SessionEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -173,6 +199,13 @@ class SessionEventRead(BaseModel):
     idempotency_key: str
     occurred_at: datetime
     inserted_at: datetime
+
+    @field_validator("occurred_at", "inserted_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamps(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
 
 
 class SessionPage(BaseModel):
