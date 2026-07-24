@@ -1,4 +1,4 @@
-import type { ImgHTMLAttributes, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,21 +7,13 @@ import { getRefrigerationEquipment } from "@/data/refrigeration";
 import { RefrigerationLayoutEditorScreen } from "./refrigeration-layout-editor-screen";
 
 vi.mock("next/image", () => ({
-  default: ({
-    fill: _fill,
-    priority: _priority,
-    ...props
-  }: ImgHTMLAttributes<HTMLImageElement> & {
-    fill?: boolean;
-    priority?: boolean;
-  }) => {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img {...props} />;
-  },
+  default: () => <div data-testid="equipment-image" />,
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -59,7 +51,10 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), { key: "ArrowRight" });
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
+      { key: "ArrowRight" },
+    );
 
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
     expect(screen.getByText("Режим редагування")).toBeInTheDocument();
@@ -70,10 +65,10 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), {
-      key: "ArrowDown",
-      shiftKey: true,
-    });
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
+      { key: "ArrowDown", shiftKey: true },
+    );
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Скинути" }));
@@ -87,7 +82,10 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), { key: "ArrowLeft" });
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
+      { key: "ArrowLeft" },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Вийти" }));
 
     expect(screen.getByText("Відкинути незбережені зміни?")).toBeInTheDocument();
