@@ -20,6 +20,8 @@ from app.sessions.domain import (
 from app.sessions.models import (
     SessionChannelBinding,
     SessionEvent,
+    SessionStage as SessionStageRecord,
+    SessionStageTransition,
     TestSession,
 )
 from app.sessions.repository import (
@@ -28,12 +30,14 @@ from app.sessions.repository import (
     TransitionResult,
 )
 from app.sessions.schemas import SessionTransitionRequest
+from app.sessions.stage_repository import StageRepositoryMixin
 from app.sessions.time_utils import as_utc
 
 
 class ConfiguredSessionRepository(
     BindingRepositoryMixin,
     LimitRepositoryMixin,
+    StageRepositoryMixin,
     ConfigurationSupportMixin,
     SessionRepository,
 ):
@@ -80,6 +84,7 @@ class ConfiguredSessionRepository(
                         command,
                     )
                     event_payload: dict[str, Any] = {"action": action.value}
+                    start_stage: SessionStageRecord | None = None
 
                     if action is SessionAction.START:
                         bindings = self._bindings_for_session(
@@ -90,6 +95,21 @@ class ConfiguredSessionRepository(
                         for binding in bindings:
                             if binding.activated_at is None:
                                 binding.activated_at = request.occurred_at
+
+                        stages = self._stages_for_session(db_session, session_id)
+                        if stages:
+                            start_stage = stages[0]
+                            start_stage.entered_at = request.occurred_at
+                            record.current_stage_id = start_stage.id
+                            event_payload.update(
+                                {
+                                    "stage_id": start_stage.id,
+                                    "stage_sequence_index": (
+                                        start_stage.sequence_index
+                                    ),
+                                }
+                            )
+
                         db_session.flush()
                         snapshot = self._freeze_configuration(
                             db_session,
@@ -130,6 +150,17 @@ class ConfiguredSessionRepository(
                                 )
                             binding.released_at = request.occurred_at
 
+                        if record.current_stage_id is not None:
+                            current_stage = db_session.get(
+                                SessionStageRecord,
+                                record.current_stage_id,
+                            )
+                            if (
+                                current_stage is not None
+                                and current_stage.exited_at is None
+                            ):
+                                current_stage.exited_at = request.occurred_at
+
                     event = SessionEvent(
                         id=str(uuid4()),
                         session_id=session_id,
@@ -144,6 +175,23 @@ class ConfiguredSessionRepository(
                         occurred_at=request.occurred_at,
                         inserted_at=request.occurred_at,
                     )
+                    if start_stage is not None:
+                        db_session.add(
+                            SessionStageTransition(
+                                id=str(uuid4()),
+                                session_id=session_id,
+                                session_event_id=event.id,
+                                from_stage_id=None,
+                                to_stage_id=start_stage.id,
+                                from_sequence_index=None,
+                                to_sequence_index=start_stage.sequence_index,
+                                actor_id=request.actor_id,
+                                reason=request.reason,
+                                occurred_at=request.occurred_at,
+                                inserted_at=request.occurred_at,
+                            )
+                        )
+
                     record.state = transition.next_state.value
                     record.lock_version += 1
                     record.updated_at = request.occurred_at
