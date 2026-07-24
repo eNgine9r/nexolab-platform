@@ -25,12 +25,9 @@ import type {
 } from "@/data/refrigeration";
 
 const markerTone = {
-  normal:
-    "border-emerald-300/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning:
-    "border-amber-300/80 bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm:
-    "border-rose-300/80 bg-rose-500/25 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
+  normal: "border-emerald-300/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
+  warning: "border-amber-300/80 bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
+  alarm: "border-rose-300/80 bg-rose-500/25 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
   "no-data": "border-slate-400/60 bg-slate-600/30 text-slate-200",
 };
 
@@ -59,35 +56,24 @@ const sideOptions: ReadonlyArray<{
 
 const shelves = [1, 2, 3, 4] as const;
 
-export function RefrigerationDetailScreen({
-  equipment,
-}: {
-  equipment: RefrigerationEquipment;
-}) {
+export function RefrigerationDetailScreen({ equipment }: { equipment: RefrigerationEquipment }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
-  const [selectedId, setSelectedId] = useState(
-    equipment.sensors[0]?.id ?? null,
-  );
+  const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
 
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) =>
-          (side === "all" || sensor.side === side) &&
-          (shelf === "all" || sensor.shelf === shelf),
+        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
 
-  const activeSelectedId = visibleSensors.some(
-    (sensor) => sensor.id === selectedId,
-  )
+  const activeSelectedId = visibleSensors.some((sensor) => sensor.id === selectedId)
     ? selectedId
     : (visibleSensors[0]?.id ?? null);
-  const selected =
-    visibleSensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
+  const selected = visibleSensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -98,10 +84,7 @@ export function RefrigerationDetailScreen({
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar
-          title={equipment.name}
-          onMenuOpen={() => setSidebarOpen(true)}
-        />
+        <Topbar title={equipment.name} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[1900px]">
             <header className="mb-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-4">
@@ -116,9 +99,7 @@ export function RefrigerationDetailScreen({
                   </Link>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold text-white">
-                        {equipment.name}
-                      </h1>
+                      <h1 className="text-xl font-semibold text-white">{equipment.name}</h1>
                       <span
                         className={clsx(
                           "rounded-full border px-2.5 py-1 text-[10px]",
@@ -129,8 +110,7 @@ export function RefrigerationDetailScreen({
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
-                      {equipment.location} · {equipment.model} ·{" "}
-                      {equipment.serialNumber}
+                      {equipment.location} · {equipment.model} · {equipment.serialNumber}
                     </p>
                   </div>
                 </div>
@@ -160,23 +140,11 @@ export function RefrigerationDetailScreen({
               <aside className="space-y-3">
                 <Panel title="Інформація">
                   <Info label="Тип" value={equipment.type} />
-                  <Info
-                    label="Модель"
-                    value={`${equipment.manufacturer} ${equipment.model}`}
-                  />
-                  <Info
-                    label="Серійний номер"
-                    value={equipment.serialNumber}
-                  />
-                  <Info
-                    label="Температурний клас"
-                    value={equipment.temperatureClass}
-                  />
+                  <Info label="Модель" value={`${equipment.manufacturer} ${equipment.model}`} />
+                  <Info label="Серійний номер" value={equipment.serialNumber} />
+                  <Info label="Температурний клас" value={equipment.temperatureClass} />
                   <Info label="Встановлено" value={equipment.installedAt} />
-                  <Info
-                    label="Обслуговування"
-                    value={equipment.servicedAt}
-                  />
+                  <Info label="Обслуговування" value={equipment.servicedAt} />
                 </Panel>
 
                 <Panel title="Поточний стан">
@@ -192,12 +160,9 @@ export function RefrigerationDetailScreen({
                 <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
                   <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-white">
-                        Інтерактивна схема вітрини
-                      </h2>
+                      <h2 className="text-sm font-semibold text-white">Інтерактивна схема вітрини</h2>
                       <p className="mt-1 text-[11px] text-slate-500">
-                        {equipment.totalSensors} датчиків · нормалізовані
-                        координати · front/rear
+                        {equipment.totalSensors} датчиків · нормалізовані координати · front/rear
                       </p>
                     </div>
 
@@ -226,11 +191,7 @@ export function RefrigerationDetailScreen({
                         id="shelf-filter"
                         value={shelf}
                         onChange={(event) =>
-                          setShelf(
-                            event.target.value === "all"
-                              ? "all"
-                              : Number(event.target.value),
-                          )
+                          setShelf(event.target.value === "all" ? "all" : Number(event.target.value))
                         }
                         className="rounded-lg border border-white/[0.07] bg-[#0b1e38] px-2.5 py-1.5 text-[10px] text-slate-400 outline-none"
                       >
@@ -294,16 +255,8 @@ export function RefrigerationDetailScreen({
                     value={`${equipment.averageTemperatureC} °C`}
                     icon={Thermometer}
                   />
-                  <Metric
-                    label="Мінімальна"
-                    value={`${equipment.minTemperatureC} °C`}
-                    icon={Thermometer}
-                  />
-                  <Metric
-                    label="Максимальна"
-                    value={`${equipment.maxTemperatureC} °C`}
-                    icon={Thermometer}
-                  />
+                  <Metric label="Мінімальна" value={`${equipment.minTemperatureC} °C`} icon={Thermometer} />
+                  <Metric label="Максимальна" value={`${equipment.maxTemperatureC} °C`} icon={Thermometer} />
                   <Metric
                     label="Online датчики"
                     value={`${equipment.onlineSensors}/${equipment.totalSensors}`}
@@ -315,9 +268,7 @@ export function RefrigerationDetailScreen({
               <aside className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold text-white">
-                      Датчики в реальному часі
-                    </h2>
+                    <h2 className="text-sm font-semibold text-white">Датчики в реальному часі</h2>
                     <p className="mt-1 text-[10px] text-slate-600">
                       Показано {visibleSensors.length} із {equipment.totalSensors}
                     </p>
@@ -330,9 +281,7 @@ export function RefrigerationDetailScreen({
                     className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3"
                     aria-live="polite"
                   >
-                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">
-                      Вибраний датчик
-                    </p>
+                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">Вибраний датчик</p>
                     <div className="mt-2 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-semibold text-white">
@@ -379,12 +328,8 @@ export function RefrigerationDetailScreen({
                         {sensor.label}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] text-slate-300">
-                          {sensor.name}
-                        </span>
-                        <span className="text-[9px] text-slate-600">
-                          Полиця {sensor.shelf}
-                        </span>
+                        <span className="block truncate text-[11px] text-slate-300">{sensor.name}</span>
+                        <span className="text-[9px] text-slate-600">Полиця {sensor.shelf}</span>
                       </span>
                       <span className="text-xs font-semibold text-white">
                         {formatTemperature(sensor.temperatureC, false)}
@@ -425,9 +370,7 @@ function SensorMarker({
       style={{ left: `${sensor.x * 100}%`, top: `${sensor.y * 100}%` }}
     >
       <span className="block">{sensor.label}</span>
-      <span className="block font-semibold">
-        {formatTemperature(sensor.temperatureC, false)}
-      </span>
+      <span className="block font-semibold">{formatTemperature(sensor.temperatureC, false)}</span>
     </button>
   );
 }
@@ -444,9 +387,7 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[9px] tracking-wider text-slate-600 uppercase">
-        {label}
-      </p>
+      <p className="text-[9px] tracking-wider text-slate-600 uppercase">{label}</p>
       <p className="mt-1 text-[11px] text-slate-300">{value}</p>
     </div>
   );
@@ -461,21 +402,11 @@ function State({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Metric({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-}) {
+function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
     <div className="rounded-xl border border-white/[0.07] bg-[#091a31]/85 p-3">
       <Icon className="h-4 w-4 text-cyan-300" />
-      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">
-        {label}
-      </p>
+      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">{label}</p>
       <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>
   );
@@ -490,34 +421,17 @@ function Sparkline({ values }: { values: number[] }) {
   const max = Math.max(...values);
   const range = Math.max(0.1, max - min);
   const points = values
-    .map(
-      (value, index) =>
-        `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`,
-    )
+    .map((value, index) => `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`)
     .join(" ");
 
   return (
-    <svg
-      width="46"
-      height="16"
-      viewBox="0 0 46 16"
-      aria-hidden="true"
-      className="text-cyan-400"
-    >
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        points={points}
-      />
+    <svg width="46" height="16" viewBox="0 0 46 16" aria-hidden="true" className="text-cyan-400">
+      <polyline fill="none" stroke="currentColor" strokeWidth="1.2" points={points} />
     </svg>
   );
 }
 
-function formatTemperature(
-  temperatureC: number | null,
-  includeUnit = true,
-): string {
+function formatTemperature(temperatureC: number | null, includeUnit = true): string {
   if (temperatureC === null) {
     return "—";
   }

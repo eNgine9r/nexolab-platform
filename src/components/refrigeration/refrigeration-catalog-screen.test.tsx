@@ -5,9 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RefrigerationCatalogScreen } from "./refrigeration-catalog-screen";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -31,9 +29,7 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(screen.getByText("Вітрина №107-02")).toBeInTheDocument();
     expect(screen.queryByText("Вітрина №106-01")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Холодильна камера №201"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Холодильна камера №201")).not.toBeInTheDocument();
   });
 
   it("filters equipment by operational status", () => {

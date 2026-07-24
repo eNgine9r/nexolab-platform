@@ -2,22 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Gauge,
-  Search,
-  Snowflake,
-  Thermometer,
-  Wifi,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight, Gauge, Search, Snowflake, Thermometer, Wifi } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import {
-  refrigerationEquipment,
-  type EquipmentStatus,
-} from "@/data/refrigeration";
+import { refrigerationEquipment, type EquipmentStatus } from "@/data/refrigeration";
 
 const statusStyles: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -47,8 +36,7 @@ export function RefrigerationCatalogScreen() {
       const searchText = `${item.name} ${item.code} ${item.location} ${item.model}`.toLocaleLowerCase(
         "uk-UA",
       );
-      const matchesQuery =
-        normalizedQuery.length === 0 || searchText.includes(normalizedQuery);
+      const matchesQuery = normalizedQuery.length === 0 || searchText.includes(normalizedQuery);
       const matchesStatus = status === "all" || item.status === status;
 
       return matchesQuery && matchesStatus;
@@ -64,10 +52,7 @@ export function RefrigerationCatalogScreen() {
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar
-          title="Холодильне обладнання"
-          onMenuOpen={() => setSidebarOpen(true)}
-        />
+        <Topbar title="Холодильне обладнання" onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-4 xl:p-6">
           <div className="mx-auto max-w-[1800px]">
             <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -75,12 +60,9 @@ export function RefrigerationCatalogScreen() {
                 <p className="text-[10px] font-semibold tracking-[0.2em] text-cyan-300 uppercase">
                   Digital equipment twin
                 </p>
-                <h1 className="mt-2 text-2xl font-semibold text-white">
-                  Холодильне обладнання
-                </h1>
+                <h1 className="mt-2 text-2xl font-semibold text-white">Холодильне обладнання</h1>
                 <p className="mt-2 max-w-2xl text-sm text-slate-400">
-                  Паспорти, оперативний стан і інтерактивні схеми розміщення
-                  температурних датчиків.
+                  Паспорти, оперативний стан і інтерактивні схеми розміщення температурних датчиків.
                 </p>
               </div>
 
@@ -102,9 +84,7 @@ export function RefrigerationCatalogScreen() {
                 <select
                   id="equipment-status-filter"
                   value={status}
-                  onChange={(event) =>
-                    setStatus(event.target.value as StatusFilter)
-                  }
+                  onChange={(event) => setStatus(event.target.value as StatusFilter)}
                   className="rounded-xl border border-white/10 bg-[#0a1c35] px-3 py-2.5 text-sm text-slate-300 outline-none"
                 >
                   <option value="all">Усі стани</option>
@@ -145,12 +125,8 @@ export function RefrigerationCatalogScreen() {
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h2 className="text-base font-semibold text-white">
-                            {item.name}
-                          </h2>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {item.location}
-                          </p>
+                          <h2 className="text-base font-semibold text-white">{item.name}</h2>
+                          <p className="mt-1 text-xs text-slate-500">{item.location}</p>
                         </div>
                         <span
                           className={`rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}
@@ -160,21 +136,13 @@ export function RefrigerationCatalogScreen() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        <Metric
-                          icon={Thermometer}
-                          label="Середня"
-                          value={`${item.averageTemperatureC} °C`}
-                        />
+                        <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
                         <Metric
                           icon={Wifi}
                           label="Датчики"
                           value={`${item.onlineSensors}/${item.totalSensors}`}
                         />
-                        <Metric
-                          icon={AlertTriangle}
-                          label="Тривоги"
-                          value={String(item.activeAlarms)}
-                        />
+                        <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
                       </div>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
@@ -200,12 +168,8 @@ export function RefrigerationCatalogScreen() {
             ) : (
               <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
                 <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
-                <h2 className="mt-4 text-sm font-semibold text-slate-200">
-                  Обладнання не знайдено
-                </h2>
-                <p className="mt-2 text-xs text-slate-500">
-                  Змініть пошуковий запит або фільтр стану.
-                </p>
+                <h2 className="mt-4 text-sm font-semibold text-slate-200">Обладнання не знайдено</h2>
+                <p className="mt-2 text-xs text-slate-500">Змініть пошуковий запит або фільтр стану.</p>
               </section>
             )}
           </div>
@@ -215,21 +179,11 @@ export function RefrigerationCatalogScreen() {
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Gauge;
-  label: string;
-  value: string;
-}) {
+function Metric({ icon: Icon, label, value }: { icon: typeof Gauge; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
       <Icon className="h-4 w-4 text-cyan-300" />
-      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">
-        {label}
-      </p>
+      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
     </div>
   );

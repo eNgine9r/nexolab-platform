@@ -7,9 +7,7 @@ import { getRefrigerationEquipment } from "@/data/refrigeration";
 import { RefrigerationDetailScreen } from "./refrigeration-detail-screen";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -36,9 +34,7 @@ describe("RefrigerationDetailScreen", () => {
 
     expect(screen.getByText("Показано 48 із 48")).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Задній фронт" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
     expect(screen.getByText("Показано 24 із 48")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Фільтр за полицею"), {
@@ -82,9 +78,7 @@ describe("RefrigerationDetailScreen", () => {
   it("selects the first visible sensor when the active filter hides the previous selection", () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Задній фронт" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
 
     expect(screen.getByText("01R · Задній фронт 01")).toBeInTheDocument();
     expect(
