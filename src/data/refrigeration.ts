@@ -2,6 +2,20 @@ export type EquipmentStatus = "normal" | "warning" | "alarm" | "offline";
 export type SensorSide = "front" | "rear";
 export type SensorStatus = "normal" | "warning" | "alarm" | "no-data";
 
+export type EquipmentImageMimeType = "image/jpeg" | "image/png" | "image/webp";
+
+export interface EquipmentImageMetadata {
+  id: string;
+  fileName: string;
+  mimeType: EquipmentImageMimeType;
+  widthPx: number;
+  heightPx: number;
+  sizeBytes: number;
+  sourceUrl: string | null;
+  alt: string;
+  updatedAt: string;
+}
+
 export interface RefrigerationSensor {
   id: string;
   label: string;
@@ -37,6 +51,7 @@ export interface RefrigerationEquipment {
   totalSensors: number;
   activeAlarms: number;
   lastSeenAt: string;
+  image: EquipmentImageMetadata | null;
   sensors: RefrigerationSensor[];
 }
 
@@ -101,6 +116,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 48,
     activeAlarms: 1,
     lastSeenAt: "2026-07-24T14:23:45Z",
+    image: null,
     sensors,
   },
   {
@@ -123,6 +139,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 24,
     activeAlarms: 2,
     lastSeenAt: "2026-07-24T14:21:19Z",
+    image: null,
     sensors: sensors.slice(0, 24),
   },
   {
@@ -145,6 +162,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 16,
     activeAlarms: 0,
     lastSeenAt: "2026-07-24T14:23:30Z",
+    image: null,
     sensors: sensors.slice(0, 16).map((sensor, index) => ({
       ...sensor,
       id: `cold-room-sensor-${index + 1}`,
