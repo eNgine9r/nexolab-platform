@@ -22,6 +22,9 @@ class SessionCreate(BaseModel):
     responsible_engineer_id: str | None = Field(default=None, max_length=128)
     metadata_payload: dict[str, Any] = Field(default_factory=dict)
     actor_id: str = Field(min_length=1, max_length=128)
+    actor_source: str = Field(default="dashboard", min_length=1, max_length=64)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    reason: str | None = Field(default=None, max_length=2000)
 
     @field_validator(
         "session_number",
@@ -29,6 +32,8 @@ class SessionCreate(BaseModel):
         "test_object",
         "node_id",
         "actor_id",
+        "actor_source",
+        "reason",
         "customer",
         "model",
         "serial_number",
@@ -43,6 +48,13 @@ class SessionCreate(BaseModel):
             return None
         normalized = value.strip()
         return normalized or None
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must be timezone-aware")
+        return value
 
 
 class SessionPatch(BaseModel):
