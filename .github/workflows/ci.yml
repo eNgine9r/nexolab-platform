@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -18,14 +18,11 @@ jobs:
   quality:
     name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,58 +34,19 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Apply final quality fixes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
+      - name: Check formatting
+        run: npm run format:check
 
-          workspace = Path("src/components/refrigeration/refrigeration-layout-workspace.tsx")
-          text = workspace.read_text().replace(
-              "      // eslint-disable-next-line react-hooks/set-state-in-effect\n",
-              "",
-          )
-          workspace.write_text(text)
+      - name: Lint
+        run: npm run lint
 
-          runtime = Path("src/features/refrigeration/layout-repository-runtime.ts")
-          text = runtime.read_text()
-          old = '''  const config = getTelemetryRuntimeConfig();\n  return config.mode === "live"\n    ? { mode: "live" as const, apiBaseUrl: config.apiBaseUrl }\n    : { mode: "demo" as const, apiBaseUrl: null };'''
-          new = '''  const config = getTelemetryRuntimeConfig();\n  if (config.mode === "live") {\n    const apiBaseUrl = config.apiBaseUrl;\n    if (!apiBaseUrl) {\n      throw new Error("NEXOLAB API URL is required for live refrigeration layouts.");\n    }\n    return { mode: "live", apiBaseUrl };\n  }\n  return { mode: "demo", apiBaseUrl: null };'''
-          if old not in text:
-              raise SystemExit("runtime selection block not found")
-          runtime.write_text(text.replace(old, new))
+      - name: Typecheck
+        run: npm run typecheck
 
-          test_path = Path("src/features/refrigeration/http-layout-repository.test.ts")
-          text = test_path.read_text()
-          helper = '''function createFetchMock(factory: () => Response | Promise<Response>) {\n  return vi.fn(async (...args: Parameters<typeof fetch>): Promise<Response> => {\n    void args;\n    return factory();\n  });\n}\n\n'''
-          marker = 'describe("HttpRefrigerationLayoutRepository", () => {'
-          if helper not in text:
-              text = text.replace(marker, helper + marker)
-          text = text.replace(
-              "vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>",
-              "createFetchMock(async () =>",
-          )
-          test_path.write_text(text)
-          PY
-          npm run format
+      - name: Test
+        run: npm test
 
-      - name: Validate quality gates
+      - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: |
-          npm run format:check
-          npm run lint
-          npm run typecheck
-          npm test
-          npm run build
-
-      - name: Commit final quality fixes
-        env:
-          HUSKY: 0
-          HEAD_BRANCH: ${{ github.head_ref }}
-        run: |
-          git checkout origin/main -- .github/workflows/ci.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src .github/workflows/ci.yml
-          git commit -m "fix: complete refrigeration frontend quality gates"
-          git push origin "HEAD:${HEAD_BRANCH}"
+        run: npm run build

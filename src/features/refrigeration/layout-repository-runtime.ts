@@ -95,9 +95,14 @@ function getTelemetryRuntimeConfigFromInput(
   }
 
   const config = getTelemetryRuntimeConfig();
-  return config.mode === "live"
-    ? { mode: "live" as const, apiBaseUrl: config.apiBaseUrl }
-    : { mode: "demo" as const, apiBaseUrl: null };
+  if (config.mode === "live") {
+    const apiBaseUrl = config.apiBaseUrl;
+    if (!apiBaseUrl) {
+      throw new Error("NEXOLAB API URL is required for live refrigeration layouts.");
+    }
+    return { mode: "live", apiBaseUrl };
+  }
+  return { mode: "demo", apiBaseUrl: null };
 }
 
 function normalizeActorId(value: string | undefined): string {
