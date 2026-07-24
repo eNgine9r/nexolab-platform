@@ -24,6 +24,7 @@ from app.sessions.production_contract import (
     PRODUCTION_CHANNELS,
 )
 from app.sessions.repository import SessionConflictError
+from app.sessions.time_utils import as_utc
 
 
 class BindingRepositoryMixin:
@@ -361,7 +362,8 @@ class BindingRepositoryMixin:
                 if state in ACTIVE_STATES:
                     if (
                         binding.activated_at is not None
-                        and payload.occurred_at < binding.activated_at
+                        and as_utc(payload.occurred_at)
+                        < as_utc(binding.activated_at)
                     ):
                         raise SessionConflictError(
                             "binding_release_time_invalid",
