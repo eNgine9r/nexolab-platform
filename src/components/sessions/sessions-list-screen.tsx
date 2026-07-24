@@ -231,9 +231,7 @@ export function SessionsListScreen() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">
-                    Замовник / стандарт
-                  </p>
+                  <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">Замовник / стандарт</p>
                   <p className="mt-1 truncate text-[10px] text-slate-300">
                     {session.customer ?? "Внутрішнє випробування"}
                   </p>
