@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Typecheck diagnostics
+    name: Quality and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,11 +34,19 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Capture typecheck output
-        run: npm run typecheck > typecheck.log 2>&1 || true
+      - name: Check formatting
+        run: npm run format:check
 
-      - name: Upload typecheck diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: layout-editor-typecheck
-          path: typecheck.log
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
