@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRefrigerationEquipment } from "@/data/refrigeration";
+import { getRefrigerationEquipment, type RefrigerationEquipment } from "@/data/refrigeration";
+import {
+  createLayoutDraft,
+  InMemoryRefrigerationLayoutRepository,
+  type RefrigerationLayoutRepository,
+} from "@/features/refrigeration/layout-repository";
 
 import { RefrigerationLayoutEditor, type LayoutEditorMode } from "./refrigeration-layout-editor";
 
@@ -23,7 +28,22 @@ function referenceEquipment() {
   return equipment;
 }
 
-function EditorHarness() {
+function createRepository(equipment: RefrigerationEquipment) {
+  return new InMemoryRefrigerationLayoutRepository({
+    drafts: [
+      createLayoutDraft({
+        id: `draft-${equipment.id}`,
+        equipmentId: equipment.id,
+        imageId: equipment.image?.id ?? null,
+        placements: equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
+        createdAt: "2026-07-24T00:00:00.000Z",
+      }),
+    ],
+    now: () => "2026-07-24T00:00:01.000Z",
+  });
+}
+
+function EditorHarness({ repository }: { repository?: RefrigerationLayoutRepository }) {
   const equipment = referenceEquipment();
   const [mode, setMode] = useState<LayoutEditorMode>("view");
   const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
@@ -36,12 +56,19 @@ function EditorHarness() {
       mode={mode}
       onModeChange={setMode}
       onSelect={setSelectedId}
+      repository={repository}
     />
   );
 }
 
 function marker(label: string) {
   return screen.getByRole("button", { name: `Вибрати датчик ${label} на схемі` });
+}
+
+async function waitForRepositoryReady() {
+  await waitFor(() => {
+    expect(screen.queryByText("Завантаження чернетки схеми…")).not.toBeInTheDocument();
+  });
 }
 
 describe("RefrigerationLayoutEditor", () => {
@@ -137,5 +164,58 @@ describe("RefrigerationLayoutEditor", () => {
     expect(screen.getByText(/showcase\.webp/)).toBeInTheDocument();
     expect(marker("01F")).toHaveAttribute("data-x", originalX);
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
+  });
+
+  it("saves the current local draft through the repository and advances its version", async () => {
+    const equipment = referenceEquipment();
+    const repository = createRepository(equipment);
+    render(<EditorHarness repository={repository} />);
+    await waitForRepositoryReady();
+
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
+    fireEvent.keyDown(marker("01F"), { key: "ArrowRight" });
+
+    const saveButton = screen.getByRole("button", { name: "Зберегти чернетку" });
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+
+    expect(await screen.findByText("Чернетку схеми збережено · версія 2")).toBeInTheDocument();
+    expect(screen.getByText("Чернетка v2")).toBeInTheDocument();
+    expect(screen.getByText("Режим перегляду")).toBeInTheDocument();
+    expect(screen.queryByText("Незбережені зміни")).not.toBeInTheDocument();
+
+    const stored = await repository.getDraft(equipment.id);
+    expect(stored).toMatchObject({ ok: true, value: { version: 2 } });
+  });
+
+  it("preserves local changes when a stale draft save returns a version conflict", async () => {
+    const equipment = referenceEquipment();
+    const repository = createRepository(equipment);
+    render(<EditorHarness repository={repository} />);
+    await waitForRepositoryReady();
+
+    const externalSave = await repository.saveDraft({
+      equipmentId: equipment.id,
+      expectedVersion: 1,
+      imageId: equipment.image?.id ?? null,
+      placements: equipment.sensors.map(({ id, x, y }, index) => ({
+        sensorId: id,
+        x: index === 0 ? x + 0.01 : x,
+        y,
+      })),
+    });
+    expect(externalSave).toMatchObject({ ok: true, value: { version: 2 } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
+    fireEvent.keyDown(marker("01F"), { key: "ArrowRight", shiftKey: true });
+    const localX = marker("01F").getAttribute("data-x");
+
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти чернетку" }));
+
+    expect(await screen.findByText("Конфлікт версій схеми")).toBeInTheDocument();
+    expect(screen.getByText(/Локальні позиції та фото не втрачено/)).toBeInTheDocument();
+    expect(screen.getByText("Режим редагування")).toBeInTheDocument();
+    expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
+    expect(marker("01F")).toHaveAttribute("data-x", localX);
   });
 });
