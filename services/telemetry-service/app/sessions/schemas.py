@@ -8,6 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.sessions.domain import SessionState
 
 
+def _persisted_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 class SessionCreate(BaseModel):
     session_number: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=256)
@@ -22,6 +30,9 @@ class SessionCreate(BaseModel):
     responsible_engineer_id: str | None = Field(default=None, max_length=128)
     metadata_payload: dict[str, Any] = Field(default_factory=dict)
     actor_id: str = Field(min_length=1, max_length=128)
+    actor_source: str = Field(default="dashboard", min_length=1, max_length=64)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    reason: str | None = Field(default=None, max_length=2000)
 
     @field_validator(
         "session_number",
@@ -29,6 +40,17 @@ class SessionCreate(BaseModel):
         "test_object",
         "node_id",
         "actor_id",
+        "actor_source",
+    )
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator(
+        "reason",
         "customer",
         "model",
         "serial_number",
@@ -38,11 +60,18 @@ class SessionCreate(BaseModel):
         "responsible_engineer_id",
     )
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
         return normalized or None
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must be timezone-aware")
+        return value
 
 
 class SessionPatch(BaseModel):
@@ -82,9 +111,17 @@ class SessionTransitionRequest(BaseModel):
     occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     reason: str | None = Field(default=None, max_length=2000)
 
-    @field_validator("actor_id", "actor_source", "reason")
+    @field_validator("actor_id", "actor_source")
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -128,6 +165,24 @@ class SessionRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_validator(
+        "prepared_at",
+        "started_at",
+        "paused_at",
+        "completed_at",
+        "cancelled_at",
+        "archived_at",
+        "created_at",
+        "updated_at",
+        mode="before",
+    )
+    @classmethod
+    def normalize_persisted_timestamps(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return _persisted_utc(value)
+
 
 class SessionEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -144,6 +199,13 @@ class SessionEventRead(BaseModel):
     idempotency_key: str
     occurred_at: datetime
     inserted_at: datetime
+
+    @field_validator("occurred_at", "inserted_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamps(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
 
 
 class SessionPage(BaseModel):
