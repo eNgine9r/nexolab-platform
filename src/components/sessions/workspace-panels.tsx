@@ -78,11 +78,16 @@ export function SessionHero({
           </div>
           <h1 className="mt-3 truncate text-2xl font-semibold text-white sm:text-3xl">{session.title}</h1>
           <p className="mt-2 text-[11px] leading-5 text-slate-400">
-            {session.test_object} · {session.model ?? "модель не вказана"} · S/N {session.serial_number ?? "—"}
+            {session.test_object} · {session.model ?? "модель не вказана"} · S/N{" "}
+            {session.serial_number ?? "—"}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[620px]">
-          <HeroMetric label="Elapsed" value={formatDuration(sessionElapsedMs(session, clock))} icon={Clock3} />
+          <HeroMetric
+            label="Elapsed"
+            value={formatDuration(sessionElapsedMs(session, clock))}
+            icon={Clock3}
+          />
           <HeroMetric label="Node" value={session.node_id} icon={RadioTower} />
           <HeroMetric label="Limits" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
           <HeroMetric
@@ -117,7 +122,9 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
               <span className="ml-2 text-base font-medium text-slate-500">°C</span>
             </p>
             <p className="mt-3 text-[9px] text-slate-500">
-              {sample ? `${sample.quality} · ${formatTime(sample.captured_at)}` : "Немає attributed telemetry"}
+              {sample
+                ? `${sample.quality} · ${formatTime(sample.captured_at)}`
+                : "Немає attributed telemetry"}
             </p>
           </div>
         ))}
@@ -180,7 +187,11 @@ export function StageTimeline({
   currentStageId: string | null;
   readOnly: boolean;
   mutating: boolean;
-  onAdvance: (input: { stageType: SessionStageType; name: string; plannedDurationMinutes: number }) => Promise<void>;
+  onAdvance: (input: {
+    stageType: SessionStageType;
+    name: string;
+    plannedDurationMinutes: number;
+  }) => Promise<void>;
 }) {
   const [stageType, setStageType] = useState<SessionStageType>("main_test");
   const [name, setName] = useState("Основне випробування");
@@ -195,7 +206,11 @@ export function StageTimeline({
         </div>
         {!readOnly && (
           <div className="grid gap-2 sm:grid-cols-[170px_220px_110px_auto]">
-            <select className="form-input" value={stageType} onChange={(event) => setStageType(event.target.value as SessionStageType)}>
+            <select
+              className="form-input"
+              value={stageType}
+              onChange={(event) => setStageType(event.target.value as SessionStageType)}
+            >
               {[
                 "preparation",
                 "preconditioning",
@@ -210,11 +225,19 @@ export function StageTimeline({
               ))}
             </select>
             <input className="form-input" value={name} onChange={(event) => setName(event.target.value)} />
-            <input type="number" min={0} className="form-input" value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} />
+            <input
+              type="number"
+              min={0}
+              className="form-input"
+              value={minutes}
+              onChange={(event) => setMinutes(Number(event.target.value))}
+            />
             <button
               className="primary-button"
               disabled={mutating || !name.trim()}
-              onClick={() => void onAdvance({ stageType, name: name.trim(), plannedDurationMinutes: minutes })}
+              onClick={() =>
+                void onAdvance({ stageType, name: name.trim(), plannedDurationMinutes: minutes })
+              }
             >
               Додати етап
             </button>
@@ -291,7 +314,7 @@ export function NotesAndAudit({
             </button>
           </div>
         )}
-        <div className="mt-4 max-h-80 space-y-2 overflow-y-auto scrollbar-thin">
+        <div className="mt-4 max-h-80 scrollbar-thin space-y-2 overflow-y-auto">
           {notes.length === 0 ? (
             <Empty label="Приміток немає" />
           ) : (
@@ -311,7 +334,7 @@ export function NotesAndAudit({
           <FileClock className="h-4 w-4 text-cyan-300" />
           <h2 className="text-sm font-semibold text-white">Immutable audit</h2>
         </div>
-        <div className="mt-4 max-h-[390px] space-y-2 overflow-y-auto scrollbar-thin">
+        <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
           {audit.length === 0 ? (
             <Empty label="Audit events не знайдені" />
           ) : (
@@ -342,9 +365,16 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         <Info label="Bindings" value={`${data.configuration.bindings.length} / 34`} />
-        <Info label="Limits" value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} rules`} />
+        <Info
+          label="Limits"
+          value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} rules`}
+        />
         <Info label="Snapshots" value={String(data.configuration.snapshots.length)} />
-        <Info label="Content SHA-256" value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "pending"} mono />
+        <Info
+          label="Content SHA-256"
+          value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "pending"}
+          mono
+        />
       </div>
     </section>
   );
@@ -368,7 +398,9 @@ export function WorkspaceError({ message, onRetry }: { message: string; onRetry:
         <CircleOff className="mx-auto h-8 w-8 text-amber-300" />
         <h2 className="mt-3 text-lg font-semibold text-white">Session workspace недоступний</h2>
         <p className="mt-2 max-w-xl text-[11px] leading-5 text-slate-400">{message}</p>
-        <button className="primary-button mt-4" onClick={onRetry}>Повторити</button>
+        <button className="primary-button mt-4" onClick={onRetry}>
+          Повторити
+        </button>
       </div>
     </div>
   );
@@ -393,7 +425,7 @@ function TemperatureChart({ samples }: { samples: AttributedTelemetrySample[] })
       points: channelSamples
         .map((sample, index) => {
           const x = channelSamples.length === 1 ? 50 : (index / (channelSamples.length - 1)) * 100;
-          const y = 92 - ((((sample.value as number) - min) / range) * 78);
+          const y = 92 - (((sample.value as number) - min) / range) * 78;
           return `${x.toFixed(2)},${y.toFixed(2)}`;
         })
         .join(" "),
@@ -402,12 +434,19 @@ function TemperatureChart({ samples }: { samples: AttributedTelemetrySample[] })
   }, [samples]);
 
   if (series.length === 0) {
-    return <div className="mt-5 grid h-72 place-items-center text-[10px] text-slate-600">History ще порожня</div>;
+    return (
+      <div className="mt-5 grid h-72 place-items-center text-[10px] text-slate-600">History ще порожня</div>
+    );
   }
 
   return (
     <div className="mt-5">
-      <svg viewBox="0 0 100 100" className="h-72 w-full overflow-visible" role="img" aria-label="Температурний графік">
+      <svg
+        viewBox="0 0 100 100"
+        className="h-72 w-full overflow-visible"
+        role="img"
+        aria-label="Температурний графік"
+      >
         {[20, 40, 60, 80].map((y) => (
           <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="rgba(148,163,184,.12)" strokeWidth=".25" />
         ))}
@@ -429,9 +468,18 @@ function TemperatureChart({ samples }: { samples: AttributedTelemetrySample[] })
           ))}
       </svg>
       <div className="flex flex-wrap gap-3 text-[9px] text-slate-500">
-        <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan-400" />106-03</span>
-        <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-lime-400" />106-04</span>
-        <span><AlertTriangle className="mr-1 inline h-3 w-3 text-red-400" />alarm marker</span>
+        <span>
+          <i className="mr-1 inline-block h-2 w-2 rounded-full bg-cyan-400" />
+          106-03
+        </span>
+        <span>
+          <i className="mr-1 inline-block h-2 w-2 rounded-full bg-lime-400" />
+          106-04
+        </span>
+        <span>
+          <AlertTriangle className="mr-1 inline h-3 w-3 text-red-400" />
+          alarm marker
+        </span>
       </div>
     </div>
   );
@@ -440,7 +488,8 @@ function TemperatureChart({ samples }: { samples: AttributedTelemetrySample[] })
 function QualityIcon({ sample }: { sample: AttributedTelemetrySample | null }) {
   if (!sample) return <CircleOff className="h-5 w-5 text-slate-600" aria-label="Немає даних" />;
   if (sample.alarm) return <AlertTriangle className="h-5 w-5 text-red-400" aria-label="Тривога" />;
-  if (sample.quality !== "valid") return <Activity className="h-5 w-5 text-amber-300" aria-label={`Якість ${sample.quality}`} />;
+  if (sample.quality !== "valid")
+    return <Activity className="h-5 w-5 text-amber-300" aria-label={`Якість ${sample.quality}`} />;
   return <CheckCircle2 className="h-5 w-5 text-emerald-300" aria-label="Валідні дані" />;
 }
 
@@ -455,20 +504,31 @@ function HeroMetric({ label, value, icon: Icon }: { label: string; value: string
 }
 
 function MetricTerm({ label, value }: { label: string; value: string }) {
-  return <div><dt className="text-slate-600">{label}</dt><dd className="mt-1 font-medium text-slate-300">{value}</dd></div>;
+  return (
+    <div>
+      <dt className="text-slate-600">{label}</dt>
+      <dd className="mt-1 font-medium text-slate-300">{value}</dd>
+    </div>
+  );
 }
 
 function Info({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
       <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">{label}</p>
-      <p className={`mt-2 truncate text-[11px] font-semibold text-white ${mono ? "font-mono" : ""}`}>{value}</p>
+      <p className={`mt-2 truncate text-[11px] font-semibold text-white ${mono ? "font-mono" : ""}`}>
+        {value}
+      </p>
     </div>
   );
 }
 
 function Empty({ label }: { label: string }) {
-  return <div className="rounded-xl border border-dashed border-white/[0.08] p-4 text-[10px] text-slate-600">{label}</div>;
+  return (
+    <div className="rounded-xl border border-dashed border-white/[0.08] p-4 text-[10px] text-slate-600">
+      {label}
+    </div>
+  );
 }
 
 function number(value: number | null): string {
@@ -476,9 +536,13 @@ function number(value: number | null): string {
 }
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(value));
+  return new Intl.DateTimeFormat("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(
+    new Date(value),
+  );
 }
 
 function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("uk-UA", { dateStyle: "short", timeStyle: "medium" }).format(
+    new Date(value),
+  );
 }

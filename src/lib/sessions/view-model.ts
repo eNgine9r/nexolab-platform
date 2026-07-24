@@ -1,9 +1,4 @@
-import type {
-  AttributedTelemetrySample,
-  LaboratorySession,
-  SessionAction,
-  SessionState,
-} from "./types";
+import type { AttributedTelemetrySample, LaboratorySession, SessionAction, SessionState } from "./types";
 
 export const SESSION_STATE_LABELS: Record<SessionState, string> = {
   draft: "Чернетка",
@@ -41,7 +36,8 @@ export function isReadOnlySession(session: LaboratorySession): boolean {
 
 export function sessionElapsedMs(session: LaboratorySession, now = Date.now()): number | null {
   if (!session.started_at) return null;
-  const end = session.completed_at ?? session.cancelled_at ?? (session.state === "paused" ? session.paused_at : null);
+  const end =
+    session.completed_at ?? session.cancelled_at ?? (session.state === "paused" ? session.paused_at : null);
   return Math.max(0, new Date(end ?? now).getTime() - new Date(session.started_at).getTime());
 }
 

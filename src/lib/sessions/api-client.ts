@@ -237,10 +237,8 @@ export class SessionApiClient {
   }
 
   listStages(sessionId: string, signal?: AbortSignal): Promise<SessionStage[]> {
-    return this.request(
-      `/api/v1/sessions/${encodeURIComponent(sessionId)}/stages`,
-      { signal },
-      (body) => assertArray<SessionStage>(body, "Session stages"),
+    return this.request(`/api/v1/sessions/${encodeURIComponent(sessionId)}/stages`, { signal }, (body) =>
+      assertArray<SessionStage>(body, "Session stages"),
     );
   }
 
@@ -332,11 +330,7 @@ export class SessionApiClient {
     );
   }
 
-  private async request<T>(
-    path: string,
-    options: RequestOptions,
-    parser: (body: unknown) => T,
-  ): Promise<T> {
+  private async request<T>(path: string, options: RequestOptions, parser: (body: unknown) => T): Promise<T> {
     const managed = createManagedSignal(options.signal, this.timeoutMs);
     let response: Response;
 
@@ -374,12 +368,9 @@ export class SessionApiClient {
         body = JSON.parse(text);
       } catch (error) {
         if (response.ok) {
-          throw new SessionClientError(
-            "Sessions API returned invalid JSON.",
-            response.status,
-            "contract",
-            { cause: error },
-          );
+          throw new SessionClientError("Sessions API returned invalid JSON.", response.status, "contract", {
+            cause: error,
+          });
         }
       }
     }

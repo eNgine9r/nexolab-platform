@@ -111,7 +111,9 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
         setClock(Date.now());
       } catch (nextError) {
         if (!signal.aborted) {
-          setError(nextError instanceof Error ? nextError : new Error("Не вдалося завантажити session workspace."));
+          setError(
+            nextError instanceof Error ? nextError : new Error("Не вдалося завантажити session workspace."),
+          );
         }
       } finally {
         if (!signal.aborted) setLoading(false);
@@ -169,11 +171,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
   );
 
   const advanceStage = useCallback(
-    async (input: {
-      stageType: SessionStageType;
-      name: string;
-      plannedDurationMinutes: number;
-    }) => {
+    async (input: { stageType: SessionStageType; name: string; plannedDurationMinutes: number }) => {
       const nextIndex = data?.stages.length ?? 0;
       await runMutation(`stage-${nextIndex}`, async (key) => {
         const client = createSessionApiClient();

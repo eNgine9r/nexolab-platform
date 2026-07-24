@@ -109,9 +109,7 @@ export function SessionsListScreen() {
             <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
               M4 · Sessions
             </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-              Лабораторні випробування
-            </h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Лабораторні випробування</h1>
             <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
               Реальні сесії з central backend: конфігурація, 34 production series, етапи, телеметрія та
               immutable audit.
@@ -125,7 +123,9 @@ export function SessionsListScreen() {
             />
             <Summary
               label="Завершені"
-              value={sessions.filter((item) => item.state === "completed" || item.state === "archived").length}
+              value={
+                sessions.filter((item) => item.state === "completed" || item.state === "archived").length
+              }
             />
           </div>
         </div>
@@ -176,10 +176,7 @@ export function SessionsListScreen() {
               <div>
                 <h2 className="text-sm font-semibold text-white">Sessions API недоступний</h2>
                 <p className="mt-1 text-[11px] leading-5 text-slate-400">{error.message}</p>
-                <button
-                  className="secondary-button mt-3"
-                  onClick={() => setGeneration((value) => value + 1)}
-                >
+                <button className="secondary-button mt-3" onClick={() => setGeneration((value) => value + 1)}>
                   Повторити
                 </button>
               </div>

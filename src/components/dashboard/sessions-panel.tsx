@@ -62,7 +62,10 @@ export function SessionsPanel() {
       <div className="grid min-h-48 place-items-center px-5 text-center">
         <div>
           <p className="text-[11px] font-semibold text-white">Активних сесій немає</p>
-          <Link href="/sessions/new" className="mt-3 inline-flex text-[10px] text-cyan-300 hover:text-cyan-200">
+          <Link
+            href="/sessions/new"
+            className="mt-3 inline-flex text-[10px] text-cyan-300 hover:text-cyan-200"
+          >
             Створити реальний draft →
           </Link>
         </div>

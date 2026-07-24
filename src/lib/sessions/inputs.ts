@@ -1,9 +1,4 @@
-import type {
-  LimitRuleInput,
-  SessionCommandInput,
-  SessionStageType,
-  TelemetryQuality,
-} from "./types";
+import type { LimitRuleInput, SessionCommandInput, SessionStageType, TelemetryQuality } from "./types";
 
 export interface ProductionBindingsInput extends SessionCommandInput {
   binding_metadata?: Record<string, unknown>;

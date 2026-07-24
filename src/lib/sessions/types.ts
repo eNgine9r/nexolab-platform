@@ -1,20 +1,6 @@
-export type SessionState =
-  | "draft"
-  | "ready"
-  | "running"
-  | "paused"
-  | "completed"
-  | "cancelled"
-  | "archived";
+export type SessionState = "draft" | "ready" | "running" | "paused" | "completed" | "cancelled" | "archived";
 
-export type SessionAction =
-  | "prepare"
-  | "start"
-  | "pause"
-  | "resume"
-  | "complete"
-  | "cancel"
-  | "archive";
+export type SessionAction = "prepare" | "start" | "pause" | "resume" | "complete" | "cancel" | "archive";
 
 export type SessionStageType =
   | "preparation"

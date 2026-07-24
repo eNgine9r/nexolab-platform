@@ -1,18 +1,9 @@
 import type { ReactNode } from "react";
-import {
-  ClipboardCheck,
-  Gauge,
-  Layers3,
-  RadioTower,
-  SlidersHorizontal,
-} from "lucide-react";
+import { ClipboardCheck, Gauge, Layers3, RadioTower, SlidersHorizontal } from "lucide-react";
 
 import type { SessionStageType } from "@/lib/sessions/types";
 
-import {
-  STAGE_TYPES,
-  type SessionWizardForm,
-} from "./wizard-model";
+import { STAGE_TYPES, type SessionWizardForm } from "./wizard-model";
 
 export interface WizardStepProps {
   form: SessionWizardForm;
@@ -175,16 +166,37 @@ export function LimitsStep({ form, update }: WizardStepProps) {
       <div>
         <h3 className="text-sm font-semibold text-white">Температура 106-03 / 106-04</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
-          <NumberField label="Нижня, °C" value={form.temperatureLower} onChange={(value) => update("temperatureLower", value)} />
-          <NumberField label="Верхня, °C" value={form.temperatureUpper} onChange={(value) => update("temperatureUpper", value)} />
-          <NumberField label="Hysteresis" value={form.temperatureHysteresis} step={0.1} onChange={(value) => update("temperatureHysteresis", value)} />
-          <NumberField label="Duration, s" value={form.temperatureDurationSeconds} onChange={(value) => update("temperatureDurationSeconds", value)} />
+          <NumberField
+            label="Нижня, °C"
+            value={form.temperatureLower}
+            onChange={(value) => update("temperatureLower", value)}
+          />
+          <NumberField
+            label="Верхня, °C"
+            value={form.temperatureUpper}
+            onChange={(value) => update("temperatureUpper", value)}
+          />
+          <NumberField
+            label="Hysteresis"
+            value={form.temperatureHysteresis}
+            step={0.1}
+            onChange={(value) => update("temperatureHysteresis", value)}
+          />
+          <NumberField
+            label="Duration, s"
+            value={form.temperatureDurationSeconds}
+            onChange={(value) => update("temperatureDurationSeconds", value)}
+          />
         </div>
       </div>
       <div className="border-t border-white/[0.055] pt-5">
         <h3 className="text-sm font-semibold text-white">Активна потужність LE-01MP</h3>
         <div className="mt-3 max-w-xs">
-          <NumberField label="Верхня межа, W" value={form.powerUpper} onChange={(value) => update("powerUpper", value)} />
+          <NumberField
+            label="Верхня межа, W"
+            value={form.powerUpper}
+            onChange={(value) => update("powerUpper", value)}
+          />
         </div>
       </div>
       <div className="rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-4 text-[10px] leading-5 text-slate-400">
@@ -203,9 +215,7 @@ export function StagesStep({ form, update }: WizardStepProps) {
   ) => {
     update(
       "stages",
-      form.stages.map((stage, stageIndex) =>
-        stageIndex === index ? { ...stage, [field]: value } : stage,
-      ),
+      form.stages.map((stage, stageIndex) => (stageIndex === index ? { ...stage, [field]: value } : stage)),
     );
   };
 
@@ -256,11 +266,32 @@ export function ReviewStep({ form }: { form: SessionWizardForm }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <ReviewCard title="Сесія" lines={[form.sessionNumber, form.title, form.customer]} />
-      <ReviewCard title="Об’єкт" lines={[form.testObject, `${form.model} · ${form.serialNumber}`, "edge-01"]} />
-      <ReviewCard title="Методика" lines={[form.standard, form.method, `${form.samplingSeconds} s sampling`]} />
-      <ReviewCard title="Production contract" lines={["34 validated series", "2 × K106 temperature", "4 × LE01MP · 32 energy series"]} />
-      <ReviewCard title="Limits v1" lines={[`${form.temperatureLower}…${form.temperatureUpper} °C`, `Hysteresis ${form.temperatureHysteresis} °C`, `Power ≤ ${form.powerUpper} W`]} />
-      <ReviewCard title="Stage plan" lines={form.stages.map((stage) => `${stage.sequence_index + 1}. ${stage.name} · ${stage.planned_duration_minutes} min`)} />
+      <ReviewCard
+        title="Об’єкт"
+        lines={[form.testObject, `${form.model} · ${form.serialNumber}`, "edge-01"]}
+      />
+      <ReviewCard
+        title="Методика"
+        lines={[form.standard, form.method, `${form.samplingSeconds} s sampling`]}
+      />
+      <ReviewCard
+        title="Production contract"
+        lines={["34 validated series", "2 × K106 temperature", "4 × LE01MP · 32 energy series"]}
+      />
+      <ReviewCard
+        title="Limits v1"
+        lines={[
+          `${form.temperatureLower}…${form.temperatureUpper} °C`,
+          `Hysteresis ${form.temperatureHysteresis} °C`,
+          `Power ≤ ${form.powerUpper} W`,
+        ]}
+      />
+      <ReviewCard
+        title="Stage plan"
+        lines={form.stages.map(
+          (stage) => `${stage.sequence_index + 1}. ${stage.name} · ${stage.planned_duration_minutes} min`,
+        )}
+      />
     </div>
   );
 }

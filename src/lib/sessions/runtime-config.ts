@@ -33,20 +33,13 @@ export function getSessionsApiBaseUrl(): string {
   try {
     parsed = new URL(value);
   } catch (error) {
-    throw new SessionClientError(
-      "Sessions API URL must be an absolute URL.",
-      undefined,
-      "configuration",
-      { cause: error },
-    );
+    throw new SessionClientError("Sessions API URL must be an absolute URL.", undefined, "configuration", {
+      cause: error,
+    });
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new SessionClientError(
-      "Sessions API URL must use HTTP or HTTPS.",
-      undefined,
-      "configuration",
-    );
+    throw new SessionClientError("Sessions API URL must use HTTP or HTTPS.", undefined, "configuration");
   }
 
   parsed.hash = "";
