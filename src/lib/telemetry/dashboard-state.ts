@@ -173,7 +173,12 @@ function isUsable(sample: TelemetrySample): sample is UsableTelemetrySample {
 }
 
 function normalizedMetric(metric: string): string {
-  return metric.trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
+  return metric.trim().toLowerCase().replaceAll("-", "_").replaceAll(".", "_").replaceAll(" ", "_");
+}
+
+function isTemperatureMetric(metric: string): boolean {
+  const normalized = normalizedMetric(metric);
+  return normalized === "temperature" || normalized.startsWith("temperature_");
 }
 
 function belongsToEnergyUnit(sample: TelemetrySample): boolean {
@@ -253,9 +258,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const activeRecords = good.length;
   const alarmSamples = fresh.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
   const temperatures = good.filter(
-    (sample) =>
-      normalizedMetric(sample.metric) === "temperature" &&
-      PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
   const averageTemperature =
     temperatures.length === 0
@@ -332,8 +335,6 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
 
 export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
   return view.samples.filter(
-    (sample) =>
-      normalizedMetric(sample.metric) === "temperature" &&
-      PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
 }

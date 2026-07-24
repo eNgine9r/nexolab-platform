@@ -14,7 +14,7 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
     event_id: "event-1",
     node_id: "edge-01",
     captured_at: "2026-07-23T18:00:00Z",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: 4.2,
     unit: "degC",
     quality: "valid",
