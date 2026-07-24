@@ -61,7 +61,6 @@ export function SessionsListScreen() {
 
   const load = useCallback(
     async (signal: AbortSignal) => {
-      setLoading(true);
       try {
         const client = createSessionApiClient();
         const page = await client.listSessions(
@@ -101,6 +100,11 @@ export function SessionsListScreen() {
     );
   }, [query, sessions]);
 
+  const refresh = () => {
+    setLoading(true);
+    setGeneration((value) => value + 1);
+  };
+
   return (
     <div className="space-y-4">
       <section className="panel p-5 sm:p-6">
@@ -137,7 +141,10 @@ export function SessionsListScreen() {
             {FILTERS.map((item) => (
               <button
                 key={item.value}
-                onClick={() => setFilter(item.value)}
+                onClick={() => {
+                  setLoading(true);
+                  setFilter(item.value);
+                }}
                 aria-pressed={filter === item.value}
                 className={`rounded-xl border px-3 py-2 text-[10px] font-semibold transition ${
                   filter === item.value
@@ -159,11 +166,7 @@ export function SessionsListScreen() {
                 className="form-input pl-10"
               />
             </label>
-            <button
-              className="icon-button inline-grid"
-              onClick={() => setGeneration((value) => value + 1)}
-              aria-label="Оновити список"
-            >
+            <button className="icon-button inline-grid" onClick={refresh} aria-label="Оновити список">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </button>
           </div>
@@ -176,7 +179,7 @@ export function SessionsListScreen() {
               <div>
                 <h2 className="text-sm font-semibold text-white">Sessions API недоступний</h2>
                 <p className="mt-1 text-[11px] leading-5 text-slate-400">{error.message}</p>
-                <button className="secondary-button mt-3" onClick={() => setGeneration((value) => value + 1)}>
+                <button className="secondary-button mt-3" onClick={refresh}>
                   Повторити
                 </button>
               </div>
