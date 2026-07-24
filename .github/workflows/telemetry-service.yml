@@ -49,7 +49,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -70,6 +70,12 @@ jobs:
       MQTT_E2E: "true"
       AUTO_CREATE_SCHEMA: "false"
       RETENTION_ENABLED: "false"
+      OBJECT_STORAGE_E2E: "true"
+      OBJECT_STORAGE_ENDPOINT_URL: http://127.0.0.1:9000
+      OBJECT_STORAGE_BUCKET: nexolab-equipment-images-ci
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_ACCESS_KEY_ID: nexolab-storage
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: nexolab-storage-test-secret
     defaults:
       run:
         working-directory: services/telemetry-service
@@ -126,11 +132,33 @@ jobs:
           done
           docker logs nexolab-mqtt-ci
           exit 1
+      - name: Start isolated S3-compatible object storage
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker run --detach \
+            --name nexolab-minio-ci \
+            --publish 9000:9000 \
+            --env MINIO_ROOT_USER="$OBJECT_STORAGE_ACCESS_KEY_ID" \
+            --env MINIO_ROOT_PASSWORD="$OBJECT_STORAGE_SECRET_ACCESS_KEY" \
+            minio/minio:RELEASE.2025-09-07T16-13-09Z \
+            server /data
+          for attempt in $(seq 1 30); do
+            if python - <<'PY'
+          import urllib.request
+          urllib.request.urlopen("http://127.0.0.1:9000/minio/health/live", timeout=2)
+          PY
+            then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs nexolab-minio-ci
+          exit 1
       - name: Compile
         run: python -m compileall -q app tests migrations
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
-      - name: Test PostgreSQL MQTT REST WebSocket dead-letter and retention
+      - name: Test PostgreSQL MQTT REST WebSocket object storage dead-letter and retention
         run: python -m pytest -q -m "not database_outage"
       - name: Test PostgreSQL outage recovery
         run: |
@@ -148,7 +176,9 @@ jobs:
       - name: Build container
         working-directory: ${{ github.workspace }}
         run: docker build -t nexolab-telemetry-service:test services/telemetry-service
-      - name: Stop isolated Mosquitto broker
+      - name: Stop isolated brokers and object storage
         if: always()
         working-directory: ${{ github.workspace }}
-        run: docker rm --force nexolab-mqtt-ci >/dev/null 2>&1 || true
+        run: |
+          docker rm --force nexolab-mqtt-ci >/dev/null 2>&1 || true
+          docker rm --force nexolab-minio-ci >/dev/null 2>&1 || true
