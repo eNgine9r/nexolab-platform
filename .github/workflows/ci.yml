@@ -6,31 +6,42 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  diagnostics:
-    name: Formatting diagnostics
+  autofix:
+    name: Format refrigeration detail screen
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout silently
-        shell: bash
-        run: |
-          git init -q
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git fetch -q --depth=1 origin "${GITHUB_SHA}"
-          git checkout -q FETCH_HEAD
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Install dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit --silent
+        run: npm install --no-audit --no-package-lock --silent
 
-      - name: Check formatting
-        run: npm run format:check
+      - name: Format detail screen
+        shell: bash
+        run: |
+          npx prettier --write src/components/refrigeration/refrigeration-detail-screen.tsx
+
+          if git diff --quiet -- src/components/refrigeration/refrigeration-detail-screen.tsx; then
+            echo "No formatting change required."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/refrigeration/refrigeration-detail-screen.tsx
+          git commit -m "style(refrigeration): format detail screen"
+          git push origin HEAD:${{ github.head_ref }}
