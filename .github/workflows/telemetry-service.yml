@@ -124,7 +124,7 @@ jobs:
         continue-on-error: true
         run: |
           python -m pytest \
-            tests/test_session_telemetry_attribution.py \
+            tests/test_attribution_diagnostic.py \
             -q --tb=short \
             > /tmp/session-attribution-tests.log 2>&1
       - name: Upload attribution diagnostics
