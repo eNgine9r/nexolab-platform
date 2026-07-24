@@ -6,9 +6,11 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.db import Database, TelemetryQuery, TelemetrySample
+from app.db import Database, TelemetrySample
 from app.live import OVERFLOW, SHUTDOWN, LiveTelemetryFilter, LiveTelemetryHub
+from app.sessions.telemetry_database import SessionTelemetryQuery
 from app.state import RuntimeState
+
 
 ALLOWED_QUALITIES = {
     "valid",
@@ -17,6 +19,7 @@ ALLOWED_QUALITIES = {
     "unknown",
 }
 ALLOWED_ALARMS = {"low", "high"}
+ALLOWED_SESSION_STATES = {"running", "paused"}
 
 
 def _sample_payload(sample: TelemetrySample) -> dict[str, Any]:
@@ -36,6 +39,15 @@ def _sample_payload(sample: TelemetrySample) -> dict[str, Any]:
             "alarm": sample.alarm,
             "raw_value": sample.raw_value,
             "raw_status": sample.raw_status,
+            "session_id": getattr(sample, "session_id", None),
+            "stage_id": getattr(sample, "stage_id", None),
+            "binding_id": getattr(sample, "binding_id", None),
+            "config_snapshot_id": getattr(
+                sample,
+                "config_snapshot_id",
+                None,
+            ),
+            "session_state": getattr(sample, "session_state", None),
         }
     )
     return payload
@@ -66,6 +78,7 @@ def create_live_router(
         params = websocket.query_params
         quality = params.get("quality")
         alarm = params.get("alarm")
+        session_state = params.get("session_state")
 
         await websocket.accept()
 
@@ -80,6 +93,15 @@ def create_live_router(
                 {"type": "error", "detail": "unsupported alarm filter"}
             )
             await websocket.close(code=1008, reason="invalid alarm filter")
+            return
+        if (
+            session_state is not None
+            and session_state not in ALLOWED_SESSION_STATES
+        ):
+            await websocket.send_json(
+                {"type": "error", "detail": "unsupported session_state filter"}
+            )
+            await websocket.close(code=1008, reason="invalid session state filter")
             return
 
         try:
@@ -96,6 +118,11 @@ def create_live_router(
             metric=params.get("metric"),
             quality=quality,
             alarm=alarm,
+            session_id=params.get("session_id"),
+            stage_id=params.get("stage_id"),
+            binding_id=params.get("binding_id"),
+            config_snapshot_id=params.get("config_snapshot_id"),
+            session_state=session_state,
         )
         client = hub.register(filters)
         replayed_event_ids: set[str] = set()
@@ -109,13 +136,18 @@ def create_live_router(
         try:
             if after is not None:
                 replay_rows = database.history_samples(
-                    query=TelemetryQuery(
+                    query=SessionTelemetryQuery(
                         node_id=filters.node_id,
                         equipment_id=filters.equipment_id,
                         channel_id=filters.channel_id,
                         metric=filters.metric,
                         quality=filters.quality,
                         alarm=filters.alarm,
+                        session_id=filters.session_id,
+                        stage_id=filters.stage_id,
+                        binding_id=filters.binding_id,
+                        config_snapshot_id=filters.config_snapshot_id,
+                        session_state=filters.session_state,
                         from_at=after,
                     ),
                     limit=resume_limit + 1,
