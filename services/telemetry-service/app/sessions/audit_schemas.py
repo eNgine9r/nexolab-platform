@@ -15,9 +15,17 @@ class AuditCommand(BaseModel):
     occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     reason: str | None = Field(default=None, max_length=2000)
 
-    @field_validator("actor_id", "actor_source", "reason")
+    @field_validator("actor_id", "actor_source")
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -38,9 +46,17 @@ class StageAdvanceRequest(AuditCommand):
     description: str | None = Field(default=None, max_length=2000)
     planned_duration_seconds: int | None = Field(default=None, ge=0)
 
-    @field_validator("name", "description")
+    @field_validator("name")
     @classmethod
-    def normalize_stage_text(cls, value: str | None) -> str | None:
+    def normalize_stage_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("name must not be blank")
+        return normalized
+
+    @field_validator("description")
+    @classmethod
+    def normalize_stage_description(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -51,13 +67,21 @@ class SessionNoteCreate(AuditCommand):
     stage_id: str | None = Field(default=None, max_length=36)
     body: str = Field(min_length=1, max_length=10000)
 
-    @field_validator("stage_id", "body")
+    @field_validator("stage_id")
     @classmethod
-    def normalize_note_text(cls, value: str | None) -> str | None:
+    def normalize_stage_id(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
         return normalized or None
+
+    @field_validator("body")
+    @classmethod
+    def normalize_note_body(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("body must not be blank")
+        return normalized
 
 
 class SessionStageRead(BaseModel):
