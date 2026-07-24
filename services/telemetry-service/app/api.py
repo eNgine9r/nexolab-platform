@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
 from app.contracts import Alarm, Quality
-from app.db import Database, TelemetryQuery
+from app.db import Database
+from app.sessions.telemetry_database import SessionTelemetryQuery
 
 
 class TelemetrySampleResponse(BaseModel):
@@ -27,6 +28,11 @@ class TelemetrySampleResponse(BaseModel):
     raw_value: int | None
     raw_status: int | None
     received_at: datetime
+    session_id: str | None = None
+    stage_id: str | None = None
+    binding_id: str | None = None
+    config_snapshot_id: str | None = None
+    session_state: str | None = None
 
 
 class TelemetryCollectionResponse(BaseModel):
@@ -77,17 +83,27 @@ def create_api_router(
         metric: str | None = None,
         quality: Quality | None = None,
         alarm: Alarm | None = None,
+        session_id: str | None = None,
+        stage_id: str | None = None,
+        binding_id: str | None = None,
+        config_snapshot_id: str | None = None,
+        session_state: str | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
         validate_limit(limit)
-        query = TelemetryQuery(
+        query = SessionTelemetryQuery(
             node_id=node_id,
             equipment_id=equipment_id,
             channel_id=channel_id,
             metric=metric,
             quality=quality,
             alarm=alarm,
+            session_id=session_id,
+            stage_id=stage_id,
+            binding_id=binding_id,
+            config_snapshot_id=config_snapshot_id,
+            session_state=session_state,
         )
         rows = database.latest_samples(
             query=query,
@@ -106,6 +122,11 @@ def create_api_router(
         metric: str | None = None,
         quality: Quality | None = None,
         alarm: Alarm | None = None,
+        session_id: str | None = None,
+        stage_id: str | None = None,
+        binding_id: str | None = None,
+        config_snapshot_id: str | None = None,
+        session_state: str | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
@@ -123,7 +144,7 @@ def create_api_router(
                 detail=f"history range must not exceed {max_history_days} days",
             )
 
-        query = TelemetryQuery(
+        query = SessionTelemetryQuery(
             node_id=node_id,
             equipment_id=equipment_id,
             channel_id=channel_id,
@@ -132,6 +153,11 @@ def create_api_router(
             alarm=alarm,
             from_at=from_at,
             to_at=to_at,
+            session_id=session_id,
+            stage_id=stage_id,
+            binding_id=binding_id,
+            config_snapshot_id=config_snapshot_id,
+            session_state=session_state,
         )
         rows = database.history_samples(
             query=query,
