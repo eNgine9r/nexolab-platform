@@ -56,6 +56,7 @@ class S3ObjectStorage:
         *,
         bucket: str,
         endpoint_url: str | None,
+        public_endpoint_url: str | None,
         region: str,
         access_key_id: str | None,
         secret_access_key: str | None,
@@ -65,13 +66,22 @@ class S3ObjectStorage:
         from botocore.config import Config
 
         self._bucket = bucket
+        config = Config(s3={"addressing_style": "path" if force_path_style else "auto"})
+        common = {
+            "region_name": region,
+            "aws_access_key_id": access_key_id or None,
+            "aws_secret_access_key": secret_access_key or None,
+            "config": config,
+        }
         self._client = boto3.client(
             "s3",
             endpoint_url=endpoint_url or None,
-            region_name=region,
-            aws_access_key_id=access_key_id or None,
-            aws_secret_access_key=secret_access_key or None,
-            config=Config(s3={"addressing_style": "path" if force_path_style else "auto"}),
+            **common,
+        )
+        self._signing_client = boto3.client(
+            "s3",
+            endpoint_url=public_endpoint_url or endpoint_url or None,
+            **common,
         )
 
     def put(self, *, key: str, content: bytes, media_type: str, checksum_sha256: str) -> StoredObject:
@@ -96,7 +106,7 @@ class S3ObjectStorage:
     def signed_get_url(self, key: str, *, expires_seconds: int) -> str:
         try:
             return str(
-                self._client.generate_presigned_url(
+                self._signing_client.generate_presigned_url(
                     "get_object",
                     Params={"Bucket": self._bucket, "Key": key},
                     ExpiresIn=expires_seconds,
