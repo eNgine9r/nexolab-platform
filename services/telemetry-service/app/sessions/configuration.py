@@ -28,6 +28,7 @@ from app.sessions.repository import (
     TransitionResult,
 )
 from app.sessions.schemas import SessionTransitionRequest
+from app.sessions.time_utils import as_utc
 
 
 class ConfiguredSessionRepository(
@@ -119,7 +120,8 @@ class ConfiguredSessionRepository(
                         for binding in active_bindings:
                             if (
                                 binding.activated_at is not None
-                                and request.occurred_at < binding.activated_at
+                                and as_utc(request.occurred_at)
+                                < as_utc(binding.activated_at)
                             ):
                                 raise SessionConflictError(
                                     "binding_release_time_invalid",
