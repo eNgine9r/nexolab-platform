@@ -11,9 +11,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -51,10 +49,7 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
-      { key: "ArrowRight" },
-    );
+    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), { key: "ArrowRight" });
 
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
     expect(screen.getByText("Режим редагування")).toBeInTheDocument();
@@ -65,10 +60,10 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
-      { key: "ArrowDown", shiftKey: true },
-    );
+    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), {
+      key: "ArrowDown",
+      shiftKey: true,
+    });
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Скинути" }));
@@ -82,10 +77,7 @@ describe("RefrigerationLayoutEditorScreen", () => {
     render(<RefrigerationLayoutEditorScreen equipment={referenceEquipment()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Перемістити датчик 01F" }),
-      { key: "ArrowLeft" },
-    );
+    fireEvent.keyDown(screen.getByRole("button", { name: "Перемістити датчик 01F" }), { key: "ArrowLeft" });
     fireEvent.click(screen.getByRole("button", { name: "Вийти" }));
 
     expect(screen.getByText("Відкинути незбережені зміни?")).toBeInTheDocument();
