@@ -30,6 +30,16 @@ VALID_TRANSITIONS = {
     (SessionState.CANCELLED, SessionAction.ARCHIVE): SessionState.ARCHIVED,
 }
 
+EXPECTED_EVENTS = {
+    SessionAction.PREPARE: "session_prepared",
+    SessionAction.START: "session_started",
+    SessionAction.PAUSE: "session_paused",
+    SessionAction.RESUME: "session_resumed",
+    SessionAction.COMPLETE: "session_completed",
+    SessionAction.CANCEL: "session_cancelled",
+    SessionAction.ARCHIVE: "session_archived",
+}
+
 
 def command(action: SessionAction = SessionAction.START) -> TransitionCommand:
     return TransitionCommand(
@@ -57,12 +67,7 @@ def test_all_valid_session_transitions(
     assert result.previous_state is current_state
     assert result.next_state is expected_state
     assert result.action is action
-    assert result.event_type == f"session_{action.value}d" or result.event_type in {
-        "session_prepared",
-        "session_cancelled",
-        "session_completed",
-        "session_archived",
-    }
+    assert result.event_type == EXPECTED_EVENTS[action]
     assert result.command.idempotency_key == f"test-{action.value}"
 
 
