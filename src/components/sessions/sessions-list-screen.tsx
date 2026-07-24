@@ -28,12 +28,12 @@ const FILTERS: Array<{ value: "all" | SessionState; label: string }> = [
   { value: "archived", label: "Архів" },
 ];
 
-function stateIcon(state: SessionState) {
-  if (state === "running") return PlayCircle;
-  if (state === "paused") return PauseCircle;
-  if (state === "completed") return CheckCircle2;
-  if (state === "archived") return Archive;
-  return CircleDashed;
+function StateIcon({ state }: { state: SessionState }) {
+  if (state === "running") return <PlayCircle className="h-3 w-3" />;
+  if (state === "paused") return <PauseCircle className="h-3 w-3" />;
+  if (state === "completed") return <CheckCircle2 className="h-3 w-3" />;
+  if (state === "archived") return <Archive className="h-3 w-3" />;
+  return <CircleDashed className="h-3 w-3" />;
 }
 
 function stateClass(state: SessionState): string {
@@ -61,6 +61,7 @@ export function SessionsListScreen() {
 
   const load = useCallback(
     async (signal: AbortSignal) => {
+      setLoading(true);
       try {
         const client = createSessionApiClient();
         const page = await client.listSessions(
@@ -86,7 +87,6 @@ export function SessionsListScreen() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
     void load(controller.signal);
     return () => controller.abort();
   }, [generation, load]);
@@ -204,58 +204,55 @@ export function SessionsListScreen() {
           </div>
         ) : (
           <div className="divide-y divide-white/[0.045]">
-            {visible.map((session) => {
-              const Icon = stateIcon(session.state);
-              return (
-                <Link
-                  key={session.id}
-                  href={`/sessions/${session.id}`}
-                  className="grid gap-3 p-4 transition hover:bg-blue-500/[0.035] sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,.8fr)_160px_170px] sm:items-center sm:p-5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[9px] text-cyan-300">{session.session_number}</span>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[8px] font-semibold ${stateClass(
-                          session.state,
-                        )}`}
-                      >
-                        <Icon className="h-3 w-3" />
-                        {SESSION_STATE_LABELS[session.state]}
-                      </span>
-                    </div>
-                    <h2 className="mt-2 truncate text-sm font-semibold text-white">{session.title}</h2>
-                    <p className="mt-1 truncate text-[10px] text-slate-500">
-                      {session.test_object} · {session.model ?? "модель не вказана"}
-                    </p>
+            {visible.map((session) => (
+              <Link
+                key={session.id}
+                href={`/sessions/${session.id}`}
+                className="grid gap-3 p-4 transition hover:bg-blue-500/[0.035] sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,.8fr)_160px_170px] sm:items-center sm:p-5"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[9px] text-cyan-300">{session.session_number}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[8px] font-semibold ${stateClass(
+                        session.state,
+                      )}`}
+                    >
+                      <StateIcon state={session.state} />
+                      {SESSION_STATE_LABELS[session.state]}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">
-                      Замовник / стандарт
-                    </p>
-                    <p className="mt-1 truncate text-[10px] text-slate-300">
-                      {session.customer ?? "Внутрішнє випробування"}
-                    </p>
-                    <p className="mt-1 truncate text-[9px] text-slate-600">
-                      {session.standard ?? "Без стандарту"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">Конфігурація</p>
-                    <p className="mt-1 text-[10px] text-slate-300">
-                      Snapshot {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
-                    </p>
-                    <p className="mt-1 text-[9px] text-slate-600">
-                      Limits v{session.active_limit_version ?? "—"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px] text-slate-500 sm:justify-end">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    <span>{formatDate(session.updated_at)}</span>
-                  </div>
-                </Link>
-              );
-            })}
+                  <h2 className="mt-2 truncate text-sm font-semibold text-white">{session.title}</h2>
+                  <p className="mt-1 truncate text-[10px] text-slate-500">
+                    {session.test_object} · {session.model ?? "модель не вказана"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">
+                    Замовник / стандарт
+                  </p>
+                  <p className="mt-1 truncate text-[10px] text-slate-300">
+                    {session.customer ?? "Внутрішнє випробування"}
+                  </p>
+                  <p className="mt-1 truncate text-[9px] text-slate-600">
+                    {session.standard ?? "Без стандарту"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">Конфігурація</p>
+                  <p className="mt-1 text-[10px] text-slate-300">
+                    Snapshot {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
+                  </p>
+                  <p className="mt-1 text-[9px] text-slate-600">
+                    Limits v{session.active_limit_version ?? "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-[9px] text-slate-500 sm:justify-end">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  <span>{formatDate(session.updated_at)}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </section>
