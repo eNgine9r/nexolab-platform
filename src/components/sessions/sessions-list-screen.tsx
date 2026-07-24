@@ -86,8 +86,11 @@ export function SessionsListScreen() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
+    const initialLoad = window.setTimeout(() => void load(controller.signal), 0);
+    return () => {
+      controller.abort();
+      window.clearTimeout(initialLoad);
+    };
   }, [generation, load]);
 
   const visible = useMemo(() => {

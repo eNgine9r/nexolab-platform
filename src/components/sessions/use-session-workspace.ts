@@ -127,11 +127,12 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
 
   useEffect(() => {
     const controller = new AbortController();
-    void load(controller.signal);
+    const initialLoad = window.setTimeout(() => void load(controller.signal), 0);
     const poller = window.setInterval(() => void load(controller.signal), POLL_INTERVAL_MS);
     const ticker = window.setInterval(() => setClock(Date.now()), 1_000);
     return () => {
       controller.abort();
+      window.clearTimeout(initialLoad);
       window.clearInterval(poller);
       window.clearInterval(ticker);
     };
