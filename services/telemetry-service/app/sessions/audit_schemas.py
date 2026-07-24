@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.sessions.domain import SessionStage as SessionStageType
-from app.sessions.schemas import SessionEventRead
+from app.sessions.schemas import SessionEventRead, _persisted_utc
 
 
 class AuditCommand(BaseModel):
@@ -98,6 +98,14 @@ class SessionStageRead(BaseModel):
     exited_at: datetime | None
     created_at: datetime
 
+    @field_validator("entered_at", "exited_at", "created_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamps(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        return _persisted_utc(value)
+
 
 class SessionStageTransitionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -114,6 +122,13 @@ class SessionStageTransitionRead(BaseModel):
     occurred_at: datetime
     inserted_at: datetime
 
+    @field_validator("occurred_at", "inserted_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamps(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
+
 
 class SessionNoteRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -124,6 +139,13 @@ class SessionNoteRead(BaseModel):
     author_id: str
     body: str
     created_at: datetime
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamp(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
 
 
 class AuditLogRead(BaseModel):
@@ -140,6 +162,13 @@ class AuditLogRead(BaseModel):
     payload: dict[str, Any]
     occurred_at: datetime
     inserted_at: datetime
+
+    @field_validator("occurred_at", "inserted_at", mode="before")
+    @classmethod
+    def normalize_persisted_timestamps(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
 
 
 class StageAdvanceResponse(BaseModel):
