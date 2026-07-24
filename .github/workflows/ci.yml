@@ -34,6 +34,25 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Generate formatting diagnostics
+        run: npm run format
+
+      - name: Upload formatted refrigeration files
+        uses: actions/upload-artifact@v4
+        with:
+          name: refrigeration-layout-formatted
+          path: |
+            docs/refrigeration-layout-frontend.md
+            src/components/refrigeration/refrigeration-detail-screen.tsx
+            src/components/refrigeration/refrigeration-layout-workspace.test.tsx
+            src/components/refrigeration/refrigeration-layout-workspace.tsx
+            src/features/refrigeration/http-layout-repository.test.ts
+            src/features/refrigeration/http-layout-repository.ts
+            src/features/refrigeration/layout-repository-runtime.test.ts
+            src/features/refrigeration/layout-repository-runtime.ts
+            src/features/refrigeration/layout-repository.ts
+          retention-days: 1
+
       - name: Check formatting
         run: npm run format:check
 
