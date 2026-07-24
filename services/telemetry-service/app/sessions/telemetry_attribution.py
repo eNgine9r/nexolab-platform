@@ -21,14 +21,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.contracts import TelemetryEvent
 from app.db import Base, Database, TelemetryQuery, TelemetrySample
 from app.sessions.models import (
-    SessionChannelBinding,
     SessionConfigSnapshot,
     SessionStage,
     TestSession,
 )
 
 
-ATTRIBUTION_RESOLVER_VERSION = "captured-at-interval-v1"
+ATTRIBUTION_RESOLVER_VERSION = "snapshot-timeline-v1"
 
 
 class TelemetryAttributionError(RuntimeError):
@@ -199,9 +198,14 @@ class SessionAwareDatabase(Database):
             ),
             order_by=(sample.c.captured_at.desc(), sample.c.id.desc()),
         ).label("sample_rank")
-        ranked = (
-            select(sample.c.id.label("sample_id"), rank)
-            .select_from(sample.join(context, sample.c.event_id == context.c.telemetry_event_id))
+        ranked = select(
+            sample.c.id.label("sample_id"),
+            rank,
+        ).select_from(
+            sample.join(
+                context,
+                sample.c.event_id == context.c.telemetry_event_id,
+            )
         )
         ranked = _apply_session_filters(
             ranked,
@@ -234,7 +238,10 @@ class SessionAwareDatabase(Database):
             query=query,
         )
         statement = (
-            statement.order_by(sample.c.captured_at.desc(), sample.c.event_id.desc())
+            statement.order_by(
+                sample.c.captured_at.desc(),
+                sample.c.event_id.desc(),
+            )
             .limit(limit)
             .offset(offset)
         )
@@ -283,58 +290,65 @@ def resolve_telemetry_context(
     connection: Connection,
     event: TelemetryEvent,
 ) -> ResolvedTelemetryContext | None:
-    binding_rows = list(
+    matches: list[tuple[str, str, str]] = []
+    session_ids = list(
         connection.execute(
-            select(
-                SessionChannelBinding.id,
-                SessionChannelBinding.session_id,
-            )
+            select(TestSession.id)
             .where(
-                SessionChannelBinding.node_id == event.node_id,
-                SessionChannelBinding.equipment_id == event.equipment_id,
-                SessionChannelBinding.channel_id == event.channel_id,
-                SessionChannelBinding.metric == event.metric,
-                SessionChannelBinding.activated_at.is_not(None),
-                SessionChannelBinding.activated_at <= event.captured_at,
+                TestSession.node_id == event.node_id,
+                TestSession.started_at.is_not(None),
+                TestSession.started_at <= event.captured_at,
                 or_(
-                    SessionChannelBinding.released_at.is_(None),
-                    event.captured_at < SessionChannelBinding.released_at,
+                    TestSession.completed_at.is_(None),
+                    event.captured_at < TestSession.completed_at,
+                ),
+                or_(
+                    TestSession.cancelled_at.is_(None),
+                    event.captured_at < TestSession.cancelled_at,
                 ),
             )
-            .order_by(
-                SessionChannelBinding.activated_at.desc(),
-                SessionChannelBinding.id.desc(),
-            )
-            .limit(2)
-        ).mappings()
+            .order_by(TestSession.started_at.desc(), TestSession.id.desc())
+        ).scalars()
     )
-    if not binding_rows:
+
+    for session_id in session_ids:
+        snapshot = connection.execute(
+            select(
+                SessionConfigSnapshot.id,
+                SessionConfigSnapshot.payload,
+            )
+            .where(
+                SessionConfigSnapshot.session_id == session_id,
+                SessionConfigSnapshot.captured_at <= event.captured_at,
+            )
+            .order_by(
+                SessionConfigSnapshot.captured_at.desc(),
+                SessionConfigSnapshot.version.desc(),
+                SessionConfigSnapshot.id.desc(),
+            )
+            .limit(1)
+        ).mappings().first()
+        if snapshot is None:
+            continue
+
+        binding_id = _snapshot_binding_id(snapshot["payload"], event)
+        if binding_id is not None:
+            matches.append(
+                (
+                    str(session_id),
+                    binding_id,
+                    str(snapshot["id"]),
+                )
+            )
+
+    if not matches:
         return None
-    if len(binding_rows) > 1:
+    if len(matches) > 1:
         raise TelemetryAttributionError(
-            "telemetry identity resolves to multiple session bindings"
+            "telemetry identity resolves to multiple session snapshots"
         )
 
-    binding = binding_rows[0]
-    session_id = str(binding["session_id"])
-    snapshot_id = connection.execute(
-        select(SessionConfigSnapshot.id)
-        .where(
-            SessionConfigSnapshot.session_id == session_id,
-            SessionConfigSnapshot.captured_at <= event.captured_at,
-        )
-        .order_by(
-            SessionConfigSnapshot.captured_at.desc(),
-            SessionConfigSnapshot.version.desc(),
-            SessionConfigSnapshot.id.desc(),
-        )
-        .limit(1)
-    ).scalar_one_or_none()
-    if snapshot_id is None:
-        raise TelemetryAttributionError(
-            "active session binding has no configuration snapshot at capture time"
-        )
-
+    session_id, binding_id, snapshot_id = matches[0]
     stage_rows = list(
         connection.execute(
             select(SessionStage.id)
@@ -347,7 +361,10 @@ def resolve_telemetry_context(
                     event.captured_at < SessionStage.exited_at,
                 ),
             )
-            .order_by(SessionStage.entered_at.desc(), SessionStage.id.desc())
+            .order_by(
+                SessionStage.entered_at.desc(),
+                SessionStage.id.desc(),
+            )
             .limit(2)
         ).scalars()
     )
@@ -359,9 +376,47 @@ def resolve_telemetry_context(
     return ResolvedTelemetryContext(
         session_id=session_id,
         stage_id=str(stage_rows[0]) if stage_rows else None,
-        binding_id=str(binding["id"]),
-        config_snapshot_id=str(snapshot_id),
+        binding_id=binding_id,
+        config_snapshot_id=snapshot_id,
     )
+
+
+def _snapshot_binding_id(
+    payload: Any,
+    event: TelemetryEvent,
+) -> str | None:
+    if not isinstance(payload, dict):
+        raise TelemetryAttributionError("configuration snapshot payload is not an object")
+    bindings = payload.get("bindings")
+    if not isinstance(bindings, list):
+        raise TelemetryAttributionError(
+            "configuration snapshot payload has no bindings list"
+        )
+
+    matching_ids: list[str] = []
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            raise TelemetryAttributionError(
+                "configuration snapshot contains a malformed binding"
+            )
+        if (
+            binding.get("node_id") == event.node_id
+            and binding.get("equipment_id") == event.equipment_id
+            and binding.get("channel_id") == event.channel_id
+            and binding.get("metric") == event.metric
+        ):
+            binding_id = binding.get("id")
+            if not isinstance(binding_id, str) or not binding_id:
+                raise TelemetryAttributionError(
+                    "configuration snapshot binding has no valid identifier"
+                )
+            matching_ids.append(binding_id)
+
+    if len(matching_ids) > 1:
+        raise TelemetryAttributionError(
+            "configuration snapshot contains duplicate telemetry identities"
+        )
+    return matching_ids[0] if matching_ids else None
 
 
 def _attributed_sample_select() -> Any:
@@ -388,7 +443,10 @@ def _attributed_sample_select() -> Any:
         context.c.config_snapshot_id,
         context.c.resolver_version,
     ).select_from(
-        sample.join(context, sample.c.event_id == context.c.telemetry_event_id)
+        sample.join(
+            context,
+            sample.c.event_id == context.c.telemetry_event_id,
+        )
     )
 
 
