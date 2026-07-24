@@ -121,17 +121,7 @@ jobs:
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
       - name: Test PostgreSQL MQTT REST WebSocket dead-letter and retention
-        run: >-
-          python -m pytest -q -m "not database_outage"
-          --junitxml=/tmp/telemetry-pytest.xml
-      - name: Upload telemetry pytest diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: telemetry-pytest-${{ github.run_id }}
-          path: /tmp/telemetry-pytest.xml
-          if-no-files-found: ignore
-          retention-days: 3
+        run: python -m pytest -q -m "not database_outage"
       - name: Test PostgreSQL outage recovery
         run: |
           POSTGRES_CONTAINER_ID="$(
