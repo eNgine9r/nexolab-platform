@@ -20,11 +20,12 @@ from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
 from app.retention import RetentionWorker
 from app.sessions.api import create_session_router
-from app.sessions.repository import SessionRepository
+from app.sessions.configuration import ConfiguredSessionRepository
+from app.sessions.configuration_api import create_session_configuration_router
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.5.0"
+SERVICE_VERSION = "0.6.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -40,7 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
-    session_repository = SessionRepository(database)
+    session_repository = ConfiguredSessionRepository(database)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
         state=state,
@@ -133,6 +134,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     )
     app.include_router(create_session_router(session_repository))
+    app.include_router(create_session_configuration_router(session_repository))
     app.include_router(
         create_live_router(
             database,
