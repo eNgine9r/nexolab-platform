@@ -159,7 +159,17 @@ jobs:
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
       - name: Test PostgreSQL MQTT REST WebSocket object storage dead-letter and retention
-        run: python -m pytest -q -m "not database_outage"
+        run: |
+          set -o pipefail
+          python -m pytest -q -m "not database_outage" 2>&1 | tee /tmp/telemetry-pytest.log
+      - name: Upload Pytest failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-pytest-diagnostics
+          path: /tmp/telemetry-pytest.log
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Test PostgreSQL outage recovery
         run: |
           POSTGRES_CONTAINER_ID="$(
