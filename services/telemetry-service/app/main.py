@@ -17,6 +17,9 @@ from app.live_api import create_live_router
 from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
+from app.refrigeration.api import create_refrigeration_router
+from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
+from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.retention import RetentionWorker
 from app.sessions.api import create_session_router
 from app.sessions.audit_api import create_session_audit_router
@@ -27,7 +30,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.8.0"
+SERVICE_VERSION = "0.9.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -44,6 +47,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
     session_repository = AuditedSessionRepository(database)
+    refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
+    object_storage = _create_object_storage(resolved)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
         state=state,
@@ -116,7 +121,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=cors_origins,
             allow_credentials=resolved.cors_allow_credentials,
-            allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+            allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
             allow_headers=["*"],
             max_age=600,
         )
@@ -124,6 +129,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved
     app.state.database = database
     app.state.session_repository = session_repository
+    app.state.refrigeration_repository = refrigeration_repository
+    app.state.object_storage = object_storage
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
@@ -143,6 +150,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             database,
             max_history_days=resolved.history_max_range_days,
             max_page_size=resolved.api_max_page_size,
+        )
+    )
+    app.include_router(
+        create_refrigeration_router(
+            refrigeration_repository,
+            object_storage,
+            image_max_bytes=resolved.equipment_image_max_bytes,
+            signed_url_seconds=resolved.equipment_image_signed_url_seconds,
         )
     )
     app.include_router(
@@ -206,6 +221,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return state.snapshot()
 
     return app
+
+
+def _create_object_storage(settings: Settings) -> S3ObjectStorage | UnavailableObjectStorage:
+    if settings.object_storage_backend != "s3":
+        return UnavailableObjectStorage()
+    return S3ObjectStorage(
+        bucket=settings.object_storage_bucket,
+        endpoint_url=settings.object_storage_endpoint_url,
+        region=settings.object_storage_region,
+        access_key_id=settings.object_storage_access_key_id,
+        secret_access_key=settings.object_storage_secret_access_key,
+        force_path_style=settings.object_storage_force_path_style,
+    )
 
 
 app = create_app()
