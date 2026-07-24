@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +37,21 @@ class Settings(BaseSettings):
     dead_letter_payload_max_bytes: int = Field(default=65_536, ge=256)
     api_max_page_size: int = Field(default=1000, ge=1, le=1000)
     history_max_range_days: int = Field(default=31, ge=1, le=366)
+
+    object_storage_backend: Literal["disabled", "s3"] = "disabled"
+    object_storage_bucket: str = "nexolab-equipment-images"
+    object_storage_endpoint_url: str | None = None
+    object_storage_public_endpoint_url: str | None = None
+    object_storage_region: str = "us-east-1"
+    object_storage_access_key_id: str | None = None
+    object_storage_secret_access_key: str | None = None
+    object_storage_force_path_style: bool = True
+    equipment_image_max_bytes: int = Field(
+        default=15 * 1024 * 1024,
+        ge=1024,
+        le=50 * 1024 * 1024,
+    )
+    equipment_image_signed_url_seconds: int = Field(default=900, ge=60, le=86_400)
 
     cors_allowed_origins: str = ""
     cors_allow_credentials: bool = False

@@ -21,6 +21,16 @@ x-telemetry-environment: &telemetry-environment
   DEAD_LETTER_PAYLOAD_MAX_BYTES: ${DEAD_LETTER_PAYLOAD_MAX_BYTES:-65536}
   API_MAX_PAGE_SIZE: ${API_MAX_PAGE_SIZE:-1000}
   HISTORY_MAX_RANGE_DAYS: ${HISTORY_MAX_RANGE_DAYS:-31}
+  OBJECT_STORAGE_BACKEND: s3
+  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-nexolab-equipment-images}
+  OBJECT_STORAGE_ENDPOINT_URL: http://minio:9000
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:-http://127.0.0.1:9000}
+  OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+  OBJECT_STORAGE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+  OBJECT_STORAGE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+  OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
+  EQUIPMENT_IMAGE_MAX_BYTES: ${EQUIPMENT_IMAGE_MAX_BYTES:-15728640}
+  EQUIPMENT_IMAGE_SIGNED_URL_SECONDS: ${EQUIPMENT_IMAGE_SIGNED_URL_SECONDS:-900}
   WEBSOCKET_CLIENT_QUEUE_MAXSIZE: ${WEBSOCKET_CLIENT_QUEUE_MAXSIZE:-256}
   WEBSOCKET_HEARTBEAT_SECONDS: ${WEBSOCKET_HEARTBEAT_SECONDS:-20}
   WEBSOCKET_SEND_TIMEOUT_SECONDS: ${WEBSOCKET_SEND_TIMEOUT_SECONDS:-5}
@@ -71,6 +81,49 @@ services:
     networks:
       - central
 
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    restart: unless-stopped
+    init: true
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    ports:
+      - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_OBJECT_STORAGE_PORT:-9000}:9000"
+      - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_OBJECT_STORAGE_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - central-object-storage-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 30s
+    networks:
+      - central
+
+  minio-init:
+    image: ${MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-nexolab-equipment-images}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set central http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "central/$${OBJECT_STORAGE_BUCKET}"
+        mc anonymous set none "central/$${OBJECT_STORAGE_BUCKET}"
+    networks:
+      - central
+
   telemetry-migrate:
     <<: *telemetry-image
     restart: "no"
@@ -94,6 +147,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       telemetry-migrate:
         condition: service_completed_successfully
     healthcheck:
@@ -117,6 +172,8 @@ volumes:
     name: nexolab-central-mqtt-data
   central-postgres-data:
     name: nexolab-central-postgres-data
+  central-object-storage-data:
+    name: nexolab-central-object-storage-data
 
 networks:
   central:
