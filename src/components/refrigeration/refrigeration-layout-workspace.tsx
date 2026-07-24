@@ -44,13 +44,7 @@ type ConflictState = {
   actualVersion: number;
 };
 
-type ActionState =
-  | "idle"
-  | "uploading"
-  | "attaching"
-  | "publishing"
-  | "restoring"
-  | "reloading";
+type ActionState = "idle" | "uploading" | "attaching" | "publishing" | "restoring" | "reloading";
 
 type UploadPreview = {
   url: string;
@@ -98,31 +92,24 @@ export function RefrigerationLayoutWorkspace({
   const [draft, setDraft] = useState<RefrigerationLayoutDraft | null>(null);
   const [published, setPublished] = useState<PublishedLayoutRevision | null>(null);
   const [history, setHistory] = useState<PublishedLayoutRevision[]>([]);
-  const [workspaceState, setWorkspaceState] = useState<"loading" | "ready">(
-    "loading",
-  );
+  const [workspaceState, setWorkspaceState] = useState<"loading" | "ready">("loading");
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(runtime.error);
   const [notice, setNotice] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
-  const [pendingImage, setPendingImage] = useState<EquipmentImageMetadata | null>(
-    null,
-  );
+  const [pendingImage, setPendingImage] = useState<EquipmentImageMetadata | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const registerConflict = useCallback(
-    (operation: ConflictOperation, error: LayoutRepositoryError) => {
-      if (error.code !== "LAYOUT_VERSION_CONFLICT") return;
-      setConflict({
-        operation,
-        expectedVersion: error.expectedVersion,
-        actualVersion: error.actualVersion,
-      });
-    },
-    [],
-  );
+  const registerConflict = useCallback((operation: ConflictOperation, error: LayoutRepositoryError) => {
+    if (error.code !== "LAYOUT_VERSION_CONFLICT") return;
+    setConflict({
+      operation,
+      expectedVersion: error.expectedVersion,
+      actualVersion: error.actualVersion,
+    });
+  }, []);
 
   const repository = useMemo(
     () =>
@@ -152,9 +139,7 @@ export function RefrigerationLayoutWorkspace({
       baseRepository.listHistory(equipment.id),
     ]);
 
-    const failure = [draftResult, publishedResult, historyResult].find(
-      (result) => !result.ok,
-    );
+    const failure = [draftResult, publishedResult, historyResult].find((result) => !result.ok);
     if (failure && !failure.ok) {
       setErrorMessage(repositoryErrorMessage(failure.error));
       setWorkspaceState("ready");
@@ -191,10 +176,7 @@ export function RefrigerationLayoutWorkspace({
     setConflict(null);
   };
 
-  const attachImage = async (
-    image: EquipmentImageMetadata,
-    expectedVersion: number,
-  ) => {
+  const attachImage = async (image: EquipmentImageMetadata, expectedVersion: number) => {
     if (!repository || !draft) return;
 
     setActionState("attaching");
@@ -220,9 +202,7 @@ export function RefrigerationLayoutWorkspace({
       setUploadPreview(null);
     }
     setEditorEpoch((current) => current + 1);
-    setNotice(
-      `Фото ${image.fileName} завантажено та прив’язано до чернетки v${result.value.version}.`,
-    );
+    setNotice(`Фото ${image.fileName} завантажено та прив’язано до чернетки v${result.value.version}.`);
     setActionState("idle");
   };
 
@@ -233,9 +213,7 @@ export function RefrigerationLayoutWorkspace({
 
     clearFeedback();
     if (mode === "edit") {
-      setErrorMessage(
-        "Спочатку збережіть або скасуйте зміни позицій датчиків.",
-      );
+      setErrorMessage("Спочатку збережіть або скасуйте зміни позицій датчиків.");
       return;
     }
     if (!acceptedImageTypes.has(file.type)) {
@@ -309,16 +287,10 @@ export function RefrigerationLayoutWorkspace({
     if (!repository || !draft || actionState !== "idle") return;
     clearFeedback();
     if (mode === "edit") {
-      setErrorMessage(
-        "Збережіть або скасуйте редагування перед відновленням історії.",
-      );
+      setErrorMessage("Збережіть або скасуйте редагування перед відновленням історії.");
       return;
     }
-    if (
-      !window.confirm(
-        `Відновити ревізію r${revision.revision} як нову чернетку?`,
-      )
-    ) {
+    if (!window.confirm(`Відновити ревізію r${revision.revision} як нову чернетку?`)) {
       return;
     }
 
@@ -338,9 +310,7 @@ export function RefrigerationLayoutWorkspace({
     setDraft(result.value);
     setEditorEpoch((current) => current + 1);
     onModeChange("edit");
-    setNotice(
-      `Ревізію r${revision.revision} відновлено як чернетку v${result.value.version}.`,
-    );
+    setNotice(`Ревізію r${revision.revision} відновлено як чернетку v${result.value.version}.`);
     setActionState("idle");
   };
 
@@ -348,9 +318,7 @@ export function RefrigerationLayoutWorkspace({
     if (!baseRepository || actionState !== "idle") return;
     if (
       mode === "edit" &&
-      !window.confirm(
-        "Завантажити серверну версію та відкинути локальні незбережені зміни?",
-      )
+      !window.confirm("Завантажити серверну версію та відкинути локальні незбережені зміни?")
     ) {
       return;
     }
@@ -410,9 +378,7 @@ export function RefrigerationLayoutWorkspace({
     <div className="space-y-3">
       <div className="production-layout-editor">
         <style jsx global>{`
-          .production-layout-editor
-            input[aria-label="Завантажити фото обладнання"]
-            + button {
+          .production-layout-editor input[aria-label="Завантажити фото обладнання"] + button {
             display: none;
           }
         `}</style>
@@ -491,8 +457,7 @@ function PhotoUploadCard({
   onOpen: () => void;
   onRetry: () => void;
 }) {
-  const uploading =
-    actionState === "uploading" || actionState === "attaching";
+  const uploading = actionState === "uploading" || actionState === "attaching";
   const disabled = mode === "edit" || actionState !== "idle";
 
   return (
@@ -500,9 +465,7 @@ function PhotoUploadCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-white">Production-фото</p>
-          <p className="mt-1 text-[10px] text-slate-500">
-            S3-compatible storage · JPEG/PNG/WebP · до 15 МБ
-          </p>
+          <p className="mt-1 text-[10px] text-slate-500">S3-compatible storage · JPEG/PNG/WebP · до 15 МБ</p>
         </div>
         <ImagePlus className="h-4 w-4 text-cyan-300" />
       </div>
@@ -527,18 +490,12 @@ function PhotoUploadCard({
             className="h-14 w-[84px] rounded-lg object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] text-slate-200">
-              {preview.fileName}
-            </p>
+            <p className="truncate text-[11px] text-slate-200">{preview.fileName}</p>
             <p className="mt-1 text-[9px] text-cyan-300">
-              {uploading
-                ? "Завантаження та прив’язка…"
-                : formatFileSize(preview.sizeBytes)}
+              {uploading ? "Завантаження та прив’язка…" : formatFileSize(preview.sizeBytes)}
             </p>
           </div>
-          {uploading ? (
-            <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" />
-          ) : null}
+          {uploading ? <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" /> : null}
         </div>
       ) : (
         <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
@@ -575,9 +532,7 @@ function PhotoUploadCard({
         ) : null}
       </div>
       {mode === "edit" ? (
-        <p className="mt-2 text-[9px] text-amber-300">
-          Збережіть позиції датчиків перед заміною фото.
-        </p>
+        <p className="mt-2 text-[9px] text-amber-300">Збережіть позиції датчиків перед заміною фото.</p>
       ) : null}
     </div>
   );
@@ -613,20 +568,14 @@ function PublicationCard({
       <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
         {published ? (
           <>
-            <p className="text-sm font-semibold text-emerald-200">
-              Ревізія r{published.revision}
-            </p>
+            <p className="text-sm font-semibold text-emerald-200">Ревізія r{published.revision}</p>
             <p className="mt-1 text-[10px] text-slate-500">
               {formatDateTime(published.publishedAt)} · {published.publishedBy}
             </p>
-            <p className="mt-1 truncate text-[9px] text-slate-600">
-              {published.image.fileName}
-            </p>
+            <p className="mt-1 truncate text-[9px] text-slate-600">{published.image.fileName}</p>
           </>
         ) : (
-          <p className="text-[11px] text-slate-500">
-            Опублікованої ревізії ще немає.
-          </p>
+          <p className="text-[11px] text-slate-500">Опублікованої ревізії ще немає.</p>
         )}
       </div>
 
@@ -636,11 +585,7 @@ function PublicationCard({
         onClick={onPublish}
         className="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-200 enabled:hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {busy ? (
-          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Check className="h-3.5 w-3.5" />
-        )}
+        {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
         Опублікувати поточну чернетку
       </button>
     </div>
@@ -663,9 +608,7 @@ function HistoryCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-white">Історія схем</p>
-          <p className="mt-1 text-[10px] text-slate-500">
-            Незмінні ревізії · новіші зверху
-          </p>
+          <p className="mt-1 text-[10px] text-slate-500">Незмінні ревізії · новіші зверху</p>
         </div>
         <History className="h-4 w-4 text-violet-300" />
       </div>
@@ -685,9 +628,7 @@ function HistoryCard({
                 r{revision.revision}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[10px] text-slate-300">
-                  {revision.image.fileName}
-                </p>
+                <p className="truncate text-[10px] text-slate-300">{revision.image.fileName}</p>
                 <p className="mt-1 inline-flex items-center gap-1 text-[9px] text-slate-600">
                   <Clock3 className="h-3 w-3" />
                   {formatDateTime(revision.publishedAt)}
@@ -731,10 +672,8 @@ function ConflictRecovery({
         <div className="min-w-0 flex-1">
           <p className="font-semibold">End-to-end конфлікт версій</p>
           <p className="mt-1 leading-5 text-amber-100/80">
-            Операція «{operationLabel(conflict.operation)}» очікувала v
-            {conflict.expectedVersion}, але сервер уже зберігає v
-            {conflict.actualVersion}. Локальні позиції та preview фото не
-            перезаписано.
+            Операція «{operationLabel(conflict.operation)}» очікувала v{conflict.expectedVersion}, але сервер
+            уже зберігає v{conflict.actualVersion}. Локальні позиції та preview фото не перезаписано.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -761,13 +700,7 @@ function ConflictRecovery({
   );
 }
 
-function Feedback({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: "error" | "success";
-}) {
+function Feedback({ children, tone }: { children: React.ReactNode; tone: "error" | "success" }) {
   return (
     <div
       className={
@@ -791,10 +724,7 @@ type RepositoryObserverHooks = {
   onDraft: (draft: RefrigerationLayoutDraft) => void;
   onPublished: (published: PublishedLayoutRevision | null) => void;
   onHistory: (history: PublishedLayoutRevision[]) => void;
-  onConflict: (
-    operation: ConflictOperation,
-    error: LayoutRepositoryError,
-  ) => void;
+  onConflict: (operation: ConflictOperation, error: LayoutRepositoryError) => void;
 };
 
 function observeRepository(

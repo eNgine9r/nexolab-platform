@@ -69,11 +69,7 @@ function repository(options: { withImage?: boolean } = {}) {
   });
 }
 
-function Harness({
-  repository: store,
-}: {
-  repository: RefrigerationLayoutRepository;
-}) {
+function Harness({ repository: store }: { repository: RefrigerationLayoutRepository }) {
   const fixture = equipment();
   const [mode, setMode] = useState<LayoutEditorMode>("view");
   const [selectedId, setSelectedId] = useState(fixture.sensors[0]?.id ?? null);
@@ -106,9 +102,7 @@ async function waitForWorkspace() {
     ).not.toBeInTheDocument();
   });
   await waitFor(() => {
-    expect(
-      screen.queryByText("Завантаження чернетки схеми…"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Завантаження чернетки схеми…")).not.toBeInTheDocument();
   });
 }
 
@@ -134,10 +128,9 @@ describe("RefrigerationLayoutWorkspace", () => {
     const file = new File(["image-bytes"], "production.webp", {
       type: "image/webp",
     });
-    fireEvent.change(
-      screen.getByLabelText("Вибрати production-фото обладнання"),
-      { target: { files: [file] } },
-    );
+    fireEvent.change(screen.getByLabelText("Вибрати production-фото обладнання"), {
+      target: { files: [file] },
+    });
 
     expect(await screen.findByText(/завантажено та прив’язано до чернетки v2/i)).toBeInTheDocument();
     expect(URL.createObjectURL).toHaveBeenCalledWith(file);
@@ -157,9 +150,7 @@ describe("RefrigerationLayoutWorkspace", () => {
     render(<Harness repository={store} />);
     await waitForWorkspace();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Опублікувати поточну чернетку" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Опублікувати поточну чернетку" }));
 
     expect(await screen.findByText("Опубліковано ревізію r1.")).toBeInTheDocument();
     expect(screen.getAllByText("r1").length).toBeGreaterThanOrEqual(1);
@@ -198,18 +189,14 @@ describe("RefrigerationLayoutWorkspace", () => {
     fireEvent.keyDown(marker("01F"), { key: "ArrowRight", shiftKey: true });
     const localX = marker("01F").getAttribute("data-x");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Зберегти чернетку" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти чернетку" }));
 
     expect(await screen.findByText("End-to-end конфлікт версій")).toBeInTheDocument();
     expect(screen.getByText(/Локальні позиції та preview фото не перезаписано/)).toBeInTheDocument();
     expect(marker("01F")).toHaveAttribute("data-x", localX);
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Завантажити серверну v2" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Завантажити серверну v2" }));
 
     expect(window.confirm).toHaveBeenCalled();
     expect(await screen.findByText("Завантажено серверну чернетку v2.")).toBeInTheDocument();

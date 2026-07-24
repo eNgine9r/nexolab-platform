@@ -47,10 +47,7 @@ function revisionPayload(revision: number) {
   };
 }
 
-function jsonResponse(
-  payload: unknown,
-  init: ResponseInit = {},
-): Response {
+function jsonResponse(payload: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(payload), {
     status: init.status ?? 200,
     headers: {
@@ -229,9 +226,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
   it("sorts immutable history newest first and restores with If-Match", async () => {
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(
-        jsonResponse({ items: [revisionPayload(1), revisionPayload(3)] }),
-      )
+      .mockResolvedValueOnce(jsonResponse({ items: [revisionPayload(1), revisionPayload(3)] }))
       .mockResolvedValueOnce(
         jsonResponse(draftPayload(7), {
           headers: { ETag: 'W/"layout-draft-v7"' },
