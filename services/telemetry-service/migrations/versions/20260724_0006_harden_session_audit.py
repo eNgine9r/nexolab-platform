@@ -37,6 +37,21 @@ def upgrade() -> None:
 
     dialect = op.get_bind().dialect.name
     if dialect == "postgresql":
+        op.drop_constraint(
+            "fk_audit_log_session_event_id",
+            "audit_log",
+            type_="foreignkey",
+        )
+        op.create_foreign_key(
+            "fk_audit_log_session_event_id",
+            "audit_log",
+            "session_events",
+            ["session_event_id"],
+            ["id"],
+            ondelete="RESTRICT",
+            deferrable=True,
+            initially="DEFERRED",
+        )
         op.execute(
             """
             CREATE OR REPLACE FUNCTION nexolab_reject_audit_mutation()
@@ -90,6 +105,19 @@ def downgrade() -> None:
                 f"ON {table_name}"
             )
         op.execute("DROP FUNCTION IF EXISTS nexolab_reject_audit_mutation()")
+        op.drop_constraint(
+            "fk_audit_log_session_event_id",
+            "audit_log",
+            type_="foreignkey",
+        )
+        op.create_foreign_key(
+            "fk_audit_log_session_event_id",
+            "audit_log",
+            "session_events",
+            ["session_event_id"],
+            ["id"],
+            ondelete="RESTRICT",
+        )
     elif dialect == "sqlite":
         for table_name in ("session_events", "audit_log"):
             op.execute(
