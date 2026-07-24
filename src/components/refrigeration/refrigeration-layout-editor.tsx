@@ -69,12 +69,9 @@ type DragState = {
 };
 
 const markerTone = {
-  normal:
-    "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning:
-    "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm:
-    "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
+  normal: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
+  warning: "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
+  alarm: "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
   "no-data": "border-slate-400/60 bg-slate-600/40 text-slate-200",
 };
 
@@ -98,7 +95,7 @@ export function RefrigerationLayoutEditor({
   const slots = useMemo(() => initialPlacements.map(({ x, y }) => ({ x, y })), [initialPlacements]);
 
   const repositoryRef = useRef<RefrigerationLayoutRepository | null>(null);
-  if (!repositoryRef.current) {
+  if (repositoryRef.current == null) {
     repositoryRef.current =
       repository ??
       new InMemoryRefrigerationLayoutRepository({
@@ -461,7 +458,10 @@ export function RefrigerationLayoutEditor({
         </div>
 
         {repositoryState === "loading" ? (
-          <p className="mb-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200" role="status">
+          <p
+            className="mb-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200"
+            role="status"
+          >
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
             Завантаження чернетки схеми…
           </p>
@@ -469,13 +469,17 @@ export function RefrigerationLayoutEditor({
         {imageError ? <Alert tone="error">{imageError}</Alert> : null}
         {repositoryError ? <Alert tone="error">{repositoryError}</Alert> : null}
         {versionConflict ? (
-          <div className="mb-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-3 text-xs text-amber-100" role="alert">
+          <div
+            className="mb-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-3 text-xs text-amber-100"
+            role="alert"
+          >
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">Конфлікт версій схеми</p>
                 <p className="mt-1 leading-5 text-amber-100/80">
-                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є версія {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
+                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є версія{" "}
+                  {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
                 </p>
                 <button
                   type="button"
@@ -489,7 +493,10 @@ export function RefrigerationLayoutEditor({
           </div>
         ) : null}
         {saveMessage ? (
-          <p className="mb-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200" role="status">
+          <p
+            className="mb-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+            role="status"
+          >
             <Check className="h-3.5 w-3.5" />
             {saveMessage}
           </p>

@@ -53,9 +53,7 @@ export type LayoutRepositoryError =
       revisionId: string;
     };
 
-export type RepositoryResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: LayoutRepositoryError };
+export type RepositoryResult<T> = { ok: true; value: T } | { ok: false; error: LayoutRepositoryError };
 
 export type SaveLayoutDraftInput = {
   equipmentId: string;
@@ -126,9 +124,7 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     return success(cloneDraft(aggregate.draft));
   }
 
-  async getPublished(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
+  async getPublished(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
     const aggregate = this.aggregates.get(equipmentId);
 
     if (!aggregate) {
@@ -136,28 +132,20 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     }
 
     const published = aggregate.activePublishedRevisionId
-      ? aggregate.revisions.find(
-          (revision) => revision.id === aggregate.activePublishedRevisionId,
-        ) ?? null
+      ? (aggregate.revisions.find((revision) => revision.id === aggregate.activePublishedRevisionId) ?? null)
       : null;
 
     return success(published ? cloneRevision(published) : null);
   }
 
-  async saveDraft(
-    input: SaveLayoutDraftInput,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
+  async saveDraft(input: SaveLayoutDraftInput): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
     const aggregate = this.aggregates.get(input.equipmentId);
 
     if (!aggregate) {
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
     const issues = validatePlacements(input.placements, false, input.imageId);
@@ -177,9 +165,7 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     return success(cloneDraft(aggregate.draft));
   }
 
-  async publishDraft(
-    input: PublishLayoutDraftInput,
-  ): Promise<
+  async publishDraft(input: PublishLayoutDraftInput): Promise<
     RepositoryResult<{
       draft: RefrigerationLayoutDraft;
       published: PublishedLayoutRevision;
@@ -191,18 +177,10 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
-    const issues = validatePlacements(
-      aggregate.draft.placements,
-      true,
-      aggregate.draft.imageId,
-    );
+    const issues = validatePlacements(aggregate.draft.placements, true, aggregate.draft.imageId);
     if (issues.length > 0) {
       return validationFailed(input.equipmentId, issues);
     }
@@ -232,9 +210,7 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     });
   }
 
-  async listHistory(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
+  async listHistory(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
     const aggregate = this.aggregates.get(equipmentId);
 
     if (!aggregate) {
@@ -242,9 +218,7 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
     }
 
     return success(
-      aggregate.revisions
-        .map(cloneRevision)
-        .sort((first, second) => second.revision - first.revision),
+      aggregate.revisions.map(cloneRevision).sort((first, second) => second.revision - first.revision),
     );
   }
 
@@ -257,16 +231,10 @@ export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayou
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
-    const revision = aggregate.revisions.find(
-      (candidate) => candidate.id === input.revisionId,
-    );
+    const revision = aggregate.revisions.find((candidate) => candidate.id === input.revisionId);
 
     if (!revision) {
       return {
@@ -393,10 +361,7 @@ function notFound<T>(equipmentId: string): RepositoryResult<T> {
   };
 }
 
-function validationFailed<T>(
-  equipmentId: string,
-  issues: LayoutValidationIssue[],
-): RepositoryResult<T> {
+function validationFailed<T>(equipmentId: string, issues: LayoutValidationIssue[]): RepositoryResult<T> {
   return {
     ok: false,
     error: {
