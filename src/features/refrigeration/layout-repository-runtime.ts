@@ -23,6 +23,9 @@ export type RefrigerationLayoutRuntimeInput = {
   apiBaseUrl?: string;
 };
 
+type RefrigerationLayoutRuntimeSelection =
+  { mode: "demo"; apiBaseUrl: null } | { mode: "live"; apiBaseUrl: string };
+
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
 ): RefrigerationLayoutRuntime {
@@ -73,7 +76,9 @@ export function createRefrigerationLayoutRuntime(
   }
 }
 
-function getTelemetryRuntimeConfigFromInput(input: RefrigerationLayoutRuntimeInput) {
+function getTelemetryRuntimeConfigFromInput(
+  input: RefrigerationLayoutRuntimeInput,
+): RefrigerationLayoutRuntimeSelection {
   if (input.mode !== undefined || input.apiBaseUrl !== undefined) {
     const mode = input.mode?.trim() || "demo";
     if (mode === "demo") {

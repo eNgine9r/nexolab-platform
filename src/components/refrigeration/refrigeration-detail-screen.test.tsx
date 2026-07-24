@@ -28,9 +28,16 @@ function referenceEquipment() {
   return equipment;
 }
 
+async function waitForLayout() {
+  await screen.findByRole("button", {
+    name: "Вибрати датчик 01F на схемі",
+  });
+}
+
 describe("RefrigerationDetailScreen", () => {
-  it("filters the image and list by sensor side and shelf", () => {
+  it("filters the image and list by sensor side and shelf", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+    await waitForLayout();
 
     expect(screen.getByText("Показано 48 із 48")).toBeInTheDocument();
 
@@ -42,7 +49,7 @@ describe("RefrigerationDetailScreen", () => {
     });
     expect(screen.getByText("Показано 6 із 48")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
+      await screen.findByRole("button", {
         name: "Вибрати датчик 07R на схемі",
       }),
     ).toBeInTheDocument();
@@ -53,8 +60,9 @@ describe("RefrigerationDetailScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps marker and list selection synchronized", () => {
+  it("keeps marker and list selection synchronized", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+    await waitForLayout();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -75,14 +83,15 @@ describe("RefrigerationDetailScreen", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("selects the first visible sensor when the active filter hides the previous selection", () => {
+  it("selects the first visible sensor when the active filter hides the previous selection", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+    await waitForLayout();
 
     fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
 
     expect(screen.getByText("01R · Задній фронт 01")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
+      await screen.findByRole("button", {
         name: "Вибрати датчик 01R на схемі",
       }),
     ).toHaveAttribute("aria-pressed", "true");

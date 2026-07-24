@@ -59,7 +59,7 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}): Response {
 
 describe("HttpRefrigerationLayoutRepository", () => {
   it("loads a draft and validates the backend ETag", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(draftPayload(3), {
         headers: { ETag: 'W/"layout-draft-v3"' },
       }),
@@ -91,7 +91,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
   });
 
   it("sends If-Match and maps draft coordinates to the backend contract", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(draftPayload(4), {
         headers: { ETag: 'W/"layout-draft-v4"' },
       }),
@@ -124,7 +124,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
   });
 
   it("maps a stale write into the typed conflict without retrying", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(
         {
           detail: {
@@ -162,7 +162,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
   });
 
   it("publishes with actor identity and returns the advanced draft plus revision", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(
         {
           draft: draftPayload(4),
@@ -201,7 +201,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
   });
 
   it("returns null when no published revision exists", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(
         {
           detail: {
@@ -225,7 +225,7 @@ describe("HttpRefrigerationLayoutRepository", () => {
 
   it("sorts immutable history newest first and restores with If-Match", async () => {
     const fetchImpl = vi
-      .fn()
+      .fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse({ items: [revisionPayload(1), revisionPayload(3)] }))
       .mockResolvedValueOnce(
         jsonResponse(draftPayload(7), {
@@ -257,7 +257,9 @@ describe("HttpRefrigerationLayoutRepository", () => {
   });
 
   it("uploads equipment photos as multipart with the operator header", async () => {
-    const fetchImpl = vi.fn(async () => jsonResponse(imagePayload, { status: 201 }));
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse(imagePayload, { status: 201 }),
+    );
     const repository = new HttpRefrigerationLayoutRepository({
       apiBaseUrl: "http://api.local",
       fetchImpl,
@@ -286,11 +288,15 @@ describe("HttpRefrigerationLayoutRepository", () => {
       headers: { "X-Actor-Id": "operator-1" },
       body: expect.any(FormData),
     });
-    expect((init?.body as FormData).get("file")).toBe(file);
+    const uploadedFile = (init?.body as FormData).get("file");
+    expect(uploadedFile).toBeInstanceOf(File);
+    expect((uploadedFile as File).name).toBe(file.name);
+    expect((uploadedFile as File).type).toBe(file.type);
+    expect((uploadedFile as File).size).toBe(file.size);
   });
 
   it("rejects a malformed draft response instead of accepting partial data", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(
         { ...draftPayload(2), placements: [{ sensor_id: "sensor-1", x: 2, y: 0.4 }] },
         { headers: { ETag: 'W/"layout-draft-v2"' } },

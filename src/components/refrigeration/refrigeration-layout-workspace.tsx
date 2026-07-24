@@ -155,7 +155,10 @@ export function RefrigerationLayoutWorkspace({
   }, [baseRepository, equipment.id, runtime.error]);
 
   useEffect(() => {
-    void loadWorkspace();
+    const timeoutId = window.setTimeout(() => {
+      void loadWorkspace();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadWorkspace]);
 
   useEffect(
