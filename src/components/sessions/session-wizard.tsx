@@ -33,6 +33,7 @@ export function SessionWizard() {
   const [form, setForm] = useState<SessionWizardForm>(createInitialWizardForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
   const operation = useRef({
     sessionId: null as string | null,
     createKey: createIdempotencyKey("session-create"),
@@ -81,6 +82,7 @@ export function SessionWizard() {
         );
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
+        setCreatedSessionId(sessionId);
       }
 
       await client.addProductionBindings(
@@ -200,9 +202,9 @@ export function SessionWizard() {
             <div className="mt-5 rounded-2xl border border-red-300/15 bg-red-400/[0.045] p-4">
               <p className="text-[10px] font-semibold text-red-200">Операцію не завершено</p>
               <p className="mt-1 text-[10px] leading-5 text-slate-400">{error.message}</p>
-              {operation.current.sessionId && (
+              {createdSessionId && (
                 <p className="mt-2 font-mono text-[9px] text-cyan-300">
-                  Draft {operation.current.sessionId} уже існує; повтор використає ті самі ключі.
+                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі.
                 </p>
               )}
             </div>
