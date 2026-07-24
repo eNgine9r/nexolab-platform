@@ -1,47 +1,52 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  autofix:
-    name: Format refrigeration detail screen
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+  quality:
+    name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.head_ref }}
+          node-version-file: .nvmrc
 
       - name: Install dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit --no-package-lock --silent
+        run: npm install --no-audit
 
-      - name: Format detail screen
-        shell: bash
-        run: |
-          npx prettier --write src/components/refrigeration/refrigeration-detail-screen.tsx
+      - name: Check formatting
+        run: npm run format:check
 
-          if git diff --quiet -- src/components/refrigeration/refrigeration-detail-screen.tsx; then
-            echo "No formatting change required."
-            exit 0
-          fi
+      - name: Lint
+        run: npm run lint
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/refrigeration/refrigeration-detail-screen.tsx
-          git commit -m "style(refrigeration): format detail screen"
-          git push origin HEAD:${{ github.head_ref }}
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
