@@ -15,6 +15,42 @@ branch_labels = None
 depends_on = None
 
 
+def _replace_audit_foreign_keys(*, deferred: bool) -> None:
+    for constraint_name in (
+        "fk_audit_log_session_id",
+        "fk_audit_log_session_event_id",
+    ):
+        op.drop_constraint(
+            constraint_name,
+            "audit_log",
+            type_="foreignkey",
+        )
+
+    options = (
+        {"deferrable": True, "initially": "DEFERRED"}
+        if deferred
+        else {}
+    )
+    op.create_foreign_key(
+        "fk_audit_log_session_id",
+        "audit_log",
+        "test_sessions",
+        ["session_id"],
+        ["id"],
+        ondelete="RESTRICT",
+        **options,
+    )
+    op.create_foreign_key(
+        "fk_audit_log_session_event_id",
+        "audit_log",
+        "session_events",
+        ["session_event_id"],
+        ["id"],
+        ondelete="RESTRICT",
+        **options,
+    )
+
+
 def upgrade() -> None:
     op.create_index(
         "uq_session_created_idempotency_key",
@@ -37,21 +73,7 @@ def upgrade() -> None:
 
     dialect = op.get_bind().dialect.name
     if dialect == "postgresql":
-        op.drop_constraint(
-            "fk_audit_log_session_event_id",
-            "audit_log",
-            type_="foreignkey",
-        )
-        op.create_foreign_key(
-            "fk_audit_log_session_event_id",
-            "audit_log",
-            "session_events",
-            ["session_event_id"],
-            ["id"],
-            ondelete="RESTRICT",
-            deferrable=True,
-            initially="DEFERRED",
-        )
+        _replace_audit_foreign_keys(deferred=True)
         op.execute(
             """
             CREATE OR REPLACE FUNCTION nexolab_reject_audit_mutation()
@@ -105,19 +127,7 @@ def downgrade() -> None:
                 f"ON {table_name}"
             )
         op.execute("DROP FUNCTION IF EXISTS nexolab_reject_audit_mutation()")
-        op.drop_constraint(
-            "fk_audit_log_session_event_id",
-            "audit_log",
-            type_="foreignkey",
-        )
-        op.create_foreign_key(
-            "fk_audit_log_session_event_id",
-            "audit_log",
-            "session_events",
-            ["session_event_id"],
-            ["id"],
-            ondelete="RESTRICT",
-        )
+        _replace_audit_foreign_keys(deferred=False)
     elif dialect == "sqlite":
         for table_name in ("session_events", "audit_log"):
             op.execute(
