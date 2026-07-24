@@ -222,8 +222,10 @@ def test_stage_attribution_changes_at_committed_transition(tmp_path: Path) -> No
         transition(client, session_id, "prepare", occurred_at=base + timedelta(seconds=10))
         transition(client, session_id, "start", occurred_at=start_at)
 
+        first_stage_id = str(uuid4())
+        second_stage_id = str(uuid4())
         first_stage = SessionStage(
-            id=str(uuid4()),
+            id=first_stage_id,
             session_id=session_id,
             sequence_index=0,
             stage_type="preparation",
@@ -232,7 +234,7 @@ def test_stage_attribution_changes_at_committed_transition(tmp_path: Path) -> No
             created_at=base,
         )
         second_stage = SessionStage(
-            id=str(uuid4()),
+            id=second_stage_id,
             session_id=session_id,
             sequence_index=1,
             stage_type="main_test",
@@ -244,7 +246,7 @@ def test_stage_attribution_changes_at_committed_transition(tmp_path: Path) -> No
                 db_session.add_all([first_stage, second_stage])
                 record = db_session.get(TestSession, session_id)
                 assert record is not None
-                record.current_stage_id = first_stage.id
+                record.current_stage_id = first_stage_id
 
         before_change = event(
             captured_at=stage_change_at - timedelta(microseconds=1)
@@ -253,15 +255,15 @@ def test_stage_attribution_changes_at_committed_transition(tmp_path: Path) -> No
 
         with Session(client.app.state.database.engine) as db_session:
             with db_session.begin():
-                stored_first = db_session.get(SessionStage, first_stage.id)
-                stored_second = db_session.get(SessionStage, second_stage.id)
+                stored_first = db_session.get(SessionStage, first_stage_id)
+                stored_second = db_session.get(SessionStage, second_stage_id)
                 record = db_session.get(TestSession, session_id)
                 assert stored_first is not None
                 assert stored_second is not None
                 assert record is not None
                 stored_first.exited_at = stage_change_at
                 stored_second.entered_at = stage_change_at
-                record.current_stage_id = stored_second.id
+                record.current_stage_id = second_stage_id
 
         at_change = event(captured_at=stage_change_at)
         assert persist(client, at_change) is True
@@ -273,15 +275,15 @@ def test_stage_attribution_changes_at_committed_transition(tmp_path: Path) -> No
             to_at=base + timedelta(minutes=3),
         )
         by_event = {item["event_id"]: item for item in items}
-        assert by_event[str(before_change.event_id)]["stage_id"] == first_stage.id
-        assert by_event[str(at_change.event_id)]["stage_id"] == second_stage.id
+        assert by_event[str(before_change.event_id)]["stage_id"] == first_stage_id
+        assert by_event[str(at_change.event_id)]["stage_id"] == second_stage_id
 
         filtered = client.get(
             f"/api/v1/sessions/{session_id}/telemetry/history",
             params={
                 "from": base.isoformat(),
                 "to": (base + timedelta(minutes=3)).isoformat(),
-                "stage_id": second_stage.id,
+                "stage_id": second_stage_id,
             },
         )
         assert filtered.status_code == 200, filtered.text
@@ -372,9 +374,11 @@ def test_unbound_telemetry_remains_valid_and_sessionless(tmp_path: Path) -> None
             },
         )
         assert regular.status_code == 200, regular.text
-        assert regular.json()["items"][0]["event_id"] == str(unbound.event_id)
-        assert regular.json()["items"][0]["value"] == unbound.value
-        assert regular.json()["items"][0]["quality"] == unbound.quality
-        assert regular.json()["items"][0]["captured_at"] == unbound.captured_at.isoformat().replace(
-            "+00:00", "Z"
-        )
+        returned = regular.json()["items"][0]
+        assert returned["event_id"] == str(unbound.event_id)
+        assert returned["value"] == unbound.value
+        assert returned["quality"] == unbound.quality
+        returned_captured_at = datetime.fromisoformat(returned["captured_at"])
+        if returned_captured_at.tzinfo is None:
+            returned_captured_at = returned_captured_at.replace(tzinfo=UTC)
+        assert returned_captured_at == unbound.captured_at
