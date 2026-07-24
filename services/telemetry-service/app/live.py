@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from app.state import RuntimeState
 
+
 OVERFLOW: Final = object()
 SHUTDOWN: Final = object()
 
@@ -19,6 +20,11 @@ class LiveTelemetryFilter:
     metric: str | None = None
     quality: str | None = None
     alarm: str | None = None
+    session_id: str | None = None
+    stage_id: str | None = None
+    binding_id: str | None = None
+    config_snapshot_id: str | None = None
+    session_state: str | None = None
 
     def matches(self, payload: dict[str, Any]) -> bool:
         for field in (
@@ -28,6 +34,11 @@ class LiveTelemetryFilter:
             "metric",
             "quality",
             "alarm",
+            "session_id",
+            "stage_id",
+            "binding_id",
+            "config_snapshot_id",
+            "session_state",
         ):
             expected = getattr(self, field)
             if expected is not None and payload.get(field) != expected:
