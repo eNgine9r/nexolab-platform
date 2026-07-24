@@ -20,6 +20,7 @@ from app.sessions.domain import (
     transition_session,
 )
 from app.sessions.models import (
+    AuditLog,
     SessionChannelBinding,
     SessionEvent,
     SessionStage as SessionStageRecord,
@@ -70,8 +71,22 @@ class ConfiguredSessionRepository(
         if db_session is None:
             raise RuntimeError("session record is not attached to a transaction")
         db_session.add(event)
-        db_session.flush()
+        db_session.flush([event])
         return event
+
+    def _audit_for_event(
+        self,
+        event: SessionEvent,
+        *,
+        entity_type: str,
+    ) -> AuditLog:
+        db_session = object_session(event)
+        if db_session is not None and event in db_session.new:
+            db_session.flush([event])
+        return SessionRepository._audit_for_event(
+            event,
+            entity_type=entity_type,
+        )
 
     def create(
         self,
@@ -115,17 +130,20 @@ class ConfiguredSessionRepository(
             occurred_at=now,
             inserted_at=now,
         )
-        audit = self._audit_for_event(event, entity_type="test_session")
+        audit = SessionRepository._audit_for_event(
+            event,
+            entity_type="test_session",
+        )
 
         with Session(self._engine, expire_on_commit=False) as db_session:
             try:
                 with db_session.begin():
                     db_session.add(record)
-                    db_session.flush()
+                    db_session.flush([record])
                     db_session.add(event)
-                    db_session.flush()
+                    db_session.flush([event])
                     db_session.add(audit)
-                    db_session.flush()
+                    db_session.flush([audit])
             except IntegrityError as error:
                 db_session.rollback()
                 existing = db_session.scalar(
@@ -286,28 +304,29 @@ class ConfiguredSessionRepository(
                     )
 
                     db_session.add(event)
-                    db_session.flush()
+                    db_session.flush([event])
                     if start_stage is not None:
-                        db_session.add(
-                            SessionStageTransition(
-                                id=str(uuid4()),
-                                session_id=session_id,
-                                session_event_id=event.id,
-                                from_stage_id=None,
-                                to_stage_id=start_stage.id,
-                                from_sequence_index=None,
-                                to_sequence_index=start_stage.sequence_index,
-                                actor_id=request.actor_id,
-                                reason=request.reason,
-                                occurred_at=request.occurred_at,
-                                inserted_at=request.occurred_at,
-                            )
+                        stage_transition = SessionStageTransition(
+                            id=str(uuid4()),
+                            session_id=session_id,
+                            session_event_id=event.id,
+                            from_stage_id=None,
+                            to_stage_id=start_stage.id,
+                            from_sequence_index=None,
+                            to_sequence_index=start_stage.sequence_index,
+                            actor_id=request.actor_id,
+                            reason=request.reason,
+                            occurred_at=request.occurred_at,
+                            inserted_at=request.occurred_at,
                         )
-                        db_session.flush()
-                    db_session.add(
-                        self._audit_for_event(event, entity_type="test_session")
+                        db_session.add(stage_transition)
+                        db_session.flush([stage_transition])
+                    audit = self._audit_for_event(
+                        event,
+                        entity_type="test_session",
                     )
-                    db_session.flush()
+                    db_session.add(audit)
+                    db_session.flush([audit])
 
                 db_session.expunge(event)
                 db_session.expunge(record)
