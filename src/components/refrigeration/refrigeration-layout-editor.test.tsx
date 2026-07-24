@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
+import {
+  createLayoutDraftPayload,
+  layoutDraftStorageKey,
+  serializeLayoutDraft,
+} from "@/features/refrigeration/layout-draft-storage";
 
 import { RefrigerationLayoutEditor, type LayoutEditorMode } from "./refrigeration-layout-editor";
 
@@ -41,12 +46,15 @@ function EditorHarness() {
 }
 
 function marker(label: string) {
-  return screen.getByRole("button", { name: `Вибрати датчик ${label} на схемі` });
+  return screen.getByRole("button", {
+    name: `Вибрати датчик ${label} на схемі`,
+  });
 }
 
 describe("RefrigerationLayoutEditor", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    window.sessionStorage.clear();
   });
 
   it("supports keyboard movement, undo, redo and cancel", () => {
@@ -70,6 +78,25 @@ describe("RefrigerationLayoutEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Скасувати" }));
     expect(marker("01F")).toHaveAttribute("data-x", originalX);
     expect(screen.getByText("Режим перегляду")).toBeInTheDocument();
+  });
+
+  it("supports Ctrl/Cmd undo and redo shortcuts", () => {
+    render(<EditorHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
+    const sensorMarker = marker("01F");
+    const originalX = sensorMarker.getAttribute("data-x");
+    fireEvent.keyDown(sensorMarker, { key: "ArrowRight" });
+
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(marker("01F")).toHaveAttribute("data-x", originalX);
+
+    fireEvent.keyDown(window, {
+      key: "z",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    expect(marker("01F")).not.toHaveAttribute("data-x", originalX);
   });
 
   it("moves a marker with pointer drag using normalized stage coordinates", () => {
@@ -127,7 +154,9 @@ describe("RefrigerationLayoutEditor", () => {
 
     const sensorMarker = marker("01F");
     const originalX = sensorMarker.getAttribute("data-x");
-    const file = new File(["photo"], "showcase.webp", { type: "image/webp" });
+    const file = new File(["photo"], "showcase.webp", {
+      type: "image/webp",
+    });
 
     fireEvent.change(screen.getByLabelText("Завантажити фото обладнання"), {
       target: { files: [file] },
@@ -137,5 +166,38 @@ describe("RefrigerationLayoutEditor", () => {
     expect(screen.getByText(/showcase\.webp/)).toBeInTheDocument();
     expect(marker("01F")).toHaveAttribute("data-x", originalX);
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
+  });
+
+  it("offers recovery for a valid equipment-scoped draft", async () => {
+    const equipment = referenceEquipment();
+    const placements = equipment.sensors.map(({ id, x, y }, index) => ({
+      sensorId: id,
+      x: index === 0 ? 0.75 : x,
+      y: index === 0 ? 0.8 : y,
+    }));
+    window.sessionStorage.setItem(
+      layoutDraftStorageKey(equipment.id),
+      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, placements, "2026-07-24T19:00:00.000Z")),
+    );
+
+    render(<EditorHarness />);
+
+    expect(await screen.findByText("Знайдено відновлювану чернетку")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Відновити" }));
+
+    expect(screen.getByText("Режим редагування")).toBeInTheDocument();
+    expect(marker("01F")).toHaveAttribute("data-x", "0.7500");
+    expect(marker("01F")).toHaveAttribute("data-y", "0.8000");
+  });
+
+  it("removes invalid recovery data safely", async () => {
+    const equipment = referenceEquipment();
+    const key = layoutDraftStorageKey(equipment.id);
+    window.sessionStorage.setItem(key, "not-json");
+
+    render(<EditorHarness />);
+
+    await waitFor(() => expect(window.sessionStorage.getItem(key)).toBeNull());
+    expect(screen.queryByText("Знайдено відновлювану чернетку")).not.toBeInTheDocument();
   });
 });

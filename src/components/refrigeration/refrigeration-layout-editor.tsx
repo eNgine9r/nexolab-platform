@@ -11,6 +11,7 @@ import { clsx } from "clsx";
 import {
   Check,
   Grid3X3,
+  History,
   ImageIcon,
   MousePointer2,
   Redo2,
@@ -26,6 +27,14 @@ import type {
   RefrigerationEquipment,
   RefrigerationSensor,
 } from "@/data/refrigeration";
+import {
+  createBrowserLayoutDraftStorage,
+  createLayoutDraftPayload,
+  parseLayoutDraft,
+  serializeLayoutDraft,
+  type LayoutDraftPayload,
+  type LayoutDraftStorage,
+} from "@/features/refrigeration/layout-draft-storage";
 import {
   applySnap,
   movePlacement,
@@ -65,7 +74,10 @@ const markerTone = {
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSizeBytes = 15 * 1024 * 1024;
-const emptyHistory: CommandHistory = { past: [], future: [] };
+
+function createEmptyHistory(): CommandHistory {
+  return { past: [], future: [] };
+}
 
 export function RefrigerationLayoutEditor({
   equipment,
@@ -85,23 +97,69 @@ export function RefrigerationLayoutEditor({
   const [draftPlacements, setDraftPlacements] = useState<LayoutPlacement[]>(initialPlacements);
   const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(equipment.image);
   const [draftImage, setDraftImage] = useState<EquipmentImageMetadata | null>(equipment.image);
-  const [history, setHistory] = useState<CommandHistory>(emptyHistory);
+  const [history, setHistory] = useState<CommandHistory>(() => createEmptyHistory());
   const [snapMode, setSnapMode] = useState<SnapMode>("none");
   const [imageError, setImageError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [recoveryDraft, setRecoveryDraft] = useState<LayoutDraftPayload | null>(null);
+  const [recoveryChecked, setRecoveryChecked] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const draftPlacementsRef = useRef(draftPlacements);
+  const historyRef = useRef(history);
   const objectUrlsRef = useRef(new Set<string>());
+  const storageRef = useRef<LayoutDraftStorage | null>(null);
+  const initialPlacementsRef = useRef(initialPlacements);
+
+  const placementDirty = !placementsEqual(draftPlacements, persistedPlacements);
+  const imageDirty = !imagesEqual(draftImage, persistedImage);
+  const dirty = placementDirty || imageDirty;
 
   useEffect(() => {
     draftPlacementsRef.current = draftPlacements;
   }, [draftPlacements]);
 
-  const dirty =
-    !placementsEqual(draftPlacements, persistedPlacements) || !imagesEqual(draftImage, persistedImage);
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
+
+  useEffect(() => {
+    const storage = createBrowserLayoutDraftStorage(window.sessionStorage);
+    storageRef.current = storage;
+    const raw = storage.load(equipment.id);
+    const allowedSensorIds = new Set(initialPlacementsRef.current.map((placement) => placement.sensorId));
+    const parsed = parseLayoutDraft(raw, equipment.id, allowedSensorIds);
+
+    if (raw && !parsed) {
+      storage.remove(equipment.id);
+    }
+
+    if (parsed) {
+      if (placementsEqual(parsed.placements, initialPlacementsRef.current)) {
+        storage.remove(equipment.id);
+      } else {
+        setRecoveryDraft(parsed);
+      }
+    }
+
+    setRecoveryChecked(true);
+  }, [equipment.id]);
+
+  useEffect(() => {
+    if (!recoveryChecked || recoveryDraft || mode !== "edit") return;
+
+    if (!placementDirty) {
+      storageRef.current?.remove(equipment.id);
+      return;
+    }
+
+    storageRef.current?.save(
+      equipment.id,
+      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, draftPlacements)),
+    );
+  }, [draftPlacements, equipment.id, mode, placementDirty, recoveryChecked, recoveryDraft]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -114,6 +172,27 @@ export function RefrigerationLayoutEditor({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    if (mode !== "edit") return;
+
+    const handleShortcut = (event: globalThis.KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") {
+        return;
+      }
+
+      event.preventDefault();
+      const result = event.shiftKey
+        ? redo(draftPlacementsRef.current, historyRef.current)
+        : undo(draftPlacementsRef.current, historyRef.current);
+      setPlacements(result.placements);
+      setHistoryState(result.history);
+      setSaveMessage(null);
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [mode]);
 
   useEffect(
     () => () => {
@@ -129,12 +208,17 @@ export function RefrigerationLayoutEditor({
     [draftPlacements],
   );
 
-  const setPlacements = (placements: LayoutPlacement[]) => {
+  function setPlacements(placements: LayoutPlacement[]) {
     draftPlacementsRef.current = placements;
     setDraftPlacements(placements);
-  };
+  }
 
-  const applyMovement = (sensorId: string, point: NormalizedPoint, before: NormalizedPoint) => {
+  function setHistoryState(nextHistory: CommandHistory) {
+    historyRef.current = nextHistory;
+    setHistory(nextHistory);
+  }
+
+  function applyMovement(sensorId: string, point: NormalizedPoint, before: NormalizedPoint) {
     const after = applySnap(point, snapMode, {
       gridDivisions: 40,
       slots,
@@ -142,10 +226,9 @@ export function RefrigerationLayoutEditor({
 
     if (pointsEqual(before, after)) return;
 
-    const nextPlacements = movePlacement(draftPlacementsRef.current, sensorId, after);
-    setPlacements(nextPlacements);
-    setHistory((current) =>
-      pushHistory(current, {
+    setPlacements(movePlacement(draftPlacementsRef.current, sensorId, after));
+    setHistoryState(
+      pushHistory(historyRef.current, {
         type: "move-placement",
         sensorId,
         before,
@@ -153,9 +236,9 @@ export function RefrigerationLayoutEditor({
       }),
     );
     setSaveMessage(null);
-  };
+  }
 
-  const handleMarkerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => {
+  function handleMarkerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) {
     if (mode !== "edit") return;
 
     const placement = draftPlacementsRef.current.find((item) => item.sensorId === sensorId);
@@ -174,9 +257,9 @@ export function RefrigerationLayoutEditor({
       },
       placement,
     );
-  };
+  }
 
-  const handleMarkerPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => {
+  function handleMarkerPointerDown(event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) {
     onSelect(sensorId);
     if (mode !== "edit") return;
 
@@ -195,11 +278,13 @@ export function RefrigerationLayoutEditor({
         y: pointerPoint.y - placement.y,
       },
     };
-  };
+  }
 
-  const handleMarkerPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  function handleMarkerPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId || mode !== "edit") return;
+    if (!drag || drag.pointerId !== event.pointerId || mode !== "edit") {
+      return;
+    }
 
     const pointerPoint = pointFromPointer(event.clientX, event.clientY, stageRef.current);
     if (!pointerPoint) return;
@@ -218,9 +303,9 @@ export function RefrigerationLayoutEditor({
     );
     setPlacements(movePlacement(draftPlacementsRef.current, drag.sensorId, nextPoint));
     setSaveMessage(null);
-  };
+  }
 
-  const finishPointerDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  function finishPointerDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
 
@@ -232,55 +317,74 @@ export function RefrigerationLayoutEditor({
     dragRef.current = null;
     if (!placement || pointsEqual(drag.before, placement)) return;
 
-    setHistory((current) =>
-      pushHistory(current, {
+    setHistoryState(
+      pushHistory(historyRef.current, {
         type: "move-placement",
         sensorId: drag.sensorId,
         before: drag.before,
         after: { x: placement.x, y: placement.y },
       }),
     );
-  };
+  }
 
-  const handleUndo = () => {
-    const result = undo(draftPlacementsRef.current, history);
+  function handleUndo() {
+    const result = undo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
-    setHistory(result.history);
+    setHistoryState(result.history);
     setSaveMessage(null);
-  };
+  }
 
-  const handleRedo = () => {
-    const result = redo(draftPlacementsRef.current, history);
+  function handleRedo() {
+    const result = redo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
-    setHistory(result.history);
+    setHistoryState(result.history);
     setSaveMessage(null);
-  };
+  }
 
-  const handleReset = () => {
+  function handleReset() {
     setPlacements(initialPlacements);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
     setSaveMessage(null);
-  };
+  }
 
-  const handleCancel = () => {
+  function handleCancel() {
+    storageRef.current?.remove(equipment.id);
     setPlacements(persistedPlacements);
     setDraftImage(persistedImage);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
     setImageError(null);
     setSaveMessage(null);
     onModeChange("view");
-  };
+  }
 
-  const handleSave = () => {
-    const placements = [...draftPlacementsRef.current];
+  function handleSave() {
+    storageRef.current?.remove(equipment.id);
+    const placements = draftPlacementsRef.current.map((placement) => ({
+      ...placement,
+    }));
     setPersistedPlacements(placements);
     setPersistedImage(draftImage);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
     setSaveMessage("Чернетку схеми збережено локально");
     onModeChange("view");
-  };
+  }
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+  function handleRestoreRecovery() {
+    if (!recoveryDraft) return;
+
+    setPlacements(recoveryDraft.placements.map((placement) => ({ ...placement })));
+    setHistoryState(createEmptyHistory());
+    setRecoveryDraft(null);
+    setSaveMessage("Відновлено незавершену чернетку");
+    onModeChange("edit");
+  }
+
+  function handleDiscardRecovery() {
+    storageRef.current?.remove(equipment.id);
+    setRecoveryDraft(null);
+  }
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -315,20 +419,30 @@ export function RefrigerationLayoutEditor({
     });
     setImageError(null);
     setSaveMessage(null);
-  };
+  }
 
-  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  function handleImageLoad(event: React.SyntheticEvent<HTMLImageElement>) {
     const widthPx = event.currentTarget.naturalWidth;
     const heightPx = event.currentTarget.naturalHeight;
 
     setDraftImage((current) => {
-      if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) return current;
+      if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) {
+        return current;
+      }
       return { ...current, widthPx, heightPx };
     });
-  };
+  }
 
   return (
     <div id="layout-editor" className="space-y-3">
+      {recoveryDraft ? (
+        <RecoveryBanner
+          savedAt={recoveryDraft.savedAt}
+          onRestore={handleRestoreRecovery}
+          onDiscard={handleDiscardRecovery}
+        />
+      ) : null}
+
       <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
         <div className="mb-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -507,7 +621,10 @@ export function RefrigerationLayoutEditor({
                     ? "cursor-grab touch-none hover:z-20 hover:scale-110 active:cursor-grabbing"
                     : "cursor-pointer hover:z-20 hover:scale-110",
                 )}
-                style={{ left: `${placement.x * 100}%`, top: `${placement.y * 100}%` }}
+                style={{
+                  left: `${placement.x * 100}%`,
+                  top: `${placement.y * 100}%`,
+                }}
               >
                 <span className="block">{sensor.label}</span>
                 <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
@@ -518,7 +635,9 @@ export function RefrigerationLayoutEditor({
           <div className="absolute right-3 bottom-3 left-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-slate-950/70 px-3 py-2 text-[9px] text-slate-400 backdrop-blur">
             <span>
               {draftImage
-                ? `${draftImage.fileName} · ${formatFileSize(draftImage.sizeBytes)}${draftImage.widthPx > 0 ? ` · ${draftImage.widthPx}×${draftImage.heightPx}` : ""}`
+                ? `${draftImage.fileName} · ${formatFileSize(draftImage.sizeBytes)}${
+                    draftImage.widthPx > 0 ? ` · ${draftImage.widthPx}×${draftImage.heightPx}` : ""
+                  }`
                 : "Фото ще не завантажено"}
             </span>
             <span>
@@ -530,6 +649,46 @@ export function RefrigerationLayoutEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+function RecoveryBanner({
+  savedAt,
+  onRestore,
+  onDiscard,
+}: {
+  savedAt: string;
+  onRestore: () => void;
+  onDiscard: () => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <History className="mt-0.5 h-4 w-4 text-cyan-300" />
+        <div>
+          <h2 className="text-sm font-semibold text-cyan-100">Знайдено відновлювану чернетку</h2>
+          <p className="mt-1 text-xs text-cyan-100/60">
+            Збережено {formatRecoveryTime(savedAt)}. Відновлення не змінить локально збережену схему.
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onDiscard}
+          className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-200"
+        >
+          Відкинути
+        </button>
+        <button
+          type="button"
+          onClick={onRestore}
+          className="rounded-lg border border-cyan-300/25 bg-cyan-400/15 px-3 py-2 text-xs font-medium text-cyan-100"
+        >
+          Відновити
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -613,8 +772,9 @@ function placementsEqual(first: readonly LayoutPlacement[], second: readonly Lay
 }
 
 function imagesEqual(first: EquipmentImageMetadata | null, second: EquipmentImageMetadata | null): boolean {
-  if (first === null || second === null) return first === second;
-  return first.id === second.id && first.sourceUrl === second.sourceUrl;
+  if (first === second) return true;
+  if (!first || !second) return false;
+  return first.id === second.id && first.sourceUrl === second.sourceUrl && first.fileName === second.fileName;
 }
 
 function formatTemperature(temperatureC: number | null): string {
@@ -622,7 +782,16 @@ function formatTemperature(temperatureC: number | null): string {
 }
 
 function formatFileSize(sizeBytes: number): string {
-  if (sizeBytes <= 0) return "локальне фото";
-  if (sizeBytes < 1024 * 1024) return `${Math.round(sizeBytes / 1024)} КБ`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
+  if (sizeBytes <= 0) return "розмір не визначено";
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)} МБ`;
+}
+
+function formatRecoveryTime(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("uk-UA", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
 }
