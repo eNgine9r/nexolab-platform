@@ -34,6 +34,31 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Format Gate 81 files
+        run: >-
+          npm run format --
+          src/app/sessions
+          src/components/sessions
+          src/lib/sessions
+          src/components/dashboard/dashboard-shell.tsx
+          src/components/dashboard/sessions-panel.tsx
+          src/components/dashboard/sidebar.tsx
+          src/components/dashboard/topbar.tsx
+
+      - name: Upload formatted Gate 81 files
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-sessions-ui-formatted-${{ github.run_id }}
+          path: |
+            src/app/sessions
+            src/components/sessions
+            src/lib/sessions
+            src/components/dashboard/dashboard-shell.tsx
+            src/components/dashboard/sessions-panel.tsx
+            src/components/dashboard/sidebar.tsx
+            src/components/dashboard/topbar.tsx
+          retention-days: 3
+
       - name: Check formatting
         run: npm run format:check
 
