@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,29 +16,37 @@ concurrency:
 
 jobs:
   quality:
-    name: Restore formatted branch metadata
+    name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout branch
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
+          node-version-file: .nvmrc
 
-      - name: Restore standard files
-        run: |
-          rm -f package-lock.json
-          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
 
-      - name: Commit restoration
-        run: |
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A package-lock.json .github/workflows/ci.yml
-          git commit -m "chore: restore CI workflow and remove generated lockfile"
-          git push origin HEAD:${{ github.head_ref }}
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
