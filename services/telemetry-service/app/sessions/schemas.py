@@ -33,6 +33,15 @@ class SessionCreate(BaseModel):
         "node_id",
         "actor_id",
         "actor_source",
+    )
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator(
         "reason",
         "customer",
         "model",
@@ -43,7 +52,7 @@ class SessionCreate(BaseModel):
         "responsible_engineer_id",
     )
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -94,9 +103,17 @@ class SessionTransitionRequest(BaseModel):
     occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     reason: str | None = Field(default=None, max_length=2000)
 
-    @field_validator("actor_id", "actor_source", "reason")
+    @field_validator("actor_id", "actor_source")
     @classmethod
-    def normalize_text(cls, value: str | None) -> str | None:
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
