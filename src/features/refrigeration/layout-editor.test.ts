@@ -46,13 +46,10 @@ describe("layout editor primitives", () => {
 
   it("selects the nearest normalized slot", () => {
     expect(
-      nearestSlot(
-        { x: 0.58, y: 0.61 },
-        [
-          { x: 0.2, y: 0.2 },
-          { x: 0.6, y: 0.6 },
-        ],
-      ),
+      nearestSlot({ x: 0.58, y: 0.61 }, [
+        { x: 0.2, y: 0.2 },
+        { x: 0.6, y: 0.6 },
+      ]),
     ).toEqual({ x: 0.6, y: 0.6 });
   });
 
@@ -64,10 +61,7 @@ describe("layout editor primitives", () => {
   });
 
   it("undoes and redoes an exact marker move", () => {
-    const appliedPlacements = [
-      { sensorId: "sensor-1", x: 0.45, y: 0.55 },
-      placements[1],
-    ];
+    const appliedPlacements = [{ sensorId: "sensor-1", x: 0.45, y: 0.55 }, placements[1]];
     const initialHistory: CommandHistory = { past: [command], future: [] };
 
     const undone = undo(appliedPlacements, initialHistory);
