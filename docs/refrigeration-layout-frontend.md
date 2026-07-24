@@ -41,3 +41,7 @@ Reloading the server draft is the only conflict action that intentionally discar
 The browser performs an early format and 15 MB check. The backend remains authoritative and validates the actual image bytes, dimensions and declared MIME type before persisting object metadata.
 
 Signed object-storage URLs are treated as temporary display URLs. Layout persistence stores only the immutable image ID returned by the backend.
+
+## Validation coverage
+
+Frontend tests cover runtime mode selection, ETag and `If-Match` transport semantics, multipart upload, publication history, restoration and stale-writer recovery while preserving local marker state.
