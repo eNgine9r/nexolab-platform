@@ -21,9 +21,7 @@ describe("createRefrigerationLayoutRuntime", () => {
     });
 
     expect(runtime.mode).toBe("demo");
-    expect(runtime.repository).toBeInstanceOf(
-      InMemoryRefrigerationLayoutRepository,
-    );
+    expect(runtime.repository).toBeInstanceOf(InMemoryRefrigerationLayoutRepository);
     expect(runtime.actorId).toBe("operator-demo");
     expect(runtime.error).toBeNull();
 
@@ -33,9 +31,7 @@ describe("createRefrigerationLayoutRuntime", () => {
       value: {
         equipmentId: equipment().id,
         version: 1,
-        placements: expect.arrayContaining([
-          expect.objectContaining({ sensorId: "sensor-1" }),
-        ]),
+        placements: expect.arrayContaining([expect.objectContaining({ sensorId: "sensor-1" })]),
       },
     });
   });
@@ -49,9 +45,7 @@ describe("createRefrigerationLayoutRuntime", () => {
     });
 
     expect(runtime.mode).toBe("live");
-    expect(runtime.repository).toBeInstanceOf(
-      HttpRefrigerationLayoutRepository,
-    );
+    expect(runtime.repository).toBeInstanceOf(HttpRefrigerationLayoutRepository);
     expect(runtime.actorId).toBe("operator-live");
     expect(runtime.error).toBeNull();
   });
