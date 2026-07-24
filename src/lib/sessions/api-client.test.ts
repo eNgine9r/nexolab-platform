@@ -28,7 +28,7 @@ describe("SessionApiClient", () => {
   });
 
   it("builds deterministic session list and telemetry history queries", async () => {
-    const fetchMock = vi.fn<SessionFetch>().mockResolvedValue(jsonResponse(emptyPage));
+    const fetchMock = vi.fn<SessionFetch>().mockImplementation(async () => jsonResponse(emptyPage));
     const client = new SessionApiClient("http://127.0.0.1:8082", { fetch: fetchMock });
 
     await client.listSessions({ state: "running", nodeId: "edge-01", limit: 25, offset: 50 });
