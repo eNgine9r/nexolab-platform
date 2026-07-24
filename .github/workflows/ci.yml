@@ -34,6 +34,24 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Format refrigeration editor
+        run: >-
+          npx prettier --write
+          src/components/refrigeration/refrigeration-detail-screen.tsx
+          src/components/refrigeration/refrigeration-layout-editor.tsx
+          src/components/refrigeration/refrigeration-layout-editor.test.tsx
+          src/data/refrigeration.ts
+
+      - name: Upload formatted refrigeration files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-refrigeration-files
+          path: |
+            src/components/refrigeration/refrigeration-detail-screen.tsx
+            src/components/refrigeration/refrigeration-layout-editor.tsx
+            src/components/refrigeration/refrigeration-layout-editor.test.tsx
+            src/data/refrigeration.ts
+
       - name: Check formatting
         run: npm run format:check
 
