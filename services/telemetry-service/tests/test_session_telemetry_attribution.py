@@ -334,7 +334,7 @@ def test_complete_production_cycle_and_duplicate_are_attributed_once(
         assert len({item["event_id"] for item in items}) == 34
         assert {item["config_snapshot_id"] for item in items} == {snapshot_id}
         assert {item["resolver_version"] for item in items} == {
-            "captured-at-interval-v1"
+            "snapshot-timeline-v1"
         }
 
         latest = client.get(
