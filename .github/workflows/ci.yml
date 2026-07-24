@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -23,8 +23,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,35 +33,6 @@ jobs:
         env:
           HUSKY: 0
         run: npm install --no-audit
-
-      - name: Format refrigeration editor
-        run: >-
-          npx prettier --write
-          src/components/refrigeration/refrigeration-detail-screen.tsx
-          src/components/refrigeration/refrigeration-layout-editor.tsx
-          src/components/refrigeration/refrigeration-layout-editor.test.tsx
-          src/data/refrigeration.ts
-
-      - name: Commit formatted files
-        run: |
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/refrigeration src/data/refrigeration.ts
-          git commit -m "style: format refrigeration layout editor"
-          git push origin HEAD:${{ github.head_ref }}
-
-      - name: Upload formatted refrigeration files
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-refrigeration-files
-          path: |
-            src/components/refrigeration/refrigeration-detail-screen.tsx
-            src/components/refrigeration/refrigeration-layout-editor.tsx
-            src/components/refrigeration/refrigeration-layout-editor.test.tsx
-            src/data/refrigeration.ts
 
       - name: Check formatting
         run: npm run format:check
