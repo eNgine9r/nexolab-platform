@@ -34,6 +34,23 @@ if [[ "${RS485_HOST_DEVICE:-}" != /dev/serial/by-id/* ]]; then
   exit 2
 fi
 
+EXPECTED_RECORDS=34
+MAX_SAMPLE_AGE_SECONDS="${CUTOVER_MAX_SAMPLE_AGE_SECONDS:-90}"
+WEBSOCKET_TIMEOUT_SECONDS="${CUTOVER_WEBSOCKET_TIMEOUT_SECONDS:-45}"
+FRESHNESS_WAIT_SECONDS="${CUTOVER_FRESHNESS_WAIT_SECONDS:-180}"
+FRESHNESS_POLL_SECONDS="${CUTOVER_FRESHNESS_POLL_SECONDS:-2}"
+
+for numeric_value in \
+  "$MAX_SAMPLE_AGE_SECONDS" \
+  "$WEBSOCKET_TIMEOUT_SECONDS" \
+  "$FRESHNESS_WAIT_SECONDS" \
+  "$FRESHNESS_POLL_SECONDS"; do
+  if [[ ! "$numeric_value" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Cutover timeout and freshness values must be positive integers." >&2
+    exit 2
+  fi
+done
+
 COMPOSE=(
   docker compose
   --env-file "$ENV_FILE"
@@ -77,6 +94,9 @@ printf '%s\n' "$AGENT_ID_BEFORE" >"$EVIDENCE_DIR/device-agent-container-before.t
 
 # Recreate only the local broker. The Device Agent keeps polling Modbus and
 # queues MQTT work locally while the broker restarts.
+BRIDGE_ACTIVATION_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '%s\n' "$BRIDGE_ACTIVATION_STARTED_AT" \
+  >"$EVIDENCE_DIR/bridge-activation-started-at.txt"
 "${COMPOSE[@]}" up -d --no-deps --force-recreate mqtt
 
 BROKER_READY=0
@@ -130,13 +150,105 @@ if mode != "modbus":
     raise SystemExit(f"Modbus mode changed during MQTT cutover: {mode!r}")
 PY
 
+# A long rollback leaves a complete but stale latest snapshot in PostgreSQL.
+# Wait for all 34 production series to be captured after bridge activation
+# before invoking the strict REST/history/WebSocket validator.
+LATEST_URL="${CENTRAL_API_BASE_URL%/}/api/v1/telemetry/latest?node_id=${NEXOLAB_NODE_ID:-edge-01}&limit=1000"
+FRESHNESS_DEADLINE=$((SECONDS + FRESHNESS_WAIT_SECONDS))
+FRESHNESS_READY=0
+
+while ((SECONDS < FRESHNESS_DEADLINE)); do
+  if curl -fsS "$LATEST_URL" >"$EVIDENCE_DIR/latest-freshness.json"; then
+    if python3 - \
+      "$EVIDENCE_DIR/latest-freshness.json" \
+      "$EXPECTED_RECORDS" \
+      "$MAX_SAMPLE_AGE_SECONDS" \
+      "$BRIDGE_ACTIVATION_STARTED_AT" \
+      "$EVIDENCE_DIR/freshness-summary.json" <<'PY' >/dev/null 2>&1
+from __future__ import annotations
+
+import json
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+expected_records = int(sys.argv[2])
+max_age_seconds = float(sys.argv[3])
+bridge_started_at = datetime.fromisoformat(sys.argv[4].replace("Z", "+00:00"))
+summary_path = Path(sys.argv[5])
+items = payload.get("items")
+
+if not isinstance(items, list):
+    raise SystemExit(1)
+if payload.get("count") != expected_records or len(items) != expected_records:
+    raise SystemExit(1)
+
+series = {
+    (
+        item.get("node_id"),
+        item.get("equipment_id"),
+        item.get("channel_id"),
+        item.get("metric"),
+    )
+    for item in items
+}
+if len(series) != expected_records:
+    raise SystemExit(1)
+
+captured = [
+    datetime.fromisoformat(item["captured_at"].replace("Z", "+00:00"))
+    for item in items
+]
+oldest = min(captured)
+newest = max(captured)
+oldest_age_seconds = (datetime.now(UTC) - oldest).total_seconds()
+
+if oldest < bridge_started_at:
+    raise SystemExit(1)
+if oldest_age_seconds > max_age_seconds:
+    raise SystemExit(1)
+
+summary = {
+    "status": "passed",
+    "expected_records": expected_records,
+    "production_series_count": len(series),
+    "bridge_activation_started_at": sys.argv[4],
+    "oldest_captured_at": oldest.isoformat(),
+    "newest_captured_at": newest.isoformat(),
+    "oldest_sample_age_seconds": round(oldest_age_seconds, 3),
+}
+summary_path.write_text(
+    json.dumps(summary, indent=2) + "\n",
+    encoding="utf-8",
+)
+PY
+    then
+      FRESHNESS_READY=1
+      break
+    fi
+  fi
+  sleep "$FRESHNESS_POLL_SECONDS"
+done
+
+if [[ "$FRESHNESS_READY" -ne 1 ]]; then
+  echo "Fresh 34-series cycle did not arrive within ${FRESHNESS_WAIT_SECONDS}s" >&2
+  if [[ -s "$EVIDENCE_DIR/latest-freshness.json" ]]; then
+    python3 -m json.tool "$EVIDENCE_DIR/latest-freshness.json" >&2 || true
+  fi
+  "${COMPOSE[@]}" logs --tail=200 mqtt device-agent >&2 || true
+  exit 1
+fi
+
+python3 -m json.tool "$EVIDENCE_DIR/freshness-summary.json"
+
 python3 "$VALIDATOR" \
   --api-base-url "$CENTRAL_API_BASE_URL" \
   --websocket-url "$CENTRAL_WEBSOCKET_URL" \
   --node-id "${NEXOLAB_NODE_ID:-edge-01}" \
-  --expected-records 34 \
-  --max-age-seconds "${CUTOVER_MAX_SAMPLE_AGE_SECONDS:-90}" \
-  --websocket-timeout-seconds "${CUTOVER_WEBSOCKET_TIMEOUT_SECONDS:-45}" \
+  --expected-records "$EXPECTED_RECORDS" \
+  --max-age-seconds "$MAX_SAMPLE_AGE_SECONDS" \
+  --websocket-timeout-seconds "$WEBSOCKET_TIMEOUT_SECONDS" \
   --evidence "$EVIDENCE_DIR/telemetry-validation.json"
 
 "${COMPOSE[@]}" ps >"$EVIDENCE_DIR/edge-compose-ps.txt"
@@ -161,6 +273,9 @@ manifest = {
         (root / "device-agent-container-before.txt").read_text().strip()
         == (root / "device-agent-container-after.txt").read_text().strip()
     ),
+    "freshness_gate_passed": True,
+    "freshness": json.loads((root / "freshness-summary.json").read_text()),
+    "volumes_deleted": False,
     "artifacts": sorted(path.name for path in root.iterdir()),
 }
 (root / "manifest.json").write_text(
