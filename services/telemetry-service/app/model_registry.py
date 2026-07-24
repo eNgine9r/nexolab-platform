@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Final
 
 
-SESSION_MODEL_COUNT: Final = 10
+SESSION_MODEL_COUNT: Final = 9
 
 
 def register_models() -> None:
