@@ -220,15 +220,27 @@ def websocket_uri(base_uri: str, *, node_id: str, after: str | None) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
-def recv_exact(connection: socket.socket, size: int) -> bytes:
+def recv_exact(
+    connection: socket.socket,
+    size: int,
+    buffer: bytearray | None = None,
+) -> bytes:
     chunks: list[bytes] = []
     remaining = size
+
+    if buffer and remaining:
+        buffered_size = min(remaining, len(buffer))
+        chunks.append(bytes(buffer[:buffered_size]))
+        del buffer[:buffered_size]
+        remaining -= buffered_size
+
     while remaining:
         chunk = connection.recv(remaining)
         if not chunk:
             raise ConnectionError("WebSocket connection closed unexpectedly")
         chunks.append(chunk)
         remaining -= len(chunk)
+
     return b"".join(chunks)
 
 
@@ -249,17 +261,20 @@ def send_masked_frame(connection: socket.socket, opcode: int, payload: bytes) ->
     connection.sendall(bytes(header) + masked)
 
 
-def recv_frame(connection: socket.socket) -> tuple[int, bytes]:
-    first, second = recv_exact(connection, 2)
+def recv_frame(
+    connection: socket.socket,
+    buffer: bytearray | None = None,
+) -> tuple[int, bytes]:
+    first, second = recv_exact(connection, 2, buffer)
     opcode = first & 0x0F
     masked = bool(second & 0x80)
     length = second & 0x7F
     if length == 126:
-        length = struct.unpack("!H", recv_exact(connection, 2))[0]
+        length = struct.unpack("!H", recv_exact(connection, 2, buffer))[0]
     elif length == 127:
-        length = struct.unpack("!Q", recv_exact(connection, 8))[0]
-    mask = recv_exact(connection, 4) if masked else b""
-    payload = recv_exact(connection, length)
+        length = struct.unpack("!Q", recv_exact(connection, 8, buffer))[0]
+    mask = recv_exact(connection, 4, buffer) if masked else b""
+    payload = recv_exact(connection, length, buffer)
     if masked:
         payload = bytes(
             value ^ mask[index % 4] for index, value in enumerate(payload)
@@ -267,7 +282,10 @@ def recv_frame(connection: socket.socket) -> tuple[int, bytes]:
     return opcode, payload
 
 
-def open_websocket(uri: str, timeout_seconds: int) -> socket.socket:
+def open_websocket(
+    uri: str,
+    timeout_seconds: int,
+) -> tuple[socket.socket, bytearray]:
     parsed = urlparse(uri)
     if parsed.scheme not in {"ws", "wss"}:
         raise ValueError("WebSocket URL must use ws:// or wss://")
@@ -306,7 +324,7 @@ def open_websocket(uri: str, timeout_seconds: int) -> socket.socket:
         response.extend(connection.recv(4096))
         if len(response) > 65536:
             raise ConnectionError("WebSocket handshake response is too large")
-    header_block = bytes(response).split(b"\r\n\r\n", 1)[0]
+    header_block, trailing_data = bytes(response).split(b"\r\n\r\n", 1)
     lines = header_block.decode("latin-1").split("\r\n")
     if " 101 " not in lines[0]:
         raise ConnectionError(f"WebSocket handshake failed: {lines[0]}")
@@ -323,7 +341,7 @@ def open_websocket(uri: str, timeout_seconds: int) -> socket.socket:
     ).decode("ascii")
     if headers.get("sec-websocket-accept") != expected_accept:
         raise ConnectionError("Invalid Sec-WebSocket-Accept header")
-    return connection
+    return connection, bytearray(trailing_data)
 
 
 def wait_for_new_websocket_event(
@@ -334,17 +352,19 @@ def wait_for_new_websocket_event(
     timeout_seconds: int,
 ) -> dict[str, Any]:
     deadline = time.monotonic() + timeout_seconds
-    connection = open_websocket(uri, timeout_seconds)
+    connection, receive_buffer = open_websocket(uri, timeout_seconds)
     try:
         while time.monotonic() < deadline:
             connection.settimeout(max(1.0, deadline - time.monotonic()))
-            opcode, payload = recv_frame(connection)
+            opcode, payload = recv_frame(connection, receive_buffer)
             if opcode == 0x8:
                 raise ConnectionError("WebSocket closed before a new event arrived")
             if opcode == 0x9:
                 send_masked_frame(connection, 0xA, payload)
                 continue
             if opcode != 0x1:
+                continue
+            if not payload:
                 continue
             message = json.loads(payload.decode("utf-8"))
             if not isinstance(message, dict):
