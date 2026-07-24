@@ -4,15 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
-import {
-  ArrowLeft,
-  CircleDot,
-  Edit3,
-  Filter,
-  Thermometer,
-  Wifi,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
