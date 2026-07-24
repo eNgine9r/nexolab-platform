@@ -18,7 +18,7 @@ jobs:
   quality:
     name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -56,16 +56,49 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Lint
-        run: npm run lint
+      - name: Lint diagnostics
+        id: lint
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee /tmp/frontend-lint.log
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Typecheck diagnostics
+        id: typecheck
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee /tmp/frontend-typecheck.log
 
-      - name: Test
-        run: npm test
+      - name: Test diagnostics
+        id: test
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/frontend-test.log
 
-      - name: Build
+      - name: Build diagnostics
+        id: build
+        continue-on-error: true
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/frontend-build.log
+
+      - name: Upload frontend diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refrigeration-layout-quality-diagnostics
+          path: /tmp/frontend-*.log
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Enforce quality result
+        if: always()
+        run: |
+          test "${{ steps.lint.outcome }}" = success
+          test "${{ steps.typecheck.outcome }}" = success
+          test "${{ steps.test.outcome }}" = success
+          test "${{ steps.build.outcome }}" = success
