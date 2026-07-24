@@ -114,15 +114,13 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     <Filter className="h-3.5 w-3.5" />
                     Експорт
                   </button>
-                  <button
-                    type="button"
-                    disabled
-                    title="Редактор розміщення буде додано в наступному Gate"
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-blue-400/15 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200/60"
+                  <Link
+                    href={`/refrigeration/${equipment.id}/layout`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 transition hover:bg-blue-500/25"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
                     Редагувати схему
-                  </button>
+                  </Link>
                 </div>
               </div>
             </header>

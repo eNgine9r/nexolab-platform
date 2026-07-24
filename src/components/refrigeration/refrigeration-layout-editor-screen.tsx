@@ -2,31 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent,
-} from "react";
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { clsx } from "clsx";
-import {
-  ArrowLeft,
-  Edit3,
-  Grid3X3,
-  ImagePlus,
-  RotateCcw,
-  Save,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Edit3, Grid3X3, ImagePlus, RotateCcw, Save, X } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import type {
-  RefrigerationEquipment,
-  RefrigerationSensor,
-  SensorSide,
-} from "@/data/refrigeration";
+import type { RefrigerationEquipment, RefrigerationSensor, SensorSide } from "@/data/refrigeration";
 import { getEquipmentImage } from "@/features/refrigeration/equipment-images";
 import {
   cloneSensors,
@@ -54,26 +36,16 @@ const sideOptions: ReadonlyArray<{
   { value: "rear", label: "Задній" },
 ];
 
-export function RefrigerationLayoutEditorScreen({
-  equipment,
-}: {
-  equipment: RefrigerationEquipment;
-}) {
+export function RefrigerationLayoutEditorScreen({ equipment }: { equipment: RefrigerationEquipment }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
-  const [selectedId, setSelectedId] = useState(
-    equipment.sensors[0]?.id ?? null,
-  );
-  const [committedSensors, setCommittedSensors] = useState(() =>
-    cloneSensors(equipment.sensors),
-  );
-  const [draftSensors, setDraftSensors] = useState(() =>
-    cloneSensors(equipment.sensors),
-  );
+  const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
+  const [committedSensors, setCommittedSensors] = useState(() => cloneSensors(equipment.sensors));
+  const [draftSensors, setDraftSensors] = useState(() => cloneSensors(equipment.sensors));
   const stageRef = useRef<HTMLDivElement>(null);
   const image = getEquipmentImage(equipment.id);
 
@@ -82,19 +54,14 @@ export function RefrigerationLayoutEditorScreen({
   const visibleSensors = useMemo(
     () =>
       sensors.filter(
-        (sensor) =>
-          (side === "all" || sensor.side === side) &&
-          (shelf === "all" || sensor.shelf === shelf),
+        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
       ),
     [sensors, shelf, side],
   );
-  const activeSelectedId = visibleSensors.some(
-    (sensor) => sensor.id === selectedId,
-  )
+  const activeSelectedId = visibleSensors.some((sensor) => sensor.id === selectedId)
     ? selectedId
     : (visibleSensors[0]?.id ?? null);
-  const selectedSensor =
-    sensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
+  const selectedSensor = sensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
 
   function beginEditing() {
     setDraftSensors(cloneSensors(committedSensors));
@@ -128,10 +95,7 @@ export function RefrigerationLayoutEditorScreen({
     setConfirmDiscard(false);
   }
 
-  function updateFromPointer(
-    event: PointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
+  function updateFromPointer(event: PointerEvent<HTMLButtonElement>, sensorId: string) {
     if (!editing || !stageRef.current) {
       return;
     }
@@ -141,15 +105,10 @@ export function RefrigerationLayoutEditorScreen({
       event.clientY,
       stageRef.current.getBoundingClientRect(),
     );
-    setDraftSensors((current) =>
-      moveSensor(current, sensorId, point, { snapToGrid }),
-    );
+    setDraftSensors((current) => moveSensor(current, sensorId, point, { snapToGrid }));
   }
 
-  function handlePointerDown(
-    event: PointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>, sensorId: string) {
     if (!editing) {
       return;
     }
@@ -160,10 +119,7 @@ export function RefrigerationLayoutEditorScreen({
     updateFromPointer(event, sensorId);
   }
 
-  function handlePointerMove(
-    event: PointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
+  function handlePointerMove(event: PointerEvent<HTMLButtonElement>, sensorId: string) {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
       return;
     }
@@ -177,39 +133,19 @@ export function RefrigerationLayoutEditorScreen({
     }
   }
 
-  function handleMarkerKeyDown(
-    event: KeyboardEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
-    if (
-      !editing ||
-      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
-        event.key,
-      )
-    ) {
+  function handleMarkerKeyDown(event: KeyboardEvent<HTMLButtonElement>, sensorId: string) {
+    if (!editing || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
       return;
     }
 
     event.preventDefault();
     const step = event.shiftKey ? KEYBOARD_COARSE_STEP : KEYBOARD_FINE_STEP;
     const delta = {
-      x:
-        event.key === "ArrowLeft"
-          ? -step
-          : event.key === "ArrowRight"
-            ? step
-            : 0,
-      y:
-        event.key === "ArrowUp"
-          ? -step
-          : event.key === "ArrowDown"
-            ? step
-            : 0,
+      x: event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0,
+      y: event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0,
     };
 
-    setDraftSensors((current) =>
-      moveSensorByDelta(current, sensorId, delta, { snapToGrid }),
-    );
+    setDraftSensors((current) => moveSensorByDelta(current, sensorId, delta, { snapToGrid }));
   }
 
   return (
@@ -221,10 +157,7 @@ export function RefrigerationLayoutEditorScreen({
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar
-          title={`${equipment.name} · схема`}
-          onMenuOpen={() => setSidebarOpen(true)}
-        />
+        <Topbar title={`${equipment.name} · схема`} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[1900px]">
             <header className="mb-3 flex flex-col gap-4 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-4 xl:flex-row xl:items-center xl:justify-between">
@@ -238,9 +171,7 @@ export function RefrigerationLayoutEditorScreen({
                 </Link>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-lg font-semibold text-white">
-                      Схема розміщення датчиків
-                    </h1>
+                    <h1 className="text-lg font-semibold text-white">Схема розміщення датчиків</h1>
                     <StatusBadge editing={editing} />
                     {dirty ? (
                       <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] text-amber-200">
@@ -284,19 +215,14 @@ export function RefrigerationLayoutEditorScreen({
             </header>
 
             {confirmDiscard ? (
-              <DiscardPrompt
-                onContinue={() => setConfirmDiscard(false)}
-                onDiscard={discardDraft}
-              />
+              <DiscardPrompt onContinue={() => setConfirmDiscard(false)} onDiscard={discardDraft} />
             ) : null}
 
             <div className="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_360px]">
               <section className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
                 <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold text-white">
-                      Фото та маркери
-                    </h2>
+                    <h2 className="text-sm font-semibold text-white">Фото та маркери</h2>
                     <p className="mt-1 text-[11px] text-slate-500">
                       {visibleSensors.length} із {sensors.length} датчиків
                     </p>
@@ -317,9 +243,7 @@ export function RefrigerationLayoutEditorScreen({
                   data-testid="equipment-layout-stage"
                   className={clsx(
                     "relative aspect-[16/10] overflow-hidden rounded-xl border bg-[#02070f]",
-                    editing
-                      ? "border-blue-400/25"
-                      : "border-cyan-300/[0.1]",
+                    editing ? "border-blue-400/25" : "border-cyan-300/[0.1]",
                   )}
                 >
                   <Image
@@ -341,16 +265,10 @@ export function RefrigerationLayoutEditorScreen({
                       editing={editing}
                       selected={sensor.id === activeSelectedId}
                       onSelect={() => setSelectedId(sensor.id)}
-                      onPointerDown={(event) =>
-                        handlePointerDown(event, sensor.id)
-                      }
-                      onPointerMove={(event) =>
-                        handlePointerMove(event, sensor.id)
-                      }
+                      onPointerDown={(event) => handlePointerDown(event, sensor.id)}
+                      onPointerMove={(event) => handlePointerMove(event, sensor.id)}
                       onPointerEnd={handlePointerEnd}
-                      onKeyDown={(event) =>
-                        handleMarkerKeyDown(event, sensor.id)
-                      }
+                      onKeyDown={(event) => handleMarkerKeyDown(event, sensor.id)}
                     />
                   ))}
                 </div>
@@ -431,19 +349,11 @@ function EditActions({
   );
 }
 
-function DiscardPrompt({
-  onContinue,
-  onDiscard,
-}: {
-  onContinue: () => void;
-  onDiscard: () => void;
-}) {
+function DiscardPrompt({ onContinue, onDiscard }: { onContinue: () => void; onDiscard: () => void }) {
   return (
     <section className="mb-3 flex flex-col gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.07] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 className="text-sm font-semibold text-amber-100">
-          Відкинути незбережені зміни?
-        </h2>
+        <h2 className="text-sm font-semibold text-amber-100">Відкинути незбережені зміни?</h2>
         <p className="mt-1 text-xs text-amber-100/60">
           Позиції буде повернуто до останньої локально збереженої версії.
         </p>
@@ -509,13 +419,7 @@ function LayoutFilters({
       <select
         id="layout-shelf-filter"
         value={shelf}
-        onChange={(event) =>
-          onShelfChange(
-            event.target.value === "all"
-              ? "all"
-              : Number(event.target.value),
-          )
-        }
+        onChange={(event) => onShelfChange(event.target.value === "all" ? "all" : Number(event.target.value))}
         className="rounded-lg border border-white/[0.07] bg-[#0b1e38] px-2.5 py-1.5 text-[10px] text-slate-400 outline-none"
       >
         <option value="all">Усі полиці</option>
@@ -584,9 +488,7 @@ function SensorMarker({
     >
       <span className="block">{sensor.label}</span>
       <span className="block font-medium">
-        {sensor.temperatureC === null
-          ? "—"
-          : `${sensor.temperatureC.toFixed(1)}°`}
+        {sensor.temperatureC === null ? "—" : `${sensor.temperatureC.toFixed(1)}°`}
       </span>
     </button>
   );
@@ -603,10 +505,7 @@ function Inspector({ sensor }: { sensor: RefrigerationSensor | null }) {
           </p>
           <InfoRow label="Полиця" value={String(sensor.shelf)} />
           <InfoRow label="Позиція" value={String(sensor.position)} />
-          <InfoRow
-            label="Фронт"
-            value={sensor.side === "front" ? "Передній" : "Задній"}
-          />
+          <InfoRow label="Фронт" value={sensor.side === "front" ? "Передній" : "Задній"} />
           <InfoRow label="X" value={sensor.x.toFixed(3)} />
           <InfoRow label="Y" value={sensor.y.toFixed(3)} />
         </div>
@@ -634,10 +533,7 @@ function DraftStatus({
       <div className="mt-3 space-y-2 text-[11px]">
         <InfoRow label="Режим" value={editing ? "Редагування" : "Перегляд"} />
         <InfoRow label="Зміни" value={dirty ? "Є незбережені" : "Немає"} />
-        <InfoRow
-          label="Прив’язка до сітки"
-          value={snapToGrid ? "Увімкнена" : "Вимкнена"}
-        />
+        <InfoRow label="Прив’язка до сітки" value={snapToGrid ? "Увімкнена" : "Вимкнена"} />
         <InfoRow label="Кількість датчиків" value={String(sensorCount)} />
       </div>
     </section>
