@@ -6,11 +6,12 @@ from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.db import Database
 from app.sessions.configuration_bindings import BindingRepositoryMixin
 from app.sessions.configuration_limits import LimitRepositoryMixin
+from app.sessions.configuration_schemas import ConfigurationCommand
 from app.sessions.configuration_support import ConfigurationSupportMixin
 from app.sessions.domain import (
     SessionAction,
@@ -44,6 +45,33 @@ class ConfiguredSessionRepository(
 ):
     def __init__(self, database: Database) -> None:
         SessionRepository.__init__(self, database)
+
+    def _configuration_event(
+        self,
+        record: TestSession,
+        *,
+        event_type: str,
+        command: ConfigurationCommand,
+        idempotency_key: str,
+        entity_type: str,
+        entity_id: str,
+        payload: dict[str, Any],
+    ) -> SessionEvent:
+        event = ConfigurationSupportMixin._configuration_event(
+            record,
+            event_type=event_type,
+            command=command,
+            idempotency_key=idempotency_key,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            payload=payload,
+        )
+        db_session = object_session(record)
+        if db_session is None:
+            raise RuntimeError("session record is not attached to a transaction")
+        db_session.add(event)
+        db_session.flush()
+        return event
 
     def create(
         self,
