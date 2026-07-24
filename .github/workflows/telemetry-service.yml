@@ -14,6 +14,7 @@ on:
       - "infrastructure/compose/mosquitto.central.conf"
       - "infrastructure/compose/central-smoke.sh"
       - "infrastructure/compose/m3-*"
+      - "infrastructure/compose/m4-*"
       - "infrastructure/observability/**"
       - "docs/adr/**"
       - "docs/operations/**"
@@ -31,6 +32,7 @@ on:
       - "infrastructure/compose/mosquitto.central.conf"
       - "infrastructure/compose/central-smoke.sh"
       - "infrastructure/compose/m3-*"
+      - "infrastructure/compose/m4-*"
       - "infrastructure/observability/**"
       - "docs/adr/**"
       - "docs/operations/**"
@@ -79,7 +81,7 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Validate central deployment and cutover contracts
+      - name: Validate central deployment, cutover and M4 recovery contracts
         working-directory: ${{ github.workspace }}
         run: |
           bash -n infrastructure/compose/central-smoke.sh
@@ -88,6 +90,14 @@ jobs:
           bash -n infrastructure/compose/m3-central-stop.sh
           bash -n infrastructure/compose/m3-status.sh
           python -m py_compile infrastructure/compose/m3-validate-cutover.py
+          python -m py_compile infrastructure/compose/m4-session-acceptance.py
+          python infrastructure/compose/m4-session-acceptance.py --help >/dev/null
+          grep -q -- '--confirm-real-hardware' infrastructure/compose/m4-session-acceptance.py
+          grep -q '/dev/serial/by-id/' infrastructure/compose/m4-session-acceptance.py
+          if grep -q 'docker compose down.*--volumes\|docker compose down.*-v' infrastructure/compose/m4-session-acceptance.py; then
+            echo "M4 acceptance harness must not delete named volumes" >&2
+            exit 1
+          fi
           docker compose \
             --env-file infrastructure/compose/.env.central.example \
             -f infrastructure/compose/compose.central.yaml \
