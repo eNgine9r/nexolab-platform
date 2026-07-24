@@ -93,4 +93,4 @@ class ApiErrorDetail(BaseModel):
 
 
 class ApiErrorResponse(BaseModel):
-    error: ApiErrorDetail
+    detail: ApiErrorDetail
