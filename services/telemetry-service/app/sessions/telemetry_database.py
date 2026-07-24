@@ -88,6 +88,10 @@ class SessionAwareDatabase(Database):
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.close()
 
+            @sqlalchemy_event.listens_for(self.engine, "begin")
+            def defer_sqlite_foreign_keys(connection: Connection) -> None:
+                connection.exec_driver_sql("PRAGMA defer_foreign_keys=ON")
+
     def persist(self, event: TelemetryEvent, raw_payload: dict[str, Any]) -> bool:
         values = {
             "event_id": str(event.event_id),
