@@ -26,9 +26,7 @@ export type RefrigerationLayoutRuntimeInput = {
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
 ): RefrigerationLayoutRuntime {
-  const actorId = normalizeActorId(
-    input.actorId ?? process.env.NEXT_PUBLIC_NEXOLAB_OPERATOR_ID,
-  );
+  const actorId = normalizeActorId(input.actorId ?? process.env.NEXT_PUBLIC_NEXOLAB_OPERATOR_ID);
 
   try {
     const config = getTelemetryRuntimeConfigFromInput(input);
@@ -70,17 +68,12 @@ export function createRefrigerationLayoutRuntime(
       mode: input.mode === "live" ? "live" : "demo",
       repository: null,
       actorId,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Не вдалося налаштувати сховище схем обладнання.",
+      error: error instanceof Error ? error.message : "Не вдалося налаштувати сховище схем обладнання.",
     };
   }
 }
 
-function getTelemetryRuntimeConfigFromInput(
-  input: RefrigerationLayoutRuntimeInput,
-) {
+function getTelemetryRuntimeConfigFromInput(input: RefrigerationLayoutRuntimeInput) {
   if (input.mode !== undefined || input.apiBaseUrl !== undefined) {
     const mode = input.mode?.trim() || "demo";
     if (mode === "demo") {
@@ -91,9 +84,7 @@ function getTelemetryRuntimeConfigFromInput(
     }
     const apiBaseUrl = input.apiBaseUrl?.trim();
     if (!apiBaseUrl) {
-      throw new Error(
-        "NEXOLAB API URL is required for live refrigeration layouts.",
-      );
+      throw new Error("NEXOLAB API URL is required for live refrigeration layouts.");
     }
     return { mode: "live" as const, apiBaseUrl };
   }
