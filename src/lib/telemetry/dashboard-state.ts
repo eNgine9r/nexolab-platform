@@ -187,8 +187,13 @@ function belongsToEnergyUnit(sample: TelemetrySample): boolean {
   );
 }
 
+function isActivePowerMetric(metric: string): boolean {
+  const normalized = normalizedMetric(metric);
+  return normalized === "active_power" || normalized === "electrical_power_active";
+}
+
 function powerInKw(sample: TelemetrySample): number | null {
-  if (!isUsable(sample) || normalizedMetric(sample.metric) !== "active_power") {
+  if (!isUsable(sample) || !isActivePowerMetric(sample.metric)) {
     return null;
   }
 
@@ -314,7 +319,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
     {
       label: "Поточне споживання",
       value: hasPower ? `${formatNumber(totalPower, 2)} kW` : "—",
-      detail: hasPower ? "LE-01MP 200–203" : "Немає свіжих active_power",
+      detail: hasPower ? "LE-01MP 200–203" : "Немає свіжої active power",
       trend: "сума валідних лічильників",
       tone: hasPower ? "amber" : "red",
       icon: "energy",
