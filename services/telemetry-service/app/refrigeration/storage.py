@@ -66,7 +66,10 @@ class S3ObjectStorage:
         from botocore.config import Config
 
         self._bucket = bucket
-        config = Config(s3={"addressing_style": "path" if force_path_style else "auto"})
+        config = Config(
+            signature_version="s3v4",
+            s3={"addressing_style": "path" if force_path_style else "auto"},
+        )
         common = {
             "region_name": region,
             "aws_access_key_id": access_key_id or None,
