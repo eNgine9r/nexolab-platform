@@ -102,6 +102,7 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
           now: Date.now(),
         }),
       );
+      setError(null);
       setClock(Date.now());
     };
 
@@ -110,7 +111,15 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
         { node_id: "edge-01" },
         {
           onSample: (sample) => commit([sample]),
-          onStateChange: setConnectionState,
+          onStateChange: (state) => {
+            if (disposed) {
+              return;
+            }
+            setConnectionState(state);
+            if (state === "connected") {
+              setError(null);
+            }
+          },
           onError: (nextError) => {
             if (!disposed) {
               setError(nextError);
