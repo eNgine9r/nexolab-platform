@@ -35,6 +35,15 @@ def canonical_audit_action(action: str) -> str:
     return CANONICAL_AUDIT_ACTIONS.get(action, action)
 
 
+def raw_actions_for_canonical(action: str) -> tuple[str, ...]:
+    aliases = tuple(
+        raw_action
+        for raw_action, canonical_action in CANONICAL_AUDIT_ACTIONS.items()
+        if canonical_action == action
+    )
+    return aliases or (action,)
+
+
 def validate_actor_source(value: str) -> str:
     normalized = value.strip()
     if normalized not in ALLOWED_ACTOR_SOURCES:
