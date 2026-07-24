@@ -120,6 +120,21 @@ jobs:
         run: python -m compileall -q app tests migrations
       - name: Apply migrations to PostgreSQL
         run: alembic upgrade head
+      - name: Capture attribution test diagnostics
+        continue-on-error: true
+        run: |
+          python -m pytest \
+            tests/test_session_telemetry_attribution.py \
+            -q --tb=short \
+            > /tmp/session-attribution-tests.log 2>&1
+      - name: Upload attribution diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-attribution-diagnostics
+          path: /tmp/session-attribution-tests.log
+          if-no-files-found: error
+          retention-days: 1
       - name: Test PostgreSQL MQTT REST WebSocket dead-letter and retention
         run: python -m pytest -q -m "not database_outage"
       - name: Test PostgreSQL outage recovery
