@@ -9,7 +9,6 @@ import {
   CircleDot,
   Edit3,
   Filter,
-  Snowflake,
   Thermometer,
   Wifi,
   type LucideIcon,
