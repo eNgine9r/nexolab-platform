@@ -11,7 +11,6 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
 from app.config import Settings
-from app.db import Database
 from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
@@ -22,10 +21,13 @@ from app.retention import RetentionWorker
 from app.sessions.api import create_session_router
 from app.sessions.configuration import ConfiguredSessionRepository
 from app.sessions.configuration_api import create_session_configuration_router
+from app.sessions.stage_api import create_stage_router
+from app.sessions.telemetry_attribution import ActiveSessionResolver
+from app.sessions.telemetry_database import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.6.0"
+SERVICE_VERSION = "0.7.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -37,8 +39,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     register_models()
-    database = Database(
+    attribution_resolver = ActiveSessionResolver()
+    database = SessionAwareDatabase(
         resolved.database_url,
+        attribution_resolver=attribution_resolver.resolve,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
     session_repository = ConfiguredSessionRepository(database)
@@ -47,11 +51,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         state=state,
         queue_maxsize=resolved.websocket_client_queue_maxsize,
     )
+
+    def publish_persisted(payload: dict[str, object]) -> None:
+        event_id = str(payload.get("event_id", ""))
+        context = database.context_payload(event_id)
+        enriched = dict(payload)
+        if context is not None:
+            enriched.update(context)
+        live_hub.publish_from_thread(enriched)
+
     ingestor = TelemetryIngestor(
         database=database,
         state=state,
         queue_maxsize=resolved.ingestion_queue_maxsize,
-        on_persisted=live_hub.publish_from_thread,
+        on_persisted=publish_persisted,
         payload_max_bytes=resolved.ingestion_payload_max_bytes,
         dead_letter_payload_max_bytes=resolved.dead_letter_payload_max_bytes,
         database_retry_initial_seconds=resolved.database_retry_initial_seconds,
@@ -135,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(create_session_router(session_repository))
     app.include_router(create_session_configuration_router(session_repository))
+    app.include_router(create_stage_router(session_repository))
     app.include_router(
         create_live_router(
             database,
