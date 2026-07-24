@@ -9,10 +9,7 @@ import {
   serializeLayoutDraft,
 } from "@/features/refrigeration/layout-draft-storage";
 
-import {
-  RefrigerationLayoutEditor,
-  type LayoutEditorMode,
-} from "./refrigeration-layout-editor";
+import { RefrigerationLayoutEditor, type LayoutEditorMode } from "./refrigeration-layout-editor";
 
 vi.mock("next/image", () => ({
   default: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
@@ -34,9 +31,7 @@ function referenceEquipment() {
 function EditorHarness() {
   const equipment = referenceEquipment();
   const [mode, setMode] = useState<LayoutEditorMode>("view");
-  const [selectedId, setSelectedId] = useState(
-    equipment.sensors[0]?.id ?? null,
-  );
+  const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
 
   return (
     <RefrigerationLayoutEditor
@@ -65,9 +60,7 @@ describe("RefrigerationLayoutEditor", () => {
   it("supports keyboard movement, undo, redo and cancel", () => {
     render(<EditorHarness />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Редагувати схему" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
     const sensorMarker = marker("01F");
     const originalX = sensorMarker.getAttribute("data-x");
 
@@ -76,14 +69,10 @@ describe("RefrigerationLayoutEditor", () => {
     expect(marker("01F")).not.toHaveAttribute("data-x", originalX);
     expect(screen.getByText("Незбережені зміни")).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Скасувати останню дію" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Скасувати останню дію" }));
     expect(marker("01F")).toHaveAttribute("data-x", originalX);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Повторити останню дію" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Повторити останню дію" }));
     expect(marker("01F")).not.toHaveAttribute("data-x", originalX);
 
     fireEvent.click(screen.getByRole("button", { name: "Скасувати" }));
@@ -94,9 +83,7 @@ describe("RefrigerationLayoutEditor", () => {
   it("supports Ctrl/Cmd undo and redo shortcuts", () => {
     render(<EditorHarness />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Редагувати схему" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
     const sensorMarker = marker("01F");
     const originalX = sensorMarker.getAttribute("data-x");
     fireEvent.keyDown(sensorMarker, { key: "ArrowRight" });
@@ -115,9 +102,7 @@ describe("RefrigerationLayoutEditor", () => {
   it("moves a marker with pointer drag using normalized stage coordinates", () => {
     render(<EditorHarness />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Редагувати схему" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
     const stage = screen.getByTestId("equipment-image-stage");
     stage.getBoundingClientRect = () =>
       ({
@@ -165,9 +150,7 @@ describe("RefrigerationLayoutEditor", () => {
     });
 
     render(<EditorHarness />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Редагувати схему" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
 
     const sensorMarker = marker("01F");
     const originalX = sensorMarker.getAttribute("data-x");
@@ -175,12 +158,9 @@ describe("RefrigerationLayoutEditor", () => {
       type: "image/webp",
     });
 
-    fireEvent.change(
-      screen.getByLabelText("Завантажити фото обладнання"),
-      {
-        target: { files: [file] },
-      },
-    );
+    fireEvent.change(screen.getByLabelText("Завантажити фото обладнання"), {
+      target: { files: [file] },
+    });
 
     expect(createObjectUrl).toHaveBeenCalledWith(file);
     expect(screen.getByText(/showcase\.webp/)).toBeInTheDocument();
@@ -197,20 +177,12 @@ describe("RefrigerationLayoutEditor", () => {
     }));
     window.sessionStorage.setItem(
       layoutDraftStorageKey(equipment.id),
-      serializeLayoutDraft(
-        createLayoutDraftPayload(
-          equipment.id,
-          placements,
-          "2026-07-24T19:00:00.000Z",
-        ),
-      ),
+      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, placements, "2026-07-24T19:00:00.000Z")),
     );
 
     render(<EditorHarness />);
 
-    expect(
-      await screen.findByText("Знайдено відновлювану чернетку"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Знайдено відновлювану чернетку")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Відновити" }));
 
     expect(screen.getByText("Режим редагування")).toBeInTheDocument();
@@ -226,8 +198,6 @@ describe("RefrigerationLayoutEditor", () => {
     render(<EditorHarness />);
 
     await waitFor(() => expect(window.sessionStorage.getItem(key)).toBeNull());
-    expect(
-      screen.queryByText("Знайдено відновлювану чернетку"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Знайдено відновлювану чернетку")).not.toBeInTheDocument();
   });
 });

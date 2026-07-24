@@ -17,28 +17,18 @@ const allowedSensorIds = new Set(placements.map((placement) => placement.sensorI
 
 describe("layout draft storage", () => {
   it("round-trips a versioned equipment-scoped payload", () => {
-    const payload = createLayoutDraftPayload(
-      "showcase-106-01",
-      placements,
-      "2026-07-24T19:00:00.000Z",
-    );
+    const payload = createLayoutDraftPayload("showcase-106-01", placements, "2026-07-24T19:00:00.000Z");
 
-    expect(
-      parseLayoutDraft(
-        serializeLayoutDraft(payload),
-        "showcase-106-01",
-        allowedSensorIds,
-      ),
-    ).toEqual(payload);
+    expect(parseLayoutDraft(serializeLayoutDraft(payload), "showcase-106-01", allowedSensorIds)).toEqual(
+      payload,
+    );
     expect(layoutDraftStorageKey("showcase-106-01")).toBe(
       "nexolab:refrigeration-layout-draft:v1:showcase-106-01",
     );
   });
 
   it("rejects malformed, mismatched and out-of-range payloads", () => {
-    expect(
-      parseLayoutDraft("not-json", "showcase-106-01", allowedSensorIds),
-    ).toBeNull();
+    expect(parseLayoutDraft("not-json", "showcase-106-01", allowedSensorIds)).toBeNull();
     expect(
       parseLayoutDraft(
         JSON.stringify({
@@ -57,10 +47,7 @@ describe("layout draft storage", () => {
           version: 1,
           equipmentId: "showcase-106-01",
           savedAt: "2026-07-24T19:00:00.000Z",
-          placements: [
-            { sensorId: "sensor-1", x: 1.2, y: 0.3 },
-            placements[1],
-          ],
+          placements: [{ sensorId: "sensor-1", x: 1.2, y: 0.3 }, placements[1]],
         }),
         "showcase-106-01",
         allowedSensorIds,
@@ -99,10 +86,7 @@ describe("layout draft storage", () => {
           version: 1,
           equipmentId: "showcase-106-01",
           savedAt: "2026-07-24T19:00:00.000Z",
-          placements: [
-            placements[0],
-            { sensorId: "unknown", x: 0.4, y: 0.5 },
-          ],
+          placements: [placements[0], { sensorId: "unknown", x: 0.4, y: 0.5 }],
         }),
         "showcase-106-01",
         allowedSensorIds,

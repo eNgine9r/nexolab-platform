@@ -66,12 +66,9 @@ interface DragState {
 }
 
 const markerTone = {
-  normal:
-    "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning:
-    "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm:
-    "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
+  normal: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
+  warning: "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
+  alarm: "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
   "no-data": "border-slate-400/60 bg-slate-600/40 text-slate-200",
 };
 
@@ -91,31 +88,20 @@ export function RefrigerationLayoutEditor({
   onSelect,
 }: RefrigerationLayoutEditorProps) {
   const initialPlacements = useMemo(
-    () =>
-      equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
+    () => equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
     [equipment.sensors],
   );
-  const slots = useMemo(
-    () => initialPlacements.map(({ x, y }) => ({ x, y })),
-    [initialPlacements],
-  );
+  const slots = useMemo(() => initialPlacements.map(({ x, y }) => ({ x, y })), [initialPlacements]);
 
-  const [persistedPlacements, setPersistedPlacements] =
-    useState<LayoutPlacement[]>(initialPlacements);
-  const [draftPlacements, setDraftPlacements] =
-    useState<LayoutPlacement[]>(initialPlacements);
-  const [persistedImage, setPersistedImage] =
-    useState<EquipmentImageMetadata | null>(equipment.image);
-  const [draftImage, setDraftImage] =
-    useState<EquipmentImageMetadata | null>(equipment.image);
-  const [history, setHistory] = useState<CommandHistory>(() =>
-    createEmptyHistory(),
-  );
+  const [persistedPlacements, setPersistedPlacements] = useState<LayoutPlacement[]>(initialPlacements);
+  const [draftPlacements, setDraftPlacements] = useState<LayoutPlacement[]>(initialPlacements);
+  const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(equipment.image);
+  const [draftImage, setDraftImage] = useState<EquipmentImageMetadata | null>(equipment.image);
+  const [history, setHistory] = useState<CommandHistory>(() => createEmptyHistory());
   const [snapMode, setSnapMode] = useState<SnapMode>("none");
   const [imageError, setImageError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [recoveryDraft, setRecoveryDraft] =
-    useState<LayoutDraftPayload | null>(null);
+  const [recoveryDraft, setRecoveryDraft] = useState<LayoutDraftPayload | null>(null);
   const [recoveryChecked, setRecoveryChecked] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -127,10 +113,7 @@ export function RefrigerationLayoutEditor({
   const storageRef = useRef<LayoutDraftStorage | null>(null);
   const initialPlacementsRef = useRef(initialPlacements);
 
-  const placementDirty = !placementsEqual(
-    draftPlacements,
-    persistedPlacements,
-  );
+  const placementDirty = !placementsEqual(draftPlacements, persistedPlacements);
   const imageDirty = !imagesEqual(draftImage, persistedImage);
   const dirty = placementDirty || imageDirty;
 
@@ -146,9 +129,7 @@ export function RefrigerationLayoutEditor({
     const storage = createBrowserLayoutDraftStorage(window.sessionStorage);
     storageRef.current = storage;
     const raw = storage.load(equipment.id);
-    const allowedSensorIds = new Set(
-      initialPlacementsRef.current.map((placement) => placement.sensorId),
-    );
+    const allowedSensorIds = new Set(initialPlacementsRef.current.map((placement) => placement.sensorId));
     const parsed = parseLayoutDraft(raw, equipment.id, allowedSensorIds);
 
     if (raw && !parsed) {
@@ -176,18 +157,9 @@ export function RefrigerationLayoutEditor({
 
     storageRef.current?.save(
       equipment.id,
-      serializeLayoutDraft(
-        createLayoutDraftPayload(equipment.id, draftPlacements),
-      ),
+      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, draftPlacements)),
     );
-  }, [
-    draftPlacements,
-    equipment.id,
-    mode,
-    placementDirty,
-    recoveryChecked,
-    recoveryDraft,
-  ]);
+  }, [draftPlacements, equipment.id, mode, placementDirty, recoveryChecked, recoveryDraft]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -205,10 +177,7 @@ export function RefrigerationLayoutEditor({
     if (mode !== "edit") return;
 
     const handleShortcut = (event: globalThis.KeyboardEvent) => {
-      if (
-        !(event.ctrlKey || event.metaKey) ||
-        event.key.toLowerCase() !== "z"
-      ) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") {
         return;
       }
 
@@ -235,10 +204,7 @@ export function RefrigerationLayoutEditor({
   );
 
   const placementBySensorId = useMemo(
-    () =>
-      new Map(
-        draftPlacements.map((placement) => [placement.sensorId, placement]),
-      ),
+    () => new Map(draftPlacements.map((placement) => [placement.sensorId, placement])),
     [draftPlacements],
   );
 
@@ -252,11 +218,7 @@ export function RefrigerationLayoutEditor({
     setHistory(nextHistory);
   }
 
-  function applyMovement(
-    sensorId: string,
-    point: NormalizedPoint,
-    before: NormalizedPoint,
-  ) {
+  function applyMovement(sensorId: string, point: NormalizedPoint, before: NormalizedPoint) {
     const after = applySnap(point, snapMode, {
       gridDivisions: 40,
       slots,
@@ -264,9 +226,7 @@ export function RefrigerationLayoutEditor({
 
     if (pointsEqual(before, after)) return;
 
-    setPlacements(
-      movePlacement(draftPlacementsRef.current, sensorId, after),
-    );
+    setPlacements(movePlacement(draftPlacementsRef.current, sensorId, after));
     setHistoryState(
       pushHistory(historyRef.current, {
         type: "move-placement",
@@ -278,15 +238,10 @@ export function RefrigerationLayoutEditor({
     setSaveMessage(null);
   }
 
-  function handleMarkerKeyDown(
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
+  function handleMarkerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) {
     if (mode !== "edit") return;
 
-    const placement = draftPlacementsRef.current.find(
-      (item) => item.sensorId === sensorId,
-    );
+    const placement = draftPlacementsRef.current.find((item) => item.sensorId === sensorId);
     if (!placement) return;
 
     const step = event.shiftKey ? 0.02 : 0.005;
@@ -304,21 +259,12 @@ export function RefrigerationLayoutEditor({
     );
   }
 
-  function handleMarkerPointerDown(
-    event: ReactPointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) {
+  function handleMarkerPointerDown(event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) {
     onSelect(sensorId);
     if (mode !== "edit") return;
 
-    const placement = draftPlacementsRef.current.find(
-      (item) => item.sensorId === sensorId,
-    );
-    const pointerPoint = pointFromPointer(
-      event.clientX,
-      event.clientY,
-      stageRef.current,
-    );
+    const placement = draftPlacementsRef.current.find((item) => item.sensorId === sensorId);
+    const pointerPoint = pointFromPointer(event.clientX, event.clientY, stageRef.current);
     if (!placement || !pointerPoint) return;
 
     event.preventDefault();
@@ -334,19 +280,13 @@ export function RefrigerationLayoutEditor({
     };
   }
 
-  function handleMarkerPointerMove(
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) {
+  function handleMarkerPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId || mode !== "edit") {
       return;
     }
 
-    const pointerPoint = pointFromPointer(
-      event.clientX,
-      event.clientY,
-      stageRef.current,
-    );
+    const pointerPoint = pointFromPointer(event.clientX, event.clientY, stageRef.current);
     if (!pointerPoint) return;
 
     event.preventDefault();
@@ -361,13 +301,7 @@ export function RefrigerationLayoutEditor({
         slots,
       },
     );
-    setPlacements(
-      movePlacement(
-        draftPlacementsRef.current,
-        drag.sensorId,
-        nextPoint,
-      ),
-    );
+    setPlacements(movePlacement(draftPlacementsRef.current, drag.sensorId, nextPoint));
     setSaveMessage(null);
   }
 
@@ -379,9 +313,7 @@ export function RefrigerationLayoutEditor({
       event.currentTarget.releasePointerCapture?.(event.pointerId);
     }
 
-    const placement = draftPlacementsRef.current.find(
-      (item) => item.sensorId === drag.sensorId,
-    );
+    const placement = draftPlacementsRef.current.find((item) => item.sensorId === drag.sensorId);
     dragRef.current = null;
     if (!placement || pointsEqual(drag.before, placement)) return;
 
@@ -396,20 +328,14 @@ export function RefrigerationLayoutEditor({
   }
 
   function handleUndo() {
-    const result = undo(
-      draftPlacementsRef.current,
-      historyRef.current,
-    );
+    const result = undo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
     setHistoryState(result.history);
     setSaveMessage(null);
   }
 
   function handleRedo() {
-    const result = redo(
-      draftPlacementsRef.current,
-      historyRef.current,
-    );
+    const result = redo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
     setHistoryState(result.history);
     setSaveMessage(null);
@@ -446,9 +372,7 @@ export function RefrigerationLayoutEditor({
   function handleRestoreRecovery() {
     if (!recoveryDraft) return;
 
-    setPlacements(
-      recoveryDraft.placements.map((placement) => ({ ...placement })),
-    );
+    setPlacements(recoveryDraft.placements.map((placement) => ({ ...placement })));
     setHistoryState(createEmptyHistory());
     setRecoveryDraft(null);
     setSaveMessage("Відновлено незавершену чернетку");
@@ -497,17 +421,12 @@ export function RefrigerationLayoutEditor({
     setSaveMessage(null);
   }
 
-  function handleImageLoad(
-    event: React.SyntheticEvent<HTMLImageElement>,
-  ) {
+  function handleImageLoad(event: React.SyntheticEvent<HTMLImageElement>) {
     const widthPx = event.currentTarget.naturalWidth;
     const heightPx = event.currentTarget.naturalHeight;
 
     setDraftImage((current) => {
-      if (
-        !current ||
-        (current.widthPx === widthPx && current.heightPx === heightPx)
-      ) {
+      if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) {
         return current;
       }
       return { ...current, widthPx, heightPx };
@@ -528,9 +447,7 @@ export function RefrigerationLayoutEditor({
         <div className="mb-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-white">
-                Фото та схема розміщення
-              </h2>
+              <h2 className="text-sm font-semibold text-white">Фото та схема розміщення</h2>
               <span
                 className={clsx(
                   "rounded-full border px-2 py-1 text-[9px] font-medium",
@@ -539,9 +456,7 @@ export function RefrigerationLayoutEditor({
                     : "border-white/[0.08] bg-white/[0.03] text-slate-400",
                 )}
               >
-                {mode === "edit"
-                  ? "Режим редагування"
-                  : "Режим перегляду"}
+                {mode === "edit" ? "Режим редагування" : "Режим перегляду"}
               </span>
               {dirty ? (
                 <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-200">
@@ -550,8 +465,7 @@ export function RefrigerationLayoutEditor({
               ) : null}
             </div>
             <p className="mt-1 text-[11px] text-slate-500">
-              Перетягування, клавіші зі стрілками та нормалізовані координати
-              0..1
+              Перетягування, клавіші зі стрілками та нормалізовані координати 0..1
             </p>
           </div>
 
@@ -590,9 +504,7 @@ export function RefrigerationLayoutEditor({
                   <select
                     aria-label="Режим прив’язки"
                     value={snapMode}
-                    onChange={(event) =>
-                      setSnapMode(event.target.value as SnapMode)
-                    }
+                    onChange={(event) => setSnapMode(event.target.value as SnapMode)}
                     className="bg-transparent text-xs text-slate-300 outline-none"
                   >
                     <option value="none">Без прив’язки</option>
@@ -613,11 +525,7 @@ export function RefrigerationLayoutEditor({
                   disabled={history.future.length === 0}
                   onClick={handleRedo}
                 />
-                <ToolbarButton
-                  label="Скинути позиції"
-                  icon={RotateCcw}
-                  onClick={handleReset}
-                />
+                <ToolbarButton label="Скинути позиції" icon={RotateCcw} onClick={handleReset} />
                 <button
                   type="button"
                   onClick={handleSave}
@@ -700,20 +608,15 @@ export function RefrigerationLayoutEditor({
                 data-x={placement.x.toFixed(4)}
                 data-y={placement.y.toFixed(4)}
                 onClick={() => onSelect(sensor.id)}
-                onKeyDown={(event) =>
-                  handleMarkerKeyDown(event, sensor.id)
-                }
-                onPointerDown={(event) =>
-                  handleMarkerPointerDown(event, sensor.id)
-                }
+                onKeyDown={(event) => handleMarkerKeyDown(event, sensor.id)}
+                onPointerDown={(event) => handleMarkerPointerDown(event, sensor.id)}
                 onPointerMove={handleMarkerPointerMove}
                 onPointerUp={finishPointerDrag}
                 onPointerCancel={finishPointerDrag}
                 className={clsx(
                   "absolute z-10 min-w-10 -translate-x-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-center text-[8px] leading-tight font-bold backdrop-blur-sm transition focus:ring-2 focus:ring-cyan-300 focus:outline-none",
                   markerTone[sensor.status],
-                  sensor.id === selectedId &&
-                    "z-20 scale-110 ring-2 ring-white/80",
+                  sensor.id === selectedId && "z-20 scale-110 ring-2 ring-white/80",
                   mode === "edit"
                     ? "cursor-grab touch-none hover:z-20 hover:scale-110 active:cursor-grabbing"
                     : "cursor-pointer hover:z-20 hover:scale-110",
@@ -724,9 +627,7 @@ export function RefrigerationLayoutEditor({
                 }}
               >
                 <span className="block">{sensor.label}</span>
-                <span className="block font-semibold">
-                  {formatTemperature(sensor.temperatureC)}
-                </span>
+                <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
               </button>
             );
           })}
@@ -735,9 +636,7 @@ export function RefrigerationLayoutEditor({
             <span>
               {draftImage
                 ? `${draftImage.fileName} · ${formatFileSize(draftImage.sizeBytes)}${
-                    draftImage.widthPx > 0
-                      ? ` · ${draftImage.widthPx}×${draftImage.heightPx}`
-                      : ""
+                    draftImage.widthPx > 0 ? ` · ${draftImage.widthPx}×${draftImage.heightPx}` : ""
                   }`
                 : "Фото ще не завантажено"}
             </span>
@@ -767,12 +666,9 @@ function RecoveryBanner({
       <div className="flex items-start gap-3">
         <History className="mt-0.5 h-4 w-4 text-cyan-300" />
         <div>
-          <h2 className="text-sm font-semibold text-cyan-100">
-            Знайдено відновлювану чернетку
-          </h2>
+          <h2 className="text-sm font-semibold text-cyan-100">Знайдено відновлювану чернетку</h2>
           <p className="mt-1 text-xs text-cyan-100/60">
-            Збережено {formatRecoveryTime(savedAt)}. Відновлення не змінить
-            локально збережену схему.
+            Збережено {formatRecoveryTime(savedAt)}. Відновлення не змінить локально збережену схему.
           </p>
         </div>
       </div>
@@ -828,12 +724,9 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
           <ImageIcon className="h-7 w-7" />
         </div>
-        <p className="mt-4 text-sm font-medium text-slate-200">
-          Завантажте реальне фото вітрини
-        </p>
+        <p className="mt-4 text-sm font-medium text-slate-200">Завантажте реальне фото вітрини</p>
         <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
-          {equipmentName}: JPEG, PNG або WebP до 15 МБ. Розміщення датчиків
-          збережеться при заміні зображення.
+          {equipmentName}: JPEG, PNG або WebP до 15 МБ. Розміщення датчиків збережеться при заміні зображення.
         </p>
       </div>
     </div>
@@ -864,42 +757,24 @@ function arrowDelta(key: string, step: number): NormalizedPoint | null {
   return null;
 }
 
-function pointsEqual(
-  first: NormalizedPoint,
-  second: NormalizedPoint,
-): boolean {
-  return (
-    Math.abs(first.x - second.x) < 0.000001 &&
-    Math.abs(first.y - second.y) < 0.000001
-  );
+function pointsEqual(first: NormalizedPoint, second: NormalizedPoint): boolean {
+  return Math.abs(first.x - second.x) < 0.000001 && Math.abs(first.y - second.y) < 0.000001;
 }
 
-function placementsEqual(
-  first: readonly LayoutPlacement[],
-  second: readonly LayoutPlacement[],
-): boolean {
+function placementsEqual(first: readonly LayoutPlacement[], second: readonly LayoutPlacement[]): boolean {
   if (first.length !== second.length) return false;
 
-  const secondById = new Map(
-    second.map((placement) => [placement.sensorId, placement]),
-  );
+  const secondById = new Map(second.map((placement) => [placement.sensorId, placement]));
   return first.every((placement) => {
     const candidate = secondById.get(placement.sensorId);
     return candidate ? pointsEqual(placement, candidate) : false;
   });
 }
 
-function imagesEqual(
-  first: EquipmentImageMetadata | null,
-  second: EquipmentImageMetadata | null,
-): boolean {
+function imagesEqual(first: EquipmentImageMetadata | null, second: EquipmentImageMetadata | null): boolean {
   if (first === second) return true;
   if (!first || !second) return false;
-  return (
-    first.id === second.id &&
-    first.sourceUrl === second.sourceUrl &&
-    first.fileName === second.fileName
-  );
+  return first.id === second.id && first.sourceUrl === second.sourceUrl && first.fileName === second.fileName;
 }
 
 function formatTemperature(temperatureC: number | null): string {
