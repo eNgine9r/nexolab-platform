@@ -62,9 +62,7 @@ export type LayoutRepositoryError =
       revisionId: string;
     };
 
-export type RepositoryResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: LayoutRepositoryError };
+export type RepositoryResult<T> = { ok: true; value: T } | { ok: false; error: LayoutRepositoryError };
 
 export type SaveLayoutDraftInput = {
   equipmentId: string;
@@ -93,29 +91,17 @@ export type UploadEquipmentImageInput = {
 
 export interface RefrigerationLayoutRepository {
   getDraft(equipmentId: string): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
-  getPublished(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision | null>>;
-  saveDraft(
-    input: SaveLayoutDraftInput,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
-  publishDraft(
-    input: PublishLayoutDraftInput,
-  ): Promise<
+  getPublished(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision | null>>;
+  saveDraft(input: SaveLayoutDraftInput): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
+  publishDraft(input: PublishLayoutDraftInput): Promise<
     RepositoryResult<{
       draft: RefrigerationLayoutDraft;
       published: PublishedLayoutRevision;
     }>
   >;
-  listHistory(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision[]>>;
-  restoreRevision(
-    input: RestoreLayoutRevisionInput,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
-  uploadImage(
-    input: UploadEquipmentImageInput,
-  ): Promise<RepositoryResult<EquipmentImageMetadata>>;
+  listHistory(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision[]>>;
+  restoreRevision(input: RestoreLayoutRevisionInput): Promise<RepositoryResult<RefrigerationLayoutDraft>>;
+  uploadImage(input: UploadEquipmentImageInput): Promise<RepositoryResult<EquipmentImageMetadata>>;
 }
 
 type LayoutAggregate = {
@@ -131,9 +117,7 @@ type InMemoryRepositoryOptions = {
   createImageId?: () => string;
 };
 
-export class InMemoryRefrigerationLayoutRepository
-  implements RefrigerationLayoutRepository
-{
+export class InMemoryRefrigerationLayoutRepository implements RefrigerationLayoutRepository {
   private readonly aggregates = new Map<string, LayoutAggregate>();
   private readonly images = new Map<string, EquipmentImageMetadata>();
   private readonly now: () => string;
@@ -157,9 +141,7 @@ export class InMemoryRefrigerationLayoutRepository
     }
   }
 
-  async getDraft(
-    equipmentId: string,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
+  async getDraft(equipmentId: string): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
     const aggregate = this.aggregates.get(equipmentId);
 
     if (!aggregate) {
@@ -169,9 +151,7 @@ export class InMemoryRefrigerationLayoutRepository
     return success(cloneDraft(aggregate.draft));
   }
 
-  async getPublished(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
+  async getPublished(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision | null>> {
     const aggregate = this.aggregates.get(equipmentId);
 
     if (!aggregate) {
@@ -179,28 +159,20 @@ export class InMemoryRefrigerationLayoutRepository
     }
 
     const published = aggregate.activePublishedRevisionId
-      ? (aggregate.revisions.find(
-          (revision) => revision.id === aggregate.activePublishedRevisionId,
-        ) ?? null)
+      ? (aggregate.revisions.find((revision) => revision.id === aggregate.activePublishedRevisionId) ?? null)
       : null;
 
     return success(published ? cloneRevision(published) : null);
   }
 
-  async saveDraft(
-    input: SaveLayoutDraftInput,
-  ): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
+  async saveDraft(input: SaveLayoutDraftInput): Promise<RepositoryResult<RefrigerationLayoutDraft>> {
     const aggregate = this.aggregates.get(input.equipmentId);
 
     if (!aggregate) {
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
     const issues = validatePlacements(input.placements, false, input.imageId);
@@ -209,12 +181,7 @@ export class InMemoryRefrigerationLayoutRepository
     }
 
     const updatedAt = this.now();
-    const image = resolveImage(
-      this.images,
-      input.imageId,
-      aggregate.draft.image,
-      updatedAt,
-    );
+    const image = resolveImage(this.images, input.imageId, aggregate.draft.image, updatedAt);
     aggregate.draft = {
       ...aggregate.draft,
       version: aggregate.draft.version + 1,
@@ -228,9 +195,7 @@ export class InMemoryRefrigerationLayoutRepository
     return success(cloneDraft(aggregate.draft));
   }
 
-  async publishDraft(
-    input: PublishLayoutDraftInput,
-  ): Promise<
+  async publishDraft(input: PublishLayoutDraftInput): Promise<
     RepositoryResult<{
       draft: RefrigerationLayoutDraft;
       published: PublishedLayoutRevision;
@@ -242,18 +207,10 @@ export class InMemoryRefrigerationLayoutRepository
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
-    const issues = validatePlacements(
-      aggregate.draft.placements,
-      true,
-      aggregate.draft.imageId,
-    );
+    const issues = validatePlacements(aggregate.draft.placements, true, aggregate.draft.imageId);
     if (issues.length > 0) {
       return validationFailed(input.equipmentId, issues);
     }
@@ -261,11 +218,7 @@ export class InMemoryRefrigerationLayoutRepository
     const publishedAt = this.now();
     const image =
       aggregate.draft.image ??
-      syntheticImage(
-        aggregate.draft.imageId as string,
-        input.equipmentId,
-        publishedAt,
-      );
+      syntheticImage(aggregate.draft.imageId as string, input.equipmentId, publishedAt);
     this.images.set(image.id, cloneImage(image));
     const published: PublishedLayoutRevision = {
       id: this.createId(),
@@ -296,9 +249,7 @@ export class InMemoryRefrigerationLayoutRepository
     });
   }
 
-  async listHistory(
-    equipmentId: string,
-  ): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
+  async listHistory(equipmentId: string): Promise<RepositoryResult<PublishedLayoutRevision[]>> {
     const aggregate = this.aggregates.get(equipmentId);
 
     if (!aggregate) {
@@ -306,9 +257,7 @@ export class InMemoryRefrigerationLayoutRepository
     }
 
     return success(
-      aggregate.revisions
-        .map(cloneRevision)
-        .sort((first, second) => second.revision - first.revision),
+      aggregate.revisions.map(cloneRevision).sort((first, second) => second.revision - first.revision),
     );
   }
 
@@ -321,16 +270,10 @@ export class InMemoryRefrigerationLayoutRepository
       return notFound(input.equipmentId);
     }
 
-    const conflict = checkVersion(
-      aggregate.draft,
-      input.equipmentId,
-      input.expectedVersion,
-    );
+    const conflict = checkVersion(aggregate.draft, input.equipmentId, input.expectedVersion);
     if (conflict) return conflict;
 
-    const revision = aggregate.revisions.find(
-      (candidate) => candidate.id === input.revisionId,
-    );
+    const revision = aggregate.revisions.find((candidate) => candidate.id === input.revisionId);
 
     if (!revision) {
       return {
@@ -356,9 +299,7 @@ export class InMemoryRefrigerationLayoutRepository
     return success(cloneDraft(aggregate.draft));
   }
 
-  async uploadImage(
-    input: UploadEquipmentImageInput,
-  ): Promise<RepositoryResult<EquipmentImageMetadata>> {
+  async uploadImage(input: UploadEquipmentImageInput): Promise<RepositoryResult<EquipmentImageMetadata>> {
     const timestamp = this.now();
     const image: EquipmentImageMetadata = {
       id: this.createImageId(),
@@ -419,10 +360,7 @@ export function validatePlacements(
     }
     seenSensorIds.add(sensorId);
 
-    if (
-      !isNormalizedCoordinate(placement.x) ||
-      !isNormalizedCoordinate(placement.y)
-    ) {
+    if (!isNormalizedCoordinate(placement.x) || !isNormalizedCoordinate(placement.y)) {
       issues.push({
         code: "INVALID_COORDINATE",
         message: `Sensor ${sensorId} has coordinates outside the normalized range.`,
@@ -499,10 +437,7 @@ function notFound<T>(equipmentId: string): RepositoryResult<T> {
   };
 }
 
-function validationFailed<T>(
-  equipmentId: string,
-  issues: LayoutValidationIssue[],
-): RepositoryResult<T> {
+function validationFailed<T>(equipmentId: string, issues: LayoutValidationIssue[]): RepositoryResult<T> {
   return {
     ok: false,
     error: {
@@ -517,9 +452,7 @@ function success<T>(value: T): RepositoryResult<T> {
   return { ok: true, value };
 }
 
-function cloneDraft(
-  draft: RefrigerationLayoutDraft,
-): RefrigerationLayoutDraft {
+function cloneDraft(draft: RefrigerationLayoutDraft): RefrigerationLayoutDraft {
   return {
     ...draft,
     image: draft.image ? cloneImage(draft.image) : null,
@@ -527,9 +460,7 @@ function cloneDraft(
   };
 }
 
-function cloneRevision(
-  revision: PublishedLayoutRevision,
-): PublishedLayoutRevision {
+function cloneRevision(revision: PublishedLayoutRevision): PublishedLayoutRevision {
   return {
     ...revision,
     image: cloneImage(revision.image),
@@ -541,9 +472,7 @@ function cloneImage(image: EquipmentImageMetadata): EquipmentImageMetadata {
   return { ...image };
 }
 
-function clonePlacements(
-  placements: readonly LayoutPlacement[],
-): LayoutPlacement[] {
+function clonePlacements(placements: readonly LayoutPlacement[]): LayoutPlacement[] {
   return placements.map((placement) => ({ ...placement }));
 }
 
@@ -556,16 +485,10 @@ function resolveImage(
   if (!imageId) return null;
   if (current?.id === imageId) return cloneImage(current);
   const stored = images.get(imageId);
-  return stored
-    ? cloneImage(stored)
-    : syntheticImage(imageId, "equipment", timestamp);
+  return stored ? cloneImage(stored) : syntheticImage(imageId, "equipment", timestamp);
 }
 
-function syntheticImage(
-  imageId: string,
-  equipmentId: string,
-  timestamp: string,
-): EquipmentImageMetadata {
+function syntheticImage(imageId: string, equipmentId: string, timestamp: string): EquipmentImageMetadata {
   return {
     id: imageId,
     fileName: `${imageId}.jpg`,
