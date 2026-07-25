@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     auth_mode: Literal["disabled", "jwt"] = "disabled"
     auth_default_organization_id: str = "00000000-0000-0000-0000-000000000001"
     auth_jwt_public_key: str | None = None
+    auth_jwt_jwks_url: str | None = None
     auth_jwt_algorithm: str = "RS256"
     auth_jwt_issuer: str | None = None
     auth_jwt_audience: str | None = None
