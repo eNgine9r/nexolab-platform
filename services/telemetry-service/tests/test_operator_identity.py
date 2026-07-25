@@ -25,7 +25,7 @@ def test_tailscale_mode_uses_proxy_identity_and_ignores_client_actor() -> None:
     identity = resolver.resolve(
         {
             "tailscale-user-login": "operator@example.com",
-            "tailscale-user-name": "=?utf-8?q?Оператор_НЕКСОЛАБ?=",
+            "tailscale-user-name": "=?utf-8?b?0J7Qv9C10YDQsNGC0L7RgCDQndCV0JrQodCe0JvQkNCR?=",
         },
         client_actor_id="spoofed-browser-actor",
     )
