@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
@@ -17,7 +17,7 @@ def create_security_router(
 
     @router.get("/auth/session")
     def auth_session(
-        session: Annotated[SecuritySession, Depends(dependencies.current_session)],
+        session: SecuritySession = Depends(dependencies.current_session),
     ) -> dict[str, Any]:
         return {
             "authenticated": True,
@@ -45,13 +45,12 @@ def create_security_router(
 
     @router.get("/audit/events")
     def audit_events(
-        authorized: Annotated[
-            AuthorizedRequest,
-            Depends(dependencies.authorized_request(Permission.READ_AUDIT)),
-        ],
-        limit: Annotated[int, Query(ge=1, le=500)] = 100,
-        entity_type: Annotated[str | None, Query(max_length=128)] = None,
-        entity_id: Annotated[str | None, Query(max_length=255)] = None,
+        authorized: AuthorizedRequest = Depends(
+            dependencies.authorized_request(Permission.READ_AUDIT)
+        ),
+        limit: int = Query(default=100, ge=1, le=500),
+        entity_type: str | None = Query(default=None, max_length=128),
+        entity_id: str | None = Query(default=None, max_length=255),
     ) -> dict[str, Any]:
         rows = repository.list_audit_events(
             organization_id=authorized.principal.organization_id,
