@@ -6,9 +6,10 @@ from io import BytesIO
 from pathlib import PurePath
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Header, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, File, Header, HTTPException, Request, Response, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
+from app.operator_identity import OperatorIdentityRequiredError, OperatorIdentityResolver
 from app.refrigeration.models import EquipmentImage, RefrigerationLayoutDraft, RefrigerationLayoutRevision
 from app.refrigeration.repository import (
     LayoutImageNotFoundError,
@@ -46,8 +47,10 @@ def create_refrigeration_router(
     *,
     image_max_bytes: int,
     signed_url_seconds: int,
+    operator_identity: OperatorIdentityResolver | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/equipment", tags=["refrigeration-layouts"])
+    identity_resolver = operator_identity or OperatorIdentityResolver()
 
     @router.get(
         "/{equipment_id}/layout/draft",
@@ -87,20 +90,26 @@ def create_refrigeration_router(
         "/{equipment_id}/layout/publish",
         response_model=LayoutMutationResponse,
         status_code=status.HTTP_201_CREATED,
-        responses={409: {"model": ApiErrorResponse}, 422: {"model": ApiErrorResponse}},
+        responses={
+            401: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+        },
     )
     def publish_layout(
         equipment_id: str,
         payload: PublishLayoutRequest,
+        request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
     ) -> LayoutMutationResponse:
         expected = _parse_if_match(if_match)
+        actor_id = _resolve_actor_id(identity_resolver, request, payload.actor_id)
         try:
             result = repository.publish(
                 equipment_id=equipment_id,
                 expected_version=expected,
-                actor_id=payload.actor_id,
+                actor_id=actor_id,
             )
         except LayoutRepositoryError as error:
             raise _repository_http_error(error) from error
@@ -163,13 +172,19 @@ def create_refrigeration_router(
         "/{equipment_id}/images",
         response_model=EquipmentImageResponse,
         status_code=status.HTTP_201_CREATED,
-        responses={413: {"model": ApiErrorResponse}, 415: {"model": ApiErrorResponse}},
+        responses={
+            401: {"model": ApiErrorResponse},
+            413: {"model": ApiErrorResponse},
+            415: {"model": ApiErrorResponse},
+        },
     )
     async def upload_image(
         equipment_id: str,
+        request: Request,
         file: UploadFile = File(...),
-        actor_id: str = Header(alias="X-Actor-Id", min_length=1, max_length=128),
+        actor_id: str | None = Header(default=None, alias="X-Actor-Id", max_length=128),
     ) -> EquipmentImageResponse:
+        resolved_actor_id = _resolve_actor_id(identity_resolver, request, actor_id)
         content = await file.read(image_max_bytes + 1)
         if len(content) > image_max_bytes:
             raise _api_http_error(413, "image_too_large", "equipment image exceeds the configured limit")
@@ -198,7 +213,7 @@ def create_refrigeration_router(
                 height_px=height_px,
                 checksum_sha256=checksum,
                 object_etag=stored.etag,
-                created_by=actor_id,
+                created_by=resolved_actor_id,
             )
         except Exception:
             try:
@@ -208,6 +223,17 @@ def create_refrigeration_router(
         return _image_response(storage, image, signed_url_seconds)
 
     return router
+
+
+def _resolve_actor_id(
+    resolver: OperatorIdentityResolver,
+    request: Request,
+    client_actor_id: str | None,
+) -> str:
+    try:
+        return resolver.resolve(request.headers, client_actor_id=client_actor_id).actor_id
+    except OperatorIdentityRequiredError as error:
+        raise _api_http_error(401, error.code, str(error)) from error
 
 
 def _inspect_image(content: bytes, declared_media_type: str | None) -> tuple[str, str, int, int]:
