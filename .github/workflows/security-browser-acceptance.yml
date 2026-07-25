@@ -1,0 +1,70 @@
+name: Security Browser Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/security-browser-acceptance.yml"
+      - "docs/security/**"
+      - "e2e/security-rbac.production.e2e.ts"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/.env.central.example"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.security.config.ts"
+      - "scripts/run-security-browser-acceptance.sh"
+      - "services/telemetry-service/app/api.py"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/app/model_registry.py"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/app/security/**"
+      - "services/telemetry-service/app/sessions/**"
+      - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/requirements.txt"
+      - "src/app/login/**"
+      - "src/components/refrigeration/refrigeration-detail-screen.tsx"
+      - "src/components/refrigeration/security-aware-layout-workspace.tsx"
+      - "src/features/refrigeration/layout-repository-runtime.ts"
+      - "src/features/security/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-browser-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: JWT, RBAC and immutable audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-security-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_SECURITY_EVIDENCE_DIR: security-acceptance-evidence
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run controlled security acceptance
+        run: bash scripts/run-security-browser-acceptance.sh
+
+      - name: Upload security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-browser-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: security-acceptance-evidence
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Iterable
 from uuid import uuid4
@@ -15,6 +15,9 @@ from app.refrigeration.models import (
     RefrigerationLayoutRevision,
 )
 from app.refrigeration.schemas import SensorPlacementPayload
+from app.security.repository import AuditEventInput, SecurityRepository
+
+DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 
 
 class LayoutRepositoryError(RuntimeError):
@@ -62,18 +65,27 @@ class PostgresRefrigerationLayoutRepository:
     def __init__(self, database: Database) -> None:
         self._engine = database.engine
 
-    def get_or_create_draft(self, equipment_id: str) -> RefrigerationLayoutDraft:
+    def get_or_create_draft(
+        self,
+        equipment_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> RefrigerationLayoutDraft:
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
                 draft = session.scalar(
                     select(RefrigerationLayoutDraft)
-                    .where(RefrigerationLayoutDraft.equipment_id == equipment_id)
+                    .where(
+                        RefrigerationLayoutDraft.organization_id == organization_id,
+                        RefrigerationLayoutDraft.equipment_id == equipment_id,
+                    )
                     .with_for_update()
                 )
                 if draft is None:
                     now = datetime.now(UTC)
                     draft = RefrigerationLayoutDraft(
                         id=str(uuid4()),
+                        organization_id=organization_id,
                         equipment_id=equipment_id,
                         version=1,
                         image_id=None,
@@ -85,11 +97,17 @@ class PostgresRefrigerationLayoutRepository:
             session.expunge(draft)
             return draft
 
-    def get_draft(self, equipment_id: str) -> RefrigerationLayoutDraft:
+    def get_draft(
+        self,
+        equipment_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> RefrigerationLayoutDraft:
         with Session(self._engine, expire_on_commit=False) as session:
             draft = session.scalar(
                 select(RefrigerationLayoutDraft).where(
-                    RefrigerationLayoutDraft.equipment_id == equipment_id
+                    RefrigerationLayoutDraft.organization_id == organization_id,
+                    RefrigerationLayoutDraft.equipment_id == equipment_id,
                 )
             )
             if draft is None:
@@ -104,19 +122,30 @@ class PostgresRefrigerationLayoutRepository:
         expected_version: int,
         image_id: str | None,
         placements: Iterable[SensorPlacementPayload | dict[str, Any]],
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
     ) -> RefrigerationLayoutDraft:
         normalized = _validated_placements(placements, require_non_empty=False)
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                draft = self._locked_draft(session, equipment_id)
+                draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
+                before = _draft_snapshot(draft)
                 if image_id is not None:
-                    self._require_image(session, equipment_id, image_id)
+                    self._require_image(session, organization_id, equipment_id, image_id)
                 draft.image_id = image_id
                 draft.placements = normalized
                 draft.version += 1
                 draft.updated_at = now
+                self._append_audit(
+                    session,
+                    audit_repository,
+                    audit_event,
+                    before=before,
+                    after=_draft_snapshot(draft),
+                )
             session.expunge(draft)
             return draft
 
@@ -126,26 +155,37 @@ class PostgresRefrigerationLayoutRepository:
         equipment_id: str,
         expected_version: int,
         actor_id: str,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
     ) -> PublishedLayoutResult:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                draft = self._locked_draft(session, equipment_id)
+                draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
+                before = _draft_snapshot(draft)
                 placements = _validated_raw_placements(draft.placements, require_non_empty=True)
                 if draft.image_id is None:
                     raise LayoutValidationError(["image_required"])
-                self._require_image(session, equipment_id, draft.image_id)
+                self._require_image(
+                    session,
+                    organization_id,
+                    equipment_id,
+                    draft.image_id,
+                )
                 next_revision = int(
                     session.scalar(
                         select(func.max(RefrigerationLayoutRevision.revision)).where(
-                            RefrigerationLayoutRevision.equipment_id == equipment_id
+                            RefrigerationLayoutRevision.organization_id == organization_id,
+                            RefrigerationLayoutRevision.equipment_id == equipment_id,
                         )
                     )
                     or 0
                 ) + 1
                 revision = RefrigerationLayoutRevision(
                     id=str(uuid4()),
+                    organization_id=organization_id,
                     equipment_id=equipment_id,
                     revision=next_revision,
                     source_draft_version=draft.version,
@@ -157,15 +197,33 @@ class PostgresRefrigerationLayoutRepository:
                 session.add(revision)
                 draft.version += 1
                 draft.updated_at = now
+                self._append_audit(
+                    session,
+                    audit_repository,
+                    audit_event,
+                    before=before,
+                    after={
+                        "draft": _draft_snapshot(draft),
+                        "published": _revision_snapshot(revision),
+                    },
+                )
             session.expunge(draft)
             session.expunge(revision)
             return PublishedLayoutResult(draft=draft, published=revision)
 
-    def get_published(self, equipment_id: str) -> RefrigerationLayoutRevision | None:
+    def get_published(
+        self,
+        equipment_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> RefrigerationLayoutRevision | None:
         with Session(self._engine, expire_on_commit=False) as session:
             revision = session.scalar(
                 select(RefrigerationLayoutRevision)
-                .where(RefrigerationLayoutRevision.equipment_id == equipment_id)
+                .where(
+                    RefrigerationLayoutRevision.organization_id == organization_id,
+                    RefrigerationLayoutRevision.equipment_id == equipment_id,
+                )
                 .order_by(RefrigerationLayoutRevision.revision.desc())
                 .limit(1)
             )
@@ -173,12 +231,20 @@ class PostgresRefrigerationLayoutRepository:
                 session.expunge(revision)
             return revision
 
-    def list_history(self, equipment_id: str) -> list[RefrigerationLayoutRevision]:
+    def list_history(
+        self,
+        equipment_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> list[RefrigerationLayoutRevision]:
         with Session(self._engine, expire_on_commit=False) as session:
             items = list(
                 session.scalars(
                     select(RefrigerationLayoutRevision)
-                    .where(RefrigerationLayoutRevision.equipment_id == equipment_id)
+                    .where(
+                        RefrigerationLayoutRevision.organization_id == organization_id,
+                        RefrigerationLayoutRevision.equipment_id == equipment_id,
+                    )
                     .order_by(RefrigerationLayoutRevision.revision.desc())
                 )
             )
@@ -192,15 +258,20 @@ class PostgresRefrigerationLayoutRepository:
         equipment_id: str,
         revision_id: str,
         expected_version: int,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
     ) -> RefrigerationLayoutDraft:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                draft = self._locked_draft(session, equipment_id)
+                draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
+                before = _draft_snapshot(draft)
                 revision = session.scalar(
                     select(RefrigerationLayoutRevision).where(
                         RefrigerationLayoutRevision.id == revision_id,
+                        RefrigerationLayoutRevision.organization_id == organization_id,
                         RefrigerationLayoutRevision.equipment_id == equipment_id,
                     )
                 )
@@ -212,6 +283,17 @@ class PostgresRefrigerationLayoutRepository:
                 draft.placements = [dict(item) for item in revision.placements]
                 draft.version += 1
                 draft.updated_at = now
+                self._append_audit(
+                    session,
+                    audit_repository,
+                    audit_event,
+                    before=before,
+                    after={
+                        **_draft_snapshot(draft),
+                        "restored_revision_id": revision.id,
+                        "restored_revision": revision.revision,
+                    },
+                )
             session.expunge(draft)
             return draft
 
@@ -229,9 +311,13 @@ class PostgresRefrigerationLayoutRepository:
         checksum_sha256: str,
         object_etag: str | None,
         created_by: str,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
     ) -> EquipmentImage:
         record = EquipmentImage(
             id=image_id,
+            organization_id=organization_id,
             equipment_id=equipment_id,
             storage_key=storage_key,
             original_filename=original_filename,
@@ -245,16 +331,30 @@ class PostgresRefrigerationLayoutRepository:
             created_at=datetime.now(UTC),
         )
         with Session(self._engine, expire_on_commit=False) as session:
-            session.add(record)
-            session.commit()
+            with session.begin():
+                session.add(record)
+                self._append_audit(
+                    session,
+                    audit_repository,
+                    audit_event,
+                    before=None,
+                    after=_image_snapshot(record),
+                )
             session.expunge(record)
         return record
 
-    def get_image(self, equipment_id: str, image_id: str) -> EquipmentImage:
+    def get_image(
+        self,
+        equipment_id: str,
+        image_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> EquipmentImage:
         with Session(self._engine, expire_on_commit=False) as session:
             image = session.scalar(
                 select(EquipmentImage).where(
                     EquipmentImage.id == image_id,
+                    EquipmentImage.organization_id == organization_id,
                     EquipmentImage.equipment_id == equipment_id,
                 )
             )
@@ -263,10 +363,18 @@ class PostgresRefrigerationLayoutRepository:
             session.expunge(image)
             return image
 
-    def _locked_draft(self, session: Session, equipment_id: str) -> RefrigerationLayoutDraft:
+    def _locked_draft(
+        self,
+        session: Session,
+        organization_id: str,
+        equipment_id: str,
+    ) -> RefrigerationLayoutDraft:
         draft = session.scalar(
             select(RefrigerationLayoutDraft)
-            .where(RefrigerationLayoutDraft.equipment_id == equipment_id)
+            .where(
+                RefrigerationLayoutDraft.organization_id == organization_id,
+                RefrigerationLayoutDraft.equipment_id == equipment_id,
+            )
             .with_for_update()
         )
         if draft is None:
@@ -282,16 +390,84 @@ class PostgresRefrigerationLayoutRepository:
             )
 
     @staticmethod
-    def _require_image(session: Session, equipment_id: str, image_id: str) -> EquipmentImage:
+    def _require_image(
+        session: Session,
+        organization_id: str,
+        equipment_id: str,
+        image_id: str,
+    ) -> EquipmentImage:
         image = session.scalar(
             select(EquipmentImage).where(
                 EquipmentImage.id == image_id,
+                EquipmentImage.organization_id == organization_id,
                 EquipmentImage.equipment_id == equipment_id,
             )
         )
         if image is None:
             raise LayoutImageNotFoundError(f"image {image_id!r} was not found")
         return image
+
+    @staticmethod
+    def _append_audit(
+        session: Session,
+        audit_repository: SecurityRepository | None,
+        audit_event: AuditEventInput | None,
+        *,
+        before: dict[str, Any] | None,
+        after: dict[str, Any] | None,
+    ) -> None:
+        if audit_repository is None or audit_event is None:
+            return
+        audit_repository.append_audit_event(
+            replace(
+                audit_event,
+                before_snapshot=before,
+                after_snapshot=after,
+            ),
+            session=session,
+        )
+
+
+def _draft_snapshot(draft: RefrigerationLayoutDraft) -> dict[str, Any]:
+    return {
+        "id": draft.id,
+        "organization_id": draft.organization_id,
+        "equipment_id": draft.equipment_id,
+        "version": draft.version,
+        "image_id": draft.image_id,
+        "placements": [dict(item) for item in draft.placements],
+        "updated_at": draft.updated_at.isoformat(),
+    }
+
+
+def _revision_snapshot(revision: RefrigerationLayoutRevision) -> dict[str, Any]:
+    return {
+        "id": revision.id,
+        "organization_id": revision.organization_id,
+        "equipment_id": revision.equipment_id,
+        "revision": revision.revision,
+        "source_draft_version": revision.source_draft_version,
+        "image_id": revision.image_id,
+        "placements": [dict(item) for item in revision.placements],
+        "published_by": revision.published_by,
+        "published_at": revision.published_at.isoformat(),
+    }
+
+
+def _image_snapshot(image: EquipmentImage) -> dict[str, Any]:
+    return {
+        "id": image.id,
+        "organization_id": image.organization_id,
+        "equipment_id": image.equipment_id,
+        "original_filename": image.original_filename,
+        "media_type": image.media_type,
+        "size_bytes": image.size_bytes,
+        "width_px": image.width_px,
+        "height_px": image.height_px,
+        "checksum_sha256": image.checksum_sha256,
+        "created_by": image.created_by,
+        "created_at": image.created_at.isoformat(),
+    }
 
 
 def _validated_placements(

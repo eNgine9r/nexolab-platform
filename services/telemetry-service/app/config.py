@@ -53,6 +53,15 @@ class Settings(BaseSettings):
     )
     equipment_image_signed_url_seconds: int = Field(default=900, ge=60, le=86_400)
 
+    auth_mode: Literal["disabled", "jwt"] = "disabled"
+    auth_default_organization_id: str = "00000000-0000-0000-0000-000000000001"
+    auth_jwt_public_key: str | None = None
+    auth_jwt_jwks_url: str | None = None
+    auth_jwt_algorithm: str = "RS256"
+    auth_jwt_issuer: str | None = None
+    auth_jwt_audience: str | None = None
+    auth_jwt_provider: str = "oidc"
+
     cors_allowed_origins: str = ""
     cors_allow_credentials: bool = False
 
@@ -75,3 +84,9 @@ class Settings(BaseSettings):
             for origin in self.cors_allowed_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def resolved_auth_jwt_public_key(self) -> str | None:
+        if self.auth_jwt_public_key is None:
+            return None
+        return self.auth_jwt_public_key.replace("\\n", "\n")

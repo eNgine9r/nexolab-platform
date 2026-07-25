@@ -2,14 +2,17 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
-import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
+import {
+  SecurityAwareRefrigerationLayoutWorkspace,
+  type LayoutCapabilities,
+} from "@/components/refrigeration/security-aware-layout-workspace";
 import type { EquipmentStatus, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
@@ -43,6 +46,15 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
   const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
+  const [layoutCapabilities, setLayoutCapabilities] = useState<LayoutCapabilities>({
+    canEdit: false,
+    canPublish: false,
+    canRestore: false,
+  });
+
+  const handleCapabilitiesChange = useCallback((capabilities: LayoutCapabilities) => {
+    setLayoutCapabilities(capabilities);
+  }, []);
 
   const visibleSensors = useMemo(
     () =>
@@ -105,15 +117,17 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     <Filter className="h-3.5 w-3.5" />
                     Експорт
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setLayoutMode("edit")}
-                    disabled={layoutMode === "edit"}
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-default disabled:opacity-60"
-                  >
-                    <Edit3 className="h-3.5 w-3.5" />
-                    {layoutMode === "edit" ? "Редагування активне" : "Редагувати схему"}
-                  </button>
+                  {layoutCapabilities.canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => setLayoutMode("edit")}
+                      disabled={layoutMode === "edit"}
+                      className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-default disabled:opacity-60"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      {layoutMode === "edit" ? "Редагування активне" : "Редагувати схему"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </header>
@@ -194,13 +208,14 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   </div>
                 </div>
 
-                <RefrigerationLayoutWorkspace
+                <SecurityAwareRefrigerationLayoutWorkspace
                   equipment={equipment}
                   visibleSensors={visibleSensors}
                   selectedId={activeSelectedId}
                   mode={layoutMode}
                   onModeChange={setLayoutMode}
                   onSelect={setSelectedId}
+                  onCapabilitiesChange={handleCapabilitiesChange}
                 />
 
                 <div className="grid gap-3 md:grid-cols-4">

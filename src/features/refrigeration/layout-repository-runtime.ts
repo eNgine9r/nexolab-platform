@@ -1,5 +1,11 @@
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import {
+  createAuthenticatedFetch,
+  HttpSecuritySessionClient,
+  type SecurityCredentialProvider,
+} from "@/features/security/security-session";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { HttpRefrigerationLayoutRepository } from "./http-layout-repository";
 import {
@@ -11,6 +17,8 @@ import {
 export type RefrigerationLayoutRuntime = {
   mode: "demo" | "live";
   repository: RefrigerationLayoutRepository | null;
+  sessionClient: HttpSecuritySessionClient | null;
+  organizationId: string | null;
   actorId: string;
   error: string | null;
 };
@@ -18,6 +26,8 @@ export type RefrigerationLayoutRuntime = {
 export type RefrigerationLayoutRuntimeInput = {
   equipment: RefrigerationEquipment;
   fetchImpl?: typeof fetch;
+  credentialProvider?: SecurityCredentialProvider;
+  organizationId?: string;
   actorId?: string;
   mode?: string;
   apiBaseUrl?: string;
@@ -34,12 +44,23 @@ export function createRefrigerationLayoutRuntime(
   try {
     const config = getTelemetryRuntimeConfigFromInput(input);
     if (config.mode === "live") {
+      const organizationId = normalizeOrganizationId(
+        input.organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID,
+      );
+      const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
+      const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
+      const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
       return {
         mode: "live",
         repository: new HttpRefrigerationLayoutRepository({
           apiBaseUrl: config.apiBaseUrl,
-          fetchImpl: input.fetchImpl ?? fetch.bind(globalThis),
+          fetchImpl: authenticatedFetch,
         }),
+        sessionClient: new HttpSecuritySessionClient({
+          apiBaseUrl: config.apiBaseUrl,
+          fetchImpl: authenticatedFetch,
+        }),
+        organizationId,
         actorId,
         error: null,
       };
@@ -63,6 +84,8 @@ export function createRefrigerationLayoutRuntime(
           }),
         ],
       }),
+      sessionClient: null,
+      organizationId: null,
       actorId,
       error: null,
     };
@@ -70,6 +93,8 @@ export function createRefrigerationLayoutRuntime(
     return {
       mode: input.mode === "live" ? "live" : "demo",
       repository: null,
+      sessionClient: null,
+      organizationId: null,
       actorId,
       error: error instanceof Error ? error.message : "Не вдалося налаштувати сховище схем обладнання.",
     };
@@ -108,4 +133,9 @@ function getTelemetryRuntimeConfigFromInput(
 function normalizeActorId(value: string | undefined): string {
   const normalized = value?.trim() || "dashboard-operator";
   return normalized.slice(0, 128);
+}
+
+function normalizeOrganizationId(value: string | undefined): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized.slice(0, 128) : null;
 }
