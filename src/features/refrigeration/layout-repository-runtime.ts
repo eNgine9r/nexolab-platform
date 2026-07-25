@@ -24,8 +24,7 @@ export type RefrigerationLayoutRuntimeInput = {
 };
 
 type RefrigerationLayoutRuntimeSelection =
-  | { mode: "demo"; apiBaseUrl: null }
-  | { mode: "live"; apiBaseUrl: string };
+  { mode: "demo"; apiBaseUrl: null } | { mode: "live"; apiBaseUrl: string };
 
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
