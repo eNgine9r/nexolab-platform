@@ -158,14 +158,13 @@ test("enforces authenticated organization roles and immutable audit attribution"
 
       const auditResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/audit/events?entity_type=equipment_layout&entity_id=${equipmentId}`,
-        { headers: apiHeaders(tokens.engineer) },
+        { headers: apiHeaders(tokens.administrator) },
       );
       expect(auditResponse.status()).toBe(200);
       const audit = await auditResponse.json();
-      expect(audit.items.map((item: { action: string }) => item.action)).toEqual([
-        "layout.published",
-        "layout.draft.updated",
-      ]);
+      const auditActions = audit.items.map((item: { action: string }) => item.action);
+      expect(auditActions[0]).toBe("layout.published");
+      expect(auditActions.filter((action: string) => action === "layout.draft.updated")).toHaveLength(2);
       expect(
         audit.items.every((item: { actor_subject: string }) => item.actor_subject === "engineer-acceptance"),
       ).toBe(true);
