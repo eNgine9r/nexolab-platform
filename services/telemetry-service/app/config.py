@@ -55,6 +55,7 @@ class Settings(BaseSettings):
 
     cors_allowed_origins: str = ""
     cors_allow_credentials: bool = False
+    operator_identity_mode: Literal["client", "tailscale_serve"] = "client"
 
     websocket_client_queue_maxsize: int = Field(default=256, ge=1, le=10_000)
     websocket_heartbeat_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
