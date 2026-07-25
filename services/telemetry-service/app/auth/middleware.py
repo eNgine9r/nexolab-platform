@@ -8,7 +8,12 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.auth.domain import AuthError, PermissionDeniedError, Principal, permission_for_http_request
+from app.auth.domain import (
+    AuthError,
+    PermissionDeniedError,
+    Principal,
+    permission_for_http_request,
+)
 from app.auth.repository import AuthRepository, ResourceOrganizationError
 from app.auth.service import AuthService
 
@@ -55,7 +60,7 @@ class AuthenticationAuthorizationMiddleware(BaseHTTPMiddleware):
                 raise PermissionDeniedError(permission)
 
             resource = _resource_context(request.method, path)
-            if resource is not None:
+            if resource is not None and self._service.persistence_enforced:
                 self._repository.ensure_resource_access(
                     principal,
                     resource_type=resource.resource_type,
@@ -98,6 +103,8 @@ class AuthenticationAuthorizationMiddleware(BaseHTTPMiddleware):
         request_id: str,
         metadata_payload: dict[str, object],
     ) -> None:
+        if not self._service.persistence_enforced:
+            return
         try:
             self._repository.record_audit(
                 principal=principal,
@@ -148,7 +155,7 @@ def _resource_context(method: str, path: str) -> ResourceContext | None:
             return ResourceContext(
                 resource_type="test_session",
                 resource_id=session_id,
-                create_if_missing=method.upper() not in _SAFE_METHODS,
+                create_if_missing=True,
             )
     return None
 
