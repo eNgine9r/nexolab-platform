@@ -6,9 +6,10 @@ from io import BytesIO
 from pathlib import PurePath
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Header, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, File, Header, HTTPException, Request, Response, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
+from app.auth.middleware import current_principal
 from app.refrigeration.models import EquipmentImage, RefrigerationLayoutDraft, RefrigerationLayoutRevision
 from app.refrigeration.repository import (
     LayoutImageNotFoundError,
@@ -92,6 +93,7 @@ def create_refrigeration_router(
     def publish_layout(
         equipment_id: str,
         payload: PublishLayoutRequest,
+        request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
     ) -> LayoutMutationResponse:
@@ -100,7 +102,7 @@ def create_refrigeration_router(
             result = repository.publish(
                 equipment_id=equipment_id,
                 expected_version=expected,
-                actor_id=payload.actor_id,
+                actor_id=_trusted_actor_id(request, payload.actor_id),
             )
         except LayoutRepositoryError as error:
             raise _repository_http_error(error) from error
@@ -167,6 +169,7 @@ def create_refrigeration_router(
     )
     async def upload_image(
         equipment_id: str,
+        request: Request,
         file: UploadFile = File(...),
         actor_id: str = Header(alias="X-Actor-Id", min_length=1, max_length=128),
     ) -> EquipmentImageResponse:
@@ -198,7 +201,7 @@ def create_refrigeration_router(
                 height_px=height_px,
                 checksum_sha256=checksum,
                 object_etag=stored.etag,
-                created_by=actor_id,
+                created_by=_trusted_actor_id(request, actor_id),
             )
         except Exception:
             try:
@@ -208,6 +211,13 @@ def create_refrigeration_router(
         return _image_response(storage, image, signed_url_seconds)
 
     return router
+
+
+def _trusted_actor_id(request: Request, fallback: str) -> str:
+    principal = current_principal(request)
+    if principal.provider == "development":
+        return fallback
+    return principal.subject
 
 
 def _inspect_image(content: bytes, declared_media_type: str | None) -> tuple[str, str, int, int]:
