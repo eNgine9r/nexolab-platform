@@ -1,0 +1,13 @@
+.git
+.github
+.next
+node_modules
+coverage
+runtime
+acceptance-evidence
+playwright-report
+test-results
+.env
+.env.*
+*.log
+*.tsbuildinfo
