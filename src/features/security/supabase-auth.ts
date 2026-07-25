@@ -7,6 +7,9 @@ import {
   type SecurityCredentialSnapshot,
 } from "./security-session";
 
+const ACCEPTANCE_TOKEN_KEY = "nexolab.acceptance.access-token";
+const ACCEPTANCE_ORGANIZATION_KEY = "nexolab.acceptance.organization-id";
+
 let client: SupabaseClient | null | undefined;
 
 export type SupabaseAuthResult =
@@ -42,6 +45,26 @@ export function getSupabaseAuthClient(): SupabaseClient | null {
     });
   });
   return client;
+}
+
+export function createRuntimeCredentialProvider(
+  organizationId: string | null,
+): SecurityCredentialProvider {
+  if (process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER === "acceptance") {
+    return async (): Promise<SecurityCredentialSnapshot> => {
+      if (typeof window === "undefined") {
+        return { accessToken: null, organizationId };
+      }
+      const snapshot = {
+        accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
+        organizationId:
+          window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? organizationId,
+      };
+      setSecurityCredentials(snapshot);
+      return snapshot;
+    };
+  }
+  return createSupabaseCredentialProvider(organizationId);
 }
 
 export function createSupabaseCredentialProvider(
