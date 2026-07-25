@@ -1,0 +1,60 @@
+name: Refrigeration Browser Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/refrigeration-browser-acceptance.yml"
+      - "docs/refrigeration-browser-central-acceptance.md"
+      - "e2e/**"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.production.config.ts"
+      - "scripts/run-refrigeration-browser-acceptance.sh"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/migrations/**"
+      - "src/components/refrigeration/**"
+      - "src/features/refrigeration/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refrigeration-browser-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Browser to PostgreSQL and MinIO
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-browser-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_ACCEPTANCE_EVIDENCE_DIR: acceptance-evidence
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Run controlled production acceptance
+        run: bash scripts/run-refrigeration-browser-acceptance.sh
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refrigeration-browser-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: acceptance-evidence
+          if-no-files-found: warn
+          retention-days: 14
