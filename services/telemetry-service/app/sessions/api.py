@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Callable
 
-from fastapi import APIRouter, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
+from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.sessions.domain import SessionAction, SessionDomainError, SessionState
 from app.sessions.repository import (
     SessionConflictError,
@@ -32,8 +34,23 @@ IdempotencyKey = Annotated[
 ]
 
 
-def create_session_router(repository: SessionRepository) -> APIRouter:
+def create_session_router(
+    repository: SessionRepository,
+    security_dependencies: SecurityDependencies | None = None,
+) -> APIRouter:
     router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
+    read_access = _access_dependency(
+        security_dependencies,
+        Permission.READ_DASHBOARD,
+    )
+    manage_access = _access_dependency(
+        security_dependencies,
+        Permission.MANAGE_SESSIONS,
+    )
+    operate_access = _access_dependency(
+        security_dependencies,
+        Permission.OPERATE_SESSIONS,
+    )
 
     @router.post(
         "",
@@ -43,10 +60,17 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
     def create_session(
         payload: SessionCreate,
         idempotency_key: IdempotencyKey,
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> SessionTransitionResponse:
+        trusted_payload = payload.model_copy(
+            update={
+                "actor_id": authorized.principal.subject,
+                "actor_source": authorized.principal.provider,
+            }
+        )
         try:
             result = repository.create(
-                payload,
+                trusted_payload,
                 idempotency_key=idempotency_key,
             )
             return SessionTransitionResponse(
@@ -59,6 +83,7 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
 
     @router.get("", response_model=SessionPage)
     def list_sessions(
+        _authorized: AuthorizedRequest = Depends(read_access),
         state_filter: Annotated[
             SessionState | None,
             Query(alias="state"),
@@ -85,14 +110,21 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
             raise _http_error(error) from error
 
     @router.get("/{session_id}", response_model=SessionRead)
-    def get_session(session_id: str) -> SessionRead:
+    def get_session(
+        session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
+    ) -> SessionRead:
         try:
             return SessionRead.model_validate(repository.get(session_id))
         except Exception as error:
             raise _http_error(error) from error
 
     @router.patch("/{session_id}", response_model=SessionRead)
-    def patch_session(session_id: str, payload: SessionPatch) -> SessionRead:
+    def patch_session(
+        session_id: str,
+        payload: SessionPatch,
+        _authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> SessionRead:
         try:
             return SessionRead.model_validate(repository.patch(session_id, payload))
         except Exception as error:
@@ -101,6 +133,7 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
     @router.get("/{session_id}/events", response_model=SessionEventsPage)
     def get_session_events(
         session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
         limit: Annotated[int, Query(ge=1, le=500)] = 100,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> SessionEventsPage:
@@ -129,12 +162,19 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
             session_id: str,
             payload: SessionTransitionRequest,
             idempotency_key: IdempotencyKey,
+            authorized: AuthorizedRequest = Depends(operate_access),
         ) -> SessionTransitionResponse:
+            trusted_payload = payload.model_copy(
+                update={
+                    "actor_id": authorized.principal.subject,
+                    "actor_source": authorized.principal.provider,
+                }
+            )
             try:
                 result = repository.transition(
                     session_id,
                     action,
-                    payload,
+                    trusted_payload,
                     idempotency_key=idempotency_key,
                 )
                 return SessionTransitionResponse(
@@ -157,6 +197,27 @@ def create_session_router(repository: SessionRepository) -> APIRouter:
         register_transition_route(session_action)
 
     return router
+
+
+def _access_dependency(
+    security_dependencies: SecurityDependencies | None,
+    permission: Permission,
+) -> Callable[..., AuthorizedRequest]:
+    if security_dependencies is not None:
+        return security_dependencies.authorized_request(permission)
+
+    def development_access() -> AuthorizedRequest:
+        return AuthorizedRequest(
+            identity_id=None,
+            principal=AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id="00000000-0000-0000-0000-000000000001",
+                roles=frozenset({Role.ADMINISTRATOR}),
+                provider="disabled",
+            ),
+        )
+
+    return development_access
 
 
 def _http_error(error: Exception) -> HTTPException:
