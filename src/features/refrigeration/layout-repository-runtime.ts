@@ -2,10 +2,10 @@ import type { RefrigerationEquipment } from "@/data/refrigeration";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import {
   createAuthenticatedFetch,
-  getSecurityCredentials,
   HttpSecuritySessionClient,
   type SecurityCredentialProvider,
 } from "@/features/security/security-session";
+import { createSupabaseCredentialProvider } from "@/features/security/supabase-auth";
 
 import { HttpRefrigerationLayoutRepository } from "./http-layout-repository";
 import {
@@ -49,13 +49,8 @@ export function createRefrigerationLayoutRuntime(
         input.organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID,
       );
       const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
-      const credentialProvider = input.credentialProvider ?? (() => {
-        const credentials = getSecurityCredentials();
-        return {
-          accessToken: credentials.accessToken,
-          organizationId: credentials.organizationId ?? organizationId,
-        };
-      });
+      const credentialProvider =
+        input.credentialProvider ?? createSupabaseCredentialProvider(organizationId);
       const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
       return {
         mode: "live",
