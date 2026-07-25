@@ -10,7 +10,6 @@ on:
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
-      - "package-lock.json"
       - "playwright.production.config.ts"
       - "scripts/run-refrigeration-browser-acceptance.sh"
       - "services/telemetry-service/app/refrigeration/**"
@@ -45,7 +44,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
 
       - name: Run controlled production acceptance
         run: bash scripts/run-refrigeration-browser-acceptance.sh
