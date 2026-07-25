@@ -171,6 +171,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             object_storage,
             image_max_bytes=resolved.equipment_image_max_bytes,
             signed_url_seconds=resolved.equipment_image_signed_url_seconds,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
         )
     )
     app.include_router(
