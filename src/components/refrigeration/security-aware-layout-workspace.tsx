@@ -9,6 +9,7 @@ import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrige
 import type { RefrigerationEquipment, RefrigerationSensor } from "@/data/refrigeration";
 import { createRefrigerationLayoutRuntime } from "@/features/refrigeration/layout-repository-runtime";
 import {
+  getSecurityCredentials,
   hasPermission,
   setSecurityCredentials,
   type SecurityMembership,
@@ -105,12 +106,10 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         return;
       }
 
-      const currentCredentials = runtime.organizationId
-        ? { organizationId: runtime.organizationId }
-        : { organizationId: selectedMembership.organizationId };
+      const currentCredentials = getSecurityCredentials();
       setSecurityCredentials({
-        accessToken: null,
-        ...currentCredentials,
+        accessToken: currentCredentials.accessToken,
+        organizationId: runtime.organizationId ?? selectedMembership.organizationId,
       });
       setSession(result.value);
       setMembership(selectedMembership);
