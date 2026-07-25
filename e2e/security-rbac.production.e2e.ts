@@ -76,7 +76,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     try {
       await openEquipment(page);
       await expect(page.getByText("viewer", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Редагувати схему" })).toBeHidden();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
@@ -104,7 +104,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expect(page.getByText("operator", { exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: "Редагувати схему" }).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: "Опублікувати поточну чернетку" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Опублікувати поточну чернетку" })).toBeHidden();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
