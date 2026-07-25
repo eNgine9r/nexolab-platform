@@ -17,6 +17,8 @@ from app.live_api import create_live_router
 from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
+from app.operator_api import create_operator_router
+from app.operator_identity import OperatorIdentityResolver
 from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
@@ -30,7 +32,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.9.0"
+SERVICE_VERSION = "0.10.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -49,6 +51,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     session_repository = AuditedSessionRepository(database)
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     object_storage = _create_object_storage(resolved)
+    operator_identity = OperatorIdentityResolver(resolved.operator_identity_mode)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
         state=state,
@@ -132,6 +135,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.session_repository = session_repository
     app.state.refrigeration_repository = refrigeration_repository
     app.state.object_storage = object_storage
+    app.state.operator_identity = operator_identity
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
@@ -143,6 +147,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_page_size=resolved.api_max_page_size,
         )
     )
+    app.include_router(create_operator_router(operator_identity))
     app.include_router(create_session_router(session_repository))
     app.include_router(create_session_configuration_router(session_repository))
     app.include_router(create_session_audit_router(session_repository))
@@ -159,6 +164,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             object_storage,
             image_max_bytes=resolved.equipment_image_max_bytes,
             signed_url_seconds=resolved.equipment_image_signed_url_seconds,
+            operator_identity=operator_identity,
         )
     )
     app.include_router(
