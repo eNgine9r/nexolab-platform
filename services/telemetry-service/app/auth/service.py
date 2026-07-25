@@ -43,9 +43,13 @@ class AuthService:
         elif mode != "disabled":
             raise ValueError(f"unsupported AUTH_MODE {mode!r}")
 
+    @property
+    def persistence_enforced(self) -> bool:
+        return self._mode == "jwt"
+
     def authenticate(self, authorization_header: str | None) -> Principal:
         if self._mode == "disabled":
-            claimed = Principal(
+            return Principal(
                 subject="development-admin",
                 organization_id=self._default_organization_id,
                 role=Role.ADMIN,
@@ -53,10 +57,6 @@ class AuthService:
                 email="development-admin@nexolab.local",
                 display_name="Development administrator",
                 provider="development",
-            )
-            return self._repository.resolve_principal(
-                claimed,
-                auto_provision_memberships=True,
             )
 
         token = _bearer_token(authorization_header)
