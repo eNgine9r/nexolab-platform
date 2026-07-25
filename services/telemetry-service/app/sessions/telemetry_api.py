@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from app.contracts import Alarm, Quality
+from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.sessions.telemetry_attribution import (
     SessionAwareDatabase,
     SessionTelemetryQuery,
@@ -65,11 +67,13 @@ def create_session_telemetry_router(
     *,
     max_history_days: int,
     max_page_size: int,
+    security_dependencies: SecurityDependencies | None = None,
 ) -> APIRouter:
     router = APIRouter(
         prefix="/api/v1/sessions/{session_id}/telemetry",
         tags=["session-telemetry"],
     )
+    read_access = _read_access_dependency(security_dependencies)
 
     def require_session(session_id: str) -> None:
         if not database.session_exists(session_id):
@@ -91,6 +95,7 @@ def create_session_telemetry_router(
     @router.get("/latest", response_model=AttributedTelemetryCollectionResponse)
     def latest(
         session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
         stage_id: str | None = None,
         node_id: str | None = None,
         equipment_id: str | None = None,
@@ -124,6 +129,7 @@ def create_session_telemetry_router(
         session_id: str,
         from_at: Annotated[datetime, Query(alias="from")],
         to_at: Annotated[datetime, Query(alias="to")],
+        _authorized: AuthorizedRequest = Depends(read_access),
         stage_id: str | None = None,
         node_id: str | None = None,
         equipment_id: str | None = None,
@@ -168,3 +174,23 @@ def create_session_telemetry_router(
         return _collection(rows, limit=limit, offset=offset)
 
     return router
+
+
+def _read_access_dependency(
+    security_dependencies: SecurityDependencies | None,
+) -> Callable[..., AuthorizedRequest]:
+    if security_dependencies is not None:
+        return security_dependencies.authorized_request(Permission.READ_TELEMETRY)
+
+    def development_access() -> AuthorizedRequest:
+        return AuthorizedRequest(
+            identity_id=None,
+            principal=AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id="00000000-0000-0000-0000-000000000001",
+                roles=frozenset({Role.ADMINISTRATOR}),
+                provider="disabled",
+            ),
+        )
+
+    return development_access
