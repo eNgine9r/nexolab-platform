@@ -1,0 +1,45 @@
+name: Format auth branch
+
+on:
+  push:
+    branches: [feat/auth-rbac-audit]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ !contains(github.event.head_commit.message, 'chore: format auth branch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/auth-rbac-audit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+        env:
+          HUSKY: "0"
+
+      - name: Format repository
+        run: npm run format
+
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "chore: format auth branch"
+          git push origin HEAD:feat/auth-rbac-audit
