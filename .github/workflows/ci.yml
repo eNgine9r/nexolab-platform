@@ -38,34 +38,15 @@ jobs:
         run: npm run format:check
 
       - name: Lint
-        id: lint
-        continue-on-error: true
-        run: npm run lint > lint.log 2>&1
-
-      - name: Upload lint diagnostics
-        if: steps.lint.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-lint-diagnostics-${{ github.run_id }}
-          path: lint.log
-          retention-days: 1
-
-      - name: Stop on lint failure
-        if: steps.lint.outcome == 'failure'
-        run: |
-          cat lint.log
-          exit 1
+        run: npm run lint
 
       - name: Typecheck
-        if: steps.lint.outcome == 'success'
         run: npm run typecheck
 
       - name: Test
-        if: steps.lint.outcome == 'success'
         run: npm test
 
       - name: Build
-        if: steps.lint.outcome == 'success'
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
