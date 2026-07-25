@@ -1,0 +1,24 @@
+services:
+  mqtt:
+    restart: "no"
+
+  postgres:
+    restart: "no"
+
+  minio:
+    restart: "no"
+
+  telemetry-service:
+    restart: "no"
+
+volumes:
+  central-mqtt-data:
+    name: ${ACCEPTANCE_MQTT_VOLUME_NAME:?ACCEPTANCE_MQTT_VOLUME_NAME is required}
+  central-postgres-data:
+    name: ${ACCEPTANCE_POSTGRES_VOLUME_NAME:?ACCEPTANCE_POSTGRES_VOLUME_NAME is required}
+  central-object-storage-data:
+    name: ${ACCEPTANCE_OBJECT_STORAGE_VOLUME_NAME:?ACCEPTANCE_OBJECT_STORAGE_VOLUME_NAME is required}
+
+networks:
+  central:
+    name: ${ACCEPTANCE_NETWORK_NAME:?ACCEPTANCE_NETWORK_NAME is required}
