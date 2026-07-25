@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Callable
 
-from fastapi import APIRouter, Header, Query, status
+from fastapi import APIRouter, Depends, Header, Query, status
 
+from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.sessions.api import _http_error
 from app.sessions.configuration import ConfiguredSessionRepository
 from app.sessions.configuration_schemas import (
@@ -35,8 +37,17 @@ IdempotencyKey = Annotated[
 
 def create_session_configuration_router(
     repository: ConfiguredSessionRepository,
+    security_dependencies: SecurityDependencies | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/sessions", tags=["session configuration"])
+    read_access = _access_dependency(
+        security_dependencies,
+        Permission.READ_DASHBOARD,
+    )
+    manage_access = _access_dependency(
+        security_dependencies,
+        Permission.MANAGE_SESSIONS,
+    )
 
     @router.post(
         "/{session_id}/bindings",
@@ -47,11 +58,12 @@ def create_session_configuration_router(
         session_id: str,
         payload: SessionBindingCreate,
         idempotency_key: IdempotencyKey,
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> BindingMutationResponse:
         try:
             result = repository.add_binding(
                 session_id,
-                payload,
+                _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
             )
             return BindingMutationResponse(
@@ -72,11 +84,12 @@ def create_session_configuration_router(
         session_id: str,
         payload: ProductionBindingsCreate,
         idempotency_key: IdempotencyKey,
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> ProductionBindingsResponse:
         try:
             result = repository.add_production_bindings(
                 session_id,
-                payload,
+                _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
             )
             return ProductionBindingsResponse(
@@ -95,6 +108,7 @@ def create_session_configuration_router(
     )
     def list_bindings(
         session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
         include_released: Annotated[bool, Query()] = False,
     ) -> list[SessionBindingRead]:
         try:
@@ -117,12 +131,13 @@ def create_session_configuration_router(
         binding_id: str,
         payload: SessionBindingRemove,
         idempotency_key: IdempotencyKey,
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> BindingRemovalResponse:
         try:
             result = repository.remove_binding(
                 session_id,
                 binding_id,
-                payload,
+                _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
             )
             return BindingRemovalResponse(
@@ -143,11 +158,12 @@ def create_session_configuration_router(
         session_id: str,
         payload: SessionLimitSetCreate,
         idempotency_key: IdempotencyKey,
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> LimitSetMutationResponse:
         try:
             result = repository.add_limit_set(
                 session_id,
-                payload,
+                _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
             )
             return LimitSetMutationResponse(
@@ -166,6 +182,7 @@ def create_session_configuration_router(
     )
     def list_limits(
         session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
         version: Annotated[int | None, Query(ge=1)] = None,
     ) -> list[SessionLimitRead]:
         try:
@@ -180,7 +197,10 @@ def create_session_configuration_router(
         "/{session_id}/configuration",
         response_model=SessionConfigurationRead,
     )
-    def get_configuration(session_id: str) -> SessionConfigurationRead:
+    def get_configuration(
+        session_id: str,
+        _authorized: AuthorizedRequest = Depends(read_access),
+    ) -> SessionConfigurationRead:
         try:
             result = repository.configuration(session_id)
             return SessionConfigurationRead(
@@ -194,3 +214,33 @@ def create_session_configuration_router(
             raise _http_error(error) from error
 
     return router
+
+
+def _trusted_command(payload: object, authorized: AuthorizedRequest):
+    return payload.model_copy(
+        update={
+            "actor_id": authorized.principal.subject,
+            "actor_source": authorized.principal.provider,
+        }
+    )
+
+
+def _access_dependency(
+    security_dependencies: SecurityDependencies | None,
+    permission: Permission,
+) -> Callable[..., AuthorizedRequest]:
+    if security_dependencies is not None:
+        return security_dependencies.authorized_request(permission)
+
+    def development_access() -> AuthorizedRequest:
+        return AuthorizedRequest(
+            identity_id=None,
+            principal=AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id="00000000-0000-0000-0000-000000000001",
+                roles=frozenset({Role.ADMINISTRATOR}),
+                provider="disabled",
+            ),
+        )
+
+    return development_access
