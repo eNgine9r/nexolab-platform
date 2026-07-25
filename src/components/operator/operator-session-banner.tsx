@@ -87,7 +87,7 @@ export function OperatorSessionBanner() {
       {session.authenticated ? <ShieldCheck className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}
       <span className="font-semibold">{session.displayName ?? session.actorId}</span>
       <span className="text-[10px] opacity-70">{session.actorId}</span>
-      <span className="ml-auto text-[10px] uppercase tracking-[0.18em] opacity-70">
+      <span className="ml-auto text-[10px] tracking-[0.18em] uppercase opacity-70">
         {session.provider === "tailscale" ? "Tailscale identity" : "Client identity"}
       </span>
     </div>

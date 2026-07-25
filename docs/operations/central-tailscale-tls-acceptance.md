@@ -41,18 +41,18 @@ Assign the central host a service tag such as `tag:nexolab-central`. Grant only 
 ```jsonc
 {
   "groups": {
-    "group:nexolab-operators": ["operator@example.com"]
+    "group:nexolab-operators": ["operator@example.com"],
   },
   "tagOwners": {
-    "tag:nexolab-central": ["autogroup:admin"]
+    "tag:nexolab-central": ["autogroup:admin"],
   },
   "grants": [
     {
       "src": ["group:nexolab-operators"],
       "dst": ["tag:nexolab-central"],
-      "ip": ["tcp:443", "tcp:8443", "tcp:9443"]
-    }
-  ]
+      "ip": ["tcp:443", "tcp:8443", "tcp:9443"],
+    },
+  ],
 }
 ```
 

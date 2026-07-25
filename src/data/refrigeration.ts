@@ -177,7 +177,10 @@ export function getRefrigerationEquipment(id: string): RefrigerationEquipment | 
   const equipment = refrigerationEquipment.find((item) => item.id === id);
   if (equipment) return equipment;
 
-  if (process.env.NEXT_PUBLIC_NEXOLAB_ACCEPTANCE_EQUIPMENT_ENABLED === "true" && acceptanceEquipmentId.test(id)) {
+  if (
+    process.env.NEXT_PUBLIC_NEXOLAB_ACCEPTANCE_EQUIPMENT_ENABLED === "true" &&
+    acceptanceEquipmentId.test(id)
+  ) {
     const template = refrigerationEquipment[0];
     return {
       ...template,
