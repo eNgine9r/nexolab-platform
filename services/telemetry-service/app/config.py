@@ -24,6 +24,18 @@ class Settings(BaseSettings):
     database_retry_max_seconds: float = Field(default=5.0, ge=0.1, le=300.0)
     auto_create_schema: bool = False
 
+    auth_mode: Literal["disabled", "jwt"] = "disabled"
+    auth_jwt_secret: str | None = None
+    auth_jwt_issuer: str = "nexolab-auth"
+    auth_jwt_audience: str = "nexolab-api"
+    auth_jwt_leeway_seconds: int = Field(default=30, ge=0, le=300)
+    auth_default_organization_id: str = Field(
+        default="nexolab-default",
+        min_length=1,
+        max_length=128,
+    )
+    auth_auto_provision_memberships: bool = False
+
     mqtt_enabled: bool = True
     mqtt_host: str = "mqtt"
     mqtt_port: int = Field(default=1883, ge=1, le=65535)
