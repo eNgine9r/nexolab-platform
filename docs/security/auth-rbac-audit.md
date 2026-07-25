@@ -80,6 +80,12 @@ Database triggers must reject `UPDATE` and `DELETE` on audit events for the appl
 5. Frontend authenticated-session and access-denied UI.
 6. PostgreSQL integration and browser E2E authorization gate.
 
+## Operational runbook
+
+Production Supabase/JWKS configuration, organization bootstrap, key rotation and incident response are documented in [Supabase Auth production runbook](supabase-production-runbook.md).
+
+The controlled browser Gate is defined in `.github/workflows/security-browser-acceptance.yml` and executes `scripts/run-security-browser-acceptance.sh` against isolated PostgreSQL, MinIO, FastAPI and Next.js services.
+
 ## Acceptance evidence
 
 The final pull request must include successful CI evidence for:
