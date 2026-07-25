@@ -38,7 +38,7 @@ describe("security session client", () => {
       const headers = new Headers(init?.headers);
       expect(headers.get("Authorization")).toBe("Bearer signed-token");
       expect(headers.get("X-Organization-ID")).toBe("org-1");
-      expect(init?.credentials).toBe("include");
+      expect(init?.credentials).toBe("same-origin");
       return new Response(JSON.stringify(sessionPayload), {
         headers: { "Content-Type": "application/json" },
       });
