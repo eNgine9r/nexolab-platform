@@ -8,10 +8,10 @@ const webPort = new URL(webUrl).port || "13000";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "refrigeration-layout.production.spec.ts",
+  testMatch: "refrigeration-layout.production.e2e.ts",
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
   timeout: 180_000,
   expect: {
     timeout: 20_000,
