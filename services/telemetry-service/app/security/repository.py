@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Iterable
 from uuid import uuid4
@@ -103,6 +103,7 @@ class SecurityRepository:
         claims: VerifiedIdentityClaims,
         roles: Iterable[Role],
         assigned_by: str | None = None,
+        audit_event: AuditEventInput | None = None,
     ) -> SecuritySession:
         resolved_roles = frozenset(roles)
         if not resolved_roles:
@@ -166,6 +167,7 @@ class SecurityRepository:
                         SecurityMembershipRole.membership_id == membership.id
                     )
                 ).all()
+                before_roles = sorted(assignment.role for assignment in existing_roles)
                 for assignment in existing_roles:
                     session.delete(assignment)
                 session.flush()
@@ -178,6 +180,33 @@ class SecurityRepository:
                     )
                     for role in sorted(resolved_roles, key=lambda item: item.value)
                 )
+                session.flush()
+
+                if audit_event is not None:
+                    self.append_audit_event(
+                        replace(
+                            audit_event,
+                            entity_id=membership.id,
+                            before_snapshot={
+                                "organization_id": organization_id,
+                                "identity_id": identity.id,
+                                "provider": identity.provider,
+                                "subject": identity.subject,
+                                "roles": before_roles,
+                            },
+                            after_snapshot={
+                                "organization_id": organization_id,
+                                "identity_id": identity.id,
+                                "provider": identity.provider,
+                                "subject": identity.subject,
+                                "email": identity.email,
+                                "display_name": identity.display_name,
+                                "roles": sorted(role.value for role in resolved_roles),
+                                "is_active": membership.is_active,
+                            },
+                        ),
+                        session=session,
+                    )
 
         return self.resolve_session(claims)
 
