@@ -4,13 +4,25 @@ import hashlib
 import re
 from io import BytesIO
 from pathlib import PurePath
+from typing import Callable
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Header, HTTPException, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from PIL import Image, UnidentifiedImageError
 
 from app.refrigeration.models import EquipmentImage, RefrigerationLayoutDraft, RefrigerationLayoutRevision
 from app.refrigeration.repository import (
+    DEFAULT_ORGANIZATION_ID,
     LayoutImageNotFoundError,
     LayoutNotFoundError,
     LayoutRepositoryError,
@@ -31,6 +43,9 @@ from app.refrigeration.schemas import (
     PublishLayoutRequest,
 )
 from app.refrigeration.storage import ObjectStorage, ObjectStorageError
+from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.dependencies import AuthorizedRequest, SecurityDependencies
+from app.security.repository import AuditEventInput, SecurityRepository
 
 _ACCEPTED_FORMATS = {
     "JPEG": ("image/jpeg", ".jpg"),
@@ -46,16 +61,46 @@ def create_refrigeration_router(
     *,
     image_max_bytes: int,
     signed_url_seconds: int,
+    security_dependencies: SecurityDependencies | None = None,
+    security_repository: SecurityRepository | None = None,
+    default_organization_id: str = DEFAULT_ORGANIZATION_ID,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/equipment", tags=["refrigeration-layouts"])
+    read_access = _access_dependency(
+        security_dependencies,
+        Permission.READ_DASHBOARD,
+        default_organization_id,
+    )
+    edit_access = _access_dependency(
+        security_dependencies,
+        Permission.EDIT_LAYOUT_DRAFT,
+        default_organization_id,
+    )
+    publish_access = _access_dependency(
+        security_dependencies,
+        Permission.PUBLISH_LAYOUT,
+        default_organization_id,
+    )
+    restore_access = _access_dependency(
+        security_dependencies,
+        Permission.RESTORE_LAYOUT,
+        default_organization_id,
+    )
 
     @router.get(
         "/{equipment_id}/layout/draft",
         response_model=LayoutDraftResponse,
         responses={503: {"model": ApiErrorResponse}},
     )
-    def get_draft(equipment_id: str, response: Response) -> LayoutDraftResponse:
-        draft = repository.get_or_create_draft(equipment_id)
+    def get_draft(
+        equipment_id: str,
+        response: Response,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> LayoutDraftResponse:
+        draft = repository.get_or_create_draft(
+            equipment_id,
+            organization_id=authorized.principal.organization_id,
+        )
         response.headers["ETag"] = _draft_etag(draft.version)
         return _draft_response(repository, storage, draft, signed_url_seconds)
 
@@ -67,8 +112,11 @@ def create_refrigeration_router(
     def save_draft(
         equipment_id: str,
         payload: LayoutDraftWrite,
+        request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(edit_access),
     ) -> LayoutDraftResponse:
         expected = _parse_if_match(if_match)
         try:
@@ -77,6 +125,16 @@ def create_refrigeration_router(
                 expected_version=expected,
                 image_id=payload.image_id,
                 placements=payload.placements,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="layout.draft.updated",
+                    entity_type="equipment_layout",
+                    entity_id=equipment_id,
+                    reason=audit_reason,
+                ),
             )
         except LayoutRepositoryError as error:
             raise _repository_http_error(error) from error
@@ -92,15 +150,29 @@ def create_refrigeration_router(
     def publish_layout(
         equipment_id: str,
         payload: PublishLayoutRequest,
+        request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(publish_access),
     ) -> LayoutMutationResponse:
+        del payload
         expected = _parse_if_match(if_match)
         try:
             result = repository.publish(
                 equipment_id=equipment_id,
                 expected_version=expected,
-                actor_id=payload.actor_id,
+                actor_id=authorized.principal.subject,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="layout.published",
+                    entity_type="equipment_layout",
+                    entity_id=equipment_id,
+                    reason=audit_reason,
+                ),
             )
         except LayoutRepositoryError as error:
             raise _repository_http_error(error) from error
@@ -115,8 +187,14 @@ def create_refrigeration_router(
         response_model=LayoutRevisionResponse,
         responses={404: {"model": ApiErrorResponse}},
     )
-    def get_published(equipment_id: str) -> LayoutRevisionResponse:
-        revision = repository.get_published(equipment_id)
+    def get_published(
+        equipment_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> LayoutRevisionResponse:
+        revision = repository.get_published(
+            equipment_id,
+            organization_id=authorized.principal.organization_id,
+        )
         if revision is None:
             raise HTTPException(
                 status_code=404,
@@ -128,11 +206,17 @@ def create_refrigeration_router(
         "/{equipment_id}/layout/history",
         response_model=LayoutHistoryResponse,
     )
-    def get_history(equipment_id: str) -> LayoutHistoryResponse:
+    def get_history(
+        equipment_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> LayoutHistoryResponse:
         return LayoutHistoryResponse(
             items=[
                 _revision_response(repository, storage, item, signed_url_seconds)
-                for item in repository.list_history(equipment_id)
+                for item in repository.list_history(
+                    equipment_id,
+                    organization_id=authorized.principal.organization_id,
+                )
             ]
         )
 
@@ -144,8 +228,11 @@ def create_refrigeration_router(
     def restore_revision(
         equipment_id: str,
         revision_id: str,
+        request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(restore_access),
     ) -> LayoutDraftResponse:
         expected = _parse_if_match(if_match)
         try:
@@ -153,6 +240,16 @@ def create_refrigeration_router(
                 equipment_id=equipment_id,
                 revision_id=revision_id,
                 expected_version=expected,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="layout.revision.restored",
+                    entity_type="equipment_layout",
+                    entity_id=equipment_id,
+                    reason=audit_reason,
+                ),
             )
         except LayoutRepositoryError as error:
             raise _repository_http_error(error) from error
@@ -167,8 +264,10 @@ def create_refrigeration_router(
     )
     async def upload_image(
         equipment_id: str,
+        request: Request,
         file: UploadFile = File(...),
-        actor_id: str = Header(alias="X-Actor-Id", min_length=1, max_length=128),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(edit_access),
     ) -> EquipmentImageResponse:
         content = await file.read(image_max_bytes + 1)
         if len(content) > image_max_bytes:
@@ -176,7 +275,7 @@ def create_refrigeration_router(
         media_type, extension, width_px, height_px = _inspect_image(content, file.content_type)
         checksum = hashlib.sha256(content).hexdigest()
         image_id = str(uuid4())
-        storage_key = f"equipment-images/{image_id}{extension}"
+        storage_key = f"equipment-images/{authorized.principal.organization_id}/{image_id}{extension}"
         try:
             stored = storage.put(
                 key=storage_key,
@@ -189,6 +288,7 @@ def create_refrigeration_router(
         try:
             image = repository.create_image(
                 image_id=image_id,
+                organization_id=authorized.principal.organization_id,
                 equipment_id=equipment_id,
                 storage_key=storage_key,
                 original_filename=PurePath(file.filename or f"equipment{extension}").name[:255],
@@ -198,7 +298,16 @@ def create_refrigeration_router(
                 height_px=height_px,
                 checksum_sha256=checksum,
                 object_etag=stored.etag,
-                created_by=actor_id,
+                created_by=authorized.principal.subject,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="equipment.image.uploaded",
+                    entity_type="equipment_image",
+                    entity_id=image_id,
+                    reason=audit_reason,
+                ),
             )
         except Exception:
             try:
@@ -208,6 +317,53 @@ def create_refrigeration_router(
         return _image_response(storage, image, signed_url_seconds)
 
     return router
+
+
+def _access_dependency(
+    security_dependencies: SecurityDependencies | None,
+    permission: Permission,
+    default_organization_id: str,
+) -> Callable[..., AuthorizedRequest]:
+    if security_dependencies is not None:
+        return security_dependencies.authorized_request(permission)
+
+    def development_access() -> AuthorizedRequest:
+        return AuthorizedRequest(
+            identity_id=None,
+            principal=AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id=default_organization_id,
+                roles=frozenset({Role.ADMINISTRATOR}),
+                display_name="Development system",
+                provider="disabled",
+            ),
+        )
+
+    return development_access
+
+
+def _audit_event(
+    authorized: AuthorizedRequest,
+    request: Request,
+    *,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    reason: str | None,
+) -> AuditEventInput:
+    return AuditEventInput(
+        organization_id=authorized.principal.organization_id,
+        actor_identity_id=authorized.identity_id,
+        actor_subject=authorized.principal.subject,
+        actor_roles=authorized.principal.roles,
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        reason=reason,
+        request_id=request.headers.get("X-Request-ID"),
+        source_ip=request.client.host if request.client is not None else None,
+        user_agent=request.headers.get("User-Agent"),
+    )
 
 
 def _inspect_image(content: bytes, declared_media_type: str | None) -> tuple[str, str, int, int]:
@@ -288,7 +444,15 @@ def _draft_response(
     signed_url_seconds: int,
 ) -> LayoutDraftResponse:
     image = (
-        _image_response(storage, repository.get_image(draft.equipment_id, draft.image_id), signed_url_seconds)
+        _image_response(
+            storage,
+            repository.get_image(
+                draft.equipment_id,
+                draft.image_id,
+                organization_id=draft.organization_id,
+            ),
+            signed_url_seconds,
+        )
         if draft.image_id
         else None
     )
@@ -309,7 +473,11 @@ def _revision_response(
     revision: RefrigerationLayoutRevision,
     signed_url_seconds: int,
 ) -> LayoutRevisionResponse:
-    image = repository.get_image(revision.equipment_id, revision.image_id)
+    image = repository.get_image(
+        revision.equipment_id,
+        revision.image_id,
+        organization_id=revision.organization_id,
+    )
     return LayoutRevisionResponse(
         id=revision.id,
         equipment_id=revision.equipment_id,
