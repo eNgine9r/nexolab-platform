@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Callable
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
 from app.contracts import Alarm, Quality
 from app.db import Database, TelemetryQuery
+from app.security.authorization import AuthenticatedPrincipal, Permission, Role
+from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 
 
 class TelemetrySampleResponse(BaseModel):
@@ -59,8 +61,10 @@ def create_api_router(
     *,
     max_history_days: int,
     max_page_size: int,
+    security_dependencies: SecurityDependencies | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
+    read_access = _read_access_dependency(security_dependencies)
 
     def validate_limit(limit: int) -> None:
         if limit > max_page_size:
@@ -71,6 +75,7 @@ def create_api_router(
 
     @router.get("/latest", response_model=TelemetryCollectionResponse)
     def latest(
+        _authorized: AuthorizedRequest = Depends(read_access),
         node_id: str | None = None,
         equipment_id: str | None = None,
         channel_id: str | None = None,
@@ -100,6 +105,7 @@ def create_api_router(
     def history(
         from_at: Annotated[datetime, Query(alias="from")],
         to_at: Annotated[datetime, Query(alias="to")],
+        _authorized: AuthorizedRequest = Depends(read_access),
         node_id: str | None = None,
         equipment_id: str | None = None,
         channel_id: str | None = None,
@@ -141,3 +147,23 @@ def create_api_router(
         return _collection(rows, limit=limit, offset=offset)
 
     return router
+
+
+def _read_access_dependency(
+    security_dependencies: SecurityDependencies | None,
+) -> Callable[..., AuthorizedRequest]:
+    if security_dependencies is not None:
+        return security_dependencies.authorized_request(Permission.READ_TELEMETRY)
+
+    def development_access() -> AuthorizedRequest:
+        return AuthorizedRequest(
+            identity_id=None,
+            principal=AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id="00000000-0000-0000-0000-000000000001",
+                roles=frozenset({Role.ADMINISTRATOR}),
+                provider="disabled",
+            ),
+        )
+
+    return development_access
