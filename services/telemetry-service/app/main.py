@@ -257,11 +257,9 @@ def _create_security_dependencies(
 ) -> SecurityDependencies:
     authenticator: JwtAuthenticator | None = None
     if settings.auth_mode == "jwt":
-        public_key = settings.resolved_auth_jwt_public_key
-        if public_key is None or not public_key.strip():
-            raise ValueError("AUTH_JWT_PUBLIC_KEY is required when AUTH_MODE=jwt")
         authenticator = JwtAuthenticator(
-            public_key=public_key,
+            public_key=settings.resolved_auth_jwt_public_key,
+            jwks_url=settings.auth_jwt_jwks_url,
             algorithm=settings.auth_jwt_algorithm,
             issuer=settings.auth_jwt_issuer,
             audience=settings.auth_jwt_audience,
