@@ -167,7 +167,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           #layout-editor
           > div
           > div:first-child
-          > div:last-child
           > button,
         .nexolab-rbac-no-edit > div > section > div:nth-child(1) button {
           display: none !important;
