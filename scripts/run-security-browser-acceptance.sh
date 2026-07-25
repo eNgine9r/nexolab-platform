@@ -232,4 +232,4 @@ PY
 )"
 
 npm run build
-npx playwright test --config=playwright.security.config.ts
+npm run test:e2e:security
