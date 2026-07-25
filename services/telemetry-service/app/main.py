@@ -194,6 +194,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             heartbeat_seconds=resolved.websocket_heartbeat_seconds,
             send_timeout_seconds=resolved.websocket_send_timeout_seconds,
             resume_limit=resolved.websocket_resume_limit,
+            auth_service=auth_service,
         )
     )
 
