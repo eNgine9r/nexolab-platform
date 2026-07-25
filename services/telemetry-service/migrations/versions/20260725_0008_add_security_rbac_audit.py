@@ -14,7 +14,7 @@ down_revision = "20260724_0007"
 branch_labels = None
 depends_on = None
 
-
+DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 ROLE_CHECK = (
     "role IN ('administrator', 'laboratory_manager', 'engineer', "
     "'operator', 'viewer', 'auditor')"
@@ -36,6 +36,13 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("slug"),
+    )
+    op.execute(
+        sa.text(
+            "INSERT INTO security_organizations (id, slug, name, is_active) "
+            "VALUES (:id, 'default', 'Default organization', true) "
+            "ON CONFLICT (id) DO NOTHING"
+        ).bindparams(id=DEFAULT_ORGANIZATION_ID)
     )
 
     op.create_table(
@@ -181,6 +188,8 @@ def upgrade() -> None:
         ["organization_id", "entity_type", "entity_id", "occurred_at"],
     )
 
+    _scope_refrigeration_tables()
+
     if op.get_bind().dialect.name == "postgresql":
         op.execute(
             """
@@ -201,6 +210,100 @@ def upgrade() -> None:
         )
 
 
+def _scope_refrigeration_tables() -> None:
+    for table_name in (
+        "equipment_images",
+        "refrigeration_layout_drafts",
+        "refrigeration_layout_revisions",
+    ):
+        op.add_column(
+            table_name,
+            sa.Column("organization_id", sa.String(length=36), nullable=True),
+        )
+        op.execute(
+            sa.text(
+                f"UPDATE {table_name} SET organization_id = :organization_id "
+                "WHERE organization_id IS NULL"
+            ).bindparams(organization_id=DEFAULT_ORGANIZATION_ID)
+        )
+        op.alter_column(table_name, "organization_id", nullable=False)
+
+    op.create_foreign_key(
+        "fk_equipment_images_organization",
+        "equipment_images",
+        "security_organizations",
+        ["organization_id"],
+        ["id"],
+        ondelete="RESTRICT",
+    )
+    op.create_foreign_key(
+        "fk_refrigeration_layout_draft_organization",
+        "refrigeration_layout_drafts",
+        "security_organizations",
+        ["organization_id"],
+        ["id"],
+        ondelete="RESTRICT",
+    )
+    op.create_foreign_key(
+        "fk_refrigeration_layout_revision_organization",
+        "refrigeration_layout_revisions",
+        "security_organizations",
+        ["organization_id"],
+        ["id"],
+        ondelete="RESTRICT",
+    )
+
+    op.drop_index(
+        "ix_equipment_images_equipment_created",
+        table_name="equipment_images",
+    )
+    op.create_index(
+        "ix_equipment_images_equipment_created",
+        "equipment_images",
+        ["organization_id", "equipment_id", "created_at"],
+    )
+
+    op.drop_constraint(
+        "uq_refrigeration_layout_draft_equipment",
+        "refrigeration_layout_drafts",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_refrigeration_layout_drafts_updated",
+        table_name="refrigeration_layout_drafts",
+    )
+    op.create_unique_constraint(
+        "uq_refrigeration_layout_draft_equipment",
+        "refrigeration_layout_drafts",
+        ["organization_id", "equipment_id"],
+    )
+    op.create_index(
+        "ix_refrigeration_layout_drafts_updated",
+        "refrigeration_layout_drafts",
+        ["organization_id", "updated_at"],
+    )
+
+    op.drop_constraint(
+        "uq_refrigeration_layout_revision_equipment",
+        "refrigeration_layout_revisions",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_refrigeration_layout_revisions_equipment_published",
+        table_name="refrigeration_layout_revisions",
+    )
+    op.create_unique_constraint(
+        "uq_refrigeration_layout_revision_equipment",
+        "refrigeration_layout_revisions",
+        ["organization_id", "equipment_id", "revision"],
+    )
+    op.create_index(
+        "ix_refrigeration_layout_revisions_equipment_published",
+        "refrigeration_layout_revisions",
+        ["organization_id", "equipment_id", "published_at"],
+    )
+
+
 def downgrade() -> None:
     if op.get_bind().dialect.name == "postgresql":
         op.execute(
@@ -208,6 +311,8 @@ def downgrade() -> None:
             "ON security_audit_events"
         )
         op.execute("DROP FUNCTION IF EXISTS reject_security_audit_event_mutation()")
+
+    _unscope_refrigeration_tables()
 
     op.drop_index("ix_security_audit_entity", table_name="security_audit_events")
     op.drop_index(
@@ -228,3 +333,75 @@ def downgrade() -> None:
     op.drop_index("ix_security_identities_email", table_name="security_identities")
     op.drop_table("security_identities")
     op.drop_table("security_organizations")
+
+
+def _unscope_refrigeration_tables() -> None:
+    op.drop_constraint(
+        "fk_refrigeration_layout_revision_organization",
+        "refrigeration_layout_revisions",
+        type_="foreignkey",
+    )
+    op.drop_constraint(
+        "fk_refrigeration_layout_draft_organization",
+        "refrigeration_layout_drafts",
+        type_="foreignkey",
+    )
+    op.drop_constraint(
+        "fk_equipment_images_organization",
+        "equipment_images",
+        type_="foreignkey",
+    )
+
+    op.drop_constraint(
+        "uq_refrigeration_layout_revision_equipment",
+        "refrigeration_layout_revisions",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_refrigeration_layout_revisions_equipment_published",
+        table_name="refrigeration_layout_revisions",
+    )
+    op.create_unique_constraint(
+        "uq_refrigeration_layout_revision_equipment",
+        "refrigeration_layout_revisions",
+        ["equipment_id", "revision"],
+    )
+    op.create_index(
+        "ix_refrigeration_layout_revisions_equipment_published",
+        "refrigeration_layout_revisions",
+        ["equipment_id", "published_at"],
+    )
+
+    op.drop_constraint(
+        "uq_refrigeration_layout_draft_equipment",
+        "refrigeration_layout_drafts",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_refrigeration_layout_drafts_updated",
+        table_name="refrigeration_layout_drafts",
+    )
+    op.create_unique_constraint(
+        "uq_refrigeration_layout_draft_equipment",
+        "refrigeration_layout_drafts",
+        ["equipment_id"],
+    )
+    op.create_index(
+        "ix_refrigeration_layout_drafts_updated",
+        "refrigeration_layout_drafts",
+        ["updated_at"],
+    )
+
+    op.drop_index(
+        "ix_equipment_images_equipment_created",
+        table_name="equipment_images",
+    )
+    op.create_index(
+        "ix_equipment_images_equipment_created",
+        "equipment_images",
+        ["equipment_id", "created_at"],
+    )
+
+    op.drop_column("refrigeration_layout_revisions", "organization_id")
+    op.drop_column("refrigeration_layout_drafts", "organization_id")
+    op.drop_column("equipment_images", "organization_id")
