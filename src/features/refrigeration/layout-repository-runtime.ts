@@ -34,8 +34,7 @@ export type RefrigerationLayoutRuntimeInput = {
 };
 
 type RefrigerationLayoutRuntimeSelection =
-  | { mode: "demo"; apiBaseUrl: null }
-  | { mode: "live"; apiBaseUrl: string };
+  { mode: "demo"; apiBaseUrl: null } | { mode: "live"; apiBaseUrl: string };
 
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
@@ -49,8 +48,7 @@ export function createRefrigerationLayoutRuntime(
         input.organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID,
       );
       const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
-      const credentialProvider =
-        input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
+      const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
       const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
       return {
         mode: "live",

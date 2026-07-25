@@ -12,9 +12,7 @@ const ACCEPTANCE_ORGANIZATION_KEY = "nexolab.acceptance.organization-id";
 
 let client: SupabaseClient | null | undefined;
 
-export type SupabaseAuthResult =
-  | { ok: true }
-  | { ok: false; message: string };
+export type SupabaseAuthResult = { ok: true } | { ok: false; message: string };
 
 export function getSupabaseAuthClient(): SupabaseClient | null {
   if (client !== undefined) return client;
@@ -47,9 +45,7 @@ export function getSupabaseAuthClient(): SupabaseClient | null {
   return client;
 }
 
-export function createRuntimeCredentialProvider(
-  organizationId: string | null,
-): SecurityCredentialProvider {
+export function createRuntimeCredentialProvider(organizationId: string | null): SecurityCredentialProvider {
   if (process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER === "acceptance") {
     return async (): Promise<SecurityCredentialSnapshot> => {
       if (typeof window === "undefined") {
@@ -57,8 +53,7 @@ export function createRuntimeCredentialProvider(
       }
       const snapshot = {
         accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
-        organizationId:
-          window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? organizationId,
+        organizationId: window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? organizationId,
       };
       setSecurityCredentials(snapshot);
       return snapshot;
@@ -67,9 +62,7 @@ export function createRuntimeCredentialProvider(
   return createSupabaseCredentialProvider(organizationId);
 }
 
-export function createSupabaseCredentialProvider(
-  organizationId: string | null,
-): SecurityCredentialProvider {
+export function createSupabaseCredentialProvider(organizationId: string | null): SecurityCredentialProvider {
   return async (): Promise<SecurityCredentialSnapshot> => {
     const current = getSecurityCredentials();
     const supabase = getSupabaseAuthClient();
@@ -96,10 +89,7 @@ export function createSupabaseCredentialProvider(
   };
 }
 
-export async function signInWithPassword(
-  email: string,
-  password: string,
-): Promise<SupabaseAuthResult> {
+export async function signInWithPassword(email: string, password: string): Promise<SupabaseAuthResult> {
   const supabase = getSupabaseAuthClient();
   if (!supabase) {
     return {

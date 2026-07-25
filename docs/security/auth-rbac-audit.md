@@ -21,14 +21,14 @@ Organization mismatch is denied before role evaluation. Cross-organization acces
 
 ## Roles
 
-| Role | Intended responsibility |
-| --- | --- |
-| `administrator` | Memberships, roles, configuration and all operations |
-| `laboratory_manager` | Equipment, sessions, publication, approvals and audit review |
-| `engineer` | Equipment layouts, sessions, publication and operational review |
-| `operator` | Live operation, draft editing and alert acknowledgement |
-| `viewer` | Read-only dashboard, telemetry and reports |
-| `auditor` | Read-only evidence, reports, telemetry and audit history |
+| Role                 | Intended responsibility                                         |
+| -------------------- | --------------------------------------------------------------- |
+| `administrator`      | Memberships, roles, configuration and all operations            |
+| `laboratory_manager` | Equipment, sessions, publication, approvals and audit review    |
+| `engineer`           | Equipment layouts, sessions, publication and operational review |
+| `operator`           | Live operation, draft editing and alert acknowledgement         |
+| `viewer`             | Read-only dashboard, telemetry and reports                      |
+| `auditor`            | Read-only evidence, reports, telemetry and audit history        |
 
 The policy is deny-by-default. A user may hold multiple roles; effective permissions are the union of those roles inside one organization.
 
@@ -59,8 +59,8 @@ Critical mutations write an append-only event in the same database transaction a
   "action": "layout.publish",
   "entity_type": "refrigeration_layout",
   "entity_id": "showcase-106-01",
-  "before": {"draft_version": 4},
-  "after": {"draft_version": 4, "revision_number": 1},
+  "before": { "draft_version": 4 },
+  "after": { "draft_version": 4, "revision_number": 1 },
   "reason": "Approved equipment sensor placement",
   "request_id": "uuid",
   "source_ip": "redacted-or-bounded",

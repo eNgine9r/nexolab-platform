@@ -97,9 +97,8 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       }
 
       const selectedMembership =
-        result.value.memberships.find(
-          (item) => item.organizationId === runtime.organizationId,
-        ) ?? result.value.memberships[0];
+        result.value.memberships.find((item) => item.organizationId === runtime.organizationId) ??
+        result.value.memberships[0];
       if (!selectedMembership) {
         setSecurityState("error");
         setSecurityError("Користувач не має активного членства в організації NEXOLAB.");
@@ -153,7 +152,13 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       )}
     >
       <style jsx global>{`
-        .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > div:last-child > button,
+        .nexolab-rbac-no-edit
+          .production-layout-editor
+          #layout-editor
+          > div
+          > div:first-child
+          > div:last-child
+          > button,
         .nexolab-rbac-no-edit > div > section > div:nth-child(1) button {
           display: none !important;
         }

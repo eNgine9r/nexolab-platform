@@ -1,10 +1,5 @@
 export type SecurityRole =
-  | "administrator"
-  | "laboratory_manager"
-  | "engineer"
-  | "operator"
-  | "viewer"
-  | "auditor";
+  "administrator" | "laboratory_manager" | "engineer" | "operator" | "viewer" | "auditor";
 
 export type SecurityPermission =
   | "dashboard.read"
@@ -59,8 +54,7 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  | SecurityCredentialSnapshot
-  | Promise<SecurityCredentialSnapshot>;
+  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;

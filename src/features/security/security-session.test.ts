@@ -57,10 +57,11 @@ describe("security session client", () => {
   it("parses memberships and evaluates explicit permissions", async () => {
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
-      fetchImpl: vi.fn(async () =>
-        new Response(JSON.stringify(sessionPayload), {
-          headers: { "Content-Type": "application/json" },
-        }),
+      fetchImpl: vi.fn(
+        async () =>
+          new Response(JSON.stringify(sessionPayload), {
+            headers: { "Content-Type": "application/json" },
+          }),
       ) as unknown as typeof fetch,
     });
 
@@ -76,13 +77,14 @@ describe("security session client", () => {
   it("maps HTTP 401 to an authentication-required result", async () => {
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
-      fetchImpl: vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            detail: { code: "missing_bearer_token", message: "Bearer token is required" },
-          }),
-          { status: 401, headers: { "Content-Type": "application/json" } },
-        ),
+      fetchImpl: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              detail: { code: "missing_bearer_token", message: "Bearer token is required" },
+            }),
+            { status: 401, headers: { "Content-Type": "application/json" } },
+          ),
       ) as unknown as typeof fetch,
     });
 

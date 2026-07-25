@@ -41,8 +41,8 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 text-sm leading-6 text-slate-400">
-          Увійдіть через обліковий запис лабораторії. Доступ до організацій і операцій
-          визначається серверними ролями RBAC.
+          Увійдіть через обліковий запис лабораторії. Доступ до організацій і операцій визначається серверними
+          ролями RBAC.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={submit}>
@@ -72,7 +72,10 @@ export default function LoginPage() {
           </label>
 
           {error ? (
-            <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200" role="alert">
+            <div
+              className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
+              role="alert"
+            >
               {error}
             </div>
           ) : null}
@@ -92,8 +95,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-[11px] leading-5 text-slate-600">
-          Токен сесії отримується від Supabase Auth і перевіряється backend через issuer,
-          audience та JWKS. Роль не приймається з браузера.
+          Токен сесії отримується від Supabase Auth і перевіряється backend через issuer, audience та JWKS.
+          Роль не приймається з браузера.
         </p>
       </section>
     </main>

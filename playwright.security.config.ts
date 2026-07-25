@@ -2,8 +2,7 @@ import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
-const evidenceDirectory =
-  process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
 const webUrl = process.env.NEXOLAB_SECURITY_WEB_URL ?? "http://127.0.0.1:13010";
 const webPort = new URL(webUrl).port || "13010";
 
