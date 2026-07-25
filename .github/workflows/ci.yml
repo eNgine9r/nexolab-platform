@@ -37,9 +37,26 @@ jobs:
         run: npm install --no-audit
 
       - name: Format branch
-        run: npm run format
+        id: format
+        continue-on-error: true
+        run: npm run format > formatter.log 2>&1
+
+      - name: Upload formatter diagnostics
+        if: steps.format.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-formatter-diagnostics-${{ github.run_id }}
+          path: formatter.log
+          retention-days: 1
+
+      - name: Stop on formatter failure
+        if: steps.format.outcome == 'failure'
+        run: |
+          tail -n 60 formatter.log
+          exit 1
 
       - name: Commit formatting
+        if: steps.format.outcome == 'success'
         run: |
           if git diff --quiet; then
             echo "No formatting changes required."
@@ -52,15 +69,19 @@ jobs:
           fi
 
       - name: Lint
+        if: steps.format.outcome == 'success'
         run: npm run lint
 
       - name: Typecheck
+        if: steps.format.outcome == 'success'
         run: npm run typecheck
 
       - name: Test
+        if: steps.format.outcome == 'success'
         run: npm test
 
       - name: Build
+        if: steps.format.outcome == 'success'
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
