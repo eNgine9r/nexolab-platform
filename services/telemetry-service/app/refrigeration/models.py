@@ -26,10 +26,24 @@ class EquipmentImage(Base):
         CheckConstraint("size_bytes > 0", name="ck_equipment_images_size_positive"),
         CheckConstraint("width_px > 0", name="ck_equipment_images_width_positive"),
         CheckConstraint("height_px > 0", name="ck_equipment_images_height_positive"),
-        Index("ix_equipment_images_equipment_created", "equipment_id", "created_at"),
+        Index(
+            "ix_equipment_images_equipment_created",
+            "organization_id",
+            "equipment_id",
+            "created_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_equipment_images_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
     storage_key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -48,12 +62,29 @@ class EquipmentImage(Base):
 class RefrigerationLayoutDraft(Base):
     __tablename__ = "refrigeration_layout_drafts"
     __table_args__ = (
-        UniqueConstraint("equipment_id", name="uq_refrigeration_layout_draft_equipment"),
+        UniqueConstraint(
+            "organization_id",
+            "equipment_id",
+            name="uq_refrigeration_layout_draft_equipment",
+        ),
         CheckConstraint("version >= 1", name="ck_refrigeration_layout_draft_version_positive"),
-        Index("ix_refrigeration_layout_drafts_updated", "updated_at"),
+        Index(
+            "ix_refrigeration_layout_drafts_updated",
+            "organization_id",
+            "updated_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_layout_draft_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
     image_id: Mapped[str | None] = mapped_column(
@@ -76,7 +107,10 @@ class RefrigerationLayoutRevision(Base):
     __tablename__ = "refrigeration_layout_revisions"
     __table_args__ = (
         UniqueConstraint(
-            "equipment_id", "revision", name="uq_refrigeration_layout_revision_equipment"
+            "organization_id",
+            "equipment_id",
+            "revision",
+            name="uq_refrigeration_layout_revision_equipment",
         ),
         CheckConstraint("revision >= 1", name="ck_refrigeration_layout_revision_positive"),
         CheckConstraint(
@@ -85,12 +119,22 @@ class RefrigerationLayoutRevision(Base):
         ),
         Index(
             "ix_refrigeration_layout_revisions_equipment_published",
+            "organization_id",
             "equipment_id",
             "published_at",
         ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_layout_revision_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     source_draft_version: Mapped[int] = mapped_column(Integer, nullable=False)
