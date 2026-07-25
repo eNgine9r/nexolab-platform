@@ -62,6 +62,10 @@ type RefrigerationLayoutWorkspaceProps = {
   repository?: RefrigerationLayoutRepository;
   actorId?: string;
   runtimeMode?: "demo" | "live";
+  canWrite?: boolean;
+  canPublish?: boolean;
+  authenticationReady?: boolean;
+  authenticationMessage?: string | null;
 };
 
 export function RefrigerationLayoutWorkspace({
@@ -74,6 +78,10 @@ export function RefrigerationLayoutWorkspace({
   repository: repositoryOverride,
   actorId: actorIdOverride,
   runtimeMode,
+  canWrite = true,
+  canPublish = true,
+  authenticationReady = true,
+  authenticationMessage = null,
 }: RefrigerationLayoutWorkspaceProps) {
   const runtime = useMemo(
     () =>
@@ -125,6 +133,14 @@ export function RefrigerationLayoutWorkspace({
   );
 
   const loadWorkspace = useCallback(async () => {
+    if (!authenticationReady) {
+      setWorkspaceState("ready");
+      setErrorMessage(
+        authenticationMessage ?? "Для production-схеми потрібна авторизована операторська сесія.",
+      );
+      return;
+    }
+
     if (!baseRepository) {
       setWorkspaceState("ready");
       setErrorMessage(runtime.error ?? "Сховище схем обладнання недоступне.");
@@ -152,7 +168,13 @@ export function RefrigerationLayoutWorkspace({
       setHistory(historyResult.value);
     }
     setWorkspaceState("ready");
-  }, [baseRepository, equipment.id, runtime.error]);
+  }, [
+    authenticationMessage,
+    authenticationReady,
+    baseRepository,
+    equipment.id,
+    runtime.error,
+  ]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -180,7 +202,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const attachImage = async (image: EquipmentImageMetadata, expectedVersion: number) => {
-    if (!repository || !draft) return;
+    if (!canWrite || !repository || !draft) return;
 
     setActionState("attaching");
     const result = await repository.saveDraft({
@@ -212,7 +234,7 @@ export function RefrigerationLayoutWorkspace({
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !repository || !draft) return;
+    if (!canWrite || !file || !repository || !draft) return;
 
     clearFeedback();
     if (mode === "edit") {
@@ -253,7 +275,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const handlePublish = async () => {
-    if (!repository || !draft || actionState !== "idle") return;
+    if (!canPublish || !repository || !draft || actionState !== "idle") return;
     clearFeedback();
     if (mode === "edit") {
       setErrorMessage("Збережіть або скасуйте редагування перед публікацією.");
@@ -287,7 +309,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const handleRestore = async (revision: PublishedLayoutRevision) => {
-    if (!repository || !draft || actionState !== "idle") return;
+    if (!canPublish || !repository || !draft || actionState !== "idle") return;
     clearFeedback();
     if (mode === "edit") {
       setErrorMessage("Збережіть або скасуйте редагування перед відновленням історії.");
@@ -390,8 +412,8 @@ export function RefrigerationLayoutWorkspace({
           equipment={effectiveEquipment}
           visibleSensors={visibleSensors}
           selectedId={selectedId}
-          mode={mode}
-          onModeChange={onModeChange}
+          mode={canWrite ? mode : "view"}
+          onModeChange={(nextMode) => onModeChange(canWrite ? nextMode : "view")}
           onSelect={onSelect}
           repository={repository}
         />
@@ -415,6 +437,7 @@ export function RefrigerationLayoutWorkspace({
           actionState={actionState}
           preview={uploadPreview}
           pendingImage={pendingImage}
+          canWrite={canWrite}
           inputRef={photoInputRef}
           onChange={handlePhotoChange}
           onOpen={() => photoInputRef.current?.click()}
@@ -426,12 +449,14 @@ export function RefrigerationLayoutWorkspace({
           runtimeMode={runtime.mode}
           busy={actionState !== "idle"}
           mode={mode}
+          canPublish={canPublish}
           onPublish={() => void handlePublish()}
         />
         <HistoryCard
           items={history}
           busy={actionState !== "idle"}
           mode={mode}
+          canRestore={canPublish}
           onRestore={(revision) => void handleRestore(revision)}
         />
       </section>
@@ -445,6 +470,7 @@ function PhotoUploadCard({
   actionState,
   preview,
   pendingImage,
+  canWrite,
   inputRef,
   onChange,
   onOpen,
@@ -455,13 +481,14 @@ function PhotoUploadCard({
   actionState: ActionState;
   preview: UploadPreview | null;
   pendingImage: EquipmentImageMetadata | null;
+  canWrite: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onOpen: () => void;
   onRetry: () => void;
 }) {
   const uploading = actionState === "uploading" || actionState === "attaching";
-  const disabled = mode === "edit" || actionState !== "idle";
+  const disabled = !canWrite || mode === "edit" || actionState !== "idle";
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4">
@@ -479,6 +506,7 @@ function PhotoUploadCard({
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         aria-label="Вибрати production-фото обладнання"
+        disabled={!canWrite}
         onChange={onChange}
       />
 
@@ -534,7 +562,9 @@ function PhotoUploadCard({
           </button>
         ) : null}
       </div>
-      {mode === "edit" ? (
+      {!canWrite ? (
+        <p className="mt-2 text-[9px] text-slate-500">Потрібен дозвіл layouts.write.</p>
+      ) : mode === "edit" ? (
         <p className="mt-2 text-[9px] text-amber-300">Збережіть позиції датчиків перед заміною фото.</p>
       ) : null}
     </div>
@@ -547,6 +577,7 @@ function PublicationCard({
   runtimeMode,
   busy,
   mode,
+  canPublish,
   onPublish,
 }: {
   draft: RefrigerationLayoutDraft;
@@ -554,6 +585,7 @@ function PublicationCard({
   runtimeMode: "demo" | "live";
   busy: boolean;
   mode: LayoutEditorMode;
+  canPublish: boolean;
   onPublish: () => void;
 }) {
   return (
@@ -584,7 +616,7 @@ function PublicationCard({
 
       <button
         type="button"
-        disabled={busy || mode === "edit" || !draft.imageId}
+        disabled={!canPublish || busy || mode === "edit" || !draft.imageId}
         onClick={onPublish}
         className="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-200 enabled:hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
@@ -599,11 +631,13 @@ function HistoryCard({
   items,
   busy,
   mode,
+  canRestore,
   onRestore,
 }: {
   items: PublishedLayoutRevision[];
   busy: boolean;
   mode: LayoutEditorMode;
+  canRestore: boolean;
   onRestore: (revision: PublishedLayoutRevision) => void;
 }) {
   return (
@@ -639,7 +673,7 @@ function HistoryCard({
               </div>
               <button
                 type="button"
-                disabled={busy || mode === "edit"}
+                disabled={!canRestore || busy || mode === "edit"}
                 onClick={() => onRestore(revision)}
                 className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1.5 text-[9px] text-slate-400 enabled:hover:bg-white/[0.05] enabled:hover:text-white disabled:opacity-35"
               >
