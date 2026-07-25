@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, Callable, Literal
+from typing import Callable, Literal
 
 from fastapi import Header, HTTPException, status
 
@@ -49,7 +49,7 @@ class SecurityDependencies:
 
     def current_session(
         self,
-        authorization: Annotated[str | None, Header()] = None,
+        authorization: str | None = Header(default=None, alias="Authorization"),
     ) -> SecuritySession:
         if self._mode == "disabled":
             membership = MembershipSummary(
@@ -78,11 +78,11 @@ class SecurityDependencies:
         permission: Permission,
     ) -> Callable[..., AuthorizedRequest]:
         def dependency(
-            authorization: Annotated[str | None, Header()] = None,
-            organization_id: Annotated[
-                str | None,
-                Header(alias="X-Organization-ID"),
-            ] = None,
+            authorization: str | None = Header(default=None, alias="Authorization"),
+            organization_id: str | None = Header(
+                default=None,
+                alias="X-Organization-ID",
+            ),
         ) -> AuthorizedRequest:
             resolved_organization_id = self._resolve_organization_id(organization_id)
             if self._mode == "disabled":
