@@ -80,7 +80,7 @@ export class HttpSecuritySessionClient {
     try {
       const response = await this.fetchImpl(`${this.apiBaseUrl}/api/v1/auth/session`, {
         method: "GET",
-        credentials: "include",
+        credentials: "same-origin",
         headers: { Accept: "application/json" },
       });
       const payload = await readJson(response);
@@ -136,7 +136,7 @@ export function createAuthenticatedFetch(
     }
     return fetchImpl(input, {
       ...init,
-      credentials: init?.credentials ?? "include",
+      credentials: init?.credentials ?? "same-origin",
       headers,
     });
   };
