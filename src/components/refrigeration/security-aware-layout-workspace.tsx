@@ -117,8 +117,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     };
   }, [runtime]);
 
-  const liveRuntimeUnavailable =
-    runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
+  const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
 
   if (liveRuntimeUnavailable) {
     return (
