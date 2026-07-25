@@ -182,6 +182,8 @@ export function getRefrigerationEquipment(id: string): RefrigerationEquipment | 
     acceptanceEquipmentId.test(id)
   ) {
     const template = refrigerationEquipment[0];
+    if (!template) return undefined;
+
     return {
       ...template,
       id,
