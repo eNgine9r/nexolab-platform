@@ -156,14 +156,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             security_dependencies=security_dependencies,
         )
     )
-    app.include_router(create_session_router(session_repository))
-    app.include_router(create_session_configuration_router(session_repository))
-    app.include_router(create_session_audit_router(session_repository))
+    app.include_router(create_session_router(session_repository, security_dependencies))
+    app.include_router(
+        create_session_configuration_router(
+            session_repository,
+            security_dependencies,
+        )
+    )
+    app.include_router(
+        create_session_audit_router(
+            session_repository,
+            security_dependencies,
+        )
+    )
     app.include_router(
         create_session_telemetry_router(
             database,
             max_history_days=resolved.history_max_range_days,
             max_page_size=resolved.api_max_page_size,
+            security_dependencies=security_dependencies,
         )
     )
     app.include_router(
