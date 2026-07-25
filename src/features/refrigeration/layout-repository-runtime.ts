@@ -38,7 +38,7 @@ export function createRefrigerationLayoutRuntime(
         mode: "live",
         repository: new HttpRefrigerationLayoutRepository({
           apiBaseUrl: config.apiBaseUrl,
-          fetchImpl: input.fetchImpl,
+          fetchImpl: input.fetchImpl ?? fetch.bind(globalThis),
         }),
         actorId,
         error: null,

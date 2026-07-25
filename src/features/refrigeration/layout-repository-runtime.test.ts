@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 
@@ -11,6 +11,10 @@ function equipment() {
   if (!value) throw new Error("Refrigeration fixture is missing");
   return value;
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("createRefrigerationLayoutRuntime", () => {
   it("uses the deterministic in-memory adapter in demo mode", async () => {
@@ -48,6 +52,42 @@ describe("createRefrigerationLayoutRuntime", () => {
     expect(runtime.repository).toBeInstanceOf(HttpRefrigerationLayoutRepository);
     expect(runtime.actorId).toBe("operator-live");
     expect(runtime.error).toBeNull();
+  });
+
+  it("binds the native browser fetch receiver in live mode", async () => {
+    const fetchSpy = vi.fn(function (this: unknown) {
+      if (this !== globalThis) throw new TypeError("Illegal invocation");
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            id: "draft-1",
+            equipment_id: equipment().id,
+            version: 1,
+            image: null,
+            placements: [],
+            created_at: "2026-07-25T00:00:00.000Z",
+            updated_at: "2026-07-25T00:00:00.000Z",
+          }),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ETag: 'W/"layout-draft-v1"',
+            },
+          },
+        ),
+      );
+    }) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const runtime = createRefrigerationLayoutRuntime({
+      equipment: equipment(),
+      mode: "live",
+      apiBaseUrl: "http://127.0.0.1:8082",
+    });
+    const draft = await runtime.repository?.getDraft(equipment().id);
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(draft).toMatchObject({ ok: true, value: { version: 1 } });
   });
 
   it("surfaces a configuration error without silently falling back to demo", () => {

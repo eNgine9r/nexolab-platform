@@ -123,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=resolved.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
             allow_headers=["*"],
+            expose_headers=["ETag"],
             max_age=600,
         )
 
