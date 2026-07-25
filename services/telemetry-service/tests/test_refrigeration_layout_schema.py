@@ -33,13 +33,17 @@ def test_alembic_migration_created_refrigeration_schema() -> None:
             item["name"]: tuple(item["column_names"])
             for item in inspector.get_unique_constraints("refrigeration_layout_drafts")
         }
-        assert draft_unique["uq_refrigeration_layout_draft_equipment"] == ("equipment_id",)
+        assert draft_unique["uq_refrigeration_layout_draft_equipment"] == (
+            "organization_id",
+            "equipment_id",
+        )
 
         revision_unique = {
             item["name"]: tuple(item["column_names"])
             for item in inspector.get_unique_constraints("refrigeration_layout_revisions")
         }
         assert revision_unique["uq_refrigeration_layout_revision_equipment"] == (
+            "organization_id",
             "equipment_id",
             "revision",
         )
@@ -50,8 +54,18 @@ def test_alembic_migration_created_refrigeration_schema() -> None:
         revision_foreign_keys = {
             item["name"] for item in inspector.get_foreign_keys("refrigeration_layout_revisions")
         }
-        assert "fk_layout_draft_image_id" in draft_foreign_keys
-        assert "fk_layout_revision_image_id" in revision_foreign_keys
+        image_foreign_keys = {
+            item["name"] for item in inspector.get_foreign_keys("equipment_images")
+        }
+        assert {
+            "fk_layout_draft_image_id",
+            "fk_refrigeration_layout_draft_organization",
+        } <= draft_foreign_keys
+        assert {
+            "fk_layout_revision_image_id",
+            "fk_refrigeration_layout_revision_organization",
+        } <= revision_foreign_keys
+        assert "fk_equipment_images_organization" in image_foreign_keys
 
         image_checks = {
             item["name"] for item in inspector.get_check_constraints("equipment_images")
