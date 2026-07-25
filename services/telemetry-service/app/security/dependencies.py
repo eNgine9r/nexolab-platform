@@ -79,12 +79,14 @@ class SecurityDependencies:
     ) -> Callable[..., AuthorizedRequest]:
         def dependency(
             authorization: str | None = Header(default=None, alias="Authorization"),
-            organization_id: str | None = Header(
+            selected_organization_id: str | None = Header(
                 default=None,
                 alias="X-Organization-ID",
             ),
         ) -> AuthorizedRequest:
-            resolved_organization_id = self._resolve_organization_id(organization_id)
+            resolved_organization_id = self._resolve_organization_id(
+                selected_organization_id
+            )
             if self._mode == "disabled":
                 principal = AuthenticatedPrincipal(
                     subject="development-system",
