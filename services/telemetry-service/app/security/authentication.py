@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import jwt
 
@@ -32,34 +32,60 @@ class VerifiedIdentityClaims:
             raise ValueError("subject is required")
 
 
+class JwkSigningKey(Protocol):
+    key: Any
+
+
+class JwkClient(Protocol):
+    def get_signing_key_from_jwt(self, token: str) -> JwkSigningKey: ...
+
+
 class JwtAuthenticator:
     def __init__(
         self,
         *,
-        public_key: str,
         algorithm: str,
         issuer: str | None,
         audience: str | None,
         provider: str,
+        public_key: str | None = None,
+        jwks_url: str | None = None,
+        jwk_client: JwkClient | None = None,
     ) -> None:
-        if not public_key.strip():
-            raise ValueError("JWT public key is required")
         if not algorithm.strip():
             raise ValueError("JWT algorithm is required")
         if not provider.strip():
             raise ValueError("JWT provider is required")
-        self._public_key = public_key
+        normalized_key = public_key.strip() if public_key else None
+        normalized_jwks_url = jwks_url.strip() if jwks_url else None
+        if bool(normalized_key) == bool(normalized_jwks_url):
+            raise ValueError("configure exactly one of JWT public key or JWKS URL")
+
+        self._public_key = normalized_key
         self._algorithm = algorithm
         self._issuer = issuer or None
         self._audience = audience or None
         self._provider = provider
+        if normalized_jwks_url:
+            self._jwk_client: JwkClient | None = jwk_client or jwt.PyJWKClient(
+                normalized_jwks_url,
+                cache_keys=True,
+                lifespan=300,
+            )
+        else:
+            self._jwk_client = None
 
     def verify(self, authorization_header: str | None) -> VerifiedIdentityClaims:
         token = _extract_bearer_token(authorization_header)
         try:
+            verification_key = (
+                self._jwk_client.get_signing_key_from_jwt(token).key
+                if self._jwk_client is not None
+                else self._public_key
+            )
             payload = jwt.decode(
                 token,
-                self._public_key,
+                verification_key,
                 algorithms=[self._algorithm],
                 issuer=self._issuer,
                 audience=self._audience,
@@ -69,7 +95,7 @@ class JwtAuthenticator:
                     "verify_aud": self._audience is not None,
                 },
             )
-        except jwt.PyJWTError as error:
+        except (jwt.PyJWTError, OSError, ValueError) as error:
             raise InvalidBearerTokenError("bearer token validation failed") from error
 
         subject = _required_string(payload, "sub")
