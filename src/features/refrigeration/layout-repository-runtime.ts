@@ -5,7 +5,7 @@ import {
   HttpSecuritySessionClient,
   type SecurityCredentialProvider,
 } from "@/features/security/security-session";
-import { createSupabaseCredentialProvider } from "@/features/security/supabase-auth";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { HttpRefrigerationLayoutRepository } from "./http-layout-repository";
 import {
@@ -50,7 +50,7 @@ export function createRefrigerationLayoutRuntime(
       );
       const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
       const credentialProvider =
-        input.credentialProvider ?? createSupabaseCredentialProvider(organizationId);
+        input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
       const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
       return {
         mode: "live",
