@@ -71,6 +71,7 @@ Canonical operator entry point:
 Supporting procedures:
 
 - controlled central deployment: [`docs/operations/central-deployment.md`](docs/operations/central-deployment.md);
+- private Tailscale HTTPS deployment and remote operator acceptance: [`docs/operations/central-tailscale-tls-acceptance.md`](docs/operations/central-tailscale-tls-acceptance.md);
 - edge-to-dashboard cutover and rollback: [`docs/operations/m3-cutover-validation.md`](docs/operations/m3-cutover-validation.md);
 - backend incidents, retention, backup and restore: [`docs/operations/telemetry-backend-runbook.md`](docs/operations/telemetry-backend-runbook.md);
 - acceptance evidence template: [`docs/operations/m3-validation-evidence-template.md`](docs/operations/m3-validation-evidence-template.md).
