@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e:production": "playwright test --config=playwright.production.config.ts",
+    "test:e2e:security": "playwright test --config=playwright.security.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
