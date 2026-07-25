@@ -63,7 +63,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     const page = await context.newPage();
     try {
       await page.goto(equipmentRoute, { waitUntil: "networkidle" });
-      await expect(page.getByRole("alert")).toContainText("Authorization bearer token is required");
+      await expect(page.getByText("Authorization bearer token is required", { exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: "Редагувати схему" })).toHaveCount(0);
     } finally {
       await context.close();
