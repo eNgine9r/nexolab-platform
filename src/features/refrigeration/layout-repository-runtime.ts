@@ -1,4 +1,6 @@
 import type { RefrigerationEquipment } from "@/data/refrigeration";
+import { createAuthenticatedFetch } from "@/features/auth/authenticated-transport";
+import { readBrowserAccessToken } from "@/features/auth/auth-session";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 import { HttpRefrigerationLayoutRepository } from "./http-layout-repository";
@@ -21,10 +23,12 @@ export type RefrigerationLayoutRuntimeInput = {
   actorId?: string;
   mode?: string;
   apiBaseUrl?: string;
+  getAccessToken?: () => string | null;
 };
 
 type RefrigerationLayoutRuntimeSelection =
-  { mode: "demo"; apiBaseUrl: null } | { mode: "live"; apiBaseUrl: string };
+  | { mode: "demo"; apiBaseUrl: null }
+  | { mode: "live"; apiBaseUrl: string };
 
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
@@ -34,11 +38,15 @@ export function createRefrigerationLayoutRuntime(
   try {
     const config = getTelemetryRuntimeConfigFromInput(input);
     if (config.mode === "live") {
+      const getAccessToken = input.getAccessToken ?? readBrowserAccessToken;
       return {
         mode: "live",
         repository: new HttpRefrigerationLayoutRepository({
           apiBaseUrl: config.apiBaseUrl,
-          fetchImpl: input.fetchImpl ?? fetch.bind(globalThis),
+          fetchImpl: createAuthenticatedFetch(
+            getAccessToken,
+            input.fetchImpl ?? fetch.bind(globalThis),
+          ),
         }),
         actorId,
         error: null,
@@ -71,7 +79,10 @@ export function createRefrigerationLayoutRuntime(
       mode: input.mode === "live" ? "live" : "demo",
       repository: null,
       actorId,
-      error: error instanceof Error ? error.message : "Не вдалося налаштувати сховище схем обладнання.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Не вдалося налаштувати сховище схем обладнання.",
     };
   }
 }
