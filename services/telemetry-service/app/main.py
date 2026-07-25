@@ -21,6 +21,10 @@ from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.retention import RetentionWorker
+from app.security.api import create_security_router
+from app.security.authentication import JwtAuthenticator
+from app.security.dependencies import SecurityDependencies
+from app.security.repository import SecurityRepository
 from app.sessions.api import create_session_router
 from app.sessions.audit_api import create_session_audit_router
 from app.sessions.audit_repository import AuditedSessionRepository
@@ -30,7 +34,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.9.0"
+SERVICE_VERSION = "0.10.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -48,6 +52,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     session_repository = AuditedSessionRepository(database)
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
+    security_repository = SecurityRepository(database)
+    security_dependencies = _create_security_dependencies(
+        resolved,
+        security_repository,
+    )
     object_storage = _create_object_storage(resolved)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
@@ -131,11 +140,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database = database
     app.state.session_repository = session_repository
     app.state.refrigeration_repository = refrigeration_repository
+    app.state.security_repository = security_repository
+    app.state.security_dependencies = security_dependencies
     app.state.object_storage = object_storage
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
+    app.include_router(create_security_router(security_repository, security_dependencies))
     app.include_router(
         create_api_router(
             database,
@@ -222,6 +234,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return state.snapshot()
 
     return app
+
+
+def _create_security_dependencies(
+    settings: Settings,
+    repository: SecurityRepository,
+) -> SecurityDependencies:
+    authenticator: JwtAuthenticator | None = None
+    if settings.auth_mode == "jwt":
+        public_key = settings.resolved_auth_jwt_public_key
+        if public_key is None or not public_key.strip():
+            raise ValueError("AUTH_JWT_PUBLIC_KEY is required when AUTH_MODE=jwt")
+        authenticator = JwtAuthenticator(
+            public_key=public_key,
+            algorithm=settings.auth_jwt_algorithm,
+            issuer=settings.auth_jwt_issuer,
+            audience=settings.auth_jwt_audience,
+            provider=settings.auth_jwt_provider,
+        )
+    return SecurityDependencies(
+        repository,
+        mode=settings.auth_mode,
+        authenticator=authenticator,
+        default_organization_id=settings.auth_default_organization_id,
+    )
 
 
 def _create_object_storage(settings: Settings) -> S3ObjectStorage | UnavailableObjectStorage:
