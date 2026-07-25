@@ -219,7 +219,7 @@ def _inspect_image(content: bytes, declared_media_type: str | None) -> tuple[str
         with Image.open(BytesIO(content)) as image:
             image_format = image.format
             width_px, height_px = image.size
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
+    except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError) as error:
         raise _api_http_error(415, "invalid_image", "file content is not a supported image") from error
     if image_format not in _ACCEPTED_FORMATS:
         raise _api_http_error(415, "unsupported_image_type", "only JPEG, PNG and WebP are supported")
