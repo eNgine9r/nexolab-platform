@@ -15,6 +15,7 @@
 /playwright-report/
 /test-results/
 /acceptance-evidence/
+/remote-acceptance-evidence/
 
 # next.js
 /.next/
