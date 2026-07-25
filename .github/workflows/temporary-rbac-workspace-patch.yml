@@ -24,7 +24,6 @@ jobs:
 
           path = Path('src/components/refrigeration/refrigeration-layout-workspace.tsx')
           text = path.read_text()
-
           replacements = [
               ('  runtimeMode?: "demo" | "live";\n};', '  runtimeMode?: "demo" | "live";\n  canWrite?: boolean;\n  canPublish?: boolean;\n  authenticationReady?: boolean;\n  authenticationMessage?: string | null;\n};'),
               ('  actorId: actorIdOverride,\n  runtimeMode,\n}: RefrigerationLayoutWorkspaceProps) {', '  actorId: actorIdOverride,\n  runtimeMode,\n  canWrite = true,\n  canPublish = true,\n  authenticationReady = true,\n  authenticationMessage = null,\n}: RefrigerationLayoutWorkspaceProps) {'),
@@ -50,9 +49,7 @@ jobs:
               ('  mode: LayoutEditorMode;\n  onRestore: (revision: PublishedLayoutRevision) => void;', '  mode: LayoutEditorMode;\n  canRestore: boolean;\n  onRestore: (revision: PublishedLayoutRevision) => void;'),
               ('                disabled={busy || mode === "edit"}', '                disabled={!canRestore || busy || mode === "edit"}'),
           ]
-
           changed = False
-          missing = []
           for old, new in replacements:
               if new in text:
                   continue
@@ -60,18 +57,10 @@ jobs:
                   text = text.replace(old, new, 1)
                   changed = True
               else:
-                  missing.append(old[:100])
-
-          if missing:
-              print('Patterns not applied:')
-              for item in missing:
-                  print('-', repr(item))
-
+                  print('Pattern not applied:', repr(old[:100]))
           if changed:
               path.write_text(text)
           PY
-
-          npx prettier --write src/components/refrigeration/refrigeration-layout-workspace.tsx
 
       - name: Commit patch
         run: |
