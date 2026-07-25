@@ -1,0 +1,61 @@
+name: Authentication RBAC Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/auth-rbac-browser-acceptance.yml"
+      - "docs/authentication-rbac-audit.md"
+      - "e2e/auth-rbac.production.e2e.ts"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "playwright.rbac.config.ts"
+      - "scripts/run-auth-rbac-browser-acceptance.sh"
+      - "services/telemetry-service/app/auth/**"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/migrations/**"
+      - "src/components/refrigeration/**"
+      - "src/features/auth/**"
+      - "src/features/refrigeration/**"
+      - "src/lib/telemetry/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authentication-rbac-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Viewer operator admin browser drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-rbac-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_RBAC_EVIDENCE_DIR: rbac-acceptance-evidence
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run authentication and RBAC browser acceptance
+        run: bash scripts/run-auth-rbac-browser-acceptance.sh
+
+      - name: Upload RBAC acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-rbac-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rbac-acceptance-evidence
+          if-no-files-found: warn
+          retention-days: 14
