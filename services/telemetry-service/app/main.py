@@ -10,6 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api import create_api_router
+from app.auth.api import create_auth_router
+from app.auth.middleware import AuthenticationAuthorizationMiddleware
+from app.auth.repository import AuthRepository
+from app.auth.service import AuthService
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
@@ -30,7 +34,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.9.0"
+SERVICE_VERSION = "1.0.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -45,6 +49,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database = SessionAwareDatabase(
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
+    )
+    auth_repository = AuthRepository(database)
+    auth_service = AuthService(
+        auth_repository,
+        mode=resolved.auth_mode,
+        jwt_secret=resolved.auth_jwt_secret,
+        jwt_issuer=resolved.auth_jwt_issuer,
+        jwt_audience=resolved.auth_jwt_audience,
+        jwt_leeway_seconds=resolved.auth_jwt_leeway_seconds,
+        default_organization_id=resolved.auth_default_organization_id,
+        auto_provision_memberships=resolved.auth_auto_provision_memberships,
     )
     session_repository = AuditedSessionRepository(database)
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
@@ -115,6 +130,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=SERVICE_VERSION,
         lifespan=lifespan,
     )
+    app.add_middleware(
+        AuthenticationAuthorizationMiddleware,
+        service=auth_service,
+        repository=auth_repository,
+    )
+
     cors_origins = resolved.parsed_cors_allowed_origins
     if cors_origins:
         app.add_middleware(
@@ -123,12 +144,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=resolved.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["ETag"],
+            expose_headers=["ETag", "X-Request-ID"],
             max_age=600,
         )
 
     app.state.settings = resolved
     app.state.database = database
+    app.state.auth_repository = auth_repository
+    app.state.auth_service = auth_service
     app.state.session_repository = session_repository
     app.state.refrigeration_repository = refrigeration_repository
     app.state.object_storage = object_storage
@@ -136,6 +159,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
+
+    app.include_router(create_auth_router(auth_repository))
     app.include_router(
         create_api_router(
             database,
