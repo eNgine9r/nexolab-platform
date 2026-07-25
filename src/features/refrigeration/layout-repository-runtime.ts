@@ -24,7 +24,8 @@ export type RefrigerationLayoutRuntimeInput = {
 };
 
 type RefrigerationLayoutRuntimeSelection =
-  { mode: "demo"; apiBaseUrl: null } | { mode: "live"; apiBaseUrl: string };
+  | { mode: "demo"; apiBaseUrl: null }
+  | { mode: "live"; apiBaseUrl: string };
 
 export function createRefrigerationLayoutRuntime(
   input: RefrigerationLayoutRuntimeInput,
@@ -38,7 +39,7 @@ export function createRefrigerationLayoutRuntime(
         mode: "live",
         repository: new HttpRefrigerationLayoutRepository({
           apiBaseUrl: config.apiBaseUrl,
-          fetchImpl: input.fetchImpl,
+          fetchImpl: input.fetchImpl ?? fetch.bind(globalThis),
         }),
         actorId,
         error: null,
