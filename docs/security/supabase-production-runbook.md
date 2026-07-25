@@ -73,14 +73,14 @@ Initial administrator assignment must be performed through a controlled database
 
 ## Role model
 
-| Role | Primary access |
-| --- | --- |
-| `administrator` | Memberships, configuration and all protected operations |
+| Role                 | Primary access                                           |
+| -------------------- | -------------------------------------------------------- |
+| `administrator`      | Memberships, configuration and all protected operations  |
 | `laboratory_manager` | Sessions, layouts, publication, reports and audit review |
-| `engineer` | Layout editing, publication and session operations |
-| `operator` | Live operation, draft editing and alert acknowledgement |
-| `viewer` | Read-only dashboard, telemetry and reports |
-| `auditor` | Read-only evidence, reports and immutable audit history |
+| `engineer`           | Layout editing, publication and session operations       |
+| `operator`           | Live operation, draft editing and alert acknowledgement  |
+| `viewer`             | Read-only dashboard, telemetry and reports               |
+| `auditor`            | Read-only evidence, reports and immutable audit history  |
 
 Permissions are evaluated inside one organization. Membership in one laboratory does not grant access to another laboratory.
 
