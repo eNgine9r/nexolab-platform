@@ -1,0 +1,40 @@
+name: nexolab-central
+
+services:
+  dashboard:
+    image: ${NEXOLAB_DASHBOARD_IMAGE:-nexolab-dashboard:local}
+    build:
+      context: ../..
+      dockerfile: Dockerfile.dashboard
+      args:
+        NEXT_PUBLIC_NEXOLAB_DATA_MODE: live
+        NEXT_PUBLIC_NEXOLAB_API_BASE_URL: ${NEXT_PUBLIC_NEXOLAB_API_BASE_URL:?NEXT_PUBLIC_NEXOLAB_API_BASE_URL is required}
+        NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL: ${NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL:?NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL is required}
+        NEXT_PUBLIC_NEXOLAB_OPERATOR_ID: ${NEXT_PUBLIC_NEXOLAB_OPERATOR_ID:-dashboard-operator}
+        NEXT_PUBLIC_NEXOLAB_ACCEPTANCE_EQUIPMENT_ENABLED: ${NEXT_PUBLIC_NEXOLAB_ACCEPTANCE_EQUIPMENT_ENABLED:-false}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      telemetry-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 20s
+    networks:
+      - central
+
+networks:
+  central:
+    name: nexolab-central
