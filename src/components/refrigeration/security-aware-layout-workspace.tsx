@@ -81,11 +81,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   useEffect(() => {
     if (runtime.mode === "demo") return;
     const client = runtime.sessionClient;
-    if (!client) {
-      setSecurityState("error");
-      setSecurityError(runtime.error ?? "Клієнт захищеної сесії не налаштований.");
-      return;
-    }
+    if (!client) return;
 
     let cancelled = false;
     void client.getSession().then((result) => {
@@ -120,6 +116,21 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       cancelled = true;
     };
   }, [runtime]);
+
+  const liveRuntimeUnavailable =
+    runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
+
+  if (liveRuntimeUnavailable) {
+    return (
+      <div
+        className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
+        role="alert"
+      >
+        <AlertTriangle className="mr-2 inline h-4 w-4" />
+        {securityError ?? runtime.error ?? "Клієнт захищеної сесії не налаштований."}
+      </div>
+    );
+  }
 
   if (securityState === "loading") {
     return (
