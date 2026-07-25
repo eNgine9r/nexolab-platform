@@ -2,15 +2,31 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
-import { ArrowLeft, CircleDot, Edit3, Filter, Thermometer, Wifi, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleDot,
+  Edit3,
+  Filter,
+  ShieldCheck,
+  ShieldX,
+  Thermometer,
+  Wifi,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
-import type { EquipmentStatus, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
+import type {
+  EquipmentStatus,
+  RefrigerationEquipment,
+  SensorSide,
+} from "@/data/refrigeration";
+import { hasPermission } from "@/features/auth/auth-session";
+import { useAuthSession } from "@/features/auth/use-auth-session";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -37,17 +53,31 @@ const sideOptions: ReadonlyArray<{
 
 const shelves = [1, 2, 3, 4] as const;
 
-export function RefrigerationDetailScreen({ equipment }: { equipment: RefrigerationEquipment }) {
+export function RefrigerationDetailScreen({
+  equipment,
+}: {
+  equipment: RefrigerationEquipment;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(equipment.sensors[0]?.id ?? null);
   const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
+  const auth = useAuthSession();
+  const session = auth.status === "authenticated" ? auth.session : null;
+  const canWriteLayout = hasPermission(session, "layouts.write");
+  const canPublishLayout = hasPermission(session, "layouts.publish");
+
+  useEffect(() => {
+    if (!canWriteLayout && layoutMode === "edit") setLayoutMode("view");
+  }, [canWriteLayout, layoutMode]);
 
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
+        (sensor) =>
+          (side === "all" || sensor.side === side) &&
+          (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
@@ -55,7 +85,8 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
   const activeSelectedId = visibleSensors.some((sensor) => sensor.id === selectedId)
     ? selectedId
     : (visibleSensors[0]?.id ?? null);
-  const selected = visibleSensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
+  const selected =
+    visibleSensors.find((sensor) => sensor.id === activeSelectedId) ?? null;
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -81,7 +112,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   </Link>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold text-white">{equipment.name}</h1>
+                      <h1 className="text-xl font-semibold text-white">
+                        {equipment.name}
+                      </h1>
                       <span
                         className={clsx(
                           "rounded-full border px-2.5 py-1 text-[10px]",
@@ -94,6 +127,14 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     <p className="mt-1 text-xs text-slate-500">
                       {equipment.location} · {equipment.model} · {equipment.serialNumber}
                     </p>
+                    <AuthStatus
+                      status={auth.status}
+                      mode={auth.mode}
+                      role={session?.role ?? null}
+                      organizationId={session?.organizationId ?? null}
+                      displayName={session?.displayName ?? session?.subject ?? null}
+                      error={auth.status === "unauthenticated" || auth.status === "error" ? auth.error.message : null}
+                    />
                   </div>
                 </div>
 
@@ -108,11 +149,20 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   <button
                     type="button"
                     onClick={() => setLayoutMode("edit")}
-                    disabled={layoutMode === "edit"}
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-default disabled:opacity-60"
+                    disabled={layoutMode === "edit" || !canWriteLayout}
+                    title={
+                      canWriteLayout
+                        ? undefined
+                        : "Потрібен дозвіл layouts.write"
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/15 px-3 py-2 text-xs font-medium text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
-                    {layoutMode === "edit" ? "Редагування активне" : "Редагувати схему"}
+                    {layoutMode === "edit"
+                      ? "Редагування активне"
+                      : canWriteLayout
+                        ? "Редагувати схему"
+                        : "Редагування заборонено"}
                   </button>
                 </div>
               </div>
@@ -122,9 +172,15 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
               <aside className="space-y-3">
                 <Panel title="Інформація">
                   <Info label="Тип" value={equipment.type} />
-                  <Info label="Модель" value={`${equipment.manufacturer} ${equipment.model}`} />
+                  <Info
+                    label="Модель"
+                    value={`${equipment.manufacturer} ${equipment.model}`}
+                  />
                   <Info label="Серійний номер" value={equipment.serialNumber} />
-                  <Info label="Температурний клас" value={equipment.temperatureClass} />
+                  <Info
+                    label="Температурний клас"
+                    value={equipment.temperatureClass}
+                  />
                   <Info label="Встановлено" value={equipment.installedAt} />
                   <Info label="Обслуговування" value={equipment.servicedAt} />
                 </Panel>
@@ -138,7 +194,10 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                 </Panel>
 
                 <Panel title="Фото обладнання">
-                  <Info label="Стан" value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"} />
+                  <Info
+                    label="Стан"
+                    value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"}
+                  />
                   <Info label="Формати" value="JPEG, PNG, WebP · до 15 МБ" />
                   <Info label="Координати" value="Нормалізовані 0..1" />
                 </Panel>
@@ -148,7 +207,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                 <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-white">Фільтри датчиків</h2>
+                      <h2 className="text-sm font-semibold text-white">
+                        Фільтри датчиків
+                      </h2>
                       <p className="mt-1 text-[11px] text-slate-500">
                         {equipment.totalSensors} датчиків · передній і задній фронт · 4 полиці
                       </p>
@@ -179,7 +240,11 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                         id="shelf-filter"
                         value={shelf}
                         onChange={(event) =>
-                          setShelf(event.target.value === "all" ? "all" : Number(event.target.value))
+                          setShelf(
+                            event.target.value === "all"
+                              ? "all"
+                              : Number(event.target.value),
+                          )
                         }
                         className="rounded-lg border border-white/[0.07] bg-[#0b1e38] px-2.5 py-1.5 text-[10px] text-slate-400 outline-none"
                       >
@@ -201,6 +266,14 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                   mode={layoutMode}
                   onModeChange={setLayoutMode}
                   onSelect={setSelectedId}
+                  canWrite={canWriteLayout}
+                  canPublish={canPublishLayout}
+                  authenticationReady={auth.status === "authenticated"}
+                  authenticationMessage={
+                    auth.status === "unauthenticated" || auth.status === "error"
+                      ? auth.error.message
+                      : null
+                  }
                 />
 
                 <div className="grid gap-3 md:grid-cols-4">
@@ -209,8 +282,16 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     value={`${equipment.averageTemperatureC} °C`}
                     icon={Thermometer}
                   />
-                  <Metric label="Мінімальна" value={`${equipment.minTemperatureC} °C`} icon={Thermometer} />
-                  <Metric label="Максимальна" value={`${equipment.maxTemperatureC} °C`} icon={Thermometer} />
+                  <Metric
+                    label="Мінімальна"
+                    value={`${equipment.minTemperatureC} °C`}
+                    icon={Thermometer}
+                  />
+                  <Metric
+                    label="Максимальна"
+                    value={`${equipment.maxTemperatureC} °C`}
+                    icon={Thermometer}
+                  />
                   <Metric
                     label="Online датчики"
                     value={`${equipment.onlineSensors}/${equipment.totalSensors}`}
@@ -222,7 +303,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
               <aside className="min-w-0 rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold text-white">Датчики в реальному часі</h2>
+                    <h2 className="text-sm font-semibold text-white">
+                      Датчики в реальному часі
+                    </h2>
                     <p className="mt-1 text-[10px] text-slate-600">
                       Показано {visibleSensors.length} із {equipment.totalSensors}
                     </p>
@@ -235,7 +318,9 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                     className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3"
                     aria-live="polite"
                   >
-                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">Вибраний датчик</p>
+                    <p className="text-[9px] tracking-wider text-blue-300 uppercase">
+                      Вибраний датчик
+                    </p>
                     <div className="mt-2 flex items-end justify-between gap-3">
                       <div>
                         <p className="font-semibold text-white">
@@ -282,8 +367,12 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
                         {sensor.label}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] text-slate-300">{sensor.name}</span>
-                        <span className="text-[9px] text-slate-600">Полиця {sensor.shelf}</span>
+                        <span className="block truncate text-[11px] text-slate-300">
+                          {sensor.name}
+                        </span>
+                        <span className="text-[9px] text-slate-600">
+                          Полиця {sensor.shelf}
+                        </span>
                       </span>
                       <span className="text-xs font-semibold text-white">
                         {formatTemperature(sensor.temperatureC, false)}
@@ -298,6 +387,40 @@ export function RefrigerationDetailScreen({ equipment }: { equipment: Refrigerat
         </main>
       </div>
     </div>
+  );
+}
+
+function AuthStatus({
+  status,
+  mode,
+  role,
+  organizationId,
+  displayName,
+  error,
+}: {
+  status: "loading" | "authenticated" | "unauthenticated" | "error";
+  mode: "demo" | "live";
+  role: string | null;
+  organizationId: string | null;
+  displayName: string | null;
+  error: string | null;
+}) {
+  if (status === "loading") {
+    return <p className="mt-2 text-[10px] text-cyan-300">Перевірка операторської сесії…</p>;
+  }
+  if (status !== "authenticated") {
+    return (
+      <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-rose-300" role="alert">
+        <ShieldX className="h-3.5 w-3.5" />
+        {error ?? "Доступ до production-операцій заборонено."}
+      </p>
+    );
+  }
+  return (
+    <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 text-[10px] text-emerald-300">
+      <ShieldCheck className="h-3.5 w-3.5" />
+      {displayName} · {role} · {organizationId} · {mode === "demo" ? "demo" : "JWT"}
+    </p>
   );
 }
 
@@ -328,39 +451,53 @@ function State({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
+function Metric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+}) {
   return (
     <div className="rounded-xl border border-white/[0.07] bg-[#091a31]/85 p-3">
       <Icon className="h-4 w-4 text-cyan-300" />
-      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">{label}</p>
+      <p className="mt-2 text-[9px] tracking-wider text-slate-600 uppercase">
+        {label}
+      </p>
       <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>
   );
 }
 
 function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) {
-    return null;
-  }
+  if (values.length < 2) return null;
 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(0.1, max - min);
   const points = values
-    .map((value, index) => `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`)
+    .map(
+      (value, index) =>
+        `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`,
+    )
     .join(" ");
 
   return (
-    <svg width="46" height="16" viewBox="0 0 46 16" aria-hidden="true" className="text-cyan-400">
+    <svg
+      width="46"
+      height="16"
+      viewBox="0 0 46 16"
+      aria-hidden="true"
+      className="text-cyan-400"
+    >
       <polyline fill="none" stroke="currentColor" strokeWidth="1.2" points={points} />
     </svg>
   );
 }
 
 function formatTemperature(temperatureC: number | null, includeUnit = true): string {
-  if (temperatureC === null) {
-    return "—";
-  }
-
+  if (temperatureC === null) return "—";
   return `${temperatureC.toFixed(1)}°${includeUnit ? " C" : ""}`;
 }
