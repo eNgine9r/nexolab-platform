@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.auth.domain import AuthError, Permission
+from app.auth.service import AuthService
 from app.db import Database, TelemetryQuery, TelemetrySample
 from app.live import OVERFLOW, SHUTDOWN, LiveTelemetryFilter, LiveTelemetryHub
 from app.state import RuntimeState
@@ -58,16 +60,41 @@ def create_live_router(
     heartbeat_seconds: float,
     send_timeout_seconds: float,
     resume_limit: int,
+    auth_service: AuthService | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry-live"])
 
     @router.websocket("/live")
     async def live(websocket: WebSocket) -> None:
+        selected_subprotocol: str | None = None
+        if auth_service is not None:
+            try:
+                principal = auth_service.authenticate_websocket(
+                    authorization_header=websocket.headers.get("authorization"),
+                    protocol_header=websocket.headers.get("sec-websocket-protocol"),
+                )
+                if not principal.has(Permission.TELEMETRY_READ):
+                    await websocket.close(code=4403, reason="permission_denied")
+                    return
+                requested_protocols = {
+                    item.strip()
+                    for item in websocket.headers.get("sec-websocket-protocol", "").split(",")
+                    if item.strip()
+                }
+                if auth_service.websocket_subprotocol in requested_protocols:
+                    selected_subprotocol = auth_service.websocket_subprotocol
+            except AuthError as error:
+                await websocket.close(
+                    code=4401 if error.status_code == 401 else 4403,
+                    reason=error.code,
+                )
+                return
+
         params = websocket.query_params
         quality = params.get("quality")
         alarm = params.get("alarm")
 
-        await websocket.accept()
+        await websocket.accept(subprotocol=selected_subprotocol)
 
         if quality is not None and quality not in ALLOWED_QUALITIES:
             await websocket.send_json(
