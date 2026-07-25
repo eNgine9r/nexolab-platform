@@ -171,6 +171,27 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
   },
 ];
 
+const acceptanceEquipmentId = /^acceptance-[a-z0-9][a-z0-9-]{0,95}$/;
+
 export function getRefrigerationEquipment(id: string): RefrigerationEquipment | undefined {
-  return refrigerationEquipment.find((equipment) => equipment.id === id);
+  const equipment = refrigerationEquipment.find((item) => item.id === id);
+  if (equipment) return equipment;
+
+  if (process.env.NEXT_PUBLIC_NEXOLAB_ACCEPTANCE_EQUIPMENT_ENABLED === "true" && acceptanceEquipmentId.test(id)) {
+    const template = refrigerationEquipment[0];
+    return {
+      ...template,
+      id,
+      code: `ACCEPTANCE-${id.toUpperCase()}`,
+      name: `Acceptance-вітрина ${id}`,
+      location: "Controlled central-host acceptance",
+      serialNumber: id,
+      status: "normal",
+      activeAlarms: 0,
+      image: null,
+      sensors: template.sensors.map((sensor) => ({ ...sensor })),
+    };
+  }
+
+  return undefined;
 }
