@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from io import BytesIO
 from pathlib import Path
 
@@ -34,6 +35,12 @@ def png_bytes() -> bytes:
     output = BytesIO()
     Image.new("RGB", (4, 3), (20, 30, 40)).save(output, format="PNG")
     return output.getvalue()
+
+
+def corrupted_png_bytes() -> bytes:
+    return base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlZsAAAAASUVORK5CYII="
+    )
 
 
 def test_full_draft_publish_history_restore_flow(tmp_path: Path) -> None:
@@ -121,4 +128,16 @@ def test_upload_rejects_mismatched_media_type(tmp_path: Path) -> None:
     )
     assert response.status_code == 415
     assert response.json()["detail"]["code"] == "image_media_type_mismatch"
+    assert storage.objects == {}
+
+
+def test_upload_rejects_checksum_corrupted_png(tmp_path: Path) -> None:
+    api, _, storage = client(tmp_path)
+    response = api.post(
+        "/api/v1/equipment/showcase-1/images",
+        headers={"X-Actor-Id": "operator-1"},
+        files={"file": ("corrupted.png", corrupted_png_bytes(), "image/png")},
+    )
+    assert response.status_code == 415
+    assert response.json()["detail"]["code"] == "invalid_image"
     assert storage.objects == {}
