@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -159,3 +160,48 @@ class CentralNodeCredential(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     revocation_reason: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+
+
+class CentralNodeIngressCursor(Base):
+    __tablename__ = "central_node_ingress_cursors"
+    __table_args__ = (
+        UniqueConstraint(
+            "node_record_id",
+            "stream",
+            name="uq_central_node_ingress_cursors_node_stream",
+        ),
+        CheckConstraint(
+            "last_sequence >= 1",
+            name="ck_central_node_ingress_cursors_sequence",
+        ),
+        Index(
+            "ix_central_node_ingress_cursors_organization_node",
+            "organization_id",
+            "node_record_id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_central_node_ingress_cursors_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    node_record_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "central_nodes.id",
+            name="fk_central_node_ingress_cursors_node",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    stream: Mapped[str] = mapped_column(String(16), nullable=False)
+    last_sequence: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    last_event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    last_captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
