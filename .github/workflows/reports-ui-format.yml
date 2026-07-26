@@ -1,0 +1,51 @@
+name: Reports UI Format
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/reports-ui-format.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reports-ui-format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format reports UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Apply Prettier
+        run: npm run format
+
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git diff --name-only
+          git config user.name "nexolab-ci"
+          git config user.email "nexolab-ci@users.noreply.github.com"
+          git add --update
+          git commit -m "style(reports): format reports UI"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
