@@ -19,52 +19,51 @@ from app.reports.output_repository import (
     ReportOutputRepository,
     SupersedeCommand,
 )
+from app.reports.repository import ReportRepository
 from app.security.authorization import Role
 from test_report_repository import build_database, generate, seed_session
 
 
-ROLES = frozenset({Role.ENGINEER})
+ENGINEER_ROLES = frozenset({Role.ENGINEER})
+MANAGER_ROLES = frozenset({Role.LABORATORY_MANAGER})
+
+
+def source_repository(database) -> ReportRepository:
+    return ReportRepository(database).for_organization("organization-1")
 
 
 def test_render_repository_persists_byte_stable_xlsx_and_pdf_with_exact_replay() -> None:
     database = build_database()
     seed_session(database)
-    report_repository = ReportOutputRepository(database).for_organization(
-        "organization-1"
-    )
-    generated = generate(
-        __import__("app.reports.repository", fromlist=["ReportRepository"])
-        .ReportRepository(database)
-        .for_organization("organization-1"),
-        "report-request-1",
-    )
+    repository = ReportOutputRepository(database).for_organization("organization-1")
+    generated = generate(source_repository(database), "report-request-1")
 
-    xlsx = report_repository.render(
+    xlsx = repository.render(
         generated.report.id,
         format_name="xlsx",
         idempotency_key="render-xlsx-1",
         rendered_by="engineer-1",
         actor_identity_id=None,
-        actor_roles=ROLES,
+        actor_roles=ENGINEER_ROLES,
         expected_manifest_sha256=generated.report.manifest_sha256,
         reason="Controlled XLSX render",
     )
-    replay = report_repository.render(
+    replay = repository.render(
         generated.report.id,
         format_name="xlsx",
         idempotency_key="render-xlsx-1",
         rendered_by="engineer-1",
         actor_identity_id=None,
-        actor_roles=ROLES,
+        actor_roles=ENGINEER_ROLES,
         expected_manifest_sha256=generated.report.manifest_sha256,
     )
-    pdf = report_repository.render(
+    pdf = repository.render(
         generated.report.id,
         format_name="pdf",
         idempotency_key="render-pdf-1",
         rendered_by="engineer-1",
         actor_identity_id=None,
-        actor_roles=ROLES,
+        actor_roles=ENGINEER_ROLES,
         expected_manifest_sha256=generated.report.manifest_sha256,
     )
 
@@ -82,14 +81,10 @@ def test_render_repository_persists_byte_stable_xlsx_and_pdf_with_exact_replay()
 def test_approval_event_stream_replays_and_supersedes_without_mutating_report() -> None:
     database = build_database()
     seed_session(database)
-    source_repository = (
-        __import__("app.reports.repository", fromlist=["ReportRepository"])
-        .ReportRepository(database)
-        .for_organization("organization-1")
-    )
-    first = generate(source_repository, "report-request-1")
+    reports = source_repository(database)
+    first = generate(reports, "report-request-1")
     second = generate(
-        source_repository,
+        reports,
         "report-request-2",
         first.report.source_sha256,
     )
@@ -107,13 +102,13 @@ def test_approval_event_stream_replays_and_supersedes_without_mutating_report() 
         first.report.id,
         approval,
         actor_identity_id=None,
-        actor_roles=frozenset({Role.MANAGER}),
+        actor_roles=MANAGER_ROLES,
     )
     replay = repository.approve(
         first.report.id,
         approval,
         actor_identity_id=None,
-        actor_roles=frozenset({Role.MANAGER}),
+        actor_roles=MANAGER_ROLES,
     )
 
     assert created.decision is ReportApprovalDecision.APPROVE
@@ -131,7 +126,7 @@ def test_approval_event_stream_replays_and_supersedes_without_mutating_report() 
                 occurred_at=approval.occurred_at,
             ),
             actor_identity_id=None,
-            actor_roles=frozenset({Role.MANAGER}),
+            actor_roles=MANAGER_ROLES,
         )
 
     superseded = repository.supersede(
@@ -145,7 +140,7 @@ def test_approval_event_stream_replays_and_supersedes_without_mutating_report() 
             occurred_at=approved_at + timedelta(minutes=5),
         ),
         actor_identity_id=None,
-        actor_roles=frozenset({Role.MANAGER}),
+        actor_roles=MANAGER_ROLES,
     )
 
     assert superseded.decision is ReportApprovalDecision.SUPERSEDE
@@ -169,12 +164,7 @@ def test_approval_event_stream_replays_and_supersedes_without_mutating_report() 
 def test_render_and_approval_records_are_append_only_at_database_boundary() -> None:
     database = build_database()
     seed_session(database)
-    source_repository = (
-        __import__("app.reports.repository", fromlist=["ReportRepository"])
-        .ReportRepository(database)
-        .for_organization("organization-1")
-    )
-    generated = generate(source_repository, "report-request-1")
+    generated = generate(source_repository(database), "report-request-1")
     repository = ReportOutputRepository(database).for_organization("organization-1")
     rendered = repository.render(
         generated.report.id,
@@ -182,7 +172,7 @@ def test_render_and_approval_records_are_append_only_at_database_boundary() -> N
         idempotency_key="render-xlsx-1",
         rendered_by="engineer-1",
         actor_identity_id=None,
-        actor_roles=ROLES,
+        actor_roles=ENGINEER_ROLES,
     )
     approved = repository.approve(
         generated.report.id,
@@ -194,7 +184,7 @@ def test_render_and_approval_records_are_append_only_at_database_boundary() -> N
             occurred_at=datetime(2026, 7, 26, 20, 0, tzinfo=UTC),
         ),
         actor_identity_id=None,
-        actor_roles=frozenset({Role.MANAGER}),
+        actor_roles=MANAGER_ROLES,
     )
 
     with database.engine.begin() as connection:
@@ -216,12 +206,7 @@ def test_render_and_approval_records_are_append_only_at_database_boundary() -> N
 def test_foreign_organization_cannot_render_or_discover_approval_state() -> None:
     database = build_database()
     seed_session(database)
-    generated = generate(
-        __import__("app.reports.repository", fromlist=["ReportRepository"])
-        .ReportRepository(database)
-        .for_organization("organization-1"),
-        "report-request-1",
-    )
+    generated = generate(source_repository(database), "report-request-1")
     foreign = ReportOutputRepository(database).for_organization("organization-2")
 
     with pytest.raises(ReportOutputNotFoundError):
@@ -231,7 +216,7 @@ def test_foreign_organization_cannot_render_or_discover_approval_state() -> None
             idempotency_key="foreign-render",
             rendered_by="foreign-user",
             actor_identity_id=None,
-            actor_roles=ROLES,
+            actor_roles=ENGINEER_ROLES,
         )
     with pytest.raises(ReportOutputNotFoundError):
         foreign.approval_snapshot(generated.report.id)
