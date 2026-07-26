@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, LoaderCircle, LogIn, RotateCcw } from "lucide-react";
 
 import type { EdgeNode } from "@/data/dashboard";
+import { hasPermission } from "@/features/security/security-session";
+import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
 
 import { AlarmsPanel } from "./alarms-panel";
@@ -42,10 +46,91 @@ function liveNode(status: ReturnType<typeof useDashboardTelemetry>["status"], re
   };
 }
 
+function SecurityGate({
+  state,
+  error,
+  onRetry,
+}: {
+  state: "loading" | "unauthenticated" | "forbidden" | "error";
+  error: string | null;
+  onRetry: () => void;
+}) {
+  const loading = state === "loading";
+  const unauthenticated = state === "unauthenticated";
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#06142a] p-4 text-slate-100">
+      <section className="w-full max-w-lg rounded-3xl border border-cyan-400/15 bg-[#091a31]/95 p-6 shadow-2xl shadow-black/30">
+        <div className="flex items-start gap-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10">
+            {loading ? (
+              <LoaderCircle className="h-6 w-6 animate-spin text-cyan-300" />
+            ) : (
+              <AlertTriangle className="h-6 w-6 text-amber-300" />
+            )}
+          </div>
+          <div>
+            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB Security Gate</p>
+            <h1 className="mt-1 text-xl font-semibold text-white">
+              {loading
+                ? "Перевірка захищеної сесії"
+                : unauthenticated
+                  ? "Потрібен вхід до системи"
+                  : "Доступ до dashboard відхилено"}
+            </h1>
+          </div>
+        </div>
+        <p className="mt-5 text-sm leading-6 text-slate-400">
+          {loading
+            ? "Backend перевіряє JWT, членство в організації та дозволи dashboard/telemetry. Дані не завантажуються до завершення перевірки."
+            : (error ?? "Поточна сесія не має доступу до вибраної організації.")}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {unauthenticated ? (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
+            >
+              <LogIn className="h-4 w-4" />
+              Увійти
+            </Link>
+          ) : null}
+          {!loading ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 hover:border-cyan-300/30"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Повторити перевірку
+            </button>
+          ) : null}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export function DashboardShell() {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Огляд");
-  const telemetry = useDashboardTelemetry();
+  const security = useDashboardSecurity();
+  const securityReady = security.mode === "demo" || security.state === "ready";
+  const telemetry = useDashboardTelemetry({
+    enabled: securityReady,
+    organizationId: security.membership?.organizationId ?? null,
+  });
+
+  if (
+    security.mode === "live" &&
+    (security.state === "loading" ||
+      security.state === "unauthenticated" ||
+      security.state === "forbidden" ||
+      security.state === "error")
+  ) {
+    return <SecurityGate state={security.state} error={security.error} onRetry={security.retry} />;
+  }
+
   const nodes =
     telemetry.mode === "live"
       ? [liveNode(telemetry.status, telemetry.view?.freshSamples.length ?? 0)]
@@ -57,6 +142,13 @@ export function DashboardShell() {
       : telemetry.status === "demo"
         ? "border-blue-300/10 bg-blue-400/[0.04] text-blue-300"
         : "border-amber-300/10 bg-amber-400/[0.04] text-amber-300";
+  const canCreateSession =
+    security.mode === "demo" ||
+    Boolean(
+      security.session &&
+      security.membership &&
+      hasPermission(security.session, security.membership.organizationId, "sessions.manage"),
+    );
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -67,7 +159,17 @@ export function DashboardShell() {
         onSelect={setActiveItem}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar title={activeItem} onMenuOpen={() => setSidebarOpen(true)} />
+        <Topbar
+          title={activeItem}
+          onMenuOpen={() => setSidebarOpen(true)}
+          showCreateSession={canCreateSession}
+          securitySession={security.session}
+          selectedMembership={security.membership}
+          onOrganizationChange={security.selectOrganization}
+          onSignOut={() => {
+            void security.signOut().then(() => router.replace("/login"));
+          }}
+        />
         <main className="relative overflow-hidden p-3 sm:p-4 xl:p-5 2xl:p-6">
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />

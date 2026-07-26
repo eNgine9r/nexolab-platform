@@ -34,6 +34,11 @@ interface RuntimeConfigResult {
   error: Error | null;
 }
 
+export interface DashboardTelemetryOptions {
+  enabled?: boolean;
+  organizationId?: string | null;
+}
+
 export interface DashboardTelemetryModel {
   mode: "demo" | "live";
   status: DashboardTelemetryStatus;
@@ -55,7 +60,9 @@ function loadRuntimeConfig(): RuntimeConfigResult {
   }
 }
 
-export function useDashboardTelemetry(): DashboardTelemetryModel {
+export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): DashboardTelemetryModel {
+  const enabled = options.enabled ?? true;
+  const selectedOrganizationId = options.organizationId?.trim() || null;
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
@@ -89,9 +96,19 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
     if (!config || config.mode === "demo") {
       return;
     }
+    if (!enabled) {
+      setConnectionState("disconnected");
+      setHasLoadedSnapshot(false);
+      setStore(createDashboardTelemetryStore());
+      return;
+    }
 
+    setConnectionState("connecting");
+    setHasLoadedSnapshot(false);
+    setStore(createDashboardTelemetryStore());
     const controller = new AbortController();
-    const organizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+    const organizationId =
+      selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
     const credentialProvider = createSupabaseCredentialProvider(organizationId);
     const adapter = createTelemetryAdapter(config, {
       rest: {
@@ -163,7 +180,7 @@ export function useDashboardTelemetry(): DashboardTelemetryModel {
       controller.abort();
       subscription?.close();
     };
-  }, [generation, runtime.config]);
+  }, [enabled, generation, runtime.config, selectedOrganizationId]);
 
   const view = useMemo(() => {
     if (runtime.config?.mode !== "live") {
