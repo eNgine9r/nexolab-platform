@@ -158,7 +158,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     const connectLive = () => {
       subscription = adapter.subscribe(
-        { node_id: "edge-01" },
+        {},
         {
           onSample: (sample) => commit([sample]),
           onStateChange: (state) => {
@@ -175,7 +175,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     };
 
     void adapter
-      .latest({ node_id: "edge-01", limit: 1000 }, controller.signal)
+      .latest({ limit: 1000 }, controller.signal)
       .then((snapshot) => {
         commit(snapshot.items);
         setHasLoadedSnapshot(true);
@@ -221,7 +221,6 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     void adapter
       .history(
         {
-          node_id: "edge-01",
           metric: "temperature.probe",
           from,
           to,

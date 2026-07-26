@@ -50,6 +50,10 @@ Only then does the server register the bounded client queue and perform resume r
 - no telemetry client is registered before authentication succeeds;
 - development mode remains compatible with unauthenticated local tests when `AUTH_MODE=disabled`.
 
+## API-derived inventory
+
+The production dashboard does not assume a fixed edge node. Latest and WebSocket requests are organization-wide, and node, equipment and channel summaries are grouped from the returned `node_id`, `equipment_id` and `channel_id` fields. Empty inventory is shown explicitly instead of creating a synthetic online node.
+
 ## Authenticated history
 
 The temperature panel queries `/api/v1/telemetry/history` independently from the latest snapshot and WebSocket connection. Operators can select 1-hour, 6-hour and 24-hour windows. Each dashboard request is bounded to 1,000 records. History errors have their own retry state and do not downgrade a fresh live connection. Changing the range or organization aborts the previous request before starting the replacement query.

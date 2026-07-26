@@ -76,6 +76,8 @@ describe("useDashboardTelemetry", () => {
     await waitFor(() => {
       expect(adapterState.subscribe).toHaveBeenCalledOnce();
     });
+    expect(adapterState.latest).toHaveBeenCalledWith({ limit: 1000 }, expect.any(AbortSignal));
+    expect(adapterState.subscribe).toHaveBeenCalledWith({}, expect.any(Object));
 
     const handlers = adapterState.handlers as TelemetryLiveHandlers;
 
@@ -122,7 +124,7 @@ describe("useDashboardTelemetry", () => {
     });
 
     const firstQuery = adapterState.history.mock.calls[0][0] as TelemetryHistoryQuery;
-    expect(firstQuery.node_id).toBe("edge-01");
+    expect(firstQuery.node_id).toBeUndefined();
     expect(firstQuery.metric).toBe("temperature.probe");
     expect(new Date(firstQuery.to).getTime() - new Date(firstQuery.from).getTime()).toBe(24 * 60 * 60 * 1000);
 

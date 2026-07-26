@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertTriangle, ChevronRight, LoaderCircle, LogIn, RotateCcw } from "lucide-react";
 
-import type { EdgeNode } from "@/data/dashboard";
 import { hasPermission } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
@@ -14,6 +13,7 @@ import { AlarmsPanel } from "./alarms-panel";
 import { CamerasPanel } from "./cameras-panel";
 import { KpiCard } from "./kpi-card";
 import { LabMap } from "./lab-map";
+import { LiveInventoryPanel } from "./live-inventory-panel";
 import { NodesPanel } from "./nodes-panel";
 import { Panel } from "./panel";
 import { SessionsPanel } from "./sessions-panel";
@@ -29,21 +29,6 @@ function PanelAction({ label }: { label: string }) {
       <ChevronRight className="h-3 w-3" />
     </button>
   );
-}
-
-function liveNode(status: ReturnType<typeof useDashboardTelemetry>["status"], records: number): EdgeNode {
-  const state: EdgeNode["state"] =
-    status === "live" ? "online" : status === "offline" || status === "error" ? "offline" : "warning";
-
-  return {
-    id: "edge-01",
-    name: "Production Device Agent",
-    channels: `${records} / 34 latest records`,
-    cpu: null,
-    ram: null,
-    state,
-    spark: [],
-  };
 }
 
 function SecurityGate({
@@ -131,10 +116,6 @@ export function DashboardShell() {
     return <SecurityGate state={security.state} error={security.error} onRetry={security.retry} />;
   }
 
-  const nodes =
-    telemetry.mode === "live"
-      ? [liveNode(telemetry.status, telemetry.view?.freshSamples.length ?? 0)]
-      : undefined;
   const liveSamples = telemetry.view?.samples ?? [];
   const mobileStatusTone =
     telemetry.status === "live"
@@ -210,7 +191,11 @@ export function DashboardShell() {
                 action={<PanelAction label="Всі вузли" />}
                 className="xl:col-span-3"
               >
-                <NodesPanel nodes={nodes} />
+                {telemetry.mode === "live" ? (
+                  <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
+                ) : (
+                  <NodesPanel />
+                )}
               </Panel>
               <Panel
                 title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
