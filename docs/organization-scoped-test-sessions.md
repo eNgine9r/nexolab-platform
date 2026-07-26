@@ -25,13 +25,15 @@ Changing organizations invalidates the complete session workspace and starts a n
 
 ## Database migration
 
-The migration will:
+Migration `20260726_0009`:
 
-1. add `organization_id` to `test_sessions`;
-2. backfill existing rows to the configured default organization;
-3. make the column non-null;
-4. replace global session-number uniqueness with organization-scoped uniqueness;
-5. add organization-first list and lookup indexes.
+1. adds `organization_id` to `test_sessions`;
+2. backfills existing rows to the default organization created by the RBAC migration;
+3. makes organization ownership non-null and adds a restrictive organization foreign key;
+4. replaces global session-number uniqueness with `organization_id + session_number` uniqueness;
+5. adds organization-first state and node indexes.
+
+The migration itself has no persistent server default. Repository creation will be changed to pass the authorized principal organization explicitly before the temporary model compatibility default is removed.
 
 ## Acceptance
 
