@@ -21,7 +21,7 @@ from app.reports.output_repository import (
 )
 from app.reports.repository import ReportRepository
 from app.security.authorization import Role
-from test_report_repository import build_database, generate, seed_session
+from tests.test_report_repository import build_database, generate, seed_session
 
 
 ENGINEER_ROLES = frozenset({Role.ENGINEER})
