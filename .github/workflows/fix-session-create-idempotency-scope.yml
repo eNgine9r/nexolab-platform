@@ -1,0 +1,42 @@
+name: Fix session create idempotency scope
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/scripts/fix-session-create-idempotency-scope.py"
+      - ".github/workflows/fix-session-create-idempotency-scope.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-session-create-idempotency-scope-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Apply scoped create idempotency
+        run: python .github/scripts/fix-session-create-idempotency-scope.py
+
+      - name: Remove temporary automation
+        run: |
+          rm .github/scripts/fix-session-create-idempotency-scope.py
+          rm .github/workflows/fix-session-create-idempotency-scope.yml
+
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: scope session create idempotency by organization"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
