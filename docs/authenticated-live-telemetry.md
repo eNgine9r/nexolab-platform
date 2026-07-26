@@ -77,4 +77,4 @@ Service-role keys, JWT signing secrets and private keys must never use the `NEXT
 
 The `Authenticated Dashboard Acceptance` workflow builds the production Next.js application and starts an isolated FastAPI, PostgreSQL, MinIO and Mosquitto stack. It seeds a verified viewer membership plus real telemetry records, then proves anonymous blocking, authenticated latest/history REST requests, API-derived inventory, first-message WebSocket authentication, a live MQTT update, one-hour range switching, cross-organization denial and logout credential cleanup.
 
-Evidence contains only sanitized origins, request-header presence flags, WebSocket message key names, PostgreSQL rows, screenshots and traces. JWT values are never written to URLs or evidence files.
+Evidence contains only sanitized origins, request-header presence flags, WebSocket message key names, PostgreSQL rows, screenshots and traces. JWT values, signing secrets and bearer credentials are never written to URLs or evidence files.
