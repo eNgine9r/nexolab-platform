@@ -26,6 +26,7 @@ interface AlertRuleResponse {
 interface AlertResponse {
   id: string;
   organization_id: string;
+  rule_id: string;
   state: "active" | "acknowledged" | "resolved" | "closed";
   node_id: string;
   equipment_id: string;
