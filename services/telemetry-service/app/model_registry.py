@@ -32,4 +32,8 @@ def register_models() -> None:
     )
     assert _report_models.TestReportVersion.__tablename__ == "test_report_versions"
     assert _report_models.TestReportArtifact.__tablename__ == "test_report_artifacts"
+    assert _report_models.TestReportRender.__tablename__ == "test_report_renders"
+    assert _report_models.TestReportApprovalEvent.__tablename__ == (
+        "test_report_approval_events"
+    )
     assert _security_models.SecurityAuditEvent.__tablename__ == "security_audit_events"
