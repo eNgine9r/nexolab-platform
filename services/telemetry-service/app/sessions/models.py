@@ -32,6 +32,8 @@ SESSION_STATES = (
     "cancelled",
     "archived",
 )
+DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
+
 SESSION_STAGE_TYPES = (
     "preparation",
     "preconditioning",
@@ -60,14 +62,39 @@ class TestSession(Base):
             "lock_version >= 1",
             name="ck_test_sessions_lock_version_positive",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "session_number",
+            name="uq_test_sessions_organization_number",
+        ),
         Index("ix_test_sessions_state_created", "state", "created_at"),
         Index("ix_test_sessions_node_state", "node_id", "state"),
+        Index(
+            "ix_test_sessions_organization_state_created",
+            "organization_id",
+            "state",
+            "created_at",
+        ),
+        Index(
+            "ix_test_sessions_organization_node_state",
+            "organization_id",
+            "node_id",
+            "state",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    session_number: Mapped[str] = mapped_column(
-        String(64), nullable=False, unique=True
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_test_sessions_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        default=DEFAULT_ORGANIZATION_ID,
     )
+    session_number: Mapped[str] = mapped_column(String(64), nullable=False)
     node_id: Mapped[str] = mapped_column(String(128), nullable=False)
     state: Mapped[str] = mapped_column(
         String(32), nullable=False, server_default=text("'draft'")
