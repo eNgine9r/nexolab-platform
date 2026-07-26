@@ -99,7 +99,7 @@ function LiveHistoryChart({
     () => mergeTelemetryHistory(historySamples, latestSamples),
     [historySamples, latestSamples],
   );
-  const chart = useMemo(() => buildTemperatureHistoryChart(merged, window), [merged, window.from, window.to]);
+  const chart = buildTemperatureHistoryChart(merged, queryWindow);
 
   return (
     <div className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3">
