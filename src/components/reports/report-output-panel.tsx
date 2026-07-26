@@ -13,16 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import {
-  createReportActionIdempotencyKey,
-  createReportApiClient,
-} from "@/lib/reports/api-client";
-import type {
-  ReportOutputState,
-  ReportRender,
-  ReportRenderFormat,
-  TestReport,
-} from "@/lib/reports/types";
+import { createReportActionIdempotencyKey, createReportApiClient } from "@/lib/reports/api-client";
+import type { ReportOutputState, ReportRender, ReportRenderFormat, TestReport } from "@/lib/reports/types";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -67,23 +59,17 @@ export function ReportOutputPanel({
 }) {
   const [action, setAction] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [reason, setReason] = useState(
-    "Reviewed immutable evidence and protocol output",
-  );
+  const [reason, setReason] = useState("Reviewed immutable evidence and protocol output");
   const replacements = useMemo(
     () =>
       reportVersions
         .filter(
-          (candidate) =>
-            candidate.session_id === report.session_id &&
-            candidate.version > report.version,
+          (candidate) => candidate.session_id === report.session_id && candidate.version > report.version,
         )
         .sort((left, right) => left.version - right.version),
     [report.session_id, report.version, reportVersions],
   );
-  const [replacementReportId, setReplacementReportId] = useState(
-    replacements[0]?.id ?? "",
-  );
+  const [replacementReportId, setReplacementReportId] = useState(replacements[0]?.id ?? "");
   const [error, setError] = useState<Error | null>(null);
 
   const runRender = async (format: ReportRenderFormat) => {
@@ -99,11 +85,7 @@ export function ReportOutputPanel({
       );
       await onReload();
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Rendered artifact не вдалося створити."),
-      );
+      setError(nextError instanceof Error ? nextError : new Error("Rendered artifact не вдалося створити."));
     } finally {
       setAction(null);
     }
@@ -123,11 +105,7 @@ export function ReportOutputPanel({
       );
       await onReload();
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Звіт не вдалося затвердити."),
-      );
+      setError(nextError instanceof Error ? nextError : new Error("Звіт не вдалося затвердити."));
     } finally {
       setAction(null);
     }
@@ -148,11 +126,7 @@ export function ReportOutputPanel({
       );
       await onReload();
     } catch (nextError) {
-      setError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Звіт не вдалося позначити superseded."),
-      );
+      setError(nextError instanceof Error ? nextError : new Error("Звіт не вдалося позначити superseded."));
     } finally {
       setAction(null);
     }
@@ -162,23 +136,12 @@ export function ReportOutputPanel({
     setDownloading(render.id);
     setError(null);
     try {
-      const result = await createReportApiClient().downloadRender(
-        report.id,
-        render.id,
-        render.artifact_name,
-      );
+      const result = await createReportApiClient().downloadRender(report.id, render.id, render.artifact_name);
       if (result.sha256 && result.sha256 !== render.sha256) {
-        throw new Error(
-          "SHA-256 завантаженого rendered artifact не відповідає metadata.",
-        );
+        throw new Error("SHA-256 завантаженого rendered artifact не відповідає metadata.");
       }
-      if (
-        result.manifestSha256 &&
-        result.manifestSha256 !== report.manifest_sha256
-      ) {
-        throw new Error(
-          "Rendered artifact прив’язаний до іншого manifest SHA-256.",
-        );
+      if (result.manifestSha256 && result.manifestSha256 !== report.manifest_sha256) {
+        throw new Error("Rendered artifact прив’язаний до іншого manifest SHA-256.");
       }
       const objectUrl = URL.createObjectURL(result.blob);
       const anchor = document.createElement("a");
@@ -191,9 +154,7 @@ export function ReportOutputPanel({
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     } catch (nextError) {
       setError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Rendered artifact не вдалося завантажити."),
+        nextError instanceof Error ? nextError : new Error("Rendered artifact не вдалося завантажити."),
       );
     } finally {
       setDownloading(null);
@@ -212,12 +173,10 @@ export function ReportOutputPanel({
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
             Rendered protocol lifecycle
           </p>
-          <h4 className="mt-2 text-base font-semibold text-white">
-            XLSX, PDF та approval state
-          </h4>
+          <h4 className="mt-2 text-base font-semibold text-white">XLSX, PDF та approval state</h4>
           <p className="mt-2 text-[10px] leading-5 text-slate-500">
-            Усі outputs прив’язані до manifest{" "}
-            {compactHash(report.manifest_sha256)} і зберігаються append-only.
+            Усі outputs прив’язані до manifest {compactHash(report.manifest_sha256)} і зберігаються
+            append-only.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -234,9 +193,7 @@ export function ReportOutputPanel({
             className="icon-button"
             aria-label="Оновити outputs"
           >
-            <RefreshCw
-              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
@@ -244,29 +201,18 @@ export function ReportOutputPanel({
       {approval.approved_by ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <OutputMeta label="Затвердив" value={approval.approved_by} />
-          <OutputMeta
-            label="Час затвердження"
-            value={formatDate(approval.approved_at)}
-          />
-          <OutputMeta
-            label="Причина"
-            value={approval.approval_reason ?? "—"}
-          />
+          <OutputMeta label="Час затвердження" value={formatDate(approval.approved_at)} />
+          <OutputMeta label="Причина" value={approval.approval_reason ?? "—"} />
           <OutputMeta
             label="Superseded by"
-            value={
-              approval.superseded_by_report_id ??
-              "Активна затверджена версія"
-            }
+            value={approval.superseded_by_report_id ?? "Активна затверджена версія"}
           />
         </div>
       ) : null}
 
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h5 className="text-[11px] font-semibold text-slate-200">
-            Rendered artifacts
-          </h5>
+          <h5 className="text-[11px] font-semibold text-slate-200">Rendered artifacts</h5>
           {canRender ? (
             <div className="flex gap-2">
               <ActionButton
@@ -299,9 +245,7 @@ export function ReportOutputPanel({
                     <FileOutput className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold text-slate-100">
-                      {render.artifact_name}
-                    </p>
+                    <p className="text-[11px] font-semibold text-slate-100">{render.artifact_name}</p>
                     <p className="mt-1 text-[9px] text-slate-500">
                       {render.renderer_version} · {formatBytes(render.size_bytes)} ·{" "}
                       {compactHash(render.sha256)}
@@ -333,10 +277,7 @@ export function ReportOutputPanel({
       </div>
 
       {canApprove ? (
-        <div
-          className="space-y-3 border-t border-white/[0.06] pt-4"
-          data-testid="report-approval-actions"
-        >
+        <div className="space-y-3 border-t border-white/[0.06] pt-4" data-testid="report-approval-actions">
           <label className="block space-y-2">
             <span className="text-[9px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
               Approval reason
@@ -356,9 +297,7 @@ export function ReportOutputPanel({
               </span>
               <select
                 value={replacementReportId}
-                onChange={(event) =>
-                  setReplacementReportId(event.target.value)
-                }
+                onChange={(event) => setReplacementReportId(event.target.value)}
                 className="form-input"
                 data-testid="report-replacement-select"
               >
@@ -397,8 +336,7 @@ export function ReportOutputPanel({
       ) : (
         <div className="flex items-center gap-3 border-t border-white/[0.06] pt-4 text-[10px] text-slate-500">
           <ShieldCheck className="h-4 w-4 text-cyan-300" />
-          Approval actions потребують permission{" "}
-          <code className="text-cyan-200">reports.approve</code>.
+          Approval actions потребують permission <code className="text-cyan-200">reports.approve</code>.
         </div>
       )}
 
@@ -434,11 +372,7 @@ function ActionButton({
       className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-3 py-2 text-[10px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.12] disabled:cursor-not-allowed disabled:opacity-45"
       data-testid={testId}
     >
-      {busy ? (
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <Icon className="h-3.5 w-3.5" />
-      )}
+      {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
       {label}
     </button>
   );
@@ -448,9 +382,7 @@ function OutputMeta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.055] bg-slate-950/20 p-3">
       <p className="text-[9px] text-slate-600">{label}</p>
-      <p className="mt-1 text-[10px] leading-5 break-all text-slate-300">
-        {value}
-      </p>
+      <p className="mt-1 text-[10px] leading-5 break-all text-slate-300">{value}</p>
     </div>
   );
 }
