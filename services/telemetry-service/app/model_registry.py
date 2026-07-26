@@ -32,6 +32,9 @@ def register_models() -> None:
     assert _node_models.CentralNodeCredential.__tablename__ == (
         "central_node_credentials"
     )
+    assert _node_models.CentralNodeIngressCursor.__tablename__ == (
+        "central_node_ingress_cursors"
+    )
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
