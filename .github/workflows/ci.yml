@@ -34,6 +34,24 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Capture formatted files
+        run: |
+          npm run format
+          git diff --name-only --diff-filter=ACMRT > /tmp/prettier-files.txt
+          if [[ -s /tmp/prettier-files.txt ]]; then
+            tar -czf /tmp/prettier-files.tar.gz -T /tmp/prettier-files.txt
+          else
+            tar -czf /tmp/prettier-files.tar.gz --files-from /dev/null
+          fi
+
+      - name: Upload formatter diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-formatted-files
+          path: /tmp/prettier-files.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Check formatting
         run: npm run format:check
 
