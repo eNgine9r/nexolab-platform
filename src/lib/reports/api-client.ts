@@ -101,10 +101,8 @@ export class ReportApiClient {
   }
 
   getReport(reportId: string, signal?: AbortSignal): Promise<TestReport> {
-    return this.requestJson(
-      `/api/v1/reports/${encodeURIComponent(reportId)}`,
-      { signal },
-      (body) => assertObject<TestReport>(body, "Report detail"),
+    return this.requestJson(`/api/v1/reports/${encodeURIComponent(reportId)}`, { signal }, (body) =>
+      assertObject<TestReport>(body, "Report detail"),
     );
   }
 

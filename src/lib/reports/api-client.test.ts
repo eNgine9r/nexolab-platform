@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setSecurityCredentials } from "@/features/security/security-session";
 
-import {
-  createReportApiClient,
-  createReportIdempotencyKey,
-  type ReportFetch,
-} from "./api-client";
+import { createReportApiClient, createReportIdempotencyKey, type ReportFetch } from "./api-client";
 
 const emptyPage = {
   items: [],
@@ -42,9 +38,7 @@ describe("authenticated Reports API client", () => {
 
     const [url, init] = fetchImpl.mock.calls[0]!;
     const headers = new Headers(init?.headers);
-    expect(url).toBe(
-      "https://api.example.test/api/v1/reports?session_id=session-1&limit=200&offset=0",
-    );
+    expect(url).toBe("https://api.example.test/api/v1/reports?session_id=session-1&limit=200&offset=0");
     expect(headers.get("Authorization")).toBe("Bearer verified-access-token");
     expect(headers.get("X-Organization-ID")).toBe("selected-org");
   });
@@ -97,13 +91,9 @@ describe("authenticated Reports API client", () => {
     );
 
     const [url, init] = fetchImpl.mock.calls[0]!;
-    expect(url).toBe(
-      "https://api.example.test/api/v1/reports/report-1/artifacts/telemetry.csv",
-    );
+    expect(url).toBe("https://api.example.test/api/v1/reports/report-1/artifacts/telemetry.csv");
     expect(String(url)).not.toContain("verified-access-token");
-    expect(new Headers(init?.headers).get("Authorization")).toBe(
-      "Bearer verified-access-token",
-    );
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer verified-access-token");
     expect(result.filename).toBe("telemetry.csv");
     expect(result.sha256).toBe("b".repeat(64));
     expect(await result.blob.text()).toContain("event-1,3.5");

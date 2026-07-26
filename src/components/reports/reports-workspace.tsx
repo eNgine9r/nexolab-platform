@@ -21,10 +21,7 @@ import {
   HttpSecuritySessionClient,
 } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
-import {
-  createReportApiClient,
-  createReportIdempotencyKey,
-} from "@/lib/reports/api-client";
+import { createReportApiClient, createReportIdempotencyKey } from "@/lib/reports/api-client";
 import { getReportsApiBaseUrl } from "@/lib/reports/runtime-config";
 import type { ReportArtifact, TestReport } from "@/lib/reports/types";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
@@ -39,7 +36,8 @@ function formatDate(value: string): string {
 
 function formatBytes(value: number): string {
   if (value < 1024) return `${value} Б`;
-  if (value < 1024 * 1024) return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(value / 1024)} КБ`;
+  if (value < 1024 * 1024)
+    return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(value / 1024)} КБ`;
   return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(value / 1024 / 1024)} МБ`;
 }
 
@@ -110,19 +108,15 @@ export function ReportsWorkspace() {
       setCanGenerate(
         Boolean(
           securityResult.ok &&
-            organizationId &&
-            hasPermission(securityResult.value, organizationId, "reports.generate"),
+          organizationId &&
+          hasPermission(securityResult.value, organizationId, "reports.generate"),
         ),
       );
       setError(null);
       setLastSuccessfulAt(Date.now());
     } catch (nextError) {
       if (!signal.aborted) {
-        setError(
-          nextError instanceof Error
-            ? nextError
-            : new Error("Не вдалося завантажити звіти."),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Не вдалося завантажити звіти."));
       }
     } finally {
       if (!signal.aborted) setLoading(false);
@@ -165,11 +159,7 @@ export function ReportsWorkspace() {
       setReason("");
       setLastSuccessfulAt(Date.now());
     } catch (nextError) {
-      setActionError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Звіт не вдалося сформувати."),
-      );
+      setActionError(nextError instanceof Error ? nextError : new Error("Звіт не вдалося сформувати."));
     } finally {
       setMutating(false);
     }
@@ -194,11 +184,7 @@ export function ReportsWorkspace() {
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     } catch (nextError) {
-      setActionError(
-        nextError instanceof Error
-          ? nextError
-          : new Error("Артефакт не вдалося завантажити."),
-      );
+      setActionError(nextError instanceof Error ? nextError : new Error("Артефакт не вдалося завантажити."));
     } finally {
       setDownloading(null);
     }
@@ -212,12 +198,10 @@ export function ReportsWorkspace() {
             <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
               Sprint 13 · Immutable Evidence
             </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-              Звіти випробувань
-            </h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Звіти випробувань</h1>
             <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
-              Відтворювані версії звітів, deterministic CSV/JSON, SHA-256 і
-              організаційно ізольоване завантаження evidence.
+              Відтворювані версії звітів, deterministic CSV/JSON, SHA-256 і організаційно ізольоване
+              завантаження evidence.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:min-w-[460px]">
@@ -270,7 +254,11 @@ export function ReportsWorkspace() {
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-4 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-45"
               data-testid="generate-report"
             >
-              {mutating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileCheck2 className="h-4 w-4" />}
+              {mutating ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileCheck2 className="h-4 w-4" />
+              )}
               Сформувати версію
             </button>
           </div>
@@ -315,11 +303,20 @@ export function ReportsWorkspace() {
         </div>
 
         {loading && reports.length === 0 ? (
-          <Status icon={LoaderCircle} title="Завантаження звітів" detail="Читаємо immutable report metadata…" spin />
+          <Status
+            icon={LoaderCircle}
+            title="Завантаження звітів"
+            detail="Читаємо immutable report metadata…"
+            spin
+          />
         ) : error && reports.length === 0 ? (
           <Status icon={WifiOff} title="Reports API недоступний" detail={error.message} />
         ) : reports.length === 0 ? (
-          <Status icon={Archive} title="Звітів ще немає" detail="Сформуйте першу версію для завершеної сесії." />
+          <Status
+            icon={Archive}
+            title="Звітів ще немає"
+            detail="Сформуйте першу версію для завершеної сесії."
+          />
         ) : (
           <div className="grid min-h-[560px] xl:grid-cols-[380px_minmax(0,1fr)]">
             <div className="border-b border-white/[0.055] xl:border-r xl:border-b-0">
@@ -329,9 +326,7 @@ export function ReportsWorkspace() {
                   key={report.id}
                   onClick={() => setSelectedReportId(report.id)}
                   className={`block w-full border-b border-white/[0.045] p-4 text-left transition ${
-                    selectedReportId === report.id
-                      ? "bg-cyan-400/[0.06]"
-                      : "hover:bg-white/[0.025]"
+                    selectedReportId === report.id ? "bg-cyan-400/[0.06]" : "hover:bg-white/[0.025]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -362,7 +357,11 @@ export function ReportsWorkspace() {
                   onDownload={downloadArtifact}
                 />
               ) : (
-                <Status icon={FileCheck2} title="Оберіть звіт" detail="Виберіть immutable report version у списку." />
+                <Status
+                  icon={FileCheck2}
+                  title="Оберіть звіт"
+                  detail="Виберіть immutable report version у списку."
+                />
               )}
             </div>
           </div>
@@ -476,7 +475,7 @@ function HashCard({ label, value }: { label: string; value: string }) {
         <Fingerprint className="h-3.5 w-3.5 text-cyan-300" />
         {label}
       </p>
-      <p className="mt-2 break-all font-mono text-[10px] leading-5 text-cyan-100/85">{value}</p>
+      <p className="mt-2 font-mono text-[10px] leading-5 break-all text-cyan-100/85">{value}</p>
     </div>
   );
 }
@@ -485,7 +484,7 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] p-3">
       <p className="text-[9px] text-slate-600">{label}</p>
-      <p className="mt-1 break-all text-[10px] leading-5 text-slate-300">{value}</p>
+      <p className="mt-1 text-[10px] leading-5 break-all text-slate-300">{value}</p>
     </div>
   );
 }
