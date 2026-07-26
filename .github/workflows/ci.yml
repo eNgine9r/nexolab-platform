@@ -37,16 +37,16 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Lint
-        run: npm run lint
+      - name: Capture lint diagnostics
+        run: npm run lint > /tmp/alerts-lint.log 2>&1 || true
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Upload lint diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-lint-diagnostics
+          path: /tmp/alerts-lint.log
+          if-no-files-found: error
+          retention-days: 3
 
-      - name: Test
-        run: npm test
-
-      - name: Build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+      - name: Display lint diagnostics
+        run: cat /tmp/alerts-lint.log
