@@ -22,13 +22,14 @@ class ReportOutputQueryRepository:
         *,
         organization_id: str | None = None,
     ) -> None:
+        self._database = database
         self._engine = database.engine
         self._organization_id = organization_id
 
     def for_organization(self, organization_id: str) -> "ReportOutputQueryRepository":
         normalized = _required_text(organization_id, "organization_id", 36)
         return ReportOutputQueryRepository(
-            Database.from_engine(self._engine),
+            self._database,
             organization_id=normalized,
         )
 
