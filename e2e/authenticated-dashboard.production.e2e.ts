@@ -34,6 +34,7 @@ async function authenticatedContext(
   const context = await browser.newContext();
   await context.addInitScript(
     ({ accessToken, organization }) => {
+      if (window.location.protocol === "about:") return;
       window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
       window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },
@@ -160,7 +161,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
     try {
       await page.goto("/", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
-      await expect(page.getByText("NEXOLAB Dashboard Acceptance", { exact: true })).toBeVisible();
+      await expect(page.getByLabel(/Організація/)).toHaveValue(organizationId);
       await expect(page.getByText("edge-live-01", { exact: true })).toBeVisible();
       await expect(page.getByText("edge-live-02", { exact: true })).toBeVisible();
       await expect(page.getByText("K106", { exact: true })).toBeVisible();
