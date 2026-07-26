@@ -188,12 +188,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
 
   const view = useMemo(() => {
-    if (
-      runtime.config?.mode !== "live" ||
-      !enabled ||
-      scopeKey === null ||
-      activeScopeKey !== scopeKey
-    ) {
+    if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
       return null;
     }
 
