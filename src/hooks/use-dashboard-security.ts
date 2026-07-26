@@ -78,19 +78,29 @@ function persistOrganizationId(organizationId: string): void {
   }
 }
 
+function clearPersistedOrganizationId(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage cleanup is best effort; server-side authorization remains authoritative.
+  }
+}
+
+function requestedOrganizationId(configuredOrganizationId: string | null): string | null {
+  return (
+    storedOrganizationId() ??
+    getSecurityCredentials().organizationId ??
+    configuredOrganizationId
+  );
+}
+
 function chooseMembership(
   session: SecuritySession,
   configuredOrganizationId: string | null,
 ): SecurityMembership | null {
-  const candidates = [
-    storedOrganizationId(),
-    getSecurityCredentials().organizationId,
-    configuredOrganizationId,
-  ];
-  for (const organizationId of candidates) {
-    if (!organizationId) continue;
-    const membership = session.memberships.find((item) => item.organizationId === organizationId);
-    if (membership) return membership;
+  const requested = requestedOrganizationId(configuredOrganizationId);
+  if (requested) {
+    return session.memberships.find((item) => item.organizationId === requested) ?? null;
   }
   return session.memberships[0] ?? null;
 }
@@ -148,7 +158,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       if (!selected) {
         setSession(result.value);
         setMembership(null);
-        setError("Користувач не має активного членства в жодній організації NEXOLAB.");
+        setError("Вибрана організація відсутня у перевіреній сесії користувача.");
         setState("forbidden");
         return;
       }
@@ -195,6 +205,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
 
   const signOut = useCallback(async () => {
     await signOutSupabase();
+    clearPersistedOrganizationId();
     setSecurityCredentials({ accessToken: null, organizationId: null });
     setSession(null);
     setMembership(null);
