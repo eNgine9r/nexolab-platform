@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
   { label: "Тривоги", icon: AlertTriangle, href: "/alerts" },
   { label: "Камери", icon: Camera },
   { label: "Енергомоніторинг", icon: Zap },
-  { label: "Звіти", icon: FileText },
+  { label: "Звіти", icon: FileText, href: "/reports" },
   { label: "Обладнання", icon: Cpu },
   { label: "Налаштування", icon: Settings },
 ];
