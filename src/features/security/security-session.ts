@@ -7,10 +7,12 @@ export type SecurityPermission =
   | "alerts.read"
   | "audit.read"
   | "reports.read"
+  | "nodes.read"
   | "reports.generate"
   | "reports.approve"
   | "memberships.manage"
   | "equipment.manage"
+  | "nodes.manage"
   | "layout.draft.edit"
   | "layout.publish"
   | "layout.restore"
@@ -57,7 +59,8 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
+  | SecurityCredentialSnapshot
+  | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
@@ -236,10 +239,12 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
     value === "alerts.read" ||
     value === "audit.read" ||
     value === "reports.read" ||
+    value === "nodes.read" ||
     value === "reports.generate" ||
     value === "reports.approve" ||
     value === "memberships.manage" ||
     value === "equipment.manage" ||
+    value === "nodes.manage" ||
     value === "layout.draft.edit" ||
     value === "layout.publish" ||
     value === "layout.restore" ||
@@ -267,23 +272,15 @@ async function readJson(response: Response): Promise<unknown> {
 }
 
 function normalizeBaseUrl(value: string): string {
-  const parsed = new URL(value);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("NEXOLAB API URL must use HTTP or HTTPS.");
-  }
-  parsed.hash = "";
-  parsed.search = "";
-  return parsed.toString().replace(/\/$/, "");
+  return value.replace(/\/+$/, "");
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
 }
 
 function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function readOptionalString(value: unknown): string | null {
