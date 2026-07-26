@@ -136,7 +136,10 @@ function publishTelemetry(value: number): string {
   return eventId;
 }
 
-test("enforces organization-scoped authenticated production session workflow", async ({ browser, request }) => {
+test("enforces organization-scoped authenticated production session workflow", async ({
+  browser,
+  request,
+}) => {
   mkdirSync(evidenceDirectory, { recursive: true });
 
   const anonymous = await request.get(`${apiBaseUrl}/api/v1/sessions`);
@@ -332,13 +335,18 @@ test("enforces organization-scoped authenticated production session workflow", a
   expect(missingRead.status()).toBe(404);
   expect((await foreignRead.json()).detail.code).toBe("session_not_found");
 
-  const auditResponse = await request.get(`${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`, {
-    headers: headers(engineerAToken, organizationA),
-  });
+  const auditResponse = await request.get(
+    `${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`,
+    {
+      headers: headers(engineerAToken, organizationA),
+    },
+  );
   expect(auditResponse.status()).toBe(200);
   const audit = await auditResponse.json();
   expect(audit.items.length).toBeGreaterThanOrEqual(8);
-  expect(audit.items.every((item: { actor_id: string }) => item.actor_id === "engineer-a-acceptance")).toBe(true);
+  expect(audit.items.every((item: { actor_id: string }) => item.actor_id === "engineer-a-acceptance")).toBe(
+    true,
+  );
 
   const engineerContext = await authenticatedContext(browser, engineerAToken, organizationA);
   const page = await engineerContext.newPage();
