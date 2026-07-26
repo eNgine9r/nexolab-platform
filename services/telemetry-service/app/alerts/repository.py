@@ -8,17 +8,19 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.alerts.domain import (
-    AlertRuleConfiguration,
-    AlertState,
-)
+from app.alerts.domain import AlertRuleConfiguration, AlertState
 from app.alerts.models import (
+    AlertEvidenceSample,
     AlertInstance,
     AlertRule,
     AlertRuleVersion,
     AlertTransition,
 )
-from app.alerts.schemas import AlertLifecycleCommand, AlertRuleCreate
+from app.alerts.schemas import (
+    AlertLifecycleCommand,
+    AlertRuleCreate,
+    AlertRuleReplace,
+)
 from app.db import Database
 from app.sessions.models import TestSession
 
@@ -93,18 +95,8 @@ class AlertRepository:
         actor_id: str,
     ) -> RuleRecord:
         organization_id = self._scope()
-        actor = actor_id.strip()
-        if not actor:
-            raise ValueError("actor_id is required")
-        AlertRuleConfiguration(
-            condition=payload.condition,
-            trigger_threshold=payload.trigger_threshold,
-            clear_threshold=payload.clear_threshold,
-            minimum_duration_seconds=payload.minimum_duration_seconds,
-            clear_duration_seconds=payload.clear_duration_seconds,
-            debounce_seconds=payload.debounce_seconds,
-            cooldown_seconds=payload.cooldown_seconds,
-        )
+        actor = self._actor(actor_id)
+        self._validate_configuration(payload)
         now = datetime.now(UTC)
         rule = AlertRule(
             id=str(uuid4()),
@@ -123,19 +115,11 @@ class AlertRepository:
             created_at=now,
             updated_at=now,
         )
-        version = AlertRuleVersion(
-            id=str(uuid4()),
+        version = self._new_version(
             rule_id=rule.id,
             version=1,
-            condition=payload.condition.value,
-            trigger_threshold=payload.trigger_threshold,
-            clear_threshold=payload.clear_threshold,
-            minimum_duration_seconds=payload.minimum_duration_seconds,
-            clear_duration_seconds=payload.clear_duration_seconds,
-            debounce_seconds=payload.debounce_seconds,
-            cooldown_seconds=payload.cooldown_seconds,
-            configuration=payload.configuration,
-            created_by=actor,
+            payload=payload,
+            actor_id=actor,
             created_at=now,
         )
         try:
@@ -150,6 +134,62 @@ class AlertRepository:
         except IntegrityError as error:
             raise AlertRuleConflictError(
                 f"alert rule {payload.name!r} already exists"
+            ) from error
+        return RuleRecord(rule=rule, version=version)
+
+    def replace_rule(
+        self,
+        rule_id: str,
+        payload: AlertRuleReplace,
+        *,
+        actor_id: str,
+    ) -> RuleRecord:
+        organization_id = self._scope()
+        actor = self._actor(actor_id)
+        self._validate_configuration(payload)
+        now = datetime.now(UTC)
+        try:
+            with Session(self._engine, expire_on_commit=False) as session:
+                with session.begin():
+                    rule = session.scalar(
+                        select(AlertRule)
+                        .where(
+                            AlertRule.id == rule_id,
+                            AlertRule.organization_id == organization_id,
+                        )
+                        .with_for_update()
+                    )
+                    if rule is None:
+                        raise AlertRuleNotFoundError(
+                            f"alert rule {rule_id!r} was not found"
+                        )
+                    if payload.session_id is not None:
+                        self._require_session(session, payload.session_id)
+                    next_version = rule.current_version + 1
+                    rule.name = payload.name
+                    rule.description = payload.description
+                    rule.enabled = payload.enabled
+                    rule.severity = payload.severity.value
+                    rule.node_id = payload.node_id
+                    rule.equipment_id = payload.equipment_id
+                    rule.channel_id = payload.channel_id
+                    rule.metric = payload.metric
+                    rule.session_id = payload.session_id
+                    rule.current_version = next_version
+                    rule.updated_at = now
+                    version = self._new_version(
+                        rule_id=rule.id,
+                        version=next_version,
+                        payload=payload,
+                        actor_id=actor,
+                        created_at=now,
+                    )
+                    session.add(version)
+                session.expunge(rule)
+                session.expunge(version)
+        except IntegrityError as error:
+            raise AlertRuleConflictError(
+                f"alert rule {payload.name!r} conflicts with an existing rule"
             ) from error
         return RuleRecord(rule=rule, version=version)
 
@@ -185,16 +225,7 @@ class AlertRepository:
             )
             records: list[RuleRecord] = []
             for rule in rules:
-                version = session.scalar(
-                    select(AlertRuleVersion).where(
-                        AlertRuleVersion.rule_id == rule.id,
-                        AlertRuleVersion.version == rule.current_version,
-                    )
-                )
-                if version is None:
-                    raise AlertRepositoryError(
-                        f"current version for alert rule {rule.id!r} is missing"
-                    )
+                version = self._current_version(session, rule)
                 session.expunge(rule)
                 session.expunge(version)
                 records.append(RuleRecord(rule=rule, version=version))
@@ -213,16 +244,7 @@ class AlertRepository:
                 raise AlertRuleNotFoundError(
                     f"alert rule {rule_id!r} was not found"
                 )
-            version = session.scalar(
-                select(AlertRuleVersion).where(
-                    AlertRuleVersion.rule_id == rule.id,
-                    AlertRuleVersion.version == rule.current_version,
-                )
-            )
-            if version is None:
-                raise AlertRepositoryError(
-                    f"current version for alert rule {rule.id!r} is missing"
-                )
+            version = self._current_version(session, rule)
             session.expunge(rule)
             session.expunge(version)
             return RuleRecord(rule=rule, version=version)
@@ -230,7 +252,7 @@ class AlertRepository:
     def list_alerts(
         self,
         *,
-        state: AlertState | None,
+        states: frozenset[AlertState] | None,
         severity: str | None,
         metric: str | None,
         limit: int,
@@ -238,8 +260,8 @@ class AlertRepository:
     ) -> Page:
         organization_id = self._scope()
         filters = [AlertInstance.organization_id == organization_id]
-        if state is not None:
-            filters.append(AlertInstance.state == state.value)
+        if states:
+            filters.append(AlertInstance.state.in_(item.value for item in states))
         if severity is not None:
             filters.append(AlertInstance.severity == severity)
         if metric is not None:
@@ -296,9 +318,6 @@ class AlertRepository:
                 alert_id,
                 lock=False,
             )
-            base = select(AlertTransition).where(
-                AlertTransition.alert_id == alert_id
-            )
             count = int(
                 session.scalar(
                     select(func.count())
@@ -309,9 +328,50 @@ class AlertRepository:
             )
             items = list(
                 session.scalars(
-                    base.order_by(
+                    select(AlertTransition)
+                    .where(AlertTransition.alert_id == alert_id)
+                    .order_by(
                         AlertTransition.occurred_at.desc(),
                         AlertTransition.id.desc(),
+                    )
+                    .limit(limit)
+                    .offset(offset)
+                )
+            )
+            for item in items:
+                session.expunge(item)
+        return Page(items=list(items), count=count, limit=limit, offset=offset)
+
+    def evidence(
+        self,
+        alert_id: str,
+        *,
+        limit: int,
+        offset: int,
+    ) -> Page:
+        organization_id = self._scope()
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._locked_alert(
+                session,
+                organization_id,
+                alert_id,
+                lock=False,
+            )
+            count = int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(AlertEvidenceSample)
+                    .where(AlertEvidenceSample.alert_id == alert_id)
+                )
+                or 0
+            )
+            items = list(
+                session.scalars(
+                    select(AlertEvidenceSample)
+                    .where(AlertEvidenceSample.alert_id == alert_id)
+                    .order_by(
+                        AlertEvidenceSample.captured_at.asc(),
+                        AlertEvidenceSample.id.asc(),
                     )
                     .limit(limit)
                     .offset(offset)
@@ -371,10 +431,10 @@ class AlertRepository:
         key = idempotency_key.strip()
         if not key:
             raise ValueError("idempotency_key is required")
-        actor = actor_id.strip()
+        actor = self._actor(actor_id)
         source = actor_source.strip()
-        if not actor or not source:
-            raise ValueError("actor identity is required")
+        if not source:
+            raise ValueError("actor_source is required")
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
                 alert = self._locked_alert(
@@ -447,6 +507,67 @@ class AlertRepository:
         if self._organization_id is None:
             raise AlertRepositoryError("organization scope is required")
         return self._organization_id
+
+    @staticmethod
+    def _actor(actor_id: str) -> str:
+        actor = actor_id.strip()
+        if not actor:
+            raise ValueError("actor_id is required")
+        return actor
+
+    @staticmethod
+    def _validate_configuration(payload: AlertRuleCreate) -> None:
+        AlertRuleConfiguration(
+            condition=payload.condition,
+            trigger_threshold=payload.trigger_threshold,
+            clear_threshold=payload.clear_threshold,
+            minimum_duration_seconds=payload.minimum_duration_seconds,
+            clear_duration_seconds=payload.clear_duration_seconds,
+            debounce_seconds=payload.debounce_seconds,
+            cooldown_seconds=payload.cooldown_seconds,
+        )
+
+    @staticmethod
+    def _new_version(
+        *,
+        rule_id: str,
+        version: int,
+        payload: AlertRuleCreate,
+        actor_id: str,
+        created_at: datetime,
+    ) -> AlertRuleVersion:
+        return AlertRuleVersion(
+            id=str(uuid4()),
+            rule_id=rule_id,
+            version=version,
+            condition=payload.condition.value,
+            trigger_threshold=payload.trigger_threshold,
+            clear_threshold=payload.clear_threshold,
+            minimum_duration_seconds=payload.minimum_duration_seconds,
+            clear_duration_seconds=payload.clear_duration_seconds,
+            debounce_seconds=payload.debounce_seconds,
+            cooldown_seconds=payload.cooldown_seconds,
+            configuration=payload.configuration,
+            created_by=actor_id,
+            created_at=created_at,
+        )
+
+    @staticmethod
+    def _current_version(
+        session: Session,
+        rule: AlertRule,
+    ) -> AlertRuleVersion:
+        version = session.scalar(
+            select(AlertRuleVersion).where(
+                AlertRuleVersion.rule_id == rule.id,
+                AlertRuleVersion.version == rule.current_version,
+            )
+        )
+        if version is None:
+            raise AlertRepositoryError(
+                f"current version for alert rule {rule.id!r} is missing"
+            )
+        return version
 
     def _require_session(self, session: Session, session_id: str) -> None:
         organization_id = self._scope()
