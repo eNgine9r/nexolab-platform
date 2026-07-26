@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -126,7 +127,7 @@ def test_sustained_rule_trigger_is_idempotent(tmp_path: Path) -> None:
         alert = listed.json()["items"][0]
         assert alert["state"] == "active"
         assert alert["first_event_id"] == str(second_event.event_id)
-        assert alert["maximum_deviation"] == 1.2
+        assert alert["maximum_deviation"] == pytest.approx(1.2)
 
         with Session(client.app.state.database.engine) as session:
             state = session.scalar(select(AlertEvaluationState))
