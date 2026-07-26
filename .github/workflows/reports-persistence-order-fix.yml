@@ -1,0 +1,65 @@
+name: Reports Persistence Order Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/reports-persistence-order-fix.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reports-persistence-order-fix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    name: Persist report before artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Patch explicit report flush ordering
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("services/telemetry-service/app/reports/repository.py")
+          content = path.read_text()
+          old = '''                session.add(report)
+                          session.add_all(artifacts)
+                          session.flush()
+          '''
+          new = '''                session.add(report)
+                          # Artifacts reference report_id without an ORM relationship, so
+                          # persist the immutable parent before inserting its exact bytes.
+                          session.flush([report])
+                          session.add_all(artifacts)
+                          session.flush(artifacts)
+          '''
+          if old in content:
+              content = content.replace(old, new)
+          elif new not in content:
+              raise SystemExit("expected one report/artifact insert marker")
+          path.write_text(content)
+          PY
+
+      - name: Validate Python syntax
+        run: python3 -m py_compile services/telemetry-service/app/reports/repository.py
+
+      - name: Commit verified ordering fix
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "nexolab-ci"
+          git config user.email "nexolab-ci@users.noreply.github.com"
+          git add services/telemetry-service/app/reports/repository.py
+          git commit -m "fix(reports): persist versions before artifact bytes"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
