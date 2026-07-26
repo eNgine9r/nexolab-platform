@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Self
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -18,7 +19,12 @@ from app.sessions.domain import (
     session_configuration_is_mutable,
     transition_session,
 )
-from app.sessions.models import AuditLog, SessionEvent, TestSession
+from app.sessions.models import (
+    DEFAULT_ORGANIZATION_ID,
+    AuditLog,
+    SessionEvent,
+    TestSession,
+)
 from app.sessions.schemas import (
     SessionCreate,
     SessionPatch,
@@ -78,6 +84,18 @@ class TransitionResult:
 class SessionRepository:
     def __init__(self, database: Database) -> None:
         self._engine = database.engine
+        self._organization_id = DEFAULT_ORGANIZATION_ID
+
+    def for_organization(self, organization_id: str) -> Self:
+        normalized = organization_id.strip()
+        if not normalized or len(normalized) > 36:
+            raise SessionRepositoryError(
+                "invalid_organization_id",
+                "organization_id must be a non-empty identifier up to 36 characters",
+            )
+        scoped = copy(self)
+        scoped._organization_id = normalized
+        return scoped
 
     def create(
         self,
@@ -90,6 +108,8 @@ class SessionRepository:
         normalized_key = self._normalize_idempotency_key(idempotency_key)
         record = TestSession(
             id=session_id,
+            organization_id=self._organization_id,
+            create_idempotency_key=normalized_key,
             session_number=payload.session_number,
             node_id=payload.node_id,
             state=SessionState.DRAFT.value,
@@ -131,7 +151,8 @@ class SessionRepository:
                 db_session.rollback()
                 existing = db_session.scalar(
                     select(TestSession).where(
-                        TestSession.session_number == payload.session_number
+                        TestSession.organization_id == self._organization_id,
+                        TestSession.session_number == payload.session_number,
                     )
                 )
                 if existing is not None:
@@ -148,9 +169,7 @@ class SessionRepository:
 
     def get(self, session_id: str) -> TestSession:
         with Session(self._engine, expire_on_commit=False) as db_session:
-            record = db_session.get(TestSession, session_id)
-            if record is None:
-                raise SessionNotFoundError(session_id)
+            record = self._require_session(db_session, session_id)
             db_session.expunge(record)
             return record
 
@@ -162,7 +181,7 @@ class SessionRepository:
         limit: int,
         offset: int,
     ) -> SessionPageResult:
-        filters = []
+        filters = [TestSession.organization_id == self._organization_id]
         if state is not None:
             filters.append(TestSession.state == state.value)
         if node_id is not None:
@@ -204,7 +223,10 @@ class SessionRepository:
             with db_session.begin():
                 record = db_session.scalar(
                     select(TestSession)
-                    .where(TestSession.id == session_id)
+                    .where(
+                        TestSession.id == session_id,
+                        TestSession.organization_id == self._organization_id,
+                    )
                     .with_for_update()
                 )
                 if record is None:
@@ -248,7 +270,10 @@ class SessionRepository:
                 with db_session.begin():
                     record = db_session.scalar(
                         select(TestSession)
-                        .where(TestSession.id == session_id)
+                        .where(
+                            TestSession.id == session_id,
+                            TestSession.organization_id == self._organization_id,
+                        )
                         .with_for_update()
                     )
                     if record is None:
@@ -325,7 +350,12 @@ class SessionRepository:
                         SessionEvent.idempotency_key == normalized_key,
                     )
                 )
-                record = db_session.get(TestSession, session_id)
+                record = db_session.scalar(
+                    select(TestSession).where(
+                        TestSession.id == session_id,
+                        TestSession.organization_id == self._organization_id,
+                    )
+                )
                 if existing is not None and record is not None:
                     db_session.expunge(existing)
                     db_session.expunge(record)
@@ -347,8 +377,7 @@ class SessionRepository:
         offset: int,
     ) -> SessionEventsResult:
         with Session(self._engine, expire_on_commit=False) as db_session:
-            if db_session.get(TestSession, session_id) is None:
-                raise SessionNotFoundError(session_id)
+            self._require_session(db_session, session_id)
 
             count = int(
                 db_session.scalar(
@@ -380,6 +409,21 @@ class SessionRepository:
             limit=limit,
             offset=offset,
         )
+
+    def _require_session(
+        self,
+        db_session: Session,
+        session_id: str,
+    ) -> TestSession:
+        record = db_session.scalar(
+            select(TestSession).where(
+                TestSession.id == session_id,
+                TestSession.organization_id == self._organization_id,
+            )
+        )
+        if record is None:
+            raise SessionNotFoundError(session_id)
+        return record
 
     @staticmethod
     def _normalize_idempotency_key(value: str) -> str:

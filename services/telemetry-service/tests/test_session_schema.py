@@ -49,6 +49,38 @@ def test_session_models_are_registered_without_changing_telemetry_shape() -> Non
     }
 
 
+def test_session_organization_scope_is_enforced_in_metadata() -> None:
+    register_models()
+
+    table = Base.metadata.tables["test_sessions"]
+    assert table.columns["organization_id"].nullable is False
+    assert table.columns["organization_id"].foreign_keys
+
+    unique_constraints = {
+        constraint.name: tuple(column.name for column in constraint.columns)
+        for constraint in table.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+    assert unique_constraints["uq_test_sessions_organization_number"] == (
+        "organization_id",
+        "session_number",
+    )
+    assert unique_constraints[
+        "uq_test_sessions_organization_create_key"
+    ] == (
+        "organization_id",
+        "create_idempotency_key",
+    )
+
+    indexes = {index.name: index for index in table.indexes}
+    assert tuple(
+        column.name
+        for column in indexes[
+            "ix_test_sessions_organization_state_created"
+        ].columns
+    ) == ("organization_id", "state", "created_at")
+
+
 def test_session_event_idempotency_is_enforced_in_metadata() -> None:
     register_models()
 
@@ -115,7 +147,28 @@ def test_alembic_migration_created_complete_session_schema() -> None:
         assert {
             "fk_test_sessions_current_stage_id",
             "fk_test_sessions_active_config_snapshot_id",
+            "fk_test_sessions_organization",
         } <= session_foreign_keys
+
+        session_unique_constraints = {
+            constraint["name"]: tuple(constraint["column_names"])
+            for constraint in inspector.get_unique_constraints("test_sessions")
+        }
+        assert session_unique_constraints[
+            "uq_test_sessions_organization_number"
+        ] == ("organization_id", "session_number")
+        assert session_unique_constraints[
+            "uq_test_sessions_organization_create_key"
+        ] == ("organization_id", "create_idempotency_key")
+
+        session_indexes = {
+            index["name"]: index
+            for index in inspector.get_indexes("test_sessions")
+        }
+        assert {
+            "ix_test_sessions_organization_state_created",
+            "ix_test_sessions_organization_node_state",
+        } <= set(session_indexes)
 
         event_unique_constraints = {
             constraint["name"]: tuple(constraint["column_names"])

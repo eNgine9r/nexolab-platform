@@ -172,7 +172,12 @@ class ConfiguredSessionRepository(
                     session_id,
                     normalized_key,
                 )
-                record = db_session.get(TestSession, session_id)
+                record = db_session.scalar(
+                    select(TestSession).where(
+                        TestSession.id == session_id,
+                        TestSession.organization_id == self._organization_id,
+                    )
+                )
                 if existing is not None and record is not None:
                     db_session.expunge(existing)
                     db_session.expunge(record)

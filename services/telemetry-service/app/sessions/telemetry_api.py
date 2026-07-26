@@ -75,8 +75,11 @@ def create_session_telemetry_router(
     )
     read_access = _read_access_dependency(security_dependencies)
 
-    def require_session(session_id: str) -> None:
-        if not database.session_exists(session_id):
+    def require_session(
+        session_id: str,
+        organization_id: str,
+    ) -> None:
+        if not database.session_exists(session_id, organization_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
@@ -95,7 +98,7 @@ def create_session_telemetry_router(
     @router.get("/latest", response_model=AttributedTelemetryCollectionResponse)
     def latest(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         stage_id: str | None = None,
         node_id: str | None = None,
         equipment_id: str | None = None,
@@ -106,7 +109,7 @@ def create_session_telemetry_router(
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> AttributedTelemetryCollectionResponse:
-        require_session(session_id)
+        require_session(session_id, authorized.principal.organization_id)
         validate_limit(limit)
         rows = database.session_latest_samples(
             session_id=session_id,
@@ -129,7 +132,7 @@ def create_session_telemetry_router(
         session_id: str,
         from_at: Annotated[datetime, Query(alias="from")],
         to_at: Annotated[datetime, Query(alias="to")],
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         stage_id: str | None = None,
         node_id: str | None = None,
         equipment_id: str | None = None,
@@ -140,7 +143,7 @@ def create_session_telemetry_router(
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> AttributedTelemetryCollectionResponse:
-        require_session(session_id)
+        require_session(session_id, authorized.principal.organization_id)
         validate_limit(limit)
         if from_at.tzinfo is None or to_at.tzinfo is None:
             raise HTTPException(

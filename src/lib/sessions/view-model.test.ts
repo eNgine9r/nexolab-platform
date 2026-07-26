@@ -13,6 +13,7 @@ import {
 
 const session: LaboratorySession = {
   id: "session-1",
+  organization_id: "00000000-0000-0000-0000-000000000001",
   session_number: "NXL-001",
   node_id: "edge-01",
   state: "running",

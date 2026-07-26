@@ -139,6 +139,7 @@ class SessionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    organization_id: str
     session_number: str
     node_id: str
     state: SessionState

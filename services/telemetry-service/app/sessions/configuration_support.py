@@ -84,6 +84,7 @@ class SessionConfigurationResult:
 
 class ConfigurationSupportMixin:
     _engine: Any
+    _organization_id: str
 
     def configuration(self, session_id: str) -> SessionConfigurationResult:
         with Session(self._engine, expire_on_commit=False) as db_session:
@@ -233,34 +234,51 @@ class ConfigurationSupportMixin:
         record.active_config_snapshot_id = snapshot.id
         return snapshot
 
-    @staticmethod
-    def _locked_session(db_session: Session, session_id: str) -> TestSession:
+    def _locked_session(
+        self,
+        db_session: Session,
+        session_id: str,
+    ) -> TestSession:
         record = db_session.scalar(
             select(TestSession)
-            .where(TestSession.id == session_id)
+            .where(
+                TestSession.id == session_id,
+                TestSession.organization_id == self._organization_id,
+            )
             .with_for_update()
         )
         if record is None:
             raise SessionNotFoundError(session_id)
         return record
 
-    @staticmethod
-    def _require_session(db_session: Session, session_id: str) -> TestSession:
-        record = db_session.get(TestSession, session_id)
+    def _require_session(
+        self,
+        db_session: Session,
+        session_id: str,
+    ) -> TestSession:
+        record = db_session.scalar(
+            select(TestSession).where(
+                TestSession.id == session_id,
+                TestSession.organization_id == self._organization_id,
+            )
+        )
         if record is None:
             raise SessionNotFoundError(session_id)
         return record
 
-    @staticmethod
     def _event_by_key(
+        self,
         db_session: Session,
         session_id: str,
         idempotency_key: str,
     ) -> SessionEvent | None:
         return db_session.scalar(
-            select(SessionEvent).where(
+            select(SessionEvent)
+            .join(TestSession, TestSession.id == SessionEvent.session_id)
+            .where(
                 SessionEvent.session_id == session_id,
                 SessionEvent.idempotency_key == idempotency_key,
+                TestSession.organization_id == self._organization_id,
             )
         )
 

@@ -69,7 +69,7 @@ def create_session_router(
             }
         )
         try:
-            result = repository.create(
+            result = repository.for_organization(authorized.principal.organization_id).create(
                 trusted_payload,
                 idempotency_key=idempotency_key,
             )
@@ -83,7 +83,7 @@ def create_session_router(
 
     @router.get("", response_model=SessionPage)
     def list_sessions(
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         state_filter: Annotated[
             SessionState | None,
             Query(alias="state"),
@@ -93,7 +93,7 @@ def create_session_router(
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> SessionPage:
         try:
-            result = repository.list(
+            result = repository.for_organization(authorized.principal.organization_id).list(
                 state=state_filter,
                 node_id=node_id,
                 limit=limit,
@@ -112,10 +112,10 @@ def create_session_router(
     @router.get("/{session_id}", response_model=SessionRead)
     def get_session(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
     ) -> SessionRead:
         try:
-            return SessionRead.model_validate(repository.get(session_id))
+            return SessionRead.model_validate(repository.for_organization(authorized.principal.organization_id).get(session_id))
         except Exception as error:
             raise _http_error(error) from error
 
@@ -123,22 +123,22 @@ def create_session_router(
     def patch_session(
         session_id: str,
         payload: SessionPatch,
-        _authorized: AuthorizedRequest = Depends(manage_access),
+        authorized: AuthorizedRequest = Depends(manage_access),
     ) -> SessionRead:
         try:
-            return SessionRead.model_validate(repository.patch(session_id, payload))
+            return SessionRead.model_validate(repository.for_organization(authorized.principal.organization_id).patch(session_id, payload))
         except Exception as error:
             raise _http_error(error) from error
 
     @router.get("/{session_id}/events", response_model=SessionEventsPage)
     def get_session_events(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         limit: Annotated[int, Query(ge=1, le=500)] = 100,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> SessionEventsPage:
         try:
-            result = repository.events(
+            result = repository.for_organization(authorized.principal.organization_id).events(
                 session_id,
                 limit=limit,
                 offset=offset,
@@ -171,7 +171,7 @@ def create_session_router(
                 }
             )
             try:
-                result = repository.transition(
+                result = repository.for_organization(authorized.principal.organization_id).transition(
                     session_id,
                     action,
                     trusted_payload,
