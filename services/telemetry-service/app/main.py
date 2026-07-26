@@ -24,6 +24,9 @@ from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.reports.api import create_report_router
+from app.reports.output_api import create_report_output_router
+from app.reports.output_queries import ReportOutputQueryRepository
+from app.reports.output_repository import ReportOutputRepository
 from app.reports.repository import ReportRepository
 from app.retention import RetentionWorker
 from app.security.api import create_security_router
@@ -39,7 +42,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.12.0"
+SERVICE_VERSION = "0.13.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -67,6 +70,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         database,
         security_repository=security_repository,
     )
+    report_output_repository = ReportOutputRepository(
+        database,
+        security_repository=security_repository,
+    )
+    report_output_query_repository = ReportOutputQueryRepository(database)
     security_dependencies = _create_security_dependencies(
         resolved,
         security_repository,
@@ -147,7 +155,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=resolved.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["ETag", "Idempotent-Replay", "X-Content-SHA256"],
+            expose_headers=[
+                "Content-Disposition",
+                "ETag",
+                "Idempotent-Replay",
+                "X-Content-SHA256",
+                "X-Manifest-SHA256",
+            ],
             max_age=600,
         )
 
@@ -158,6 +172,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
     app.state.report_repository = report_repository
+    app.state.report_output_repository = report_output_repository
+    app.state.report_output_query_repository = report_output_query_repository
     app.state.security_repository = security_repository
     app.state.security_dependencies = security_dependencies
     app.state.object_storage = object_storage
@@ -168,6 +184,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(create_security_router(security_repository, security_dependencies))
     app.include_router(create_alert_router(alert_repository, security_dependencies))
     app.include_router(create_report_router(report_repository, security_dependencies))
+    app.include_router(
+        create_report_output_router(
+            report_output_repository,
+            report_output_query_repository,
+            security_dependencies,
+            security_repository,
+        )
+    )
     app.include_router(
         create_api_router(
             database,

@@ -2,7 +2,16 @@ import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { getReportsApiBaseUrl, ReportClientError } from "./runtime-config";
-import type { ReportDownload, ReportGenerationResponse, ReportPage, TestReport } from "./types";
+import type {
+  ReportApprovalActionResponse,
+  ReportDownload,
+  ReportGenerationResponse,
+  ReportOutputState,
+  ReportPage,
+  ReportRenderFormat,
+  ReportRenderResponse,
+  TestReport,
+} from "./types";
 
 export type ReportFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -72,8 +81,12 @@ function filenameFromDisposition(value: string | null, fallback: string): string
 }
 
 export function createReportIdempotencyKey(sessionId: string): string {
+  return createReportActionIdempotencyKey("generate", sessionId);
+}
+
+export function createReportActionIdempotencyKey(action: string, entityId: string): string {
   const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `nexolab-ui:reports:${sessionId}:${random}`;
+  return `nexolab-ui:reports:${action}:${entityId}:${random}`;
 }
 
 export class ReportApiClient {
@@ -106,6 +119,12 @@ export class ReportApiClient {
     );
   }
 
+  getOutputState(reportId: string, signal?: AbortSignal): Promise<ReportOutputState> {
+    return this.requestJson(`/api/v1/reports/${encodeURIComponent(reportId)}/outputs`, { signal }, (body) =>
+      assertObject<ReportOutputState>(body, "Report output state"),
+    );
+  }
+
   generateReport(
     sessionId: string,
     reason: string,
@@ -128,15 +147,102 @@ export class ReportApiClient {
     );
   }
 
-  async downloadArtifact(
+  renderReport(
     reportId: string,
-    artifactName: string,
+    format: ReportRenderFormat,
+    idempotencyKey: string,
+    expectedManifestSha256?: string,
+    reason?: string,
+    signal?: AbortSignal,
+  ): Promise<ReportRenderResponse> {
+    return this.requestJson(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/renders/${format}`,
+      {
+        method: "POST",
+        body: {
+          expected_manifest_sha256: expectedManifestSha256?.trim() || null,
+          reason: reason?.trim() || null,
+        },
+        idempotencyKey,
+        signal,
+      },
+      (body) => assertObject<ReportRenderResponse>(body, "Report render"),
+    );
+  }
+
+  approveReport(
+    reportId: string,
+    reason: string,
+    occurredAt: string,
+    idempotencyKey: string,
+    expectedManifestSha256: string,
+    signal?: AbortSignal,
+  ): Promise<ReportApprovalActionResponse> {
+    return this.requestJson(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/approve`,
+      {
+        method: "POST",
+        body: {
+          expected_manifest_sha256: expectedManifestSha256,
+          reason: reason.trim(),
+          occurred_at: occurredAt,
+        },
+        idempotencyKey,
+        signal,
+      },
+      (body) => assertObject<ReportApprovalActionResponse>(body, "Report approval"),
+    );
+  }
+
+  supersedeReport(
+    reportId: string,
+    replacementReportId: string,
+    reason: string,
+    occurredAt: string,
+    idempotencyKey: string,
+    expectedManifestSha256: string,
+    signal?: AbortSignal,
+  ): Promise<ReportApprovalActionResponse> {
+    return this.requestJson(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/supersede`,
+      {
+        method: "POST",
+        body: {
+          expected_manifest_sha256: expectedManifestSha256,
+          replacement_report_id: replacementReportId,
+          reason: reason.trim(),
+          occurred_at: occurredAt,
+        },
+        idempotencyKey,
+        signal,
+      },
+      (body) => assertObject<ReportApprovalActionResponse>(body, "Report supersede"),
+    );
+  }
+
+  downloadArtifact(reportId: string, artifactName: string, signal?: AbortSignal): Promise<ReportDownload> {
+    return this.download(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/artifacts/${encodeURIComponent(artifactName)}`,
+      artifactName,
+      signal,
+    );
+  }
+
+  downloadRender(
+    reportId: string,
+    renderId: string,
+    fallbackName: string,
     signal?: AbortSignal,
   ): Promise<ReportDownload> {
-    const response = await this.performRequest(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/artifacts/${encodeURIComponent(artifactName)}`,
-      { signal },
+    return this.download(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/renders/${encodeURIComponent(renderId)}`,
+      fallbackName,
+      signal,
     );
+  }
+
+  private async download(path: string, fallbackName: string, signal?: AbortSignal): Promise<ReportDownload> {
+    const response = await this.performRequest(path, { signal });
     if (!response.ok) {
       const body = await this.readJson(response);
       const detail = errorDetail(body, `Reports API returned HTTP ${response.status}.`);
@@ -144,9 +250,10 @@ export class ReportApiClient {
     }
     return {
       blob: await response.blob(),
-      filename: filenameFromDisposition(response.headers.get("Content-Disposition"), artifactName),
+      filename: filenameFromDisposition(response.headers.get("Content-Disposition"), fallbackName),
       mediaType: response.headers.get("Content-Type") ?? "application/octet-stream",
       sha256: response.headers.get("X-Content-SHA256"),
+      manifestSha256: response.headers.get("X-Manifest-SHA256"),
     };
   }
 

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
+  ArrowUpRight,
   CheckCircle2,
   Download,
   FileCheck2,
@@ -392,9 +394,19 @@ function ReportDetail({
             Згенеровано {formatDate(report.generated_at)} · {report.generated_by}
           </p>
         </div>
-        <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
-          <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
-          Append-only
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/reports/${report.id}`}
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-3 py-2 text-[10px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.12]"
+            data-testid="open-rendered-report"
+          >
+            Відкрити протокол
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+          <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
+            <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
+            Append-only
+          </div>
         </div>
       </div>
 
