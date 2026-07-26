@@ -26,7 +26,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function errorDetail(body: unknown, fallback: string): { message: string; code?: string } {
+function errorDetail(
+  body: unknown,
+  fallback: string,
+): { message: string; code?: string } {
   if (!isRecord(body)) return { message: fallback };
   const detail = body.detail;
   if (typeof detail === "string") return { message: detail };
@@ -39,13 +42,19 @@ function errorDetail(body: unknown, fallback: string): { message: string; code?:
 
 function parseObject<T>(value: unknown, label: string): T {
   if (!isRecord(value)) {
-    throw new NodeClientError(`${label} returned an invalid object.`, undefined, "contract");
+    throw new NodeClientError(
+      `${label} returned an invalid object.`,
+      undefined,
+      "contract",
+    );
   }
   return value as T;
 }
 
 export function createNodeIdempotencyKey(action: string, nodeId: string): string {
-  const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const random =
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `nexolab-ui:nodes:${action}:${nodeId}:${random}`;
 }
 
@@ -64,7 +73,11 @@ export class NodeApiClient {
   listNodes(signal?: AbortSignal): Promise<CentralNode[]> {
     return this.requestJson("/api/v1/nodes", { signal }, (body) => {
       if (!Array.isArray(body)) {
-        throw new NodeClientError("Nodes list returned an invalid array.", undefined, "contract");
+        throw new NodeClientError(
+          "Nodes list returned an invalid array.",
+          undefined,
+          "contract",
+        );
       }
       return body as CentralNode[];
     });
@@ -124,7 +137,8 @@ export class NodeApiClient {
         idempotencyKey,
         signal,
       },
-      (body) => parseObject<RotateNodeCredentialResponse>(body, "Node credential rotation"),
+      (body) =>
+        parseObject<RotateNodeCredentialResponse>(body, "Node credential rotation"),
     );
   }
 
@@ -142,7 +156,10 @@ export class NodeApiClient {
     return parser(body);
   }
 
-  private async performRequest(path: string, options: RequestOptions): Promise<Response> {
+  private async performRequest(
+    path: string,
+    options: RequestOptions,
+  ): Promise<Response> {
     const controller = new AbortController();
     let timedOut = false;
     const onAbort = () => controller.abort(options.signal?.reason);
@@ -159,7 +176,9 @@ export class NodeApiClient {
         headers: {
           Accept: "application/json",
           ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
-          ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
+          ...(options.idempotencyKey
+            ? { "Idempotency-Key": options.idempotencyKey }
+            : {}),
         },
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: controller.signal,
@@ -167,13 +186,17 @@ export class NodeApiClient {
     } catch (error) {
       if (controller.signal.aborted) {
         throw new NodeClientError(
-          timedOut ? `Nodes request exceeded ${this.timeoutMs} ms.` : "Nodes request was aborted.",
+          timedOut
+            ? `Nodes request exceeded ${this.timeoutMs} ms.`
+            : "Nodes request was aborted.",
           undefined,
           timedOut ? "timeout" : "aborted",
           { cause: error },
         );
       }
-      throw new NodeClientError("Nodes API request failed.", undefined, "network", { cause: error });
+      throw new NodeClientError("Nodes API request failed.", undefined, "network", {
+        cause: error,
+      });
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", onAbort);
@@ -187,9 +210,12 @@ export class NodeApiClient {
       return JSON.parse(text) as unknown;
     } catch (error) {
       if (response.ok) {
-        throw new NodeClientError("Nodes API returned invalid JSON.", response.status, "contract", {
-          cause: error,
-        });
+        throw new NodeClientError(
+          "Nodes API returned invalid JSON.",
+          response.status,
+          "contract",
+          { cause: error },
+        );
       }
       return null;
     }
