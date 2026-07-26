@@ -41,6 +41,10 @@ The migration and model have no persistent organization default. Every new sessi
 
 Create-command keys remain client-generated, but their persisted lookup key is a SHA-256 namespace of the verified organization ID and normalized client key. This preserves deterministic replay while preventing a key used in one organization from blocking another organization.
 
+## Delivery hygiene
+
+Generated Python bytecode and temporary mutation workflows are excluded from the production branch. Organization regressions are validated through normal frontend and telemetry-service pipelines before the dedicated browser Gate is allowed to merge.
+
 ## Acceptance
 
 Repository and API integration tests verify organization-scoped create replay, duplicate session numbers across organizations, isolated lists, foreign-ID non-disclosure, verified JWT actor attribution and ownership checks before configuration or telemetry queries.
