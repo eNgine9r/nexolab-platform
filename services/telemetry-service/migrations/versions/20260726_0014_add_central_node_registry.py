@@ -147,8 +147,52 @@ def upgrade() -> None:
         ["organization_id", "node_record_id", "revoked_at"],
     )
 
+    op.create_table(
+        "central_node_ingress_cursors",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("organization_id", sa.String(length=36), nullable=False),
+        sa.Column("node_record_id", sa.String(length=36), nullable=False),
+        sa.Column("stream", sa.String(length=16), nullable=False),
+        sa.Column("last_sequence", sa.BigInteger(), nullable=False),
+        sa.Column("last_event_id", sa.String(length=36), nullable=False),
+        sa.Column("last_captured_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.CheckConstraint(
+            "last_sequence >= 1",
+            name="ck_central_node_ingress_cursors_sequence",
+        ),
+        sa.ForeignKeyConstraint(
+            ["organization_id"],
+            ["security_organizations.id"],
+            name="fk_central_node_ingress_cursors_organization",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["node_record_id"],
+            ["central_nodes.id"],
+            name="fk_central_node_ingress_cursors_node",
+            ondelete="RESTRICT",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "node_record_id",
+            "stream",
+            name="uq_central_node_ingress_cursors_node_stream",
+        ),
+    )
+    op.create_index(
+        "ix_central_node_ingress_cursors_organization_node",
+        "central_node_ingress_cursors",
+        ["organization_id", "node_record_id"],
+    )
+
 
 def downgrade() -> None:
+    op.drop_index(
+        "ix_central_node_ingress_cursors_organization_node",
+        table_name="central_node_ingress_cursors",
+    )
+    op.drop_table("central_node_ingress_cursors")
     op.drop_index(
         "ix_central_node_credentials_active_lookup",
         table_name="central_node_credentials",
