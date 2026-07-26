@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,18 +15,23 @@ from app.nodes.domain import (
     classify_clock_offset,
     parse_node_topic,
 )
-from app.nodes.models import CentralNode, CentralNodeCredential
+from app.nodes.models import (
+    CentralNode,
+    CentralNodeCredential,
+    CentralNodeIngressCursor,
+)
 
 
 NODE_AUTHORIZATION_REASON = "node_authorization"
+NODE_REPLAY_REASON = "node_replay"
 
 
 class NodeIngressAuthorizer:
     """Authorize telemetry after a trusted MQTT broker accepted the publisher.
 
     The broker owns password verification and ACL enforcement. This gate verifies
-    the persisted registry state, exact topic ownership and payload identity before
-    telemetry reaches the normalized storage pipeline.
+    the persisted registry state, exact topic ownership, payload identity and
+    monotonic node sequence before telemetry reaches normalized storage.
     """
 
     def __init__(self, database: Database) -> None:
@@ -48,8 +54,13 @@ class NodeIngressAuthorizer:
         if parsed.node_id != event.node_id.strip().lower():
             return False, NODE_AUTHORIZATION_REASON, "payload node_id does not match the owned MQTT topic"
 
+        sequence = _node_sequence(event)
+        if sequence is None:
+            return False, NODE_REPLAY_REASON, "node_sequence must be a positive integer in registry mode"
+
         observed = _aware_utc(observed_at)
         node_time = event.captured_at.astimezone(UTC)
+        event_id = str(event.event_id)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
                 node = session.scalar(
@@ -75,6 +86,37 @@ class NodeIngressAuthorizer:
                 if credential is None:
                     return False, NODE_AUTHORIZATION_REASON, "node has no active broker credential"
 
+                cursor = session.scalar(
+                    select(CentralNodeIngressCursor)
+                    .where(
+                        CentralNodeIngressCursor.node_record_id == node.id,
+                        CentralNodeIngressCursor.stream == parsed.stream.value,
+                    )
+                    .with_for_update()
+                )
+                if cursor is None:
+                    cursor = CentralNodeIngressCursor(
+                        id=str(uuid4()),
+                        organization_id=parsed.organization_id,
+                        node_record_id=node.id,
+                        stream=parsed.stream.value,
+                        last_sequence=sequence,
+                        last_event_id=event_id,
+                        last_captured_at=node_time,
+                        updated_at=observed,
+                    )
+                    session.add(cursor)
+                elif sequence < cursor.last_sequence:
+                    return False, NODE_REPLAY_REASON, "node_sequence is lower than the persisted cursor"
+                elif sequence == cursor.last_sequence:
+                    if event_id != cursor.last_event_id:
+                        return False, NODE_REPLAY_REASON, "node_sequence is already bound to another event"
+                else:
+                    cursor.last_sequence = sequence
+                    cursor.last_event_id = event_id
+                    cursor.last_captured_at = node_time
+                    cursor.updated_at = observed
+
                 offset_ms = round((node_time - observed).total_seconds() * 1000)
                 clock_status = classify_clock_offset(
                     offset_ms,
@@ -88,6 +130,13 @@ class NodeIngressAuthorizer:
                 node.updated_at = observed
                 session.flush()
         return True, "authorized", ClockStatus(clock_status).value
+
+
+def _node_sequence(event: TelemetryEvent) -> int | None:
+    value = (event.model_extra or {}).get("node_sequence")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return None
+    return value
 
 
 def _aware_utc(value: datetime) -> datetime:
