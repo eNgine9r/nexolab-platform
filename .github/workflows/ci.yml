@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,119 +21,32 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          node-version-file: .nvmrc
 
-      - name: Apply alert lifecycle hardening
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
 
-          def replace_once(path_name: str, old: str, new: str) -> None:
-              path = Path(path_name)
-              content = path.read_text()
-              if content.count(old) != 1:
-                  raise SystemExit(f"expected one match in {path_name}: {old!r}")
-              path.write_text(content.replace(old, new))
+      - name: Check formatting
+        run: npm run format:check
 
-          immutability = Path("services/telemetry-service/app/alerts/immutability.py")
-          content = immutability.read_text()
-          content = content.replace(
-              "from sqlalchemy import DDL, event, inspect, update",
-              "from sqlalchemy import DDL, event, inspect, text, update\nfrom sqlalchemy.engine import Engine",
-          )
-          marker = "\ndef _reject_mapper_mutation("
-          if content.count(marker) != 1:
-              raise SystemExit("immutability insertion marker missing")
-          helper = '''\n\ndef ensure_sqlite_alert_immutability(engine: Engine) -> None:
-              """Create append-only guards for auto-created SQLite schemas."""
-              if engine.dialect.name != "sqlite":
-                  return
-              table_names = (
-                  "alert_rule_versions",
-                  "alert_transitions",
-                  "alert_evidence_samples",
-              )
-              with engine.begin() as connection:
-                  for table_name in table_names:
-                      connection.execute(
-                          text(
-                              f"""
-                              CREATE TRIGGER IF NOT EXISTS trg_{table_name}_append_only_update
-                              BEFORE UPDATE ON {table_name}
-                              BEGIN
-                                  SELECT RAISE(ABORT, '{table_name} is append-only');
-                              END
-                              """
-                          )
-                      )
-                      connection.execute(
-                          text(
-                              f"""
-                              CREATE TRIGGER IF NOT EXISTS trg_{table_name}_append_only_delete
-                              BEFORE DELETE ON {table_name}
-                              BEGIN
-                                  SELECT RAISE(ABORT, '{table_name} is append-only');
-                              END
-                              """
-                          )
-                      )
-          '''
-          immutability.write_text(content.replace(marker, helper + marker))
+      - name: Lint
+        run: npm run lint
 
-          replace_once(
-              "services/telemetry-service/app/main.py",
-              "from app.alerts.api import create_alert_router\nfrom app.alerts.processor import AlertProcessor",
-              "from app.alerts.api import create_alert_router\nfrom app.alerts.immutability import ensure_sqlite_alert_immutability\nfrom app.alerts.processor import AlertProcessor",
-          )
-          replace_once(
-              "services/telemetry-service/app/main.py",
-              "        if resolved.auto_create_schema:\n            database.create_schema()",
-              "        if resolved.auto_create_schema:\n            database.create_schema()\n            ensure_sqlite_alert_immutability(database.engine)",
-          )
+      - name: Typecheck
+        run: npm run typecheck
 
-          replace_once(
-              "services/telemetry-service/app/alerts/repository.py",
-              "                session.add(transition)\n            session.expunge(alert)",
-              "                session.add(transition)\n                session.flush()\n                session.refresh(alert)\n                session.refresh(transition)\n            session.expunge(alert)",
-          )
+      - name: Test
+        run: npm test
 
-          api = Path("services/telemetry-service/app/alerts/api.py")
-          content = api.read_text()
-          content = content.replace(
-              "from __future__ import annotations\n\nfrom typing",
-              "from __future__ import annotations\n\nimport logging\nfrom typing",
-              1,
-          )
-          content = content.replace(
-              "\n\nIdempotencyKey = Annotated[",
-              '\n\nLOGGER = logging.getLogger("nexolab.telemetry.alerts.api")\n\n\nIdempotencyKey = Annotated[',
-              1,
-          )
-          old = '''    if isinstance(error, HTTPException):
-              return error
-          return HTTPException(
-              status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,'''
-          new = '''    if isinstance(error, HTTPException):
-              return error
-          LOGGER.error(
-              "Unexpected alert API failure",
-              exc_info=(type(error), error, error.__traceback__),
-          )
-          return HTTPException(
-              status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,'''
-          if content.count(old) != 1:
-              raise SystemExit("alert API error marker missing")
-          api.write_text(content.replace(old, new))
-          PY
-
-      - name: Commit lifecycle hardening
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "fix(alerts): harden lifecycle persistence"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
