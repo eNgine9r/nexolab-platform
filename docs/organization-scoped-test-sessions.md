@@ -49,4 +49,4 @@ Generated Python bytecode and temporary mutation workflows are excluded from the
 
 Repository and API integration tests verify organization-scoped create replay, duplicate session numbers across organizations, isolated lists, foreign-ID non-disclosure, verified JWT actor attribution and ownership checks before configuration or telemetry queries.
 
-A controlled browser Gate will additionally prove anonymous denial, Viewer read-only behavior, Engineer lifecycle operations, immutable completed sessions, telemetry attribution and idempotent replay using real Next.js, FastAPI, PostgreSQL and MQTT.
+The controlled browser Gate proves anonymous denial, Viewer read-only behavior, Engineer lifecycle operations, immutable completed sessions, telemetry attribution and idempotent replay using real Next.js, FastAPI, PostgreSQL and MQTT. Its engineering principal also receives the independent Auditor role so the Gate validates permission union without expanding the production Engineer role.
