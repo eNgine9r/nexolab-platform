@@ -1,13 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Clock3, Radio, Settings2, Thermometer } from "lucide-react";
+import { AlertTriangle, Clock3, LoaderCircle, Radio, RotateCcw, Settings2, Thermometer } from "lucide-react";
 
 import { chartSeries } from "@/data/dashboard";
+import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
+import { buildTemperatureHistoryChart, mergeTelemetryHistory } from "@/lib/telemetry/history-series";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-const ranges = ["1г", "6г", "24г", "7д", "30д"];
+const demoRanges = ["1г", "6г", "24г", "7д", "30д"];
+const liveRanges: Array<{ value: DashboardHistoryRange; label: string }> = [
+  { value: "1h", label: "1г" },
+  { value: "6h", label: "6г" },
+  { value: "24h", label: "24г" },
+];
+const channelColors: Record<string, string> = {
+  "106-03": "#00c6e0",
+  "106-04": "#7ed321",
+};
 
 function createPath(points: readonly number[]) {
   return points
@@ -20,24 +31,16 @@ function createPath(points: readonly number[]) {
 }
 
 function qualityLabel(sample: TelemetrySample): string {
-  if (sample.quality === "sensor_error") {
-    return "Помилка датчика";
-  }
-  if (sample.quality === "communication_error") {
-    return "Помилка зв’язку";
-  }
-  if (sample.quality === "unknown") {
-    return "Невідома якість";
-  }
+  if (sample.quality === "sensor_error") return "Помилка датчика";
+  if (sample.quality === "communication_error") return "Помилка зв’язку";
+  if (sample.quality === "unknown") return "Невідома якість";
   return sample.alarm === null
     ? "Valid · без тривоги"
     : `Valid · ${sample.alarm === "high" ? "вище межі" : "нижче межі"}`;
 }
 
 function valueLabel(sample: TelemetrySample): string {
-  if (sample.value === null || sample.quality !== "valid") {
-    return "—";
-  }
+  if (sample.value === null || sample.quality !== "valid") return "—";
   return `${new Intl.NumberFormat("uk-UA", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -52,12 +55,199 @@ function timeLabel(sample: TelemetrySample): string {
   }).format(new Date(sample.captured_at));
 }
 
+function axisTime(value: string): string {
+  return new Intl.DateTimeFormat("uk-UA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function temperatureLabel(value: number | null): string {
+  return value === null
+    ? "—"
+    : `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 1 }).format(value)} °C`;
+}
+
+function LiveHistoryChart({
+  latestSamples,
+  historySamples,
+  historyRange,
+  historyStatus,
+  historyWindow,
+  historyError,
+  onHistoryRangeChange,
+  onHistoryRetry,
+}: {
+  latestSamples: TelemetrySample[];
+  historySamples: TelemetrySample[];
+  historyRange: DashboardHistoryRange;
+  historyStatus: DashboardHistoryStatus;
+  historyWindow: { from: string; to: string } | null;
+  historyError: Error | null;
+  onHistoryRangeChange: (range: DashboardHistoryRange) => void;
+  onHistoryRetry: () => void;
+}) {
+  const fallbackTo = new Date();
+  const fallbackFrom = new Date(
+    fallbackTo.getTime() - (historyRange === "1h" ? 1 : historyRange === "6h" ? 6 : 24) * 60 * 60 * 1000,
+  );
+  const window = historyWindow ?? {
+    from: fallbackFrom.toISOString(),
+    to: fallbackTo.toISOString(),
+  };
+  const merged = useMemo(
+    () => mergeTelemetryHistory(historySamples, latestSamples),
+    [historySamples, latestSamples],
+  );
+  const chart = useMemo(() => buildTemperatureHistoryChart(merged, window), [merged, window.from, window.to]);
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-medium text-slate-200">PostgreSQL history</p>
+          <p className="mt-0.5 text-[9px] text-slate-500">
+            {axisTime(chart.from)} — {axisTime(chart.to)} · {merged.length} records
+          </p>
+        </div>
+        <div className="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-black/10 p-1">
+          {liveRanges.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onHistoryRangeChange(item.value)}
+              className={`rounded-lg px-2.5 py-1.5 text-[9px] font-medium transition ${
+                historyRange === item.value
+                  ? "bg-blue-600 text-white shadow-[0_5px_15px_rgba(0,119,255,.2)]"
+                  : "text-slate-500 hover:text-slate-200"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {historyStatus === "loading" ? (
+        <div className="grid h-[190px] place-items-center text-[10px] text-cyan-200">
+          <span className="inline-flex items-center gap-2">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            Завантаження захищеної історії…
+          </span>
+        </div>
+      ) : historyStatus === "error" ? (
+        <div className="grid h-[190px] place-items-center text-center">
+          <div>
+            <AlertTriangle className="mx-auto h-5 w-5 text-amber-300" />
+            <p className="mt-2 text-[10px] text-amber-200">
+              {historyError?.message ?? "Не вдалося завантажити telemetry history."}
+            </p>
+            <button
+              type="button"
+              onClick={onHistoryRetry}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[9px] text-slate-200"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Повторити
+            </button>
+          </div>
+        </div>
+      ) : chart.series.length === 0 ? (
+        <div className="grid h-[190px] place-items-center text-center text-[10px] leading-5 text-slate-500">
+          Немає валідних температурних records у вибраному діапазоні.
+        </div>
+      ) : (
+        <>
+          <svg
+            viewBox="0 0 630 180"
+            className="h-[190px] w-full"
+            role="img"
+            aria-label="Реальний графік історії температур XJP60D"
+          >
+            {[20, 47, 74, 101, 128, 155].map((y) => (
+              <line key={y} x1="32" y1={y} x2="600" y2={y} stroke="rgba(148,163,184,.1)" strokeWidth="1" />
+            ))}
+            {[32, 174, 316, 458, 600].map((x) => (
+              <line key={x} x1={x} y1="20" x2={x} y2="155" stroke="rgba(148,163,184,.055)" strokeWidth="1" />
+            ))}
+            {chart.series.map((series) => (
+              <g key={series.channelId}>
+                {series.path ? (
+                  <path
+                    d={series.path}
+                    fill="none"
+                    stroke={channelColors[series.channelId] ?? "#38bdf8"}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ) : null}
+                {series.points.map((point) => (
+                  <circle
+                    key={point.eventId}
+                    cx={point.x}
+                    cy={point.y}
+                    r="2.2"
+                    fill="#071a35"
+                    stroke={channelColors[series.channelId] ?? "#38bdf8"}
+                    strokeWidth="1.4"
+                  />
+                ))}
+              </g>
+            ))}
+            <text x="32" y="174" fill="#64748b" fontSize="9">
+              {axisTime(chart.from)}
+            </text>
+            <text x="600" y="174" textAnchor="end" fill="#64748b" fontSize="9">
+              {axisTime(chart.to)}
+            </text>
+            <text x="24" y="25" textAnchor="end" fill="#64748b" fontSize="9">
+              {temperatureLabel(chart.maximum)}
+            </text>
+            <text x="24" y="155" textAnchor="end" fill="#64748b" fontSize="9">
+              {temperatureLabel(chart.minimum)}
+            </text>
+          </svg>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {chart.series.map((series) => (
+              <span
+                key={series.channelId}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] px-2 py-1 text-[8px] text-slate-400"
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: channelColors[series.channelId] ?? "#38bdf8" }}
+                />
+                {series.channelId} · {series.points.length}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function LiveTemperatureView({
   status,
   samples,
+  historySamples,
+  historyRange,
+  historyStatus,
+  historyWindow,
+  historyError,
+  onHistoryRangeChange,
+  onHistoryRetry,
 }: {
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
+  historySamples: TelemetrySample[];
+  historyRange: DashboardHistoryRange;
+  historyStatus: DashboardHistoryStatus;
+  historyWindow: { from: string; to: string } | null;
+  historyError: Error | null;
+  onHistoryRangeChange: (range: DashboardHistoryRange) => void;
+  onHistoryRetry: () => void;
 }) {
   const byChannel = new Map(samples.map((sample) => [sample.channel_id, sample]));
   const channels = ["106-03", "106-04"];
@@ -68,7 +258,7 @@ function LiveTemperatureView({
         <div>
           <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">Production telemetry</p>
           <p className="mt-1 text-[11px] text-slate-400">
-            XJP60D · edge-01 · фактичні latest/WebSocket records
+            XJP60D · edge-01 · authenticated latest, WebSocket та PostgreSQL history
           </p>
         </div>
         <span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 text-[9px] text-slate-300">
@@ -129,10 +319,21 @@ function LiveTemperatureView({
         })}
       </div>
 
+      <LiveHistoryChart
+        latestSamples={samples}
+        historySamples={historySamples}
+        historyRange={historyRange}
+        historyStatus={historyStatus}
+        historyWindow={historyWindow}
+        historyError={historyError}
+        onHistoryRangeChange={onHistoryRangeChange}
+        onHistoryRetry={onHistoryRetry}
+      />
+
       <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/[0.055] bg-white/[0.018] p-3 text-[9px] leading-5 text-slate-500">
         <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
-        Історичні криві в live mode не симулюються. Панель графіка використовуватиме лише реальні records з{" "}
-        <code className="text-slate-300">/telemetry/history</code> після підключення history view.
+        Latest/WebSocket freshness та history loading мають незалежні стани. Історичний збій не маскує свіжий
+        live record.
       </div>
     </div>
   );
@@ -142,10 +343,24 @@ export function TemperatureChart({
   mode = "demo",
   status = "demo",
   samples = [],
+  historySamples = [],
+  historyRange = "24h",
+  historyStatus = "idle",
+  historyWindow = null,
+  historyError = null,
+  onHistoryRangeChange = () => undefined,
+  onHistoryRetry = () => undefined,
 }: {
   mode?: "demo" | "live";
   status?: DashboardTelemetryStatus;
   samples?: TelemetrySample[];
+  historySamples?: TelemetrySample[];
+  historyRange?: DashboardHistoryRange;
+  historyStatus?: DashboardHistoryStatus;
+  historyWindow?: { from: string; to: string } | null;
+  historyError?: Error | null;
+  onHistoryRangeChange?: (range: DashboardHistoryRange) => void;
+  onHistoryRetry?: () => void;
 }) {
   const [range, setRange] = useState("24г");
   const paths = useMemo(
@@ -154,7 +369,19 @@ export function TemperatureChart({
   );
 
   if (mode === "live") {
-    return <LiveTemperatureView status={status} samples={samples} />;
+    return (
+      <LiveTemperatureView
+        status={status}
+        samples={samples}
+        historySamples={historySamples}
+        historyRange={historyRange}
+        historyStatus={historyStatus}
+        historyWindow={historyWindow}
+        historyError={historyError}
+        onHistoryRangeChange={onHistoryRangeChange}
+        onHistoryRetry={onHistoryRetry}
+      />
+    );
   }
 
   return (
@@ -165,11 +392,15 @@ export function TemperatureChart({
           <p className="mt-1 text-[11px] text-slate-400">Ізольований preview · не production measurements</p>
         </div>
         <div className="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-black/10 p-1">
-          {ranges.map((item) => (
+          {demoRanges.map((item) => (
             <button
               key={item}
               onClick={() => setRange(item)}
-              className={`rounded-lg px-2.5 py-1.5 text-[9px] font-medium transition ${range === item ? "bg-blue-600 text-white shadow-[0_5px_15px_rgba(0,119,255,.2)]" : "text-slate-500 hover:text-slate-200"}`}
+              className={`rounded-lg px-2.5 py-1.5 text-[9px] font-medium transition ${
+                range === item
+                  ? "bg-blue-600 text-white shadow-[0_5px_15px_rgba(0,119,255,.2)]"
+                  : "text-slate-500 hover:text-slate-200"
+              }`}
             >
               {item}
             </button>

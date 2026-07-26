@@ -220,6 +220,13 @@ export function DashboardShell() {
                   mode={telemetry.mode}
                   status={telemetry.status}
                   samples={telemetry.temperatures}
+                  historySamples={telemetry.historySamples}
+                  historyRange={telemetry.historyRange}
+                  historyStatus={telemetry.historyStatus}
+                  historyWindow={telemetry.historyWindow}
+                  historyError={telemetry.historyError}
+                  onHistoryRangeChange={telemetry.setHistoryRange}
+                  onHistoryRetry={telemetry.retryHistory}
                 />
               </Panel>
               <Panel
