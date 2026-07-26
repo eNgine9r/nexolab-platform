@@ -53,7 +53,18 @@ describe("telemetry contract parsers", () => {
     });
   });
 
-  it("parses heartbeat and service error messages", () => {
+  it("parses authenticated acknowledgement, heartbeat and service errors", () => {
+    expect(
+      parseTelemetryLiveMessage({
+        type: "authenticated",
+        subject: "viewer-user",
+        organization_id: "org-1",
+      }),
+    ).toEqual({
+      kind: "authenticated",
+      subject: "viewer-user",
+      organizationId: "org-1",
+    });
     expect(
       parseTelemetryLiveMessage({
         type: "heartbeat",

@@ -1,0 +1,63 @@
+name: Authenticated Dashboard Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/authenticated-dashboard-acceptance.yml"
+      - "docs/authenticated-live-telemetry.md"
+      - "e2e/authenticated-dashboard.production.e2e.ts"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.dashboard.config.ts"
+      - "scripts/run-authenticated-dashboard-acceptance.sh"
+      - "services/telemetry-service/app/**"
+      - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/requirements.txt"
+      - "src/components/dashboard/**"
+      - "src/features/security/**"
+      - "src/hooks/use-dashboard-security*"
+      - "src/hooks/use-dashboard-telemetry*"
+      - "src/lib/telemetry/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authenticated-dashboard-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: JWT REST history and WebSocket dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-dashboard-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_DASHBOARD_EVIDENCE_DIR: dashboard-acceptance-evidence
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run authenticated dashboard acceptance
+        run: bash scripts/run-authenticated-dashboard-acceptance.sh
+
+      - name: Upload dashboard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-dashboard-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dashboard-acceptance-evidence
+          if-no-files-found: warn
+          retention-days: 14

@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     websocket_client_queue_maxsize: int = Field(default=256, ge=1, le=10_000)
     websocket_heartbeat_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
     websocket_send_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
+    websocket_auth_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
     websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)
 
     retention_enabled: bool = True
