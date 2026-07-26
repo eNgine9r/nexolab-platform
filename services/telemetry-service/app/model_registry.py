@@ -8,6 +8,7 @@ SESSION_MODEL_COUNT: Final = 9
 
 def register_models() -> None:
     """Import persistence models so they are attached to Base.metadata."""
+    from app.alerts import models as _alert_models
     from app.refrigeration import models as _refrigeration_models
     from app.security import models as _security_models
     from app.sessions import models as _session_models
@@ -19,6 +20,8 @@ def register_models() -> None:
     assert _telemetry_attribution.TelemetrySessionContext.__tablename__ == (
         "telemetry_session_contexts"
     )
+    assert _alert_models.AlertRule.__tablename__ == "alert_rules"
+    assert _alert_models.AlertInstance.__tablename__ == "alert_instances"
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
