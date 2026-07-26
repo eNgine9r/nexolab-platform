@@ -17,7 +17,6 @@ import {
   RotateCw,
   ShieldCheck,
   TriangleAlert,
-  WifiOff,
 } from "lucide-react";
 
 import { createNodeApiClient, createNodeIdempotencyKey } from "@/lib/nodes/api-client";
