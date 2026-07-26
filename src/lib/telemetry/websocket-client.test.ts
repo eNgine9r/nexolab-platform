@@ -20,8 +20,9 @@ const sample: TelemetrySample = {
 };
 
 class MockWebSocket extends EventTarget {
-  readonly close = vi.fn(() => {
-    this.dispatchEvent(new CloseEvent("close"));
+  readonly send = vi.fn();
+  readonly close = vi.fn((code = 1000, reason = "") => {
+    this.dispatchEvent(new CloseEvent("close", { code, reason }));
   });
 
   constructor(readonly url: string) {
@@ -36,8 +37,8 @@ class MockWebSocket extends EventTarget {
     this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(payload) }));
   }
 
-  disconnect(): void {
-    this.dispatchEvent(new CloseEvent("close"));
+  disconnect(code = 1006, reason = ""): void {
+    this.dispatchEvent(new CloseEvent("close", { code, reason }));
   }
 }
 
@@ -90,6 +91,61 @@ describe("TelemetryWebSocketClient", () => {
     subscription.close();
   });
 
+  it("authenticates after open, waits for server acknowledgement and refreshes on reconnect", async () => {
+    vi.useFakeTimers();
+    const sockets: MockWebSocket[] = [];
+    const states: TelemetryConnectionState[] = [];
+    const credentials = vi
+      .fn()
+      .mockResolvedValueOnce({ accessToken: "jwt-one", organizationId: "org-1" })
+      .mockResolvedValueOnce({ accessToken: "jwt-two", organizationId: "org-1" });
+    const client = new TelemetryWebSocketClient("wss://central/api/v1/telemetry/live", {
+      createSocket: (url) => {
+        const socket = new MockWebSocket(url);
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      credentials,
+      reconnectDelaysMs: [10],
+    });
+
+    client.subscribe(
+      {},
+      {
+        onSample: vi.fn(),
+        onStateChange: (state) => states.push(state),
+      },
+    );
+
+    sockets[0].open();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sockets[0].url).not.toContain("jwt-one");
+    expect(sockets[0].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "authenticate",
+        access_token: "jwt-one",
+        organization_id: "org-1",
+      }),
+    );
+    expect(states.at(-1)).toBe("connecting");
+
+    sockets[0].message({
+      type: "authenticated",
+      subject: "viewer-user",
+      organization_id: "org-1",
+    });
+    expect(states.at(-1)).toBe("connected");
+
+    sockets[0].disconnect();
+    await vi.advanceTimersByTimeAsync(10);
+    sockets[1].open();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sockets[1].send).toHaveBeenCalledWith(expect.stringContaining("jwt-two"));
+    expect(credentials).toHaveBeenCalledTimes(2);
+  });
+
   it("handles heartbeat and bounded reconnect exhaustion", async () => {
     vi.useFakeTimers();
     const sockets: MockWebSocket[] = [];
@@ -132,5 +188,26 @@ describe("TelemetryWebSocketClient", () => {
         message: "Telemetry WebSocket reconnect limit reached",
       }),
     );
+  });
+
+  it("does not retry an authorization policy violation", () => {
+    vi.useFakeTimers();
+    const sockets: MockWebSocket[] = [];
+    const onError = vi.fn();
+    const client = new TelemetryWebSocketClient("wss://central/live", {
+      createSocket: (url) => {
+        const socket = new MockWebSocket(url);
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      reconnectDelaysMs: [10],
+    });
+
+    client.subscribe({}, { onSample: vi.fn(), onError });
+    sockets[0].disconnect(1008, "access denied");
+    vi.advanceTimersByTime(100);
+
+    expect(sockets).toHaveLength(1);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "access denied" }));
   });
 });

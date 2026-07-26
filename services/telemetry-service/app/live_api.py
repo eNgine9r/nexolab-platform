@@ -4,10 +4,12 @@ import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.db import Database, TelemetryQuery, TelemetrySample
 from app.live import OVERFLOW, SHUTDOWN, LiveTelemetryFilter, LiveTelemetryHub
+from app.security.authorization import Permission
+from app.security.dependencies import SecurityDependencies
 from app.state import RuntimeState
 
 ALLOWED_QUALITIES = {
@@ -50,6 +52,113 @@ def _parse_after(value: str | None) -> datetime | None:
     return parsed.astimezone(UTC)
 
 
+def _http_error(error: HTTPException) -> tuple[str, str]:
+    if isinstance(error.detail, dict):
+        code = str(error.detail.get("code") or "websocket_access_denied")
+        message = str(error.detail.get("message") or "WebSocket access denied")
+        return code, message
+    return "websocket_access_denied", str(error.detail)
+
+
+async def _authenticate_websocket(
+    websocket: WebSocket,
+    security_dependencies: SecurityDependencies | None,
+    *,
+    timeout_seconds: float,
+) -> bool:
+    if security_dependencies is None or not security_dependencies.authentication_required:
+        return True
+
+    try:
+        payload = await asyncio.wait_for(
+            websocket.receive_json(),
+            timeout=timeout_seconds,
+        )
+    except TimeoutError:
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": "websocket_authentication_timeout",
+                "detail": "Telemetry authentication message was not received in time",
+            }
+        )
+        await websocket.close(code=1008, reason="authentication timeout")
+        return False
+    except WebSocketDisconnect:
+        return False
+    except Exception:
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": "invalid_websocket_authentication",
+                "detail": "Telemetry authentication payload must be valid JSON",
+            }
+        )
+        await websocket.close(code=1008, reason="invalid authentication payload")
+        return False
+
+    if not isinstance(payload, dict) or payload.get("type") != "authenticate":
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": "invalid_websocket_authentication",
+                "detail": "The first WebSocket message must authenticate the session",
+            }
+        )
+        await websocket.close(code=1008, reason="authentication required")
+        return False
+
+    access_token = payload.get("access_token")
+    organization_id = payload.get("organization_id")
+    if not isinstance(access_token, str) or not access_token.strip():
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": "missing_bearer_token",
+                "detail": "A non-empty access token is required",
+            }
+        )
+        await websocket.close(code=1008, reason="authentication required")
+        return False
+    if not isinstance(organization_id, str) or not organization_id.strip():
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": "organization_header_required",
+                "detail": "A selected organization is required",
+            }
+        )
+        await websocket.close(code=1008, reason="organization required")
+        return False
+
+    try:
+        authorized = security_dependencies.authorize_credentials(
+            f"Bearer {access_token.strip()}",
+            organization_id.strip(),
+            Permission.READ_TELEMETRY,
+        )
+    except HTTPException as error:
+        code, message = _http_error(error)
+        await websocket.send_json(
+            {
+                "type": "error",
+                "code": code,
+                "detail": message,
+            }
+        )
+        await websocket.close(code=1008, reason="access denied")
+        return False
+
+    await websocket.send_json(
+        {
+            "type": "authenticated",
+            "subject": authorized.principal.subject,
+            "organization_id": authorized.principal.organization_id,
+        }
+    )
+    return True
+
+
 def create_live_router(
     database: Database,
     hub: LiveTelemetryHub,
@@ -57,7 +166,9 @@ def create_live_router(
     *,
     heartbeat_seconds: float,
     send_timeout_seconds: float,
+    auth_timeout_seconds: float = 5.0,
     resume_limit: int,
+    security_dependencies: SecurityDependencies | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry-live"])
 
@@ -68,6 +179,12 @@ def create_live_router(
         alarm = params.get("alarm")
 
         await websocket.accept()
+        if not await _authenticate_websocket(
+            websocket,
+            security_dependencies,
+            timeout_seconds=auth_timeout_seconds,
+        ):
+            return
 
         if quality is not None and quality not in ALLOWED_QUALITIES:
             await websocket.send_json(

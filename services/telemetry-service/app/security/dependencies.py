@@ -47,6 +47,10 @@ class SecurityDependencies:
         self._authenticator = authenticator
         self._default_organization_id = default_organization_id
 
+    @property
+    def authentication_required(self) -> bool:
+        return self._mode == "jwt"
+
     def current_session(
         self,
         authorization: str | None = Header(default=None, alias="Authorization"),
@@ -84,43 +88,55 @@ class SecurityDependencies:
                 alias="X-Organization-ID",
             ),
         ) -> AuthorizedRequest:
-            resolved_organization_id = self._resolve_organization_id(
-                selected_organization_id
-            )
-            if self._mode == "disabled":
-                principal = AuthenticatedPrincipal(
-                    subject="development-system",
-                    organization_id=resolved_organization_id,
-                    roles=frozenset({Role.ADMINISTRATOR}),
-                    display_name="Development system",
-                    provider="disabled",
-                )
-                identity_id: str | None = None
-            else:
-                claims = self._verify(authorization)
-                try:
-                    identity_id, principal = self._repository.resolve_principal(
-                        claims,
-                        organization_id=resolved_organization_id,
-                    )
-                except IdentityNotProvisionedError as error:
-                    raise _forbidden(error.code, str(error)) from error
-                except OrganizationMembershipNotFoundError as error:
-                    raise _forbidden(error.code, str(error)) from error
-
-            decision = authorize(
-                principal,
+            return self.authorize_credentials(
+                authorization,
+                selected_organization_id,
                 permission,
-                resource_organization_id=resolved_organization_id,
             )
-            if not decision.allowed:
-                raise _forbidden(
-                    decision.code,
-                    f"permission {permission.value!r} is required",
-                )
-            return AuthorizedRequest(identity_id=identity_id, principal=principal)
 
         return dependency
+
+    def authorize_credentials(
+        self,
+        authorization: str | None,
+        selected_organization_id: str | None,
+        permission: Permission,
+    ) -> AuthorizedRequest:
+        resolved_organization_id = self._resolve_organization_id(
+            selected_organization_id
+        )
+        if self._mode == "disabled":
+            principal = AuthenticatedPrincipal(
+                subject="development-system",
+                organization_id=resolved_organization_id,
+                roles=frozenset({Role.ADMINISTRATOR}),
+                display_name="Development system",
+                provider="disabled",
+            )
+            identity_id: str | None = None
+        else:
+            claims = self._verify(authorization)
+            try:
+                identity_id, principal = self._repository.resolve_principal(
+                    claims,
+                    organization_id=resolved_organization_id,
+                )
+            except IdentityNotProvisionedError as error:
+                raise _forbidden(error.code, str(error)) from error
+            except OrganizationMembershipNotFoundError as error:
+                raise _forbidden(error.code, str(error)) from error
+
+        decision = authorize(
+            principal,
+            permission,
+            resource_organization_id=resolved_organization_id,
+        )
+        if not decision.allowed:
+            raise _forbidden(
+                decision.code,
+                f"permission {permission.value!r} is required",
+            )
+        return AuthorizedRequest(identity_id=identity_id, principal=principal)
 
     def _verify(self, authorization: str | None) -> VerifiedIdentityClaims:
         assert self._authenticator is not None

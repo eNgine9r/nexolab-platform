@@ -12,6 +12,7 @@ const ALARMS: readonly TelemetryAlarm[] = ["low", "high"];
 
 export type ParsedTelemetryLiveMessage =
   | { kind: "sample"; sample: TelemetrySample }
+  | { kind: "authenticated"; subject: string; organizationId: string }
   | { kind: "heartbeat"; serverTime: string }
   | { kind: "error"; detail: string };
 
@@ -151,6 +152,13 @@ export function parseTelemetryReadiness(value: unknown): TelemetryReadinessRespo
 
 export function parseTelemetryLiveMessage(value: unknown): ParsedTelemetryLiveMessage {
   const record = asRecord(value, "live");
+  if (record.type === "authenticated") {
+    return {
+      kind: "authenticated",
+      subject: asString(record.subject, "live.subject"),
+      organizationId: asString(record.organization_id, "live.organization_id"),
+    };
+  }
   if (record.type === "heartbeat") {
     return {
       kind: "heartbeat",
