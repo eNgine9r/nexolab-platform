@@ -1,0 +1,55 @@
+name: Fix dashboard acceptance locators
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/scripts/fix-dashboard-acceptance-locators.py"
+      - ".github/workflows/fix-dashboard-acceptance-locators.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-dashboard-acceptance-locators-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Apply locator fix
+        run: python .github/scripts/fix-dashboard-acceptance-locators.py
+
+      - name: Remove temporary automation
+        run: |
+          rm .github/scripts/fix-dashboard-acceptance-locators.py
+          rm .github/workflows/fix-dashboard-acceptance-locators.yml
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format repository
+        run: npm run format
+
+      - name: Commit locator fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: fix authenticated dashboard locators"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
