@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,15 +16,13 @@ concurrency:
 
 jobs:
   quality:
-    name: Apply alerts acceptance isolation fix
+    name: Quality and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,96 +34,19 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Patch retry-safe alert assertions
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+      - name: Check formatting
+        run: npm run format:check
 
-          path = Path("e2e/alerts.production.e2e.ts")
-          content = path.read_text()
+      - name: Lint
+        run: npm run lint
 
-          old_helper = '''async function expectAlertCount(
-            context: APIRequestContext,
-            path: string,
-            expected: number,
-          ): Promise<AlertPageResponse> {
-            let body: AlertPageResponse | null = null;
-            await expect
-              .poll(
-                async () => {
-                  const response = await context.get(path);
-                  expect(response.status()).toBe(200);
-                  body = (await response.json()) as AlertPageResponse;
-                  return body.count;
-                },
-                { timeout: 30_000 },
-              )
-              .toBe(expected);
-            if (!body) throw new Error(`No response body returned for ${path}`);
-            return body;
-          }'''
-          new_helper = '''async function expectAlertCount(
-            context: APIRequestContext,
-            path: string,
-            expected: number,
-            ruleId?: string,
-          ): Promise<AlertPageResponse> {
-            let body: AlertPageResponse | null = null;
-            let matchingItems: AlertPageResponse["items"] = [];
-            await expect
-              .poll(
-                async () => {
-                  const response = await context.get(path);
-                  expect(response.status()).toBe(200);
-                  body = (await response.json()) as AlertPageResponse;
-                  matchingItems = ruleId ? body.items.filter((item) => item.rule_id === ruleId) : body.items;
-                  return matchingItems.length;
-                },
-                { timeout: 30_000 },
-              )
-              .toBe(expected);
-            if (!body) throw new Error(`No response body returned for ${path}`);
-            return { ...body, items: matchingItems, count: matchingItems.length };
-          }'''
-          if content.count(old_helper) != 1:
-              raise SystemExit("expected one alert count helper")
-          content = content.replace(old_helper, new_helper)
+      - name: Typecheck
+        run: npm run typecheck
 
-          replacements = {
-              'await expectAlertCount(managerA, "/api/v1/alerts/latest", 0);':
-                  'await expectAlertCount(managerA, "/api/v1/alerts/latest", 0, ruleA.id);',
-              'const latest = await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);':
-                  'const latest = await expectAlertCount(managerA, "/api/v1/alerts/latest", 1, ruleA.id);',
-              'await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);':
-                  'await expectAlertCount(managerA, "/api/v1/alerts/latest", 1, ruleA.id);',
-              'const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1);':
-                  'const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1, ruleA.id);',
-              'await expect(page.getByText("9,4 degC")).toBeVisible();':
-                  'await expect(page.getByTestId("alert-detail").getByText("9,4 degC")).toBeVisible();',
-          }
-          expected_counts = {
-              'await expectAlertCount(managerA, "/api/v1/alerts/latest", 0);': 2,
-              'const latest = await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);': 1,
-              'await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);': 1,
-              'const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1);': 1,
-              'await expect(page.getByText("9,4 degC")).toBeVisible();': 1,
-          }
-          for old, new in replacements.items():
-              if content.count(old) != expected_counts[old]:
-                  raise SystemExit(f"unexpected match count for {old!r}: {content.count(old)}")
-              content = content.replace(old, new)
+      - name: Test
+        run: npm test
 
-          path.write_text(content)
-          PY
-
-      - name: Format acceptance test
-        run: npx prettier --write e2e/alerts.production.e2e.ts
-
-      - name: Commit verified acceptance fix
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "test(alerts): isolate browser acceptance retries"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
