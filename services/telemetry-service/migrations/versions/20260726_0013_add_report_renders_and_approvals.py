@@ -184,9 +184,20 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
     for table_name in reversed(APPEND_ONLY_TABLES):
-        op.execute(f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_delete")
-        op.execute(f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_update")
+        if bind.dialect.name == "postgresql":
+            op.execute(
+                f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_delete "
+                f"ON {table_name}"
+            )
+            op.execute(
+                f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_update "
+                f"ON {table_name}"
+            )
+        else:
+            op.execute(f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_delete")
+            op.execute(f"DROP TRIGGER IF EXISTS trg_{table_name}_append_only_update")
 
     op.drop_index(
         "ix_test_report_approval_events_organization_report",
