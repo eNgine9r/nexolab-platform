@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from queue import Empty, Full, Queue
 from threading import Event, Thread
@@ -27,9 +27,9 @@ IngressAuthorizer = Callable[
 class TelemetryWork:
     event: TelemetryEvent
     raw: dict[str, Any]
-    payload: bytes
-    topic: str | None
-    received_at: datetime
+    payload: bytes = b""
+    topic: str | None = None
+    received_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass(frozen=True)
