@@ -102,9 +102,7 @@ async function downloadArtifact(
   reportId: string,
   name: string,
 ): Promise<{ content: Buffer; sha256Header: string | null }> {
-  const response = await context.get(
-    `/api/v1/reports/${reportId}/artifacts/${encodeURIComponent(name)}`,
-  );
+  const response = await context.get(`/api/v1/reports/${reportId}/artifacts/${encodeURIComponent(name)}`);
   expect(response.status()).toBe(200);
   return {
     content: await response.body(),
@@ -129,26 +127,18 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect(viewerListBefore.status()).toBe(200);
     expect(((await viewerListBefore.json()) as ReportPageResponse).count).toBe(0);
 
-    const viewerGenerate = await viewerA.post(
-      `/api/v1/reports/sessions/${completedSessionId}`,
-      {
-        headers: { "Idempotency-Key": `viewer-denied-${randomUUID()}` },
-        data: {},
-      },
-    );
+    const viewerGenerate = await viewerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
+      headers: { "Idempotency-Key": `viewer-denied-${randomUUID()}` },
+      data: {},
+    });
     expect(viewerGenerate.status()).toBe(403);
 
-    const runningGenerate = await engineerA.post(
-      `/api/v1/reports/sessions/${runningSessionId}`,
-      {
-        headers: { "Idempotency-Key": `running-denied-${randomUUID()}` },
-        data: {},
-      },
-    );
+    const runningGenerate = await engineerA.post(`/api/v1/reports/sessions/${runningSessionId}`, {
+      headers: { "Idempotency-Key": `running-denied-${randomUUID()}` },
+      data: {},
+    });
     expect(runningGenerate.status()).toBe(409);
-    expect((await runningGenerate.json()).detail.code).toBe(
-      "report_session_not_reportable",
-    );
+    expect((await runningGenerate.json()).detail.code).toBe("report_session_not_reportable");
 
     const engineerContext = await browser.newContext();
     const engineerPage = await engineerContext.newPage();
@@ -156,16 +146,12 @@ test("production reports preserve immutable evidence across API, UI and organiza
     await engineerPage.goto("/reports");
     await expect(engineerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(engineerPage.getByTestId("report-generation-panel")).toBeVisible();
-    await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(
-      completedSessionId,
-    );
-    await engineerPage.getByPlaceholder("Контрольований evidence export…").fill(
-      "Production browser evidence",
-    );
+    await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(completedSessionId);
+    await engineerPage
+      .getByPlaceholder("Контрольований evidence export…")
+      .fill("Production browser evidence");
     await engineerPage.getByTestId("generate-report").click();
-    await expect(engineerPage.getByTestId("report-detail")).toContainText(
-      "Report version 1",
-    );
+    await expect(engineerPage.getByTestId("report-detail")).toContainText("Report version 1");
     await expect(engineerPage).not.toHaveURL(/token|access_token|bearer/i);
 
     const generatedPageResponse = await engineerA.get("/api/v1/reports");
@@ -184,37 +170,28 @@ test("production reports preserve immutable evidence across API, UI and organiza
     await engineerContext.close();
 
     const replayKey = `reports-replay-${randomUUID()}`;
-    const firstReplayRequest = await engineerA.post(
-      `/api/v1/reports/sessions/${completedSessionId}`,
-      {
-        headers: { "Idempotency-Key": replayKey },
-        data: { expected_source_sha256: browserReport.source_sha256 },
-      },
-    );
+    const firstReplayRequest = await engineerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
+      headers: { "Idempotency-Key": replayKey },
+      data: { expected_source_sha256: browserReport.source_sha256 },
+    });
     expect(firstReplayRequest.status()).toBe(201);
     const replayCreated = (await firstReplayRequest.json()) as ReportResponse;
     expect(replayCreated.version).toBe(2);
 
-    const replayedRequest = await engineerA.post(
-      `/api/v1/reports/sessions/${completedSessionId}`,
-      {
-        headers: { "Idempotency-Key": replayKey },
-        data: { expected_source_sha256: browserReport.source_sha256 },
-      },
-    );
+    const replayedRequest = await engineerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
+      headers: { "Idempotency-Key": replayKey },
+      data: { expected_source_sha256: browserReport.source_sha256 },
+    });
     expect(replayedRequest.status()).toBe(200);
     expect(replayedRequest.headers()["idempotent-replay"]).toBe("true");
     const replayed = (await replayedRequest.json()) as ReportResponse;
     expect(replayed.id).toBe(replayCreated.id);
     expect(replayed.replayed).toBe(true);
 
-    const managerGenerate = await managerA.post(
-      `/api/v1/reports/sessions/${completedSessionId}`,
-      {
-        headers: { "Idempotency-Key": `manager-version-${randomUUID()}` },
-        data: { expected_source_sha256: browserReport.source_sha256 },
-      },
-    );
+    const managerGenerate = await managerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
+      headers: { "Idempotency-Key": `manager-version-${randomUUID()}` },
+      data: { expected_source_sha256: browserReport.source_sha256 },
+    });
     expect(managerGenerate.status()).toBe(201);
     expect(((await managerGenerate.json()) as ReportResponse).version).toBe(3);
 
@@ -235,25 +212,23 @@ test("production reports preserve immutable evidence across API, UI and organiza
       expect(downloaded.content.byteLength).toBe(metadata.size_bytes);
     }
 
-    const telemetry = (
-      await downloadArtifact(engineerA, report.id, "telemetry.csv")
-    ).content.toString("utf8");
+    const telemetry = (await downloadArtifact(engineerA, report.id, "telemetry.csv")).content.toString(
+      "utf8",
+    );
     expect(telemetry).toContain(telemetryEventId);
     expect(telemetry).toContain(completedSessionId);
     expect(telemetry).toContain(stageId);
     expect(telemetry).toContain(bindingId);
     expect(telemetry).toContain(snapshotId);
 
-    const alerts = (
-      await downloadArtifact(engineerA, report.id, "alert-transitions.csv")
-    ).content.toString("utf8");
+    const alerts = (await downloadArtifact(engineerA, report.id, "alert-transitions.csv")).content.toString(
+      "utf8",
+    );
     expect(alerts).toContain(alertTransitionId);
     expect(alerts).toContain(engineerSubject);
     expect(alerts).toContain("alert_acknowledged");
 
-    const manifestContent = (
-      await downloadArtifact(engineerA, report.id, "manifest.json")
-    ).content;
+    const manifestContent = (await downloadArtifact(engineerA, report.id, "manifest.json")).content;
     expect(sha256(manifestContent)).toBe(report.manifest_sha256);
     const manifest = JSON.parse(manifestContent.toString("utf8")) as {
       report: { id: string; source_sha256: string };
@@ -271,13 +246,7 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect(foreignList.status()).toBe(200);
     expect(((await foreignList.json()) as ReportPageResponse).count).toBe(0);
     expect((await managerB.get(`/api/v1/reports/${report.id}`)).status()).toBe(404);
-    expect(
-      (
-        await managerB.get(
-          `/api/v1/reports/${report.id}/artifacts/manifest.json`,
-        )
-      ).status(),
-    ).toBe(404);
+    expect((await managerB.get(`/api/v1/reports/${report.id}/artifacts/manifest.json`)).status()).toBe(404);
 
     const viewerContext = await browser.newContext();
     const viewerPage = await viewerContext.newPage();
@@ -286,9 +255,7 @@ test("production reports preserve immutable evidence across API, UI and organiza
     await expect(viewerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("report-generation-panel")).toHaveCount(0);
     await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
-    await expect(viewerPage.getByTestId("report-detail")).toContainText(
-      "Report version",
-    );
+    await expect(viewerPage.getByTestId("report-detail")).toContainText("Report version");
     await viewerContext.close();
   } finally {
     await anonymous.dispose();
