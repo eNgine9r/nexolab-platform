@@ -1,0 +1,53 @@
+name: Fix history window reference
+
+on:
+  push:
+    branches: [feat/authenticated-live-dashboard]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-history-window-reference
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    if: "${{ !contains(github.event.head_commit.message, 'fix: use scoped history window') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/authenticated-live-dashboard
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Apply fix
+        run: python .github/scripts/fix-history-window-reference.py
+
+      - name: Remove temporary automation
+        run: |
+          rm .github/scripts/fix-history-window-reference.py
+          rm .github/workflows/fix-history-window-reference.yml
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format
+        run: npm run format
+
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: use scoped history window"
+          git push origin HEAD:feat/authenticated-live-dashboard
