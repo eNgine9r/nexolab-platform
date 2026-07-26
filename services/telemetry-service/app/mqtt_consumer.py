@@ -66,7 +66,7 @@ class MqttConsumer:
         if reason_code == 0:
             self._state.set_mqtt_connected(False)
             result, _ = client.subscribe(
-                self._settings.mqtt_topic,
+                self._settings.resolved_mqtt_topic,
                 qos=self._settings.mqtt_qos,
             )
             if result != self._mqtt.MQTT_ERR_SUCCESS:
@@ -93,7 +93,7 @@ class MqttConsumer:
             return
         self._state.set_mqtt_connected(True)
         self._state.set_mqtt_error(None)
-        LOGGER.info("Subscribed to MQTT topic %s", self._settings.mqtt_topic)
+        LOGGER.info("Subscribed to MQTT topic %s", self._settings.resolved_mqtt_topic)
 
     def _on_disconnect(
         self,
