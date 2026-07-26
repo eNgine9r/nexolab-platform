@@ -14,10 +14,12 @@ A foreign session identifier must not reveal whether the session exists. Browser
 
 ## Frontend transport
 
-The Session API client must reuse the Sprint 11 runtime credential provider and attach:
+The Session API client reuses the Sprint 11 runtime credential provider and attaches:
 
 - `Authorization: Bearer <access token>`;
 - `X-Organization-ID: <selected organization>`.
+
+Credentials are resolved for every request instead of being frozen when the client is created. Token refresh and organization switching therefore apply to existing list, wizard and workspace clients without rebuilding application state manually.
 
 Changing organizations invalidates the complete session workspace and starts a new organization-scoped load. Logout removes all session access immediately.
 
