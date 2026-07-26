@@ -13,13 +13,14 @@ const emptyPage = {
 };
 
 function createFetchMock() {
-  return vi.fn<SessionFetch>(
-    async (_input, _init) =>
-      new Response(JSON.stringify(emptyPage), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-  );
+  return vi.fn<SessionFetch>(async (input, init) => {
+    void input;
+    void init;
+    return new Response(JSON.stringify(emptyPage), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  });
 }
 
 describe("authenticated Session API client", () => {
