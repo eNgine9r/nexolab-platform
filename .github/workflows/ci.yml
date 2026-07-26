@@ -18,13 +18,23 @@ jobs:
   quality:
     name: Apply alerts acceptance isolation fix
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout branch head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
 
       - name: Patch retry-safe alert assertions
         run: |
