@@ -1,10 +1,5 @@
 export type SecurityRole =
-  | "administrator"
-  | "laboratory_manager"
-  | "engineer"
-  | "operator"
-  | "viewer"
-  | "auditor";
+  "administrator" | "laboratory_manager" | "engineer" | "operator" | "viewer" | "auditor";
 
 export type SecurityPermission =
   | "dashboard.read"
@@ -61,8 +56,7 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  | SecurityCredentialSnapshot
-  | Promise<SecurityCredentialSnapshot>;
+  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
@@ -165,21 +159,14 @@ export function hasPermission(
   organizationId: string,
   permission: SecurityPermission,
 ): boolean {
-  const membership = session.memberships.find(
-    (item) => item.organizationId === organizationId,
-  );
+  const membership = session.memberships.find((item) => item.organizationId === organizationId);
   return membership?.permissions.includes(permission) ?? false;
 }
 
 function parseSecuritySession(payload: unknown): SecuritySession | null {
   const root = asRecord(payload);
   const identityRecord = root ? asRecord(root.identity) : null;
-  if (
-    !root ||
-    root.authenticated !== true ||
-    !identityRecord ||
-    !Array.isArray(root.memberships)
-  ) {
+  if (!root || root.authenticated !== true || !identityRecord || !Array.isArray(root.memberships)) {
     return null;
   }
 
