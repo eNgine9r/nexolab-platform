@@ -1,0 +1,55 @@
+name: Report Renderer CI Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/report-renderer-ci-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Patch XLSX filter ownership and ZIP fixture metadata
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          renderer = Path("services/telemetry-service/app/reports/renderers.py")
+          content = renderer.read_text()
+          old = '''    sheet.hide_gridlines(2)\n    sheet.freeze_panes(1, 0)\n    sheet.autofilter(0, 0, max(len(rows), 1), len(fields) - 1)\n    for column, field in enumerate(fields):\n'''
+          new = '''    sheet.hide_gridlines(2)\n    sheet.freeze_panes(1, 0)\n    for column, field in enumerate(fields):\n'''
+          if content.count(old) != 1:
+              raise SystemExit("evidence sheet autofilter block not found exactly once")
+          content = content.replace(old, new)
+          old_table = '''    if rows:\n        sheet.add_table(\n            0,\n            0,\n            len(rows),\n            len(fields) - 1,\n            {\n                "name": f"NEXOLAB{name.replace(' ', '')}Table",\n                "style": "Table Style Medium 2",\n                "columns": [{"header": field} for field in fields],\n            },\n        )\n'''
+          new_table = '''    if rows:\n        sheet.add_table(\n            0,\n            0,\n            len(rows),\n            len(fields) - 1,\n            {\n                "name": f"NEXOLAB{name.replace(' ', '')}Table",\n                "style": "Table Style Medium 2",\n                "columns": [{"header": field} for field in fields],\n            },\n        )\n    else:\n        sheet.autofilter(0, 0, 0, len(fields) - 1)\n'''
+          if content.count(old_table) != 1:
+              raise SystemExit("evidence sheet table block not found exactly once")
+          renderer.write_text(content.replace(old_table, new_table))
+
+          test_path = Path("services/telemetry-service/tests/test_report_presentation_domain.py")
+          test_content = test_path.read_text()
+          old_extra = '            info.extra = b"metadata"\n'
+          new_extra = '            info.extra = b"\\x01\\x00\\x04\\x00meta"\n'
+          if test_content.count(old_extra) != 1:
+              raise SystemExit("ZIP fixture extra metadata block not found exactly once")
+          test_path.write_text(test_content.replace(old_extra, new_extra))
+          PY
+
+      - name: Commit fixes
+        run: |
+          git config user.name "nexolab-ci"
+          git config user.email "nexolab-ci@users.noreply.github.com"
+          git add services/telemetry-service/app/reports/renderers.py \
+                  services/telemetry-service/tests/test_report_presentation_domain.py
+          git commit -m "fix(reports): normalize valid ZIP fixtures and table filters"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
