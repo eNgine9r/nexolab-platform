@@ -63,13 +63,7 @@ function alertTime(alert: AlertInstance): string {
   }).format(new Date(alert.triggered_at));
 }
 
-export function AlarmsPanel({
-  mode = "demo",
-  samples: _samples = [],
-}: {
-  mode?: "demo" | "live";
-  samples?: TelemetrySample[];
-}) {
+export function AlarmsPanel({ mode = "demo" }: { mode?: "demo" | "live"; samples?: TelemetrySample[] }) {
   const [liveAlerts, setLiveAlerts] = useState<AlertInstance[]>([]);
   const [loading, setLoading] = useState(mode === "live");
   const [error, setError] = useState<Error | null>(null);
@@ -106,10 +100,11 @@ export function AlarmsPanel({
   useEffect(() => {
     if (mode !== "live") return;
     const controller = new AbortController();
-    void loadAlerts(controller.signal);
+    const initial = window.setTimeout(() => void loadAlerts(controller.signal), 0);
     const refresh = window.setInterval(() => void loadAlerts(controller.signal), 5_000);
     return () => {
       controller.abort();
+      window.clearTimeout(initial);
       window.clearInterval(refresh);
     };
   }, [loadAlerts, mode]);

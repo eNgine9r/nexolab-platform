@@ -147,10 +147,11 @@ export function AlertsWorkspace() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void load(controller.signal);
+    const initial = window.setTimeout(() => void load(controller.signal), 0);
     const refresh = window.setInterval(() => void load(controller.signal, true), 5_000);
     return () => {
       controller.abort();
+      window.clearTimeout(initial);
       window.clearInterval(refresh);
     };
   }, [generation, load]);
@@ -161,28 +162,30 @@ export function AlertsWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) {
-      setTransitions([]);
-      return;
-    }
+    if (!selectedId) return;
     const controller = new AbortController();
-    setDetailLoading(true);
-    void createAlertApiClient()
-      .listTransitions(selectedId, controller.signal)
-      .then((page) => {
-        if (!controller.signal.aborted) setTransitions(page.items);
-      })
-      .catch((nextError) => {
-        if (!controller.signal.aborted) {
-          setActionError(
-            nextError instanceof Error ? nextError : new Error("Не вдалося завантажити історію тривоги."),
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDetailLoading(false);
-      });
-    return () => controller.abort();
+    const initial = window.setTimeout(() => {
+      setDetailLoading(true);
+      void createAlertApiClient()
+        .listTransitions(selectedId, controller.signal)
+        .then((page) => {
+          if (!controller.signal.aborted) setTransitions(page.items);
+        })
+        .catch((nextError) => {
+          if (!controller.signal.aborted) {
+            setActionError(
+              nextError instanceof Error ? nextError : new Error("Не вдалося завантажити історію тривоги."),
+            );
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setDetailLoading(false);
+        });
+    }, 0);
+    return () => {
+      controller.abort();
+      window.clearTimeout(initial);
+    };
   }, [selectedId, selected?.lock_version]);
 
   const visibleAlerts = useMemo(() => {
