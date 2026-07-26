@@ -4,7 +4,12 @@ from typing import Any
 
 from sqlalchemy import DDL, event
 
-from app.reports.models import TestReportArtifact, TestReportVersion
+from app.reports.models import (
+    TestReportApprovalEvent,
+    TestReportArtifact,
+    TestReportRender,
+    TestReportVersion,
+)
 
 _registered = False
 
@@ -21,6 +26,8 @@ def register_report_immutability() -> None:
     for model, table_name in (
         (TestReportVersion, "test_report_versions"),
         (TestReportArtifact, "test_report_artifacts"),
+        (TestReportRender, "test_report_renders"),
+        (TestReportApprovalEvent, "test_report_approval_events"),
     ):
         event.listen(model, "before_update", _reject_mapper_mutation)
         event.listen(model, "before_delete", _reject_mapper_mutation)
@@ -57,6 +64,9 @@ def register_report_immutability() -> None:
 def _reject_mapper_mutation(
     _mapper: Any,
     _connection: Any,
-    target: TestReportVersion | TestReportArtifact,
+    target: TestReportVersion
+    | TestReportArtifact
+    | TestReportRender
+    | TestReportApprovalEvent,
 ) -> None:
     raise ReportMutationError(f"{target.__class__.__name__} records are append-only")
