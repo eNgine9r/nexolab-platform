@@ -1,0 +1,49 @@
+name: Report Audit Hotfix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: report-audit-hotfix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Normalize approval audit timestamps
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("services/telemetry-service/app/reports/output_repository.py")
+          content = path.read_text()
+          replacements = {
+              '"approved_at": event.occurred_at,': '"approved_at": as_utc(event.occurred_at).isoformat(),',
+              '"superseded_at": event.occurred_at,': '"superseded_at": as_utc(event.occurred_at).isoformat(),',
+          }
+          for source, target in replacements.items():
+              if source not in content:
+                  raise SystemExit(f"missing expected source: {source}")
+              content = content.replace(source, target, 1)
+          path.write_text(content)
+          PY
+
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/telemetry-service/app/reports/output_repository.py
+          git commit -m "fix(reports): serialize approval audit timestamps"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
