@@ -282,7 +282,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
       .getByPlaceholder("Що перевірено оператором…")
       .fill("Operator inspected K106 and confirmed the excursion");
     await page.getByTestId("acknowledge-alert").click();
-    await expect(page.getByText("Підтверджена")).toBeVisible();
+    await expect(page.getByTestId("alert-detail").getByText("Підтверджена")).toBeVisible();
     await expectAlertState(managerA, alert.id, "acknowledged");
 
     const transitionsAfterAck = await managerA.get(`/api/v1/alerts/${alert.id}/transitions`);
@@ -315,7 +315,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     });
     await page.getByTestId("close-alert").click();
     await expectAlertState(managerA, alert.id, "closed");
-    await expect(page.getByText("Закрита")).toBeVisible();
+    await expect(page.getByTestId("alert-detail").getByText("Закрита")).toBeVisible();
     expect(closeIdempotencyKey).not.toBeNull();
 
     const closeReplay = await managerA.post(`/api/v1/alerts/${alert.id}/close`, {
