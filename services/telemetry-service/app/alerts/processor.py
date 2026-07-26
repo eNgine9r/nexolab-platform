@@ -267,6 +267,9 @@ class AlertProcessor:
                 updated_at=event.captured_at,
             )
             session.add(active_alert)
+            # AlertEvaluationState.active_alert_id has an explicit FK but no ORM
+            # relationship, so persist the alert before updating that state.
+            session.flush([active_alert])
             session.add(
                 _system_transition(
                     active_alert,
