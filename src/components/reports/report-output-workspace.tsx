@@ -22,23 +22,26 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    try {
-      const client = createReportApiClient();
-      const current = await client.getReport(reportId, signal);
-      const page = await client.listReports({ sessionId: current.session_id, limit: 200 }, signal);
-      setReport(current);
-      setVersions(page.items);
-      setError(null);
-    } catch (nextError) {
-      if (!signal?.aborted) {
-        setError(nextError instanceof Error ? nextError : new Error("Звіт не вдалося завантажити."));
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const client = createReportApiClient();
+        const current = await client.getReport(reportId, signal);
+        const page = await client.listReports({ sessionId: current.session_id, limit: 200 }, signal);
+        setReport(current);
+        setVersions(page.items);
+        setError(null);
+      } catch (nextError) {
+        if (!signal?.aborted) {
+          setError(nextError instanceof Error ? nextError : new Error("Звіт не вдалося завантажити."));
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false);
       }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [reportId]);
+    },
+    [reportId],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,11 +51,16 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
 
   if (loading && report === null) {
     return (
-      <section className="panel grid min-h-[420px] place-items-center p-8" data-testid="rendered-report-detail">
+      <section
+        className="panel grid min-h-[420px] place-items-center p-8"
+        data-testid="rendered-report-detail"
+      >
         <div className="text-center">
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-300" />
           <p className="mt-4 text-sm font-semibold text-slate-200">Завантаження report detail</p>
-          <p className="mt-2 text-[11px] text-slate-500">Перевіряємо organization scope та immutable metadata…</p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            Перевіряємо organization scope та immutable metadata…
+          </p>
         </div>
       </section>
     );
@@ -60,7 +68,10 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
 
   if (error || report === null) {
     return (
-      <section className="panel grid min-h-[420px] place-items-center p-8" data-testid="rendered-report-detail">
+      <section
+        className="panel grid min-h-[420px] place-items-center p-8"
+        data-testid="rendered-report-detail"
+      >
         <div className="max-w-xl text-center">
           <FileCheck2 className="mx-auto h-8 w-8 text-red-300" />
           <p className="mt-4 text-sm font-semibold text-slate-100">Report detail недоступний</p>
@@ -82,14 +93,19 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
       <section className="panel p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Link href="/reports" className="inline-flex items-center gap-2 text-[10px] font-semibold text-cyan-300">
+            <Link
+              href="/reports"
+              className="inline-flex items-center gap-2 text-[10px] font-semibold text-cyan-300"
+            >
               <ArrowLeft className="h-3.5 w-3.5" />
               Усі звіти
             </Link>
             <p className="mt-4 text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
               Immutable report · version {report.version}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Session {report.session_id}</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+              Session {report.session_id}
+            </h1>
             <p className="mt-2 text-[11px] text-slate-500">
               Згенеровано {formatDate(report.generated_at)} · {report.generated_by}
             </p>

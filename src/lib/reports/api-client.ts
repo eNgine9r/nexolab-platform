@@ -85,8 +85,7 @@ export function createReportIdempotencyKey(sessionId: string): string {
 }
 
 export function createReportActionIdempotencyKey(action: string, entityId: string): string {
-  const random =
-    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `nexolab-ui:reports:${action}:${entityId}:${random}`;
 }
 
@@ -121,10 +120,8 @@ export class ReportApiClient {
   }
 
   getOutputState(reportId: string, signal?: AbortSignal): Promise<ReportOutputState> {
-    return this.requestJson(
-      `/api/v1/reports/${encodeURIComponent(reportId)}/outputs`,
-      { signal },
-      (body) => assertObject<ReportOutputState>(body, "Report output state"),
+    return this.requestJson(`/api/v1/reports/${encodeURIComponent(reportId)}/outputs`, { signal }, (body) =>
+      assertObject<ReportOutputState>(body, "Report output state"),
     );
   }
 
@@ -223,11 +220,7 @@ export class ReportApiClient {
     );
   }
 
-  downloadArtifact(
-    reportId: string,
-    artifactName: string,
-    signal?: AbortSignal,
-  ): Promise<ReportDownload> {
+  downloadArtifact(reportId: string, artifactName: string, signal?: AbortSignal): Promise<ReportDownload> {
     return this.download(
       `/api/v1/reports/${encodeURIComponent(reportId)}/artifacts/${encodeURIComponent(artifactName)}`,
       artifactName,
@@ -248,11 +241,7 @@ export class ReportApiClient {
     );
   }
 
-  private async download(
-    path: string,
-    fallbackName: string,
-    signal?: AbortSignal,
-  ): Promise<ReportDownload> {
+  private async download(path: string, fallbackName: string, signal?: AbortSignal): Promise<ReportDownload> {
     const response = await this.performRequest(path, { signal });
     if (!response.ok) {
       const body = await this.readJson(response);

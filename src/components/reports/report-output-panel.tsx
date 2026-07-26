@@ -18,17 +18,9 @@ import {
   HttpSecuritySessionClient,
 } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
-import {
-  createReportActionIdempotencyKey,
-  createReportApiClient,
-} from "@/lib/reports/api-client";
+import { createReportActionIdempotencyKey, createReportApiClient } from "@/lib/reports/api-client";
 import { getReportsApiBaseUrl } from "@/lib/reports/runtime-config";
-import type {
-  ReportOutputState,
-  ReportRender,
-  ReportRenderFormat,
-  TestReport,
-} from "@/lib/reports/types";
+import type { ReportOutputState, ReportRender, ReportRenderFormat, TestReport } from "@/lib/reports/types";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -69,55 +61,60 @@ export function ReportOutputPanel({
   const replacements = useMemo(
     () =>
       reportVersions
-        .filter((candidate) => candidate.session_id === report.session_id && candidate.version > report.version)
+        .filter(
+          (candidate) => candidate.session_id === report.session_id && candidate.version > report.version,
+        )
         .sort((left, right) => left.version - right.version),
     [report.session_id, report.version, reportVersions],
   );
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    try {
-      const credentials = createRuntimeCredentialProvider(null);
-      const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentials);
-      const securityClient = new HttpSecuritySessionClient({
-        apiBaseUrl: getReportsApiBaseUrl(),
-        fetchImpl: authenticatedFetch,
-      });
-      const [state, securityResult, snapshot] = await Promise.all([
-        createReportApiClient().getOutputState(report.id, signal),
-        securityClient.getSession(),
-        credentials(),
-      ]);
-      const organizationId = snapshot.organizationId;
-      setOutput(state);
-      setCanRender(
-        Boolean(
-          securityResult.ok &&
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const credentials = createRuntimeCredentialProvider(null);
+        const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentials);
+        const securityClient = new HttpSecuritySessionClient({
+          apiBaseUrl: getReportsApiBaseUrl(),
+          fetchImpl: authenticatedFetch,
+        });
+        const [state, securityResult, snapshot] = await Promise.all([
+          createReportApiClient().getOutputState(report.id, signal),
+          securityClient.getSession(),
+          credentials(),
+        ]);
+        const organizationId = snapshot.organizationId;
+        setOutput(state);
+        setCanRender(
+          Boolean(
+            securityResult.ok &&
             organizationId &&
             hasPermission(securityResult.value, organizationId, "reports.generate"),
-        ),
-      );
-      setCanApprove(
-        Boolean(
-          securityResult.ok &&
+          ),
+        );
+        setCanApprove(
+          Boolean(
+            securityResult.ok &&
             organizationId &&
             hasPermission(securityResult.value, organizationId, "reports.approve"),
-        ),
-      );
-      setReplacementReportId((current) =>
-        current && replacements.some((item) => item.id === current)
-          ? current
-          : (replacements[0]?.id ?? ""),
-      );
-      setError(null);
-    } catch (nextError) {
-      if (!signal?.aborted) {
-        setError(nextError instanceof Error ? nextError : new Error("Output state не вдалося завантажити."));
+          ),
+        );
+        setReplacementReportId((current) =>
+          current && replacements.some((item) => item.id === current) ? current : (replacements[0]?.id ?? ""),
+        );
+        setError(null);
+      } catch (nextError) {
+        if (!signal?.aborted) {
+          setError(
+            nextError instanceof Error ? nextError : new Error("Output state не вдалося завантажити."),
+          );
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false);
       }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [replacements, report.id]);
+    },
+    [replacements, report.id],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -189,11 +186,7 @@ export function ReportOutputPanel({
     setDownloading(render.id);
     setError(null);
     try {
-      const result = await createReportApiClient().downloadRender(
-        report.id,
-        render.id,
-        render.artifact_name,
-      );
+      const result = await createReportApiClient().downloadRender(report.id, render.id, render.artifact_name);
       if (result.sha256 && result.sha256 !== render.sha256) {
         throw new Error("SHA-256 завантаженого rendered artifact не відповідає metadata.");
       }
@@ -210,7 +203,9 @@ export function ReportOutputPanel({
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError : new Error("Rendered artifact не вдалося завантажити."));
+      setError(
+        nextError instanceof Error ? nextError : new Error("Rendered artifact не вдалося завантажити."),
+      );
     } finally {
       setDownloading(null);
     }
@@ -218,7 +213,10 @@ export function ReportOutputPanel({
 
   if (loading && output === null) {
     return (
-      <section className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-5" data-testid="report-output-panel">
+      <section
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-5"
+        data-testid="report-output-panel"
+      >
         <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />
         <p className="mt-3 text-[11px] text-slate-400">Читаємо rendered outputs та approval event stream…</p>
       </section>
@@ -228,7 +226,10 @@ export function ReportOutputPanel({
   const approval = output?.approval;
 
   return (
-    <section className="space-y-4 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-4 sm:p-5" data-testid="report-output-panel">
+    <section
+      className="space-y-4 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-4 sm:p-5"
+      data-testid="report-output-panel"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
@@ -236,7 +237,8 @@ export function ReportOutputPanel({
           </p>
           <h4 className="mt-2 text-base font-semibold text-white">XLSX, PDF та approval state</h4>
           <p className="mt-2 text-[10px] leading-5 text-slate-500">
-            Усі outputs прив’язані до manifest {compactHash(report.manifest_sha256)} і зберігаються append-only.
+            Усі outputs прив’язані до manifest {compactHash(report.manifest_sha256)} і зберігаються
+            append-only.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -247,7 +249,12 @@ export function ReportOutputPanel({
             <BadgeCheck className="mr-2 inline h-3.5 w-3.5" />
             {approval?.state ?? "generated"}
           </span>
-          <button type="button" onClick={() => void load()} className="icon-button" aria-label="Оновити outputs">
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="icon-button"
+            aria-label="Оновити outputs"
+          >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
@@ -302,7 +309,8 @@ export function ReportOutputPanel({
                   <div>
                     <p className="text-[11px] font-semibold text-slate-100">{render.artifact_name}</p>
                     <p className="mt-1 text-[9px] text-slate-500">
-                      {render.renderer_version} · {formatBytes(render.size_bytes)} · {compactHash(render.sha256)}
+                      {render.renderer_version} · {formatBytes(render.size_bytes)} ·{" "}
+                      {compactHash(render.sha256)}
                     </p>
                   </div>
                 </div>

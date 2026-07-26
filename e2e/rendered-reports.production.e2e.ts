@@ -221,9 +221,9 @@ test("rendered reports remain reproducible, approved and organization isolated",
 
     expect((await managerB.get(`/api/v1/reports/${first.id}/outputs`)).status()).toBe(404);
     const foreignRender = firstState.renders[0]!;
-    expect(
-      (await managerB.get(`/api/v1/reports/${first.id}/renders/${foreignRender.id}`)).status(),
-    ).toBe(404);
+    expect((await managerB.get(`/api/v1/reports/${first.id}/renders/${foreignRender.id}`)).status()).toBe(
+      404,
+    );
 
     const viewerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const viewerPage = await viewerContext.newPage();
