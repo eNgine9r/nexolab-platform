@@ -97,7 +97,9 @@ function chooseMembership(
 
 export function useDashboardSecurity(): DashboardSecurityModel {
   const [runtime] = useState<Runtime>(loadRuntime);
-  const [state, setState] = useState<DashboardSecurityState>(runtime.mode === "demo" ? "demo" : "loading");
+  const [state, setState] = useState<DashboardSecurityState>(() =>
+    runtime.mode === "demo" ? "demo" : runtime.error ? "error" : "loading",
+  );
   const [session, setSession] = useState<SecuritySession | null>(null);
   const [membership, setMembership] = useState<SecurityMembership | null>(null);
   const [error, setError] = useState<string | null>(runtime.error);
@@ -105,18 +107,18 @@ export function useDashboardSecurity(): DashboardSecurityModel {
 
   const retry = useCallback(() => {
     if (runtime.mode === "demo") return;
-    setState("loading");
-    setError(null);
-    setGeneration((value) => value + 1);
-  }, [runtime.mode]);
-
-  useEffect(() => {
-    if (runtime.mode === "demo") return;
     if (!runtime.apiBaseUrl) {
       setState("error");
       setError(runtime.error ?? "Authenticated dashboard API is unavailable.");
       return;
     }
+    setState("loading");
+    setError(null);
+    setGeneration((value) => value + 1);
+  }, [runtime]);
+
+  useEffect(() => {
+    if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;
 
     let cancelled = false;
     const credentialProvider = createSupabaseCredentialProvider(runtime.configuredOrganizationId);
