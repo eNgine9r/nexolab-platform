@@ -54,7 +54,7 @@ Only then does the server register the bounded client queue and perform resume r
 
 The temperature panel queries `/api/v1/telemetry/history` independently from the latest snapshot and WebSocket connection. Operators can select 1-hour, 6-hour and 24-hour windows. Each dashboard request is bounded to 1,000 records. History errors have their own retry state and do not downgrade a fresh live connection. Changing the range or organization aborts the previous request before starting the replacement query.
 
-History and latest records are deduplicated by immutable event ID before rendering. Only valid production temperature channels are plotted; sensor and communication errors remain available in current-state cards but are not rendered as numeric curve points.
+History and latest records are deduplicated by immutable event ID before rendering. The pure chart model uses the explicit query window, so identical records produce deterministic coordinates. Only valid production temperature channels are plotted; sensor and communication errors remain available in current-state cards but are not rendered as numeric curve points.
 
 ## Required public frontend variables
 
