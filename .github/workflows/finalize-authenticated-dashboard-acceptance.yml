@@ -1,27 +1,35 @@
 name: Finalize authenticated dashboard acceptance
 
 on:
-  push:
-    branches: [feat/authenticated-live-dashboard]
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/scripts/finalize-authenticated-dashboard-acceptance.py"
+      - ".github/workflows/finalize-authenticated-dashboard-acceptance.yml"
+      - ".github/workflows/authenticated-dashboard-acceptance.yml"
+      - "docs/authenticated-live-telemetry.md"
+      - "e2e/authenticated-dashboard.production.e2e.ts"
+      - "package.json"
+      - "playwright.dashboard.config.ts"
+      - "scripts/run-authenticated-dashboard-acceptance.sh"
 
 permissions:
   contents: write
 
 concurrency:
-  group: finalize-authenticated-dashboard-acceptance
+  group: finalize-authenticated-dashboard-acceptance-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
   finalize:
-    if: "${{ !contains(github.event.head_commit.message, 'test: finalize authenticated dashboard acceptance') }}"
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout branch
+      - name: Checkout head branch
         uses: actions/checkout@v4
         with:
-          ref: feat/authenticated-live-dashboard
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,4 +58,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "test: finalize authenticated dashboard acceptance"
-          git push origin HEAD:feat/authenticated-live-dashboard
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
