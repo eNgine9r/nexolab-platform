@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,35 +16,37 @@ concurrency:
 
 jobs:
   quality:
-    name: Apply final alerts acceptance type narrowing fix
+    name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          node-version-file: .nvmrc
 
-      - name: Return explicit alert page shape
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
 
-          path = Path("e2e/alerts.production.e2e.ts")
-          content = path.read_text()
-          old = "  return { ...body, items: matchingItems, count: matchingItems.length };\n"
-          new = "  return { items: matchingItems, count: matchingItems.length };\n"
-          if content.count(old) != 1:
-              raise SystemExit("expected one alert page spread return")
-          path.write_text(content.replace(old, new))
-          PY
+      - name: Check formatting
+        run: npm run format:check
 
-      - name: Commit verified narrowing fix
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "test(alerts): return explicit scoped alert page"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
