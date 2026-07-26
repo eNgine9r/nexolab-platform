@@ -69,6 +69,10 @@ class AlertRuleCreate(BaseModel):
         return self
 
 
+class AlertRuleReplace(AlertRuleCreate):
+    enabled: bool = True
+
+
 class AlertRuleVersionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -223,6 +227,27 @@ class AlertTransitionRead(BaseModel):
         return normalized
 
 
+class AlertEvidenceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    alert_id: str
+    event_id: str
+    captured_at: datetime
+    value: float | None
+    threshold: float | None
+    deviation: float
+    payload: dict[str, Any]
+    created_at: datetime
+
+    @field_validator("captured_at", "created_at", mode="before")
+    @classmethod
+    def normalize_timestamps(cls, value: datetime) -> datetime:
+        normalized = _persisted_utc(value)
+        assert normalized is not None
+        return normalized
+
+
 class AlertPage(BaseModel):
     items: list[AlertRead]
     count: int
@@ -233,6 +258,14 @@ class AlertPage(BaseModel):
 
 class AlertTransitionPage(BaseModel):
     items: list[AlertTransitionRead]
+    count: int
+    limit: int
+    offset: int
+    next_offset: int | None
+
+
+class AlertEvidencePage(BaseModel):
+    items: list[AlertEvidenceRead]
     count: int
     limit: int
     offset: int
