@@ -11,7 +11,7 @@ import {
   type SecuritySession,
 } from "@/features/security/security-session";
 import {
-  createSupabaseCredentialProvider,
+  createRuntimeCredentialProvider,
   signOut as signOutSupabase,
 } from "@/features/security/supabase-auth";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
@@ -121,7 +121,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
     if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;
 
     let cancelled = false;
-    const credentialProvider = createSupabaseCredentialProvider(runtime.configuredOrganizationId);
+    const credentialProvider = createRuntimeCredentialProvider(runtime.configuredOrganizationId);
     const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentialProvider);
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: runtime.apiBaseUrl,

@@ -17,7 +17,7 @@ vi.mock("@/lib/telemetry/runtime-config", () => ({
 }));
 
 vi.mock("@/features/security/supabase-auth", () => ({
-  createSupabaseCredentialProvider: () => authState.credentials,
+  createRuntimeCredentialProvider: () => authState.credentials,
   signOut: authState.signOut,
 }));
 

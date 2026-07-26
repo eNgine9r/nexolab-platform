@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
-import { createSupabaseCredentialProvider } from "@/features/security/supabase-auth";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
 import {
   buildLiveDashboardKpis,
@@ -73,7 +73,7 @@ function loadRuntimeConfig(): RuntimeConfigResult {
 }
 
 function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string | null): TelemetryAdapter {
-  const credentialProvider = createSupabaseCredentialProvider(organizationId);
+  const credentialProvider = createRuntimeCredentialProvider(organizationId);
   return createTelemetryAdapter(config, {
     rest: {
       fetch: createAuthenticatedFetch(fetch.bind(globalThis), credentialProvider),
