@@ -1,5 +1,5 @@
-import { ReportsWorkspace } from "@/components/reports/reports-workspace";
+import { ReportsScreen } from "@/components/reports/reports-screen";
 
 export default function ReportsPage() {
-  return <ReportsWorkspace />;
+  return <ReportsScreen />;
 }
