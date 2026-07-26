@@ -14,6 +14,7 @@ export type SessionStageType =
 
 export interface LaboratorySession {
   id: string;
+  organization_id: string;
   session_number: string;
   node_id: string;
   state: SessionState;

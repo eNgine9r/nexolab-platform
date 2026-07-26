@@ -102,6 +102,7 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
         normalized_key = self._normalize_idempotency_key(idempotency_key)
         fingerprint = _fingerprint(
             {
+                "organization_id": self._organization_id,
                 "session_number": payload.session_number,
                 "node_id": payload.node_id,
                 "title": payload.title,
@@ -132,6 +133,7 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
                     session_id = str(uuid4())
                     record = TestSession(
                         id=session_id,
+                        organization_id=self._organization_id,
                         session_number=payload.session_number,
                         node_id=payload.node_id,
                         state=SessionState.DRAFT.value,
@@ -191,7 +193,8 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
                     )
                 existing_session = db_session.scalar(
                     select(TestSession).where(
-                        TestSession.session_number == payload.session_number
+                        TestSession.organization_id == self._organization_id,
+                        TestSession.session_number == payload.session_number,
                     )
                 )
                 if existing_session is not None:
@@ -375,7 +378,12 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
                 )
             except IntegrityError as error:
                 db_session.rollback()
-                record = db_session.get(TestSession, session_id)
+                record = db_session.scalar(
+                    select(TestSession).where(
+                        TestSession.id == session_id,
+                        TestSession.organization_id == self._organization_id,
+                    )
+                )
                 existing = self._event_by_key(
                     db_session,
                     session_id,
@@ -586,15 +594,18 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
             offset=offset,
         )
 
-    @staticmethod
     def _create_event_by_key(
+        self,
         db_session: Session,
         idempotency_key: str,
     ) -> SessionEvent | None:
         return db_session.scalar(
-            select(SessionEvent).where(
+            select(SessionEvent)
+            .join(TestSession, TestSession.id == SessionEvent.session_id)
+            .where(
                 SessionEvent.event_type == "session_created",
                 SessionEvent.idempotency_key == idempotency_key,
+                TestSession.organization_id == self._organization_id,
             )
         )
 
@@ -664,7 +675,12 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
                 "idempotency_key_reused",
                 "Idempotency-Key was used with a different create payload",
             )
-        record = db_session.get(TestSession, event.session_id)
+        record = db_session.scalar(
+            select(TestSession).where(
+                TestSession.id == event.session_id,
+                TestSession.organization_id == self._organization_id,
+            )
+        )
         if record is None:
             raise SessionConflictError(
                 "session_create_replay_conflict",

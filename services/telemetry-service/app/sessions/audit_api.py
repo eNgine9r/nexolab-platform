@@ -52,7 +52,7 @@ def create_session_audit_router(
         authorized: AuthorizedRequest = Depends(operate_access),
     ) -> StageAdvanceResponse:
         try:
-            result = repository.advance_stage(
+            result = repository.for_organization(authorized.principal.organization_id).advance_stage(
                 session_id,
                 _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
@@ -74,12 +74,12 @@ def create_session_audit_router(
     )
     def list_stages(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
     ) -> list[SessionStageRead]:
         try:
             return [
                 SessionStageRead.model_validate(item)
-                for item in repository.stages(session_id)
+                for item in repository.for_organization(authorized.principal.organization_id).stages(session_id)
             ]
         except Exception as error:
             raise _http_error(error) from error
@@ -96,7 +96,7 @@ def create_session_audit_router(
         authorized: AuthorizedRequest = Depends(operate_access),
     ) -> SessionNoteResponse:
         try:
-            result = repository.add_note(
+            result = repository.for_organization(authorized.principal.organization_id).add_note(
                 session_id,
                 _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
@@ -115,12 +115,12 @@ def create_session_audit_router(
     )
     def list_notes(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         limit: Annotated[int, Query(ge=1, le=500)] = 100,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> SessionNotesPage:
         try:
-            result = repository.notes(
+            result = repository.for_organization(authorized.principal.organization_id).notes(
                 session_id,
                 limit=limit,
                 offset=offset,
@@ -143,12 +143,12 @@ def create_session_audit_router(
     )
     def list_audit(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(audit_access),
+        authorized: AuthorizedRequest = Depends(audit_access),
         limit: Annotated[int, Query(ge=1, le=500)] = 100,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> SessionAuditPage:
         try:
-            result = repository.audit(
+            result = repository.for_organization(authorized.principal.organization_id).audit(
                 session_id,
                 limit=limit,
                 offset=offset,

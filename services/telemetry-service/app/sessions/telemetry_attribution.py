@@ -170,11 +170,18 @@ class SessionAwareDatabase(Database):
                 )
         return True
 
-    def session_exists(self, session_id: str) -> bool:
+    def session_exists(
+        self,
+        session_id: str,
+        organization_id: str,
+    ) -> bool:
         with self.engine.connect() as connection:
             return (
                 connection.execute(
-                    select(TestSession.id).where(TestSession.id == session_id)
+                    select(TestSession.id).where(
+                        TestSession.id == session_id,
+                        TestSession.organization_id == organization_id,
+                    )
                 ).scalar_one_or_none()
                 is not None
             )

@@ -1,62 +1,4 @@
-from pathlib import Path
-
-root = Path(__file__).resolve().parents[2]
-
-
-def rewrite_repository_router(relative_path: str) -> None:
-    path = root / relative_path
-    content = path.read_text()
-    content = content.replace(
-        "_authorized: AuthorizedRequest = Depends(",
-        "authorized: AuthorizedRequest = Depends(",
-    )
-    if "repository." not in content:
-        raise SystemExit(f"repository calls were not found in {path}")
-    content = content.replace(
-        "repository.",
-        "repository.for_organization(authorized.principal.organization_id).",
-    )
-    path.write_text(content)
-
-
-for router_path in (
-    "services/telemetry-service/app/sessions/api.py",
-    "services/telemetry-service/app/sessions/configuration_api.py",
-    "services/telemetry-service/app/sessions/audit_api.py",
-):
-    rewrite_repository_router(router_path)
-
-telemetry_api = root / "services/telemetry-service/app/sessions/telemetry_api.py"
-content = telemetry_api.read_text()
-old_require = '''    def require_session(session_id: str) -> None:
-        if not database.session_exists(session_id):
-'''
-new_require = '''    def require_session(
-        session_id: str,
-        organization_id: str,
-    ) -> None:
-        if not database.session_exists(session_id, organization_id):
-'''
-if old_require not in content:
-    raise SystemExit("session telemetry ownership helper marker not found")
-content = content.replace(old_require, new_require, 1)
-content = content.replace(
-    "_authorized: AuthorizedRequest = Depends(read_access)",
-    "authorized: AuthorizedRequest = Depends(read_access)",
-)
-expected_calls = content.count("require_session(session_id)")
-if expected_calls != 2:
-    raise SystemExit(
-        f"expected two unscoped telemetry ownership checks, found {expected_calls}"
-    )
-content = content.replace(
-    "require_session(session_id)",
-    "require_session(session_id, authorized.principal.organization_id)",
-)
-telemetry_api.write_text(content)
-
-api_test = root / "services/telemetry-service/tests/test_session_api_organization_scope.py"
-api_test.write_text('''from __future__ import annotations
+from __future__ import annotations
 
 import base64
 import hashlib
@@ -247,4 +189,3 @@ def test_session_api_is_scoped_and_actor_is_verified(tmp_path: Path) -> None:
         assert foreign_get.json()["detail"]["code"] == "session_not_found"
         assert foreign_configuration.status_code == 404
         assert foreign_telemetry.status_code == 404
-''')

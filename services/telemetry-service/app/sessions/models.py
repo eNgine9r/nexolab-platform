@@ -92,7 +92,6 @@ class TestSession(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
-        default=DEFAULT_ORGANIZATION_ID,
     )
     session_number: Mapped[str] = mapped_column(String(64), nullable=False)
     node_id: Mapped[str] = mapped_column(String(128), nullable=False)

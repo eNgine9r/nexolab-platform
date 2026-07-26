@@ -61,7 +61,7 @@ def create_session_configuration_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> BindingMutationResponse:
         try:
-            result = repository.add_binding(
+            result = repository.for_organization(authorized.principal.organization_id).add_binding(
                 session_id,
                 _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
@@ -87,7 +87,7 @@ def create_session_configuration_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> ProductionBindingsResponse:
         try:
-            result = repository.add_production_bindings(
+            result = repository.for_organization(authorized.principal.organization_id).add_production_bindings(
                 session_id,
                 _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
@@ -108,13 +108,13 @@ def create_session_configuration_router(
     )
     def list_bindings(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         include_released: Annotated[bool, Query()] = False,
     ) -> list[SessionBindingRead]:
         try:
             return [
                 SessionBindingRead.model_validate(item)
-                for item in repository.bindings(
+                for item in repository.for_organization(authorized.principal.organization_id).bindings(
                     session_id,
                     include_released=include_released,
                 )
@@ -134,7 +134,7 @@ def create_session_configuration_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> BindingRemovalResponse:
         try:
-            result = repository.remove_binding(
+            result = repository.for_organization(authorized.principal.organization_id).remove_binding(
                 session_id,
                 binding_id,
                 _trusted_command(payload, authorized),
@@ -161,7 +161,7 @@ def create_session_configuration_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> LimitSetMutationResponse:
         try:
-            result = repository.add_limit_set(
+            result = repository.for_organization(authorized.principal.organization_id).add_limit_set(
                 session_id,
                 _trusted_command(payload, authorized),
                 idempotency_key=idempotency_key,
@@ -182,13 +182,13 @@ def create_session_configuration_router(
     )
     def list_limits(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
         version: Annotated[int | None, Query(ge=1)] = None,
     ) -> list[SessionLimitRead]:
         try:
             return [
                 SessionLimitRead.model_validate(item)
-                for item in repository.limits(session_id, version=version)
+                for item in repository.for_organization(authorized.principal.organization_id).limits(session_id, version=version)
             ]
         except Exception as error:
             raise _http_error(error) from error
@@ -199,10 +199,10 @@ def create_session_configuration_router(
     )
     def get_configuration(
         session_id: str,
-        _authorized: AuthorizedRequest = Depends(read_access),
+        authorized: AuthorizedRequest = Depends(read_access),
     ) -> SessionConfigurationRead:
         try:
-            result = repository.configuration(session_id)
+            result = repository.for_organization(authorized.principal.organization_id).configuration(session_id)
             return SessionConfigurationRead(
                 session=SessionRead.model_validate(result.session),
                 bindings=result.bindings,
