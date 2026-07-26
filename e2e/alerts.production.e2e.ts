@@ -149,7 +149,7 @@ async function expectAlertCount(
     )
     .toBe(expected);
   if (!body) throw new Error(`No response body returned for ${path}`);
-  return { ...body, items: matchingItems, count: matchingItems.length };
+  return { items: matchingItems, count: matchingItems.length };
 }
 
 async function expectAlertState(
