@@ -87,11 +87,7 @@ function clearPersistedOrganizationId(): void {
 }
 
 function requestedOrganizationId(configuredOrganizationId: string | null): string | null {
-  return (
-    storedOrganizationId() ??
-    getSecurityCredentials().organizationId ??
-    configuredOrganizationId
-  );
+  return storedOrganizationId() ?? getSecurityCredentials().organizationId ?? configuredOrganizationId;
 }
 
 function chooseMembership(

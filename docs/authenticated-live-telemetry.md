@@ -72,3 +72,9 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>
 ```
 
 Service-role keys, JWT signing secrets and private keys must never use the `NEXT_PUBLIC_` prefix.
+
+## Controlled browser acceptance
+
+The `Authenticated Dashboard Acceptance` workflow builds the production Next.js application and starts an isolated FastAPI, PostgreSQL, MinIO and Mosquitto stack. It seeds a verified viewer membership plus real telemetry records, then proves anonymous blocking, authenticated latest/history REST requests, API-derived inventory, first-message WebSocket authentication, a live MQTT update, one-hour range switching, cross-organization denial and logout credential cleanup.
+
+Evidence contains only sanitized origins, request-header presence flags, WebSocket message key names, PostgreSQL rows, screenshots and traces. JWT values are never written to URLs or evidence files.

@@ -8,8 +8,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from "@pla
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const otherOrganizationId = requiredEnvironment("NEXOLAB_DASHBOARD_OTHER_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
-const evidenceDirectory =
-  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
 const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
@@ -172,9 +171,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       ).toBeVisible();
       await expect(page.getByText(/4[,.]5 °C/).first()).toBeVisible();
 
-      await expect
-        .poll(() => sockets.sentTypes.includes("authenticate"), { timeout: 20_000 })
-        .toBe(true);
+      await expect.poll(() => sockets.sentTypes.includes("authenticate"), { timeout: 20_000 }).toBe(true);
       await expect
         .poll(() => sockets.receivedTypes.includes("authenticated"), { timeout: 20_000 })
         .toBe(true);
@@ -228,6 +225,23 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
           null,
           2,
         )}\n`,
+      );
+
+      await page.getByRole("button", { name: "Вийти з NEXOLAB" }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      const clearedCredentials = await page.evaluate(() => ({
+        accessToken: window.sessionStorage.getItem("nexolab.acceptance.access-token"),
+        organizationId: window.sessionStorage.getItem("nexolab.acceptance.organization-id"),
+        selectedOrganizationId: window.localStorage.getItem("nexolab.selectedOrganizationId"),
+      }));
+      expect(clearedCredentials).toEqual({
+        accessToken: null,
+        organizationId: null,
+        selectedOrganizationId: null,
+      });
+      writeFileSync(
+        path.join(evidenceDirectory, "logout-state.json"),
+        `${JSON.stringify(clearedCredentials, null, 2)}\n`,
       );
     } finally {
       await context.close();
