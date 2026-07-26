@@ -1,0 +1,62 @@
+name: Test Sessions Browser Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/test-sessions-browser-acceptance.yml"
+      - "docs/organization-scoped-test-sessions.md"
+      - "e2e/test-sessions.production.e2e.ts"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.sessions.config.ts"
+      - "scripts/run-test-sessions-browser-acceptance.sh"
+      - "services/telemetry-service/app/security/**"
+      - "services/telemetry-service/app/sessions/**"
+      - "services/telemetry-service/migrations/**"
+      - "src/app/sessions/**"
+      - "src/components/sessions/**"
+      - "src/features/security/**"
+      - "src/lib/sessions/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-sessions-browser-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Organization, lifecycle and telemetry attribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-sessions-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_SESSIONS_EVIDENCE_DIR: test-sessions-acceptance-evidence
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run controlled test sessions acceptance
+        run: bash scripts/run-test-sessions-browser-acceptance.sh
+
+      - name: Upload test sessions evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-sessions-browser-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-sessions-acceptance-evidence
+          if-no-files-found: warn
+          retention-days: 14
