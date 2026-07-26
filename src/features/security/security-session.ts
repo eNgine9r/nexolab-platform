@@ -59,8 +59,7 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  | SecurityCredentialSnapshot
-  | Promise<SecurityCredentialSnapshot>;
+  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
@@ -272,15 +271,23 @@ async function readJson(response: Response): Promise<unknown> {
 }
 
 function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/+$/, "");
+  const parsed = new URL(value);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("NEXOLAB API URL must use HTTP or HTTPS.");
+  }
+  parsed.hash = "";
+  parsed.search = "";
+  return parsed.toString().replace(/\/$/, "");
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value : null;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function readOptionalString(value: unknown): string | null {
