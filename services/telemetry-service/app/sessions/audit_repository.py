@@ -99,7 +99,7 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
         *,
         idempotency_key: str,
     ) -> TransitionResult:
-        normalized_key = self._normalize_idempotency_key(idempotency_key)
+        normalized_key = self._scoped_create_idempotency_key(idempotency_key)
         fingerprint = _fingerprint(
             {
                 "organization_id": self._organization_id,
@@ -594,6 +594,11 @@ class AuditedSessionRepository(ConfiguredSessionRepository):
             limit=limit,
             offset=offset,
         )
+
+    def _scoped_create_idempotency_key(self, value: str) -> str:
+        normalized = self._normalize_idempotency_key(value)
+        namespaced = f"{self._organization_id}\0{normalized}".encode("utf-8")
+        return hashlib.sha256(namespaced).hexdigest()
 
     def _create_event_by_key(
         self,
