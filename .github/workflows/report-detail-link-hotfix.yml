@@ -1,0 +1,79 @@
+name: Report Detail Link Hotfix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: report-detail-link-hotfix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Add report detail navigation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/reports/reports-workspace.tsx")
+          content = path.read_text()
+          content = content.replace(
+              '"use client";\n\nimport { useCallback, useEffect, useMemo, useState } from "react";',
+              '"use client";\n\nimport Link from "next/link";\nimport { useCallback, useEffect, useMemo, useState } from "react";',
+              1,
+          )
+          content = content.replace(
+              '  Archive,\n  CheckCircle2,',
+              '  Archive,\n  ArrowUpRight,\n  CheckCircle2,',
+              1,
+          )
+          source = '''        <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
+          <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
+          Append-only
+        </div>'''
+          target = '''        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/reports/${report.id}`}
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-3 py-2 text-[10px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.12]"
+            data-testid="open-rendered-report"
+          >
+            Відкрити протокол
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+          <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
+            <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
+            Append-only
+          </div>
+        </div>'''
+          if source not in content:
+              raise SystemExit("expected ReportDetail status block was not found")
+          content = content.replace(source, target, 1)
+          path.write_text(content)
+          PY
+
+      - name: Format changed file
+        env:
+          HUSKY: 0
+        run: |
+          npm install --no-audit
+          npx prettier --write src/components/reports/reports-workspace.tsx
+
+      - name: Commit navigation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/reports/reports-workspace.tsx
+          git commit -m "feat(reports): link report list to protocol detail"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
