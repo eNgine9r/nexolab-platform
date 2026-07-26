@@ -18,6 +18,7 @@ class Role(StrEnum):
 class Permission(StrEnum):
     READ_DASHBOARD = "dashboard.read"
     READ_TELEMETRY = "telemetry.read"
+    READ_ALERTS = "alerts.read"
     READ_AUDIT = "audit.read"
     READ_REPORTS = "reports.read"
     MANAGE_MEMBERSHIPS = "memberships.manage"
@@ -27,6 +28,7 @@ class Permission(StrEnum):
     RESTORE_LAYOUT = "layout.restore"
     MANAGE_SESSIONS = "sessions.manage"
     OPERATE_SESSIONS = "sessions.operate"
+    MANAGE_ALERT_RULES = "alerts.rules.manage"
     ACKNOWLEDGE_ALERTS = "alerts.acknowledge"
     APPROVE_REPORTS = "reports.approve"
 
@@ -37,6 +39,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {
             Permission.READ_DASHBOARD,
             Permission.READ_TELEMETRY,
+            Permission.READ_ALERTS,
             Permission.READ_AUDIT,
             Permission.READ_REPORTS,
             Permission.MANAGE_EQUIPMENT,
@@ -45,6 +48,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.RESTORE_LAYOUT,
             Permission.MANAGE_SESSIONS,
             Permission.OPERATE_SESSIONS,
+            Permission.MANAGE_ALERT_RULES,
             Permission.ACKNOWLEDGE_ALERTS,
             Permission.APPROVE_REPORTS,
         }
@@ -53,6 +57,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {
             Permission.READ_DASHBOARD,
             Permission.READ_TELEMETRY,
+            Permission.READ_ALERTS,
             Permission.READ_REPORTS,
             Permission.MANAGE_EQUIPMENT,
             Permission.EDIT_LAYOUT_DRAFT,
@@ -67,6 +72,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {
             Permission.READ_DASHBOARD,
             Permission.READ_TELEMETRY,
+            Permission.READ_ALERTS,
             Permission.READ_REPORTS,
             Permission.EDIT_LAYOUT_DRAFT,
             Permission.OPERATE_SESSIONS,
@@ -77,6 +83,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {
             Permission.READ_DASHBOARD,
             Permission.READ_TELEMETRY,
+            Permission.READ_ALERTS,
             Permission.READ_REPORTS,
         }
     ),
@@ -84,6 +91,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         {
             Permission.READ_DASHBOARD,
             Permission.READ_TELEMETRY,
+            Permission.READ_ALERTS,
             Permission.READ_AUDIT,
             Permission.READ_REPORTS,
         }

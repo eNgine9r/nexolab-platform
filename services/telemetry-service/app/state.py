@@ -23,6 +23,7 @@ class RuntimeSnapshot:
     dead_letter_by_reason: dict[str, int] = field(default_factory=dict)
     persistence_failure_total: int = 0
     database_retry_total: int = 0
+    post_persist_retry_total: int = 0
     database_recovery_total: int = 0
     retention_runs_total: int = 0
     retention_failure_total: int = 0

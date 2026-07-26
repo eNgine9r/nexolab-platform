@@ -4,6 +4,7 @@ export type SecurityRole =
 export type SecurityPermission =
   | "dashboard.read"
   | "telemetry.read"
+  | "alerts.read"
   | "audit.read"
   | "reports.read"
   | "reports.approve"
@@ -14,6 +15,7 @@ export type SecurityPermission =
   | "layout.restore"
   | "sessions.manage"
   | "sessions.operate"
+  | "alerts.rules.manage"
   | "alerts.acknowledge";
 
 export type SecurityIdentity = {
@@ -176,7 +178,9 @@ function parseSecuritySession(payload: unknown): SecuritySession | null {
   const memberships: SecurityMembership[] = [];
   for (const item of root.memberships) {
     const record = asRecord(item);
-    if (!record || !Array.isArray(record.roles) || !Array.isArray(record.permissions)) return null;
+    if (!record || !Array.isArray(record.roles) || !Array.isArray(record.permissions)) {
+      return null;
+    }
     const organizationId = readString(record.organization_id);
     const organizationSlug = readString(record.organization_slug);
     const organizationName = readString(record.organization_name);
@@ -228,6 +232,7 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
   return (
     value === "dashboard.read" ||
     value === "telemetry.read" ||
+    value === "alerts.read" ||
     value === "audit.read" ||
     value === "reports.read" ||
     value === "reports.approve" ||
@@ -238,6 +243,7 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
     value === "layout.restore" ||
     value === "sessions.manage" ||
     value === "sessions.operate" ||
+    value === "alerts.rules.manage" ||
     value === "alerts.acknowledge"
   );
 }

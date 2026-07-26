@@ -38,6 +38,7 @@ async function authenticatedContext(
   const context = await browser.newContext();
   await context.addInitScript(
     ({ accessToken, organization }) => {
+      if (window.location.protocol === "about:") return;
       window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
       window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },

@@ -36,6 +36,10 @@ class DeadLetterWork:
 PersistenceWork = TelemetryWork | DeadLetterWork
 
 
+class PostPersistProcessingError(RuntimeError):
+    """Committed telemetry requires a retryable downstream processing replay."""
+
+
 class TelemetryIngestor:
     def __init__(
         self,
@@ -44,6 +48,7 @@ class TelemetryIngestor:
         queue_maxsize: int,
         on_persisted: Callable[[dict[str, Any]], None] | None = None,
         *,
+        after_persist: Callable[[dict[str, Any]], None] | None = None,
         payload_max_bytes: int = 262_144,
         dead_letter_payload_max_bytes: int = 65_536,
         database_retry_initial_seconds: float = 0.25,
@@ -52,6 +57,7 @@ class TelemetryIngestor:
         self._database = database
         self._state = state
         self._on_persisted = on_persisted
+        self._after_persist = after_persist
         self._payload_max_bytes = payload_max_bytes
         self._dead_letter_payload_max_bytes = dead_letter_payload_max_bytes
         self._database_retry_initial_seconds = database_retry_initial_seconds
@@ -176,12 +182,13 @@ class TelemetryIngestor:
     def _persist(self, work: PersistenceWork) -> None:
         if isinstance(work, TelemetryWork):
             inserted = self._database.persist(work.event, work.raw)
+            normalized = work.event.normalized_payload()
             if inserted:
                 self._state.mark_persisted(work.event.captured_at)
                 if self._on_persisted is not None:
                     try:
-                        self._on_persisted(work.event.normalized_payload())
-                    except Exception:  # noqa: BLE001 - callback boundary
+                        self._on_persisted(normalized)
+                    except Exception:  # noqa: BLE001 - best-effort live boundary
                         self._state.increment("websocket_publish_error_total")
                         LOGGER.exception(
                             "Failed to publish persisted event %s to live clients",
@@ -191,6 +198,14 @@ class TelemetryIngestor:
                 self._state.mark_database_success()
                 self._state.increment("duplicate_total")
                 self._state.set_error(None)
+
+            if self._after_persist is not None:
+                try:
+                    self._after_persist(normalized)
+                except Exception as exc:  # noqa: BLE001 - retryable pipeline boundary
+                    raise PostPersistProcessingError(
+                        f"post-persist processing failed for {work.event.event_id}: {exc}"
+                    ) from exc
             return
 
         self._database.persist_dead_letter(
@@ -221,6 +236,20 @@ class TelemetryIngestor:
 
             try:
                 self._persist(pending)
+            except PostPersistProcessingError as exc:
+                self._state.increment("post_persist_retry_total")
+                self._state.set_error(str(exc))
+                LOGGER.warning(
+                    "Post-persist processing deferred; retrying in %.2fs: %s",
+                    retry_delay,
+                    exc,
+                )
+                self._abort.wait(retry_delay)
+                retry_delay = min(
+                    retry_delay * 2,
+                    self._database_retry_max_seconds,
+                )
+                continue
             except Exception as exc:  # noqa: BLE001 - worker boundary
                 self._state.increment("persistence_failure_total")
                 self._state.increment("database_retry_total")

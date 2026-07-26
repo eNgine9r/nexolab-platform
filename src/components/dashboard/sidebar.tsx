@@ -19,11 +19,19 @@ import {
   Snowflake,
   X,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { BrandLogo } from "./brand-logo";
 
-const navItems = [
+type NavItem = {
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+  badge?: number;
+};
+
+const navItems: NavItem[] = [
   { label: "Огляд", icon: Home, href: "/" },
   { label: "Вузли", icon: Network },
   { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions" },
@@ -31,7 +39,7 @@ const navItems = [
   { label: "Схеми обладнання", icon: Boxes },
   { label: "Поштомати", icon: LockKeyhole },
   { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration" },
-  { label: "Тривоги", icon: AlertTriangle, badge: "12" },
+  { label: "Тривоги", icon: AlertTriangle, href: "/alerts" },
   { label: "Камери", icon: Camera },
   { label: "Енергомоніторинг", icon: Zap },
   { label: "Звіти", icon: FileText },

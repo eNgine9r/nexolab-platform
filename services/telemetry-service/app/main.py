@@ -9,6 +9,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from app.alerts.api import create_alert_router
+from app.alerts.processor import AlertProcessor
+from app.alerts.repository import AlertRepository
 from app.api import create_api_router
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
@@ -34,7 +37,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.10.0"
+SERVICE_VERSION = "0.11.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -51,6 +54,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
     )
     session_repository = AuditedSessionRepository(database)
+    alert_repository = AlertRepository(database)
+    alert_processor = AlertProcessor(
+        database,
+        default_organization_id=resolved.auth_default_organization_id,
+    )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     security_repository = SecurityRepository(database)
     security_dependencies = _create_security_dependencies(
@@ -68,6 +76,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         state=state,
         queue_maxsize=resolved.ingestion_queue_maxsize,
         on_persisted=live_hub.publish_from_thread,
+        after_persist=alert_processor.process_payload,
         payload_max_bytes=resolved.ingestion_payload_max_bytes,
         dead_letter_payload_max_bytes=resolved.dead_letter_payload_max_bytes,
         database_retry_initial_seconds=resolved.database_retry_initial_seconds,
@@ -139,6 +148,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved
     app.state.database = database
     app.state.session_repository = session_repository
+    app.state.alert_repository = alert_repository
+    app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
     app.state.security_repository = security_repository
     app.state.security_dependencies = security_dependencies
@@ -148,6 +159,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
     app.include_router(create_security_router(security_repository, security_dependencies))
+    app.include_router(create_alert_router(alert_repository, security_dependencies))
     app.include_router(
         create_api_router(
             database,
