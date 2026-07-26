@@ -33,7 +33,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Огляд", icon: Home, href: "/" },
-  { label: "Вузли", icon: Network },
+  { label: "Вузли", icon: Network, href: "/nodes" },
   { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions" },
   { label: "Live дані", icon: ChartNoAxesCombined },
   { label: "Схеми обладнання", icon: Boxes },
