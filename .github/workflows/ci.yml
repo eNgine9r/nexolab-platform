@@ -8,63 +8,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint-autofix:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout pull request branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - name: Install dependencies
-        env:
-          HUSKY: 0
-        run: npm install --no-audit
-
-      - name: Remove unused node workspace import
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("src/components/nodes/nodes-workspace.tsx")
-          content = path.read_text()
-          source = "  WifiOff,\n"
-          if source not in content:
-              raise SystemExit("expected unused WifiOff import was not found")
-          path.write_text(content.replace(source, "", 1))
-          PY
-
-      - name: Apply ESLint and formatting fixes
-        run: |
-          npm run lint -- --fix || true
-          npm run format
-
-      - name: Commit lint fixes
-        run: |
-          if git diff --quiet; then
-            echo "No lint changes required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add --all
-          git commit -m "style(nodes): remove unused workspace import"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
-
   quality:
     name: Quality and build
     runs-on: ubuntu-latest
