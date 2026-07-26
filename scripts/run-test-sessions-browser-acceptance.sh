@@ -104,9 +104,9 @@ JOIN test_sessions s ON s.id = b.session_id
 GROUP BY s.organization_id
 ORDER BY s.organization_id;
 
-SELECT event_id, session_id, stage_id, binding_id, captured_at
+SELECT telemetry_event_id, session_id, stage_id, binding_id, captured_at
 FROM telemetry_session_contexts
-ORDER BY captured_at, event_id;
+ORDER BY captured_at, telemetry_event_id;
 SQL
 
   python3 - <<'PY' >"$EVIDENCE_DIR/test-sessions-runtime.json" || true
