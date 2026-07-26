@@ -142,7 +142,9 @@ test("enforces organization-scoped authenticated production session workflow", a
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
 
-  const anonymous = await request.get(`${apiBaseUrl}/api/v1/sessions`);
+  const anonymous = await request.get(`${apiBaseUrl}/api/v1/sessions`, {
+    headers: { "X-Organization-ID": organizationA },
+  });
   expect(anonymous.status()).toBe(401);
 
   const createKey = "sessions-gate-shared-create-key";
@@ -335,12 +337,9 @@ test("enforces organization-scoped authenticated production session workflow", a
   expect(missingRead.status()).toBe(404);
   expect((await foreignRead.json()).detail.code).toBe("session_not_found");
 
-  const auditResponse = await request.get(
-    `${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`,
-    {
-      headers: headers(engineerAToken, organizationA),
-    },
-  );
+  const auditResponse = await request.get(`${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`, {
+    headers: headers(engineerAToken, organizationA),
+  });
   expect(auditResponse.status()).toBe(200);
   const audit = await auditResponse.json();
   expect(audit.items.length).toBeGreaterThanOrEqual(8);
