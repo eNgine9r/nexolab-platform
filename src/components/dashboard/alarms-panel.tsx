@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  BellRing,
-  CheckCircle2,
-  Info,
-  LoaderCircle,
-  RefreshCw,
-  Timer,
-} from "lucide-react";
+import { AlertTriangle, BellRing, CheckCircle2, Info, LoaderCircle, RefreshCw, Timer } from "lucide-react";
 
 import { alarms } from "@/data/dashboard";
 import { createAlertApiClient } from "@/lib/alerts/api-client";
@@ -41,9 +33,7 @@ const severityStyles = {
   },
 } as const;
 
-function visualSeverity(
-  severity: AlertSeverity,
-): keyof typeof severityStyles {
+function visualSeverity(severity: AlertSeverity): keyof typeof severityStyles {
   if (severity === "critical" || severity === "alarm") return "critical";
   if (severity === "warning" || severity === "system") return "warning";
   return "info";
@@ -95,9 +85,7 @@ export function AlarmsPanel({
         ]);
         const combined = [...active.items, ...acknowledged.items]
           .sort(
-            (left, right) =>
-              new Date(right.triggered_at).getTime() -
-              new Date(left.triggered_at).getTime(),
+            (left, right) => new Date(right.triggered_at).getTime() - new Date(left.triggered_at).getTime(),
           )
           .slice(0, 8);
         setLiveAlerts(combined);
@@ -105,9 +93,7 @@ export function AlarmsPanel({
       } catch (nextError) {
         if (!signal.aborted) {
           setError(
-            nextError instanceof Error
-              ? nextError
-              : new Error("Не вдалося завантажити production alerts."),
+            nextError instanceof Error ? nextError : new Error("Не вдалося завантажити production alerts."),
           );
         }
       } finally {
@@ -121,10 +107,7 @@ export function AlarmsPanel({
     if (mode !== "live") return;
     const controller = new AbortController();
     void loadAlerts(controller.signal);
-    const refresh = window.setInterval(
-      () => void loadAlerts(controller.signal),
-      5_000,
-    );
+    const refresh = window.setInterval(() => void loadAlerts(controller.signal), 5_000);
     return () => {
       controller.abort();
       window.clearInterval(refresh);
@@ -137,9 +120,7 @@ export function AlarmsPanel({
         <div className="grid min-h-48 place-items-center p-5 text-center">
           <div>
             <LoaderCircle className="mx-auto h-5 w-5 animate-spin text-cyan-300" />
-            <p className="mt-3 text-[10px] text-slate-500">
-              Завантаження production alerts…
-            </p>
+            <p className="mt-3 text-[10px] text-slate-500">Завантаження production alerts…</p>
           </div>
         </div>
       );
@@ -151,12 +132,8 @@ export function AlarmsPanel({
           <span className="grid h-10 w-10 place-items-center rounded-xl border border-amber-300/15 bg-amber-400/[0.05] text-amber-300">
             <AlertTriangle className="h-4 w-4" />
           </span>
-          <p className="mt-3 text-[11px] font-medium text-slate-200">
-            Alerts API недоступний
-          </p>
-          <p className="mt-1 max-w-60 text-[9px] leading-5 text-slate-500">
-            {error.message}
-          </p>
+          <p className="mt-3 text-[11px] font-medium text-slate-200">Alerts API недоступний</p>
+          <p className="mt-1 max-w-60 text-[9px] leading-5 text-slate-500">{error.message}</p>
           <button
             className="secondary-button mt-3"
             onClick={() => {
@@ -178,9 +155,7 @@ export function AlarmsPanel({
           <span className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-300/10 bg-emerald-400/[0.04] text-emerald-300">
             <CheckCircle2 className="h-4 w-4" />
           </span>
-          <p className="mt-3 text-[11px] font-medium text-slate-200">
-            Активні тривоги відсутні
-          </p>
+          <p className="mt-3 text-[11px] font-medium text-slate-200">Активні тривоги відсутні</p>
           <p className="mt-1 max-w-52 text-[9px] leading-5 text-slate-500">
             Перевірено organization-scoped alert instances у central backend.
           </p>
@@ -206,12 +181,8 @@ export function AlarmsPanel({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className={`text-[10px] font-semibold ${style.icon}`}>
-                    {alertTitle(alert)}
-                  </h3>
-                  <span
-                    className={`shrink-0 text-[9px] font-semibold ${style.value}`}
-                  >
+                  <h3 className={`text-[10px] font-semibold ${style.icon}`}>{alertTitle(alert)}</h3>
+                  <span className={`shrink-0 text-[9px] font-semibold ${style.value}`}>
                     {alertValue(alert)}
                   </span>
                 </div>
@@ -247,18 +218,10 @@ export function AlarmsPanel({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
-                <h3 className={`text-[10px] font-semibold ${style.icon}`}>
-                  {alarm.title}
-                </h3>
-                <span
-                  className={`shrink-0 text-[9px] font-semibold ${style.value}`}
-                >
-                  {alarm.value}
-                </span>
+                <h3 className={`text-[10px] font-semibold ${style.icon}`}>{alarm.title}</h3>
+                <span className={`shrink-0 text-[9px] font-semibold ${style.value}`}>{alarm.value}</span>
               </div>
-              <p className="mt-1 truncate text-[9px] text-slate-500">
-                {alarm.source}
-              </p>
+              <p className="mt-1 truncate text-[9px] text-slate-500">{alarm.source}</p>
               <p className="mt-1.5 flex items-center gap-1 text-[8px] text-slate-600">
                 <Timer className="h-2.5 w-2.5" />
                 {alarm.time}
