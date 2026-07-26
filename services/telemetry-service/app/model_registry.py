@@ -11,6 +11,8 @@ def register_models() -> None:
     from app.alerts import models as _alert_models
     from app.alerts.immutability import register_alert_immutability
     from app.refrigeration import models as _refrigeration_models
+    from app.reports import models as _report_models
+    from app.reports.immutability import register_report_immutability
     from app.security import models as _security_models
     from app.sessions import models as _session_models
     from app.sessions import telemetry_attribution as _telemetry_attribution
@@ -18,6 +20,7 @@ def register_models() -> None:
 
     register_audit_immutability()
     register_alert_immutability()
+    register_report_immutability()
     assert len(_session_models.SESSION_STATES) == 7
     assert _telemetry_attribution.TelemetrySessionContext.__tablename__ == (
         "telemetry_session_contexts"
@@ -27,4 +30,6 @@ def register_models() -> None:
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
+    assert _report_models.TestReportVersion.__tablename__ == "test_report_versions"
+    assert _report_models.TestReportArtifact.__tablename__ == "test_report_artifacts"
     assert _security_models.SecurityAuditEvent.__tablename__ == "security_audit_events"

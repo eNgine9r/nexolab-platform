@@ -15,6 +15,7 @@
     "test:e2e:dashboard": "playwright test --config=playwright.dashboard.config.ts",
     "test:e2e:sessions": "playwright test --config=playwright.sessions.config.ts",
     "test:e2e:alerts": "playwright test --config=playwright.alerts.config.ts",
+    "test:e2e:reports": "playwright test --config=playwright.reports.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

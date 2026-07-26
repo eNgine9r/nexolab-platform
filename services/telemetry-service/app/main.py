@@ -23,6 +23,8 @@ from app.mqtt_consumer import MqttConsumer
 from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
+from app.reports.api import create_report_router
+from app.reports.repository import ReportRepository
 from app.retention import RetentionWorker
 from app.security.api import create_security_router
 from app.security.authentication import JwtAuthenticator
@@ -37,7 +39,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.11.0"
+SERVICE_VERSION = "0.12.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -61,6 +63,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     security_repository = SecurityRepository(database)
+    report_repository = ReportRepository(
+        database,
+        security_repository=security_repository,
+    )
     security_dependencies = _create_security_dependencies(
         resolved,
         security_repository,
@@ -141,7 +147,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=resolved.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["ETag"],
+            expose_headers=["ETag", "Idempotent-Replay", "X-Content-SHA256"],
             max_age=600,
         )
 
@@ -151,6 +157,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alert_repository = alert_repository
     app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
+    app.state.report_repository = report_repository
     app.state.security_repository = security_repository
     app.state.security_dependencies = security_dependencies
     app.state.object_storage = object_storage
@@ -160,6 +167,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.retention_worker = retention_worker
     app.include_router(create_security_router(security_repository, security_dependencies))
     app.include_router(create_alert_router(alert_repository, security_dependencies))
+    app.include_router(create_report_router(report_repository, security_dependencies))
     app.include_router(
         create_api_router(
             database,

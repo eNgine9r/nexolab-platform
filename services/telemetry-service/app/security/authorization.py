@@ -21,6 +21,7 @@ class Permission(StrEnum):
     READ_ALERTS = "alerts.read"
     READ_AUDIT = "audit.read"
     READ_REPORTS = "reports.read"
+    GENERATE_REPORTS = "reports.generate"
     MANAGE_MEMBERSHIPS = "memberships.manage"
     MANAGE_EQUIPMENT = "equipment.manage"
     EDIT_LAYOUT_DRAFT = "layout.draft.edit"
@@ -42,6 +43,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_ALERTS,
             Permission.READ_AUDIT,
             Permission.READ_REPORTS,
+            Permission.GENERATE_REPORTS,
             Permission.MANAGE_EQUIPMENT,
             Permission.EDIT_LAYOUT_DRAFT,
             Permission.PUBLISH_LAYOUT,
@@ -59,6 +61,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,
+            Permission.GENERATE_REPORTS,
             Permission.MANAGE_EQUIPMENT,
             Permission.EDIT_LAYOUT_DRAFT,
             Permission.PUBLISH_LAYOUT,
