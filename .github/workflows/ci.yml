@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,10 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,59 +33,6 @@ jobs:
         env:
           HUSKY: 0
         run: npm install --no-audit
-
-      - name: Apply TypeScript contract fixes
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          e2e = Path("e2e/alerts.production.e2e.ts")
-          content = e2e.read_text()
-          old = "  eventId = randomUUID(),"
-          new = "  eventId: string = randomUUID(),"
-          if content.count(old) != 1:
-              raise SystemExit("expected one eventId default")
-          e2e.write_text(content.replace(old, new))
-
-          sidebar = Path("src/components/dashboard/sidebar.tsx")
-          content = sidebar.read_text()
-          old_import = '  Zap,\n} from "lucide-react";'
-          new_import = '  Zap,\n  type LucideIcon,\n} from "lucide-react";'
-          if content.count(old_import) != 1:
-              raise SystemExit("expected one sidebar icon import")
-          content = content.replace(old_import, new_import)
-          old_nav = "const navItems = ["
-          new_nav = """type NavItem = {
-            label: string;
-            icon: LucideIcon;
-            href?: string;
-            badge?: number;
-          };
-
-          const navItems: NavItem[] = ["""
-          if content.count(old_nav) != 1:
-              raise SystemExit("expected one navItems declaration")
-          sidebar.write_text(content.replace(old_nav, new_nav))
-
-          client = Path("src/lib/alerts/api-client.ts")
-          content = client.read_text()
-          old_provider = "createRuntimeCredentialProvider()"
-          if content.count(old_provider) != 1:
-              raise SystemExit("expected one credential provider call")
-          client.write_text(content.replace(old_provider, "createRuntimeCredentialProvider(null)"))
-          PY
-
-      - name: Apply formatter
-        run: npm run format
-
-      - name: Commit TypeScript fixes
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "fix(alerts): align frontend TypeScript contracts"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Check formatting
         run: npm run format:check
@@ -100,3 +45,8 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
