@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,10 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,25 +33,6 @@ jobs:
         env:
           HUSKY: 0
         run: npm install --no-audit
-
-      - name: Apply formatter
-        id: formatter
-        run: |
-          npm run format
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit formatted files
-        if: steps.formatter.outputs.changed == 'true' && github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "style(alerts): apply prettier"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Check formatting
         run: npm run format:check
