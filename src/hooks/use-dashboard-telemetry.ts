@@ -28,6 +28,7 @@ import type {
 // Recompute freshness independently of socket traffic so stalled streams become visibly stale.
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
+const DEFAULT_SCOPE = "__default_organization__";
 
 interface RuntimeConfigResult {
   config: TelemetryRuntimeConfig | null;
@@ -63,8 +64,10 @@ function loadRuntimeConfig(): RuntimeConfigResult {
 export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): DashboardTelemetryModel {
   const enabled = options.enabled ?? true;
   const selectedOrganizationId = options.organizationId?.trim() || null;
+  const scopeKey = enabled ? (selectedOrganizationId ?? DEFAULT_SCOPE) : null;
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
+  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
     runtime.config?.mode === "live" ? "connecting" : "disconnected",
   );
@@ -82,9 +85,10 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     setHasLoadedSnapshot(false);
     setError(null);
     setStore(createDashboardTelemetryStore());
+    setActiveScopeKey(scopeKey);
     setClock(Date.now());
     setGeneration((value) => value + 1);
-  }, [runtime.config]);
+  }, [runtime.config, scopeKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
@@ -93,19 +97,10 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
   useEffect(() => {
     const config = runtime.config;
-    if (!config || config.mode === "demo") {
-      return;
-    }
-    if (!enabled) {
-      setConnectionState("disconnected");
-      setHasLoadedSnapshot(false);
-      setStore(createDashboardTelemetryStore());
+    if (!config || config.mode === "demo" || !enabled || scopeKey === null) {
       return;
     }
 
-    setConnectionState("connecting");
-    setHasLoadedSnapshot(false);
-    setStore(createDashboardTelemetryStore());
     const controller = new AbortController();
     const organizationId =
       selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
@@ -118,6 +113,16 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     });
     let subscription: TelemetrySubscription | null = null;
     let disposed = false;
+
+    void Promise.resolve().then(() => {
+      if (disposed) return;
+      setActiveScopeKey(scopeKey);
+      setConnectionState("connecting");
+      setHasLoadedSnapshot(false);
+      setError(null);
+      setStore(createDashboardTelemetryStore());
+      setClock(Date.now());
+    });
 
     const commit = (samples: readonly TelemetrySample[]) => {
       if (disposed) {
@@ -180,10 +185,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       controller.abort();
       subscription?.close();
     };
-  }, [enabled, generation, runtime.config, selectedOrganizationId]);
+  }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
 
   const view = useMemo(() => {
-    if (runtime.config?.mode !== "live") {
+    if (
+      runtime.config?.mode !== "live" ||
+      !enabled ||
+      scopeKey === null ||
+      activeScopeKey !== scopeKey
+    ) {
       return null;
     }
 
@@ -194,7 +204,17 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       connectionState,
       error,
     });
-  }, [clock, connectionState, error, hasLoadedSnapshot, runtime.config, store]);
+  }, [
+    activeScopeKey,
+    clock,
+    connectionState,
+    enabled,
+    error,
+    hasLoadedSnapshot,
+    runtime.config,
+    scopeKey,
+    store,
+  ]);
 
   if (!runtime.config) {
     return {
