@@ -240,9 +240,10 @@ def create_alert_router(
 def _rule_read(record: object) -> AlertRuleRead:
     if not isinstance(record, RuleRecord):
         raise TypeError("expected RuleRecord")
-    return AlertRuleRead(
-        **AlertRuleRead.model_validate(record.rule).model_dump(),
-        version=AlertRuleVersionRead.model_validate(record.version),
+    return AlertRuleRead.model_validate(record.rule).model_copy(
+        update={
+            "version": AlertRuleVersionRead.model_validate(record.version),
+        }
     )
 
 
