@@ -36,11 +36,7 @@ export function getNodesApiBaseUrl(): string {
     });
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new NodeClientError(
-      "Nodes API URL must use HTTP or HTTPS.",
-      undefined,
-      "configuration",
-    );
+    throw new NodeClientError("Nodes API URL must use HTTP or HTTPS.", undefined, "configuration");
   }
   parsed.hash = "";
   parsed.search = "";

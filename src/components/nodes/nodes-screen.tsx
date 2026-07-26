@@ -142,10 +142,7 @@ export function NodesScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">
-            <NodesWorkspace
-              key={security.membership?.organizationId ?? "nodes"}
-              canManage={canManage}
-            />
+            <NodesWorkspace key={security.membership?.organizationId ?? "nodes"} canManage={canManage} />
           </div>
         </main>
       </div>

@@ -162,14 +162,8 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
     setAction(nextAction);
     setError(null);
     try {
-      const updated = await createNodeApiClient().changeState(
-        selectedNode.node_id,
-        nextAction,
-        reason,
-      );
-      setNodes((current) =>
-        current.map((node) => (node.node_id === updated.node_id ? updated : node)),
-      );
+      const updated = await createNodeApiClient().changeState(selectedNode.node_id, nextAction, reason);
+      setNodes((current) => current.map((node) => (node.node_id === updated.node_id ? updated : node)));
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError : new Error("Lifecycle action не виконано."));
     } finally {
@@ -216,9 +210,7 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
       active: nodes.filter((node) => node.state === "active").length,
       attention: nodes.filter(
         (node) =>
-          node.state === "suspended" ||
-          node.clock_status === "warning" ||
-          node.clock_status === "critical",
+          node.state === "suspended" || node.clock_status === "warning" || node.clock_status === "critical",
       ).length,
       total: nodes.length,
     }),
@@ -363,9 +355,18 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
         </div>
 
         {loading && nodes.length === 0 ? (
-          <Status icon={LoaderCircle} title="Завантаження вузлів" detail="Читаємо organization-scoped registry…" spin />
+          <Status
+            icon={LoaderCircle}
+            title="Завантаження вузлів"
+            detail="Читаємо organization-scoped registry…"
+            spin
+          />
         ) : nodes.length === 0 ? (
-          <Status icon={Network} title="Вузлів ще немає" detail="Створіть перший software-provisioned edge node." />
+          <Status
+            icon={Network}
+            title="Вузлів ще немає"
+            detail="Створіть перший software-provisioned edge node."
+          />
         ) : (
           <div className="grid min-h-[560px] xl:grid-cols-[360px_minmax(0,1fr)]">
             <div className="border-b border-white/[0.055] xl:border-r xl:border-b-0">
@@ -384,13 +385,13 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
                       <p className="truncate text-[12px] font-semibold text-slate-100">{node.display_name}</p>
                       <p className="mt-1 font-mono text-[10px] text-cyan-300/80">{node.node_id}</p>
                     </div>
-                    <span className={`rounded-lg border px-2 py-1 text-[9px] font-semibold ${stateClass(node.state)}`}>
+                    <span
+                      className={`rounded-lg border px-2 py-1 text-[9px] font-semibold ${stateClass(node.state)}`}
+                    >
                       {node.state}
                     </span>
                   </div>
-                  <p className="mt-3 text-[9px] text-slate-500">
-                    Last seen: {formatDate(node.last_seen_at)}
-                  </p>
+                  <p className="mt-3 text-[9px] text-slate-500">Last seen: {formatDate(node.last_seen_at)}</p>
                 </button>
               ))}
             </div>
@@ -440,7 +441,9 @@ function NodeDetail({
         <div>
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">{node.node_id}</p>
           <h3 className="mt-2 text-xl font-semibold text-white">{node.display_name}</h3>
-          <p className="mt-2 text-[11px] text-slate-500">{node.state_reason ?? "Lifecycle reason не задано"}</p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            {node.state_reason ?? "Lifecycle reason не задано"}
+          </p>
         </div>
         <span className={`rounded-xl border px-3 py-2 text-[10px] font-semibold ${stateClass(node.state)}`}>
           {stateLabel(node.state)}
