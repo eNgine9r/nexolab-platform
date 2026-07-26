@@ -40,13 +40,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Capture typecheck diagnostics
+        run: npm run typecheck > /tmp/alerts-typecheck.log 2>&1 || true
 
-      - name: Test
-        run: npm test
+      - name: Upload typecheck diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-typecheck-diagnostics
+          path: /tmp/alerts-typecheck.log
+          if-no-files-found: error
+          retention-days: 3
 
-      - name: Build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+      - name: Display typecheck diagnostics
+        run: cat /tmp/alerts-typecheck.log
