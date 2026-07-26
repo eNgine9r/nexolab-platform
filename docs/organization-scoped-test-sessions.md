@@ -8,9 +8,11 @@ The platform already supports draft, ready, running, paused, completed, cancelle
 
 ## Required production boundary
 
-Every session and every child resource must belong to one organization. The authenticated organization selected by the verified user session is authoritative for all list, read, create, patch, transition, stage, note, audit, configuration and telemetry operations.
+Every session and every child resource belongs to one organization. The authenticated organization selected by the verified user session is authoritative for all list, read, create, patch, transition, stage, note, audit, configuration and telemetry operations.
 
-A foreign session identifier must not reveal whether the session exists. Browser-provided roles and actor identifiers are untrusted. Audit actors come from the verified backend principal.
+A foreign session identifier does not reveal whether the session exists. Browser-provided roles and actor identifiers are untrusted. Audit actors come from the verified backend principal.
+
+Repository instances are scoped with `for_organization(...)`. The scope is applied to session creation, number conflicts, idempotent create replay, list/get/patch/lifecycle operations, child-resource ownership checks and session telemetry existence checks. The same session number and create idempotency key may be used independently in different organizations.
 
 ## Frontend transport
 
@@ -33,8 +35,10 @@ Migration `20260726_0009`:
 4. replaces global session-number uniqueness with `organization_id + session_number` uniqueness;
 5. adds organization-first state and node indexes.
 
-The migration itself has no persistent server default. Repository creation will be changed to pass the authorized principal organization explicitly before the temporary model compatibility default is removed.
+The migration and model have no persistent organization default. Every new session receives organization ownership explicitly from the scoped repository selected by the authorized principal.
 
 ## Acceptance
 
-A controlled browser Gate will prove anonymous denial, Viewer read-only behavior, Engineer lifecycle operations, immutable completed sessions, telemetry attribution, idempotent replay, verified audit actors and cross-organization non-disclosure using real Next.js, FastAPI, PostgreSQL and MQTT.
+Repository and API integration tests verify organization-scoped create replay, duplicate session numbers across organizations, isolated lists, foreign-ID non-disclosure, verified JWT actor attribution and ownership checks before configuration or telemetry queries.
+
+A controlled browser Gate will additionally prove anonymous denial, Viewer read-only behavior, Engineer lifecycle operations, immutable completed sessions, telemetry attribution and idempotent replay using real Next.js, FastAPI, PostgreSQL and MQTT.
