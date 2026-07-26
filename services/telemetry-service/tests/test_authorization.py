@@ -31,6 +31,7 @@ def test_viewer_is_read_only() -> None:
     assert Permission.READ_DASHBOARD in permissions
     assert Permission.READ_TELEMETRY in permissions
     assert Permission.READ_REPORTS in permissions
+    assert Permission.GENERATE_REPORTS not in permissions
     assert Permission.EDIT_LAYOUT_DRAFT not in permissions
     assert Permission.PUBLISH_LAYOUT not in permissions
     assert Permission.MANAGE_MEMBERSHIPS not in permissions
@@ -40,16 +41,26 @@ def test_auditor_can_read_audit_without_mutation_permissions() -> None:
     permissions = permissions_for_role(Role.AUDITOR)
 
     assert Permission.READ_AUDIT in permissions
+    assert Permission.READ_REPORTS in permissions
+    assert Permission.GENERATE_REPORTS not in permissions
     assert Permission.MANAGE_SESSIONS not in permissions
     assert Permission.ACKNOWLEDGE_ALERTS not in permissions
 
 
-def test_operator_can_edit_draft_but_cannot_publish_or_restore() -> None:
+def test_engineer_and_laboratory_manager_can_generate_reports() -> None:
+    assert Permission.GENERATE_REPORTS in permissions_for_role(Role.ENGINEER)
+    assert Permission.GENERATE_REPORTS in permissions_for_role(
+        Role.LABORATORY_MANAGER
+    )
+
+
+def test_operator_can_edit_draft_but_cannot_publish_restore_or_generate_reports() -> None:
     permissions = permissions_for_role(Role.OPERATOR)
 
     assert Permission.EDIT_LAYOUT_DRAFT in permissions
     assert Permission.PUBLISH_LAYOUT not in permissions
     assert Permission.RESTORE_LAYOUT not in permissions
+    assert Permission.GENERATE_REPORTS not in permissions
 
 
 def test_multiple_roles_union_permissions() -> None:
@@ -57,6 +68,8 @@ def test_multiple_roles_union_permissions() -> None:
 
     assert Permission.EDIT_LAYOUT_DRAFT in permissions
     assert Permission.READ_AUDIT in permissions
+    assert Permission.READ_REPORTS in permissions
+    assert Permission.GENERATE_REPORTS not in permissions
     assert Permission.PUBLISH_LAYOUT not in permissions
 
 
