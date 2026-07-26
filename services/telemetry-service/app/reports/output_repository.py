@@ -306,7 +306,7 @@ class ReportOutputRepository:
                         "state": result.snapshot.state.value,
                         "manifest_sha256": report.manifest_sha256,
                         "command_sha256": command.command_sha256,
-                        "approved_at": event.occurred_at,
+                        "approved_at": as_utc(event.occurred_at).isoformat(),
                     },
                 )
             session.expunge(event)
@@ -395,7 +395,7 @@ class ReportOutputRepository:
                         "manifest_sha256": report.manifest_sha256,
                         "command_sha256": command.command_sha256,
                         "superseded_by_report_id": replacement.id,
-                        "superseded_at": event.occurred_at,
+                        "superseded_at": as_utc(event.occurred_at).isoformat(),
                     },
                 )
             session.expunge(event)
