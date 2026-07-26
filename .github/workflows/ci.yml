@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,10 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,44 +34,6 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Fix alerts acceptance seed
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("scripts/run-alerts-browser-acceptance.sh")
-          content = path.read_text()
-          old = """INSERT INTO security_organizations (id, slug, name, status)
-          VALUES
-            ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A', 'active'),
-            ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B', 'active')
-          ON CONFLICT (id) DO NOTHING;"""
-          new = """INSERT INTO security_organizations (id, slug, name)
-          VALUES
-            ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A'),
-            ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B')
-          ON CONFLICT (id) DO NOTHING;"""
-          if content.count(old) != 1:
-              raise SystemExit("expected exactly one organization seed block")
-          path.write_text(content.replace(old, new))
-          PY
-
-      - name: Apply formatter
-        run: npm run format
-
-      - name: Commit verified source changes
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          if git diff --cached --quiet; then
-            echo "No source changes to commit"
-          else
-            git commit -m "fix(alerts): align acceptance seed and formatting"
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
-
       - name: Check formatting
         run: npm run format:check
 
@@ -82,3 +42,11 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
