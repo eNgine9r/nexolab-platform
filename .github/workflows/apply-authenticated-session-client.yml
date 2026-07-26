@@ -1,0 +1,55 @@
+name: Apply authenticated session client
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/scripts/apply-authenticated-session-client.py"
+      - ".github/workflows/apply-authenticated-session-client.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-authenticated-session-client-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Apply implementation
+        run: python .github/scripts/apply-authenticated-session-client.py
+
+      - name: Remove temporary automation
+        run: |
+          rm .github/scripts/apply-authenticated-session-client.py
+          rm .github/workflows/apply-authenticated-session-client.yml
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format repository
+        run: npm run format
+
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: authenticate session API client"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
