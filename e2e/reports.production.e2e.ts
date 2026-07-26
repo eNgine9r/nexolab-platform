@@ -13,6 +13,10 @@ const completedSessionId = required("NEXOLAB_REPORTS_COMPLETED_SESSION_ID");
 const runningSessionId = required("NEXOLAB_REPORTS_RUNNING_SESSION_ID");
 const telemetryEventId = required("NEXOLAB_REPORTS_TELEMETRY_EVENT_ID");
 const alertTransitionId = required("NEXOLAB_REPORTS_ALERT_TRANSITION_ID");
+const stageId = "70000000-0000-0000-0000-000000000001";
+const bindingId = "50000000-0000-0000-0000-000000000001";
+const snapshotId = "60000000-0000-0000-0000-000000000001";
+const engineerSubject = "engineer-a-reports-acceptance";
 
 interface ReportArtifact {
   id: string;
@@ -171,7 +175,7 @@ test("production reports preserve immutable evidence across API, UI and organiza
     const browserReport = generatedPage.items[0]!;
     expect(browserReport.organization_id).toBe(organizationA);
     expect(browserReport.session_id).toBe(completedSessionId);
-    expect(browserReport.generated_by).toBe("engineer-a-reports-acceptance");
+    expect(browserReport.generated_by).toBe(engineerSubject);
 
     const downloadPromise = engineerPage.waitForEvent("download");
     await engineerPage.getByTestId("download-telemetry.csv").click();
@@ -236,15 +240,15 @@ test("production reports preserve immutable evidence across API, UI and organiza
     ).content.toString("utf8");
     expect(telemetry).toContain(telemetryEventId);
     expect(telemetry).toContain(completedSessionId);
-    expect(telemetry).toContain("stage-reports-completed");
-    expect(telemetry).toContain("binding-reports-completed");
-    expect(telemetry).toContain("snapshot-reports-completed");
+    expect(telemetry).toContain(stageId);
+    expect(telemetry).toContain(bindingId);
+    expect(telemetry).toContain(snapshotId);
 
     const alerts = (
       await downloadArtifact(engineerA, report.id, "alert-transitions.csv")
     ).content.toString("utf8");
     expect(alerts).toContain(alertTransitionId);
-    expect(alerts).toContain("viewer-a-reports-acceptance");
+    expect(alerts).toContain(engineerSubject);
     expect(alerts).toContain("alert_acknowledged");
 
     const manifestContent = (
