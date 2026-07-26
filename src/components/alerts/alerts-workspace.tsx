@@ -19,12 +19,7 @@ import {
   createAlertIdempotencyKey,
   type AlertListQuery,
 } from "@/lib/alerts/api-client";
-import type {
-  AlertInstance,
-  AlertSeverity,
-  AlertState,
-  AlertTransition,
-} from "@/lib/alerts/types";
+import type { AlertInstance, AlertSeverity, AlertState, AlertTransition } from "@/lib/alerts/types";
 
 const STATE_FILTERS: Array<{ value: "all" | AlertState; label: string }> = [
   { value: "all", label: "Усі" },
@@ -119,10 +114,7 @@ export function AlertsWorkspace() {
   const [generation, setGeneration] = useState(0);
   const [now, setNow] = useState(() => Date.now());
 
-  const selected = useMemo(
-    () => alerts.find((item) => item.id === selectedId) ?? null,
-    [alerts, selectedId],
-  );
+  const selected = useMemo(() => alerts.find((item) => item.id === selectedId) ?? null, [alerts, selectedId]);
 
   const load = useCallback(
     async (signal: AbortSignal, quiet = false) => {
@@ -221,7 +213,10 @@ export function AlertsWorkspace() {
           ? await client.acknowledge(selected.id, reason, createAlertIdempotencyKey(`ack:${selected.id}`))
           : await client.close(selected.id, reason, createAlertIdempotencyKey(`close:${selected.id}`));
       setAlerts((items) => items.map((item) => (item.id === response.alert.id ? response.alert : item)));
-      setTransitions((items) => [response.transition, ...items.filter((item) => item.id !== response.transition.id)]);
+      setTransitions((items) => [
+        response.transition,
+        ...items.filter((item) => item.id !== response.transition.id),
+      ]);
       setReason("");
       setLastSuccessfulAt(Date.now());
     } catch (nextError) {
@@ -241,7 +236,8 @@ export function AlertsWorkspace() {
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Тривоги та події</h1>
             <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
-              Організаційно ізольовані правила, evidence, verified actor attribution і контрольований lifecycle.
+              Організаційно ізольовані правила, evidence, verified actor attribution і контрольований
+              lifecycle.
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 sm:min-w-[520px]">
@@ -316,7 +312,10 @@ export function AlertsWorkspace() {
         ) : null}
 
         {error ? (
-          <div className="m-5 rounded-2xl border border-amber-300/15 bg-amber-400/[0.045] p-5" data-testid="alerts-error">
+          <div
+            className="m-5 rounded-2xl border border-amber-300/15 bg-amber-400/[0.045] p-5"
+            data-testid="alerts-error"
+          >
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-300" />
               <div>
@@ -340,7 +339,9 @@ export function AlertsWorkspace() {
             <div>
               <CheckCircle2 className="mx-auto h-9 w-9 text-emerald-400" />
               <h2 className="mt-3 text-sm font-semibold text-white">Тривог не знайдено</h2>
-              <p className="mt-1 text-[11px] text-slate-500">Поточні фільтри не містять production alert instances.</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Поточні фільтри не містять production alert instances.
+              </p>
             </div>
           </div>
         ) : (
@@ -363,10 +364,14 @@ export function AlertsWorkspace() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-2 py-1 text-[8px] font-semibold ${severityClass(alert.severity)}`}>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[8px] font-semibold ${severityClass(alert.severity)}`}
+                        >
                           {SEVERITY_LABELS[alert.severity]}
                         </span>
-                        <span className={`rounded-full border px-2 py-1 text-[8px] font-semibold ${stateClass(alert.state)}`}>
+                        <span
+                          className={`rounded-full border px-2 py-1 text-[8px] font-semibold ${stateClass(alert.state)}`}
+                        >
                           {STATE_LABELS[alert.state]}
                         </span>
                       </div>
@@ -378,9 +383,18 @@ export function AlertsWorkspace() {
                     <Siren className="h-5 w-5 shrink-0 text-red-300" />
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2 text-[9px]">
-                    <MiniMetric label="Тригер" value={formatNumber(alert.trigger_value, alert.context.unit)} />
-                    <MiniMetric label="Межа" value={formatNumber(alert.trigger_threshold, alert.context.unit)} />
-                    <MiniMetric label="Відхилення" value={formatNumber(alert.maximum_deviation, alert.context.unit)} />
+                    <MiniMetric
+                      label="Тригер"
+                      value={formatNumber(alert.trigger_value, alert.context.unit)}
+                    />
+                    <MiniMetric
+                      label="Межа"
+                      value={formatNumber(alert.trigger_threshold, alert.context.unit)}
+                    />
+                    <MiniMetric
+                      label="Відхилення"
+                      value={formatNumber(alert.maximum_deviation, alert.context.unit)}
+                    />
                   </div>
                   <p className="mt-3 flex items-center gap-1.5 text-[9px] text-slate-600">
                     <Clock3 className="h-3 w-3" />
@@ -395,10 +409,14 @@ export function AlertsWorkspace() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex flex-wrap gap-2">
-                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold ${severityClass(selected.severity)}`}>
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold ${severityClass(selected.severity)}`}
+                      >
                         {SEVERITY_LABELS[selected.severity]}
                       </span>
-                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold ${stateClass(selected.state)}`}>
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold ${stateClass(selected.state)}`}
+                      >
                         {STATE_LABELS[selected.state]}
                       </span>
                     </div>
@@ -416,10 +434,22 @@ export function AlertsWorkspace() {
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <DetailMetric label="Trigger value" value={formatNumber(selected.trigger_value, selected.context.unit)} />
-                  <DetailMetric label="Trigger threshold" value={formatNumber(selected.trigger_threshold, selected.context.unit)} />
-                  <DetailMetric label="Clear threshold" value={formatNumber(selected.clear_threshold, selected.context.unit)} />
-                  <DetailMetric label="Maximum deviation" value={formatNumber(selected.maximum_deviation, selected.context.unit)} />
+                  <DetailMetric
+                    label="Trigger value"
+                    value={formatNumber(selected.trigger_value, selected.context.unit)}
+                  />
+                  <DetailMetric
+                    label="Trigger threshold"
+                    value={formatNumber(selected.trigger_threshold, selected.context.unit)}
+                  />
+                  <DetailMetric
+                    label="Clear threshold"
+                    value={formatNumber(selected.clear_threshold, selected.context.unit)}
+                  />
+                  <DetailMetric
+                    label="Maximum deviation"
+                    value={formatNumber(selected.maximum_deviation, selected.context.unit)}
+                  />
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -454,7 +484,11 @@ export function AlertsWorkspace() {
                           onClick={() => void runAction("acknowledge")}
                           data-testid="acknowledge-alert"
                         >
-                          {mutating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                          {mutating ? (
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ShieldAlert className="h-4 w-4" />
+                          )}
                           Підтвердити тривогу
                         </button>
                       ) : (
@@ -464,17 +498,26 @@ export function AlertsWorkspace() {
                           onClick={() => void runAction("close")}
                           data-testid="close-alert"
                         >
-                          {mutating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                          {mutating ? (
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
                           Закрити тривогу
                         </button>
                       )}
-                      <span className="text-[9px] text-slate-600">Actor визначає backend із verified JWT.</span>
+                      <span className="text-[9px] text-slate-600">
+                        Actor визначає backend із verified JWT.
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {actionError ? (
-                  <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-300/15 bg-red-400/[0.045] p-4 text-[10px] text-red-200" data-testid="alert-action-error">
+                  <div
+                    className="mt-4 flex items-start gap-2 rounded-2xl border border-red-300/15 bg-red-400/[0.045] p-4 text-[10px] text-red-200"
+                    data-testid="alert-action-error"
+                  >
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                     {actionError.message}
                   </div>
@@ -487,15 +530,21 @@ export function AlertsWorkspace() {
                   </div>
                   <div className="mt-3 space-y-2" data-testid="alert-transitions">
                     {transitions.map((transition) => (
-                      <div key={transition.id} className="rounded-2xl border border-white/[0.055] bg-white/[0.02] p-3">
+                      <div
+                        key={transition.id}
+                        className="rounded-2xl border border-white/[0.055] bg-white/[0.02] p-3"
+                      >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[10px] font-semibold text-slate-200">{transition.event_type}</p>
                           <p className="text-[8px] text-slate-600">{formatDate(transition.occurred_at)}</p>
                         </div>
                         <p className="mt-1 text-[9px] text-slate-500">
-                          {transition.previous_state ?? "—"} → {transition.next_state} · {transition.actor_id} · {transition.actor_source}
+                          {transition.previous_state ?? "—"} → {transition.next_state} · {transition.actor_id}{" "}
+                          · {transition.actor_source}
                         </p>
-                        {transition.reason ? <p className="mt-2 text-[10px] text-slate-300">{transition.reason}</p> : null}
+                        {transition.reason ? (
+                          <p className="mt-2 text-[10px] text-slate-300">{transition.reason}</p>
+                        ) : null}
                       </div>
                     ))}
                     {!detailLoading && transitions.length === 0 ? (
@@ -510,7 +559,9 @@ export function AlertsWorkspace() {
               <div className="grid min-h-96 place-items-center p-8 text-center">
                 <div>
                   <ShieldAlert className="mx-auto h-8 w-8 text-slate-600" />
-                  <p className="mt-3 text-[11px] text-slate-500">Оберіть alert для перегляду evidence та lifecycle.</p>
+                  <p className="mt-3 text-[11px] text-slate-500">
+                    Оберіть alert для перегляду evidence та lifecycle.
+                  </p>
                 </div>
               </div>
             )}
