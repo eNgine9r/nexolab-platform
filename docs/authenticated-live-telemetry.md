@@ -52,7 +52,7 @@ Only then does the server register the bounded client queue and perform resume r
 
 ## API-derived inventory
 
-The production dashboard does not assume a fixed edge node. Latest and WebSocket requests are organization-wide, and node, equipment and channel summaries are grouped from the returned `node_id`, `equipment_id` and `channel_id` fields. Empty inventory is shown explicitly instead of creating a synthetic online node.
+The production dashboard does not assume a fixed edge node. Latest and WebSocket requests are organization-wide, and node, equipment and channel summaries are grouped from the returned `node_id`, `equipment_id` and `channel_id` fields. Node state and issue counts are derived only from the current authenticated records and transport state. Empty inventory is shown explicitly instead of creating a synthetic online node.
 
 ## Authenticated history
 
