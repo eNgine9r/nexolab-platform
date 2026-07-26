@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,10 +21,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,85 +34,6 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Apply React effect fixes
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          workspace = Path("src/components/alerts/alerts-workspace.tsx")
-          content = workspace.read_text()
-          content = content.replace(
-              "    void load(controller.signal);",
-              "    const initial = window.setTimeout(() => void load(controller.signal), 0);",
-              1,
-          )
-          content = content.replace(
-              "      controller.abort();\n      window.clearInterval(refresh);",
-              "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
-              1,
-          )
-          start = content.find("  useEffect(() => {\n    if (!selectedId) {")
-          end_marker = "  }, [selectedId, selected?.lock_version]);"
-          end = content.find(end_marker, start)
-          if start < 0 or end < 0:
-              raise SystemExit("alert detail effect markers were not found")
-          end += len(end_marker)
-          replacement = """  useEffect(() => {
-            if (!selectedId) return;
-            const controller = new AbortController();
-            const initial = window.setTimeout(() => {
-              setDetailLoading(true);
-              void createAlertApiClient()
-                .listTransitions(selectedId, controller.signal)
-                .then((page) => {
-                  if (!controller.signal.aborted) setTransitions(page.items);
-                })
-                .catch((nextError) => {
-                  if (!controller.signal.aborted) {
-                    setActionError(
-                      nextError instanceof Error ? nextError : new Error("Не вдалося завантажити історію тривоги."),
-                    );
-                  }
-                })
-                .finally(() => {
-                  if (!controller.signal.aborted) setDetailLoading(false);
-                });
-            }, 0);
-            return () => {
-              controller.abort();
-              window.clearTimeout(initial);
-            };
-          }, [selectedId, selected?.lock_version]);"""
-          workspace.write_text(content[:start] + replacement + content[end:])
-
-          panel = Path("src/components/dashboard/alarms-panel.tsx")
-          content = panel.read_text()
-          content = content.replace('  samples: _samples = [],\n', "", 1)
-          content = content.replace(
-              "    void loadAlerts(controller.signal);",
-              "    const initial = window.setTimeout(() => void loadAlerts(controller.signal), 0);",
-              1,
-          )
-          content = content.replace(
-              "      controller.abort();\n      window.clearInterval(refresh);",
-              "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
-              1,
-          )
-          panel.write_text(content)
-          PY
-
-      - name: Apply formatter
-        run: npm run format
-
-      - name: Commit React fixes
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "fix(alerts): defer effect state updates"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
-
       - name: Check formatting
         run: npm run format:check
 
@@ -123,3 +42,11 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
