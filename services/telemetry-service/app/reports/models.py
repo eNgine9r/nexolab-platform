@@ -20,8 +20,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 REPORTABLE_SESSION_STATES = ("completed", "archived")
+REPORT_RENDER_FORMATS = ("xlsx", "pdf")
+REPORT_APPROVAL_EVENT_TYPES = ("approved", "superseded")
 _REPORTABLE_SESSION_STATE_SQL = ", ".join(
     f"'{state}'" for state in REPORTABLE_SESSION_STATES
+)
+_REPORT_RENDER_FORMAT_SQL = ", ".join(
+    f"'{format_name}'" for format_name in REPORT_RENDER_FORMATS
+)
+_REPORT_APPROVAL_EVENT_SQL = ", ".join(
+    f"'{event_type}'" for event_type in REPORT_APPROVAL_EVENT_TYPES
 )
 
 
@@ -147,6 +155,141 @@ class TestReportArtifact(Base):
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     row_count: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class TestReportRender(Base):
+    __tablename__ = "test_report_renders"
+    __table_args__ = (
+        CheckConstraint(
+            f"format IN ({_REPORT_RENDER_FORMAT_SQL})",
+            name="ck_test_report_renders_format",
+        ),
+        CheckConstraint(
+            "size_bytes >= 0",
+            name="ck_test_report_renders_size_nonnegative",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "idempotency_key",
+            name="uq_test_report_renders_organization_idempotency",
+        ),
+        Index(
+            "ix_test_report_renders_organization_report",
+            "organization_id",
+            "report_id",
+            "format",
+            "rendered_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    report_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "test_report_versions.id",
+            name="fk_test_report_renders_report",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_test_report_renders_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    format: Mapped[str] = mapped_column(String(16), nullable=False)
+    artifact_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    renderer_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    rendered_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    rendered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class TestReportApprovalEvent(Base):
+    __tablename__ = "test_report_approval_events"
+    __table_args__ = (
+        CheckConstraint(
+            f"event_type IN ({_REPORT_APPROVAL_EVENT_SQL})",
+            name="ck_test_report_approval_events_type",
+        ),
+        CheckConstraint(
+            "(event_type = 'approved' AND superseded_by_report_id IS NULL) "
+            "OR (event_type = 'superseded' AND superseded_by_report_id IS NOT NULL)",
+            name="ck_test_report_approval_events_payload",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "idempotency_key",
+            name="uq_test_report_approval_events_organization_idempotency",
+        ),
+        UniqueConstraint(
+            "report_id",
+            "event_type",
+            name="uq_test_report_approval_events_report_type",
+        ),
+        Index(
+            "ix_test_report_approval_events_organization_report",
+            "organization_id",
+            "report_id",
+            "occurred_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    report_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "test_report_versions.id",
+            name="fk_test_report_approval_events_report",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_test_report_approval_events_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    event_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    command_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    actor_identity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    actor_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason: Mapped[str] = mapped_column(String(2000), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    superseded_by_report_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "test_report_versions.id",
+            name="fk_test_report_approval_events_replacement",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
