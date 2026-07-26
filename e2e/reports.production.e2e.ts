@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test";
 
+const frontendBaseUrl = process.env.NEXOLAB_REPORTS_BASE_URL ?? "http://127.0.0.1:3104";
 const apiBaseUrl = process.env.NEXOLAB_REPORTS_API_BASE_URL ?? "http://127.0.0.1:8084";
 const organizationA = required("NEXOLAB_REPORTS_ORGANIZATION_A");
 const organizationB = required("NEXOLAB_REPORTS_ORGANIZATION_B");
@@ -140,7 +141,7 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect(runningGenerate.status()).toBe(409);
     expect((await runningGenerate.json()).detail.code).toBe("report_session_not_reportable");
 
-    const engineerContext = await browser.newContext();
+    const engineerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const engineerPage = await engineerContext.newPage();
     await installBrowserCredentials(engineerPage, engineerAToken, organizationA);
     await engineerPage.goto("/reports");
@@ -248,7 +249,7 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect((await managerB.get(`/api/v1/reports/${report.id}`)).status()).toBe(404);
     expect((await managerB.get(`/api/v1/reports/${report.id}/artifacts/manifest.json`)).status()).toBe(404);
 
-    const viewerContext = await browser.newContext();
+    const viewerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const viewerPage = await viewerContext.newPage();
     await installBrowserCredentials(viewerPage, viewerAToken, organizationA);
     await viewerPage.goto("/reports");
