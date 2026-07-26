@@ -5,15 +5,15 @@ root = Path(__file__).resolve().parents[2]
 
 e2e_path = root / "e2e/authenticated-dashboard.production.e2e.ts"
 e2e = e2e_path.read_text()
-marker = '''        )}\n`,
+marker = r'''        )}\n`,
       );
     } finally {
 '''
-replacement = '''        )}\n`,
+replacement = r'''        )}\n`,
       );
 
       await page.getByRole("button", { name: "Вийти з NEXOLAB" }).click();
-      await expect(page).toHaveURL(/\\/login$/);
+      await expect(page).toHaveURL(/\/login$/);
       const clearedCredentials = await page.evaluate(() => ({
         accessToken: window.sessionStorage.getItem("nexolab.acceptance.access-token"),
         organizationId: window.sessionStorage.getItem("nexolab.acceptance.organization-id"),
@@ -26,7 +26,7 @@ replacement = '''        )}\n`,
       });
       writeFileSync(
         path.join(evidenceDirectory, "logout-state.json"),
-        `${JSON.stringify(clearedCredentials, null, 2)}\\n`,
+        `${JSON.stringify(clearedCredentials, null, 2)}\n`,
       );
     } finally {
 '''
