@@ -43,8 +43,8 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Format acceptance sources
-        run: npx prettier --write e2e/test-sessions.production.e2e.ts scripts/run-test-sessions-browser-acceptance.sh
+      - name: Format acceptance TypeScript
+        run: npx prettier --write e2e/test-sessions.production.e2e.ts
 
       - name: Restore standard CI and remove temporary automation
         run: |
