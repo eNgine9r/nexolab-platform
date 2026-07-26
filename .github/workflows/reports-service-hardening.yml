@@ -30,6 +30,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("services/telemetry-service/app/reports/service.py")
           content = path.read_text()
@@ -52,10 +53,12 @@ jobs:
               elif new not in content:
                   raise SystemExit(f"missing report service marker: {old}")
 
-          old_rows = '''        return [
-              TelemetryEvidenceRow(**dict(row))
-              for row in database_session.execute(statement).mappings()
-          ]'''
+          rows_pattern = re.compile(
+              r"        return \[\n"
+              r"            TelemetryEvidenceRow\(\*\*dict\(row\)\)\n"
+              r"            for row in database_session\.execute\(statement\)\.mappings\(\)\n"
+              r"        \]"
+          )
           new_rows = '''        return [
               TelemetryEvidenceRow(
                   event_id=str(row["event_id"]),
@@ -78,16 +81,16 @@ jobs:
               )
               for row in database_session.execute(statement).mappings()
           ]'''
-          if old_rows in content:
-              content = content.replace(old_rows, new_rows)
-          elif new_rows not in content:
+          content, row_count = rows_pattern.subn(new_rows, content, count=1)
+          if row_count == 0 and new_rows not in content:
               raise SystemExit("missing telemetry evidence row marker")
 
-          old_helper = '''def _aware_utc(value: datetime) -> datetime:
-              if value.tzinfo is None or value.utcoffset() is None:
-                  raise ValueError("datetime values must be timezone-aware")
-              return value.astimezone(UTC)
-          '''
+          helper_pattern = re.compile(
+              r"def _aware_utc\(value: datetime\) -> datetime:\n"
+              r"    if value\.tzinfo is None or value\.utcoffset\(\) is None:\n"
+              r"        raise ValueError\(\"datetime values must be timezone-aware\"\)\n"
+              r"    return value\.astimezone\(UTC\)\n?\Z"
+          )
           new_helper = '''def _strict_utc(value: datetime) -> datetime:
               if value.tzinfo is None or value.utcoffset() is None:
                   raise ValueError("datetime values must be timezone-aware")
@@ -114,9 +117,8 @@ jobs:
                   return tuple(_normalize_persisted_datetimes(item) for item in value)
               return value
           '''
-          if old_helper in content:
-              content = content.replace(old_helper, new_helper)
-          elif new_helper not in content:
+          content, helper_count = helper_pattern.subn(new_helper, content, count=1)
+          if helper_count == 0 and "def _persisted_utc" not in content:
               raise SystemExit("missing UTC helper marker")
 
           old_scope = ".where(AlertInstance.session_id == test_session.id)"
