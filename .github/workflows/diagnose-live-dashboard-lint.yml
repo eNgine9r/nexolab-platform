@@ -1,0 +1,49 @@
+name: Diagnose live dashboard lint
+
+on:
+  push:
+    branches: [feat/authenticated-live-dashboard]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Capture ESLint output
+        id: lint
+        shell: bash
+        run: |
+          set +e
+          npm run lint > lint.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          cat lint.log
+          exit 0
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-dashboard-lint-${{ github.run_id }}
+          path: lint.log
+          retention-days: 1
+
+      - name: Preserve lint conclusion
+        if: steps.lint.outputs.status != '0'
+        run: exit 1
