@@ -1,0 +1,53 @@
+name: Apply live history dashboard slice
+
+on:
+  push:
+    branches: [feat/authenticated-live-dashboard]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-live-history-dashboard
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: "${{ !contains(github.event.head_commit.message, 'feat: add authenticated telemetry history') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/authenticated-live-dashboard
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Apply implementation
+        run: python .github/scripts/apply-live-history-dashboard.py
+
+      - name: Remove temporary automation
+        run: |
+          rm .github/scripts/apply-live-history-dashboard.py
+          rm .github/workflows/apply-live-history-dashboard.yml
+
+      - name: Install frontend dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format frontend and documentation
+        run: npm run format
+
+      - name: Commit implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add authenticated telemetry history"
+          git push origin HEAD:feat/authenticated-live-dashboard
