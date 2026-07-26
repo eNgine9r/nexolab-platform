@@ -121,18 +121,7 @@ function publishTelemetry(
   };
   execFileSync(
     "mosquitto_pub",
-    [
-      "-h",
-      mqttHost,
-      "-p",
-      mqttPort,
-      "-t",
-      mqttTopic,
-      "-m",
-      JSON.stringify(payload),
-      "-q",
-      "1",
-    ],
+    ["-h", mqttHost, "-p", mqttPort, "-t", mqttTopic, "-m", JSON.stringify(payload), "-q", "1"],
     { stdio: "inherit" },
   );
   return { eventId, payload };
@@ -258,11 +247,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     expect(alert.metric).toBe("temperature.probe");
     expect(alert.maximum_deviation).toBeCloseTo(1.4);
 
-    publishTelemetry(
-      new Date(base.getTime() + 13_000),
-      9.4,
-      sustained.eventId,
-    );
+    publishTelemetry(new Date(base.getTime() + 13_000), 9.4, sustained.eventId);
     publishTelemetry(new Date(base.getTime() + 11_000), 12.5);
     await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);
 
@@ -271,13 +256,10 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
 
     const viewerList = await viewerA.get("/api/v1/alerts/latest");
     expect(viewerList.status()).toBe(200);
-    const viewerAcknowledge = await viewerA.post(
-      `/api/v1/alerts/${alert.id}/acknowledge`,
-      {
-        headers: { "Idempotency-Key": `viewer-denied-${randomUUID()}` },
-        data: { reason: "Viewer must not mutate alerts" },
-      },
-    );
+    const viewerAcknowledge = await viewerA.post(`/api/v1/alerts/${alert.id}/acknowledge`, {
+      headers: { "Idempotency-Key": `viewer-denied-${randomUUID()}` },
+      data: { reason: "Viewer must not mutate alerts" },
+    });
     expect(viewerAcknowledge.status()).toBe(403);
 
     await installBrowserCredentials(page, managerAToken, organizationA);
@@ -289,24 +271,20 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     await expect(page.getByText("9,4 degC")).toBeVisible();
     expect(page.url()).not.toContain(managerAToken);
 
-    await page.getByPlaceholder("Що перевірено оператором…").fill(
-      "Operator inspected K106 and confirmed the excursion",
-    );
+    await page
+      .getByPlaceholder("Що перевірено оператором…")
+      .fill("Operator inspected K106 and confirmed the excursion");
     await page.getByTestId("acknowledge-alert").click();
     await expect(page.getByText("Підтверджена")).toBeVisible();
     await expectAlertState(managerA, alert.id, "acknowledged");
 
-    const transitionsAfterAck = await managerA.get(
-      `/api/v1/alerts/${alert.id}/transitions`,
-    );
+    const transitionsAfterAck = await managerA.get(`/api/v1/alerts/${alert.id}/transitions`);
     expect(transitionsAfterAck.status()).toBe(200);
     const transitionPage = (await transitionsAfterAck.json()) as TransitionPageResponse;
     const acknowledgedTransition = transitionPage.items.find(
       (item) => item.event_type === "alert_acknowledged",
     );
-    expect(acknowledgedTransition?.actor_id).toBe(
-      "manager-a-alerts-acceptance",
-    );
+    expect(acknowledgedTransition?.actor_id).toBe("manager-a-alerts-acceptance");
     expect(acknowledgedTransition?.actor_source).toBe("alerts-acceptance");
 
     publishTelemetry(new Date(base.getTime() + 14_000), 7.5);
@@ -316,9 +294,9 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     await expectAlertState(managerA, alert.id, "resolved");
 
     await expect(page.getByTestId("close-alert")).toBeVisible({ timeout: 20_000 });
-    await page.getByPlaceholder("Чому alert можна контрольовано закрити…").fill(
-      "Stable clear condition verified against the configured hysteresis",
-    );
+    await page
+      .getByPlaceholder("Чому alert можна контрольовано закрити…")
+      .fill("Stable clear condition verified against the configured hysteresis");
     let closeIdempotencyKey: string | null = null;
     page.on("request", (requestDetails) => {
       if (
@@ -333,39 +311,27 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     await expect(page.getByText("Закрита")).toBeVisible();
     expect(closeIdempotencyKey).not.toBeNull();
 
-    const closeReplay = await managerA.post(
-      `/api/v1/alerts/${alert.id}/close`,
-      {
-        headers: { "Idempotency-Key": closeIdempotencyKey ?? "missing" },
-        data: {
-          reason: "Stable clear condition verified against the configured hysteresis",
-          occurred_at: new Date().toISOString(),
-        },
+    const closeReplay = await managerA.post(`/api/v1/alerts/${alert.id}/close`, {
+      headers: { "Idempotency-Key": closeIdempotencyKey ?? "missing" },
+      data: {
+        reason: "Stable clear condition verified against the configured hysteresis",
+        occurred_at: new Date().toISOString(),
       },
-    );
+    });
     expect(closeReplay.status()).toBe(200);
     expect((await closeReplay.json()).replayed).toBe(true);
 
     await expectAlertCount(managerA, "/api/v1/alerts/latest", 0);
-    const history = await expectAlertCount(
-      managerA,
-      "/api/v1/alerts/history",
-      1,
-    );
+    const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1);
     expect(history.items[0].id).toBe(alert.id);
 
-    const evidenceResponse = await managerA.get(
-      `/api/v1/alerts/${alert.id}/evidence`,
-    );
+    const evidenceResponse = await managerA.get(`/api/v1/alerts/${alert.id}/evidence`);
     expect(evidenceResponse.status()).toBe(200);
     const evidence = (await evidenceResponse.json()) as { count: number };
     expect(evidence.count).toBeGreaterThanOrEqual(2);
 
-    const finalTransitionsResponse = await managerA.get(
-      `/api/v1/alerts/${alert.id}/transitions`,
-    );
-    const finalTransitions =
-      (await finalTransitionsResponse.json()) as TransitionPageResponse;
+    const finalTransitionsResponse = await managerA.get(`/api/v1/alerts/${alert.id}/transitions`);
+    const finalTransitions = (await finalTransitionsResponse.json()) as TransitionPageResponse;
     expect(finalTransitions.items.filter((item) => item.event_type === "alert_triggered")).toHaveLength(1);
     expect(finalTransitions.items.filter((item) => item.event_type === "alert_resolved")).toHaveLength(1);
     expect(finalTransitions.items.filter((item) => item.event_type === "alert_closed")).toHaveLength(1);

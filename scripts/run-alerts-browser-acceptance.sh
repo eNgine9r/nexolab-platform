@@ -148,10 +148,10 @@ compose up -d --build mqtt postgres minio minio-init telemetry-migrate telemetry
 wait_for_url "$API_BASE_URL/health/ready" "telemetry service"
 
 compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<SQL
-INSERT INTO security_organizations (id, slug, name, status)
+INSERT INTO security_organizations (id, slug, name)
 VALUES
-  ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A', 'active'),
-  ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B', 'active')
+  ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A'),
+  ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO security_roles (id, role_key, name, description, built_in)
