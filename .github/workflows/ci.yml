@@ -40,33 +40,20 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          def replace_once(path_name: str, old: str, new: str) -> None:
-              path = Path(path_name)
-              content = path.read_text()
-              if content.count(old) != 1:
-                  raise SystemExit(f"expected exactly one literal match in {path_name}: {old!r}")
-              path.write_text(content.replace(old, new))
-
-          def regex_once(path_name: str, pattern: str, replacement: str) -> None:
-              path = Path(path_name)
-              content = path.read_text()
-              updated, count = re.subn(pattern, replacement, content, count=1, flags=re.MULTILINE | re.DOTALL)
-              if count != 1:
-                  raise SystemExit(f"expected exactly one regex match in {path_name}: {pattern!r}")
-              path.write_text(updated)
-
-          runner = "scripts/run-alerts-browser-acceptance.sh"
-          regex_once(
-              runner,
-              r'^MANAGER_ROLE_ID=.*\nVIEWER_ROLE_ID=.*\n',
+          runner = Path("scripts/run-alerts-browser-acceptance.sh")
+          content = runner.read_text()
+          content = content.replace(
+              'MANAGER_ROLE_ID="40000000-0000-0000-0000-000000000001"\nVIEWER_ROLE_ID="40000000-0000-0000-0000-000000000002"\n',
               "",
           )
-          regex_once(
-              runner,
-              r'^INSERT INTO security_organizations .*?^ON CONFLICT \(membership_id, role_id\) DO NOTHING;',
-              """INSERT INTO security_organizations (id, slug, name, is_active)
+          start = content.find("INSERT INTO security_organizations")
+          end_marker = "ON CONFLICT (membership_id, role_id) DO NOTHING;"
+          end = content.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit("security seed markers were not found")
+          end += len(end_marker)
+          seed = """INSERT INTO security_organizations (id, slug, name, is_active)
           VALUES
             ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A', true),
             ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B', true)
@@ -92,24 +79,29 @@ jobs:
             ('$MANAGER_A_MEMBERSHIP', 'laboratory_manager', 'alerts-acceptance-seed'),
             ('$MANAGER_B_MEMBERSHIP', 'laboratory_manager', 'alerts-acceptance-seed'),
             ('$VIEWER_A_MEMBERSHIP', 'viewer', 'alerts-acceptance-seed')
-          ON CONFLICT (membership_id, role) DO NOTHING;""",
-          )
+          ON CONFLICT (membership_id, role) DO NOTHING;"""
+          runner.write_text(content[:start] + seed + content[end:])
 
-          workspace = "src/components/alerts/alerts-workspace.tsx"
-          replace_once(
-              workspace,
+          workspace = Path("src/components/alerts/alerts-workspace.tsx")
+          content = workspace.read_text()
+          content = content.replace(
               "    void load(controller.signal);",
               "    const initial = window.setTimeout(() => void load(controller.signal), 0);",
+              1,
           )
-          replace_once(
-              workspace,
+          content = content.replace(
               "      controller.abort();\n      window.clearInterval(refresh);",
               "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
+              1,
           )
-          regex_once(
-              workspace,
-              r'^  useEffect\(\(\) => \{\n    if \(!selectedId\) \{.*?^  \}, \[selectedId, selected\?\.lock_version\]\);',
-              """  useEffect(() => {
+          detail_start_marker = "  useEffect(() => {\n    if (!selectedId) {"
+          detail_end_marker = "  }, [selectedId, selected?.lock_version]);"
+          detail_start = content.find(detail_start_marker)
+          detail_end = content.find(detail_end_marker, detail_start)
+          if detail_start < 0 or detail_end < 0:
+              raise SystemExit("alert detail effect markers were not found")
+          detail_end += len(detail_end_marker)
+          detail_effect = """  useEffect(() => {
             if (!selectedId) return;
             const controller = new AbortController();
             const initial = window.setTimeout(() => {
@@ -134,21 +126,23 @@ jobs:
               controller.abort();
               window.clearTimeout(initial);
             };
-          }, [selectedId, selected?.lock_version]);""",
-          )
+          }, [selectedId, selected?.lock_version]);"""
+          workspace.write_text(content[:detail_start] + detail_effect + content[detail_end:])
 
-          panel = "src/components/dashboard/alarms-panel.tsx"
-          replace_once(panel, '  samples: _samples = [],\n', "")
-          replace_once(
-              panel,
+          panel = Path("src/components/dashboard/alarms-panel.tsx")
+          content = panel.read_text()
+          content = content.replace('  samples: _samples = [],\n', "", 1)
+          content = content.replace(
               "    void loadAlerts(controller.signal);",
               "    const initial = window.setTimeout(() => void loadAlerts(controller.signal), 0);",
+              1,
           )
-          replace_once(
-              panel,
+          content = content.replace(
               "      controller.abort();\n      window.clearInterval(refresh);",
               "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
+              1,
           )
+          panel.write_text(content)
           PY
 
       - name: Apply formatter
@@ -160,8 +154,12 @@ jobs:
           git config user.name "nexolab-ci"
           git config user.email "nexolab-ci@users.noreply.github.com"
           git add --update
-          git commit -m "fix(alerts): align security seed and React effects"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+          else
+            git commit -m "fix(alerts): align security seed and React effects"
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
 
       - name: Check formatting
         run: npm run format:check
