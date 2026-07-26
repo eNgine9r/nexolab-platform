@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# One-shot branch finalizer. The workflow removes this file after formatting.
 root = Path(__file__).resolve().parents[2]
 
 e2e_path = root / "e2e/authenticated-dashboard.production.e2e.ts"
