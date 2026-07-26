@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,35 +16,37 @@ concurrency:
 
 jobs:
   quality:
-    name: Apply alerts acceptance type contract fix
+    name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          node-version-file: .nvmrc
 
-      - name: Add rule identifier to acceptance response type
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
 
-          path = Path("e2e/alerts.production.e2e.ts")
-          content = path.read_text()
-          old = "interface AlertResponse {\n  id: string;\n  organization_id: string;\n"
-          new = "interface AlertResponse {\n  id: string;\n  organization_id: string;\n  rule_id: string;\n"
-          if content.count(old) != 1:
-              raise SystemExit("expected one AlertResponse interface marker")
-          path.write_text(content.replace(old, new))
-          PY
+      - name: Check formatting
+        run: npm run format:check
 
-      - name: Commit verified type fix
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          git commit -m "test(alerts): type organization-scoped rule ids"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
