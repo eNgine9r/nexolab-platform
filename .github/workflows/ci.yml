@@ -15,14 +15,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  apply-session-scope-fix:
-    name: Apply session scope fix
+  cleanup-session-scope-delivery:
+    name: Cleanup session scope delivery
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.pull_request.head.ref == 'feat/organization-scoped-test-sessions' &&
-      !contains(github.event.pull_request.title, '[scope-fix-applied]')
+      github.event.pull_request.head.ref == 'feat/organization-scoped-test-sessions'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - name: Checkout implementation branch
@@ -31,38 +30,21 @@ jobs:
           ref: feat/organization-scoped-test-sessions
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Apply regression fixes
-        run: python .github/scripts/fix-session-scope-regressions.py
-
-      - name: Remove temporary automation and restore CI
+      - name: Remove generated files and restore standard CI
         run: |
-          rm .github/scripts/fix-session-scope-regressions.py
-          rm .github/workflows/fix-session-scope-regressions.yml
-          git checkout origin/main -- .github/workflows/ci.yml
+          find services/telemetry-service -type f -name '*.pyc' -delete
+          find services/telemetry-service -type d -name '__pycache__' -empty -delete
+          rm -f .github/scripts/fix-session-scope-regressions.py
+          rm -f .github/workflows/fix-session-scope-regressions.yml
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
 
-      - name: Install backend dependencies
-        working-directory: services/telemetry-service
-        run: python -m pip install -r requirements-dev.txt
-
-      - name: Run focused regressions
-        working-directory: services/telemetry-service
-        run: |
-          python -m compileall -q app tests
-          python -m pytest -q \
-            tests/test_session_organization_scope.py \
-            tests/test_session_api_organization_scope.py
-
-      - name: Commit implementation
+      - name: Commit clean tree
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: scope session create idempotency"
+          git add -u
+          git diff --cached --check
+          git commit -m "chore: remove generated session scope artifacts"
           git push origin HEAD:feat/organization-scoped-test-sessions
 
   quality:
