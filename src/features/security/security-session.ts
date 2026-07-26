@@ -1,9 +1,15 @@
 export type SecurityRole =
-  "administrator" | "laboratory_manager" | "engineer" | "operator" | "viewer" | "auditor";
+  | "administrator"
+  | "laboratory_manager"
+  | "engineer"
+  | "operator"
+  | "viewer"
+  | "auditor";
 
 export type SecurityPermission =
   | "dashboard.read"
   | "telemetry.read"
+  | "alerts.read"
   | "audit.read"
   | "reports.read"
   | "reports.approve"
@@ -14,6 +20,7 @@ export type SecurityPermission =
   | "layout.restore"
   | "sessions.manage"
   | "sessions.operate"
+  | "alerts.rules.manage"
   | "alerts.acknowledge";
 
 export type SecurityIdentity = {
@@ -54,7 +61,8 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
+  | SecurityCredentialSnapshot
+  | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
@@ -157,14 +165,21 @@ export function hasPermission(
   organizationId: string,
   permission: SecurityPermission,
 ): boolean {
-  const membership = session.memberships.find((item) => item.organizationId === organizationId);
+  const membership = session.memberships.find(
+    (item) => item.organizationId === organizationId,
+  );
   return membership?.permissions.includes(permission) ?? false;
 }
 
 function parseSecuritySession(payload: unknown): SecuritySession | null {
   const root = asRecord(payload);
   const identityRecord = root ? asRecord(root.identity) : null;
-  if (!root || root.authenticated !== true || !identityRecord || !Array.isArray(root.memberships)) {
+  if (
+    !root ||
+    root.authenticated !== true ||
+    !identityRecord ||
+    !Array.isArray(root.memberships)
+  ) {
     return null;
   }
 
@@ -176,7 +191,9 @@ function parseSecuritySession(payload: unknown): SecuritySession | null {
   const memberships: SecurityMembership[] = [];
   for (const item of root.memberships) {
     const record = asRecord(item);
-    if (!record || !Array.isArray(record.roles) || !Array.isArray(record.permissions)) return null;
+    if (!record || !Array.isArray(record.roles) || !Array.isArray(record.permissions)) {
+      return null;
+    }
     const organizationId = readString(record.organization_id);
     const organizationSlug = readString(record.organization_slug);
     const organizationName = readString(record.organization_name);
@@ -228,6 +245,7 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
   return (
     value === "dashboard.read" ||
     value === "telemetry.read" ||
+    value === "alerts.read" ||
     value === "audit.read" ||
     value === "reports.read" ||
     value === "reports.approve" ||
@@ -238,6 +256,7 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
     value === "layout.restore" ||
     value === "sessions.manage" ||
     value === "sessions.operate" ||
+    value === "alerts.rules.manage" ||
     value === "alerts.acknowledge"
   );
 }
