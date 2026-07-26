@@ -1,0 +1,62 @@
+name: Reports Acceptance Format
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/reports-acceptance-format.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reports-acceptance-format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format reports acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format Reports files
+        run: |
+          npx prettier --write \
+            .github/workflows/reports-browser-acceptance.yml \
+            e2e/reports.production.e2e.ts \
+            playwright.reports.config.ts \
+            package.json \
+            src/app/reports/page.tsx \
+            src/components/reports/reports-screen.tsx \
+            src/components/reports/reports-workspace.tsx \
+            src/lib/reports/api-client.test.ts \
+            src/lib/reports/api-client.ts \
+            src/lib/reports/runtime-config.ts \
+            src/lib/reports/types.ts
+
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "nexolab-ci"
+          git config user.email "nexolab-ci@users.noreply.github.com"
+          git add --update
+          git commit -m "style(reports): format browser acceptance"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
