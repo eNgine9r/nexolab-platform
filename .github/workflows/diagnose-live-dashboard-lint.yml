@@ -1,8 +1,8 @@
 name: Diagnose live dashboard lint
 
 on:
-  push:
-    branches: [feat/authenticated-live-dashboard]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
