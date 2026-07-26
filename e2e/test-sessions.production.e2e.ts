@@ -337,9 +337,12 @@ test("enforces organization-scoped authenticated production session workflow", a
   expect(missingRead.status()).toBe(404);
   expect((await foreignRead.json()).detail.code).toBe("session_not_found");
 
-  const auditResponse = await request.get(`${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`, {
-    headers: headers(engineerAToken, organizationA),
-  });
+  const auditResponse = await request.get(
+    `${apiBaseUrl}/api/v1/sessions/${createdA.session.id}/audit?limit=200`,
+    {
+      headers: headers(engineerAToken, organizationA),
+    },
+  );
   expect(auditResponse.status()).toBe(200);
   const audit = await auditResponse.json();
   expect(audit.items.length).toBeGreaterThanOrEqual(8);

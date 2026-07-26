@@ -201,6 +201,7 @@ INSERT INTO security_membership_roles (membership_id, role, assigned_by)
 VALUES
   ('88888888-8888-4888-8888-888888888801', 'viewer', 'sessions-acceptance-seed'),
   ('88888888-8888-4888-8888-888888888802', 'engineer', 'sessions-acceptance-seed'),
+  ('88888888-8888-4888-8888-888888888802', 'auditor', 'sessions-acceptance-seed'),
   ('88888888-8888-4888-8888-888888888803', 'engineer', 'sessions-acceptance-seed')
 ON CONFLICT (membership_id, role) DO NOTHING;
 SQL
