@@ -10,3 +10,6 @@ boto3>=1.36,<2
 Pillow>=11.1,<12
 python-multipart>=0.0.20,<1
 PyJWT[crypto]>=2.10,<3
+XlsxWriter==3.2.9
+reportlab==5.0.0
+qrcode[pil]==8.2
