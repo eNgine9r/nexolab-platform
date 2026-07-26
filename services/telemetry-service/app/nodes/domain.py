@@ -51,6 +51,13 @@ class NodeTopicStream(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class ParsedNodeTopic:
+    organization_id: str
+    node_id: str
+    stream: NodeTopicStream
+
+
+@dataclass(frozen=True, slots=True)
 class ProvisionNodeCommand:
     node_id: str
     display_name: str
@@ -151,22 +158,39 @@ def build_node_topic(
     return f"nexolab/v1/{organization}/{normalized_node}/{resolved_stream.value}"
 
 
+def parse_node_topic(topic: str) -> ParsedNodeTopic:
+    normalized = _required_text(topic, "topic", 256)
+    if "+" in normalized or "#" in normalized:
+        raise NodeTopicAuthorizationError("wildcards are not allowed in published node topics")
+    segments = normalized.split("/")
+    if len(segments) != 5 or segments[:2] != ["nexolab", "v1"]:
+        raise NodeTopicAuthorizationError("node topic must match nexolab/v1/{organization}/{node}/{stream}")
+    organization_id = _required_text(segments[2], "organization_id", 64)
+    node_id = normalize_node_id(segments[3])
+    try:
+        stream = NodeTopicStream(segments[4])
+    except ValueError as error:
+        raise NodeTopicAuthorizationError("unsupported node MQTT stream") from error
+    return ParsedNodeTopic(
+        organization_id=organization_id,
+        node_id=node_id,
+        stream=stream,
+    )
+
+
 def authorize_node_topic(
     *,
     organization_id: str,
     node_id: str,
     topic: str,
 ) -> NodeTopicStream:
-    expected_prefix = f"nexolab/v1/{_required_text(organization_id, 'organization_id', 64)}/{normalize_node_id(node_id)}/"
-    if "+" in topic or "#" in topic or not topic.startswith(expected_prefix):
+    parsed = parse_node_topic(topic)
+    if (
+        parsed.organization_id != _required_text(organization_id, "organization_id", 64)
+        or parsed.node_id != normalize_node_id(node_id)
+    ):
         raise NodeTopicAuthorizationError("node may publish only to its own exact MQTT namespace")
-    suffix = topic[len(expected_prefix) :]
-    if "/" in suffix:
-        raise NodeTopicAuthorizationError("node topic must contain exactly one stream segment")
-    try:
-        return NodeTopicStream(suffix)
-    except ValueError as error:
-        raise NodeTopicAuthorizationError("unsupported node MQTT stream") from error
+    return parsed.stream
 
 
 def transition_node_state(current: NodeState | str, target: NodeState | str) -> NodeState:
