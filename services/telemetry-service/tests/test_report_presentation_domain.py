@@ -54,7 +54,7 @@ def build_zip(
         for name, content, timestamp in entries:
             info = ZipInfo(name, timestamp)
             info.compress_type = ZIP_DEFLATED
-            info.extra = b"metadata"
+            info.extra = b"\x01\x00\x04\x00meta"
             info.comment = b"comment"
             archive.writestr(info, content)
     return output.getvalue()

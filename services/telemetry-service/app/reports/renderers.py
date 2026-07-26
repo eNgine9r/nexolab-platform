@@ -491,7 +491,6 @@ def _write_evidence_sheet(
     sheet = workbook.add_worksheet(name)
     sheet.hide_gridlines(2)
     sheet.freeze_panes(1, 0)
-    sheet.autofilter(0, 0, max(len(rows), 1), len(fields) - 1)
     for column, field in enumerate(fields):
         sheet.write_string(0, column, field, formats["header"])
         sheet.set_column(column, column, _column_width(field))
@@ -521,6 +520,8 @@ def _write_evidence_sheet(
                 "columns": [{"header": field} for field in fields],
             },
         )
+    else:
+        sheet.autofilter(0, 0, 0, len(fields) - 1)
 
 
 def _write_verification_sheet(
