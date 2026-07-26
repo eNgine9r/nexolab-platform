@@ -193,7 +193,9 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
   const viewerA = await apiContext(viewerAToken, organizationA);
 
   try {
-    const anonymousResponse = await anonymous.get("/api/v1/alerts/latest");
+    const anonymousResponse = await anonymous.get("/api/v1/alerts/latest", {
+      headers: { "X-Organization-ID": organizationA },
+    });
     expect(anonymousResponse.status()).toBe(401);
 
     const ruleName = `Acceptance high temperature ${randomUUID()}`;
