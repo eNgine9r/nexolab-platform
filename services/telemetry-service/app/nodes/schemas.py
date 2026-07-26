@@ -7,6 +7,18 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.nodes.domain import ClockStatus, NodeState
 
 
+class NodeCredentialRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    node_record_id: str
+    generation: int
+    secret_fingerprint: str
+    issued_by: str
+    issued_at: datetime
+    revoked_at: datetime | None
+
+
 class NodeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -25,18 +37,7 @@ class NodeRead(BaseModel):
     created_by: str
     created_at: datetime
     updated_at: datetime
-
-
-class NodeCredentialRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    node_record_id: str
-    generation: int
-    secret_fingerprint: str
-    issued_by: str
-    issued_at: datetime
-    revoked_at: datetime | None
+    current_credential: NodeCredentialRead | None = None
 
 
 class ProvisionNodeRequest(BaseModel):
