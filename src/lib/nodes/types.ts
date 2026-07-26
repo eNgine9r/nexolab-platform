@@ -17,6 +17,7 @@ export type CentralNode = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  current_credential: NodeCredential | null;
 };
 
 export type NodeCredential = {
