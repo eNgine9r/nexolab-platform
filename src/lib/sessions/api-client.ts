@@ -1,3 +1,6 @@
+import { createAuthenticatedFetch } from "@/features/security/security-session";
+import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+
 import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";
 import type {
   AttributedTelemetryCollection,
@@ -385,5 +388,11 @@ export class SessionApiClient {
 }
 
 export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
-  return new SessionApiClient(getSessionsApiBaseUrl(), options);
+  const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+  const credentialProvider = createRuntimeCredentialProvider(configuredOrganizationId);
+  const baseFetch = options.fetch ?? fetch.bind(globalThis);
+  return new SessionApiClient(getSessionsApiBaseUrl(), {
+    ...options,
+    fetch: createAuthenticatedFetch(baseFetch, credentialProvider),
+  });
 }

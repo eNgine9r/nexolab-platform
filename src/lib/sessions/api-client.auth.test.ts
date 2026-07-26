@@ -1,39 +1,4 @@
-from pathlib import Path
-
-root = Path(__file__).resolve().parents[2]
-api_path = root / "src/lib/sessions/api-client.ts"
-content = api_path.read_text()
-
-old_import = 'import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";\n'
-new_import = '''import { createAuthenticatedFetch } from "@/features/security/security-session";
-import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
-
-import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";
-'''
-if old_import not in content:
-    raise SystemExit("session API import marker not found")
-content = content.replace(old_import, new_import, 1)
-
-old_factory = '''export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
-  return new SessionApiClient(getSessionsApiBaseUrl(), options);
-}
-'''
-new_factory = '''export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
-  const configuredOrganizationId =
-    process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
-  const credentialProvider = createRuntimeCredentialProvider(configuredOrganizationId);
-  const baseFetch = options.fetch ?? fetch.bind(globalThis);
-  return new SessionApiClient(getSessionsApiBaseUrl(), {
-    ...options,
-    fetch: createAuthenticatedFetch(baseFetch, credentialProvider),
-  });
-}
-'''
-if old_factory not in content:
-    raise SystemExit("session API factory marker not found")
-api_path.write_text(content.replace(old_factory, new_factory, 1))
-
-(root / "src/lib/sessions/api-client.auth.test.ts").write_text('''import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setSecurityCredentials } from "@/features/security/security-session";
 
@@ -65,11 +30,12 @@ describe("authenticated Session API client", () => {
   });
 
   it("adds the verified bearer token and selected organization to session reads", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify(emptyPage), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify(emptyPage), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     );
     const client = createSessionApiClient({ fetch: fetchImpl });
 
@@ -84,11 +50,12 @@ describe("authenticated Session API client", () => {
   });
 
   it("refreshes credentials for each request instead of freezing the first organization", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify(emptyPage), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify(emptyPage), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     );
     const client = createSessionApiClient({ fetch: fetchImpl });
 
@@ -104,4 +71,3 @@ describe("authenticated Session API client", () => {
     expect(secondHeaders.get("X-Organization-ID")).toBe("second-org");
   });
 });
-''')
