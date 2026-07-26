@@ -104,7 +104,7 @@ function rulePayload(name: string): Record<string, unknown> {
 function publishTelemetry(
   capturedAt: Date,
   value: number,
-  eventId = randomUUID(),
+  eventId: string = randomUUID(),
 ): { eventId: string; payload: Record<string, unknown> } {
   const payload = {
     event_id: eventId,

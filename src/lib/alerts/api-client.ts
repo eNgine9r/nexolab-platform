@@ -212,6 +212,6 @@ export function createAlertApiClient(options: AlertApiClientOptions = {}): Alert
   const fetchImpl = options.fetch ?? fetch.bind(globalThis);
   return new AlertApiClient(getAlertsApiBaseUrl(), {
     ...options,
-    fetch: createAuthenticatedFetch(fetchImpl, createRuntimeCredentialProvider()),
+    fetch: createAuthenticatedFetch(fetchImpl, createRuntimeCredentialProvider(null)),
   });
 }
