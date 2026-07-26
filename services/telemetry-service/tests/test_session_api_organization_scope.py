@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.main import create_app
+from app.model_registry import register_models
 from app.security.models import (
     SecurityIdentity,
     SecurityMembershipRole,
@@ -68,7 +69,9 @@ def build_client(database_path: Path) -> TestClient:
         auth_jwt_audience=AUDIENCE,
         auth_jwt_provider="scope-test-oidc",
     )
+    register_models()
     app = create_app(settings)
+    app.state.database.create_schema()
     with Session(app.state.database.engine) as session:
         organizations = [
             SecurityOrganization(

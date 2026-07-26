@@ -67,6 +67,11 @@ class TestSession(Base):
             "session_number",
             name="uq_test_sessions_organization_number",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "create_idempotency_key",
+            name="uq_test_sessions_organization_create_key",
+        ),
         Index("ix_test_sessions_state_created", "state", "created_at"),
         Index("ix_test_sessions_node_state", "node_id", "state"),
         Index(
@@ -92,6 +97,9 @@ class TestSession(Base):
             ondelete="RESTRICT",
         ),
         nullable=False,
+    )
+    create_idempotency_key: Mapped[str] = mapped_column(
+        String(128), nullable=False
     )
     session_number: Mapped[str] = mapped_column(String(64), nullable=False)
     node_id: Mapped[str] = mapped_column(String(128), nullable=False)

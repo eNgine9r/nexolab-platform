@@ -109,6 +109,7 @@ class SessionRepository:
         record = TestSession(
             id=session_id,
             organization_id=self._organization_id,
+            create_idempotency_key=normalized_key,
             session_number=payload.session_number,
             node_id=payload.node_id,
             state=SessionState.DRAFT.value,

@@ -65,6 +65,12 @@ def test_session_organization_scope_is_enforced_in_metadata() -> None:
         "organization_id",
         "session_number",
     )
+    assert unique_constraints[
+        "uq_test_sessions_organization_create_key"
+    ] == (
+        "organization_id",
+        "create_idempotency_key",
+    )
 
     indexes = {index.name: index for index in table.indexes}
     assert tuple(
@@ -151,6 +157,9 @@ def test_alembic_migration_created_complete_session_schema() -> None:
         assert session_unique_constraints[
             "uq_test_sessions_organization_number"
         ] == ("organization_id", "session_number")
+        assert session_unique_constraints[
+            "uq_test_sessions_organization_create_key"
+        ] == ("organization_id", "create_idempotency_key")
 
         session_indexes = {
             index["name"]: index
