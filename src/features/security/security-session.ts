@@ -1,5 +1,10 @@
 export type SecurityRole =
-  "administrator" | "laboratory_manager" | "engineer" | "operator" | "viewer" | "auditor";
+  | "administrator"
+  | "laboratory_manager"
+  | "engineer"
+  | "operator"
+  | "viewer"
+  | "auditor";
 
 export type SecurityPermission =
   | "dashboard.read"
@@ -7,6 +12,7 @@ export type SecurityPermission =
   | "alerts.read"
   | "audit.read"
   | "reports.read"
+  | "reports.generate"
   | "reports.approve"
   | "memberships.manage"
   | "equipment.manage"
@@ -56,7 +62,8 @@ export type SecurityCredentialSnapshot = {
 };
 
 export type SecurityCredentialProvider = () =>
-  SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
+  | SecurityCredentialSnapshot
+  | Promise<SecurityCredentialSnapshot>;
 
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
@@ -235,6 +242,7 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
     value === "alerts.read" ||
     value === "audit.read" ||
     value === "reports.read" ||
+    value === "reports.generate" ||
     value === "reports.approve" ||
     value === "memberships.manage" ||
     value === "equipment.manage" ||
