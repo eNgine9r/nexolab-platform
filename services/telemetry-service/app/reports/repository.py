@@ -242,8 +242,11 @@ class ReportRepository:
                     ),
                 )
                 session.add(report)
+                # Artifacts reference report_id without an ORM relationship, so
+                # persist the immutable parent before inserting its exact bytes.
+                session.flush([report])
                 session.add_all(artifacts)
-                session.flush()
+                session.flush(artifacts)
                 self._audit_generation(
                     session,
                     report,
