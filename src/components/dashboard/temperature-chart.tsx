@@ -91,7 +91,7 @@ function LiveHistoryChart({
   const fallbackFrom = new Date(
     fallbackTo.getTime() - (historyRange === "1h" ? 1 : historyRange === "6h" ? 6 : 24) * 60 * 60 * 1000,
   );
-  const window = historyWindow ?? {
+  const queryWindow = historyWindow ?? {
     from: fallbackFrom.toISOString(),
     to: fallbackTo.toISOString(),
   };
