@@ -35,19 +35,34 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Apply ESLint fixes
-        run: npm run lint -- --fix || true
+      - name: Remove unused node workspace import
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/nodes/nodes-workspace.tsx")
+          content = path.read_text()
+          source = "  WifiOff,\n"
+          if source not in content:
+              raise SystemExit("expected unused WifiOff import was not found")
+          path.write_text(content.replace(source, "", 1))
+          PY
+
+      - name: Apply ESLint and formatting fixes
+        run: |
+          npm run lint -- --fix || true
+          npm run format
 
       - name: Commit lint fixes
         run: |
           if git diff --quiet; then
-            echo "No automatic lint changes required."
+            echo "No lint changes required."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --all
-          git commit -m "style(nodes): apply node workspace lint fixes"
+          git commit -m "style(nodes): remove unused workspace import"
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
   quality:
