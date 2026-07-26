@@ -1,0 +1,81 @@
+name: Alerts Browser Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/alerts-browser-acceptance.yml"
+      - "e2e/alerts.production.e2e.ts"
+      - "playwright.alerts.config.ts"
+      - "scripts/run-alerts-browser-acceptance.sh"
+      - "package.json"
+      - "package-lock.json"
+      - "src/app/alerts/**"
+      - "src/components/alerts/**"
+      - "src/components/dashboard/alarms-panel.tsx"
+      - "src/components/dashboard/sidebar.tsx"
+      - "src/features/security/**"
+      - "src/lib/alerts/**"
+      - "services/telemetry-service/app/alerts/**"
+      - "services/telemetry-service/app/ingestion.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/app/model_registry.py"
+      - "services/telemetry-service/app/security/**"
+      - "services/telemetry-service/migrations/versions/20260726_0010_add_production_alerts.py"
+      - "services/telemetry-service/migrations/versions/20260726_0011_harden_alert_audit.py"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alerts-browser-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  alerts-browser-acceptance:
+    name: Next.js + FastAPI + PostgreSQL + MQTT
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install frontend dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Install MQTT client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mosquitto-clients
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run alerts browser acceptance
+        run: |
+          chmod +x scripts/run-alerts-browser-acceptance.sh
+          scripts/run-alerts-browser-acceptance.sh
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-browser-acceptance-evidence
+          path: |
+            test-results-alerts
+            playwright-report-alerts
+            /tmp/nexolab-alerts-acceptance-frontend.log
+            /tmp/nexolab-alerts-acceptance-services.log
+          if-no-files-found: warn
+          retention-days: 14
