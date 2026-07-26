@@ -216,7 +216,9 @@ def create_node_router(
 def _node_read(repository: NodeRepository, node: CentralNode) -> NodeRead:
     credential = repository.current_credential(node.node_id)
     return NodeRead(
-        **NodeRead.model_validate(node).model_dump(),
+        **NodeRead.model_validate(node).model_dump(
+            exclude={"current_credential"}
+        ),
         current_credential=(
             None
             if credential is None
@@ -229,7 +231,9 @@ def _provision_response(stored: ProvisionedNode) -> ProvisionNodeResponse:
     credential = NodeCredentialRead.model_validate(stored.credential)
     return ProvisionNodeResponse(
         node=NodeRead(
-            **NodeRead.model_validate(stored.node).model_dump(),
+            **NodeRead.model_validate(stored.node).model_dump(
+                exclude={"current_credential"}
+            ),
             current_credential=credential,
         ),
         credential=credential,
@@ -242,7 +246,9 @@ def _rotation_response(stored: RotatedNodeCredential) -> RotateNodeCredentialRes
     credential = NodeCredentialRead.model_validate(stored.credential)
     return RotateNodeCredentialResponse(
         node=NodeRead(
-            **NodeRead.model_validate(stored.node).model_dump(),
+            **NodeRead.model_validate(stored.node).model_dump(
+                exclude={"current_credential"}
+            ),
             current_credential=credential,
         ),
         credential=credential,
