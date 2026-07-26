@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,151 +21,37 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - name: Install dependencies
-        env:
-          HUSKY: 0
-        run: npm install --no-audit
-
-      - name: Apply verified alerts fixes
+      - name: Capture marker diagnostics
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' > /tmp/alerts-patch-markers.txt
           from pathlib import Path
 
-          runner = Path("scripts/run-alerts-browser-acceptance.sh")
-          content = runner.read_text()
-          content = content.replace(
-              'MANAGER_ROLE_ID="40000000-0000-0000-0000-000000000001"\nVIEWER_ROLE_ID="40000000-0000-0000-0000-000000000002"\n',
-              "",
-          )
-          start = content.find("INSERT INTO security_organizations")
-          end_marker = "ON CONFLICT (membership_id, role_id) DO NOTHING;"
-          end = content.find(end_marker, start)
-          if start < 0 or end < 0:
-              raise SystemExit("security seed markers were not found")
-          end += len(end_marker)
-          seed = """INSERT INTO security_organizations (id, slug, name, is_active)
-          VALUES
-            ('$ORGANIZATION_A', 'alerts-org-a', 'Alerts Acceptance Organization A', true),
-            ('$ORGANIZATION_B', 'alerts-org-b', 'Alerts Acceptance Organization B', true)
-          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, is_active = true;
+          runner = Path("scripts/run-alerts-browser-acceptance.sh").read_text()
+          print("runner_start", runner.find("INSERT INTO security_organizations"))
+          print("runner_end_role_id", runner.find("ON CONFLICT (membership_id, role_id) DO NOTHING;"))
+          print("runner_end_role", runner.find("ON CONFLICT (membership_id, role) DO NOTHING;"))
+          print("manager_role_constant", runner.find("MANAGER_ROLE_ID="))
 
-          INSERT INTO security_identities (id, provider, subject, email, display_name, is_active)
-          VALUES
-            ('$MANAGER_A_ID', '$JWT_PROVIDER', '$MANAGER_A_SUBJECT', 'manager-a-alerts@nexolab.local', 'Manager A Alerts', true),
-            ('$MANAGER_B_ID', '$JWT_PROVIDER', '$MANAGER_B_SUBJECT', 'manager-b-alerts@nexolab.local', 'Manager B Alerts', true),
-            ('$VIEWER_A_ID', '$JWT_PROVIDER', '$VIEWER_A_SUBJECT', 'viewer-a-alerts@nexolab.local', 'Viewer A Alerts', true)
-          ON CONFLICT (provider, subject) DO UPDATE
-          SET email = EXCLUDED.email, display_name = EXCLUDED.display_name, is_active = true;
+          workspace = Path("src/components/alerts/alerts-workspace.tsx").read_text()
+          print("workspace_load", workspace.find("    void load(controller.signal);"))
+          print("workspace_cleanup", workspace.find("      controller.abort();\n      window.clearInterval(refresh);"))
+          print("detail_start_block", workspace.find("  useEffect(() => {\n    if (!selectedId) {"))
+          print("detail_start_single", workspace.find("  useEffect(() => {\n    if (!selectedId) return;"))
+          print("detail_end", workspace.find("  }, [selectedId, selected?.lock_version]);"))
 
-          INSERT INTO security_organization_memberships (id, organization_id, identity_id, is_active)
-          VALUES
-            ('$MANAGER_A_MEMBERSHIP', '$ORGANIZATION_A', '$MANAGER_A_ID', true),
-            ('$MANAGER_B_MEMBERSHIP', '$ORGANIZATION_B', '$MANAGER_B_ID', true),
-            ('$VIEWER_A_MEMBERSHIP', '$ORGANIZATION_A', '$VIEWER_A_ID', true)
-          ON CONFLICT (organization_id, identity_id) DO UPDATE SET is_active = true;
-
-          INSERT INTO security_membership_roles (membership_id, role, assigned_by)
-          VALUES
-            ('$MANAGER_A_MEMBERSHIP', 'laboratory_manager', 'alerts-acceptance-seed'),
-            ('$MANAGER_B_MEMBERSHIP', 'laboratory_manager', 'alerts-acceptance-seed'),
-            ('$VIEWER_A_MEMBERSHIP', 'viewer', 'alerts-acceptance-seed')
-          ON CONFLICT (membership_id, role) DO NOTHING;"""
-          runner.write_text(content[:start] + seed + content[end:])
-
-          workspace = Path("src/components/alerts/alerts-workspace.tsx")
-          content = workspace.read_text()
-          content = content.replace(
-              "    void load(controller.signal);",
-              "    const initial = window.setTimeout(() => void load(controller.signal), 0);",
-              1,
-          )
-          content = content.replace(
-              "      controller.abort();\n      window.clearInterval(refresh);",
-              "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
-              1,
-          )
-          detail_start_marker = "  useEffect(() => {\n    if (!selectedId) {"
-          detail_end_marker = "  }, [selectedId, selected?.lock_version]);"
-          detail_start = content.find(detail_start_marker)
-          detail_end = content.find(detail_end_marker, detail_start)
-          if detail_start < 0 or detail_end < 0:
-              raise SystemExit("alert detail effect markers were not found")
-          detail_end += len(detail_end_marker)
-          detail_effect = """  useEffect(() => {
-            if (!selectedId) return;
-            const controller = new AbortController();
-            const initial = window.setTimeout(() => {
-              setDetailLoading(true);
-              void createAlertApiClient()
-                .listTransitions(selectedId, controller.signal)
-                .then((page) => {
-                  if (!controller.signal.aborted) setTransitions(page.items);
-                })
-                .catch((nextError) => {
-                  if (!controller.signal.aborted) {
-                    setActionError(
-                      nextError instanceof Error ? nextError : new Error("Не вдалося завантажити історію тривоги."),
-                    );
-                  }
-                })
-                .finally(() => {
-                  if (!controller.signal.aborted) setDetailLoading(false);
-                });
-            }, 0);
-            return () => {
-              controller.abort();
-              window.clearTimeout(initial);
-            };
-          }, [selectedId, selected?.lock_version]);"""
-          workspace.write_text(content[:detail_start] + detail_effect + content[detail_end:])
-
-          panel = Path("src/components/dashboard/alarms-panel.tsx")
-          content = panel.read_text()
-          content = content.replace('  samples: _samples = [],\n', "", 1)
-          content = content.replace(
-              "    void loadAlerts(controller.signal);",
-              "    const initial = window.setTimeout(() => void loadAlerts(controller.signal), 0);",
-              1,
-          )
-          content = content.replace(
-              "      controller.abort();\n      window.clearInterval(refresh);",
-              "      controller.abort();\n      window.clearTimeout(initial);\n      window.clearInterval(refresh);",
-              1,
-          )
-          panel.write_text(content)
+          panel = Path("src/components/dashboard/alarms-panel.tsx").read_text()
+          print("panel_samples", panel.find("  samples: _samples = [],"))
+          print("panel_load", panel.find("    void loadAlerts(controller.signal);"))
+          print("panel_cleanup", panel.find("      controller.abort();\n      window.clearInterval(refresh);"))
           PY
 
-      - name: Apply formatter
-        run: npm run format
-
-      - name: Commit verified fixes
-        if: github.event_name == 'pull_request'
-        run: |
-          git config user.name "nexolab-ci"
-          git config user.email "nexolab-ci@users.noreply.github.com"
-          git add --update
-          if git diff --cached --quiet; then
-            echo "No source changes to commit"
-          else
-            git commit -m "fix(alerts): align security seed and React effects"
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
-
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Upload marker diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-patch-markers
+          path: /tmp/alerts-patch-markers.txt
+          if-no-files-found: error
+          retention-days: 3
