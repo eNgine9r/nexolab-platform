@@ -131,21 +131,24 @@ async function expectAlertCount(
   context: APIRequestContext,
   path: string,
   expected: number,
+  ruleId?: string,
 ): Promise<AlertPageResponse> {
   let body: AlertPageResponse | null = null;
+  let matchingItems: AlertPageResponse["items"] = [];
   await expect
     .poll(
       async () => {
         const response = await context.get(path);
         expect(response.status()).toBe(200);
         body = (await response.json()) as AlertPageResponse;
-        return body.count;
+        matchingItems = ruleId ? body.items.filter((item) => item.rule_id === ruleId) : body.items;
+        return matchingItems.length;
       },
       { timeout: 30_000 },
     )
     .toBe(expected);
   if (!body) throw new Error(`No response body returned for ${path}`);
-  return body;
+  return { ...body, items: matchingItems, count: matchingItems.length };
 }
 
 async function expectAlertState(
@@ -237,11 +240,11 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     const base = new Date();
     publishTelemetry(base, 8.6);
     publishTelemetry(new Date(base.getTime() + 1_000), 7.5);
-    await expectAlertCount(managerA, "/api/v1/alerts/latest", 0);
+    await expectAlertCount(managerA, "/api/v1/alerts/latest", 0, ruleA.id);
 
     publishTelemetry(new Date(base.getTime() + 10_000), 8.7);
     const sustained = publishTelemetry(new Date(base.getTime() + 13_000), 9.4);
-    const latest = await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);
+    const latest = await expectAlertCount(managerA, "/api/v1/alerts/latest", 1, ruleA.id);
     const alert = latest.items[0];
     expect(alert.organization_id).toBe(organizationA);
     expect(alert.node_id).toBe("edge-01");
@@ -252,7 +255,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
 
     publishTelemetry(new Date(base.getTime() + 13_000), 9.4, sustained.eventId);
     publishTelemetry(new Date(base.getTime() + 11_000), 12.5);
-    await expectAlertCount(managerA, "/api/v1/alerts/latest", 1);
+    await expectAlertCount(managerA, "/api/v1/alerts/latest", 1, ruleA.id);
 
     const foreignAlert = await managerB.get(`/api/v1/alerts/${alert.id}`);
     expect(foreignAlert.status()).toBe(404);
@@ -271,7 +274,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     await page.goto("/alerts", { waitUntil: "networkidle" });
     await expect(page.getByTestId("alerts-workspace")).toBeVisible();
     await expect(page.getByText("K106 / 106-03")).toBeVisible();
-    await expect(page.getByText("9,4 degC")).toBeVisible();
+    await expect(page.getByTestId("alert-detail").getByText("9,4 degC")).toBeVisible();
     expect(page.url()).not.toContain(managerAToken);
 
     await page
@@ -324,8 +327,8 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     expect(closeReplay.status()).toBe(200);
     expect((await closeReplay.json()).replayed).toBe(true);
 
-    await expectAlertCount(managerA, "/api/v1/alerts/latest", 0);
-    const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1);
+    await expectAlertCount(managerA, "/api/v1/alerts/latest", 0, ruleA.id);
+    const history = await expectAlertCount(managerA, "/api/v1/alerts/history", 1, ruleA.id);
     expect(history.items[0].id).toBe(alert.id);
 
     const evidenceResponse = await managerA.get(`/api/v1/alerts/${alert.id}/evidence`);
