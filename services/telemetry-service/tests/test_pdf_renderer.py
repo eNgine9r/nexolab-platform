@@ -11,7 +11,7 @@ from app.reports.pdf_renderer import (
     PDF_RENDERER_VERSION,
     render_pdf_protocol,
 )
-from test_report_renderer import report_artifacts
+from tests.test_report_renderer import report_artifacts
 
 
 def _canonical(value: object) -> bytes:
