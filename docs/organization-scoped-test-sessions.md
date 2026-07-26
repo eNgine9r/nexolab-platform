@@ -37,6 +37,10 @@ Migration `20260726_0009`:
 
 The migration and model have no persistent organization default. Every new session receives organization ownership explicitly from the scoped repository selected by the authorized principal.
 
+## Create idempotency namespace
+
+Create-command keys remain client-generated, but their persisted lookup key is a SHA-256 namespace of the verified organization ID and normalized client key. This preserves deterministic replay while preventing a key used in one organization from blocking another organization.
+
 ## Acceptance
 
 Repository and API integration tests verify organization-scoped create replay, duplicate session numbers across organizations, isolated lists, foreign-ID non-disclosure, verified JWT actor attribution and ownership checks before configuration or telemetry queries.
