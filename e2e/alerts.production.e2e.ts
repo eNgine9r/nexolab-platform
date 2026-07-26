@@ -176,8 +176,9 @@ async function installBrowserCredentials(
 ): Promise<void> {
   await page.addInitScript(
     ({ token, organization }) => {
-      window.sessionStorage.setItem("nexolab.acceptance.access_token", token);
-      window.sessionStorage.setItem("nexolab.acceptance.organization_id", organization);
+      if (window.location.protocol === "about:") return;
+      window.sessionStorage.setItem("nexolab.acceptance.access-token", token);
+      window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },
     { token: accessToken, organization: organizationId },
   );
