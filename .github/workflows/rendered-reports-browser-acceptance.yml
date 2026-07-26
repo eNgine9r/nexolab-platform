@@ -1,84 +1,75 @@
-name: Rendered Reports Navigation Patch
+name: Rendered Reports Browser Acceptance
 
 on:
   pull_request:
     branches: [main]
+    paths:
+      - ".github/workflows/rendered-reports-browser-acceptance.yml"
+      - "e2e/rendered-reports.production.e2e.ts"
+      - "playwright.rendered-reports.config.ts"
+      - "scripts/run-rendered-reports-browser-acceptance.sh"
+      - "scripts/run-reports-browser-acceptance.sh"
+      - "package.json"
+      - "package-lock.json"
+      - "src/app/reports/**"
+      - "src/components/reports/**"
+      - "src/features/security/**"
+      - "src/lib/reports/**"
+      - "services/telemetry-service/app/reports/**"
+      - "services/telemetry-service/app/security/**"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/app/model_registry.py"
+      - "services/telemetry-service/migrations/versions/20260726_0012_add_test_reports.py"
+      - "services/telemetry-service/migrations/versions/20260726_0013_add_rendered_reports.py"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: rendered-reports-navigation-patch-${{ github.event.pull_request.number }}
+  group: rendered-reports-browser-acceptance-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  patch:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  rendered-reports-browser-acceptance:
+    name: Next.js + FastAPI + PostgreSQL
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
 
-      - name: Add report detail navigation
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("src/components/reports/reports-workspace.tsx")
-          content = path.read_text()
-          content = content.replace(
-              '"use client";\n\nimport { useCallback, useEffect, useMemo, useState } from "react";',
-              '"use client";\n\nimport Link from "next/link";\nimport { useCallback, useEffect, useMemo, useState } from "react";',
-              1,
-          )
-          content = content.replace(
-              '  Archive,\n  CheckCircle2,',
-              '  Archive,\n  ArrowUpRight,\n  CheckCircle2,',
-              1,
-          )
-          source = '''        <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
-          <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
-          Append-only
-        </div>'''
-          target = '''        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/reports/${report.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-3 py-2 text-[10px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.12]"
-            data-testid="open-rendered-report"
-          >
-            Відкрити протокол
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-          <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
-            <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
-            Append-only
-          </div>
-        </div>'''
-          if source not in content:
-              raise SystemExit("expected ReportDetail status block was not found")
-          content = content.replace(source, target, 1)
-          path.write_text(content)
-          PY
-
-      - name: Install dependencies and format
+      - name: Install frontend dependencies
         env:
           HUSKY: 0
-        run: |
-          npm install --no-audit
-          npx prettier --write src/components/reports/reports-workspace.tsx
+        run: npm install --no-audit
 
-      - name: Commit navigation
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run rendered reports browser acceptance
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/reports/reports-workspace.tsx
-          git commit -m "feat(reports): link report list to protocol detail"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          chmod +x scripts/run-rendered-reports-browser-acceptance.sh
+          scripts/run-rendered-reports-browser-acceptance.sh
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-reports-browser-acceptance-evidence
+          path: |
+            test-results-rendered-reports
+            playwright-report-rendered-reports
+            test-results-reports
+            /tmp/nexolab-reports-acceptance-frontend.log
+            /tmp/nexolab-reports-acceptance-services.log
+          if-no-files-found: warn
+          retention-days: 14
