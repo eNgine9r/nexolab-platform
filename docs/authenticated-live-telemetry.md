@@ -2,6 +2,12 @@
 
 The production dashboard uses the verified user session introduced by the NEXOLAB RBAC gate for both REST and WebSocket telemetry.
 
+## Dashboard session gate
+
+Live telemetry is disabled until `/api/v1/auth/session` returns a verified identity and at least one organization membership. The dashboard distinguishes loading, unauthenticated, forbidden and request-failure states instead of starting anonymous data requests.
+
+The selected organization must exist in the returned membership list. Switching organizations clears the current telemetry store and reconnects REST and WebSocket clients with the new organization boundary. Logout clears the in-memory credentials before returning the operator to `/login`.
+
 ## REST
 
 Every `/api/v1/telemetry/latest` and `/api/v1/telemetry/history` request carries:
