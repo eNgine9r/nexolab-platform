@@ -121,5 +121,9 @@ export async function signOut(): Promise<void> {
   if (supabase) {
     await supabase.auth.signOut();
   }
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(ACCEPTANCE_TOKEN_KEY);
+    window.sessionStorage.removeItem(ACCEPTANCE_ORGANIZATION_KEY);
+  }
   setSecurityCredentials({ accessToken: null, organizationId: null });
 }
