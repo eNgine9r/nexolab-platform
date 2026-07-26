@@ -31,7 +31,7 @@ const navItems = [
   { label: "Схеми обладнання", icon: Boxes },
   { label: "Поштомати", icon: LockKeyhole },
   { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration" },
-  { label: "Тривоги", icon: AlertTriangle, badge: "12" },
+  { label: "Тривоги", icon: AlertTriangle, href: "/alerts" },
   { label: "Камери", icon: Camera },
   { label: "Енергомоніторинг", icon: Zap },
   { label: "Звіти", icon: FileText },
