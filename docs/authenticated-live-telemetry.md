@@ -6,7 +6,7 @@ The production dashboard uses the verified user session introduced by the NEXOLA
 
 Live telemetry is disabled until `/api/v1/auth/session` returns a verified identity and at least one organization membership. The dashboard distinguishes loading, unauthenticated, forbidden and request-failure states instead of starting anonymous data requests.
 
-The selected organization must exist in the returned membership list. Switching organizations clears the current telemetry store and reconnects REST and WebSocket clients with the new organization boundary. Logout clears the in-memory credentials before returning the operator to `/login`.
+The selected organization must exist in the returned membership list. Switching organizations clears the current telemetry store and reconnects REST and WebSocket clients with the new organization boundary. Data from the previous organization is hidden immediately while the new scope is loading. Logout clears the in-memory credentials before returning the operator to `/login`.
 
 ## REST
 
