@@ -15,6 +15,8 @@ from app.alerts.repository import (
     RuleRecord,
 )
 from app.alerts.schemas import (
+    AlertEvidencePage,
+    AlertEvidenceRead,
     AlertLifecycleCommand,
     AlertLifecycleResponse,
     AlertPage,
@@ -22,6 +24,7 @@ from app.alerts.schemas import (
     AlertRuleCreate,
     AlertRulePage,
     AlertRuleRead,
+    AlertRuleReplace,
     AlertRuleVersionRead,
     AlertTransitionPage,
     AlertTransitionRead,
@@ -118,6 +121,66 @@ def create_alert_router(
         except Exception as error:
             raise _http_error(error) from error
 
+    @router.put("/rules/{rule_id}", response_model=AlertRuleRead)
+    def replace_rule(
+        rule_id: str,
+        payload: AlertRuleReplace,
+        authorized: AuthorizedRequest = Depends(manage_rules_access),
+    ) -> AlertRuleRead:
+        try:
+            record = repository.for_organization(
+                authorized.principal.organization_id
+            ).replace_rule(
+                rule_id,
+                payload,
+                actor_id=authorized.principal.subject,
+            )
+            return _rule_read(record)
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.get("/latest", response_model=AlertPage)
+    def latest_alerts(
+        authorized: AuthorizedRequest = Depends(read_access),
+        severity: Annotated[AlertSeverity | None, Query()] = None,
+        metric: Annotated[str | None, Query(max_length=128)] = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> AlertPage:
+        return _alert_page(
+            repository,
+            authorized,
+            states=frozenset(
+                {
+                    AlertState.ACTIVE,
+                    AlertState.ACKNOWLEDGED,
+                    AlertState.RESOLVED,
+                }
+            ),
+            severity=severity,
+            metric=metric,
+            limit=limit,
+            offset=offset,
+        )
+
+    @router.get("/history", response_model=AlertPage)
+    def alert_history(
+        authorized: AuthorizedRequest = Depends(read_access),
+        severity: Annotated[AlertSeverity | None, Query()] = None,
+        metric: Annotated[str | None, Query(max_length=128)] = None,
+        limit: Annotated[int, Query(ge=1, le=200)] = 50,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> AlertPage:
+        return _alert_page(
+            repository,
+            authorized,
+            states=frozenset({AlertState.CLOSED}),
+            severity=severity,
+            metric=metric,
+            limit=limit,
+            offset=offset,
+        )
+
     @router.get("", response_model=AlertPage)
     def list_alerts(
         authorized: AuthorizedRequest = Depends(read_access),
@@ -127,25 +190,19 @@ def create_alert_router(
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> AlertPage:
-        try:
-            result = repository.for_organization(
-                authorized.principal.organization_id
-            ).list_alerts(
-                state=state_filter,
-                severity=severity.value if severity is not None else None,
-                metric=metric,
-                limit=limit,
-                offset=offset,
-            )
-            return AlertPage(
-                items=[AlertRead.model_validate(item) for item in result.items],
-                count=result.count,
-                limit=result.limit,
-                offset=result.offset,
-                next_offset=result.next_offset,
-            )
-        except Exception as error:
-            raise _http_error(error) from error
+        return _alert_page(
+            repository,
+            authorized,
+            states=(
+                frozenset({state_filter})
+                if state_filter is not None
+                else None
+            ),
+            severity=severity,
+            metric=metric,
+            limit=limit,
+            offset=offset,
+        )
 
     @router.get("/{alert_id}", response_model=AlertRead)
     def get_alert(
@@ -174,6 +231,30 @@ def create_alert_router(
             return AlertTransitionPage(
                 items=[
                     AlertTransitionRead.model_validate(item)
+                    for item in result.items
+                ],
+                count=result.count,
+                limit=result.limit,
+                offset=result.offset,
+                next_offset=result.next_offset,
+            )
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.get("/{alert_id}/evidence", response_model=AlertEvidencePage)
+    def list_evidence(
+        alert_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> AlertEvidencePage:
+        try:
+            result = repository.for_organization(
+                authorized.principal.organization_id
+            ).evidence(alert_id, limit=limit, offset=offset)
+            return AlertEvidencePage(
+                items=[
+                    AlertEvidenceRead.model_validate(item)
                     for item in result.items
                 ],
                 count=result.count,
@@ -235,6 +316,37 @@ def create_alert_router(
             raise _http_error(error) from error
 
     return router
+
+
+def _alert_page(
+    repository: AlertRepository,
+    authorized: AuthorizedRequest,
+    *,
+    states: frozenset[AlertState] | None,
+    severity: AlertSeverity | None,
+    metric: str | None,
+    limit: int,
+    offset: int,
+) -> AlertPage:
+    try:
+        result = repository.for_organization(
+            authorized.principal.organization_id
+        ).list_alerts(
+            states=states,
+            severity=severity.value if severity is not None else None,
+            metric=metric,
+            limit=limit,
+            offset=offset,
+        )
+        return AlertPage(
+            items=[AlertRead.model_validate(item) for item in result.items],
+            count=result.count,
+            limit=result.limit,
+            offset=result.offset,
+            next_offset=result.next_offset,
+        )
+    except Exception as error:
+        raise _http_error(error) from error
 
 
 def _rule_read(record: object) -> AlertRuleRead:
