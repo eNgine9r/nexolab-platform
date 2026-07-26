@@ -1,4 +1,4 @@
-name: Report Detail Link Hotfix
+name: Report Detail Navigation Patch
 
 on:
   pull_request:
