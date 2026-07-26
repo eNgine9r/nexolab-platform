@@ -54,6 +54,7 @@ describe("useDashboardSecurity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
     setSecurityCredentials({ accessToken: null, organizationId: null });
     authState.credentials.mockResolvedValue({
       accessToken: "access-token",
@@ -101,7 +102,24 @@ describe("useDashboardSecurity", () => {
     expect(result.current.error).toContain("відсутня");
   });
 
-  it("clears credentials on logout", async () => {
+  it("rejects an explicitly selected organization that is not in the verified session", async () => {
+    setSecurityCredentials({ accessToken: "access-token", organizationId: "foreign-org" });
+    authState.credentials.mockResolvedValue({
+      accessToken: "access-token",
+      organizationId: "foreign-org",
+    });
+
+    const { result } = renderHook(() => useDashboardSecurity());
+
+    await waitFor(() => {
+      expect(result.current.state).toBe("forbidden");
+    });
+    expect(result.current.membership).toBeNull();
+    expect(result.current.error).toContain("відсутня");
+  });
+
+  it("clears credentials and persisted organization on logout", async () => {
+    window.localStorage.setItem("nexolab.selectedOrganizationId", "org-1");
     const { result } = renderHook(() => useDashboardSecurity());
     await waitFor(() => expect(result.current.state).toBe("ready"));
 
@@ -111,6 +129,7 @@ describe("useDashboardSecurity", () => {
 
     expect(authState.signOut).toHaveBeenCalledOnce();
     expect(result.current.state).toBe("unauthenticated");
+    expect(window.localStorage.getItem("nexolab.selectedOrganizationId")).toBeNull();
     expect(getSecurityCredentials()).toEqual({
       accessToken: null,
       organizationId: null,
