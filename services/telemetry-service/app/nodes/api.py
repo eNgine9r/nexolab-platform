@@ -12,6 +12,7 @@ from app.nodes.domain import (
     ProvisionNodeCommand,
     RotateNodeCredentialCommand,
 )
+from app.nodes.models import CentralNode
 from app.nodes.repository import (
     NodeConflictError,
     NodeIdempotencyConflictError,
@@ -54,10 +55,11 @@ def create_node_router(
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> list[NodeRead]:
         try:
-            rows = repository.for_organization(
+            scoped = repository.for_organization(
                 authorized.principal.organization_id
-            ).list_nodes(state=state_filter)
-            return [NodeRead.model_validate(row) for row in rows]
+            )
+            rows = scoped.list_nodes(state=state_filter)
+            return [_node_read(scoped, row) for row in rows]
         except Exception as error:
             raise _http_error(error) from error
 
@@ -67,10 +69,10 @@ def create_node_router(
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> NodeRead:
         try:
-            row = repository.for_organization(
+            scoped = repository.for_organization(
                 authorized.principal.organization_id
-            ).get_node(node_id)
-            return NodeRead.model_validate(row)
+            )
+            return _node_read(scoped, scoped.get_node(node_id))
         except Exception as error:
             raise _http_error(error) from error
 
@@ -117,16 +119,17 @@ def create_node_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> NodeRead:
         try:
-            row = repository.for_organization(
+            scoped = repository.for_organization(
                 authorized.principal.organization_id
-            ).activate(
+            )
+            row = scoped.activate(
                 node_id,
                 actor_subject=authorized.principal.subject,
                 actor_identity_id=authorized.identity_id,
                 actor_roles=authorized.principal.roles,
                 reason=payload.reason,
             )
-            return NodeRead.model_validate(row)
+            return _node_read(scoped, row)
         except Exception as error:
             raise _http_error(error) from error
 
@@ -137,16 +140,17 @@ def create_node_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> NodeRead:
         try:
-            row = repository.for_organization(
+            scoped = repository.for_organization(
                 authorized.principal.organization_id
-            ).suspend(
+            )
+            row = scoped.suspend(
                 node_id,
                 actor_subject=authorized.principal.subject,
                 actor_identity_id=authorized.identity_id,
                 actor_roles=authorized.principal.roles,
                 reason=payload.reason,
             )
-            return NodeRead.model_validate(row)
+            return _node_read(scoped, row)
         except Exception as error:
             raise _http_error(error) from error
 
@@ -157,16 +161,17 @@ def create_node_router(
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> NodeRead:
         try:
-            row = repository.for_organization(
+            scoped = repository.for_organization(
                 authorized.principal.organization_id
-            ).revoke(
+            )
+            row = scoped.revoke(
                 node_id,
                 actor_subject=authorized.principal.subject,
                 actor_identity_id=authorized.identity_id,
                 actor_roles=authorized.principal.roles,
                 reason=payload.reason,
             )
-            return NodeRead.model_validate(row)
+            return _node_read(scoped, row)
         except Exception as error:
             raise _http_error(error) from error
 
@@ -208,19 +213,39 @@ def create_node_router(
     return router
 
 
+def _node_read(repository: NodeRepository, node: CentralNode) -> NodeRead:
+    credential = repository.current_credential(node.node_id)
+    return NodeRead(
+        **NodeRead.model_validate(node).model_dump(),
+        current_credential=(
+            None
+            if credential is None
+            else NodeCredentialRead.model_validate(credential)
+        ),
+    )
+
+
 def _provision_response(stored: ProvisionedNode) -> ProvisionNodeResponse:
+    credential = NodeCredentialRead.model_validate(stored.credential)
     return ProvisionNodeResponse(
-        node=NodeRead.model_validate(stored.node),
-        credential=NodeCredentialRead.model_validate(stored.credential),
+        node=NodeRead(
+            **NodeRead.model_validate(stored.node).model_dump(),
+            current_credential=credential,
+        ),
+        credential=credential,
         provisioning_secret=stored.secret,
         replayed=stored.replayed,
     )
 
 
 def _rotation_response(stored: RotatedNodeCredential) -> RotateNodeCredentialResponse:
+    credential = NodeCredentialRead.model_validate(stored.credential)
     return RotateNodeCredentialResponse(
-        node=NodeRead.model_validate(stored.node),
-        credential=NodeCredentialRead.model_validate(stored.credential),
+        node=NodeRead(
+            **NodeRead.model_validate(stored.node).model_dump(),
+            current_credential=credential,
+        ),
+        credential=credential,
         provisioning_secret=stored.secret,
         replayed=stored.replayed,
     )
