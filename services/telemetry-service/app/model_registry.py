@@ -10,6 +10,7 @@ def register_models() -> None:
     """Import persistence models so they are attached to Base.metadata."""
     from app.alerts import models as _alert_models
     from app.alerts.immutability import register_alert_immutability
+    from app.nodes import models as _node_models
     from app.refrigeration import models as _refrigeration_models
     from app.reports import models as _report_models
     from app.reports.immutability import register_report_immutability
@@ -27,6 +28,10 @@ def register_models() -> None:
     )
     assert _alert_models.AlertRule.__tablename__ == "alert_rules"
     assert _alert_models.AlertInstance.__tablename__ == "alert_instances"
+    assert _node_models.CentralNode.__tablename__ == "central_nodes"
+    assert _node_models.CentralNodeCredential.__tablename__ == (
+        "central_node_credentials"
+    )
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
