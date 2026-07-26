@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     mqtt_host: str = "mqtt"
     mqtt_port: int = Field(default=1883, ge=1, le=65535)
     mqtt_topic: str = "nexolab/telemetry"
+    mqtt_node_registry_enforced: bool = False
+    mqtt_node_topic_filter: str = "nexolab/v1/+/+/telemetry"
     mqtt_client_id: str = "nexolab-telemetry-ingestion"
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
@@ -85,6 +87,14 @@ class Settings(BaseSettings):
             for origin in self.cors_allowed_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def resolved_mqtt_topic(self) -> str:
+        return (
+            self.mqtt_node_topic_filter
+            if self.mqtt_node_registry_enforced
+            else self.mqtt_topic
+        )
 
     @property
     def resolved_auth_jwt_public_key(self) -> str | None:
