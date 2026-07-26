@@ -75,7 +75,7 @@ class ReportService:
         session_id = _required(session_id, "session_id")
         idempotency_key = _required(idempotency_key, "idempotency_key")
         generated_by = _required(generated_by, "generated_by")
-        generated_at = _aware_utc(self._clock())
+        generated_at = _strict_utc(self._clock())
 
         with Session(self._engine, expire_on_commit=False) as database_session:
             with database_session.begin():
@@ -163,6 +163,7 @@ class ReportService:
                     telemetry_count=len(telemetry_rows),
                     alert_transition_count=len(alert_rows),
                 )
+                source = _normalize_persisted_datetimes(source)
                 source_bytes = canonical_json_bytes(source)
                 normalized_source = json.loads(source_bytes)
                 telemetry_bytes = telemetry_csv_bytes(telemetry_rows)
@@ -213,8 +214,8 @@ class ReportService:
                     version=version,
                     idempotency_key=idempotency_key,
                     session_state=test_session.state,
-                    source_started_at=_aware_utc(test_session.started_at),
-                    source_ended_at=_aware_utc(test_session.completed_at),
+                    source_started_at=_persisted_utc(test_session.started_at),
+                    source_ended_at=_persisted_utc(test_session.completed_at),
                     source_snapshot=normalized_source,
                     source_sha256=source_sha256,
                     manifest_sha256=manifest_descriptor.sha256,
@@ -349,9 +350,27 @@ class ReportService:
             .order_by(sample.captured_at, sample.event_id)
         )
         return [
-            TelemetryEvidenceRow(**dict(row))
-            for row in database_session.execute(statement).mappings()
-        ]
+    TelemetryEvidenceRow(
+        event_id=str(row["event_id"]),
+        captured_at=_persisted_utc(row["captured_at"]),
+        node_id=str(row["node_id"]),
+        equipment_id=str(row["equipment_id"]),
+        channel_id=str(row["channel_id"]),
+        metric=str(row["metric"]),
+        value=row["value"],
+        unit=str(row["unit"]),
+        quality=str(row["quality"]),
+        alarm=(str(row["alarm"]) if row["alarm"] is not None else None),
+        source=str(row["source"]),
+        session_id=str(row["session_id"]),
+        stage_id=(
+            str(row["stage_id"]) if row["stage_id"] is not None else None
+        ),
+        binding_id=str(row["binding_id"]),
+        config_snapshot_id=str(row["config_snapshot_id"]),
+    )
+    for row in database_session.execute(statement).mappings()
+]
 
     @staticmethod
     def _alert_rows(
@@ -385,7 +404,7 @@ class ReportService:
                 actor_id=transition.actor_id,
                 actor_source=transition.actor_source,
                 reason=transition.reason,
-                occurred_at=transition.occurred_at,
+                occurred_at=_persisted_utc(transition.occurred_at),
                 severity=alert.severity,
                 node_id=alert.node_id,
                 equipment_id=alert.equipment_id,
@@ -463,7 +482,10 @@ class ReportService:
         alerts = list(
             database_session.scalars(
                 select(AlertInstance)
-                .where(AlertInstance.session_id == test_session.id)
+                .where(
+            AlertInstance.session_id == test_session.id,
+            AlertInstance.organization_id == test_session.organization_id,
+        )
                 .order_by(AlertInstance.triggered_at, AlertInstance.id)
             )
         )
@@ -471,7 +493,10 @@ class ReportService:
             database_session.scalars(
                 select(AlertTransition)
                 .join(AlertInstance, AlertInstance.id == AlertTransition.alert_id)
-                .where(AlertInstance.session_id == test_session.id)
+                .where(
+            AlertInstance.session_id == test_session.id,
+            AlertInstance.organization_id == test_session.organization_id,
+        )
                 .order_by(AlertTransition.occurred_at, AlertTransition.id)
             )
         )
@@ -663,7 +688,28 @@ def _required(value: str, name: str) -> str:
     return normalized
 
 
-def _aware_utc(value: datetime) -> datetime:
+def _strict_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("datetime values must be timezone-aware")
     return value.astimezone(UTC)
+
+
+def _persisted_utc(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _normalize_persisted_datetimes(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return _persisted_utc(value)
+    if isinstance(value, dict):
+        return {
+            key: _normalize_persisted_datetimes(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_normalize_persisted_datetimes(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_normalize_persisted_datetimes(item) for item in value)
+    return value
