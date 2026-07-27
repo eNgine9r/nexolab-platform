@@ -8,6 +8,12 @@ on:
     paths:
       - "infrastructure/mqtt/dynamic-security/**"
       - "infrastructure/compose/compose.mqtt-security-acceptance.yaml"
+      - "infrastructure/compose/compose.central-mqtt-security.yaml"
+      - "infrastructure/compose/compose.edge-central-bridge.yaml"
+      - "infrastructure/compose/compose.edge-central-security.yaml"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/mqtt_consumer.py"
+      - "services/telemetry-service/tests/test_mqtt_credentials.py"
       - "scripts/run-mqtt-broker-security-acceptance.sh"
       - ".github/workflows/mqtt-broker-security-acceptance.yml"
   pull_request:
@@ -15,6 +21,12 @@ on:
     paths:
       - "infrastructure/mqtt/dynamic-security/**"
       - "infrastructure/compose/compose.mqtt-security-acceptance.yaml"
+      - "infrastructure/compose/compose.central-mqtt-security.yaml"
+      - "infrastructure/compose/compose.edge-central-bridge.yaml"
+      - "infrastructure/compose/compose.edge-central-security.yaml"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/mqtt_consumer.py"
+      - "services/telemetry-service/tests/test_mqtt_credentials.py"
       - "scripts/run-mqtt-broker-security-acceptance.sh"
       - ".github/workflows/mqtt-broker-security-acceptance.yml"
   workflow_dispatch:
@@ -36,16 +48,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate scripts and Compose contract
+      - name: Validate scripts and Compose contracts
         env:
           NEXOLAB_MQTT_ADMIN_USERNAME: validation-admin
           NEXOLAB_MQTT_SECURITY_SECRETS_DIR: /tmp/nexolab-mqtt-security-validation
+          POSTGRES_PASSWORD: validation-postgres
+          MINIO_ROOT_USER: validation-minio
+          MINIO_ROOT_PASSWORD: validation-minio-password
+          MQTT_ADMIN_USERNAME: validation-admin
+          MQTT_SECURITY_SECRETS_DIR: /tmp/nexolab-mqtt-security-validation
+          CENTRAL_MQTT_HOST: central.example.invalid
+          NEXOLAB_ORGANIZATION_ID: 00000000-0000-0000-0000-000000000001
+          NEXOLAB_NODE_ID: edge-01
+          CENTRAL_BRIDGE_CLIENT_ID: nexolab-00000000-0000-0000-0000-000000000001-edge-01
+          CENTRAL_MQTT_USERNAME: node:00000000-0000-0000-0000-000000000001:edge-01
+          MQTT_NODE_SECRETS_DIR: /tmp/nexolab-mqtt-node-validation
         run: |
           bash -n infrastructure/mqtt/dynamic-security/entrypoint.sh
           bash -n infrastructure/mqtt/dynamic-security/dynsec-admin.sh
           bash -n scripts/run-mqtt-broker-security-acceptance.sh
           docker compose \
             -f infrastructure/compose/compose.mqtt-security-acceptance.yaml \
+            config --quiet
+          docker compose \
+            -f infrastructure/compose/compose.central.yaml \
+            -f infrastructure/compose/compose.central-mqtt-security.yaml \
+            config --quiet
+          docker compose \
+            -f infrastructure/compose/compose.edge.yaml \
+            -f infrastructure/compose/compose.edge-central-bridge.yaml \
+            -f infrastructure/compose/compose.edge-central-security.yaml \
             config --quiet
 
       - name: Run broker authentication and ACL acceptance
@@ -71,3 +103,26 @@ jobs:
           path: test-results-mqtt-security
           if-no-files-found: warn
           retention-days: 14
+
+  multiarch-image:
+    name: Dynamic Security image amd64 + arm64
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build both production architectures
+        uses: docker/build-push-action@v6
+        with:
+          context: infrastructure/mqtt/dynamic-security
+          platforms: linux/amd64,linux/arm64
+          push: false
+          outputs: type=cacheonly
