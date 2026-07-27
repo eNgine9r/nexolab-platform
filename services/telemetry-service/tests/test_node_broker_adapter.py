@@ -15,6 +15,7 @@ from app.nodes.broker_control import BrokerControlOperation
 
 ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 NODE_ID = "edge-01"
+USERNAME = f"node:{ORGANIZATION_ID}:{NODE_ID}"
 CLIENT_ID = f"nexolab-{ORGANIZATION_ID}-{NODE_ID}"
 ROLE = f"nexolab-node-{ORGANIZATION_ID}-{NODE_ID}"
 SECRET = "nxl_node_adapter_secret"
@@ -92,7 +93,7 @@ esac
     assert SECRET not in " ".join(invocations)
     secret_path = Path(invocations[0].split()[-1])
     assert secret_path.exists() is False
-    assert f"create-node node:{ORGANIZATION_ID}:{NODE_ID} {CLIENT_ID}" in invocations[0]
+    assert f"create-node {USERNAME} {CLIENT_ID}" in invocations[0]
 
 
 def test_malformed_client_response_fails_terminally() -> None:
@@ -101,6 +102,56 @@ def test_malformed_client_response_fails_terminally() -> None:
 
     assert captured.value.code == "broker_response_invalid"
     assert captured.value.retryable is False
+
+
+def test_enable_requires_confirmed_enabled_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable, admin_password, log_file = write_adapter_fixture(
+        tmp_path,
+        f"""
+printf '%s\\n' "$*" >> "$TEST_DYNSEC_LOG"
+case "$1" in
+  enable-client) ;;
+  get-client)
+    printf '%s\\n' 'Clientid: {CLIENT_ID}' 'Disabled: false'
+    ;;
+  *) exit 64 ;;
+esac
+""",
+    )
+    monkeypatch.setenv("TEST_DYNSEC_LOG", str(log_file))
+    adapter = build_adapter(executable, admin_password)
+
+    adapter.apply(command(BrokerControlOperation.ENABLE), None)
+
+    invocations = log_file.read_text(encoding="utf-8").splitlines()
+    assert invocations == [f"enable-client {USERNAME}", f"get-client {USERNAME}"]
+
+
+def test_enable_mismatch_remains_retryable(
+    tmp_path: Path,
+) -> None:
+    executable, admin_password, _ = write_adapter_fixture(
+        tmp_path,
+        f"""
+case "$1" in
+  enable-client) ;;
+  get-client)
+    printf '%s\\n' 'Clientid: {CLIENT_ID}' 'Disabled: true'
+    ;;
+  *) exit 64 ;;
+esac
+""",
+    )
+    adapter = build_adapter(executable, admin_password)
+
+    with pytest.raises(BrokerControlAdapterError) as captured:
+        adapter.apply(command(BrokerControlOperation.ENABLE), None)
+
+    assert captured.value.code == "broker_reconciliation_mismatch"
+    assert captured.value.retryable is True
 
 
 def test_disable_requires_confirmed_disabled_state(
@@ -128,6 +179,67 @@ esac
 
     assert captured.value.code == "broker_reconciliation_mismatch"
     assert captured.value.retryable is True
+
+
+def test_delete_is_idempotent_when_client_is_already_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable, admin_password, log_file = write_adapter_fixture(
+        tmp_path,
+        """
+printf '%s\\n' "$*" >> "$TEST_DYNSEC_LOG"
+case "$1" in
+  list-clients) printf '%s\\n' 'nexolab-central-ingestion' ;;
+  delete-client) exit 72 ;;
+  *) exit 64 ;;
+esac
+""",
+    )
+    monkeypatch.setenv("TEST_DYNSEC_LOG", str(log_file))
+    adapter = build_adapter(executable, admin_password)
+
+    adapter.apply(command(BrokerControlOperation.DELETE), None)
+
+    assert log_file.read_text(encoding="utf-8").splitlines() == ["list-clients"]
+
+
+def test_delete_requires_confirmed_absence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counter_file = tmp_path / "list-count"
+    executable, admin_password, log_file = write_adapter_fixture(
+        tmp_path,
+        f"""
+printf '%s\\n' "$*" >> "$TEST_DYNSEC_LOG"
+case "$1" in
+  list-clients)
+    count=0
+    test ! -f "$TEST_COUNTER" || count="$(cat "$TEST_COUNTER")"
+    count=$((count + 1))
+    printf '%s' "$count" > "$TEST_COUNTER"
+    printf '%s\\n' '{USERNAME}'
+    ;;
+  delete-client) ;;
+  *) exit 64 ;;
+esac
+""",
+    )
+    monkeypatch.setenv("TEST_DYNSEC_LOG", str(log_file))
+    monkeypatch.setenv("TEST_COUNTER", str(counter_file))
+    adapter = build_adapter(executable, admin_password)
+
+    with pytest.raises(BrokerControlAdapterError) as captured:
+        adapter.apply(command(BrokerControlOperation.DELETE), None)
+
+    assert captured.value.code == "broker_reconciliation_mismatch"
+    assert captured.value.retryable is True
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
+        "list-clients",
+        f"delete-client {USERNAME}",
+        "list-clients",
+    ]
 
 
 def test_transport_failure_is_retryable_without_stderr_disclosure(
