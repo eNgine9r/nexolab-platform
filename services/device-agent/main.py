@@ -32,6 +32,36 @@ def mode_uses_le01mp(device_mode: str) -> bool:
     return device_mode in {"le01mp", "modbus"}
 
 
+def parse_bool(value: str, *, label: str) -> bool:
+    normalized = value.strip().casefold()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{label} must be true or false")
+
+
+def read_mounted_secret(path: Path, *, label: str) -> str:
+    if not path.is_file() or not os.access(path, os.R_OK):
+        raise ValueError(f"{label} file is not readable")
+    try:
+        value = path.read_text(encoding="utf-8").rstrip("\r\n")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f"{label} file could not be read") from exc
+    if not value:
+        raise ValueError(f"{label} must not be empty")
+    if any(
+        character.isspace()
+        or ord(character) < 33
+        or ord(character) == 127
+        for character in value
+    ):
+        raise ValueError(
+            f"{label} must not contain whitespace or control characters"
+        )
+    return value
+
+
 def parse_xjp60d_points(value: str) -> tuple[tuple[int, int], ...]:
     points: list[tuple[int, int]] = []
     for token in value.split(","):
@@ -96,14 +126,45 @@ class Settings:
     xjp60d_points: tuple[tuple[int, int], ...]
     xjp60d_scale: float
     le01mp_unit_ids: tuple[int, ...]
+    mqtt_auth_required: bool = False
+    mqtt_username: str | None = None
+    mqtt_client_id: str = ""
+    mqtt_password_file: Path | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
+        node_id = os.getenv("NEXOLAB_NODE_ID", "edge-01").strip()
+        organization_id = (
+            os.getenv("NEXOLAB_ORGANIZATION_ID", "").strip() or None
+        )
+        mqtt_auth_required = parse_bool(
+            os.getenv("MQTT_AUTH_REQUIRED", "false"),
+            label="MQTT_AUTH_REQUIRED",
+        )
+        expected_username = (
+            f"node:{organization_id}:{node_id}"
+            if organization_id is not None
+            else None
+        )
+        expected_client_id = (
+            f"nexolab-{organization_id}-{node_id}"
+            if organization_id is not None
+            else node_id
+        )
+        mqtt_username = os.getenv("MQTT_USERNAME", "").strip() or (
+            expected_username if mqtt_auth_required else None
+        )
+        mqtt_client_id = os.getenv("MQTT_CLIENT_ID", "").strip() or (
+            expected_client_id if mqtt_auth_required else node_id
+        )
+        password_file_value = os.getenv("MQTT_PASSWORD_FILE", "").strip()
+        mqtt_password_file = (
+            Path(password_file_value) if password_file_value else None
+        )
+
         settings = cls(
-            node_id=os.getenv("NEXOLAB_NODE_ID", "edge-01"),
-            organization_id=(
-                os.getenv("NEXOLAB_ORGANIZATION_ID", "").strip() or None
-            ),
+            node_id=node_id,
+            organization_id=organization_id,
             mqtt_host=os.getenv("MQTT_HOST", "mqtt"),
             mqtt_port=int(os.getenv("MQTT_PORT", "1883")),
             mqtt_topic=os.getenv("MQTT_TOPIC", "nexolab/telemetry"),
@@ -130,6 +191,10 @@ class Settings:
                 os.getenv("LE01MP_UNIT_IDS", ""),
                 label="LE-01MP",
             ),
+            mqtt_auth_required=mqtt_auth_required,
+            mqtt_username=mqtt_username,
+            mqtt_client_id=mqtt_client_id,
+            mqtt_password_file=mqtt_password_file,
         )
         allowed_modes = {"simulator", "xjp60d", "le01mp", "modbus"}
         if settings.device_mode not in allowed_modes:
@@ -151,7 +216,55 @@ class Settings:
             )
         if settings.health_interval_seconds <= 0:
             raise ValueError("NODE_HEALTH_INTERVAL_SECONDS must be positive")
+        if not settings.node_id or any(
+            character.isspace() for character in settings.node_id
+        ):
+            raise ValueError(
+                "NEXOLAB_NODE_ID must not be empty or contain whitespace"
+            )
+        if settings.mqtt_auth_required:
+            if settings.organization_id is None:
+                raise ValueError(
+                    "NEXOLAB_ORGANIZATION_ID is required when "
+                    "MQTT_AUTH_REQUIRED=true"
+                )
+            if settings.mqtt_username != settings.expected_mqtt_username:
+                raise ValueError(
+                    "MQTT_USERNAME does not match the provisioned node identity"
+                )
+            if settings.mqtt_client_id != settings.expected_mqtt_client_id:
+                raise ValueError(
+                    "MQTT_CLIENT_ID does not match the provisioned node identity"
+                )
+            if settings.mqtt_password_file is None:
+                raise ValueError(
+                    "MQTT_PASSWORD_FILE is required when "
+                    "MQTT_AUTH_REQUIRED=true"
+                )
+            read_mounted_secret(
+                settings.mqtt_password_file,
+                label="MQTT password",
+            )
+        elif (
+            settings.mqtt_username is not None
+            or settings.mqtt_password_file is not None
+        ):
+            raise ValueError(
+                "MQTT username/password require MQTT_AUTH_REQUIRED=true"
+            )
         return settings
+
+    @property
+    def expected_mqtt_username(self) -> str | None:
+        if self.organization_id is None:
+            return None
+        return f"node:{self.organization_id}:{self.node_id}"
+
+    @property
+    def expected_mqtt_client_id(self) -> str:
+        if self.organization_id is None:
+            return self.node_id
+        return f"nexolab-{self.organization_id}-{self.node_id}"
 
     @property
     def resolved_telemetry_topic(self) -> str:
@@ -319,8 +432,23 @@ class DeviceAgent:
         self.stop_event = threading.Event()
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
-            client_id=settings.node_id,
+            client_id=settings.mqtt_client_id or settings.node_id,
         )
+        if settings.mqtt_auth_required:
+            if (
+                settings.mqtt_username is None
+                or settings.mqtt_password_file is None
+            ):
+                raise RuntimeError("Secure MQTT settings were not validated")
+            mqtt_password = read_mounted_secret(
+                settings.mqtt_password_file,
+                label="MQTT password",
+            )
+            self.client.username_pw_set(
+                settings.mqtt_username,
+                mqtt_password,
+            )
+            del mqtt_password
         self.client.enable_logger(LOG)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
@@ -523,6 +651,8 @@ class DeviceAgent:
                         unit="degC",
                         quality="valid",
                         source="simulator",
+                        equipment_id=f"SIM-{self.settings.node_id}",
+                        channel_id="ambient-temperature",
                     )
                 ],
                 None,
@@ -550,7 +680,10 @@ class DeviceAgent:
             payload_data, separators=(",", ":"), ensure_ascii=False
         )
         topic = self.settings.resolved_telemetry_topic
-        if self.state.mqtt_connected:
+        # Once a backlog exists, append every new sample behind it. Publishing a
+        # newer sequence before queued older sequences would violate the central
+        # monotonic replay boundary after broker recovery.
+        if self.queue.size() == 0 and self.state.mqtt_connected:
             try:
                 result = self.client.publish(topic, payload, qos=1)
                 result.wait_for_publish(timeout=5)
