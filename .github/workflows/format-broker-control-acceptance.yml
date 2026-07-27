@@ -32,6 +32,7 @@ jobs:
             playwright.broker-control.config.ts \
             e2e/broker-control.production.e2e.ts \
             .github/workflows/broker-control-acceptance.yml \
+            .github/workflows/format-broker-control-acceptance.yml \
             infrastructure/compose/compose.broker-control-acceptance.yaml \
             infrastructure/compose/compose.central-mqtt-security.yaml \
             docs/operations/mqtt-broker-control.md
@@ -39,21 +40,24 @@ jobs:
       - name: Package canonical sources
         run: |
           mkdir -p runtime/canonical/e2e
-          mkdir -p runtime/canonical/.github/workflows
           mkdir -p runtime/canonical/infrastructure/compose
           mkdir -p runtime/canonical/docs/operations
           cp playwright.broker-control.config.ts runtime/canonical/
           cp e2e/broker-control.production.e2e.ts runtime/canonical/e2e/
-          cp .github/workflows/broker-control-acceptance.yml runtime/canonical/.github/workflows/
           cp infrastructure/compose/compose.broker-control-acceptance.yaml \
             infrastructure/compose/compose.central-mqtt-security.yaml \
             runtime/canonical/infrastructure/compose/
           cp docs/operations/mqtt-broker-control.md runtime/canonical/docs/operations/
+          tar -czf runtime/canonical-workflows.tar.gz \
+            .github/workflows/broker-control-acceptance.yml \
+            .github/workflows/format-broker-control-acceptance.yml
 
       - name: Upload canonical sources
         uses: actions/upload-artifact@v4
         with:
           name: broker-control-acceptance-canonical-sources
-          path: runtime/canonical
+          path: |
+            runtime/canonical
+            runtime/canonical-workflows.tar.gz
           if-no-files-found: error
           retention-days: 1
