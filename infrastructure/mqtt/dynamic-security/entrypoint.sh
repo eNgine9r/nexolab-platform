@@ -16,9 +16,6 @@ initialize_dynamic_security() {
   fi
 
   admin_password="$(cat "$ADMIN_PASSWORD_FILE")"
-  if [ -z "$ADMIN_PASSWORD" ] 2>/dev/null; then
-    :
-  fi
   if [ -z "$admin_password" ]; then
     echo "Dynamic Security admin password secret must not be empty." >&2
     exit 65
