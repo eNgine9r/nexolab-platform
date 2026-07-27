@@ -37,6 +37,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate scripts and Compose contract
+        env:
+          NEXOLAB_MQTT_ADMIN_USERNAME: validation-admin
+          NEXOLAB_MQTT_SECURITY_SECRETS_DIR: /tmp/nexolab-mqtt-security-validation
         run: |
           bash -n infrastructure/mqtt/dynamic-security/entrypoint.sh
           bash -n infrastructure/mqtt/dynamic-security/dynsec-admin.sh
