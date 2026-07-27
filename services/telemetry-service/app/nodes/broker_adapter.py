@@ -256,6 +256,8 @@ def parse_dynamic_security_client(output: str) -> DynamicSecurityClientState:
             continue
         if "(priority:" in line:
             role = line.split("(priority:", 1)[0].strip(" -\t")
+            if role.startswith("Roles:"):
+                role = role.partition(":")[2].strip()
             if role:
                 roles.add(role)
 
