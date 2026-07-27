@@ -49,7 +49,19 @@ jobs:
             config --quiet
 
       - name: Run broker authentication and ACL acceptance
-        run: bash scripts/run-mqtt-broker-security-acceptance.sh
+        run: |
+          set -o pipefail
+          bash scripts/run-mqtt-broker-security-acceptance.sh \
+            2>&1 | tee /tmp/mqtt-broker-security-acceptance.log
+
+      - name: Collect acceptance diagnostics
+        if: always()
+        run: |
+          mkdir -p test-results-mqtt-security
+          if [[ -f /tmp/mqtt-broker-security-acceptance.log ]]; then
+            cp /tmp/mqtt-broker-security-acceptance.log \
+              test-results-mqtt-security/acceptance.log
+          fi
 
       - name: Upload security evidence
         if: always()
