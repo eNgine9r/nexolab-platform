@@ -10,6 +10,8 @@ on:
       - "infrastructure/compose/compose.broker-control-acceptance.yaml"
       - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
       - "scripts/run-device-agent-fleet-acceptance.sh"
+      - "e2e/device-agent-fleet.production.e2e.ts"
+      - "playwright.device-agent-fleet.config.ts"
       - ".github/workflows/device-agent-fleet-acceptance.yml"
   pull_request:
     branches: [main]
@@ -20,11 +22,13 @@ on:
       - "infrastructure/compose/compose.broker-control-acceptance.yaml"
       - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
       - "scripts/run-device-agent-fleet-acceptance.sh"
+      - "e2e/device-agent-fleet.production.e2e.ts"
+      - "playwright.device-agent-fleet.config.ts"
       - ".github/workflows/device-agent-fleet-acceptance.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: device-agent-fleet-acceptance-${{ github.ref }}
@@ -32,12 +36,107 @@ concurrency:
 
 jobs:
   acceptance:
-    name: Two secure agents outage and rotation gate
+    name: Two secure agents outage rotation and browser gate
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Integrate browser acceptance into fleet script
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-device-agent-fleet-acceptance.sh")
+          source = path.read_text(encoding="utf-8")
+          if 'NEXOLAB_DEVICE_AGENT_FLEET_FRONTEND_URL' not in source:
+              log_anchor = 'SERVICE_LOG="$EVIDENCE_DIR/services.log"\n'
+              log_insert = (
+                  log_anchor
+                  + 'FRONTEND_LOG="$EVIDENCE_DIR/frontend.log"\n'
+                  + 'FRONTEND_PID=""\n'
+                  + 'FRONTEND_PORT="${FLEET_FRONTEND_PORT:-3112}"\n'
+                  + 'FRONTEND_BASE_URL="http://127.0.0.1:${FRONTEND_PORT}"\n'
+              )
+              if source.count(log_anchor) != 1:
+                  raise SystemExit("fleet frontend log anchor was not found")
+              source = source.replace(log_anchor, log_insert, 1)
+
+              cleanup_anchor = '''  set +e
+          compose ps --all >"$EVIDENCE_DIR/compose-ps.log" 2>&1 || true
+          '''
+              cleanup_insert = '''  set +e
+          if [[ -n "$FRONTEND_PID" ]]; then
+            kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+            wait "$FRONTEND_PID" >/dev/null 2>&1 || true
+          fi
+          compose ps --all >"$EVIDENCE_DIR/compose-ps.log" 2>&1 || true
+          '''
+              if source.count(cleanup_anchor) != 1:
+                  raise SystemExit("fleet cleanup anchor was not found")
+              source = source.replace(cleanup_anchor, cleanup_insert, 1)
+
+              final_anchor = '''assert_database_invariants
+          assert_no_plaintext_secrets
+
+          printf '%s\\n' \\
+          '''
+              browser_block = '''assert_database_invariants
+          assert_no_plaintext_secrets
+
+          cd "$ROOT_DIR"
+          export NEXT_PUBLIC_NEXOLAB_DATA_MODE="live"
+          export NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$API_BASE_URL"
+          export NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="ws://127.0.0.1:${API_PORT}/api/v1/telemetry/live"
+          export NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="acceptance"
+          export NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$ORGANIZATION_ID"
+          export NEXT_TELEMETRY_DISABLED="1"
+          npm run build >"$FRONTEND_LOG" 2>&1
+          npm run start -- --hostname 127.0.0.1 --port "$FRONTEND_PORT" >>"$FRONTEND_LOG" 2>&1 &
+          FRONTEND_PID=$!
+          wait_for_url "$FRONTEND_BASE_URL/nodes" "fleet operator UI"
+
+          export NEXOLAB_DEVICE_AGENT_FLEET_FRONTEND_URL="$FRONTEND_BASE_URL"
+          export NEXOLAB_DEVICE_AGENT_FLEET_ORGANIZATION_ID="$ORGANIZATION_ID"
+          export NEXOLAB_DEVICE_AGENT_FLEET_MANAGER_TOKEN="$MANAGER_TOKEN"
+          npx playwright test --config=playwright.device-agent-fleet.config.ts
+
+          printf '%s\\n' \\
+          '''
+              if source.count(final_anchor) != 1:
+                  raise SystemExit("fleet final acceptance anchor was not found")
+              source = source.replace(final_anchor, browser_block, 1)
+
+              summary_anchor = "  'operational_state_recovery=verified' \\\n"
+              summary_insert = summary_anchor + "  'browser_operator_state=verified' \\\n"
+              if source.count(summary_anchor) != 1:
+                  raise SystemExit("fleet summary anchor was not found")
+              source = source.replace(summary_anchor, summary_insert, 1)
+              path.write_text(source, encoding="utf-8")
+          PY
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add scripts/run-device-agent-fleet-acceptance.sh
+            git commit -m "test: add fleet browser operator acceptance"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Validate acceptance contracts
         env:
@@ -62,6 +161,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: device-agent-fleet-acceptance-evidence
-          path: test-results-device-agent-fleet
+          path: |
+            test-results-device-agent-fleet
+            playwright-report-device-agent-fleet
           if-no-files-found: warn
           retention-days: 14
