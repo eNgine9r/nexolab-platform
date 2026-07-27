@@ -28,8 +28,18 @@ class MqttConsumer:
         self._mqtt = mqtt
         self._settings = settings
         self._ingestor = ingestor
-        self._node_stream_ingestor = node_stream_ingestor
         self._state = state
+        self._node_stream_ingestor = node_stream_ingestor
+        if self._node_stream_ingestor is None and settings.mqtt_node_registry_enforced:
+            self._node_stream_ingestor = NodeStreamIngestor(
+                ingestor._database,  # noqa: SLF001 - shared service persistence boundary
+                state,
+                queue_maxsize=settings.ingestion_queue_maxsize,
+                payload_max_bytes=settings.ingestion_payload_max_bytes,
+                dead_letter_payload_max_bytes=settings.dead_letter_payload_max_bytes,
+                database_retry_initial_seconds=settings.database_retry_initial_seconds,
+                database_retry_max_seconds=settings.database_retry_max_seconds,
+            )
         self._client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id=settings.mqtt_client_id,
@@ -43,6 +53,8 @@ class MqttConsumer:
 
     def start(self) -> None:
         self._state.set_mqtt_connected(False)
+        if self._node_stream_ingestor is not None:
+            self._node_stream_ingestor.start()
         self._client.connect_async(
             self._settings.mqtt_host,
             self._settings.mqtt_port,
@@ -55,6 +67,8 @@ class MqttConsumer:
             self._client.disconnect()
         finally:
             self._client.loop_stop()
+            if self._node_stream_ingestor is not None:
+                self._node_stream_ingestor.stop()
             self._state.set_mqtt_connected(False)
             self._state.set_mqtt_error(None)
 
