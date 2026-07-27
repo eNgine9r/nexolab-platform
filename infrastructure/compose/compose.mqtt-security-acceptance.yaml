@@ -9,6 +9,7 @@ services:
     init: true
     environment:
       NEXOLAB_MQTT_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dynsec-healthcheck
       NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
     ports:
       - "127.0.0.1:${NEXOLAB_MQTT_SECURITY_PORT:-1889}:1883"
@@ -18,15 +19,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - >-
-          mosquitto_ctrl
-          -h 127.0.0.1
-          -p 1883
-          -i nexolab-dynsec-healthcheck
-          -u "$${NEXOLAB_MQTT_ADMIN_USERNAME}"
-          -P "$$(cat /run/secrets/nexolab/admin-password)"
-          --quiet
-          dynsec listClients >/dev/null
+        - /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
       interval: 5s
       timeout: 5s
       retries: 20
