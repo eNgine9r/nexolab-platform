@@ -18,6 +18,7 @@ import paho.mqtt.client as mqtt
 
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
+from mqtt_tls import MQTTTLSConfig
 from operational_streams import NodeOperationalPublisher
 from xjp60d import XJP60DReader
 
@@ -449,6 +450,8 @@ class DeviceAgent:
                 mqtt_password,
             )
             del mqtt_password
+        self.mqtt_tls = MQTTTLSConfig.from_environment()
+        self.mqtt_tls.apply(self.client)
         self.client.enable_logger(LOG)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
