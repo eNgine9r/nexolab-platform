@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     mqtt_topic: str = "nexolab/telemetry"
     mqtt_node_registry_enforced: bool = False
     mqtt_node_topic_filter: str = "nexolab/v1/+/+/telemetry"
+    mqtt_node_health_topic_filter: str = "nexolab/v1/+/+/health"
+    mqtt_node_status_topic_filter: str = "nexolab/v1/+/+/status"
     mqtt_client_id: str = "nexolab-telemetry-ingestion"
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
@@ -94,6 +96,16 @@ class Settings(BaseSettings):
             self.mqtt_node_topic_filter
             if self.mqtt_node_registry_enforced
             else self.mqtt_topic
+        )
+
+    @property
+    def resolved_mqtt_topics(self) -> tuple[str, ...]:
+        if not self.mqtt_node_registry_enforced:
+            return (self.mqtt_topic,)
+        return (
+            self.mqtt_node_topic_filter,
+            self.mqtt_node_health_topic_filter,
+            self.mqtt_node_status_topic_filter,
         )
 
     @property
