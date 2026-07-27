@@ -5,6 +5,8 @@ from typing import Any
 
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
+from app.nodes.domain import NodeTopicStream, parse_node_topic
+from app.nodes.stream_ingestion import NodeStreamIngestor
 from app.state import RuntimeState
 
 LOGGER = logging.getLogger("nexolab.telemetry.mqtt")
@@ -16,6 +18,7 @@ class MqttConsumer:
         settings: Settings,
         ingestor: TelemetryIngestor,
         state: RuntimeState,
+        node_stream_ingestor: NodeStreamIngestor | None = None,
     ) -> None:
         try:
             import paho.mqtt.client as mqtt
@@ -26,6 +29,17 @@ class MqttConsumer:
         self._settings = settings
         self._ingestor = ingestor
         self._state = state
+        self._node_stream_ingestor = node_stream_ingestor
+        if self._node_stream_ingestor is None and settings.mqtt_node_registry_enforced:
+            self._node_stream_ingestor = NodeStreamIngestor(
+                ingestor._database,  # noqa: SLF001 - shared service persistence boundary
+                state,
+                queue_maxsize=settings.ingestion_queue_maxsize,
+                payload_max_bytes=settings.ingestion_payload_max_bytes,
+                dead_letter_payload_max_bytes=settings.dead_letter_payload_max_bytes,
+                database_retry_initial_seconds=settings.database_retry_initial_seconds,
+                database_retry_max_seconds=settings.database_retry_max_seconds,
+            )
         self._client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id=settings.mqtt_client_id,
@@ -39,6 +53,8 @@ class MqttConsumer:
 
     def start(self) -> None:
         self._state.set_mqtt_connected(False)
+        if self._node_stream_ingestor is not None:
+            self._node_stream_ingestor.start()
         self._client.connect_async(
             self._settings.mqtt_host,
             self._settings.mqtt_port,
@@ -51,6 +67,8 @@ class MqttConsumer:
             self._client.disconnect()
         finally:
             self._client.loop_stop()
+            if self._node_stream_ingestor is not None:
+                self._node_stream_ingestor.stop()
             self._state.set_mqtt_connected(False)
             self._state.set_mqtt_error(None)
 
@@ -65,10 +83,11 @@ class MqttConsumer:
         del userdata, flags, properties
         if reason_code == 0:
             self._state.set_mqtt_connected(False)
-            result, _ = client.subscribe(
-                self._settings.resolved_mqtt_topic,
-                qos=self._settings.mqtt_qos,
-            )
+            subscriptions = [
+                (topic, self._settings.mqtt_qos)
+                for topic in self._settings.resolved_mqtt_topics
+            ]
+            result, _ = client.subscribe(subscriptions)
             if result != self._mqtt.MQTT_ERR_SUCCESS:
                 self._state.set_mqtt_error(f"MQTT subscribe failed: {result}")
         else:
@@ -93,7 +112,10 @@ class MqttConsumer:
             return
         self._state.set_mqtt_connected(True)
         self._state.set_mqtt_error(None)
-        LOGGER.info("Subscribed to MQTT topic %s", self._settings.resolved_mqtt_topic)
+        LOGGER.info(
+            "Subscribed to MQTT topics %s",
+            ", ".join(self._settings.resolved_mqtt_topics),
+        )
 
     def _on_disconnect(
         self,
@@ -112,4 +134,24 @@ class MqttConsumer:
 
     def _on_message(self, client: Any, userdata: Any, message: Any) -> None:
         del client, userdata
-        self._ingestor.submit_payload(message.payload, topic=message.topic)
+        if not self._settings.mqtt_node_registry_enforced:
+            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            return
+        try:
+            parsed = parse_node_topic(message.topic)
+        except ValueError:
+            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            return
+        if parsed.stream is NodeTopicStream.TELEMETRY:
+            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            return
+        if (
+            parsed.stream in {NodeTopicStream.HEALTH, NodeTopicStream.STATUS}
+            and self._node_stream_ingestor is not None
+        ):
+            self._node_stream_ingestor.submit_payload(
+                message.payload,
+                topic=message.topic,
+            )
+            return
+        LOGGER.warning("No dispatcher configured for MQTT topic %s", message.topic)

@@ -20,7 +20,14 @@ import {
 } from "lucide-react";
 
 import { createNodeApiClient, createNodeIdempotencyKey } from "@/lib/nodes/api-client";
-import type { CentralNode, NodeClockStatus, NodeLifecycleState } from "@/lib/nodes/types";
+import type {
+  CentralNode,
+  NodeClockStatus,
+  NodeLifecycleState,
+  NodeOperationalState,
+} from "@/lib/nodes/types";
+
+import { NodeOperationalPanel } from "./node-operational-panel";
 
 function formatDate(value: string | null): string {
   if (!value) return "Ще не підключався";
@@ -70,6 +77,7 @@ function clockClass(value: NodeClockStatus): string {
 
 export function NodesWorkspace({ canManage }: { canManage: boolean }) {
   const [nodes, setNodes] = useState<CentralNode[]>([]);
+  const [operationalStates, setOperationalStates] = useState<Record<string, NodeOperationalState | null>>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<string | null>(null);
@@ -90,12 +98,26 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
     () => nodes.find((node) => node.node_id === selectedNodeId) ?? null,
     [nodes, selectedNodeId],
   );
+  const selectedOperationalState = selectedNodeId ? (operationalStates[selectedNodeId] ?? null) : null;
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const result = await createNodeApiClient().listNodes(signal);
+      const client = createNodeApiClient();
+      const result = await client.listNodes(signal);
+      const operationalEntries = await Promise.all(
+        result.map(async (node) => {
+          try {
+            const state = await client.getOperationalState(node.node_id, signal);
+            return [node.node_id, state] as const;
+          } catch (operationalError) {
+            if (signal?.aborted) throw operationalError;
+            return [node.node_id, null] as const;
+          }
+        }),
+      );
       setNodes(result);
+      setOperationalStates(Object.fromEntries(operationalEntries));
       setSelectedNodeId((current) => {
         if (current && result.some((node) => node.node_id === current)) return current;
         return result[0]?.node_id ?? null;
@@ -207,13 +229,19 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
   const counts = useMemo(
     () => ({
       active: nodes.filter((node) => node.state === "active").length,
-      attention: nodes.filter(
-        (node) =>
-          node.state === "suspended" || node.clock_status === "warning" || node.clock_status === "critical",
-      ).length,
+      attention: nodes.filter((node) => {
+        const availability = operationalStates[node.node_id]?.availability;
+        return (
+          node.state === "suspended" ||
+          node.clock_status === "warning" ||
+          node.clock_status === "critical" ||
+          availability === "offline" ||
+          availability === "stale"
+        );
+      }).length,
       total: nodes.length,
     }),
-    [nodes],
+    [nodes, operationalStates],
   );
 
   return (
@@ -390,7 +418,23 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
                       {node.state}
                     </span>
                   </div>
-                  <p className="mt-3 text-[9px] text-slate-500">Last seen: {formatDate(node.last_seen_at)}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2 text-[9px] text-slate-500">
+                    <span>Last seen: {formatDate(node.last_seen_at)}</span>
+                    <span
+                      className={
+                        operationalStates[node.node_id]?.availability === "online"
+                          ? "text-emerald-300"
+                          : operationalStates[node.node_id]?.availability === "offline"
+                            ? "text-red-300"
+                            : operationalStates[node.node_id]?.availability === "stale"
+                              ? "text-amber-300"
+                              : "text-slate-600"
+                      }
+                      data-testid={`node-row-availability-${node.node_id}`}
+                    >
+                      {operationalStates[node.node_id]?.availability ?? "unknown"}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -399,6 +443,7 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
               {selectedNode ? (
                 <NodeDetail
                   node={selectedNode}
+                  operationalState={selectedOperationalState}
                   canManage={canManage}
                   reason={reason}
                   action={action}
@@ -419,6 +464,7 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
 
 function NodeDetail({
   node,
+  operationalState,
   canManage,
   reason,
   action,
@@ -427,6 +473,7 @@ function NodeDetail({
   onRotate,
 }: {
   node: CentralNode;
+  operationalState: NodeOperationalState | null;
   canManage: boolean;
   reason: string;
   action: string | null;
@@ -473,11 +520,21 @@ function NodeDetail({
         />
       </div>
 
+      <NodeOperationalPanel state={operationalState} />
+
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-4">
-        <p className="text-[10px] font-semibold text-slate-200">Owned MQTT namespace</p>
-        <code className="mt-2 block overflow-x-auto text-[10px] text-cyan-200">
-          nexolab/v1/{node.organization_id}/{node.node_id}/telemetry
-        </code>
+        <p className="text-[10px] font-semibold text-slate-200">Owned MQTT namespaces</p>
+        <div className="mt-2 space-y-1 overflow-x-auto font-mono text-[10px] text-cyan-200">
+          <p>
+            nexolab/v1/{node.organization_id}/{node.node_id}/telemetry
+          </p>
+          <p>
+            nexolab/v1/{node.organization_id}/{node.node_id}/health
+          </p>
+          <p>
+            nexolab/v1/{node.organization_id}/{node.node_id}/status
+          </p>
+        </div>
       </div>
 
       {canManage && node.state !== "revoked" ? (

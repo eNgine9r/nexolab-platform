@@ -1,5 +1,7 @@
 export type NodeLifecycleState = "pending" | "active" | "suspended" | "revoked";
 export type NodeClockStatus = "unknown" | "ok" | "warning" | "critical";
+export type NodeAvailability = "online" | "offline" | "stale" | "unknown";
+export type NodeHealthState = "healthy" | "degraded";
 
 export type CentralNode = {
   id: string;
@@ -28,6 +30,49 @@ export type NodeCredential = {
   issued_by: string;
   issued_at: string;
   revoked_at: string | null;
+};
+
+export type NodeHealth = {
+  id: string;
+  event_id: string;
+  node_record_id: string;
+  node_sequence: number;
+  health: NodeHealthState;
+  uptime_seconds: number;
+  queue_depth: number;
+  samples_total: number;
+  software_version: string;
+  device_mode: string;
+  last_sample_at: string | null;
+  last_publish_at: string | null;
+  last_error: string | null;
+  captured_at: string;
+  received_at: string;
+  inserted_at: string;
+};
+
+export type NodeStatus = {
+  id: string;
+  event_id: string;
+  node_record_id: string;
+  node_sequence: number;
+  status: "online" | "offline";
+  reason: string;
+  software_version: string | null;
+  graceful: boolean;
+  captured_at: string;
+  received_at: string;
+  inserted_at: string;
+};
+
+export type NodeOperationalState = {
+  node_id: string;
+  availability: NodeAvailability;
+  stale_after_seconds: number;
+  heartbeat_age_seconds: number | null;
+  degraded_reason: string | null;
+  latest_health: NodeHealth | null;
+  latest_status: NodeStatus | null;
 };
 
 export type ProvisionNodeResponse = {
