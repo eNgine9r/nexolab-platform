@@ -1,0 +1,192 @@
+name: Wire telemetry MQTT TLS
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-telemetry-mqtt-tls.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Add telemetry TLS settings and startup wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          config_path = Path("services/telemetry-service/app/config.py")
+          config = config_path.read_text(encoding="utf-8")
+          fields_anchor = "    mqtt_qos: int = Field(default=1, ge=0, le=2)\n"
+          fields_block = (
+              fields_anchor
+              + "    mqtt_tls_required: bool = False\n"
+              + "    mqtt_tls_ca_file: str | None = None\n"
+              + "    mqtt_tls_cert_file: str | None = None\n"
+              + "    mqtt_tls_key_file: str | None = None\n"
+          )
+          if "mqtt_tls_required: bool" not in config:
+              if config.count(fields_anchor) != 1:
+                  raise SystemExit("telemetry TLS settings anchor not found")
+              config = config.replace(fields_anchor, fields_block, 1)
+
+          validator_anchor = '''        if self.mqtt_auth_required and not has_username:
+              raise ValueError(
+                  "MQTT credentials are required when MQTT_AUTH_REQUIRED=true"
+              )
+
+          '''
+          validator_block = validator_anchor + '''        tls_files = (
+              self.mqtt_tls_ca_file,
+              self.mqtt_tls_cert_file,
+              self.mqtt_tls_key_file,
+          )
+          has_tls_files = any(value and value.strip() for value in tls_files)
+          if not self.mqtt_tls_required and has_tls_files:
+              raise ValueError(
+                  "MQTT TLS files require MQTT_TLS_REQUIRED=true"
+              )
+          if self.mqtt_tls_required and not (
+              self.mqtt_tls_ca_file and self.mqtt_tls_ca_file.strip()
+          ):
+              raise ValueError(
+                  "MQTT_TLS_CA_FILE is required when MQTT_TLS_REQUIRED=true"
+              )
+          has_client_certificate = bool(
+              self.mqtt_tls_cert_file and self.mqtt_tls_cert_file.strip()
+          )
+          has_client_key = bool(
+              self.mqtt_tls_key_file and self.mqtt_tls_key_file.strip()
+          )
+          if has_client_certificate != has_client_key:
+              raise ValueError(
+                  "MQTT_TLS_CERT_FILE and MQTT_TLS_KEY_FILE must be configured together"
+              )
+
+          '''
+          if "has_tls_files = any" not in config:
+              if config.count(validator_anchor) != 1:
+                  raise SystemExit("telemetry TLS validator anchor not found")
+              config = config.replace(validator_anchor, validator_block, 1)
+          config_path.write_text(config, encoding="utf-8")
+
+          consumer_path = Path("services/telemetry-service/app/mqtt_consumer.py")
+          consumer = consumer_path.read_text(encoding="utf-8")
+          import_anchor = "from app.ingestion import TelemetryIngestor\n"
+          tls_import = "from app.mqtt_tls import MQTTTLSConfig\n"
+          if tls_import not in consumer:
+              if consumer.count(import_anchor) != 1:
+                  raise SystemExit("telemetry TLS import anchor not found")
+              consumer = consumer.replace(import_anchor, import_anchor + tls_import, 1)
+
+          apply_anchor = "        self._client.reconnect_delay_set(min_delay=1, max_delay=30)\n"
+          apply_block = (
+              "        self._mqtt_tls = MQTTTLSConfig.from_settings(settings)\n"
+              + "        self._mqtt_tls.apply(self._client)\n"
+              + apply_anchor
+          )
+          if "self._mqtt_tls = MQTTTLSConfig.from_settings(settings)" not in consumer:
+              if consumer.count(apply_anchor) != 1:
+                  raise SystemExit("telemetry TLS apply anchor not found")
+              consumer = consumer.replace(apply_anchor, apply_block, 1)
+          consumer_path.write_text(consumer, encoding="utf-8")
+          PY
+      - name: Add telemetry TLS integration tests
+        run: |
+          cat > services/telemetry-service/tests/test_mqtt_tls_integration.py <<'PY'
+          from __future__ import annotations
+
+          from unittest.mock import Mock, patch
+
+          from app.config import Settings
+          from app.mqtt_consumer import MqttConsumer
+
+
+          @patch("app.mqtt_consumer.MQTTTLSConfig.from_settings")
+          @patch("paho.mqtt.client.Client")
+          def test_consumer_applies_tls_before_reconnect_setup(
+              client_factory: Mock,
+              tls_from_settings: Mock,
+          ) -> None:
+              settings = Settings(mqtt_enabled=False)
+              client = client_factory.return_value
+              tls_config = tls_from_settings.return_value
+
+              def assert_before_reconnect(_client: Mock) -> None:
+                  assert _client is client
+                  client.reconnect_delay_set.assert_not_called()
+
+              tls_config.apply.side_effect = assert_before_reconnect
+
+              consumer = MqttConsumer(settings, Mock(), Mock())
+
+              assert consumer._mqtt_tls is tls_config
+              tls_from_settings.assert_called_once_with(settings)
+              tls_config.apply.assert_called_once_with(client)
+              client.reconnect_delay_set.assert_called_once_with(
+                  min_delay=1,
+                  max_delay=30,
+              )
+
+
+          def test_settings_reject_tls_material_without_tls_mode() -> None:
+              try:
+                  Settings(
+                      mqtt_enabled=False,
+                      mqtt_tls_ca_file="/run/secrets/ca.pem",
+                  )
+              except ValueError as error:
+                  assert "MQTT_TLS_REQUIRED" in str(error)
+              else:
+                  raise AssertionError("TLS material was accepted with TLS disabled")
+
+
+          def test_settings_require_ca_and_atomic_client_identity() -> None:
+              for values, message in (
+                  ({"mqtt_tls_required": True}, "MQTT_TLS_CA_FILE"),
+                  (
+                      {
+                          "mqtt_tls_required": True,
+                          "mqtt_tls_ca_file": "/run/secrets/ca.pem",
+                          "mqtt_tls_cert_file": "/run/secrets/client.pem",
+                      },
+                      "configured together",
+                  ),
+              ):
+                  try:
+                      Settings(mqtt_enabled=False, **values)
+                  except ValueError as error:
+                      assert message in str(error)
+                  else:
+                      raise AssertionError("partial MQTT TLS configuration was accepted")
+          PY
+      - name: Validate telemetry TLS wiring
+        working-directory: services/telemetry-service
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m compileall -q app tests
+          python -m pytest -q \
+            tests/test_mqtt_credentials.py \
+            tests/test_mqtt_tls.py \
+            tests/test_mqtt_tls_integration.py
+      - name: Commit telemetry TLS wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/telemetry-service/app/config.py \
+            services/telemetry-service/app/mqtt_consumer.py \
+            services/telemetry-service/tests/test_mqtt_tls_integration.py
+          git commit -m "feat: enforce TLS for telemetry MQTT ingestion"
+          git push origin "HEAD:${{ github.head_ref }}"
