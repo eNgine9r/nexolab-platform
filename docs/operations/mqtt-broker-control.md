@@ -97,13 +97,13 @@ The telemetry image contains `mosquitto_ctrl` and a byte-identical copy of the h
 
 ## Lifecycle mapping
 
-| Node Registry action | Outbox operation | Secret material | Expected broker result |
-|---|---|---|---|
-| Provision | `provision` | encrypted one-time password | exact username, client ID and node role |
-| Rotate credential | `rotate` | encrypted replacement password | exact client ID with new password |
-| Suspend | `disable` | none | client disabled and active connection disconnected |
-| Reactivate after suspension | `enable` | none | exact client ID enabled |
-| Revoke | `delete` | none | client absent and active connection disconnected |
+| Node Registry action        | Outbox operation | Secret material                | Expected broker result                             |
+| --------------------------- | ---------------- | ------------------------------ | -------------------------------------------------- |
+| Provision                   | `provision`      | encrypted one-time password    | exact username, client ID and node role            |
+| Rotate credential           | `rotate`         | encrypted replacement password | exact client ID with new password                  |
+| Suspend                     | `disable`        | none                           | client disabled and active connection disconnected |
+| Reactivate after suspension | `enable`         | none                           | exact client ID enabled                            |
+| Revoke                      | `delete`         | none                           | client absent and active connection disconnected   |
 
 Initial `pending → active` does not enqueue `enable`; the provisioning command creates an enabled client. Only `suspended → active` needs `enable`.
 
@@ -127,15 +127,15 @@ The response never contains ciphertext, nonce, encryption key ID, deduplication 
 
 Synchronization states:
 
-| State | Meaning | Operator action |
-|---|---|---|
-| `pending` | durable command has not been claimed | wait for the worker |
-| `processing` | a worker lease is active | observe; stale leases recover automatically |
-| `retrying` | retryable broker/transport failure | restore broker connectivity |
-| `applied` | strict broker reconciliation passed | no action |
-| `failed` | terminal error or attempt limit | inspect safe error evidence and remediate |
-| `out_of_sync` | latest applied operation conflicts with lifecycle | investigate before installing credentials |
-| `disabled` | broker control is not enabled | use the secure Compose overlay |
+| State         | Meaning                                           | Operator action                             |
+| ------------- | ------------------------------------------------- | ------------------------------------------- |
+| `pending`     | durable command has not been claimed              | wait for the worker                         |
+| `processing`  | a worker lease is active                          | observe; stale leases recover automatically |
+| `retrying`    | retryable broker/transport failure                | restore broker connectivity                 |
+| `applied`     | strict broker reconciliation passed               | no action                                   |
+| `failed`      | terminal error or attempt limit                   | inspect safe error evidence and remediate   |
+| `out_of_sync` | latest applied operation conflicts with lifecycle | investigate before installing credentials   |
+| `disabled`    | broker control is not enabled                     | use the secure Compose overlay              |
 
 The `/nodes` operator panel refreshes reconciliation every five seconds.
 
