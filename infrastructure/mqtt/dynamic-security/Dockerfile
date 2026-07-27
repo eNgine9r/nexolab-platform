@@ -2,7 +2,7 @@ FROM eclipse-mosquitto:2.0.22
 
 USER root
 
-RUN apk add --no-cache expect \
+RUN apk add --no-cache expect jq \
     && set -eu; \
     plugin_path="$(find /usr -type f -name mosquitto_dynamic_security.so -print -quit)"; \
     test -n "$plugin_path"; \
