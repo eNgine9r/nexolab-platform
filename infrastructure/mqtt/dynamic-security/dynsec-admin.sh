@@ -95,6 +95,10 @@ role_exists() {
   ctrl listRoles 2>/dev/null | grep -Fqx -- "$1"
 }
 
+client_definition() {
+  ctrl getClient "$1" 2>/dev/null
+}
+
 ensure_role() {
   role_name=$1
   if ! role_exists "$role_name"; then
@@ -118,13 +122,30 @@ create_client() {
   password_file=$3
   required_value "$username" "Client username"
   required_value "$client_id" "Client ID"
+
   if client_exists "$username"; then
-    echo "Dynamic Security client already exists: $username" >&2
-    exit 70
+    definition="$(client_definition "$username")"
+    if ! printf '%s\n' "$definition" | grep -Fqx -- "Clientid: $client_id"; then
+      echo "Dynamic Security client ID mismatch for existing client: $username" >&2
+      exit 70
+    fi
+    return
   fi
+
   client_password="$(read_secret "$password_file")"
   ctrl createClient "$username" -i "$client_id" -p "$client_password" >/dev/null
   unset client_password
+}
+
+ensure_client_role() {
+  username=$1
+  role_name=$2
+  priority=$3
+  definition="$(client_definition "$username")"
+  if printf '%s\n' "$definition" | grep -Fq -- "$role_name (priority: $priority)"; then
+    return
+  fi
+  ctrl addClientRole "$username" "$role_name" "$priority" >/dev/null
 }
 
 set_client_password() {
@@ -166,7 +187,7 @@ create_node() {
     "nexolab/v1/${organization_id}/${node_id}/status" allow 100
 
   create_client "$username" "$client_id" "$password_file"
-  ctrl addClientRole "$username" "$role_name" 100 >/dev/null
+  ensure_client_role "$username" "$role_name" 100
 }
 
 create_ingestion() {
@@ -184,7 +205,7 @@ create_ingestion() {
   done
 
   create_client "$username" "$client_id" "$password_file"
-  ctrl addClientRole "$username" "$role_name" 100 >/dev/null
+  ensure_client_role "$username" "$role_name" 100
 }
 
 command=${1:-}
