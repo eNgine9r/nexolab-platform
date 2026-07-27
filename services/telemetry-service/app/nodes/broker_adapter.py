@@ -183,13 +183,10 @@ class DynamicSecurityAdminAdapter:
                 pass
 
     def _run_mutation(self, *arguments: str) -> None:
-        result = self._run(*arguments)
-        if result.stdout.strip() or result.stderr.strip():
-            raise BrokerControlAdapterError(
-                "broker_response_invalid",
-                "broker administration mutation returned unexpected output",
-                retryable=False,
-            )
+        # Mutation output is intentionally ignored after a zero exit status. Each
+        # lifecycle operation is followed by an independent, strictly parsed broker
+        # state read, which is the authoritative reconciliation boundary.
+        self._run(*arguments)
 
     def _read_client(self, username: str) -> DynamicSecurityClientState:
         result = self._run("get-client", username)
