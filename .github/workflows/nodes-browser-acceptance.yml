@@ -1,0 +1,75 @@
+name: Nodes Browser Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nodes-browser-acceptance.yml"
+      - "e2e/nodes.production.e2e.ts"
+      - "playwright.nodes.config.ts"
+      - "scripts/run-nodes-browser-acceptance.sh"
+      - "package.json"
+      - "package-lock.json"
+      - "src/app/nodes/**"
+      - "src/components/nodes/**"
+      - "src/components/dashboard/sidebar.tsx"
+      - "src/features/security/**"
+      - "src/hooks/use-dashboard-security.ts"
+      - "src/lib/nodes/**"
+      - "services/telemetry-service/app/nodes/**"
+      - "services/telemetry-service/app/security/**"
+      - "services/telemetry-service/app/ingestion.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/app/model_registry.py"
+      - "services/telemetry-service/migrations/versions/20260726_0014_add_central_node_registry.py"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.browser-acceptance.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nodes-browser-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nodes-browser-acceptance:
+    name: Next.js + FastAPI + PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install frontend dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run nodes browser acceptance
+        run: |
+          chmod +x scripts/run-nodes-browser-acceptance.sh
+          scripts/run-nodes-browser-acceptance.sh
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodes-browser-acceptance-evidence
+          path: |
+            test-results-nodes
+            playwright-report-nodes
+            /tmp/nexolab-nodes-acceptance-frontend.log
+            /tmp/nexolab-nodes-acceptance-services.log
+          if-no-files-found: warn
+          retention-days: 14
