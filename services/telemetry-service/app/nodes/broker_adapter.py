@@ -5,7 +5,6 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
 
 from app.nodes.broker_control import BrokerControlOperation
 from app.nodes.broker_models import CentralNodeBrokerCommand
@@ -124,10 +123,21 @@ class DynamicSecurityAdminAdapter:
                 retryable=False,
             )
 
+        if operation is BrokerControlOperation.ENABLE:
+            self._run_mutation("enable-client", username)
+            state = self._read_client(username)
+            if state.client_id != client_id or state.disabled is not False:
+                raise BrokerControlAdapterError(
+                    "broker_reconciliation_mismatch",
+                    "broker client was not enabled after the command",
+                    retryable=True,
+                )
+            return
+
         if operation is BrokerControlOperation.DISABLE:
             self._run_mutation("disable-client", username)
             state = self._read_client(username)
-            if state.disabled is not True:
+            if state.client_id != client_id or state.disabled is not True:
                 raise BrokerControlAdapterError(
                     "broker_reconciliation_mismatch",
                     "broker client was not disabled after the command",
@@ -136,7 +146,15 @@ class DynamicSecurityAdminAdapter:
             return
 
         if operation is BrokerControlOperation.DELETE:
+            if not self._client_exists(username):
+                return
             self._run_mutation("delete-client", username)
+            if self._client_exists(username):
+                raise BrokerControlAdapterError(
+                    "broker_reconciliation_mismatch",
+                    "broker client still exists after the delete command",
+                    retryable=True,
+                )
             return
 
         raise BrokerControlAdapterError(
@@ -176,6 +194,11 @@ class DynamicSecurityAdminAdapter:
     def _read_client(self, username: str) -> DynamicSecurityClientState:
         result = self._run("get-client", username)
         return parse_dynamic_security_client(result.stdout)
+
+    def _client_exists(self, username: str) -> bool:
+        result = self._run("list-clients")
+        clients = {line.strip() for line in result.stdout.splitlines() if line.strip()}
+        return username in clients
 
     def _run(self, *arguments: str) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
