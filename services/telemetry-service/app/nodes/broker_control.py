@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 class BrokerControlOperation(str, Enum):
     PROVISION = "provision"
     ROTATE = "rotate"
+    ENABLE = "enable"
     DISABLE = "disable"
     DELETE = "delete"
 
