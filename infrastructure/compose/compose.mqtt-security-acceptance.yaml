@@ -22,6 +22,7 @@ services:
           mosquitto_ctrl
           -h 127.0.0.1
           -p 1883
+          -i nexolab-dynsec-healthcheck
           -u "$${NEXOLAB_MQTT_ADMIN_USERNAME}"
           -P "$$(cat /run/secrets/nexolab/admin-password)"
           --quiet
