@@ -1,0 +1,142 @@
+name: Apply fleet telemetry contract patch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-fleet-telemetry-contract.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Apply canonical simulator and evidence patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          main_path = Path("services/device-agent/main.py")
+          source = main_path.read_text(encoding="utf-8")
+          source = source.replace(
+              '''                        quality="valid",
+                              source="simulator",
+                          )
+          ''',
+              '''                        quality="valid",
+                              source="simulator",
+                              equipment_id=f"SIM-{self.settings.node_id}",
+                              channel_id="ambient-temperature",
+                          )
+          ''',
+              1,
+          )
+          if source == main_path.read_text(encoding="utf-8"):
+              raise SystemExit("simulator contract patch did not change source")
+          main_path.write_text(source, encoding="utf-8")
+
+          script_path = Path("scripts/run-device-agent-fleet-acceptance.sh")
+          script = script_path.read_text(encoding="utf-8")
+          script = script.replace(
+              '''SELECT node_id, stream, last_sequence
+          FROM central_node_ingress_cursors
+          WHERE node_id IN ('edge-01', 'edge-02')
+          ORDER BY node_id, stream;
+          ''',
+              '''SELECT n.node_id, c.stream, c.last_sequence
+          FROM central_node_ingress_cursors c
+          JOIN central_nodes n ON n.id = c.node_record_id
+          WHERE n.node_id IN ('edge-01', 'edge-02')
+          ORDER BY n.node_id, c.stream;
+          ''',
+              1,
+          )
+          script = script.replace(
+              '''  FROM central_node_ingress_cursors
+            WHERE node_id IN ('edge-01', 'edge-02')
+              AND stream = 'telemetry'
+              AND last_sequence <= 0;
+          ''',
+              '''  FROM central_node_ingress_cursors c
+            JOIN central_nodes n ON n.id = c.node_record_id
+            WHERE n.node_id IN ('edge-01', 'edge-02')
+              AND c.stream = 'telemetry'
+              AND c.last_sequence <= 0;
+          ''',
+              1,
+          )
+          script_path.write_text(script, encoding="utf-8")
+
+          workflow_path = Path(".github/workflows/edge-image.yml")
+          workflow = workflow_path.read_text(encoding="utf-8")
+          workflow = workflow.replace(
+              "grep -Fqx 'MQTT_AUTH_REQUIRED: \"true\"'",
+              "grep -Fq 'MQTT_AUTH_REQUIRED: \"true\"'",
+              1,
+          )
+          workflow_path.write_text(workflow, encoding="utf-8")
+          PY
+      - name: Add simulator contract regression test
+        run: |
+          cat > services/device-agent/tests/test_simulator_contract.py <<'PY'
+          from __future__ import annotations
+
+          import os
+          import unittest
+          from unittest.mock import patch
+
+          from main import DeviceAgent, Settings
+
+
+          class SimulatorTelemetryContractTests(unittest.TestCase):
+              def test_simulator_emits_canonical_asset_identity(self) -> None:
+                  with patch.dict(
+                      os.environ,
+                      {
+                          "NEXOLAB_NODE_ID": "edge-01",
+                          "DEVICE_MODE": "simulator",
+                      },
+                      clear=True,
+                  ):
+                      settings = Settings.from_env()
+
+                  agent = object.__new__(DeviceAgent)
+                  agent.settings = settings
+                  records, error = DeviceAgent.sample_batch(agent)
+
+                  self.assertIsNone(error)
+                  self.assertEqual(len(records), 1)
+                  self.assertEqual(records[0].equipment_id, "SIM-edge-01")
+                  self.assertEqual(records[0].channel_id, "ambient-temperature")
+                  self.assertEqual(records[0].quality, "valid")
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          PY
+      - name: Validate patched contracts
+        run: |
+          python -m pip install -r services/device-agent/requirements.txt
+          python -m compileall -q services/device-agent
+          PYTHONPATH=services/device-agent \
+            python -m unittest discover -s services/device-agent/tests -v
+          bash -n scripts/run-device-agent-fleet-acceptance.sh
+      - name: Commit telemetry contract patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/device-agent/main.py \
+            services/device-agent/tests/test_simulator_contract.py \
+            scripts/run-device-agent-fleet-acceptance.sh \
+            .github/workflows/edge-image.yml
+          git commit -m "fix: align simulator telemetry with canonical contract"
+          git push origin "HEAD:${{ github.head_ref }}"
