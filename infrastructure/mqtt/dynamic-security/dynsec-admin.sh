@@ -4,6 +4,7 @@ set -eu
 BROKER_HOST="${NEXOLAB_MQTT_BROKER_HOST:-127.0.0.1}"
 BROKER_PORT="${NEXOLAB_MQTT_BROKER_PORT:-1883}"
 ADMIN_USERNAME="${NEXOLAB_MQTT_ADMIN_USERNAME:-admin}"
+ADMIN_CLIENT_ID="${NEXOLAB_MQTT_ADMIN_CLIENT_ID:-nexolab-dynsec-admin-cli}"
 ADMIN_PASSWORD_FILE="${NEXOLAB_MQTT_ADMIN_PASSWORD_FILE:-/run/secrets/mqtt_admin_password}"
 CONTROL_OPTIONS=""
 
@@ -67,12 +68,14 @@ read_secret() {
 
 prepare_control_options() {
   required_value "$ADMIN_USERNAME" "Admin username"
+  required_value "$ADMIN_CLIENT_ID" "Admin client ID"
   admin_password="$(read_secret "$ADMIN_PASSWORD_FILE")"
   CONTROL_OPTIONS="$(mktemp)"
   chmod 0600 "$CONTROL_OPTIONS"
   {
     printf '%s\n' "-h $BROKER_HOST"
     printf '%s\n' "-p $BROKER_PORT"
+    printf '%s\n' "-i $ADMIN_CLIENT_ID"
     printf '%s\n' "-u $ADMIN_USERNAME"
     printf '%s\n' "-P $admin_password"
     printf '%s\n' "--quiet"
