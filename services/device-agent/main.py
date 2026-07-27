@@ -678,7 +678,10 @@ class DeviceAgent:
             payload_data, separators=(",", ":"), ensure_ascii=False
         )
         topic = self.settings.resolved_telemetry_topic
-        if self.state.mqtt_connected:
+        # Once a backlog exists, append every new sample behind it. Publishing a
+        # newer sequence before queued older sequences would violate the central
+        # monotonic replay boundary after broker recovery.
+        if self.queue.size() == 0 and self.state.mqtt_connected:
             try:
                 result = self.client.publish(topic, payload, qos=1)
                 result.wait_for_publish(timeout=5)
