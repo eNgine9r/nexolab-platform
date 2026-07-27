@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/m6-node-health-streams]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -53,15 +53,14 @@ jobs:
 
   fix-xlsx-determinism:
     name: Fix XLSX determinism
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/m6-node-health-streams'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -186,4 +185,4 @@ def _mapping(value: Any, field: str) -> Mapping[str, Any]:
             services/telemetry-service/tests/test_report_renderer.py
           git diff --cached --quiet && exit 0
           git -c core.hooksPath=/dev/null commit -m "fix(reports): canonicalize XLSX core timestamps"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          git push origin "HEAD:feat/m6-node-health-streams"
