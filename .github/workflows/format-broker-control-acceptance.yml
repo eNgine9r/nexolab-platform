@@ -1,0 +1,59 @@
+name: Format broker control acceptance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/format-broker-control-acceptance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Canonical acceptance sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format acceptance sources
+        run: |
+          npx prettier --write \
+            playwright.broker-control.config.ts \
+            e2e/broker-control.production.e2e.ts \
+            .github/workflows/broker-control-acceptance.yml \
+            infrastructure/compose/compose.broker-control-acceptance.yaml \
+            infrastructure/compose/compose.central-mqtt-security.yaml \
+            docs/operations/mqtt-broker-control.md
+
+      - name: Package canonical sources
+        run: |
+          mkdir -p runtime/canonical/e2e
+          mkdir -p runtime/canonical/.github/workflows
+          mkdir -p runtime/canonical/infrastructure/compose
+          mkdir -p runtime/canonical/docs/operations
+          cp playwright.broker-control.config.ts runtime/canonical/
+          cp e2e/broker-control.production.e2e.ts runtime/canonical/e2e/
+          cp .github/workflows/broker-control-acceptance.yml runtime/canonical/.github/workflows/
+          cp infrastructure/compose/compose.broker-control-acceptance.yaml \
+            infrastructure/compose/compose.central-mqtt-security.yaml \
+            runtime/canonical/infrastructure/compose/
+          cp docs/operations/mqtt-broker-control.md runtime/canonical/docs/operations/
+
+      - name: Upload canonical sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-control-acceptance-canonical-sources
+          path: runtime/canonical
+          if-no-files-found: error
+          retention-days: 1
