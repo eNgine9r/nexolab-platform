@@ -55,11 +55,31 @@ jobs:
               '    try {\n      const client = createNodeApiClient();\n      const result = await client.listNodes(signal);\n      const operationalEntries = await Promise.all(\n        result.map(async (node) => {\n          try {\n            const state = await client.getOperationalState(node.node_id, signal);\n            return [node.node_id, state] as const;\n          } catch (operationalError) {\n            if (signal?.aborted) throw operationalError;\n            return [node.node_id, null] as const;\n          }\n        }),\n      );\n      setNodes(result);\n      setOperationalStates(Object.fromEntries(operationalEntries));\n',
               "load",
           )
-          swap(
-              '       attention: nodes.filter(\n         (node) =>\n           node.state === "suspended" || node.clock_status === "warning" || node.clock_status === "critical",\n       ).length,\n       total: nodes.length,\n     }),\n     [nodes],\n',
-              '       attention: nodes.filter((node) => {\n         const availability = operationalStates[node.node_id]?.availability;\n         return (\n           node.state === "suspended" ||\n           node.clock_status === "warning" ||\n           node.clock_status === "critical" ||\n           availability === "offline" ||\n           availability === "stale"\n         );\n       }).length,\n       total: nodes.length,\n     }),\n     [nodes, operationalStates],\n',
-              "counts",
+
+          counts_start = content.index("  const counts = useMemo(")
+          counts_end = content.index("\n\n  return (", counts_start)
+          content = (
+              content[:counts_start]
+              + '''  const counts = useMemo(
+    () => ({
+      active: nodes.filter((node) => node.state === "active").length,
+      attention: nodes.filter((node) => {
+        const availability = operationalStates[node.node_id]?.availability;
+        return (
+          node.state === "suspended" ||
+          node.clock_status === "warning" ||
+          node.clock_status === "critical" ||
+          availability === "offline" ||
+          availability === "stale"
+        );
+      }).length,
+      total: nodes.length,
+    }),
+    [nodes, operationalStates],
+  );'''
+              + content[counts_end:]
           )
+
           swap(
               '                   <p className="mt-3 text-[9px] text-slate-500">Last seen: {formatDate(node.last_seen_at)}</p>\n',
               '                   <div className="mt-3 flex items-center justify-between gap-2 text-[9px] text-slate-500">\n                     <span>Last seen: {formatDate(node.last_seen_at)}</span>\n                     <span\n                       className={\n                         operationalStates[node.node_id]?.availability === "online"\n                           ? "text-emerald-300"\n                           : operationalStates[node.node_id]?.availability === "offline"\n                             ? "text-red-300"\n                             : operationalStates[node.node_id]?.availability === "stale"\n                               ? "text-amber-300"\n                               : "text-slate-600"\n                       }\n                       data-testid={`node-row-availability-${node.node_id}`}\n                     >\n                       {operationalStates[node.node_id]?.availability ?? "unknown"}\n                     </span>\n                   </div>\n',
