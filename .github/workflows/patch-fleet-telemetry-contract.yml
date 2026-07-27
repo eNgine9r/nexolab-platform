@@ -27,59 +27,57 @@ jobs:
 
           main_path = Path("services/device-agent/main.py")
           source = main_path.read_text(encoding="utf-8")
-          source = source.replace(
-              '''                        quality="valid",
-                              source="simulator",
-                          )
-          ''',
-              '''                        quality="valid",
-                              source="simulator",
-                              equipment_id=f"SIM-{self.settings.node_id}",
-                              channel_id="ambient-temperature",
-                          )
-          ''',
-              1,
+          simulator_anchor = '                        source="simulator",\n'
+          simulator_replacement = (
+              simulator_anchor
+              + '                        equipment_id=f"SIM-{self.settings.node_id}",\n'
+              + '                        channel_id="ambient-temperature",\n'
           )
-          if source == main_path.read_text(encoding="utf-8"):
-              raise SystemExit("simulator contract patch did not change source")
+          if source.count(simulator_anchor) != 1:
+              raise SystemExit("expected exactly one simulator source anchor")
+          source = source.replace(simulator_anchor, simulator_replacement, 1)
           main_path.write_text(source, encoding="utf-8")
 
           script_path = Path("scripts/run-device-agent-fleet-acceptance.sh")
           script = script_path.read_text(encoding="utf-8")
-          script = script.replace(
-              '''SELECT node_id, stream, last_sequence
-          FROM central_node_ingress_cursors
-          WHERE node_id IN ('edge-01', 'edge-02')
-          ORDER BY node_id, stream;
-          ''',
-              '''SELECT n.node_id, c.stream, c.last_sequence
-          FROM central_node_ingress_cursors c
-          JOIN central_nodes n ON n.id = c.node_record_id
-          WHERE n.node_id IN ('edge-01', 'edge-02')
-          ORDER BY n.node_id, c.stream;
-          ''',
-              1,
-          )
-          script = script.replace(
-              '''  FROM central_node_ingress_cursors
-            WHERE node_id IN ('edge-01', 'edge-02')
-              AND stream = 'telemetry'
-              AND last_sequence <= 0;
-          ''',
-              '''  FROM central_node_ingress_cursors c
-            JOIN central_nodes n ON n.id = c.node_record_id
-            WHERE n.node_id IN ('edge-01', 'edge-02')
-              AND c.stream = 'telemetry'
-              AND c.last_sequence <= 0;
-          ''',
-              1,
-          )
+          cleanup_cursor = """SELECT node_id, stream, last_sequence
+FROM central_node_ingress_cursors
+WHERE node_id IN ('edge-01', 'edge-02')
+ORDER BY node_id, stream;
+"""
+          cleanup_cursor_join = """SELECT n.node_id, c.stream, c.last_sequence
+FROM central_node_ingress_cursors c
+JOIN central_nodes n ON n.id = c.node_record_id
+WHERE n.node_id IN ('edge-01', 'edge-02')
+ORDER BY n.node_id, c.stream;
+"""
+          if script.count(cleanup_cursor) != 1:
+              raise SystemExit("expected exactly one cleanup cursor query")
+          script = script.replace(cleanup_cursor, cleanup_cursor_join, 1)
+
+          invariant_cursor = """  FROM central_node_ingress_cursors
+  WHERE node_id IN ('edge-01', 'edge-02')
+    AND stream = 'telemetry'
+    AND last_sequence <= 0;
+"""
+          invariant_cursor_join = """  FROM central_node_ingress_cursors c
+  JOIN central_nodes n ON n.id = c.node_record_id
+  WHERE n.node_id IN ('edge-01', 'edge-02')
+    AND c.stream = 'telemetry'
+    AND c.last_sequence <= 0;
+"""
+          if script.count(invariant_cursor) != 1:
+              raise SystemExit("expected exactly one invariant cursor query")
+          script = script.replace(invariant_cursor, invariant_cursor_join, 1)
           script_path.write_text(script, encoding="utf-8")
 
           workflow_path = Path(".github/workflows/edge-image.yml")
           workflow = workflow_path.read_text(encoding="utf-8")
+          grep_anchor = "grep -Fqx 'MQTT_AUTH_REQUIRED: \"true\"'"
+          if workflow.count(grep_anchor) != 1:
+              raise SystemExit("expected exactly one secure compose grep anchor")
           workflow = workflow.replace(
-              "grep -Fqx 'MQTT_AUTH_REQUIRED: \"true\"'",
+              grep_anchor,
               "grep -Fq 'MQTT_AUTH_REQUIRED: \"true\"'",
               1,
           )
