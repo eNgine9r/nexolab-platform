@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/patch-fleet-telemetry-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
