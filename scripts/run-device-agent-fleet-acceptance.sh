@@ -88,10 +88,11 @@ JOIN central_nodes n ON n.id = s.node_record_id
 ORDER BY s.received_at DESC
 LIMIT 20;
 
-SELECT node_id, stream, last_sequence
-FROM central_node_ingress_cursors
-WHERE node_id IN ('edge-01', 'edge-02')
-ORDER BY node_id, stream;
+SELECT n.node_id, c.stream, c.last_sequence
+FROM central_node_ingress_cursors c
+JOIN central_nodes n ON n.id = c.node_record_id
+WHERE n.node_id IN ('edge-01', 'edge-02')
+ORDER BY n.node_id, c.stream;
 SQL
   compose down --volumes --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$PRIVATE_DIR"
@@ -375,10 +376,11 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO invalid_sequences
-  FROM central_node_ingress_cursors
-  WHERE node_id IN ('edge-01', 'edge-02')
-    AND stream = 'telemetry'
-    AND last_sequence <= 0;
+  FROM central_node_ingress_cursors c
+  JOIN central_nodes n ON n.id = c.node_record_id
+  WHERE n.node_id IN ('edge-01', 'edge-02')
+    AND c.stream = 'telemetry'
+    AND c.last_sequence <= 0;
   IF invalid_sequences <> 0 THEN
     RAISE EXCEPTION 'invalid telemetry cursor state';
   END IF;

@@ -651,6 +651,8 @@ class DeviceAgent:
                         unit="degC",
                         quality="valid",
                         source="simulator",
+                        equipment_id=f"SIM-{self.settings.node_id}",
+                        channel_id="ambient-temperature",
                     )
                 ],
                 None,
