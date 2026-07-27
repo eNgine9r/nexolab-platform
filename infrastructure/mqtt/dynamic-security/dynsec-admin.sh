@@ -52,7 +52,7 @@ read_secret() {
     echo "Secret file is not readable: $secret_file" >&2
     exit 67
   fi
-  secret_value="$(cat "$secret_file")"
+  secret_value="$(tr -d '\r\n' <"$secret_file")"
   if [ -z "$secret_value" ]; then
     echo "Secret file must not be empty: $secret_file" >&2
     exit 68
@@ -112,49 +112,6 @@ replace_role_acl() {
   ctrl addRoleACL "$role_name" "$acl_type" "$topic_filter" "$access" "$priority" >/dev/null
 }
 
-run_password_prompt() {
-  action=$1
-  username=$2
-  client_id=$3
-  password_file=$4
-  password_value="$(read_secret "$password_file")"
-
-  export DYNSEC_PROMPT_ACTION="$action"
-  export DYNSEC_PROMPT_USERNAME="$username"
-  export DYNSEC_PROMPT_CLIENT_ID="$client_id"
-  export DYNSEC_PROMPT_PASSWORD="$password_value"
-  export DYNSEC_PROMPT_OPTIONS="$CONTROL_OPTIONS"
-
-  expect <<'EXPECT'
-log_user 0
-set timeout 15
-set command [list mosquitto_ctrl -o $env(DYNSEC_PROMPT_OPTIONS) dynsec $env(DYNSEC_PROMPT_ACTION) $env(DYNSEC_PROMPT_USERNAME)]
-if {$env(DYNSEC_PROMPT_ACTION) eq "createClient"} {
-    lappend command -i $env(DYNSEC_PROMPT_CLIENT_ID)
-}
-spawn {*}$command
-set prompt_count 0
-expect {
-    -re {(?i)password[^\r\n]*:} {
-        send -- "$env(DYNSEC_PROMPT_PASSWORD)\r"
-        incr prompt_count
-        exp_continue
-    }
-    eof {}
-    timeout { exit 72 }
-}
-set result [wait]
-set exit_code [lindex $result 3]
-if {$exit_code != 0 || $prompt_count < 2} {
-    exit 73
-}
-EXPECT
-
-  unset password_value
-  unset DYNSEC_PROMPT_ACTION DYNSEC_PROMPT_USERNAME DYNSEC_PROMPT_CLIENT_ID
-  unset DYNSEC_PROMPT_PASSWORD DYNSEC_PROMPT_OPTIONS
-}
-
 create_client() {
   username=$1
   client_id=$2
@@ -165,7 +122,9 @@ create_client() {
     echo "Dynamic Security client already exists: $username" >&2
     exit 70
   fi
-  run_password_prompt createClient "$username" "$client_id" "$password_file"
+  client_password="$(read_secret "$password_file")"
+  ctrl createClient "$username" -i "$client_id" -p "$client_password" >/dev/null
+  unset client_password
 }
 
 set_client_password() {
@@ -176,7 +135,9 @@ set_client_password() {
     echo "Dynamic Security client does not exist: $username" >&2
     exit 71
   fi
-  run_password_prompt setClientPassword "$username" "" "$password_file"
+  client_password="$(read_secret "$password_file")"
+  ctrl setClientPassword "$username" "$client_password" >/dev/null
+  unset client_password
 }
 
 bootstrap_defaults() {
