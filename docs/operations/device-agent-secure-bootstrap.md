@@ -8,11 +8,11 @@ The procedure does not require direct Raspberry Pi access for CI acceptance. Ins
 
 A secure Device Agent identity consists of three exact values:
 
-| Field | Contract |
-| --- | --- |
-| Username | `node:{organization_id}:{node_id}` |
-| Client ID | `nexolab-{organization_id}-{node_id}` |
-| Password | One-time Node Registry secret stored only in a mounted file |
+| Field     | Contract                                                    |
+| --------- | ----------------------------------------------------------- |
+| Username  | `node:{organization_id}:{node_id}`                          |
+| Client ID | `nexolab-{organization_id}-{node_id}`                       |
+| Password  | One-time Node Registry secret stored only in a mounted file |
 
 Secure mode is enabled with:
 
@@ -202,14 +202,14 @@ Expected result:
 
 ## Failure diagnosis
 
-| Symptom | Likely cause | Action |
-| --- | --- | --- |
-| Startup exits immediately | Missing organization, identity drift or invalid password file | Recheck exact identity and mounted path |
-| `mqtt_connected=false` after rotation | Old password remains mounted | Atomically install the new secret and recreate the container |
-| Queue grows on every node | Central broker or network unavailable | Restore broker/network; do not delete SQLite volumes |
-| Queue grows on one node only | Node credential or identity mismatch | Compare Node Registry identity with `.env.edge-secure` |
-| Central telemetry rejects samples | Payload schema or sequence contract mismatch | Inspect sanitized telemetry-service logs and Device Agent version |
-| `/nodes` reports stale | Health stream is not reaching central ingestion | Check MQTT ACL, credentials and broker connectivity |
+| Symptom                               | Likely cause                                                  | Action                                                            |
+| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Startup exits immediately             | Missing organization, identity drift or invalid password file | Recheck exact identity and mounted path                           |
+| `mqtt_connected=false` after rotation | Old password remains mounted                                  | Atomically install the new secret and recreate the container      |
+| Queue grows on every node             | Central broker or network unavailable                         | Restore broker/network; do not delete SQLite volumes              |
+| Queue grows on one node only          | Node credential or identity mismatch                          | Compare Node Registry identity with `.env.edge-secure`            |
+| Central telemetry rejects samples     | Payload schema or sequence contract mismatch                  | Inspect sanitized telemetry-service logs and Device Agent version |
+| `/nodes` reports stale                | Health stream is not reaching central ingestion               | Check MQTT ACL, credentials and broker connectivity               |
 
 ## Rollback
 
