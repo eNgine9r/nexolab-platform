@@ -8,7 +8,9 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         fonts-dejavu-core \
+        mosquitto \
         mosquitto-clients \
+    && command -v mosquitto_ctrl >/dev/null \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
