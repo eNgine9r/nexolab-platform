@@ -88,11 +88,11 @@ ctrl() {
 }
 
 client_exists() {
-  ctrl getClient "$1" >/dev/null 2>&1
+  ctrl listClients 2>/dev/null | grep -Fqx -- "$1"
 }
 
 role_exists() {
-  ctrl getRole "$1" >/dev/null 2>&1
+  ctrl listRoles 2>/dev/null | grep -Fqx -- "$1"
 }
 
 ensure_role() {
