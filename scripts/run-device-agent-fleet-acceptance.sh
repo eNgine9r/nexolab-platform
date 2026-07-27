@@ -9,6 +9,10 @@ EVIDENCE_DIR="$ROOT_DIR/test-results-device-agent-fleet"
 PRIVATE_DIR="${TMPDIR:-/tmp}/${PROJECT_NAME}-private"
 SECRETS_DIR="$PRIVATE_DIR/secrets"
 SERVICE_LOG="$EVIDENCE_DIR/services.log"
+FRONTEND_LOG="$EVIDENCE_DIR/frontend.log"
+FRONTEND_PID=""
+FRONTEND_PORT="${FLEET_FRONTEND_PORT:-3112}"
+FRONTEND_BASE_URL="http://127.0.0.1:${FRONTEND_PORT}"
 
 API_PORT="${FLEET_API_PORT:-8092}"
 MQTT_PORT="${FLEET_MQTT_PORT:-1892}"
@@ -60,6 +64,10 @@ compose() {
 cleanup() {
   local status=$?
   set +e
+  if [[ -n "$FRONTEND_PID" ]]; then
+    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+    wait "$FRONTEND_PID" >/dev/null 2>&1 || true
+  fi
   compose ps --all >"$EVIDENCE_DIR/compose-ps.log" 2>&1 || true
   compose logs --no-color \
     postgres mqtt mqtt-policy-init telemetry-migrate telemetry-service \
@@ -535,6 +543,23 @@ wait_operational_online "$NODE_B" "$EVIDENCE_DIR/edge-02-final-operational.json"
 assert_database_invariants
 assert_no_plaintext_secrets
 
+cd "$ROOT_DIR"
+export NEXT_PUBLIC_NEXOLAB_DATA_MODE="live"
+export NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$API_BASE_URL"
+export NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="ws://127.0.0.1:${API_PORT}/api/v1/telemetry/live"
+export NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="acceptance"
+export NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$ORGANIZATION_ID"
+export NEXT_TELEMETRY_DISABLED="1"
+npm run build >"$FRONTEND_LOG" 2>&1
+npm run start -- --hostname 127.0.0.1 --port "$FRONTEND_PORT" >>"$FRONTEND_LOG" 2>&1 &
+FRONTEND_PID=$!
+wait_for_url "$FRONTEND_BASE_URL/nodes" "fleet operator UI"
+
+export NEXOLAB_DEVICE_AGENT_FLEET_FRONTEND_URL="$FRONTEND_BASE_URL"
+export NEXOLAB_DEVICE_AGENT_FLEET_ORGANIZATION_ID="$ORGANIZATION_ID"
+export NEXOLAB_DEVICE_AGENT_FLEET_MANAGER_TOKEN="$MANAGER_TOKEN"
+npx playwright test --config=playwright.device-agent-fleet.config.ts
+
 printf '%s\n' \
   'secure_bootstrap=verified' \
   'two_actual_agents=verified' \
@@ -546,6 +571,7 @@ printf '%s\n' \
   'single_node_rotation=verified' \
   'unaffected_node_continuity=verified' \
   'operational_state_recovery=verified' \
+  'browser_operator_state=verified' \
   'plaintext_credentials=absent' \
   >"$EVIDENCE_DIR/acceptance-summary.txt"
 
