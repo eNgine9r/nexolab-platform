@@ -46,7 +46,11 @@ jobs:
           content = path.read_text()
           source = '    if count != 1:\n        raise SystemExit(f"{label}: expected one anchor, found {count}")\n'
           target = (
-              '    expected = 3 if label == "node read model exclusion" else 1\n'
+              '    expected_counts = {\n'
+              '        "node read model exclusion": 3,\n'
+              '        "provision response node": 2,\n'
+              '    }\n'
+              '    expected = expected_counts.get(label, 1)\n'
               '    if count != expected:\n'
               '        raise SystemExit(\n'
               '            f"{label}: expected {expected} anchor(s), found {count}"\n'
