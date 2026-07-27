@@ -71,6 +71,62 @@ class BrokerControlRepository:
         secret: str | None = None,
         available_at: datetime | None = None,
     ) -> EnqueuedBrokerCommand:
+        """Enqueue one command in a repository-owned transaction.
+
+        Node lifecycle operations that already own a SQLAlchemy transaction must use
+        :meth:`enqueue_in_session` so the node mutation, security audit and encrypted
+        broker command commit or roll back as one unit.
+        """
+
+        with Session(self._engine, expire_on_commit=False) as session:
+            try:
+                with session.begin():
+                    result = self.enqueue_in_session(
+                        session,
+                        organization_id=organization_id,
+                        node_record_id=node_record_id,
+                        node_id=node_id,
+                        operation=operation,
+                        deduplication_key=deduplication_key,
+                        command_sha256=command_sha256,
+                        credential_id=credential_id,
+                        secret=secret,
+                        available_at=available_at,
+                    )
+            except IntegrityError as error:
+                raise BrokerControlConflictError(
+                    "broker-control command conflicts with existing state"
+                ) from error
+            session.expunge(result.command)
+            return result
+
+    def enqueue_in_session(
+        self,
+        session: Session,
+        *,
+        organization_id: str,
+        node_record_id: str,
+        node_id: str,
+        operation: BrokerControlOperation | str,
+        deduplication_key: str,
+        command_sha256: str,
+        credential_id: str | None = None,
+        secret: str | None = None,
+        available_at: datetime | None = None,
+    ) -> EnqueuedBrokerCommand:
+        """Enqueue using the caller's active database transaction.
+
+        This method never commits, rolls back, closes or expunges the supplied session.
+        The caller owns the complete transaction boundary. Exact deduplication replays
+        return the existing row; a reused key with different canonical command content
+        fails closed.
+        """
+
+        if not session.in_transaction():
+            raise BrokerControlStateError(
+                "broker-control transactional enqueue requires an active transaction"
+            )
+
         normalized_organization = _required_text(
             organization_id,
             "organization_id",
@@ -97,67 +153,56 @@ class BrokerControlRepository:
         _validate_operation_secret(normalized_operation, secret)
         ready_at = _aware_utc(available_at or datetime.now(UTC))
 
-        with Session(self._engine, expire_on_commit=False) as session:
-            try:
-                with session.begin():
-                    existing = session.scalar(
-                        select(CentralNodeBrokerCommand).where(
-                            CentralNodeBrokerCommand.organization_id
-                            == normalized_organization,
-                            CentralNodeBrokerCommand.deduplication_key
-                            == normalized_deduplication,
-                        )
-                    )
-                    if existing is not None:
-                        if existing.command_sha256 != normalized_digest:
-                            raise BrokerControlConflictError(
-                                "broker-control deduplication key is bound to another command"
-                            )
-                        session.expunge(existing)
-                        return EnqueuedBrokerCommand(existing, True)
-
-                    command_id = str(uuid4())
-                    envelope = (
-                        None
-                        if secret is None
-                        else self._cipher.encrypt(
-                            secret,
-                            associated_data=broker_control_associated_data(
-                                command_id=command_id,
-                                organization_id=normalized_organization,
-                                node_id=normalized_node,
-                                operation=normalized_operation,
-                            ),
-                        )
-                    )
-                    row = CentralNodeBrokerCommand(
-                        id=command_id,
-                        organization_id=normalized_organization,
-                        node_record_id=normalized_node_record,
-                        node_id=normalized_node,
-                        credential_id=normalized_credential,
-                        operation=normalized_operation.value,
-                        state=BrokerControlState.PENDING.value,
-                        deduplication_key=normalized_deduplication,
-                        command_sha256=normalized_digest,
-                        secret_ciphertext=(
-                            None if envelope is None else envelope.ciphertext_b64
-                        ),
-                        secret_nonce=None if envelope is None else envelope.nonce_b64,
-                        secret_key_id=None if envelope is None else envelope.key_id,
-                        attempts=0,
-                        available_at=ready_at,
-                        created_at=ready_at,
-                        updated_at=ready_at,
-                    )
-                    session.add(row)
-                    session.flush()
-            except IntegrityError as error:
+        existing = session.scalar(
+            select(CentralNodeBrokerCommand).where(
+                CentralNodeBrokerCommand.organization_id
+                == normalized_organization,
+                CentralNodeBrokerCommand.deduplication_key
+                == normalized_deduplication,
+            )
+        )
+        if existing is not None:
+            if existing.command_sha256 != normalized_digest:
                 raise BrokerControlConflictError(
-                    "broker-control command conflicts with existing state"
-                ) from error
-            session.expunge(row)
-            return EnqueuedBrokerCommand(row, False)
+                    "broker-control deduplication key is bound to another command"
+                )
+            return EnqueuedBrokerCommand(existing, True)
+
+        command_id = str(uuid4())
+        envelope = (
+            None
+            if secret is None
+            else self._cipher.encrypt(
+                secret,
+                associated_data=broker_control_associated_data(
+                    command_id=command_id,
+                    organization_id=normalized_organization,
+                    node_id=normalized_node,
+                    operation=normalized_operation,
+                ),
+            )
+        )
+        row = CentralNodeBrokerCommand(
+            id=command_id,
+            organization_id=normalized_organization,
+            node_record_id=normalized_node_record,
+            node_id=normalized_node,
+            credential_id=normalized_credential,
+            operation=normalized_operation.value,
+            state=BrokerControlState.PENDING.value,
+            deduplication_key=normalized_deduplication,
+            command_sha256=normalized_digest,
+            secret_ciphertext=None if envelope is None else envelope.ciphertext_b64,
+            secret_nonce=None if envelope is None else envelope.nonce_b64,
+            secret_key_id=None if envelope is None else envelope.key_id,
+            attempts=0,
+            available_at=ready_at,
+            created_at=ready_at,
+            updated_at=ready_at,
+        )
+        session.add(row)
+        session.flush()
+        return EnqueuedBrokerCommand(row, False)
 
     def claim_next(
         self,
