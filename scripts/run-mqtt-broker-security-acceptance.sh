@@ -106,13 +106,62 @@ path.chmod(0o600)
 PY
 }
 
+validate_dynamic_security_state() {
+  compose exec -T mqtt-security sh -s <<'SH'
+set -eu
+
+config=/mosquitto/data/dynamic-security.json
+[ -s "$config" ]
+
+for secret_file in \
+  /run/secrets/nexolab/admin-password \
+  /run/secrets/nexolab/ingestion-password \
+  /run/secrets/nexolab/node-a-old \
+  /run/secrets/nexolab/node-a-new \
+  /run/secrets/nexolab/node-b-password; do
+  secret_value="$(tr -d '\r\n' <"$secret_file")"
+  [ -n "$secret_value" ]
+  if grep -Fq -- "$secret_value" "$config"; then
+    echo "Plaintext secret leaked into dynamic-security.json" >&2
+    exit 1
+  fi
+done
+
+for username in \
+  nexolab-security-admin \
+  nexolab-central-ingestion \
+  node:00000000-0000-0000-0000-000000000001:edge-01 \
+  node:00000000-0000-0000-0000-000000000001:edge-02; do
+  jq -e --arg username "$username" \
+    '.clients[] | select(.username == $username)' \
+    "$config" >/dev/null
+done
+
+jq -e \
+  '.clients[] | select(
+    .username == "node:00000000-0000-0000-0000-000000000001:edge-02"
+    and .disabled == true
+  )' \
+  "$config" >/dev/null
+
+for role_name in \
+  nexolab-central-ingestion \
+  nexolab-node-00000000-0000-0000-0000-000000000001-edge-01 \
+  nexolab-node-00000000-0000-0000-0000-000000000001-edge-02; do
+  jq -e --arg role_name "$role_name" \
+    '.roles[] | select(.rolename == $role_name)' \
+    "$config" >/dev/null
+done
+SH
+}
+
 cleanup() {
   local status=$?
   set +e
   compose logs --no-color mqtt-security >"$BROKER_LOG" 2>&1 || true
   compose ps --all >"$EVIDENCE_DIR/compose-ps.log" 2>&1 || true
-  rm -rf "$SECRETS_DIR"
   compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+  rm -rf "$SECRETS_DIR"
   if [[ $status -ne 0 ]]; then
     echo "MQTT broker security acceptance failed." >&2
     tail -n 240 "$BROKER_LOG" >&2 || true
@@ -157,7 +206,6 @@ admin create-node \
   "$NODE_B" \
   /run/secrets/nexolab/node-b-password
 
-ADMIN_PASSWORD="$(secret admin-password)"
 INGESTION_PASSWORD="$(secret ingestion-password)"
 NODE_A_OLD_PASSWORD="$(secret node-a-old)"
 NODE_A_NEW_PASSWORD="$(secret node-a-new)"
@@ -183,7 +231,7 @@ mqtt_publish "$NODE_B_USERNAME" "$NODE_B_PASSWORD" "$NODE_B_CLIENT_ID" \
   "$NODE_B_TOPIC/health" '{"source":"node-b-health"}' true
 
 received="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
-  "${INGESTION_CLIENT_ID}-health-check" "$NODE_A_TOPIC/health")"
+  "$INGESTION_CLIENT_ID" "$NODE_A_TOPIC/health")"
 [[ "$received" == '{"source":"node-a-health"}' ]]
 
 expect_denied node-foreign-node-topic \
@@ -216,35 +264,7 @@ expect_denied disabled-node \
 admin get-client "$NODE_A_USERNAME" >"$EVIDENCE_DIR/node-a-client.txt"
 admin get-client "$NODE_B_USERNAME" >"$EVIDENCE_DIR/node-b-client.txt"
 admin list-clients >"$EVIDENCE_DIR/client-list.txt"
-
-compose exec -T mqtt-security python3 - \
-  "$(secret admin-password)" \
-  "$(secret ingestion-password)" \
-  "$(secret node-a-old)" \
-  "$(secret node-a-new)" \
-  "$(secret node-b-password)" <<'PY'
-import json
-from pathlib import Path
-import sys
-
-config = Path("/mosquitto/data/dynamic-security.json")
-payload = json.loads(config.read_text())
-serialized = json.dumps(payload, sort_keys=True)
-for secret in sys.argv[1:]:
-    if secret in serialized:
-        raise SystemExit("plaintext secret leaked into dynamic-security.json")
-clients = {item["username"]: item for item in payload.get("clients", [])}
-required = {
-    "nexolab-security-admin",
-    "nexolab-central-ingestion",
-    "node:00000000-0000-0000-0000-000000000001:edge-01",
-    "node:00000000-0000-0000-0000-000000000001:edge-02",
-}
-if not required.issubset(clients):
-    raise SystemExit("expected dynamic-security clients are missing")
-if clients["node:00000000-0000-0000-0000-000000000001:edge-02"].get("disabled") is not True:
-    raise SystemExit("edge-02 must be persisted as disabled")
-PY
+validate_dynamic_security_state
 
 compose restart mqtt-security
 wait_for_broker
@@ -259,7 +279,7 @@ expect_denied restart-disabled-node \
     "$NODE_B_TOPIC/status" disabled-after-restart
 
 received="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
-  "${INGESTION_CLIENT_ID}-restart-check" "$NODE_A_TOPIC/status")"
+  "$INGESTION_CLIENT_ID" "$NODE_A_TOPIC/status")"
 [[ "$received" == '{"source":"after-restart"}' ]]
 
 printf '%s\n' \
@@ -274,4 +294,5 @@ printf '%s\n' \
   "password_rotation=enforced" \
   "disabled_client=denied" \
   "restart_persistence=verified" \
+  "plaintext_secrets=absent" \
   >"$EVIDENCE_DIR/acceptance-summary.txt"
