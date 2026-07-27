@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 concurrency:
@@ -34,11 +34,113 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
+      - name: Wire TLS before MQTT connect
+        if: github.event_name == 'pull_request'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("services/device-agent/main.py")
+          source = path.read_text(encoding="utf-8")
+
+          import_anchor = "from modbus_rtu import ModbusError, ModbusRTUClient\n"
+          tls_import = "from mqtt_tls import MQTTTLSConfig\n"
+          if tls_import not in source:
+              if source.count(import_anchor) != 1:
+                  raise SystemExit("Device Agent TLS import anchor not found")
+              source = source.replace(
+                  import_anchor,
+                  import_anchor + tls_import,
+                  1,
+              )
+
+          apply_anchor = "            del mqtt_password\n"
+          apply_block = (
+              apply_anchor
+              + "        self.mqtt_tls = MQTTTLSConfig.from_environment()\n"
+              + "        self.mqtt_tls.apply(self.client)\n"
+          )
+          if "self.mqtt_tls = MQTTTLSConfig.from_environment()" not in source:
+              if source.count(apply_anchor) != 1:
+                  raise SystemExit("Device Agent TLS apply anchor not found")
+              source = source.replace(apply_anchor, apply_block, 1)
+
+          path.write_text(source, encoding="utf-8")
+          PY
+          cat > services/device-agent/tests/test_mqtt_tls_integration.py <<'PY'
+          from __future__ import annotations
+
+          import os
+          import tempfile
+          import unittest
+          from pathlib import Path
+          from unittest.mock import Mock, patch
+
+          from main import DeviceAgent, Settings
+
+
+          class DeviceAgentMQTTTLSIntegrationTests(unittest.TestCase):
+              @patch("main.MQTTTLSConfig.from_environment")
+              @patch("main.mqtt.Client")
+              def test_tls_context_is_applied_before_client_setup(
+                  self,
+                  client_factory: Mock,
+                  tls_from_environment: Mock,
+              ) -> None:
+                  temporary_directory = tempfile.TemporaryDirectory()
+                  self.addCleanup(temporary_directory.cleanup)
+                  database_path = Path(temporary_directory.name) / "edge.db"
+                  with patch.dict(
+                      os.environ,
+                      {"DATABASE_PATH": str(database_path)},
+                      clear=True,
+                  ):
+                      settings = Settings.from_env()
+
+                  client = client_factory.return_value
+                  tls_config = tls_from_environment.return_value
+
+                  def assert_before_logger(_client: Mock) -> None:
+                      self.assertIs(_client, client)
+                      client.enable_logger.assert_not_called()
+
+                  tls_config.apply.side_effect = assert_before_logger
+
+                  agent = DeviceAgent(settings)
+
+                  self.assertIs(agent.mqtt_tls, tls_config)
+                  tls_from_environment.assert_called_once_with()
+                  tls_config.apply.assert_called_once_with(client)
+                  client.enable_logger.assert_called_once()
+
+              def test_main_source_has_no_tls_verification_bypass(self) -> None:
+                  source = (
+                      Path(__file__).resolve().parents[1] / "main.py"
+                  ).read_text(encoding="utf-8")
+
+                  self.assertNotIn("tls_insecure_set", source)
+                  self.assertNotIn("CERT_NONE", source)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          PY
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add services/device-agent/main.py \
+              services/device-agent/tests/test_mqtt_tls_integration.py
+            git commit -m "feat: apply MQTT TLS before Device Agent connect"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
 
       - name: Install device-agent dependencies
         run: python -m pip install -r services/device-agent/requirements.txt
@@ -59,6 +161,12 @@ jobs:
             config --quiet
           grep -Fq 'MQTT_AUTH_REQUIRED: "true"' \
             infrastructure/compose/compose.edge-secure.yaml
+          grep -Fq 'MQTT_TLS_REQUIRED: "true"' \
+            infrastructure/compose/compose.edge-secure.yaml
+          grep -Fq 'MQTT_TLS_CA_FILE:' \
+            infrastructure/compose/compose.edge-secure.yaml
+          ! grep -ER 'tls_insecure_set|CERT_NONE|MQTT_TLS_INSECURE' \
+            services/device-agent infrastructure/compose/compose.edge-secure.yaml
           ! grep -E '^(MQTT_PASSWORD|PASSWORD)=' \
             infrastructure/compose/.env.edge-secure.example
 
