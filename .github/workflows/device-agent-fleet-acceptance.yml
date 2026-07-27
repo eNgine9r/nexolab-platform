@@ -1,0 +1,66 @@
+name: Device Agent Fleet Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+      - "scripts/run-device-agent-fleet-acceptance.sh"
+      - ".github/workflows/device-agent-fleet-acceptance.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+      - "scripts/run-device-agent-fleet-acceptance.sh"
+      - ".github/workflows/device-agent-fleet-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-agent-fleet-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Two secure agents outage and rotation gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate acceptance contracts
+        run: |
+          bash -n scripts/run-device-agent-fleet-acceptance.sh
+          docker compose \
+            -f infrastructure/compose/compose.broker-control-acceptance.yaml \
+            -f infrastructure/compose/compose.device-agent-fleet-acceptance.yaml \
+            config --quiet \
+            >/dev/null 2>&1 || {
+              status=$?
+              if [[ $status -ne 15 ]]; then
+                exit "$status"
+              fi
+            }
+
+      - name: Run secure Device Agent fleet acceptance
+        run: bash scripts/run-device-agent-fleet-acceptance.sh
+
+      - name: Upload fleet evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-agent-fleet-acceptance-evidence
+          path: test-results-device-agent-fleet
+          if-no-files-found: warn
+          retention-days: 14
