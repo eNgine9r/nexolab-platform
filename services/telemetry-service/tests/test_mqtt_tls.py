@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from app.config import Settings
 from app.mqtt_tls import MQTTTLSConfig
@@ -25,29 +26,25 @@ def test_disabled_tls_has_no_material() -> None:
 
 def test_disabled_tls_rejects_configured_files(tmp_path: Path) -> None:
     ca_file = write_material(tmp_path / "ca.pem")
+
+    with pytest.raises(ValidationError, match="MQTT_TLS_REQUIRED"):
+        Settings(
+            mqtt_enabled=False,
+            mqtt_tls_ca_file=str(ca_file),
+        )
+
+
+def test_enabled_tls_requires_ca_and_readable_file(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="MQTT_TLS_CA_FILE"):
+        Settings(mqtt_enabled=False, mqtt_tls_required=True)
+
     settings = Settings(
         mqtt_enabled=False,
-        mqtt_tls_ca_file=str(ca_file),
+        mqtt_tls_required=True,
+        mqtt_tls_ca_file=str(tmp_path / "missing-ca.pem"),
     )
-
-    with pytest.raises(RuntimeError, match="MQTT_TLS_REQUIRED"):
-        MQTTTLSConfig.from_settings(settings)
-
-
-def test_enabled_tls_requires_readable_ca(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="MQTT_TLS_CA_FILE"):
-        MQTTTLSConfig.from_settings(
-            Settings(mqtt_enabled=False, mqtt_tls_required=True)
-        )
-
     with pytest.raises(RuntimeError, match="not readable"):
-        MQTTTLSConfig.from_settings(
-            Settings(
-                mqtt_enabled=False,
-                mqtt_tls_required=True,
-                mqtt_tls_ca_file=str(tmp_path / "missing-ca.pem"),
-            )
-        )
+        MQTTTLSConfig.from_settings(settings)
 
 
 def test_client_certificate_and_key_are_atomic(tmp_path: Path) -> None:
@@ -59,14 +56,13 @@ def test_client_certificate_and_key_are_atomic(tmp_path: Path) -> None:
         ("mqtt_tls_cert_file", str(certificate_file)),
         ("mqtt_tls_key_file", str(key_file)),
     ):
-        settings = Settings(
-            mqtt_enabled=False,
-            mqtt_tls_required=True,
-            mqtt_tls_ca_file=str(ca_file),
-            **{field: value},
-        )
-        with pytest.raises(RuntimeError, match="configured together"):
-            MQTTTLSConfig.from_settings(settings)
+        with pytest.raises(ValidationError, match="configured together"):
+            Settings(
+                mqtt_enabled=False,
+                mqtt_tls_required=True,
+                mqtt_tls_ca_file=str(ca_file),
+                **{field: value},
+            )
 
 
 @patch("app.mqtt_tls.ssl.create_default_context")
