@@ -1,0 +1,72 @@
+services:
+  device-agent-a:
+    image: ${FLEET_DEVICE_AGENT_IMAGE:-nexolab-device-agent:fleet-acceptance}
+    build:
+      context: ../../services/device-agent
+    restart: unless-stopped
+    init: true
+    environment:
+      NEXOLAB_NODE_ID: edge-01
+      NEXOLAB_ORGANIZATION_ID: ${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}
+      NEXOLAB_DEVICE_AGENT_VERSION: fleet-acceptance
+      DEVICE_MODE: simulator
+      MQTT_HOST: mqtt
+      MQTT_PORT: "1883"
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: node:${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}:edge-01
+      MQTT_CLIENT_ID: nexolab-${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}-edge-01
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/edge-01-password
+      SAMPLE_INTERVAL_SECONDS: "0.2"
+      NODE_HEALTH_INTERVAL_SECONDS: "0.5"
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: "8081"
+      LOG_LEVEL: INFO
+    volumes:
+      - fleet-edge-a:/var/lib/nexolab
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      telemetry-service:
+        condition: service_healthy
+    networks:
+      - broker-control
+
+  device-agent-b:
+    image: ${FLEET_DEVICE_AGENT_IMAGE:-nexolab-device-agent:fleet-acceptance}
+    build:
+      context: ../../services/device-agent
+    restart: unless-stopped
+    init: true
+    environment:
+      NEXOLAB_NODE_ID: edge-02
+      NEXOLAB_ORGANIZATION_ID: ${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}
+      NEXOLAB_DEVICE_AGENT_VERSION: fleet-acceptance
+      DEVICE_MODE: simulator
+      MQTT_HOST: mqtt
+      MQTT_PORT: "1883"
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: node:${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}:edge-02
+      MQTT_CLIENT_ID: nexolab-${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}-edge-02
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/edge-02-password
+      SAMPLE_INTERVAL_SECONDS: "0.2"
+      NODE_HEALTH_INTERVAL_SECONDS: "0.5"
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: "8081"
+      LOG_LEVEL: INFO
+    volumes:
+      - fleet-edge-b:/var/lib/nexolab
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      telemetry-service:
+        condition: service_healthy
+    networks:
+      - broker-control
+
+volumes:
+  fleet-edge-a:
+    name: ${FLEET_EDGE_A_VOLUME:-nexolab-device-agent-fleet-edge-a}
+  fleet-edge-b:
+    name: ${FLEET_EDGE_B_VOLUME:-nexolab-device-agent-fleet-edge-b}
