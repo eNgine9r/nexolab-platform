@@ -6,11 +6,15 @@ on:
     tags: ["edge-v*"]
     paths:
       - "services/device-agent/**"
+      - "infrastructure/compose/compose.edge-secure.yaml"
+      - "infrastructure/compose/.env.edge-secure.example"
       - ".github/workflows/edge-image.yml"
   pull_request:
     branches: [main]
     paths:
       - "services/device-agent/**"
+      - "infrastructure/compose/compose.edge-secure.yaml"
+      - "infrastructure/compose/.env.edge-secure.example"
       - ".github/workflows/edge-image.yml"
   workflow_dispatch:
 
@@ -46,6 +50,17 @@ jobs:
         env:
           PYTHONPATH: services/device-agent
         run: python -m unittest discover -s services/device-agent/tests -v
+
+      - name: Validate secure edge Compose contract
+        run: |
+          docker compose \
+            --env-file infrastructure/compose/.env.edge-secure.example \
+            -f infrastructure/compose/compose.edge-secure.yaml \
+            config --quiet
+          grep -Fqx 'MQTT_AUTH_REQUIRED: "true"' \
+            infrastructure/compose/compose.edge-secure.yaml
+          ! grep -E '^(MQTT_PASSWORD|PASSWORD)=' \
+            infrastructure/compose/.env.edge-secure.example
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
