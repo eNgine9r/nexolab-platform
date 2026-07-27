@@ -1,0 +1,67 @@
+services:
+  mqtt:
+    image: nexolab-mqtt-dynamic-security:central
+    build:
+      context: ../mqtt/dynamic-security
+    environment:
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:?MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+    volumes: !override
+      - central-mqtt-data:/mosquitto/data
+      - ${MQTT_SECURITY_SECRETS_DIR:?MQTT_SECURITY_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mosquitto_ctrl
+          -h 127.0.0.1
+          -p 1883
+          -i nexolab-central-dynsec-healthcheck
+          -u "$${NEXOLAB_MQTT_ADMIN_USERNAME}"
+          -P "$$(cat /run/secrets/nexolab/admin-password)"
+          --quiet
+          dynsec listClients >/dev/null
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 10s
+
+  mqtt-security-init:
+    image: nexolab-mqtt-dynamic-security:central
+    build:
+      context: ../mqtt/dynamic-security
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /usr/local/bin/nexolab-dynsec-admin bootstrap-defaults
+        /usr/local/bin/nexolab-dynsec-admin create-ingestion \
+          "$${MQTT_INGESTION_USERNAME}" \
+          "$${MQTT_INGESTION_CLIENT_ID}" \
+          /run/secrets/nexolab/ingestion-password
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: 1883
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:?MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+      MQTT_INGESTION_USERNAME: ${MQTT_INGESTION_USERNAME:-nexolab-central-ingestion}
+      MQTT_INGESTION_CLIENT_ID: ${MQTT_INGESTION_CLIENT_ID:-nexolab-central-ingestion}
+    volumes:
+      - ${MQTT_SECURITY_SECRETS_DIR:?MQTT_SECURITY_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      mqtt:
+        condition: service_healthy
+    networks:
+      - central
+
+  telemetry-service:
+    environment:
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: ${MQTT_INGESTION_USERNAME:-nexolab-central-ingestion}
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/ingestion-password
+      MQTT_CLIENT_ID: ${MQTT_INGESTION_CLIENT_ID:-nexolab-central-ingestion}
+    volumes:
+      - ${MQTT_SECURITY_SECRETS_DIR:?MQTT_SECURITY_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      mqtt-security-init:
+        condition: service_completed_successfully
