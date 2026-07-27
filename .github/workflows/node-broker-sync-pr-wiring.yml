@@ -124,6 +124,14 @@ jobs:
             /tmp/node-broker-sync-verification.log
             /tmp/node-broker-sync-verification.status
             /tmp/node-broker-sync-migration.sql
+            services/telemetry-service/app/model_registry.py
+            services/telemetry-service/app/nodes/repository.py
+            services/telemetry-service/app/config.py
+            services/telemetry-service/app/main.py
+            services/telemetry-service/app/nodes/schemas.py
+            services/telemetry-service/app/nodes/api.py
+            services/telemetry-service/tests/test_node_broker_control.py
+            infrastructure/compose/compose.central-mqtt-security.yaml
           if-no-files-found: warn
           retention-days: 7
 
