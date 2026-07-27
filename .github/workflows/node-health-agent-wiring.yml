@@ -1,0 +1,143 @@
+name: Node Health Agent Wiring
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/node-health-agent-wiring.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  wire-agent:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Patch settings and topics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("services/device-agent/main.py")
+          content = path.read_text()
+          def swap(a, b):
+              global content
+              assert content.count(a) == 1, repr(a[:80])
+              content = content.replace(a, b, 1)
+          swap(
+              "from xjp60d import XJP60DReader\n",
+              "from operational_streams import NodeOperationalPublisher\nfrom xjp60d import XJP60DReader\n",
+          )
+          swap(
+              "    node_id: str\n    mqtt_host: str\n    mqtt_port: int\n    mqtt_topic: str\n    sample_interval_seconds: float\n",
+              "    node_id: str\n    organization_id: str | None\n    mqtt_host: str\n    mqtt_port: int\n    mqtt_topic: str\n    health_interval_seconds: float\n    software_version: str\n    sample_interval_seconds: float\n",
+          )
+          swap(
+              '            node_id=os.getenv("NEXOLAB_NODE_ID", "edge-01"),\n            mqtt_host=os.getenv("MQTT_HOST", "mqtt"),\n            mqtt_port=int(os.getenv("MQTT_PORT", "1883")),\n            mqtt_topic=os.getenv("MQTT_TOPIC", "nexolab/telemetry"),\n            sample_interval_seconds=float(os.getenv("SAMPLE_INTERVAL_SECONDS", "5")),\n',
+              '            node_id=os.getenv("NEXOLAB_NODE_ID", "edge-01"),\n            organization_id=(\n                os.getenv("NEXOLAB_ORGANIZATION_ID", "").strip() or None\n            ),\n            mqtt_host=os.getenv("MQTT_HOST", "mqtt"),\n            mqtt_port=int(os.getenv("MQTT_PORT", "1883")),\n            mqtt_topic=os.getenv("MQTT_TOPIC", "nexolab/telemetry"),\n            health_interval_seconds=float(\n                os.getenv("NODE_HEALTH_INTERVAL_SECONDS", "30")\n            ),\n            software_version=os.getenv(\n                "NEXOLAB_DEVICE_AGENT_VERSION", "0.15.0"\n            ),\n            sample_interval_seconds=float(os.getenv("SAMPLE_INTERVAL_SECONDS", "5")),\n',
+          )
+          swap(
+              "        return settings\n\n\n@dataclass(frozen=True)\nclass TelemetryRecord:\n",
+              "        if settings.health_interval_seconds <= 0:\n            raise ValueError(\"NODE_HEALTH_INTERVAL_SECONDS must be positive\")\n        return settings\n\n    @property\n    def resolved_telemetry_topic(self) -> str:\n        if self.organization_id is None:\n            return self.mqtt_topic\n        return f\"nexolab/v1/{self.organization_id}/{self.node_id}/telemetry\"\n\n\n@dataclass(frozen=True)\nclass TelemetryRecord:\n",
+          )
+          path.write_text(content)
+          PY
+
+      - name: Patch persistent sequence store
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("services/device-agent/main.py")
+          content = path.read_text()
+          def swap(a, b):
+              global content
+              assert content.count(a) == 1, repr(a[:80])
+              content = content.replace(a, b, 1)
+          swap(
+              '            self._connection.execute(\n                """\n                CREATE TABLE IF NOT EXISTS outbound_queue (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    event_id TEXT NOT NULL UNIQUE,\n                    topic TEXT NOT NULL,\n                    payload TEXT NOT NULL,\n                    created_at TEXT NOT NULL\n                )\n                """\n            )\n',
+              '            self._connection.execute(\n                """\n                CREATE TABLE IF NOT EXISTS outbound_queue (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    event_id TEXT NOT NULL UNIQUE,\n                    topic TEXT NOT NULL,\n                    payload TEXT NOT NULL,\n                    created_at TEXT NOT NULL\n                )\n                """\n            )\n            self._connection.execute(\n                """\n                CREATE TABLE IF NOT EXISTS node_stream_sequences (\n                    stream TEXT PRIMARY KEY,\n                    last_sequence INTEGER NOT NULL CHECK(last_sequence >= 0)\n                )\n                """\n            )\n',
+          )
+          swap(
+              '    def size(self) -> int:\n        with self._lock:\n            row = self._connection.execute("SELECT COUNT(*) FROM outbound_queue").fetchone()\n        return int(row[0] if row else 0)\n\n\nclass AgentState:\n',
+              '    def size(self) -> int:\n        with self._lock:\n            row = self._connection.execute("SELECT COUNT(*) FROM outbound_queue").fetchone()\n        return int(row[0] if row else 0)\n\n    def next_sequence(self, stream: str) -> int:\n        normalized = stream.strip().lower()\n        if not normalized:\n            raise ValueError("stream is required")\n        with self._lock, self._connection:\n            self._connection.execute(\n                """\n                INSERT INTO node_stream_sequences(stream, last_sequence)\n                VALUES (?, 0)\n                ON CONFLICT(stream) DO NOTHING\n                """,\n                (normalized,),\n            )\n            self._connection.execute(\n                """\n                UPDATE node_stream_sequences\n                SET last_sequence = last_sequence + 1\n                WHERE stream = ?\n                """,\n                (normalized,),\n            )\n            row = self._connection.execute(\n                "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",\n                (normalized,),\n            ).fetchone()\n        if row is None:\n            raise RuntimeError("node stream sequence allocation failed")\n        return int(row[0])\n\n\nclass AgentState:\n',
+          )
+          swap(
+              '                "mqtt_connected": self.mqtt_connected,\n                "queue_size": queue_size,\n                "samples_total": self.samples_total,\n',
+              '                "mqtt_connected": self.mqtt_connected,\n                "queue_size": queue_size,\n                "queue_depth": queue_size,\n                "uptime_seconds": max(\n                    0,\n                    int((datetime.now(timezone.utc) - self.started_at).total_seconds()),\n                ),\n                "samples_total": self.samples_total,\n',
+          )
+          path.write_text(content)
+          PY
+
+      - name: Patch MQTT lifecycle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("services/device-agent/main.py")
+          content = path.read_text()
+          def swap(a, b):
+              global content
+              assert content.count(a) == 1, repr(a[:80])
+              content = content.replace(a, b, 1)
+          swap(
+              "        self.client.on_connect = self._on_connect\n        self.client.on_disconnect = self._on_disconnect\n        self.modbus_client: ModbusRTUClient | None = None\n",
+              "        self.client.on_connect = self._on_connect\n        self.client.on_disconnect = self._on_disconnect\n        self.operational: NodeOperationalPublisher | None = None\n        if settings.organization_id is not None:\n            self.operational = NodeOperationalPublisher(\n                self.client,\n                organization_id=settings.organization_id,\n                node_id=settings.node_id,\n                software_version=settings.software_version,\n                device_mode=settings.device_mode,\n                health_interval_seconds=settings.health_interval_seconds,\n                next_sequence=self.queue.next_sequence,\n                state_snapshot=lambda: self.state.snapshot(\n                    self.queue.size(), self.settings\n                ),\n            )\n        self.modbus_client: ModbusRTUClient | None = None\n",
+          )
+          swap(
+              '        connected = reason_code == 0\n        self.state.update(mqtt_connected=connected)\n        LOG.info("MQTT connection result: %s", reason_code)\n',
+              '        connected = reason_code == 0\n        self.state.update(mqtt_connected=connected)\n        if connected and self.operational is not None:\n            if not self.operational.on_connected():\n                self.state.update(last_error="online status publish failed")\n            self.operational.publish_health_if_due(force=True)\n        LOG.info("MQTT connection result: %s", reason_code)\n',
+          )
+          swap(
+              "    def connect(self) -> None:\n        self.client.reconnect_delay_set(min_delay=1, max_delay=30)\n",
+              "    def connect(self) -> None:\n        if self.operational is not None:\n            self.operational.prepare_connection()\n        self.client.reconnect_delay_set(min_delay=1, max_delay=30)\n",
+          )
+          swap(
+              "        finally:\n            if self.modbus_client is not None:\n                self.modbus_client.close()\n            self.client.loop_stop()\n            self.client.disconnect()\n",
+              "        finally:\n            if self.modbus_client is not None:\n                self.modbus_client.close()\n            if self.operational is not None and self.state.mqtt_connected:\n                self.operational.publish_graceful_offline()\n            self.client.disconnect()\n            self.client.loop_stop()\n",
+          )
+          path.write_text(content)
+          PY
+
+      - name: Patch telemetry and heartbeat cycle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("services/device-agent/main.py")
+          content = path.read_text()
+          def swap(a, b):
+              global content
+              assert content.count(a) == 1, repr(a[:80])
+              content = content.replace(a, b, 1)
+          swap(
+              '    def publish_or_queue(self, record: TelemetryRecord) -> bool:\n        payload = json.dumps(asdict(record), separators=(",", ":"), ensure_ascii=False)\n        if self.state.mqtt_connected:\n',
+              '    def publish_or_queue(self, record: TelemetryRecord) -> bool:\n        payload_data = asdict(record)\n        if self.settings.organization_id is not None:\n            payload_data["node_sequence"] = self.queue.next_sequence("telemetry")\n        payload = json.dumps(\n            payload_data, separators=(",", ":"), ensure_ascii=False\n        )\n        topic = self.settings.resolved_telemetry_topic\n        if self.state.mqtt_connected:\n',
+          )
+          swap(
+              "                result = self.client.publish(self.settings.mqtt_topic, payload, qos=1)\n",
+              "                result = self.client.publish(topic, payload, qos=1)\n",
+          )
+          swap(
+              "        self.queue.enqueue(self.settings.mqtt_topic, payload, record.event_id)\n",
+              "        self.queue.enqueue(topic, payload, record.event_id)\n",
+          )
+          swap(
+              "                    self.state.update(\n                        last_sample_at=records[-1].captured_at if records else None,\n                        samples_total=self.state.samples_total + len(records),\n                        last_error=last_error,\n                    )\n",
+              "                    self.state.update(\n                        last_sample_at=records[-1].captured_at if records else None,\n                        samples_total=self.state.samples_total + len(records),\n                        last_error=last_error,\n                    )\n                    if (\n                        self.operational is not None\n                        and self.state.mqtt_connected\n                        and self.operational.publish_health_if_due() is False\n                    ):\n                        self.state.update(last_error=\"node health publish failed\")\n",
+          )
+          path.write_text(content)
+          PY
+
+      - name: Test and commit
+        run: |
+          python -m compileall -q services/device-agent
+          PYTHONPATH=services/device-agent python -m unittest discover -s services/device-agent/tests -v
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/device-agent/main.py
+          git commit -m "feat(edge): publish node health and retained status"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
