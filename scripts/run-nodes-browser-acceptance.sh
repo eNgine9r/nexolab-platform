@@ -51,6 +51,10 @@ export CENTRAL_MQTT_PORT="$MQTT_PORT"
 export CENTRAL_OBJECT_STORAGE_PORT="$OBJECT_STORAGE_PORT"
 export CENTRAL_OBJECT_STORAGE_CONSOLE_PORT="$OBJECT_STORAGE_CONSOLE_PORT"
 export MQTT_TOPIC="nexolab/telemetry"
+export MQTT_NODE_REGISTRY_ENFORCED="true"
+export MQTT_NODE_TOPIC_FILTER="nexolab/v1/+/+/telemetry"
+export MQTT_NODE_HEALTH_TOPIC_FILTER="nexolab/v1/+/+/health"
+export MQTT_NODE_STATUS_TOPIC_FILTER="nexolab/v1/+/+/status"
 export MQTT_CLIENT_ID="nexolab-nodes-browser-acceptance"
 export CORS_ALLOWED_ORIGINS="$FRONTEND_BASE_URL"
 export CORS_ALLOW_CREDENTIALS="false"
@@ -100,6 +104,25 @@ SELECT n.organization_id, n.node_id, c.generation, c.secret_fingerprint,
 FROM central_node_credentials c
 JOIN central_nodes n ON n.id = c.node_record_id
 ORDER BY n.organization_id, n.node_id, c.generation;
+
+SELECT n.organization_id, n.node_id, h.node_sequence, h.health,
+       h.queue_depth, h.samples_total, h.software_version, h.device_mode,
+       h.last_error, h.captured_at, h.received_at
+FROM central_node_health_samples h
+JOIN central_nodes n ON n.id = h.node_record_id
+ORDER BY n.organization_id, n.node_id, h.node_sequence;
+
+SELECT n.organization_id, n.node_id, s.node_sequence, s.status,
+       s.reason, s.software_version, s.graceful, s.captured_at, s.received_at
+FROM central_node_status_events s
+JOIN central_nodes n ON n.id = s.node_record_id
+ORDER BY n.organization_id, n.node_id, s.node_sequence;
+
+SELECT n.organization_id, n.node_id, c.stream, c.last_sequence,
+       c.last_event_id, c.last_captured_at, c.updated_at
+FROM central_node_ingress_cursors c
+JOIN central_nodes n ON n.id = c.node_record_id
+ORDER BY n.organization_id, n.node_id, c.stream;
 
 SELECT organization_id, action, entity_type, entity_id, actor_subject,
        actor_roles, reason, occurred_at
@@ -240,6 +263,7 @@ wait_for_url "$FRONTEND_BASE_URL/nodes" "Next.js nodes workspace"
 
 export NEXOLAB_NODES_BASE_URL="$FRONTEND_BASE_URL"
 export NEXOLAB_NODES_API_BASE_URL="$API_BASE_URL"
+export NEXOLAB_NODES_COMPOSE_PROJECT="$PROJECT_NAME"
 export NEXOLAB_NODES_ORGANIZATION_A="$ORGANIZATION_A"
 export NEXOLAB_NODES_ORGANIZATION_B="$ORGANIZATION_B"
 export NEXOLAB_NODES_MANAGER_A_TOKEN="$MANAGER_A_TOKEN"
@@ -259,6 +283,11 @@ DECLARE
   edge_two_active_credentials integer;
   node_audit_count integer;
   secret_leak_count integer;
+  health_sample_count integer;
+  status_event_count integer;
+  ingress_cursor_count integer;
+  telemetry_sample_count integer;
+  dead_letter_count integer;
 BEGIN
   SELECT count(*) INTO org_a_nodes
   FROM central_nodes
@@ -317,6 +346,66 @@ BEGIN
     AND c.revoked_at IS NULL;
   IF edge_two_active_credentials <> 0 THEN
     RAISE EXCEPTION 'edge-02 must have no active credentials, found %', edge_two_active_credentials;
+  END IF;
+
+  SELECT count(*) INTO health_sample_count
+  FROM central_node_health_samples
+  WHERE organization_id = '$ORGANIZATION_A';
+  IF health_sample_count <> 3 THEN
+    RAISE EXCEPTION 'expected three unique health samples, found %', health_sample_count;
+  END IF;
+
+  SELECT count(*) INTO status_event_count
+  FROM central_node_status_events
+  WHERE organization_id = '$ORGANIZATION_A';
+  IF status_event_count <> 3 THEN
+    RAISE EXCEPTION 'expected three retained status events, found %', status_event_count;
+  END IF;
+
+  SELECT count(*) INTO ingress_cursor_count
+  FROM central_node_ingress_cursors
+  WHERE organization_id = '$ORGANIZATION_A'
+    AND stream IN ('health', 'status');
+  IF ingress_cursor_count <> 4 THEN
+    RAISE EXCEPTION 'expected four independent health/status cursors, found %', ingress_cursor_count;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM central_node_health_samples h
+    JOIN central_nodes n ON n.id = h.node_record_id
+    WHERE n.organization_id = '$ORGANIZATION_A'
+      AND n.node_id = 'edge-01'
+      AND h.node_sequence = 2
+      AND h.health = 'degraded'
+      AND h.queue_depth = 12
+      AND h.last_error = 'offline queue backlog'
+  ) THEN
+    RAISE EXCEPTION 'edge-01 degraded heartbeat evidence is missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM central_node_status_events s
+    JOIN central_nodes n ON n.id = s.node_record_id
+    WHERE n.organization_id = '$ORGANIZATION_A'
+      AND n.node_id = 'edge-02'
+      AND s.node_sequence = 2
+      AND s.status = 'offline'
+      AND s.graceful = false
+      AND s.reason = 'mqtt last will'
+  ) THEN
+    RAISE EXCEPTION 'edge-02 retained last-will evidence is missing';
+  END IF;
+
+  SELECT count(*) INTO telemetry_sample_count FROM telemetry_samples;
+  IF telemetry_sample_count <> 0 THEN
+    RAISE EXCEPTION 'health/status payloads leaked into telemetry samples: %', telemetry_sample_count;
+  END IF;
+
+  SELECT count(*) INTO dead_letter_count FROM telemetry_dead_letters;
+  IF dead_letter_count <> 0 THEN
+    RAISE EXCEPTION 'valid node operational streams produced dead letters: %', dead_letter_count;
   END IF;
 
   IF EXISTS (
