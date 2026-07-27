@@ -5,6 +5,7 @@ services:
       context: ../mqtt/dynamic-security
     environment:
       NEXOLAB_MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:?MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-central-dynsec-healthcheck
       NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
     volumes: !override
       - central-mqtt-data:/mosquitto/data
@@ -12,15 +13,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - >-
-          mosquitto_ctrl
-          -h 127.0.0.1
-          -p 1883
-          -i nexolab-central-dynsec-healthcheck
-          -u "$${NEXOLAB_MQTT_ADMIN_USERNAME}"
-          -P "$$(cat /run/secrets/nexolab/admin-password)"
-          --quiet
-          dynsec listClients >/dev/null
+        - /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
       interval: 10s
       timeout: 6s
       retries: 12
