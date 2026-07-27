@@ -25,6 +25,7 @@ def upgrade() -> None:
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("organization_id", sa.String(length=36), nullable=False),
         sa.Column("node_record_id", sa.String(length=36), nullable=False),
+        sa.Column("node_id", sa.String(length=64), nullable=False),
         sa.Column("credential_id", sa.String(length=36), nullable=True),
         sa.Column("operation", sa.String(length=16), nullable=False),
         sa.Column(
