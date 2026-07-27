@@ -104,6 +104,12 @@ def build_worker(
     )
 
 
+def as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def test_worker_applies_encrypted_command(tmp_path: Path) -> None:
     database, repository, provisioned = build_stack(tmp_path)
     stored = enqueue_provision(repository, provisioned)
@@ -147,7 +153,7 @@ def test_worker_retries_with_bounded_exponential_delay(tmp_path: Path) -> None:
     )
     assert first.retried == 1
     assert history[0].state == BrokerControlState.RETRYING.value
-    assert history[0].available_at == NOW + timedelta(seconds=2)
+    assert as_utc(history[0].available_at) == NOW + timedelta(seconds=2)
 
     assert worker.run_once(now=NOW + timedelta(seconds=1)).claimed == 0
     second = worker.run_once(now=NOW + timedelta(seconds=2))
