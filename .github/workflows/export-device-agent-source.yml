@@ -1,9 +1,8 @@
 name: Export device agent source
 
 on:
-  push:
-    branches:
-      - feat/m6-device-agent-secure-bootstrap
+  pull_request:
+    branches: [main]
     paths:
       - ".github/workflows/export-device-agent-source.yml"
 
