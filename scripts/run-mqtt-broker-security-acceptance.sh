@@ -7,6 +7,8 @@ PROJECT_NAME="nexolab-mqtt-security-acceptance"
 EVIDENCE_DIR="$ROOT_DIR/test-results-mqtt-security"
 SECRETS_DIR="$EVIDENCE_DIR/secrets"
 BROKER_LOG="$EVIDENCE_DIR/broker.log"
+NODE_B_CONNECTION_PID=""
+NODE_B_CONNECTION_FIFO=""
 
 ADMIN_USERNAME="nexolab-security-admin"
 INGESTION_USERNAME="nexolab-central-ingestion"
@@ -151,6 +153,45 @@ expect_no_retained() {
   fi
 }
 
+start_node_b_live_connection() {
+  NODE_B_CONNECTION_FIFO="$EVIDENCE_DIR/node-b-live-input"
+  rm -f "$NODE_B_CONNECTION_FIFO"
+  mkfifo "$NODE_B_CONNECTION_FIFO"
+  exec 9<>"$NODE_B_CONNECTION_FIFO"
+  compose exec -T mqtt-security mosquitto_pub \
+    -h 127.0.0.1 -p 1883 \
+    -V mqttv5 -q 1 --quiet \
+    -u "$NODE_B_USERNAME" -P "$NODE_B_PASSWORD" -i "$NODE_B_CLIENT_ID" \
+    -t "$NODE_B_TOPIC/telemetry" -l \
+    <"$NODE_B_CONNECTION_FIFO" \
+    >"$EVIDENCE_DIR/node-b-live-connection.log" 2>&1 &
+  NODE_B_CONNECTION_PID=$!
+  sleep 1
+  if ! kill -0 "$NODE_B_CONNECTION_PID" >/dev/null 2>&1; then
+    wait "$NODE_B_CONNECTION_PID" || true
+    echo "Node B live MQTT connection did not remain active." >&2
+    return 1
+  fi
+}
+
+assert_node_b_disconnected() {
+  for _ in $(seq 1 20); do
+    if ! kill -0 "$NODE_B_CONNECTION_PID" >/dev/null 2>&1; then
+      wait "$NODE_B_CONNECTION_PID" || true
+      NODE_B_CONNECTION_PID=""
+      exec 9>&-
+      rm -f "$NODE_B_CONNECTION_FIFO"
+      NODE_B_CONNECTION_FIFO=""
+      printf 'active_client_disconnected=true\n' \
+        >"$EVIDENCE_DIR/node-b-active-revocation.log"
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo "Disabled node remained connected to the broker." >&2
+  return 1
+}
+
 wait_for_broker() {
   for _ in $(seq 1 60); do
     if admin list-clients >/dev/null 2>&1; then
@@ -227,6 +268,14 @@ SH
 cleanup() {
   local status=$?
   set +e
+  if [[ -n "$NODE_B_CONNECTION_PID" ]]; then
+    kill "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
+    wait "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
+  fi
+  exec 9>&- 2>/dev/null || true
+  if [[ -n "$NODE_B_CONNECTION_FIFO" ]]; then
+    rm -f "$NODE_B_CONNECTION_FIFO"
+  fi
   compose logs --no-color mqtt-security >"$BROKER_LOG" 2>&1 || true
   compose ps --all >"$EVIDENCE_DIR/compose-ps.log" 2>&1 || true
   compose down --volumes --remove-orphans >/dev/null 2>&1 || true
@@ -274,6 +323,31 @@ admin create-node \
   "$ORGANIZATION_A" \
   "$NODE_B" \
   /run/secrets/nexolab/node-b-password
+
+# Reconciliation must be repeatable and must not rotate or duplicate identities.
+admin create-ingestion \
+  "$INGESTION_USERNAME" \
+  "$INGESTION_CLIENT_ID" \
+  /run/secrets/nexolab/ingestion-password
+admin create-node \
+  "$NODE_A_USERNAME" \
+  "$NODE_A_CLIENT_ID" \
+  "$ORGANIZATION_A" \
+  "$NODE_A" \
+  /run/secrets/nexolab/node-a-old
+admin create-node \
+  "$NODE_B_USERNAME" \
+  "$NODE_B_CLIENT_ID" \
+  "$ORGANIZATION_A" \
+  "$NODE_B" \
+  /run/secrets/nexolab/node-b-password
+expect_denied reconciliation-client-id-mismatch \
+  admin create-node \
+    "$NODE_A_USERNAME" \
+    "wrong-${NODE_A_CLIENT_ID}" \
+    "$ORGANIZATION_A" \
+    "$NODE_A" \
+    /run/secrets/nexolab/node-a-old
 
 INGESTION_PASSWORD="$(secret ingestion-password)"
 NODE_A_OLD_PASSWORD="$(secret node-a-old)"
@@ -332,7 +406,9 @@ expect_denied rotated-old-password \
 mqtt_publish "$NODE_A_USERNAME" "$NODE_A_NEW_PASSWORD" "$NODE_A_CLIENT_ID" \
   "$NODE_A_TOPIC/health" '{"source":"node-a-rotated"}' true
 
+start_node_b_live_connection
 admin disable-client "$NODE_B_USERNAME"
+assert_node_b_disconnected
 expect_denied disabled-node \
   mqtt_publish "$NODE_B_USERNAME" "$NODE_B_PASSWORD" "$NODE_B_CLIENT_ID" \
     "$NODE_B_TOPIC/health" disabled
@@ -361,12 +437,14 @@ printf '%s\n' \
   "anonymous=denied" \
   "unknown=denied" \
   "client_id_binding=enforced" \
+  "provisioning_reconciliation=idempotent" \
   "node_exact_publish=allowed" \
   "foreign_publish=not_delivered" \
   "node_subscribe=no_delivery" \
   "ingestion_subscribe=allowed" \
   "ingestion_publish=not_delivered" \
   "password_rotation=enforced" \
+  "active_client_revocation=disconnected" \
   "disabled_client=denied" \
   "restart_persistence=verified" \
   "plaintext_secrets=absent" \
