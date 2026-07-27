@@ -14,6 +14,7 @@ from app.nodes.broker_control import (
     BrokerControlState,
 )
 from app.nodes.broker_models import CentralNodeBrokerCommand
+from app.nodes.broker_node_repository import BrokerSynchronizedNodeRepository
 from app.nodes.broker_repository import BrokerControlRepository
 from app.nodes.domain import (
     ProvisionNodeCommand,
@@ -46,7 +47,7 @@ def build_repositories(
         database,
         BrokerControlSecretCipher(bytes(range(32)), key_id="broker-key-v1"),
     )
-    nodes = NodeRepository(
+    nodes = BrokerSynchronizedNodeRepository(
         database,
         security_repository=security,
         broker_control_repository=broker,
@@ -123,6 +124,13 @@ def test_node_lifecycle_enqueues_exact_broker_commands_without_plaintext(
         actor_roles=ROLES,
         reason="maintenance complete",
     )
+    scoped.activate(
+        "edge-01",
+        actor_subject="manager-a",
+        actor_identity_id=None,
+        actor_roles=ROLES,
+        reason="maintenance complete",
+    )
     scoped.revoke(
         "edge-01",
         actor_subject="manager-a",
@@ -155,10 +163,11 @@ def test_node_lifecycle_enqueues_exact_broker_commands_without_plaintext(
             )
         )
 
-    assert len(commands) == 4
+    assert len(commands) == 5
     assert {row.operation for row in commands} == {
         BrokerControlOperation.PROVISION.value,
         BrokerControlOperation.ROTATE.value,
+        BrokerControlOperation.ENABLE.value,
         BrokerControlOperation.DISABLE.value,
         BrokerControlOperation.DELETE.value,
     }
@@ -178,6 +187,7 @@ def test_node_lifecycle_enqueues_exact_broker_commands_without_plaintext(
         for row in commands
         if row.operation
         in {
+            BrokerControlOperation.ENABLE.value,
             BrokerControlOperation.DISABLE.value,
             BrokerControlOperation.DELETE.value,
         }
@@ -201,7 +211,7 @@ def test_node_lifecycle_enqueues_exact_broker_commands_without_plaintext(
         organization_id=ORGANIZATION_A,
         node_id="edge-01",
     )
-    assert len(history) == 4
+    assert len(history) == 5
     database.dispose()
 
 
