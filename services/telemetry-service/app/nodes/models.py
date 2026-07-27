@@ -4,12 +4,14 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
     text,
@@ -22,6 +24,8 @@ from app.nodes.domain import ClockStatus, NodeState
 
 _NODE_STATES = ", ".join(f"'{item.value}'" for item in NodeState)
 _CLOCK_STATUSES = ", ".join(f"'{item.value}'" for item in ClockStatus)
+_HEALTH_STATES = "'healthy', 'degraded'"
+_AVAILABILITY_STATES = "'online', 'offline'"
 
 
 class CentralNode(Base):
@@ -205,3 +209,138 @@ class CentralNodeIngressCursor(Base):
     last_event_id: Mapped[str] = mapped_column(String(36), nullable=False)
     last_captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CentralNodeHealthSample(Base):
+    __tablename__ = "central_node_health_samples"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "event_id",
+            name="uq_central_node_health_samples_organization_event",
+        ),
+        UniqueConstraint(
+            "node_record_id",
+            "node_sequence",
+            name="uq_central_node_health_samples_node_sequence",
+        ),
+        CheckConstraint(
+            f"health IN ({_HEALTH_STATES})",
+            name="ck_central_node_health_samples_health",
+        ),
+        CheckConstraint(
+            "node_sequence >= 1",
+            name="ck_central_node_health_samples_sequence",
+        ),
+        CheckConstraint(
+            "uptime_seconds >= 0 AND queue_depth >= 0 AND samples_total >= 0",
+            name="ck_central_node_health_samples_counters",
+        ),
+        Index(
+            "ix_central_node_health_samples_history",
+            "organization_id",
+            "node_record_id",
+            "captured_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_central_node_health_samples_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    node_record_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "central_nodes.id",
+            name="fk_central_node_health_samples_node",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_sequence: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    health: Mapped[str] = mapped_column(String(16), nullable=False)
+    uptime_seconds: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    queue_depth: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    samples_total: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    software_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    device_mode: Mapped[str] = mapped_column(String(64), nullable=False)
+    last_sample_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_publish_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    inserted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class CentralNodeStatusEvent(Base):
+    __tablename__ = "central_node_status_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "event_id",
+            name="uq_central_node_status_events_organization_event",
+        ),
+        UniqueConstraint(
+            "node_record_id",
+            "node_sequence",
+            name="uq_central_node_status_events_node_sequence",
+        ),
+        CheckConstraint(
+            f"status IN ({_AVAILABILITY_STATES})",
+            name="ck_central_node_status_events_status",
+        ),
+        CheckConstraint(
+            "node_sequence >= 1",
+            name="ck_central_node_status_events_sequence",
+        ),
+        Index(
+            "ix_central_node_status_events_history",
+            "organization_id",
+            "node_record_id",
+            "captured_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_central_node_status_events_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    node_record_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "central_nodes.id",
+            name="fk_central_node_status_events_node",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_sequence: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(String(1024), nullable=False)
+    software_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    graceful: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    inserted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
