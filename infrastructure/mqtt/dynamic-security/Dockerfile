@@ -2,7 +2,8 @@ FROM eclipse-mosquitto:2.0.22
 
 USER root
 
-RUN set -eu; \
+RUN apk add --no-cache expect \
+    && set -eu; \
     plugin_path="$(find /usr -type f -name mosquitto_dynamic_security.so -print -quit)"; \
     test -n "$plugin_path"; \
     mkdir -p /usr/local/lib/nexolab; \
