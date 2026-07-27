@@ -82,6 +82,28 @@ expect_denied() {
   fi
 }
 
+expect_no_subscription_delivery() {
+  local label=$1
+  local username=$2
+  local password=$3
+  local client_id=$4
+  local topic=$5
+  local output
+  local exit_code
+
+  set +e
+  output="$(mqtt_subscribe_once "$username" "$password" "$client_id" "$topic" \
+    2>"$EVIDENCE_DIR/${label}.log")"
+  exit_code=$?
+  set -e
+  printf 'exit_code=%s\n' "$exit_code" >>"$EVIDENCE_DIR/${label}.log"
+  if [[ -n "$output" ]]; then
+    printf 'unexpected_payload=%s\n' "$output" >>"$EVIDENCE_DIR/${label}.log"
+    echo "Denied subscription received a payload: $label" >&2
+    return 1
+  fi
+}
+
 attempt_forbidden_publish() {
   local label=$1
   local username=$2
@@ -112,9 +134,18 @@ assert_retained_equals() {
 expect_no_retained() {
   local label=$1
   local topic=$2
-  if mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
+  local output
+  local exit_code
+
+  set +e
+  output="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
     "$INGESTION_CLIENT_ID" "$topic" \
-    >"$EVIDENCE_DIR/${label}.log" 2>&1; then
+    2>"$EVIDENCE_DIR/${label}.log")"
+  exit_code=$?
+  set -e
+  printf 'exit_code=%s\n' "$exit_code" >>"$EVIDENCE_DIR/${label}.log"
+  if [[ -n "$output" ]]; then
+    printf 'unexpected_payload=%s\n' "$output" >>"$EVIDENCE_DIR/${label}.log"
     echo "Forbidden publish created a retained message: $label" >&2
     return 1
   fi
@@ -282,11 +313,11 @@ attempt_forbidden_publish node-foreign-organization-topic \
   "$FOREIGN_TOPIC" foreign-organization
 expect_no_retained node-foreign-organization-not-delivered "$FOREIGN_TOPIC"
 
-expect_denied node-subscription \
-  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
-    "$NODE_A_TOPIC/health"
-expect_denied node-sys-subscription \
-  mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" '$SYS/#'
+expect_no_subscription_delivery node-subscription \
+  "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$NODE_A_TOPIC/health"
+expect_no_subscription_delivery node-sys-subscription \
+  "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" '$SYS/#'
 
 attempt_forbidden_publish ingestion-publish \
   "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
@@ -332,7 +363,7 @@ printf '%s\n' \
   "client_id_binding=enforced" \
   "node_exact_publish=allowed" \
   "foreign_publish=not_delivered" \
-  "node_subscribe=denied" \
+  "node_subscribe=no_delivery" \
   "ingestion_subscribe=allowed" \
   "ingestion_publish=not_delivered" \
   "password_rotation=enforced" \
