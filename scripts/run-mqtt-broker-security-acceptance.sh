@@ -82,6 +82,44 @@ expect_denied() {
   fi
 }
 
+attempt_forbidden_publish() {
+  local label=$1
+  local username=$2
+  local password=$3
+  local client_id=$4
+  local topic=$5
+  local payload=$6
+  mqtt_publish "$username" "$password" "$client_id" "$topic" "$payload" true \
+    >"$EVIDENCE_DIR/${label}.log" 2>&1 || true
+}
+
+assert_retained_equals() {
+  local label=$1
+  local topic=$2
+  local expected=$3
+  local received
+  received="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
+    "$INGESTION_CLIENT_ID" "$topic")"
+  if [[ "$received" != "$expected" ]]; then
+    printf 'expected=%s\nreceived=%s\n' "$expected" "$received" \
+      >"$EVIDENCE_DIR/${label}.log"
+    echo "Retained payload changed unexpectedly: $label" >&2
+    return 1
+  fi
+  printf 'retained=%s\n' "$received" >"$EVIDENCE_DIR/${label}.log"
+}
+
+expect_no_retained() {
+  local label=$1
+  local topic=$2
+  if mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
+    "$INGESTION_CLIENT_ID" "$topic" \
+    >"$EVIDENCE_DIR/${label}.log" 2>&1; then
+    echo "Forbidden publish created a retained message: $label" >&2
+    return 1
+  fi
+}
+
 wait_for_broker() {
   for _ in $(seq 1 60); do
     if admin list-clients >/dev/null 2>&1; then
@@ -230,24 +268,31 @@ mqtt_publish "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
 mqtt_publish "$NODE_B_USERNAME" "$NODE_B_PASSWORD" "$NODE_B_CLIENT_ID" \
   "$NODE_B_TOPIC/health" '{"source":"node-b-health"}' true
 
-received="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
-  "$INGESTION_CLIENT_ID" "$NODE_A_TOPIC/health")"
-[[ "$received" == '{"source":"node-a-health"}' ]]
+assert_retained_equals authorized-node-a-health \
+  "$NODE_A_TOPIC/health" '{"source":"node-a-health"}'
 
-expect_denied node-foreign-node-topic \
-  mqtt_publish "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
-    "$NODE_B_TOPIC/health" foreign-node
-expect_denied node-foreign-organization-topic \
-  mqtt_publish "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
-    "$FOREIGN_TOPIC" foreign-organization
+attempt_forbidden_publish node-foreign-node-topic \
+  "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$NODE_B_TOPIC/health" foreign-node
+assert_retained_equals node-foreign-node-not-delivered \
+  "$NODE_B_TOPIC/health" '{"source":"node-b-health"}'
+
+attempt_forbidden_publish node-foreign-organization-topic \
+  "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
+  "$FOREIGN_TOPIC" foreign-organization
+expect_no_retained node-foreign-organization-not-delivered "$FOREIGN_TOPIC"
+
 expect_denied node-subscription \
   mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" \
     "$NODE_A_TOPIC/health"
 expect_denied node-sys-subscription \
   mqtt_subscribe_once "$NODE_A_USERNAME" "$NODE_A_OLD_PASSWORD" "$NODE_A_CLIENT_ID" '$SYS/#'
-expect_denied ingestion-publish \
-  mqtt_publish "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
-    "$NODE_A_TOPIC/health" ingestion-must-not-publish
+
+attempt_forbidden_publish ingestion-publish \
+  "$INGESTION_USERNAME" "$INGESTION_PASSWORD" "$INGESTION_CLIENT_ID" \
+  "$NODE_A_TOPIC/health" ingestion-must-not-publish
+assert_retained_equals ingestion-publish-not-delivered \
+  "$NODE_A_TOPIC/health" '{"source":"node-a-health"}'
 
 admin rotate-password "$NODE_A_USERNAME" /run/secrets/nexolab/node-a-new
 expect_denied rotated-old-password \
@@ -278,19 +323,18 @@ expect_denied restart-disabled-node \
   mqtt_publish "$NODE_B_USERNAME" "$NODE_B_PASSWORD" "$NODE_B_CLIENT_ID" \
     "$NODE_B_TOPIC/status" disabled-after-restart
 
-received="$(mqtt_subscribe_once "$INGESTION_USERNAME" "$INGESTION_PASSWORD" \
-  "$INGESTION_CLIENT_ID" "$NODE_A_TOPIC/status")"
-[[ "$received" == '{"source":"after-restart"}' ]]
+assert_retained_equals restart-status-delivery \
+  "$NODE_A_TOPIC/status" '{"source":"after-restart"}'
 
 printf '%s\n' \
   "anonymous=denied" \
   "unknown=denied" \
   "client_id_binding=enforced" \
   "node_exact_publish=allowed" \
-  "foreign_publish=denied" \
+  "foreign_publish=not_delivered" \
   "node_subscribe=denied" \
   "ingestion_subscribe=allowed" \
-  "ingestion_publish=denied" \
+  "ingestion_publish=not_delivered" \
   "password_rotation=enforced" \
   "disabled_client=denied" \
   "restart_persistence=verified" \
