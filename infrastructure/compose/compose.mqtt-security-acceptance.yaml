@@ -1,0 +1,38 @@
+name: nexolab-mqtt-security-acceptance
+
+services:
+  mqtt-security:
+    image: nexolab-mqtt-dynamic-security:acceptance
+    build:
+      context: ../mqtt/dynamic-security
+    restart: unless-stopped
+    init: true
+    environment:
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dynsec-healthcheck
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+    ports:
+      - "127.0.0.1:${NEXOLAB_MQTT_SECURITY_PORT:-1889}:1883"
+    volumes:
+      - mqtt-security-data:/mosquitto/data
+      - ${NEXOLAB_MQTT_SECURITY_SECRETS_DIR:?NEXOLAB_MQTT_SECURITY_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    stop_grace_period: 15s
+    networks:
+      - mqtt-security
+
+volumes:
+  mqtt-security-data:
+    name: ${NEXOLAB_MQTT_SECURITY_VOLUME_NAME:-nexolab-mqtt-security-acceptance-data}
+
+networks:
+  mqtt-security:
+    name: ${NEXOLAB_MQTT_SECURITY_NETWORK_NAME:-nexolab-mqtt-security-acceptance-network}
+    driver: bridge

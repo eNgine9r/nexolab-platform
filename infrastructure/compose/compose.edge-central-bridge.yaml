@@ -5,13 +5,33 @@ services:
       CENTRAL_MQTT_PORT: ${CENTRAL_MQTT_PORT:-1884}
       CENTRAL_MQTT_TOPIC: ${CENTRAL_MQTT_TOPIC:-nexolab/telemetry}
       CENTRAL_BRIDGE_CLIENT_ID: ${CENTRAL_BRIDGE_CLIENT_ID:-nexolab-edge-01-bridge}
+      CENTRAL_MQTT_USERNAME: ${CENTRAL_MQTT_USERNAME:-}
+      CENTRAL_MQTT_PASSWORD_FILE: ${CENTRAL_MQTT_PASSWORD_FILE:-}
+      NEXOLAB_ORGANIZATION_ID: ${NEXOLAB_ORGANIZATION_ID:-}
+      NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:-edge-01}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
         : "$${CENTRAL_MQTT_HOST:?CENTRAL_MQTT_HOST is required}"
         : "$${CENTRAL_MQTT_PORT:?CENTRAL_MQTT_PORT is required}"
-        : "$${CENTRAL_MQTT_TOPIC:?CENTRAL_MQTT_TOPIC is required}"
         : "$${CENTRAL_BRIDGE_CLIENT_ID:?CENTRAL_BRIDGE_CLIENT_ID is required}"
+        : "$${NEXOLAB_NODE_ID:?NEXOLAB_NODE_ID is required}"
+
+        if [ -n "$${CENTRAL_MQTT_USERNAME}" ]; then
+          : "$${CENTRAL_MQTT_PASSWORD_FILE:?CENTRAL_MQTT_PASSWORD_FILE is required when CENTRAL_MQTT_USERNAME is set}"
+          test -r "$${CENTRAL_MQTT_PASSWORD_FILE}"
+          CENTRAL_MQTT_PASSWORD="$$(tr -d '\r\n' <"$${CENTRAL_MQTT_PASSWORD_FILE}")"
+          test -n "$${CENTRAL_MQTT_PASSWORD}"
+          case "$${CENTRAL_MQTT_PASSWORD}" in
+            *[[:space:]]*)
+              echo "Central MQTT password must not contain whitespace." >&2
+              exit 64
+              ;;
+          esac
+        elif [ -n "$${CENTRAL_MQTT_PASSWORD_FILE}" ]; then
+          echo "CENTRAL_MQTT_USERNAME is required when CENTRAL_MQTT_PASSWORD_FILE is set." >&2
+          exit 65
+        fi
 
         umask 077
         cat > /tmp/mosquitto.edge-central.conf <<EOF
@@ -29,7 +49,7 @@ services:
         max_queued_messages 10000
         max_inflight_messages 100
 
-        connection edge-01-to-central
+        connection edge-node-to-central
         address $${CENTRAL_MQTT_HOST}:$${CENTRAL_MQTT_PORT}
         remote_clientid $${CENTRAL_BRIDGE_CLIENT_ID}
         bridge_protocol_version mqttv311
@@ -37,10 +57,28 @@ services:
         restart_timeout 5 30
         cleansession false
         try_private false
-        notifications true
-        notification_topic nexolab/bridge/edge-01/status
+        notifications false
         queue_qos0_messages false
-        topic $${CENTRAL_MQTT_TOPIC} out 1
         EOF
+
+        if [ -n "$${CENTRAL_MQTT_USERNAME}" ]; then
+          cat >> /tmp/mosquitto.edge-central.conf <<EOF
+        remote_username $${CENTRAL_MQTT_USERNAME}
+        remote_password $${CENTRAL_MQTT_PASSWORD}
+        EOF
+          unset CENTRAL_MQTT_PASSWORD
+        fi
+
+        if [ -n "$${NEXOLAB_ORGANIZATION_ID}" ]; then
+          cat >> /tmp/mosquitto.edge-central.conf <<EOF
+        topic nexolab/v1/$${NEXOLAB_ORGANIZATION_ID}/$${NEXOLAB_NODE_ID}/telemetry out 1
+        topic nexolab/v1/$${NEXOLAB_ORGANIZATION_ID}/$${NEXOLAB_NODE_ID}/health out 1
+        topic nexolab/v1/$${NEXOLAB_ORGANIZATION_ID}/$${NEXOLAB_NODE_ID}/status out 1
+        EOF
+        else
+          : "$${CENTRAL_MQTT_TOPIC:?CENTRAL_MQTT_TOPIC is required in legacy mode}"
+          printf 'topic %s out 1\n' "$${CENTRAL_MQTT_TOPIC}" \
+            >> /tmp/mosquitto.edge-central.conf
+        fi
 
         exec mosquitto -c /tmp/mosquitto.edge-central.conf
