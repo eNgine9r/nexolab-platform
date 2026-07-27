@@ -59,6 +59,7 @@ jobs:
         run: |
           bash -n scripts/run-broker-control-acceptance.sh
           sh -n services/telemetry-service/bin/nexolab-dynsec-admin
+          sh -n infrastructure/mqtt/dynamic-security/mosquitto-pub-config-compat.sh
           cmp -s \
             services/telemetry-service/bin/nexolab-dynsec-admin \
             infrastructure/mqtt/dynamic-security/dynsec-admin.sh
