@@ -23,87 +23,149 @@ jobs:
       - name: Apply checked workspace patch
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path("src/components/nodes/nodes-workspace.tsx")
           content = path.read_text()
 
-          def swap(source: str, target: str, label: str) -> None:
+          def replace(pattern: str, target: str, label: str, *, flags: int = 0) -> None:
               global content
-              count = content.count(source)
+              content, count = re.subn(pattern, target, content, count=1, flags=flags)
               if count != 1:
-                  raise SystemExit(f"{label}: expected one anchor, found {count}")
-              content = content.replace(source, target, 1)
+                  raise SystemExit(f"{label}: expected one structural match, found {count}")
 
-          swap(
-              'import { createNodeApiClient, createNodeIdempotencyKey } from "@/lib/nodes/api-client";\nimport type { CentralNode, NodeClockStatus, NodeLifecycleState } from "@/lib/nodes/types";\n',
-              'import { createNodeApiClient, createNodeIdempotencyKey } from "@/lib/nodes/api-client";\nimport type {\n  CentralNode,\n  NodeClockStatus,\n  NodeLifecycleState,\n  NodeOperationalState,\n} from "@/lib/nodes/types";\n\nimport { NodeOperationalPanel } from "./node-operational-panel";\n',
+          replace(
+              r'import \{ createNodeApiClient, createNodeIdempotencyKey \} from "@/lib/nodes/api-client";\nimport type \{ CentralNode, NodeClockStatus, NodeLifecycleState \} from "@/lib/nodes/types";',
+              '''import { createNodeApiClient, createNodeIdempotencyKey } from "@/lib/nodes/api-client";
+          import type {
+            CentralNode,
+            NodeClockStatus,
+            NodeLifecycleState,
+            NodeOperationalState,
+          } from "@/lib/nodes/types";
+
+          import { NodeOperationalPanel } from "./node-operational-panel";''',
               "imports",
           )
-          swap(
-              '  const [nodes, setNodes] = useState<CentralNode[]>([]);\n  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);\n',
-              '  const [nodes, setNodes] = useState<CentralNode[]>([]);\n  const [operationalStates, setOperationalStates] = useState<\n    Record<string, NodeOperationalState | null>\n  >({});\n  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);\n',
-              "state",
+          replace(
+              r'  const \[nodes, setNodes\] = useState<CentralNode\[\]>\(\[\]\);\n',
+              '''  const [nodes, setNodes] = useState<CentralNode[]>([]);
+          const [operationalStates, setOperationalStates] = useState<
+            Record<string, NodeOperationalState | null>
+          >({});
+          ''',
+              "operational state store",
           )
-          swap(
-              '  const selectedNode = useMemo(\n    () => nodes.find((node) => node.node_id === selectedNodeId) ?? null,\n    [nodes, selectedNodeId],\n  );\n\n',
-              '  const selectedNode = useMemo(\n    () => nodes.find((node) => node.node_id === selectedNodeId) ?? null,\n    [nodes, selectedNodeId],\n  );\n  const selectedOperationalState = selectedNodeId\n    ? (operationalStates[selectedNodeId] ?? null)\n    : null;\n\n',
-              "selected state",
+          replace(
+              r'(  const selectedNode = useMemo\(\n.*?\n  \);\n)',
+              r'''\1  const selectedOperationalState = selectedNodeId
+            ? (operationalStates[selectedNodeId] ?? null)
+            : null;
+          ''',
+              "selected operational state",
+              flags=re.DOTALL,
           )
-          swap(
-              '    try {\n      const result = await createNodeApiClient().listNodes(signal);\n      setNodes(result);\n',
-              '    try {\n      const client = createNodeApiClient();\n      const result = await client.listNodes(signal);\n      const operationalEntries = await Promise.all(\n        result.map(async (node) => {\n          try {\n            const state = await client.getOperationalState(node.node_id, signal);\n            return [node.node_id, state] as const;\n          } catch (operationalError) {\n            if (signal?.aborted) throw operationalError;\n            return [node.node_id, null] as const;\n          }\n        }),\n      );\n      setNodes(result);\n      setOperationalStates(Object.fromEntries(operationalEntries));\n',
-              "load",
+          replace(
+              r'''    try \{\n      const result = await createNodeApiClient\(\)\.listNodes\(signal\);\n      setNodes\(result\);''',
+              '''    try {
+            const client = createNodeApiClient();
+            const result = await client.listNodes(signal);
+            const operationalEntries = await Promise.all(
+              result.map(async (node) => {
+                try {
+                  const state = await client.getOperationalState(node.node_id, signal);
+                  return [node.node_id, state] as const;
+                } catch (operationalError) {
+                  if (signal?.aborted) throw operationalError;
+                  return [node.node_id, null] as const;
+                }
+              }),
+            );
+            setNodes(result);
+            setOperationalStates(Object.fromEntries(operationalEntries));''',
+              "parallel operational load",
           )
+          replace(
+              r'  const counts = useMemo\(.*?\n  \);\n\n  return \(',
+              '''  const counts = useMemo(
+            () => ({
+              active: nodes.filter((node) => node.state === "active").length,
+              attention: nodes.filter((node) => {
+                const availability = operationalStates[node.node_id]?.availability;
+                return (
+                  node.state === "suspended" ||
+                  node.clock_status === "warning" ||
+                  node.clock_status === "critical" ||
+                  availability === "offline" ||
+                  availability === "stale"
+                );
+              }).length,
+              total: nodes.length,
+            }),
+            [nodes, operationalStates],
+          );
 
-          counts_start = content.index("  const counts = useMemo(")
-          counts_end = content.index("\n\n  return (", counts_start)
-          content = (
-              content[:counts_start]
-              + '''  const counts = useMemo(
-    () => ({
-      active: nodes.filter((node) => node.state === "active").length,
-      attention: nodes.filter((node) => {
-        const availability = operationalStates[node.node_id]?.availability;
-        return (
-          node.state === "suspended" ||
-          node.clock_status === "warning" ||
-          node.clock_status === "critical" ||
-          availability === "offline" ||
-          availability === "stale"
-        );
-      }).length,
-      total: nodes.length,
-    }),
-    [nodes, operationalStates],
-  );'''
-              + content[counts_end:]
+          return (''',
+              "attention KPI",
+              flags=re.DOTALL,
           )
+          replace(
+              r'                  <p className="mt-3 text-\[9px\] text-slate-500">Last seen: \{formatDate\(node\.last_seen_at\)\}</p>',
+              '''                  <div className="mt-3 flex items-center justify-between gap-2 text-[9px] text-slate-500">
+                    <span>Last seen: {formatDate(node.last_seen_at)}</span>
+                    <span
+                      className={
+                        operationalStates[node.node_id]?.availability === "online"
+                          ? "text-emerald-300"
+                          : operationalStates[node.node_id]?.availability === "offline"
+                            ? "text-red-300"
+                            : operationalStates[node.node_id]?.availability === "stale"
+                              ? "text-amber-300"
+                              : "text-slate-600"
+                      }
+                      data-testid={`node-row-availability-${node.node_id}`}
+                    >
+                      {operationalStates[node.node_id]?.availability ?? "unknown"}
+                    </span>
+                  </div>''',
+              "inventory availability",
+          )
+          replace(
+              r'(                  node=\{selectedNode\}\n)',
+              r'''\1                  operationalState={selectedOperationalState}
+          ''',
+              "detail property",
+          )
+          replace(
+              r'function NodeDetail\(\{\n  node,\n',
+              '''function NodeDetail({
+            node,
+            operationalState,
+          ''',
+              "detail argument",
+          )
+          replace(
+              r'\}: \{\n  node: CentralNode;\n',
+              '''}: {
+            node: CentralNode;
+            operationalState: NodeOperationalState | null;
+          ''',
+              "detail type",
+          )
+          replace(
+              r'''      <div className="rounded-2xl border border-white/\[0\.06\] bg-white/\[0\.018\] p-4">\n        <p className="text-\[10px\] font-semibold text-slate-200">Owned MQTT namespace</p>\n        <code className="mt-2 block overflow-x-auto text-\[10px\] text-cyan-200">\n          nexolab/v1/\{node\.organization_id\}/\{node\.node_id\}/telemetry\n        </code>\n      </div>''',
+              '''      <NodeOperationalPanel state={operationalState} />
 
-          swap(
-              '                   <p className="mt-3 text-[9px] text-slate-500">Last seen: {formatDate(node.last_seen_at)}</p>\n',
-              '                   <div className="mt-3 flex items-center justify-between gap-2 text-[9px] text-slate-500">\n                     <span>Last seen: {formatDate(node.last_seen_at)}</span>\n                     <span\n                       className={\n                         operationalStates[node.node_id]?.availability === "online"\n                           ? "text-emerald-300"\n                           : operationalStates[node.node_id]?.availability === "offline"\n                             ? "text-red-300"\n                             : operationalStates[node.node_id]?.availability === "stale"\n                               ? "text-amber-300"\n                               : "text-slate-600"\n                       }\n                       data-testid={`node-row-availability-${node.node_id}`}\n                     >\n                       {operationalStates[node.node_id]?.availability ?? "unknown"}\n                     </span>\n                   </div>\n',
-              "row availability",
-          )
-          swap(
-              '                   node={selectedNode}\n                   canManage={canManage}\n',
-              '                   node={selectedNode}\n                   operationalState={selectedOperationalState}\n                   canManage={canManage}\n',
-              "detail call",
-          )
-          swap(
-              '  node,\n  canManage,\n',
-              '  node,\n  operationalState,\n  canManage,\n',
-              "detail params",
-          )
-          swap(
-              '  node: CentralNode;\n  canManage: boolean;\n',
-              '  node: CentralNode;\n  operationalState: NodeOperationalState | null;\n  canManage: boolean;\n',
-              "detail types",
-          )
-          swap(
-              '       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-4">\n         <p className="text-[10px] font-semibold text-slate-200">Owned MQTT namespace</p>\n         <code className="mt-2 block overflow-x-auto text-[10px] text-cyan-200">\n           nexolab/v1/{node.organization_id}/{node.node_id}/telemetry\n         </code>\n       </div>\n',
-              '       <NodeOperationalPanel state={operationalState} />\n\n       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-4">\n         <p className="text-[10px] font-semibold text-slate-200">Owned MQTT namespaces</p>\n         <div className="mt-2 space-y-1 overflow-x-auto font-mono text-[10px] text-cyan-200">\n           <p>nexolab/v1/{node.organization_id}/{node.node_id}/telemetry</p>\n           <p>nexolab/v1/{node.organization_id}/{node.node_id}/health</p>\n           <p>nexolab/v1/{node.organization_id}/{node.node_id}/status</p>\n         </div>\n       </div>\n',
-              "panel",
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-4">
+              <p className="text-[10px] font-semibold text-slate-200">Owned MQTT namespaces</p>
+              <div className="mt-2 space-y-1 overflow-x-auto font-mono text-[10px] text-cyan-200">
+                <p>nexolab/v1/{node.organization_id}/{node.node_id}/telemetry</p>
+                <p>nexolab/v1/{node.organization_id}/{node.node_id}/health</p>
+                <p>nexolab/v1/{node.organization_id}/{node.node_id}/status</p>
+              </div>
+            </div>''',
+              "operational panel",
           )
 
           path.write_text(content)
@@ -113,7 +175,7 @@ jobs:
         env:
           HUSKY: 0
         run: |
-          npm install --no-audit
+          npm ci --no-audit
           npx prettier --write src/components/nodes/nodes-workspace.tsx src/components/nodes/node-operational-panel.tsx src/lib/nodes/api-client.ts src/lib/nodes/types.ts
           npm run lint
           npm run typecheck
