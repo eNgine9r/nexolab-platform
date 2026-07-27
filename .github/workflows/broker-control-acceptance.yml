@@ -1,0 +1,79 @@
+name: Broker Control Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/telemetry-service/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "scripts/run-broker-control-acceptance.sh"
+      - "src/components/nodes/node-operational-panel.tsx"
+      - "src/lib/nodes/**"
+      - "e2e/broker-control.production.e2e.ts"
+      - "playwright.broker-control.config.ts"
+      - ".github/workflows/broker-control-acceptance.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/telemetry-service/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "scripts/run-broker-control-acceptance.sh"
+      - "src/components/nodes/node-operational-panel.tsx"
+      - "src/lib/nodes/**"
+      - "e2e/broker-control.production.e2e.ts"
+      - "playwright.broker-control.config.ts"
+      - ".github/workflows/broker-control-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: broker-control-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: PostgreSQL secure broker and browser gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate acceptance contracts
+        run: |
+          bash -n scripts/run-broker-control-acceptance.sh
+          sh -n services/telemetry-service/bin/nexolab-dynsec-admin
+          sh -n infrastructure/mqtt/dynamic-security/mosquitto-pub-config-compat.sh
+          cmp -s \
+            services/telemetry-service/bin/nexolab-dynsec-admin \
+            infrastructure/mqtt/dynamic-security/dynsec-admin.sh
+
+      - name: Run broker-control acceptance
+        run: bash scripts/run-broker-control-acceptance.sh
+
+      - name: Upload broker-control evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-control-acceptance-evidence
+          path: |
+            test-results-broker-control
+            playwright-report-broker-control
+          if-no-files-found: warn
+          retention-days: 14

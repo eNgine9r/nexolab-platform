@@ -4,6 +4,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 import { getNodesApiBaseUrl, NodeClientError } from "./runtime-config";
 import type {
   CentralNode,
+  NodeBrokerControl,
   NodeHealth,
   NodeOperationalState,
   NodeStatus,
@@ -82,6 +83,14 @@ export class NodeApiClient {
       `/api/v1/nodes/${encodeURIComponent(nodeId)}/operational-state`,
       { signal },
       (body) => parseObject<NodeOperationalState>(body, "Node operational state"),
+    );
+  }
+
+  getBrokerControl(nodeId: string, signal?: AbortSignal): Promise<NodeBrokerControl> {
+    return this.requestJson(
+      `/api/v1/nodes/${encodeURIComponent(nodeId)}/broker-control`,
+      { signal },
+      (body) => parseObject<NodeBrokerControl>(body, "Node broker control"),
     );
   }
 

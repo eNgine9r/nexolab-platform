@@ -13,10 +13,12 @@ RUN apk add --no-cache jq \
 COPY mosquitto.conf /mosquitto/config/mosquitto.conf
 COPY entrypoint.sh /usr/local/bin/nexolab-mqtt-entrypoint
 COPY dynsec-admin.sh /usr/local/bin/nexolab-dynsec-admin
+COPY mosquitto-pub-config-compat.sh /usr/local/bin/mosquitto_pub
 
 RUN chmod 0755 \
       /usr/local/bin/nexolab-mqtt-entrypoint \
       /usr/local/bin/nexolab-dynsec-admin \
+      /usr/local/bin/mosquitto_pub \
     && mkdir -p /run/secrets /mosquitto/data \
     && chown -R mosquitto:mosquitto /mosquitto/data
 

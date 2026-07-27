@@ -9,6 +9,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import Database
+from app.nodes.broker_control import BrokerControlOperation
+from app.nodes.broker_repository import BrokerControlRepository
 from app.nodes.domain import (
     ClockStatus,
     NodeState,
@@ -16,6 +18,7 @@ from app.nodes.domain import (
     ProvisionNodeCommand,
     RotateNodeCredentialCommand,
     authorize_node_topic,
+    canonical_sha256,
     classify_clock_offset,
     generate_provisioning_secret,
     hash_provisioning_secret,
@@ -79,11 +82,13 @@ class NodeRepository:
         database: Database,
         *,
         security_repository: SecurityRepository | None = None,
+        broker_control_repository: BrokerControlRepository | None = None,
         organization_id: str | None = None,
     ) -> None:
         self._database = database
         self._engine = database.engine
         self._security_repository = security_repository
+        self._broker_control_repository = broker_control_repository
         self._organization_id = organization_id
 
     def for_organization(self, organization_id: str) -> "NodeRepository":
@@ -91,6 +96,7 @@ class NodeRepository:
         return NodeRepository(
             self._database,
             security_repository=self._security_repository,
+            broker_control_repository=self._broker_control_repository,
             organization_id=normalized,
         )
 
@@ -143,11 +149,14 @@ class NodeRepository:
                     if replay is not None:
                         if replay.command_sha256 != command.command_sha256:
                             raise NodeIdempotencyConflictError(
-                                "provisioning idempotency key is bound to a different command"
+                                "provisioning idempotency key is bound to "
+                                "a different command"
                             )
                         node = session.get(CentralNode, replay.node_record_id)
                         if node is None or node.organization_id != organization_id:
-                            raise NodeRepositoryError("provisioning replay references a missing node")
+                            raise NodeRepositoryError(
+                                "provisioning replay references a missing node"
+                            )
                         session.expunge(replay)
                         session.expunge(node)
                         return ProvisionedNode(node, replay, None, True)
@@ -193,6 +202,28 @@ class NodeRepository:
                     )
                     session.add_all([node, credential])
                     session.flush()
+                    self._enqueue_broker_command(
+                        session,
+                        node=node,
+                        operation=BrokerControlOperation.PROVISION,
+                        credential=credential,
+                        secret=secret,
+                        deduplication_key=(
+                            f"node:{node.id}:credential:"
+                            f"{credential.generation}:provision"
+                        ),
+                        command_sha256=canonical_sha256(
+                            {
+                                "operation": BrokerControlOperation.PROVISION.value,
+                                "organization_id": organization_id,
+                                "node_record_id": node.id,
+                                "node_id": node.node_id,
+                                "credential_id": credential.id,
+                                "credential_generation": credential.generation,
+                            }
+                        ),
+                        available_at=now,
+                    )
                     self._audit(
                         session,
                         node=node,
@@ -209,10 +240,13 @@ class NodeRepository:
                             "credential_fingerprint": credential.secret_fingerprint,
                             "clock_warning_ms": node.clock_warning_ms,
                             "clock_critical_ms": node.clock_critical_ms,
+                            "broker_sync": "pending",
                         },
                     )
             except IntegrityError as error:
-                raise NodeConflictError("node or provisioning key already exists") from error
+                raise NodeConflictError(
+                    "node or provisioning key already exists"
+                ) from error
             session.expunge(credential)
             session.expunge(node)
             return ProvisionedNode(node, credential, secret, False)
@@ -234,18 +268,23 @@ class NodeRepository:
                     if replay is not None:
                         if replay.command_sha256 != command.command_sha256:
                             raise NodeIdempotencyConflictError(
-                                "credential idempotency key is bound to a different command"
+                                "credential idempotency key is bound to "
+                                "a different command"
                             )
                         node = session.get(CentralNode, replay.node_record_id)
                         if node is None or node.organization_id != self._scope():
-                            raise NodeRepositoryError("credential replay references a missing node")
+                            raise NodeRepositoryError(
+                                "credential replay references a missing node"
+                            )
                         session.expunge(replay)
                         session.expunge(node)
                         return RotatedNodeCredential(node, replay, None, True)
 
                     node = self._node_for_update(session, command.node_id)
                     if NodeState(node.state) is NodeState.REVOKED:
-                        raise NodeConflictError("revoked node credentials cannot be rotated")
+                        raise NodeConflictError(
+                            "revoked node credentials cannot be rotated"
+                        )
                     now = datetime.now(UTC)
                     active = list(
                         session.scalars(
@@ -286,6 +325,27 @@ class NodeRepository:
                     session.add(credential)
                     node.updated_at = now
                     session.flush()
+                    self._enqueue_broker_command(
+                        session,
+                        node=node,
+                        operation=BrokerControlOperation.ROTATE,
+                        credential=credential,
+                        secret=secret,
+                        deduplication_key=(
+                            f"node:{node.id}:credential:{credential.generation}:rotate"
+                        ),
+                        command_sha256=canonical_sha256(
+                            {
+                                "operation": BrokerControlOperation.ROTATE.value,
+                                "organization_id": node.organization_id,
+                                "node_record_id": node.id,
+                                "node_id": node.node_id,
+                                "credential_id": credential.id,
+                                "credential_generation": credential.generation,
+                            }
+                        ),
+                        available_at=now,
+                    )
                     self._audit(
                         session,
                         node=node,
@@ -299,10 +359,13 @@ class NodeRepository:
                             "credential_generation": credential.generation,
                             "credential_fingerprint": credential.secret_fingerprint,
                             "previous_credentials_revoked": len(active),
+                            "broker_sync": "pending",
                         },
                     )
             except IntegrityError as error:
-                raise NodeConflictError("credential rotation conflicted with existing state") from error
+                raise NodeConflictError(
+                    "credential rotation conflicted with existing state"
+                ) from error
             session.expunge(credential)
             session.expunge(node)
             return RotatedNodeCredential(node, credential, secret, False)
@@ -377,7 +440,9 @@ class NodeRepository:
                 try:
                     node = self._node_for_update(session, node_id)
                 except NodeNotFoundError as error:
-                    raise NodeAuthenticationError("node authentication failed") from error
+                    raise NodeAuthenticationError(
+                        "node authentication failed"
+                    ) from error
                 if NodeState(node.state) is not NodeState.ACTIVE:
                     raise NodeAuthenticationError("node authentication failed")
                 credential = self._active_credential(session, node.id)
@@ -394,7 +459,9 @@ class NodeRepository:
                         topic=topic,
                     )
                 except ValueError as error:
-                    raise NodeAuthenticationError("node authentication failed") from error
+                    raise NodeAuthenticationError(
+                        "node authentication failed"
+                    ) from error
                 offset_ms = (
                     None
                     if node_clock is None
@@ -461,6 +528,34 @@ class NodeRepository:
                         credential.revoked_by = actor
                         credential.revocation_reason = normalized_reason
                 session.flush()
+                broker_operation = _broker_operation_for_state(target)
+                if broker_operation is not None:
+                    command_sha256 = canonical_sha256(
+                        {
+                            "operation": broker_operation.value,
+                            "organization_id": node.organization_id,
+                            "node_record_id": node.id,
+                            "node_id": node.node_id,
+                            "source_state": source.value,
+                            "target_state": target.value,
+                            "actor_subject": actor,
+                            "reason": normalized_reason,
+                            "transitioned_at": now.isoformat(),
+                        }
+                    )
+                    self._enqueue_broker_command(
+                        session,
+                        node=node,
+                        operation=broker_operation,
+                        credential=None,
+                        secret=None,
+                        deduplication_key=(
+                            f"node:{node.id}:state:{target.value}:"
+                            f"{command_sha256[:24]}"
+                        ),
+                        command_sha256=command_sha256,
+                        available_at=now,
+                    )
                 self._audit(
                     session,
                     node=node,
@@ -473,10 +568,42 @@ class NodeRepository:
                     after_snapshot={
                         "state": node.state,
                         "state_reason": node.state_reason,
+                        **(
+                            {"broker_sync": "pending"}
+                            if broker_operation is not None
+                            else {}
+                        ),
                     },
                 )
             session.expunge(node)
             return node
+
+    def _enqueue_broker_command(
+        self,
+        session: Session,
+        *,
+        node: CentralNode,
+        operation: BrokerControlOperation,
+        credential: CentralNodeCredential | None,
+        secret: str | None,
+        deduplication_key: str,
+        command_sha256: str,
+        available_at: datetime,
+    ) -> None:
+        if self._broker_control_repository is None:
+            return
+        self._broker_control_repository.enqueue_in_session(
+            session,
+            organization_id=node.organization_id,
+            node_record_id=node.id,
+            node_id=node.node_id,
+            credential_id=None if credential is None else credential.id,
+            operation=operation,
+            deduplication_key=deduplication_key,
+            command_sha256=command_sha256,
+            secret=secret,
+            available_at=available_at,
+        )
 
     def _scope(self) -> str:
         if self._organization_id is None:
@@ -566,6 +693,16 @@ class NodeRepository:
             ),
             session=session,
         )
+
+
+def _broker_operation_for_state(
+    target: NodeState,
+) -> BrokerControlOperation | None:
+    if target is NodeState.SUSPENDED:
+        return BrokerControlOperation.DISABLE
+    if target is NodeState.REVOKED:
+        return BrokerControlOperation.DELETE
+    return None
 
 
 def _required_text(value: str, field: str, max_length: int) -> str:

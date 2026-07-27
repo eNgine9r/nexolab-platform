@@ -1,0 +1,177 @@
+name: nexolab-broker-control-acceptance
+
+x-telemetry-image: &telemetry-image
+  image: ${BROKER_CONTROL_TELEMETRY_IMAGE:-nexolab-telemetry-service:broker-control-acceptance}
+  build:
+    context: ../../services/telemetry-service
+
+x-telemetry-environment: &telemetry-environment
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexolab}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-nexolab}
+  DATABASE_CONNECT_TIMEOUT_SECONDS: "3"
+  DATABASE_RETRY_INITIAL_SECONDS: "0.1"
+  DATABASE_RETRY_MAX_SECONDS: "1"
+  MQTT_ENABLED: "true"
+  MQTT_HOST: mqtt
+  MQTT_PORT: "1883"
+  MQTT_NODE_REGISTRY_ENFORCED: "true"
+  MQTT_NODE_TOPIC_FILTER: nexolab/v1/+/+/telemetry
+  MQTT_NODE_HEALTH_TOPIC_FILTER: nexolab/v1/+/+/health
+  MQTT_NODE_STATUS_TOPIC_FILTER: nexolab/v1/+/+/status
+  MQTT_AUTH_REQUIRED: "true"
+  MQTT_USERNAME: ${BROKER_CONTROL_INGESTION_USERNAME:-nexolab-central-ingestion}
+  MQTT_CLIENT_ID: ${BROKER_CONTROL_INGESTION_CLIENT_ID:-nexolab-central-ingestion}
+  MQTT_PASSWORD_FILE: /run/secrets/nexolab/ingestion-password
+  BROKER_CONTROL_ENABLED: "true"
+  BROKER_CONTROL_ENCRYPTION_KEY_FILE: /run/secrets/nexolab/broker-control-key
+  BROKER_CONTROL_ENCRYPTION_KEY_ID: broker-control-acceptance-v1
+  BROKER_CONTROL_ADMIN_EXECUTABLE: /usr/local/bin/nexolab-dynsec-admin
+  BROKER_CONTROL_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+  BROKER_CONTROL_ADMIN_CLIENT_ID: nexolab-broker-control-worker
+  BROKER_CONTROL_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+  BROKER_CONTROL_POLL_INTERVAL_SECONDS: "0.2"
+  BROKER_CONTROL_MAX_COMMANDS_PER_RUN: "20"
+  BROKER_CONTROL_MAX_ATTEMPTS: "20"
+  BROKER_CONTROL_RETRY_INITIAL_SECONDS: "0.5"
+  BROKER_CONTROL_RETRY_MAX_SECONDS: "2"
+  BROKER_CONTROL_COMMAND_TIMEOUT_SECONDS: "2"
+  BROKER_CONTROL_STALE_LOCK_SECONDS: "5"
+  OBJECT_STORAGE_BACKEND: disabled
+  AUTH_MODE: jwt
+  AUTH_DEFAULT_ORGANIZATION_ID: ${BROKER_CONTROL_ORGANIZATION_A:-00000000-0000-0000-0000-000000000001}
+  AUTH_JWT_PUBLIC_KEY: ${BROKER_CONTROL_JWT_SECRET:?BROKER_CONTROL_JWT_SECRET is required}
+  AUTH_JWT_ALGORITHM: HS256
+  AUTH_JWT_ISSUER: ${BROKER_CONTROL_JWT_ISSUER:?BROKER_CONTROL_JWT_ISSUER is required}
+  AUTH_JWT_AUDIENCE: ${BROKER_CONTROL_JWT_AUDIENCE:?BROKER_CONTROL_JWT_AUDIENCE is required}
+  AUTH_JWT_PROVIDER: broker-control-acceptance
+  CORS_ALLOWED_ORIGINS: ${BROKER_CONTROL_FRONTEND_ORIGIN:-http://127.0.0.1:3110}
+  CORS_ALLOW_CREDENTIALS: "false"
+  RETENTION_ENABLED: "false"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexolab}
+      POSTGRES_USER: ${POSTGRES_USER:-nexolab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - broker-control-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks:
+      - broker-control
+
+  mqtt:
+    image: ${BROKER_CONTROL_MQTT_IMAGE:-nexolab-mqtt-dynamic-security:broker-control-acceptance}
+    build:
+      context: ../mqtt/dynamic-security
+    restart: unless-stopped
+    init: true
+    environment:
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dynsec-healthcheck
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+    ports:
+      - "127.0.0.1:${BROKER_CONTROL_MQTT_PORT:-1891}:1883"
+    volumes:
+      - broker-control-mqtt:/mosquitto/data
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 3s
+    networks:
+      - broker-control
+
+  mqtt-policy-init:
+    image: ${BROKER_CONTROL_MQTT_IMAGE:-nexolab-mqtt-dynamic-security:broker-control-acceptance}
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /usr/local/bin/nexolab-dynsec-admin bootstrap-defaults
+        /usr/local/bin/nexolab-dynsec-admin create-ingestion \
+          "$${MQTT_USERNAME}" \
+          "$${MQTT_CLIENT_ID}" \
+          /run/secrets/nexolab/ingestion-password
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: "1883"
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dynsec-policy-init
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+      MQTT_USERNAME: ${BROKER_CONTROL_INGESTION_USERNAME:-nexolab-central-ingestion}
+      MQTT_CLIENT_ID: ${BROKER_CONTROL_INGESTION_CLIENT_ID:-nexolab-central-ingestion}
+    volumes:
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      mqtt:
+        condition: service_healthy
+    networks:
+      - broker-control
+
+  telemetry-migrate:
+    <<: *telemetry-image
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexolab}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-nexolab}
+      MQTT_ENABLED: "false"
+      BROKER_CONTROL_ENABLED: "false"
+      OBJECT_STORAGE_BACKEND: disabled
+      RETENTION_ENABLED: "false"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - broker-control
+
+  telemetry-service:
+    <<: *telemetry-image
+    restart: unless-stopped
+    init: true
+    environment: *telemetry-environment
+    ports:
+      - "127.0.0.1:${BROKER_CONTROL_API_PORT:-8091}:8082"
+    volumes:
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt-policy-init:
+        condition: service_completed_successfully
+      telemetry-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
+    stop_grace_period: 10s
+    networks:
+      - broker-control
+
+volumes:
+  broker-control-postgres:
+    name: ${BROKER_CONTROL_POSTGRES_VOLUME:-nexolab-broker-control-acceptance-postgres}
+  broker-control-mqtt:
+    name: ${BROKER_CONTROL_MQTT_VOLUME:-nexolab-broker-control-acceptance-mqtt}
+
+networks:
+  broker-control:
+    name: ${BROKER_CONTROL_NETWORK:-nexolab-broker-control-acceptance-network}
+    driver: bridge

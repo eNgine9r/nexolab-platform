@@ -6,7 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends fonts-dejavu-core \
+    && apt-get install --yes --no-install-recommends \
+        fonts-dejavu-core \
+        mosquitto \
+        mosquitto-clients \
+    && command -v mosquitto_ctrl >/dev/null \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
@@ -15,8 +19,10 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app
+COPY bin/nexolab-dynsec-admin /usr/local/bin/nexolab-dynsec-admin
 
-RUN useradd --create-home --uid 10001 nexolab
+RUN chmod 0755 /usr/local/bin/nexolab-dynsec-admin \
+    && useradd --create-home --uid 10001 nexolab
 USER nexolab
 
 EXPOSE 8082

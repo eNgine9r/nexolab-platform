@@ -39,6 +39,21 @@ class Settings(BaseSettings):
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
 
+    broker_control_enabled: bool = False
+    broker_control_encryption_key_file: str | None = None
+    broker_control_encryption_key_id: str | None = None
+    broker_control_admin_executable: str = "/usr/local/bin/nexolab-dynsec-admin"
+    broker_control_admin_username: str | None = None
+    broker_control_admin_client_id: str = "nexolab-broker-control-worker"
+    broker_control_admin_password_file: str | None = None
+    broker_control_poll_interval_seconds: float = Field(default=1.0, ge=0.05, le=300.0)
+    broker_control_max_commands_per_run: int = Field(default=25, ge=1, le=1000)
+    broker_control_max_attempts: int = Field(default=8, ge=1, le=100)
+    broker_control_retry_initial_seconds: float = Field(default=1.0, ge=0.05, le=3600.0)
+    broker_control_retry_max_seconds: float = Field(default=300.0, ge=0.05, le=86_400.0)
+    broker_control_command_timeout_seconds: float = Field(default=15.0, ge=0.1, le=300.0)
+    broker_control_stale_lock_seconds: float = Field(default=60.0, ge=1.0, le=86_400.0)
+
     ingestion_queue_maxsize: int = Field(default=10_000, ge=1)
     ingestion_payload_max_bytes: int = Field(default=262_144, ge=1024)
     dead_letter_payload_max_bytes: int = Field(default=65_536, ge=256)
@@ -86,7 +101,7 @@ class Settings(BaseSettings):
     retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
 
     @model_validator(mode="after")
-    def validate_mqtt_credentials(self) -> "Settings":
+    def validate_runtime_secrets(self) -> "Settings":
         has_username = bool(self.mqtt_username and self.mqtt_username.strip())
         has_password_file = bool(
             self.mqtt_password_file and self.mqtt_password_file.strip()
@@ -99,6 +114,36 @@ class Settings(BaseSettings):
             raise ValueError(
                 "MQTT credentials are required when MQTT_AUTH_REQUIRED=true"
             )
+
+        if self.broker_control_retry_max_seconds < self.broker_control_retry_initial_seconds:
+            raise ValueError(
+                "BROKER_CONTROL_RETRY_MAX_SECONDS must be greater than or equal to "
+                "BROKER_CONTROL_RETRY_INITIAL_SECONDS"
+            )
+        if self.broker_control_stale_lock_seconds <= self.broker_control_command_timeout_seconds:
+            raise ValueError(
+                "BROKER_CONTROL_STALE_LOCK_SECONDS must be greater than "
+                "BROKER_CONTROL_COMMAND_TIMEOUT_SECONDS"
+            )
+        if self.broker_control_enabled:
+            required = {
+                "BROKER_CONTROL_ENCRYPTION_KEY_FILE": self.broker_control_encryption_key_file,
+                "BROKER_CONTROL_ENCRYPTION_KEY_ID": self.broker_control_encryption_key_id,
+                "BROKER_CONTROL_ADMIN_EXECUTABLE": self.broker_control_admin_executable,
+                "BROKER_CONTROL_ADMIN_USERNAME": self.broker_control_admin_username,
+                "BROKER_CONTROL_ADMIN_CLIENT_ID": self.broker_control_admin_client_id,
+                "BROKER_CONTROL_ADMIN_PASSWORD_FILE": self.broker_control_admin_password_file,
+            }
+            missing = [
+                name
+                for name, value in required.items()
+                if value is None or not str(value).strip()
+            ]
+            if missing:
+                raise ValueError(
+                    "broker control is enabled but required settings are missing: "
+                    + ", ".join(sorted(missing))
+                )
         return self
 
     @property
