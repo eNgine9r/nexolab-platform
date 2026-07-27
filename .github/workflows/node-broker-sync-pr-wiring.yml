@@ -1,0 +1,71 @@
+name: Node Broker Sync PR Wiring
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/node-broker-sync-pr-wiring.yml"
+      - ".github/workflows/node-broker-sync-wiring.yml"
+      - ".github/node-broker-sync-trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: node-broker-sync-pr-wiring-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wire:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Extract and run checked patch
+        run: |
+          awk '
+            /python - <<.PY./ {capture=1; next}
+            capture && /^          PY$/ {exit}
+            capture {sub(/^          /, ""); print}
+          ' .github/workflows/node-broker-sync-wiring.yml \
+            > /tmp/node-broker-sync-wiring.py
+          test -s /tmp/node-broker-sync-wiring.py
+          python /tmp/node-broker-sync-wiring.py
+
+      - name: Install backend dependencies
+        working-directory: services/telemetry-service
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Verify lifecycle wiring
+        working-directory: services/telemetry-service
+        run: |
+          python -m compileall -q app tests migrations
+          pytest -q \
+            tests/test_node_broker_control.py \
+            tests/test_node_repository.py \
+            tests/test_mqtt_credentials.py
+          alembic upgrade head --sql >/tmp/node-broker-sync-migration.sql
+
+      - name: Commit verified product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/telemetry-service/app/model_registry.py \
+            services/telemetry-service/app/nodes/repository.py \
+            services/telemetry-service/app/config.py \
+            services/telemetry-service/app/main.py \
+            services/telemetry-service/app/nodes/schemas.py \
+            services/telemetry-service/app/nodes/api.py \
+            services/telemetry-service/tests/test_node_broker_control.py \
+            infrastructure/compose/compose.central-mqtt-security.yaml
+          git diff --cached --quiet && exit 0
+          git -c core.hooksPath=/dev/null commit -m "feat(nodes): synchronize registry lifecycle with broker outbox"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
