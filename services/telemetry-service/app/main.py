@@ -23,6 +23,7 @@ from app.mqtt_consumer import MqttConsumer
 from app.nodes.api import create_node_router
 from app.nodes.broker_adapter import DynamicSecurityAdminAdapter
 from app.nodes.broker_control import BrokerControlSecretCipher
+from app.nodes.broker_node_repository import BrokerSynchronizedNodeRepository
 from app.nodes.broker_repository import BrokerControlRepository
 from app.nodes.broker_worker import BrokerControlWorker
 from app.nodes.ingress import NodeIngressAuthorizer
@@ -77,7 +78,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved,
         database,
     )
-    node_repository = NodeRepository(
+    node_repository_type = (
+        BrokerSynchronizedNodeRepository
+        if broker_control_repository is not None
+        else NodeRepository
+    )
+    node_repository = node_repository_type(
         database,
         security_repository=security_repository,
         broker_control_repository=broker_control_repository,
