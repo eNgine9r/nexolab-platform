@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from app.config import Settings
@@ -10,6 +11,20 @@ from app.nodes.stream_ingestion import NodeStreamIngestor
 from app.state import RuntimeState
 
 LOGGER = logging.getLogger("nexolab.telemetry.mqtt")
+
+
+def load_mqtt_password(password_file: str) -> str:
+    path = Path(password_file)
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"MQTT password file is not readable: {path}") from exc
+    password = content.rstrip("\r\n")
+    if not password:
+        raise RuntimeError("MQTT password file must not be empty")
+    if "\r" in password or "\n" in password:
+        raise RuntimeError("MQTT password file must contain exactly one secret")
+    return password
 
 
 class MqttConsumer:
@@ -45,6 +60,13 @@ class MqttConsumer:
             client_id=settings.mqtt_client_id,
             protocol=mqtt.MQTTv311,
         )
+        if settings.mqtt_username is not None:
+            if settings.mqtt_password_file is None:  # validated by Settings
+                raise RuntimeError("MQTT password file is required")
+            self._client.username_pw_set(
+                settings.mqtt_username,
+                load_mqtt_password(settings.mqtt_password_file),
+            )
         self._client.reconnect_delay_set(min_delay=1, max_delay=30)
         self._client.on_connect = self._on_connect
         self._client.on_disconnect = self._on_disconnect
