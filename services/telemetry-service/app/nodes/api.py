@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated, Callable
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -31,6 +32,12 @@ from app.nodes.schemas import (
     RotateNodeCredentialRequest,
     RotateNodeCredentialResponse,
 )
+from app.nodes.stream_repository import NodeStreamRepository
+from app.nodes.stream_schemas import (
+    NodeHealthRead,
+    NodeOperationalStateRead,
+    NodeStatusRead,
+)
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 
@@ -44,10 +51,18 @@ IdempotencyKey = Annotated[
 def create_node_router(
     repository: NodeRepository,
     security_dependencies: SecurityDependencies | None = None,
+    *,
+    health_stale_after_seconds: int = 90,
 ) -> APIRouter:
+    if health_stale_after_seconds < 1:
+        raise ValueError("health_stale_after_seconds must be positive")
+
     router = APIRouter(prefix="/api/v1/nodes", tags=["nodes"])
     read_access = _access_dependency(security_dependencies, Permission.READ_NODES)
     manage_access = _access_dependency(security_dependencies, Permission.MANAGE_NODES)
+    stream_repository = NodeStreamRepository(
+        repository._database  # noqa: SLF001 - shared node persistence boundary
+    )
 
     @router.get("", response_model=list[NodeRead])
     def list_nodes(
@@ -73,6 +88,78 @@ def create_node_router(
                 authorized.principal.organization_id
             )
             return _node_read(scoped, scoped.get_node(node_id))
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.get(
+        "/{node_id}/operational-state",
+        response_model=NodeOperationalStateRead,
+    )
+    def get_operational_state(
+        node_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> NodeOperationalStateRead:
+        try:
+            organization_id = authorized.principal.organization_id
+            scoped_nodes = repository.for_organization(organization_id)
+            node = scoped_nodes.get_node(node_id)
+            scoped_streams = stream_repository.for_organization(organization_id)
+            latest_health = scoped_streams.latest_health(node.node_id)
+            latest_status = scoped_streams.latest_status(node.node_id)
+            return _operational_state(
+                node.node_id,
+                latest_health=(
+                    None
+                    if latest_health is None
+                    else NodeHealthRead.model_validate(latest_health)
+                ),
+                latest_status=(
+                    None
+                    if latest_status is None
+                    else NodeStatusRead.model_validate(latest_status)
+                ),
+                stale_after_seconds=health_stale_after_seconds,
+            )
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.get(
+        "/{node_id}/health-history",
+        response_model=list[NodeHealthRead],
+    )
+    def get_health_history(
+        node_id: str,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> list[NodeHealthRead]:
+        try:
+            organization_id = authorized.principal.organization_id
+            scoped_nodes = repository.for_organization(organization_id)
+            node = scoped_nodes.get_node(node_id)
+            rows = stream_repository.for_organization(
+                organization_id
+            ).health_history(node.node_id, limit=limit)
+            return [NodeHealthRead.model_validate(row) for row in rows]
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.get(
+        "/{node_id}/status-history",
+        response_model=list[NodeStatusRead],
+    )
+    def get_status_history(
+        node_id: str,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> list[NodeStatusRead]:
+        try:
+            organization_id = authorized.principal.organization_id
+            scoped_nodes = repository.for_organization(organization_id)
+            node = scoped_nodes.get_node(node_id)
+            rows = stream_repository.for_organization(
+                organization_id
+            ).status_history(node.node_id, limit=limit)
+            return [NodeStatusRead.model_validate(row) for row in rows]
         except Exception as error:
             raise _http_error(error) from error
 
@@ -225,6 +312,69 @@ def _node_read(repository: NodeRepository, node: CentralNode) -> NodeRead:
             else NodeCredentialRead.model_validate(credential)
         ),
     )
+
+
+def _operational_state(
+    node_id: str,
+    *,
+    latest_health: NodeHealthRead | None,
+    latest_status: NodeStatusRead | None,
+    stale_after_seconds: int,
+    observed_at: datetime | None = None,
+) -> NodeOperationalStateRead:
+    now = _as_utc(observed_at or datetime.now(UTC))
+    heartbeat_age: float | None = None
+    if latest_health is not None:
+        heartbeat_age = max(
+            0.0,
+            (now - _as_utc(latest_health.received_at)).total_seconds(),
+        )
+
+    offline_is_latest = bool(
+        latest_status is not None
+        and latest_status.status == "offline"
+        and (
+            latest_health is None
+            or _as_utc(latest_status.received_at)
+            >= _as_utc(latest_health.received_at)
+        )
+    )
+    if offline_is_latest:
+        availability = "offline"
+    elif latest_health is None:
+        availability = (
+            "stale"
+            if latest_status is not None and latest_status.status == "online"
+            else "unknown"
+        )
+    elif heartbeat_age is not None and heartbeat_age > stale_after_seconds:
+        availability = "stale"
+    else:
+        availability = "online"
+
+    degraded_reason: str | None = None
+    if availability == "offline" and latest_status is not None:
+        degraded_reason = latest_status.reason
+    elif latest_health is not None and latest_health.health == "degraded":
+        degraded_reason = latest_health.last_error
+    elif availability == "stale":
+        degraded_reason = "node heartbeat is stale"
+
+    return NodeOperationalStateRead(
+        node_id=node_id,
+        availability=availability,
+        stale_after_seconds=stale_after_seconds,
+        heartbeat_age_seconds=heartbeat_age,
+        degraded_reason=degraded_reason,
+        latest_health=latest_health,
+        latest_status=latest_status,
+    )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _provision_response(stored: ProvisionedNode) -> ProvisionNodeResponse:
