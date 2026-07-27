@@ -21,6 +21,10 @@ from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
 from app.nodes.api import create_node_router
+from app.nodes.broker_adapter import DynamicSecurityAdminAdapter
+from app.nodes.broker_control import BrokerControlSecretCipher
+from app.nodes.broker_repository import BrokerControlRepository
+from app.nodes.broker_worker import BrokerControlWorker
 from app.nodes.ingress import NodeIngressAuthorizer
 from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
@@ -45,7 +49,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.14.0"
+SERVICE_VERSION = "0.15.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -69,9 +73,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     security_repository = SecurityRepository(database)
+    broker_control_repository, broker_control_worker = _create_broker_control(
+        resolved,
+        database,
+    )
     node_repository = NodeRepository(
         database,
         security_repository=security_repository,
+        broker_control_repository=broker_control_repository,
     )
     node_ingress_authorizer = (
         NodeIngressAuthorizer(database)
@@ -140,6 +149,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ingestor.start()
         if resolved.retention_enabled:
             retention_worker.start()
+        if broker_control_worker is not None:
+            broker_control_worker.start()
 
         if resolved.mqtt_enabled:
             mqtt_consumer = MqttConsumer(resolved, ingestor, state)
@@ -154,6 +165,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if mqtt_consumer is not None:
                 mqtt_consumer.stop()
             await asyncio.to_thread(ingestor.stop)
+            if broker_control_worker is not None:
+                await asyncio.to_thread(broker_control_worker.stop)
             if resolved.retention_enabled:
                 await asyncio.to_thread(retention_worker.stop)
             live_hub.stop()
@@ -190,6 +203,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.refrigeration_repository = refrigeration_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
+    app.state.broker_control_repository = broker_control_repository
+    app.state.broker_control_worker = broker_control_worker
     app.state.report_repository = report_repository
     app.state.report_output_repository = report_output_repository
     app.state.report_output_query_repository = report_output_query_repository
@@ -315,6 +330,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return state.snapshot()
 
     return app
+
+
+def _create_broker_control(
+    settings: Settings,
+    database: SessionAwareDatabase,
+) -> tuple[BrokerControlRepository | None, BrokerControlWorker | None]:
+    if not settings.broker_control_enabled:
+        return None, None
+
+    cipher = BrokerControlSecretCipher.from_key_file(
+        settings.broker_control_encryption_key_file or "",
+        key_id=settings.broker_control_encryption_key_id or "",
+    )
+    repository = BrokerControlRepository(database, cipher)
+    adapter = DynamicSecurityAdminAdapter(
+        executable=settings.broker_control_admin_executable,
+        broker_host=settings.mqtt_host,
+        broker_port=settings.mqtt_port,
+        admin_username=settings.broker_control_admin_username or "",
+        admin_client_id=settings.broker_control_admin_client_id,
+        admin_password_file=settings.broker_control_admin_password_file or "",
+        timeout_seconds=settings.broker_control_command_timeout_seconds,
+    )
+    worker = BrokerControlWorker(
+        database=database,
+        repository=repository,
+        adapter=adapter,
+        poll_interval_seconds=settings.broker_control_poll_interval_seconds,
+        max_commands_per_run=settings.broker_control_max_commands_per_run,
+        max_attempts=settings.broker_control_max_attempts,
+        retry_initial_seconds=settings.broker_control_retry_initial_seconds,
+        retry_max_seconds=settings.broker_control_retry_max_seconds,
+        stale_lock_seconds=settings.broker_control_stale_lock_seconds,
+    )
+    return repository, worker
 
 
 def _create_security_dependencies(
