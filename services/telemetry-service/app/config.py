@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     mqtt_node_health_topic_filter: str = "nexolab/v1/+/+/health"
     mqtt_node_status_topic_filter: str = "nexolab/v1/+/+/status"
     mqtt_client_id: str = "nexolab-telemetry-ingestion"
+    mqtt_auth_required: bool = False
+    mqtt_username: str | None = None
+    mqtt_password_file: str | None = None
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
 
@@ -81,6 +84,22 @@ class Settings(BaseSettings):
     dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
     retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
+
+    @model_validator(mode="after")
+    def validate_mqtt_credentials(self) -> "Settings":
+        has_username = bool(self.mqtt_username and self.mqtt_username.strip())
+        has_password_file = bool(
+            self.mqtt_password_file and self.mqtt_password_file.strip()
+        )
+        if has_username != has_password_file:
+            raise ValueError(
+                "MQTT_USERNAME and MQTT_PASSWORD_FILE must be configured together"
+            )
+        if self.mqtt_auth_required and not has_username:
+            raise ValueError(
+                "MQTT credentials are required when MQTT_AUTH_REQUIRED=true"
+            )
+        return self
 
     @property
     def parsed_cors_allowed_origins(self) -> list[str]:
