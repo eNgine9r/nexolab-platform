@@ -2,9 +2,7 @@ name: MQTT Broker Security Acceptance
 
 on:
   push:
-    branches:
-      - feat/m6-broker-dynamic-security
-      - main
+    branches: [main]
     paths:
       - "infrastructure/mqtt/dynamic-security/**"
       - "infrastructure/compose/compose.mqtt-security-acceptance.yaml"
