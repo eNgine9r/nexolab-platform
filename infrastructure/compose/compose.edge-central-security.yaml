@@ -1,0 +1,10 @@
+services:
+  mqtt:
+    environment:
+      NEXOLAB_ORGANIZATION_ID: ${NEXOLAB_ORGANIZATION_ID:?NEXOLAB_ORGANIZATION_ID is required}
+      NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:?NEXOLAB_NODE_ID is required}
+      CENTRAL_BRIDGE_CLIENT_ID: ${CENTRAL_BRIDGE_CLIENT_ID:?CENTRAL_BRIDGE_CLIENT_ID is required}
+      CENTRAL_MQTT_USERNAME: ${CENTRAL_MQTT_USERNAME:?CENTRAL_MQTT_USERNAME is required}
+      CENTRAL_MQTT_PASSWORD_FILE: /run/secrets/nexolab/node-password
+    volumes:
+      - ${MQTT_NODE_SECRETS_DIR:?MQTT_NODE_SECRETS_DIR is required}:/run/secrets/nexolab:ro
