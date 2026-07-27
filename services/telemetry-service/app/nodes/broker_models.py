@@ -91,6 +91,7 @@ class CentralNodeBrokerCommand(Base):
         ),
         nullable=False,
     )
+    node_id: Mapped[str] = mapped_column(String(64), nullable=False)
     credential_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey(
