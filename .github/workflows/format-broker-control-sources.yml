@@ -1,0 +1,54 @@
+name: Format broker control sources
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/format-broker-control-sources.yml"
+      - "src/components/nodes/node-operational-panel.tsx"
+      - "src/lib/nodes/api-client.ts"
+      - "src/lib/nodes/types.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Canonical Prettier output
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format changed sources
+        run: |
+          npx prettier --write \
+            src/components/nodes/node-operational-panel.tsx \
+            src/lib/nodes/api-client.ts \
+            src/lib/nodes/types.ts
+
+      - name: Package canonical sources
+        run: |
+          mkdir -p runtime/format-artifact/src/components/nodes
+          mkdir -p runtime/format-artifact/src/lib/nodes
+          cp src/components/nodes/node-operational-panel.tsx \
+            runtime/format-artifact/src/components/nodes/
+          cp src/lib/nodes/api-client.ts src/lib/nodes/types.ts \
+            runtime/format-artifact/src/lib/nodes/
+
+      - name: Upload canonical sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-control-canonical-sources
+          path: runtime/format-artifact
+          if-no-files-found: error
+          retention-days: 1
