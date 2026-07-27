@@ -100,10 +100,7 @@ test("multi-node registry preserves one-time credentials, RBAC and organization 
 
     await managerPage.getByTestId("rotate-node-credential").click();
     await expect(managerPage.getByTestId("one-time-node-secret")).toContainText("generation 2");
-    const rotatedSecret = await managerPage
-      .getByTestId("one-time-node-secret")
-      .locator("code")
-      .innerText();
+    const rotatedSecret = await managerPage.getByTestId("one-time-node-secret").locator("code").innerText();
     expect(rotatedSecret).toMatch(/^nxl_node_/);
     expect(rotatedSecret).not.toBe(firstSecret);
     await expect(managerPage.getByTestId("node-detail")).toContainText("generation 2");
