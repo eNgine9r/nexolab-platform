@@ -40,18 +40,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate acceptance contracts
+        env:
+          POSTGRES_PASSWORD: preflight-postgres
+          NEXOLAB_MQTT_ADMIN_USERNAME: preflight-admin
+          BROKER_CONTROL_JWT_SECRET: preflight-jwt-secret-with-at-least-thirty-two-bytes
+          BROKER_CONTROL_JWT_ISSUER: https://auth.nexolab.local/preflight
+          BROKER_CONTROL_JWT_AUDIENCE: nexolab-preflight
+          BROKER_CONTROL_SECRETS_DIR: /tmp/nexolab-preflight-secrets
         run: |
           bash -n scripts/run-device-agent-fleet-acceptance.sh
           docker compose \
             -f infrastructure/compose/compose.broker-control-acceptance.yaml \
             -f infrastructure/compose/compose.device-agent-fleet-acceptance.yaml \
-            config --quiet \
-            >/dev/null 2>&1 || {
-              status=$?
-              if [[ $status -ne 15 ]]; then
-                exit "$status"
-              fi
-            }
+            config --quiet
 
       - name: Run secure Device Agent fleet acceptance
         run: bash scripts/run-device-agent-fleet-acceptance.sh
