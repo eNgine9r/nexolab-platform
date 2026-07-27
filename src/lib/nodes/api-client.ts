@@ -2,7 +2,14 @@ import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { getNodesApiBaseUrl, NodeClientError } from "./runtime-config";
-import type { CentralNode, ProvisionNodeResponse, RotateNodeCredentialResponse } from "./types";
+import type {
+  CentralNode,
+  NodeHealth,
+  NodeOperationalState,
+  NodeStatus,
+  ProvisionNodeResponse,
+  RotateNodeCredentialResponse,
+} from "./types";
 
 export type NodeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -40,6 +47,13 @@ function parseObject<T>(value: unknown, label: string): T {
   return value as T;
 }
 
+function parseArray<T>(value: unknown, label: string): T[] {
+  if (!Array.isArray(value)) {
+    throw new NodeClientError(`${label} returned an invalid array.`, undefined, "contract");
+  }
+  return value as T[];
+}
+
 export function createNodeIdempotencyKey(action: string, nodeId: string): string {
   const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `nexolab-ui:nodes:${action}:${nodeId}:${random}`;
@@ -58,12 +72,33 @@ export class NodeApiClient {
   }
 
   listNodes(signal?: AbortSignal): Promise<CentralNode[]> {
-    return this.requestJson("/api/v1/nodes", { signal }, (body) => {
-      if (!Array.isArray(body)) {
-        throw new NodeClientError("Nodes list returned an invalid array.", undefined, "contract");
-      }
-      return body as CentralNode[];
-    });
+    return this.requestJson("/api/v1/nodes", { signal }, (body) =>
+      parseArray<CentralNode>(body, "Nodes list"),
+    );
+  }
+
+  getOperationalState(nodeId: string, signal?: AbortSignal): Promise<NodeOperationalState> {
+    return this.requestJson(
+      `/api/v1/nodes/${encodeURIComponent(nodeId)}/operational-state`,
+      { signal },
+      (body) => parseObject<NodeOperationalState>(body, "Node operational state"),
+    );
+  }
+
+  getHealthHistory(nodeId: string, limit = 100, signal?: AbortSignal): Promise<NodeHealth[]> {
+    return this.requestJson(
+      `/api/v1/nodes/${encodeURIComponent(nodeId)}/health-history?limit=${encodeURIComponent(String(limit))}`,
+      { signal },
+      (body) => parseArray<NodeHealth>(body, "Node health history"),
+    );
+  }
+
+  getStatusHistory(nodeId: string, limit = 100, signal?: AbortSignal): Promise<NodeStatus[]> {
+    return this.requestJson(
+      `/api/v1/nodes/${encodeURIComponent(nodeId)}/status-history?limit=${encodeURIComponent(String(limit))}`,
+      { signal },
+      (body) => parseArray<NodeStatus>(body, "Node status history"),
+    );
   }
 
   provisionNode(
