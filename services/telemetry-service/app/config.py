@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     mqtt_password_file: str | None = None
     mqtt_keepalive_seconds: int = Field(default=60, ge=10, le=3600)
     mqtt_qos: int = Field(default=1, ge=0, le=2)
+    mqtt_tls_required: bool = False
+    mqtt_tls_ca_file: str | None = None
+    mqtt_tls_cert_file: str | None = None
+    mqtt_tls_key_file: str | None = None
 
     broker_control_enabled: bool = False
     broker_control_encryption_key_file: str | None = None
@@ -113,6 +117,31 @@ class Settings(BaseSettings):
         if self.mqtt_auth_required and not has_username:
             raise ValueError(
                 "MQTT credentials are required when MQTT_AUTH_REQUIRED=true"
+            )
+
+        tls_files = (
+            self.mqtt_tls_ca_file,
+            self.mqtt_tls_cert_file,
+            self.mqtt_tls_key_file,
+        )
+        has_tls_files = any(value and value.strip() for value in tls_files)
+        if not self.mqtt_tls_required and has_tls_files:
+            raise ValueError("MQTT TLS files require MQTT_TLS_REQUIRED=true")
+        if self.mqtt_tls_required and not (
+            self.mqtt_tls_ca_file and self.mqtt_tls_ca_file.strip()
+        ):
+            raise ValueError(
+                "MQTT_TLS_CA_FILE is required when MQTT_TLS_REQUIRED=true"
+            )
+        has_client_certificate = bool(
+            self.mqtt_tls_cert_file and self.mqtt_tls_cert_file.strip()
+        )
+        has_client_key = bool(
+            self.mqtt_tls_key_file and self.mqtt_tls_key_file.strip()
+        )
+        if has_client_certificate != has_client_key:
+            raise ValueError(
+                "MQTT_TLS_CERT_FILE and MQTT_TLS_KEY_FILE must be configured together"
             )
 
         if self.broker_control_retry_max_seconds < self.broker_control_retry_initial_seconds:
