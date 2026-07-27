@@ -1,0 +1,58 @@
+name: MQTT Broker Security Acceptance
+
+on:
+  push:
+    branches:
+      - feat/m6-broker-dynamic-security
+      - main
+    paths:
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.mqtt-security-acceptance.yaml"
+      - "scripts/run-mqtt-broker-security-acceptance.sh"
+      - ".github/workflows/mqtt-broker-security-acceptance.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.mqtt-security-acceptance.yaml"
+      - "scripts/run-mqtt-broker-security-acceptance.sh"
+      - ".github/workflows/mqtt-broker-security-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mqtt-broker-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Dynamic Security black-box gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate scripts and Compose contract
+        run: |
+          bash -n infrastructure/mqtt/dynamic-security/entrypoint.sh
+          bash -n infrastructure/mqtt/dynamic-security/dynsec-admin.sh
+          bash -n scripts/run-mqtt-broker-security-acceptance.sh
+          docker compose \
+            -f infrastructure/compose/compose.mqtt-security-acceptance.yaml \
+            config --quiet
+
+      - name: Run broker authentication and ACL acceptance
+        run: bash scripts/run-mqtt-broker-security-acceptance.sh
+
+      - name: Upload security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mqtt-broker-security-evidence
+          path: test-results-mqtt-security
+          if-no-files-found: warn
+          retention-days: 14
