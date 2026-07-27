@@ -15,7 +15,7 @@ branch_labels = None
 depends_on = None
 
 
-OPERATIONS = "'provision', 'rotate', 'disable', 'delete'"
+OPERATIONS = "'provision', 'rotate', 'enable', 'disable', 'delete'"
 STATES = "'pending', 'processing', 'retrying', 'applied', 'failed'"
 
 
@@ -91,7 +91,7 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "(operation IN ('provision', 'rotate') "
             "AND secret_ciphertext IS NOT NULL) OR "
-            "(operation IN ('disable', 'delete') "
+            "(operation IN ('enable', 'disable', 'delete') "
             "AND secret_ciphertext IS NULL)",
             name="ck_central_node_broker_commands_operation_secret",
         ),
