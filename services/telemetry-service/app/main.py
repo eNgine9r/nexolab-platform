@@ -22,6 +22,7 @@ from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
 from app.nodes.api import create_node_router
 from app.nodes.broker_adapter import DynamicSecurityAdminAdapter
+from app.nodes.broker_api import create_broker_control_router
 from app.nodes.broker_control import BrokerControlSecretCipher
 from app.nodes.broker_node_repository import BrokerSynchronizedNodeRepository
 from app.nodes.broker_repository import BrokerControlRepository
@@ -223,6 +224,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.retention_worker = retention_worker
     app.include_router(create_security_router(security_repository, security_dependencies))
     app.include_router(create_node_router(node_repository, security_dependencies))
+    app.include_router(
+        create_broker_control_router(
+            node_repository,
+            broker_control_repository,
+            security_dependencies,
+        )
+    )
     app.include_router(create_alert_router(alert_repository, security_dependencies))
     app.include_router(create_report_router(report_repository, security_dependencies))
     app.include_router(
