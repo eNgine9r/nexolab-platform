@@ -1,0 +1,650 @@
+name: Node Broker Sync Wiring
+
+on:
+  push:
+    branches: [feat/m6-node-broker-sync]
+    paths:
+      - ".github/workflows/node-broker-sync-wiring.yml"
+      - ".github/node-broker-sync-trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: node-broker-sync-wiring-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wire:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/m6-node-broker-sync
+          fetch-depth: 0
+
+      - name: Apply checked lifecycle wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def swap(path: str, source: str, target: str, label: str) -> None:
+              file = Path(path)
+              content = file.read_text()
+              if target in content:
+                  return
+              count = content.count(source)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one anchor, found {count}")
+              file.write_text(content.replace(source, target, 1))
+
+          swap(
+              "services/telemetry-service/app/model_registry.py",
+              "    from app.nodes import models as _node_models\n",
+              "    from app.nodes import broker_models as _broker_models\n    from app.nodes import models as _node_models\n",
+              "broker model import",
+          )
+          swap(
+              "services/telemetry-service/app/model_registry.py",
+              "    assert _node_models.CentralNode.__tablename__ == \"central_nodes\"\n",
+              "    assert _broker_models.CentralNodeBrokerCommand.__tablename__ == (\n        \"central_node_broker_commands\"\n    )\n    assert _node_models.CentralNode.__tablename__ == \"central_nodes\"\n",
+              "broker model assertion",
+          )
+
+          repository = "services/telemetry-service/app/nodes/repository.py"
+          swap(
+              repository,
+              "from app.db import Database\n",
+              "from app.db import Database\nfrom app.nodes.broker_models import CentralNodeBrokerCommand\nfrom app.nodes.broker_repository import BrokerCommandOutbox\n",
+              "repository broker imports",
+          )
+          swap(
+              repository,
+              "        security_repository: SecurityRepository | None = None,\n        organization_id: str | None = None,\n",
+              "        security_repository: SecurityRepository | None = None,\n        broker_outbox: BrokerCommandOutbox | None = None,\n        organization_id: str | None = None,\n",
+              "repository constructor argument",
+          )
+          swap(
+              repository,
+              "        self._security_repository = security_repository\n        self._organization_id = organization_id\n",
+              "        self._security_repository = security_repository\n        self._broker_outbox = broker_outbox\n        self._organization_id = organization_id\n",
+              "repository constructor storage",
+          )
+          swap(
+              repository,
+              "            security_repository=self._security_repository,\n            organization_id=normalized,\n",
+              "            security_repository=self._security_repository,\n            broker_outbox=self._broker_outbox,\n            organization_id=normalized,\n",
+              "repository scoped propagation",
+          )
+          swap(
+              repository,
+              "    def current_credential(self, node_id: str) -> CentralNodeCredential | None:\n",
+              '''    def latest_broker_command(self, node_id: str) -> CentralNodeBrokerCommand | None:
+              if self._broker_outbox is None:
+                  return None
+              node = self.get_node(node_id)
+              return self._broker_outbox.latest_for_node(
+                  organization_id=self._scope(),
+                  node_record_id=node.id,
+              )
+
+              def current_credential(self, node_id: str) -> CentralNodeCredential | None:
+          '''.replace("              ", "    "),
+              "repository broker query",
+          )
+          swap(
+              repository,
+              "                    session.add_all([node, credential])\n                    session.flush()\n                    self._audit(\n",
+              '''                    session.add_all([node, credential])
+                      session.flush()
+                      broker_command = None
+                      if self._broker_outbox is not None:
+                          broker_command = self._broker_outbox.enqueue_upsert(
+                              session,
+                              node=node,
+                              credential=credential,
+                              secret=secret,
+                              command_key=f"provision:{credential.id}",
+                              actor_subject=command.actor_subject,
+                              reason="initial node provisioning",
+                          )
+                      self._audit(
+          '''.replace("                      ", "                    "),
+              "provision outbox enqueue",
+          )
+          swap(
+              repository,
+              '                            "clock_critical_ms": node.clock_critical_ms,\n                        },\n                    )\n',
+              '                            "clock_critical_ms": node.clock_critical_ms,\n                            "broker_sync_state": (\n                                None if broker_command is None else broker_command.state\n                            ),\n                        },\n                    )\n',
+              "provision audit sync state",
+          )
+          swap(
+              repository,
+              "                    session.add(credential)\n                    node.updated_at = now\n                    session.flush()\n                    self._audit(\n",
+              '''                    session.add(credential)
+                      node.updated_at = now
+                      session.flush()
+                      broker_command = None
+                      if self._broker_outbox is not None:
+                          broker_command = self._broker_outbox.enqueue_upsert(
+                              session,
+                              node=node,
+                              credential=credential,
+                              secret=secret,
+                              command_key=f"rotate:{credential.id}",
+                              actor_subject=command.actor_subject,
+                              reason=command.reason,
+                          )
+                      self._audit(
+          '''.replace("                      ", "                    "),
+              "rotation outbox enqueue",
+          )
+          swap(
+              repository,
+              '                            "previous_credentials_revoked": len(active),\n                        },\n                    )\n',
+              '                            "previous_credentials_revoked": len(active),\n                            "broker_sync_state": (\n                                None if broker_command is None else broker_command.state\n                            ),\n                        },\n                    )\n',
+              "rotation audit sync state",
+          )
+          swap(
+              repository,
+              "                session.flush()\n                self._audit(\n                    session,\n                    node=node,\n",
+              '''                session.flush()
+                  broker_command = None
+                  if self._broker_outbox is not None:
+                      broker_command = self._broker_outbox.enqueue_enabled_state(
+                          session,
+                          node=node,
+                          enabled=target is NodeState.ACTIVE,
+                          command_key=f"state:{node.id}:{target.value}:{now.isoformat()}",
+                          actor_subject=actor,
+                          reason=normalized_reason,
+                      )
+                  self._audit(
+                      session,
+                      node=node,
+          '''.replace("                  ", "                "),
+              "state outbox enqueue",
+          )
+          swap(
+              repository,
+              '                        "state_reason": node.state_reason,\n                    },\n                )\n',
+              '                        "state_reason": node.state_reason,\n                        "broker_sync_state": (\n                            None if broker_command is None else broker_command.state\n                        ),\n                    },\n                )\n',
+              "state audit sync state",
+          )
+
+          config = "services/telemetry-service/app/config.py"
+          swap(
+              config,
+              "    mqtt_qos: int = Field(default=1, ge=0, le=2)\n\n    ingestion_queue_maxsize",
+              '''    mqtt_qos: int = Field(default=1, ge=0, le=2)
+
+              broker_control_enabled: bool = False
+              broker_control_encryption_key_file: str | None = None
+              broker_control_mqtt_host: str | None = None
+              broker_control_mqtt_port: int = Field(default=1883, ge=1, le=65535)
+              broker_control_mqtt_username: str | None = None
+              broker_control_mqtt_password_file: str | None = None
+              broker_control_mqtt_client_id: str = "nexolab-broker-control"
+              broker_control_command_timeout_seconds: float = Field(default=8.0, ge=0.5, le=60.0)
+              broker_control_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60.0)
+              broker_control_lease_seconds: float = Field(default=30.0, ge=1.0, le=600.0)
+              broker_control_retry_initial_seconds: float = Field(default=1.0, ge=0.1, le=60.0)
+              broker_control_retry_max_seconds: float = Field(default=60.0, ge=1.0, le=3600.0)
+              broker_control_max_attempts: int = Field(default=8, ge=1, le=100)
+
+              ingestion_queue_maxsize'''.replace("              ", "    "),
+              "broker settings",
+          )
+          swap(
+              config,
+              "        if self.mqtt_auth_required and not has_username:\n            raise ValueError(\n                \"MQTT credentials are required when MQTT_AUTH_REQUIRED=true\"\n            )\n        return self\n",
+              '''        if self.mqtt_auth_required and not has_username:
+                  raise ValueError(
+                      "MQTT credentials are required when MQTT_AUTH_REQUIRED=true"
+                  )
+              broker_has_username = bool(
+                  self.broker_control_mqtt_username
+                  and self.broker_control_mqtt_username.strip()
+              )
+              broker_has_password = bool(
+                  self.broker_control_mqtt_password_file
+                  and self.broker_control_mqtt_password_file.strip()
+              )
+              if broker_has_username != broker_has_password:
+                  raise ValueError(
+                      "BROKER_CONTROL_MQTT_USERNAME and BROKER_CONTROL_MQTT_PASSWORD_FILE "
+                      "must be configured together"
+                  )
+              if self.broker_control_enabled:
+                  if not self.broker_control_encryption_key_file:
+                      raise ValueError(
+                          "BROKER_CONTROL_ENCRYPTION_KEY_FILE is required when broker control is enabled"
+                      )
+                  if not broker_has_username:
+                      raise ValueError(
+                          "broker control MQTT credentials are required when broker control is enabled"
+                      )
+              if self.broker_control_retry_max_seconds < self.broker_control_retry_initial_seconds:
+                  raise ValueError(
+                      "BROKER_CONTROL_RETRY_MAX_SECONDS must be >= BROKER_CONTROL_RETRY_INITIAL_SECONDS"
+                  )
+              return self
+          '''.replace("              ", "        "),
+              "broker settings validation",
+          )
+
+          main = "services/telemetry-service/app/main.py"
+          swap(
+              main,
+              "from app.nodes.api import create_node_router\n",
+              '''from app.nodes.api import create_node_router
+              from app.nodes.broker_adapter import MosquittoDynamicSecurityAdapter
+              from app.nodes.broker_crypto import BrokerCommandCipher
+              from app.nodes.broker_repository import BrokerCommandOutbox
+              from app.nodes.broker_worker import BrokerControlWorker
+          '''.replace("              ", ""),
+              "main broker imports",
+          )
+          swap(
+              main,
+              "    security_repository = SecurityRepository(database)\n    node_repository = NodeRepository(\n        database,\n        security_repository=security_repository,\n    )\n",
+              '''    security_repository = SecurityRepository(database)
+              broker_outbox: BrokerCommandOutbox | None = None
+              broker_control_worker: BrokerControlWorker | None = None
+              if resolved.broker_control_enabled:
+                  cipher = BrokerCommandCipher.from_file(
+                      resolved.broker_control_encryption_key_file or ""
+                  )
+                  broker_outbox = BrokerCommandOutbox(
+                      database,
+                      cipher,
+                      max_attempts=resolved.broker_control_max_attempts,
+                  )
+                  broker_adapter = MosquittoDynamicSecurityAdapter(
+                      host=resolved.broker_control_mqtt_host or resolved.mqtt_host,
+                      port=resolved.broker_control_mqtt_port,
+                      username=resolved.broker_control_mqtt_username or "",
+                      password_file=resolved.broker_control_mqtt_password_file or "",
+                      client_id=resolved.broker_control_mqtt_client_id,
+                      timeout_seconds=resolved.broker_control_command_timeout_seconds,
+                  )
+                  broker_control_worker = BrokerControlWorker(
+                      outbox=broker_outbox,
+                      adapter=broker_adapter,
+                      poll_interval_seconds=resolved.broker_control_poll_interval_seconds,
+                      lease_seconds=resolved.broker_control_lease_seconds,
+                      retry_initial_seconds=resolved.broker_control_retry_initial_seconds,
+                      retry_max_seconds=resolved.broker_control_retry_max_seconds,
+                  )
+              node_repository = NodeRepository(
+                  database,
+                  security_repository=security_repository,
+                  broker_outbox=broker_outbox,
+              )
+          '''.replace("              ", "    "),
+              "main broker construction",
+          )
+          swap(
+              main,
+              "        live_hub.start(asyncio.get_running_loop())\n        ingestor.start()\n",
+              "        live_hub.start(asyncio.get_running_loop())\n        ingestor.start()\n        if broker_control_worker is not None:\n            broker_control_worker.start()\n",
+              "main worker start",
+          )
+          swap(
+              main,
+              "            if mqtt_consumer is not None:\n                mqtt_consumer.stop()\n            await asyncio.to_thread(ingestor.stop)\n",
+              "            if mqtt_consumer is not None:\n                mqtt_consumer.stop()\n            if broker_control_worker is not None:\n                await asyncio.to_thread(broker_control_worker.stop)\n            await asyncio.to_thread(ingestor.stop)\n",
+              "main worker stop",
+          )
+          swap(
+              main,
+              "    app.state.node_repository = node_repository\n",
+              "    app.state.node_repository = node_repository\n    app.state.broker_outbox = broker_outbox\n    app.state.broker_control_worker = broker_control_worker\n",
+              "main state exposure",
+          )
+
+          schemas = "services/telemetry-service/app/nodes/schemas.py"
+          swap(
+              schemas,
+              "class NodeRead(BaseModel):\n",
+              '''class NodeBrokerSyncRead(BaseModel):
+                  model_config = ConfigDict(from_attributes=True)
+
+                  id: str
+                  command_type: str
+                  state: str
+                  attempts: int
+                  max_attempts: int
+                  available_at: datetime
+                  applied_at: datetime | None
+                  last_error_code: str | None
+                  last_error_summary: str | None
+                  created_at: datetime
+                  updated_at: datetime
+
+
+              class NodeRead(BaseModel):
+          '''.replace("              ", ""),
+              "broker sync schema",
+          )
+          swap(
+              schemas,
+              "    current_credential: NodeCredentialRead | None = None\n",
+              "    current_credential: NodeCredentialRead | None = None\n    broker_sync: NodeBrokerSyncRead | None = None\n",
+              "node broker sync field",
+          )
+
+          api = "services/telemetry-service/app/nodes/api.py"
+          swap(
+              api,
+              "    NodeCredentialRead,\n    NodeRead,\n",
+              "    NodeBrokerSyncRead,\n    NodeCredentialRead,\n    NodeRead,\n",
+              "api broker schema import",
+          )
+          swap(
+              api,
+              "            response = _provision_response(stored)\n",
+              "            response = _provision_response(repository.for_organization(\n                authorized.principal.organization_id\n            ), stored)\n",
+              "provision response repository",
+          )
+          swap(
+              api,
+              "            response = _rotation_response(stored)\n",
+              "            response = _rotation_response(repository.for_organization(\n                authorized.principal.organization_id\n            ), stored)\n",
+              "rotation response repository",
+          )
+          swap(
+              api,
+              "def _node_read(repository: NodeRepository, node: CentralNode) -> NodeRead:\n    credential = repository.current_credential(node.node_id)\n",
+              "def _node_read(repository: NodeRepository, node: CentralNode) -> NodeRead:\n    credential = repository.current_credential(node.node_id)\n    broker_command = repository.latest_broker_command(node.node_id)\n",
+              "node read broker query",
+          )
+          swap(
+              api,
+              "            exclude={\"current_credential\"}\n",
+              "            exclude={\"current_credential\", \"broker_sync\"}\n",
+              "node read model exclusion",
+          )
+          swap(
+              api,
+              "        current_credential=(\n            None\n            if credential is None\n            else NodeCredentialRead.model_validate(credential)\n        ),\n    )\n",
+              "        current_credential=(\n            None\n            if credential is None\n            else NodeCredentialRead.model_validate(credential)\n        ),\n        broker_sync=(\n            None\n            if broker_command is None\n            else NodeBrokerSyncRead.model_validate(broker_command)\n        ),\n    )\n",
+              "node read broker field",
+          )
+          swap(
+              api,
+              "def _provision_response(stored: ProvisionedNode) -> ProvisionNodeResponse:\n",
+              "def _provision_response(\n    repository: NodeRepository, stored: ProvisionedNode\n) -> ProvisionNodeResponse:\n",
+              "provision response signature",
+          )
+          swap(
+              api,
+              "        node=NodeRead(\n            **NodeRead.model_validate(stored.node).model_dump(\n                exclude={\"current_credential\"}\n            ),\n            current_credential=credential,\n        ),\n",
+              "        node=_node_read(repository, stored.node),\n",
+              "provision response node",
+          )
+          swap(
+              api,
+              "def _rotation_response(stored: RotatedNodeCredential) -> RotateNodeCredentialResponse:\n",
+              "def _rotation_response(\n    repository: NodeRepository, stored: RotatedNodeCredential\n) -> RotateNodeCredentialResponse:\n",
+              "rotation response signature",
+          )
+          swap(
+              api,
+              "        node=NodeRead(\n            **NodeRead.model_validate(stored.node).model_dump(\n                exclude={\"current_credential\"}\n            ),\n            current_credential=credential,\n        ),\n",
+              "        node=_node_read(repository, stored.node),\n",
+              "rotation response node",
+          )
+
+          compose = "infrastructure/compose/compose.central-mqtt-security.yaml"
+          swap(
+              compose,
+              "      MQTT_CLIENT_ID: ${MQTT_INGESTION_CLIENT_ID:-nexolab-central-ingestion}\n",
+              '''      MQTT_CLIENT_ID: ${MQTT_INGESTION_CLIENT_ID:-nexolab-central-ingestion}
+                    BROKER_CONTROL_ENABLED: "true"
+                    BROKER_CONTROL_ENCRYPTION_KEY_FILE: /run/secrets/nexolab/broker-control-key
+                    BROKER_CONTROL_MQTT_HOST: mqtt
+                    BROKER_CONTROL_MQTT_PORT: 1883
+                    BROKER_CONTROL_MQTT_USERNAME: ${MQTT_ADMIN_USERNAME:?MQTT_ADMIN_USERNAME is required}
+                    BROKER_CONTROL_MQTT_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+                    BROKER_CONTROL_MQTT_CLIENT_ID: nexolab-central-broker-control
+          '''.replace("                    ", "      "),
+              "secure compose broker control",
+          )
+
+          tests = Path("services/telemetry-service/tests/test_node_broker_control.py")
+          if not tests.exists():
+              tests.write_text('''from __future__ import annotations
+
+          import base64
+          from datetime import UTC, datetime, timedelta
+          from pathlib import Path
+
+          import pytest
+          from sqlalchemy import select
+          from sqlalchemy.orm import Session
+
+          from app.db import Database
+          from app.model_registry import register_models
+          from app.nodes.broker_adapter import BrokerControlUnavailableError
+          from app.nodes.broker_crypto import (
+              BrokerCommandCipher,
+              BrokerCommandDecryptionError,
+          )
+          from app.nodes.broker_models import CentralNodeBrokerCommand
+          from app.nodes.broker_repository import BrokerCommandOutbox
+          from app.nodes.broker_worker import BrokerControlWorker
+          from app.nodes.domain import ProvisionNodeCommand, RotateNodeCredentialCommand
+          from app.nodes.repository import NodeRepository
+          from app.security.authorization import Role
+          from app.security.models import SecurityOrganization
+
+
+          ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
+          ROLES = frozenset({Role.LABORATORY_MANAGER})
+
+
+          def cipher(byte: int = 7) -> BrokerCommandCipher:
+              return BrokerCommandCipher(bytes([byte]) * 32)
+
+
+          def build(tmp_path: Path, *, command_cipher: BrokerCommandCipher | None = None):
+              register_models()
+              database = Database(f"sqlite:///{tmp_path / 'broker-control.db'}")
+              database.create_schema()
+              with Session(database.engine) as session:
+                  session.add(
+                      SecurityOrganization(id=ORGANIZATION_ID, slug="org-a", name="Org A")
+                  )
+                  session.commit()
+              outbox = BrokerCommandOutbox(database, command_cipher or cipher(), max_attempts=3)
+              repository = NodeRepository(database, broker_outbox=outbox)
+              return repository.for_organization(ORGANIZATION_ID), outbox, database
+
+
+          def provision(repository: NodeRepository):
+              return repository.provision(
+                  ProvisionNodeCommand(
+                      node_id="edge-01",
+                      display_name="Edge 01",
+                      idempotency_key="provision-edge-01",
+                      actor_subject="manager-a",
+                  ),
+                  actor_identity_id=None,
+                  actor_roles=ROLES,
+              )
+
+
+          def rows(database: Database) -> list[CentralNodeBrokerCommand]:
+              with Session(database.engine, expire_on_commit=False) as session:
+                  result = list(
+                      session.scalars(
+                          select(CentralNodeBrokerCommand).order_by(
+                              CentralNodeBrokerCommand.created_at
+                          )
+                      )
+                  )
+                  for row in result:
+                      session.expunge(row)
+                  return result
+
+
+          def test_lifecycle_creates_encrypted_idempotent_commands(tmp_path: Path) -> None:
+              repository, outbox, database = build(tmp_path)
+              first = provision(repository)
+              replay = provision(repository)
+              assert first.secret is not None
+              assert replay.replayed is True
+              assert len(rows(database)) == 1
+              command = rows(database)[0]
+              assert command.command_type == "upsert_credential"
+              assert command.secret_ciphertext is not None
+              assert first.secret not in command.secret_ciphertext
+              assert outbox.decrypt_secret(command) == first.secret
+
+              repository.activate(
+                  "edge-01",
+                  actor_subject="manager-a",
+                  actor_identity_id=None,
+                  actor_roles=ROLES,
+                  reason="approved",
+              )
+              rotated = repository.rotate_credential(
+                  RotateNodeCredentialCommand(
+                      node_id="edge-01",
+                      idempotency_key="rotate-edge-01",
+                      actor_subject="manager-a",
+                      reason="scheduled rotation",
+                  ),
+                  actor_identity_id=None,
+                  actor_roles=ROLES,
+              )
+              repository.suspend(
+                  "edge-01",
+                  actor_subject="manager-a",
+                  actor_identity_id=None,
+                  actor_roles=ROLES,
+                  reason="maintenance",
+              )
+              repository.suspend(
+                  "edge-01",
+                  actor_subject="manager-a",
+                  actor_identity_id=None,
+                  actor_roles=ROLES,
+                  reason="maintenance replay",
+              )
+              commands = rows(database)
+              assert [row.command_type for row in commands] == [
+                  "upsert_credential",
+                  "enable_client",
+                  "upsert_credential",
+                  "disable_client",
+              ]
+              serialized = " ".join(
+                  str(value)
+                  for row in commands
+                  for value in row.__dict__.values()
+              )
+              assert first.secret not in serialized
+              assert rotated.secret not in serialized
+              database.dispose()
+
+
+          def test_wrong_key_and_corrupted_ciphertext_fail_closed(tmp_path: Path) -> None:
+              repository, outbox, database = build(tmp_path)
+              provision(repository)
+              command = rows(database)[0]
+              wrong = BrokerCommandOutbox(database, cipher(8), max_attempts=3)
+              with pytest.raises(BrokerCommandDecryptionError):
+                  wrong.decrypt_secret(command)
+              with Session(database.engine) as session:
+                  stored = session.get(CentralNodeBrokerCommand, command.id)
+                  assert stored is not None
+                  stored.secret_ciphertext = base64.urlsafe_b64encode(b"corrupted").decode()
+                  session.commit()
+              corrupted = rows(database)[0]
+              with pytest.raises(BrokerCommandDecryptionError):
+                  outbox.decrypt_secret(corrupted)
+              database.dispose()
+
+
+          class RecordingAdapter:
+              def __init__(self, failures: int = 0) -> None:
+                  self.failures = failures
+                  self.applied: list[tuple[str, str | None]] = []
+
+              def apply(self, command: CentralNodeBrokerCommand, *, secret: str | None) -> None:
+                  if self.failures:
+                      self.failures -= 1
+                      raise BrokerControlUnavailableError("broker unavailable")
+                  self.applied.append((command.command_type, secret))
+
+
+          def test_worker_retries_and_restart_resumes_pending_command(tmp_path: Path) -> None:
+              repository, outbox, database = build(tmp_path)
+              stored = provision(repository)
+              adapter = RecordingAdapter(failures=1)
+              worker = BrokerControlWorker(
+                  outbox=outbox,
+                  adapter=adapter,
+                  retry_initial_seconds=1,
+                  retry_max_seconds=2,
+              )
+              now = datetime(2026, 7, 27, 12, 0, tzinfo=UTC)
+              assert worker.process_once(observed_at=now) is True
+              command = rows(database)[0]
+              assert command.state == "retrying"
+              assert command.attempts == 1
+
+              restarted_outbox = BrokerCommandOutbox(database, cipher(), max_attempts=3)
+              restarted_worker = BrokerControlWorker(
+                  outbox=restarted_outbox,
+                  adapter=adapter,
+                  retry_initial_seconds=1,
+                  retry_max_seconds=2,
+              )
+              assert restarted_worker.process_once(
+                  observed_at=now + timedelta(seconds=2)
+              ) is True
+              command = rows(database)[0]
+              assert command.state == "applied"
+              assert command.attempts == 2
+              assert adapter.applied == [("upsert_credential", stored.secret)]
+              database.dispose()
+          '''.replace("          ", ""))
+          PY
+
+      - name: Install backend dependencies
+        working-directory: services/telemetry-service
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Verify lifecycle wiring
+        working-directory: services/telemetry-service
+        run: |
+          python -m compileall -q app tests migrations
+          pytest -q \
+            tests/test_node_broker_control.py \
+            tests/test_node_repository.py \
+            tests/test_mqtt_credentials.py
+          alembic upgrade head --sql >/tmp/node-broker-sync-migration.sql
+
+      - name: Commit verified product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/telemetry-service/app/model_registry.py \
+            services/telemetry-service/app/nodes/repository.py \
+            services/telemetry-service/app/config.py \
+            services/telemetry-service/app/main.py \
+            services/telemetry-service/app/nodes/schemas.py \
+            services/telemetry-service/app/nodes/api.py \
+            services/telemetry-service/tests/test_node_broker_control.py \
+            infrastructure/compose/compose.central-mqtt-security.yaml
+          git diff --cached --quiet && exit 0
+          git -c core.hooksPath=/dev/null commit -m "feat(nodes): synchronize registry lifecycle with broker outbox"
+          git push origin HEAD:feat/m6-node-broker-sync
