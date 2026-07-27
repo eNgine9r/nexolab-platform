@@ -35,6 +35,12 @@ def register_models() -> None:
     assert _node_models.CentralNodeIngressCursor.__tablename__ == (
         "central_node_ingress_cursors"
     )
+    assert _node_models.CentralNodeHealthSample.__tablename__ == (
+        "central_node_health_samples"
+    )
+    assert _node_models.CentralNodeStatusEvent.__tablename__ == (
+        "central_node_status_events"
+    )
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
