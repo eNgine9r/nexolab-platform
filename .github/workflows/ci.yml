@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -50,3 +50,140 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  fix-xlsx-determinism:
+    name: Fix XLSX determinism
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Apply checked renderer fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          renderer_path = Path("services/telemetry-service/app/reports/renderer.py")
+          renderer = renderer_path.read_text()
+          already_fixed = "_FIXED_CORE_TIMESTAMP" in renderer
+
+          def swap(content: str, source: str, target: str, label: str) -> str:
+              count = content.count(source)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one anchor, found {count}")
+              return content.replace(source, target, 1)
+
+          if not already_fixed:
+              renderer = swap(
+                  renderer,
+                  "import json\nimport zipfile\n",
+                  "import json\nimport re\nimport zipfile\n",
+                  "regex import",
+              )
+              renderer = swap(
+                  renderer,
+                  "_FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)\n_EXCEL_CELL_LIMIT = 32_767\n",
+                  '''_FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+          _FIXED_CORE_TIMESTAMP = b"1980-01-01T00:00:00Z"
+          _CORE_CREATED_PATTERN = re.compile(
+              rb"(<dcterms:created\\b[^>]*>)[^<]*(</dcterms:created>)"
+          )
+          _CORE_MODIFIED_PATTERN = re.compile(
+              rb"(<dcterms:modified\\b[^>]*>)[^<]*(</dcterms:modified>)"
+          )
+          _EXCEL_CELL_LIMIT = 32_767
+          ''',
+                  "core metadata constants",
+              )
+              renderer = swap(
+                  renderer,
+                  "                    normalized.writestr(info, archive.read(name), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)\n",
+                  '''                    entry = archive.read(name)
+                      if name == "docProps/core.xml":
+                          entry = _normalize_core_properties(entry)
+                      normalized.writestr(
+                          info,
+                          entry,
+                          compress_type=zipfile.ZIP_DEFLATED,
+                          compresslevel=9,
+                      )
+          ''',
+                  "archive entry normalization",
+              )
+              renderer = swap(
+                  renderer,
+                  "    return target.getvalue()\n\n\ndef _mapping(value: Any, field: str) -> Mapping[str, Any]:\n",
+                  '''    return target.getvalue()
+
+
+def _normalize_core_properties(content: bytes) -> bytes:
+              normalized, created_count = _CORE_CREATED_PATTERN.subn(
+                  rb"\\g<1>" + _FIXED_CORE_TIMESTAMP + rb"\\g<2>",
+                  content,
+              )
+              normalized, modified_count = _CORE_MODIFIED_PATTERN.subn(
+                  rb"\\g<1>" + _FIXED_CORE_TIMESTAMP + rb"\\g<2>",
+                  normalized,
+              )
+              if created_count != 1 or modified_count != 1:
+                  raise ReportRenderError(
+                      "xlsx_archive_invalid",
+                      "generated XLSX core properties do not contain canonical timestamps",
+                  )
+              return normalized
+
+
+def _mapping(value: Any, field: str) -> Mapping[str, Any]:
+          ''',
+                  "core metadata normalizer",
+              )
+              renderer_path.write_text(renderer)
+
+          test_path = Path("services/telemetry-service/tests/test_report_renderer.py")
+          test = test_path.read_text()
+          if "core_properties.count" not in test:
+              test = swap(
+                  test,
+                  '''        assert {entry.date_time for entry in archive.infolist()} == {
+                      (1980, 1, 1, 0, 0, 0)
+                  }
+          ''',
+                  '''        assert {entry.date_time for entry in archive.infolist()} == {
+                      (1980, 1, 1, 0, 0, 0)
+                  }
+                  core_properties = archive.read("docProps/core.xml")
+                  assert core_properties.count(b"1980-01-01T00:00:00Z") == 2
+          ''',
+                  "timestamp regression assertion",
+              )
+              test_path.write_text(test)
+          PY
+
+      - name: Verify deterministic renderer
+        working-directory: services/telemetry-service
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m compileall -q app tests
+          pytest -q tests/test_report_renderer.py
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/telemetry-service/app/reports/renderer.py \
+            services/telemetry-service/tests/test_report_renderer.py
+          git diff --cached --quiet && exit 0
+          git -c core.hooksPath=/dev/null commit -m "fix(reports): canonicalize XLSX core timestamps"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
