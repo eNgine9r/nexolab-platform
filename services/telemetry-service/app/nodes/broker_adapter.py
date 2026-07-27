@@ -21,7 +21,7 @@ class BrokerControlAdapterError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class DynamicSecurityClientState:
     client_id: str
-    disabled: bool | None
+    disabled: bool
     roles: frozenset[str]
 
 
@@ -267,9 +267,11 @@ def parse_dynamic_security_client(output: str) -> DynamicSecurityClientState:
             "broker client response did not contain an exact client ID",
             retryable=False,
         )
+    # Mosquitto omits the optional ``disabled`` field for the normal enabled state.
+    # An explicit true remains authoritative; absence therefore normalizes to false.
     return DynamicSecurityClientState(
         client_id=client_id,
-        disabled=disabled,
+        disabled=False if disabled is None else disabled,
         roles=frozenset(roles),
     )
 
