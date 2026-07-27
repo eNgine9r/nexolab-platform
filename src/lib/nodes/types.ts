@@ -6,14 +6,7 @@ export type BrokerControlOperation = "provision" | "rotate" | "enable" | "disabl
 export type BrokerControlState = "pending" | "processing" | "retrying" | "applied" | "failed";
 export type BrokerDesiredState = "provisioned" | "enabled" | "disabled" | "deleted";
 export type BrokerSynchronizationState =
-  | "disabled"
-  | "unknown"
-  | "pending"
-  | "processing"
-  | "retrying"
-  | "applied"
-  | "failed"
-  | "out_of_sync";
+  "disabled" | "unknown" | "pending" | "processing" | "retrying" | "applied" | "failed" | "out_of_sync";
 
 export type CentralNode = {
   id: string;
