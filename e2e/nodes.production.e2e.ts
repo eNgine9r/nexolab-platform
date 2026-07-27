@@ -1,15 +1,26 @@
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
 import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test";
 
 const frontendBaseUrl = process.env.NEXOLAB_NODES_BASE_URL ?? "http://127.0.0.1:3106";
 const apiBaseUrl = process.env.NEXOLAB_NODES_API_BASE_URL ?? "http://127.0.0.1:8086";
+const composeProject = required("NEXOLAB_NODES_COMPOSE_PROJECT");
 const organizationA = required("NEXOLAB_NODES_ORGANIZATION_A");
 const organizationB = required("NEXOLAB_NODES_ORGANIZATION_B");
 const managerAToken = required("NEXOLAB_NODES_MANAGER_A_TOKEN");
 const managerBToken = required("NEXOLAB_NODES_MANAGER_B_TOKEN");
 const engineerAToken = required("NEXOLAB_NODES_ENGINEER_A_TOKEN");
 const viewerAToken = required("NEXOLAB_NODES_VIEWER_A_TOKEN");
+
+const composeArguments = [
+  "--project-name",
+  composeProject,
+  "-f",
+  "infrastructure/compose/compose.central.yaml",
+  "-f",
+  "infrastructure/compose/compose.browser-acceptance.yaml",
+];
 
 type Credential = {
   id: string;
@@ -32,6 +43,31 @@ type ProvisionResponse = {
   provisioning_secret: string | null;
   replayed: boolean;
 };
+
+type NodeHealth = {
+  event_id: string;
+  node_sequence: number;
+  health: "healthy" | "degraded";
+  queue_depth: number;
+  last_error: string | null;
+};
+
+type NodeStatus = {
+  event_id: string;
+  node_sequence: number;
+  status: "online" | "offline";
+  graceful: boolean;
+};
+
+type OperationalState = {
+  node_id: string;
+  availability: "online" | "offline" | "stale" | "unknown";
+  degraded_reason: string | null;
+  latest_health: NodeHealth | null;
+  latest_status: NodeStatus | null;
+};
+
+type OperationalPayload = Record<string, boolean | number | string | null>;
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -70,7 +106,171 @@ async function installBrowserCredentials(
   );
 }
 
-test("multi-node registry preserves one-time credentials, RBAC and organization isolation", async ({
+function nodeTopic(nodeId: string, stream: "health" | "status"): string {
+  return `nexolab/v1/${organizationA}/${nodeId}/${stream}`;
+}
+
+function runCompose(arguments_: string[], allowFailure = false): string {
+  const result = spawnSync("docker", ["compose", ...composeArguments, ...arguments_], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (!allowFailure && result.status !== 0) {
+    throw new Error(
+      `docker compose ${arguments_.join(" ")} failed with ${result.status}:\n${result.stderr}`,
+    );
+  }
+  return result.stdout;
+}
+
+function publishOperationalEvent(
+  nodeId: string,
+  stream: "health" | "status",
+  payload: OperationalPayload,
+  retain = false,
+): void {
+  const arguments_ = [
+    "exec",
+    "-T",
+    "mqtt",
+    "mosquitto_pub",
+    "-h",
+    "127.0.0.1",
+    "-p",
+    "1883",
+    "-q",
+    "1",
+    "-t",
+    nodeTopic(nodeId, stream),
+    "-m",
+    JSON.stringify(payload),
+  ];
+  if (retain) arguments_.push("-r");
+  runCompose(arguments_);
+}
+
+function retainedOperationalEvent(nodeId: string, stream: "health" | "status"): OperationalPayload {
+  const output = runCompose([
+    "exec",
+    "-T",
+    "mqtt",
+    "mosquitto_sub",
+    "-h",
+    "127.0.0.1",
+    "-p",
+    "1883",
+    "-q",
+    "1",
+    "-C",
+    "1",
+    "-W",
+    "5",
+    "-t",
+    nodeTopic(nodeId, stream),
+  ]);
+  return JSON.parse(output.trim()) as OperationalPayload;
+}
+
+function triggerLastWill(nodeId: string, payload: OperationalPayload): void {
+  const python = String.raw`
+import os
+import sys
+import threading
+import paho.mqtt.client as mqtt
+
+connected = threading.Event()
+client = mqtt.Client(
+    callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+    client_id="nexolab-edge-02-lwt-acceptance",
+    protocol=mqtt.MQTTv311,
+)
+client.will_set(sys.argv[1], sys.argv[2], qos=1, retain=True)
+client.on_connect = lambda *_args: connected.set()
+client.connect("mqtt", 1883, keepalive=10)
+client.loop_start()
+if not connected.wait(5):
+    raise SystemExit(72)
+os._exit(73)
+`;
+  runCompose(
+    [
+      "exec",
+      "-T",
+      "telemetry-service",
+      "python",
+      "-c",
+      python,
+      nodeTopic(nodeId, "status"),
+      JSON.stringify(payload),
+    ],
+    true,
+  );
+}
+
+async function waitForOperationalState(
+  context: APIRequestContext,
+  nodeId: string,
+  predicate: (state: OperationalState) => boolean,
+): Promise<OperationalState> {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const response = await context.get(`/api/v1/nodes/${nodeId}/operational-state`);
+    if (response.status() === 200) {
+      const state = (await response.json()) as OperationalState;
+      if (predicate(state)) return state;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Operational state for ${nodeId} did not reach the expected condition.`);
+}
+
+function statusPayload(
+  nodeId: string,
+  sequence: number,
+  status: "online" | "offline",
+  graceful: boolean,
+  reason: string,
+): OperationalPayload {
+  return {
+    schema_version: 1,
+    event_id: randomUUID(),
+    node_id: nodeId,
+    captured_at: new Date().toISOString(),
+    node_sequence: sequence,
+    status,
+    reason,
+    software_version: "0.15.0-acceptance",
+    graceful,
+  };
+}
+
+function healthPayload(
+  nodeId: string,
+  sequence: number,
+  health: "healthy" | "degraded",
+  queueDepth: number,
+  lastError: string | null,
+): OperationalPayload {
+  const timestamp = new Date().toISOString();
+  return {
+    schema_version: 1,
+    event_id: randomUUID(),
+    node_id: nodeId,
+    captured_at: timestamp,
+    node_sequence: sequence,
+    health,
+    uptime_seconds: sequence * 30,
+    queue_depth: queueDepth,
+    samples_total: sequence * 12,
+    software_version: "0.15.0-acceptance",
+    device_mode: "simulator",
+    last_sample_at: timestamp,
+    last_publish_at: timestamp,
+    last_error: lastError,
+  };
+}
+
+test("multi-node registry persists MQTT health, retained LWT status, RBAC and isolation", async ({
   browser,
 }) => {
   const managerA = await apiContext(managerAToken, organizationA);
@@ -97,6 +297,52 @@ test("multi-node registry preserves one-time credentials, RBAC and organization 
 
     await managerPage.getByTestId("activate-node").click();
     await expect(managerPage.getByTestId("node-detail")).toContainText("Активний");
+
+    const edgeOneOnline = statusPayload(
+      "edge-01",
+      1,
+      "online",
+      true,
+      "simulated device agent connected",
+    );
+    const edgeOneHealthy = healthPayload("edge-01", 1, "healthy", 0, null);
+    const edgeOneDegraded = healthPayload(
+      "edge-01",
+      2,
+      "degraded",
+      12,
+      "offline queue backlog",
+    );
+    publishOperationalEvent("edge-01", "status", edgeOneOnline, true);
+    publishOperationalEvent("edge-01", "health", edgeOneHealthy);
+    publishOperationalEvent("edge-01", "health", edgeOneHealthy);
+    publishOperationalEvent("edge-01", "health", edgeOneDegraded);
+
+    const edgeOneState = await waitForOperationalState(
+      managerA,
+      "edge-01",
+      (state) =>
+        state.availability === "online" &&
+        state.latest_health?.node_sequence === 2 &&
+        state.degraded_reason === "offline queue backlog",
+    );
+    expect(edgeOneState.latest_status?.node_sequence).toBe(1);
+    expect(retainedOperationalEvent("edge-01", "status").event_id).toBe(edgeOneOnline.event_id);
+
+    const edgeOneHealthHistory = await managerA.get("/api/v1/nodes/edge-01/health-history?limit=10");
+    expect(edgeOneHealthHistory.status()).toBe(200);
+    expect(((await edgeOneHealthHistory.json()) as NodeHealth[]).map((row) => row.node_sequence)).toEqual([
+      2,
+      1,
+    ]);
+
+    await managerPage.getByLabel("Оновити вузли").click();
+    await expect(managerPage.getByTestId("node-row-availability-edge-01")).toHaveText("online");
+    await expect(managerPage.getByTestId("node-availability")).toHaveText("Online");
+    await expect(managerPage.getByTestId("node-operational-state")).toContainText("12 events");
+    await expect(managerPage.getByTestId("node-degraded-reason")).toContainText(
+      "offline queue backlog",
+    );
 
     await managerPage.getByTestId("rotate-node-credential").click();
     await expect(managerPage.getByTestId("one-time-node-secret")).toContainText("generation 2");
@@ -150,6 +396,41 @@ test("multi-node registry preserves one-time credentials, RBAC and organization 
     });
     expect(engineerDenied.status()).toBe(403);
 
+    const activateEdgeTwo = await managerA.post("/api/v1/nodes/edge-02/activate", {
+      data: { reason: "Simulated commissioning complete" },
+    });
+    expect(activateEdgeTwo.status()).toBe(200);
+    expect(((await activateEdgeTwo.json()) as NodeResponse).state).toBe("active");
+
+    const edgeTwoOnline = statusPayload(
+      "edge-02",
+      1,
+      "online",
+      true,
+      "simulated device agent connected",
+    );
+    const edgeTwoHealth = healthPayload("edge-02", 1, "healthy", 0, null);
+    const edgeTwoWill = statusPayload("edge-02", 2, "offline", false, "mqtt last will");
+    publishOperationalEvent("edge-02", "status", edgeTwoOnline, true);
+    publishOperationalEvent("edge-02", "health", edgeTwoHealth);
+    await waitForOperationalState(
+      managerA,
+      "edge-02",
+      (state) => state.availability === "online" && state.latest_health?.node_sequence === 1,
+    );
+
+    triggerLastWill("edge-02", edgeTwoWill);
+    const edgeTwoOfflineState = await waitForOperationalState(
+      managerA,
+      "edge-02",
+      (state) =>
+        state.availability === "offline" &&
+        state.latest_status?.node_sequence === 2 &&
+        state.latest_status.graceful === false,
+    );
+    expect(edgeTwoOfflineState.latest_status?.event_id).toBe(edgeTwoWill.event_id);
+    expect(retainedOperationalEvent("edge-02", "status").event_id).toBe(edgeTwoWill.event_id);
+
     const viewerList = await viewerA.get("/api/v1/nodes");
     expect(viewerList.status()).toBe(200);
     expect(((await viewerList.json()) as NodeResponse[]).map((node) => node.node_id).sort()).toEqual([
@@ -164,6 +445,9 @@ test("multi-node registry preserves one-time credentials, RBAC and organization 
     await expect(viewerPage.getByTestId("nodes-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("node-provision-panel")).toHaveCount(0);
     await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
+    await viewerPage.getByTestId("node-row-edge-02").click();
+    await expect(viewerPage.getByTestId("node-row-availability-edge-02")).toHaveText("offline");
+    await expect(viewerPage.getByTestId("node-availability")).toHaveText("Offline");
     await expect(viewerPage.getByTestId("node-actions")).toHaveCount(0);
     await viewerContext.close();
 
@@ -171,12 +455,7 @@ test("multi-node registry preserves one-time credentials, RBAC and organization 
     expect(foreignList.status()).toBe(200);
     expect((await foreignList.json()) as NodeResponse[]).toEqual([]);
     expect((await managerB.get("/api/v1/nodes/edge-01")).status()).toBe(404);
-
-    const activateEdgeTwo = await managerA.post("/api/v1/nodes/edge-02/activate", {
-      data: { reason: "Simulated commissioning complete" },
-    });
-    expect(activateEdgeTwo.status()).toBe(200);
-    expect(((await activateEdgeTwo.json()) as NodeResponse).state).toBe("active");
+    expect((await managerB.get("/api/v1/nodes/edge-01/operational-state")).status()).toBe(404);
 
     const suspendEdgeTwo = await managerA.post("/api/v1/nodes/edge-02/suspend", {
       data: { reason: "Simulated maintenance" },
