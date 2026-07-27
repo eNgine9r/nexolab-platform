@@ -1,3 +1,4 @@
+from app.reports._openpyxl_compat import install_deterministic_workbook_save
 from app.reports.domain import (
     ALERT_TRANSITION_CSV_FIELDS,
     REPORT_GENERATOR_VERSION,
@@ -12,6 +13,8 @@ from app.reports.domain import (
     sha256_hex,
     telemetry_csv_bytes,
 )
+
+install_deterministic_workbook_save()
 
 __all__ = [
     "ALERT_TRANSITION_CSV_FIELDS",
