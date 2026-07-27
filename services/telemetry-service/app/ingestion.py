@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from queue import Empty, Full, Queue
 from threading import Event, Thread
 from typing import Any
@@ -16,11 +17,19 @@ from app.state import RuntimeState
 
 LOGGER = logging.getLogger("nexolab.telemetry.ingestion")
 
+IngressAuthorizer = Callable[
+    [TelemetryEvent, str | None, datetime],
+    tuple[bool, str, str],
+]
+
 
 @dataclass(frozen=True)
 class TelemetryWork:
     event: TelemetryEvent
     raw: dict[str, Any]
+    payload: bytes = b""
+    topic: str | None = None
+    received_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass(frozen=True)
@@ -49,6 +58,7 @@ class TelemetryIngestor:
         on_persisted: Callable[[dict[str, Any]], None] | None = None,
         *,
         after_persist: Callable[[dict[str, Any]], None] | None = None,
+        authorize_ingress: IngressAuthorizer | None = None,
         payload_max_bytes: int = 262_144,
         dead_letter_payload_max_bytes: int = 65_536,
         database_retry_initial_seconds: float = 0.25,
@@ -58,6 +68,7 @@ class TelemetryIngestor:
         self._state = state
         self._on_persisted = on_persisted
         self._after_persist = after_persist
+        self._authorize_ingress = authorize_ingress
         self._payload_max_bytes = payload_max_bytes
         self._dead_letter_payload_max_bytes = dead_letter_payload_max_bytes
         self._database_retry_initial_seconds = database_retry_initial_seconds
@@ -85,6 +96,7 @@ class TelemetryIngestor:
 
     def submit_payload(self, payload: bytes, topic: str | None = None) -> bool:
         self._state.increment("received_total")
+        received_at = datetime.now(UTC)
 
         if len(payload) > self._payload_max_bytes:
             return self._submit_dead_letter(
@@ -136,7 +148,15 @@ class TelemetryIngestor:
             )
 
         try:
-            self._queue.put_nowait(TelemetryWork(event=event, raw=raw))
+            self._queue.put_nowait(
+                TelemetryWork(
+                    event=event,
+                    raw=raw,
+                    payload=payload,
+                    topic=topic,
+                    received_at=received_at,
+                )
+            )
         except Full:
             self._state.increment("queue_dropped_total")
             self._state.set_error("ingestion queue is full")
@@ -181,6 +201,22 @@ class TelemetryIngestor:
 
     def _persist(self, work: PersistenceWork) -> None:
         if isinstance(work, TelemetryWork):
+            if self._authorize_ingress is not None:
+                allowed, reason_code, reason_detail = self._authorize_ingress(
+                    work.event,
+                    work.topic,
+                    work.received_at,
+                )
+                if not allowed:
+                    self._state.increment("rejected_total")
+                    self._state.increment("dead_letter_queued_total")
+                    self._persist_authorization_dead_letter(
+                        work,
+                        reason_code=reason_code,
+                        reason_detail=reason_detail,
+                    )
+                    return
+
             inserted = self._database.persist(work.event, work.raw)
             normalized = work.event.normalized_payload()
             if inserted:
@@ -218,6 +254,30 @@ class TelemetryIngestor:
         )
         self._state.mark_dead_letter_persisted(work.reason_code)
         self._state.set_error(None)
+
+    def _persist_authorization_dead_letter(
+        self,
+        work: TelemetryWork,
+        *,
+        reason_code: str,
+        reason_detail: str,
+    ) -> None:
+        retained = work.payload[: self._dead_letter_payload_max_bytes]
+        self._database.persist_dead_letter(
+            payload=retained,
+            payload_size=len(work.payload),
+            payload_truncated=len(retained) != len(work.payload),
+            reason_code=reason_code,
+            reason_detail=reason_detail,
+            topic=work.topic,
+        )
+        self._state.mark_dead_letter_persisted(reason_code)
+        self._state.set_error(None)
+        LOGGER.warning(
+            "Rejected telemetry after node authorization: event=%s reason=%s",
+            work.event.event_id,
+            reason_detail,
+        )
 
     def _run(self) -> None:
         pending: PersistenceWork | None = None

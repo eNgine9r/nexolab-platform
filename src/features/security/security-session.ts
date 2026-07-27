@@ -7,10 +7,12 @@ export type SecurityPermission =
   | "alerts.read"
   | "audit.read"
   | "reports.read"
+  | "nodes.read"
   | "reports.generate"
   | "reports.approve"
   | "memberships.manage"
   | "equipment.manage"
+  | "nodes.manage"
   | "layout.draft.edit"
   | "layout.publish"
   | "layout.restore"
@@ -236,10 +238,12 @@ function isSecurityPermission(value: unknown): value is SecurityPermission {
     value === "alerts.read" ||
     value === "audit.read" ||
     value === "reports.read" ||
+    value === "nodes.read" ||
     value === "reports.generate" ||
     value === "reports.approve" ||
     value === "memberships.manage" ||
     value === "equipment.manage" ||
+    value === "nodes.manage" ||
     value === "layout.draft.edit" ||
     value === "layout.publish" ||
     value === "layout.restore" ||

@@ -20,6 +20,9 @@ from app.live_api import create_live_router
 from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
+from app.nodes.api import create_node_router
+from app.nodes.ingress import NodeIngressAuthorizer
+from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
@@ -42,7 +45,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.13.0"
+SERVICE_VERSION = "0.14.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -66,6 +69,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     security_repository = SecurityRepository(database)
+    node_repository = NodeRepository(
+        database,
+        security_repository=security_repository,
+    )
+    node_ingress_authorizer = (
+        NodeIngressAuthorizer(database)
+        if resolved.mqtt_node_registry_enforced
+        else None
+    )
     report_repository = ReportRepository(
         database,
         security_repository=security_repository,
@@ -91,6 +103,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         queue_maxsize=resolved.ingestion_queue_maxsize,
         on_persisted=live_hub.publish_from_thread,
         after_persist=alert_processor.process_payload,
+        authorize_ingress=(
+            node_ingress_authorizer.authorize
+            if node_ingress_authorizer is not None
+            else None
+        ),
         payload_max_bytes=resolved.ingestion_payload_max_bytes,
         dead_letter_payload_max_bytes=resolved.dead_letter_payload_max_bytes,
         database_retry_initial_seconds=resolved.database_retry_initial_seconds,
@@ -171,6 +188,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alert_repository = alert_repository
     app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
+    app.state.node_repository = node_repository
+    app.state.node_ingress_authorizer = node_ingress_authorizer
     app.state.report_repository = report_repository
     app.state.report_output_repository = report_output_repository
     app.state.report_output_query_repository = report_output_query_repository
@@ -182,6 +201,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
     app.include_router(create_security_router(security_repository, security_dependencies))
+    app.include_router(create_node_router(node_repository, security_dependencies))
     app.include_router(create_alert_router(alert_repository, security_dependencies))
     app.include_router(create_report_router(report_repository, security_dependencies))
     app.include_router(

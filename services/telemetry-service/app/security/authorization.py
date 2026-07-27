@@ -21,9 +21,11 @@ class Permission(StrEnum):
     READ_ALERTS = "alerts.read"
     READ_AUDIT = "audit.read"
     READ_REPORTS = "reports.read"
+    READ_NODES = "nodes.read"
     GENERATE_REPORTS = "reports.generate"
     MANAGE_MEMBERSHIPS = "memberships.manage"
     MANAGE_EQUIPMENT = "equipment.manage"
+    MANAGE_NODES = "nodes.manage"
     EDIT_LAYOUT_DRAFT = "layout.draft.edit"
     PUBLISH_LAYOUT = "layout.publish"
     RESTORE_LAYOUT = "layout.restore"
@@ -43,8 +45,10 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_ALERTS,
             Permission.READ_AUDIT,
             Permission.READ_REPORTS,
+            Permission.READ_NODES,
             Permission.GENERATE_REPORTS,
             Permission.MANAGE_EQUIPMENT,
+            Permission.MANAGE_NODES,
             Permission.EDIT_LAYOUT_DRAFT,
             Permission.PUBLISH_LAYOUT,
             Permission.RESTORE_LAYOUT,
@@ -61,6 +65,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,
+            Permission.READ_NODES,
             Permission.GENERATE_REPORTS,
             Permission.MANAGE_EQUIPMENT,
             Permission.EDIT_LAYOUT_DRAFT,
@@ -77,6 +82,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,
+            Permission.READ_NODES,
             Permission.EDIT_LAYOUT_DRAFT,
             Permission.OPERATE_SESSIONS,
             Permission.ACKNOWLEDGE_ALERTS,
@@ -88,6 +94,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,
+            Permission.READ_NODES,
         }
     ),
     Role.AUDITOR: frozenset(
@@ -97,6 +104,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.READ_ALERTS,
             Permission.READ_AUDIT,
             Permission.READ_REPORTS,
+            Permission.READ_NODES,
         }
     ),
 }
