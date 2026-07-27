@@ -1,0 +1,28 @@
+name: Export device agent source
+
+on:
+  push:
+    branches:
+      - feat/m6-device-agent-secure-bootstrap
+    paths:
+      - ".github/workflows/export-device-agent-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package exact source
+        run: |
+          mkdir -p runtime/device-agent-source
+          cp services/device-agent/main.py runtime/device-agent-source/main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: device-agent-main-source
+          path: runtime/device-agent-source/main.py
+          if-no-files-found: error
+          retention-days: 1
