@@ -90,7 +90,9 @@ export function NodeOperationalPanel({ state }: { state: NodeOperationalState | 
         <OperationalMetric
           icon={ServerCog}
           label="Agent build"
-          value={health ? `${health.software_version} · ${health.device_mode}` : (status?.software_version ?? "—")}
+          value={
+            health ? `${health.software_version} · ${health.device_mode}` : (status?.software_version ?? "—")
+          }
         />
       </div>
 
