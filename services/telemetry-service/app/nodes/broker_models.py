@@ -54,7 +54,7 @@ class CentralNodeBrokerCommand(Base):
         CheckConstraint(
             "(operation IN ('provision', 'rotate') "
             "AND secret_ciphertext IS NOT NULL) OR "
-            "(operation IN ('disable', 'delete') "
+            "(operation IN ('enable', 'disable', 'delete') "
             "AND secret_ciphertext IS NULL)",
             name="ck_central_node_broker_commands_operation_secret",
         ),
