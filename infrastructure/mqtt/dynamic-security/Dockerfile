@@ -5,7 +5,8 @@ USER root
 RUN set -eu; \
     plugin_path="$(find /usr -type f -name mosquitto_dynamic_security.so -print -quit)"; \
     test -n "$plugin_path"; \
-    ln -s "$plugin_path" /usr/lib/mosquitto_dynamic_security.so
+    mkdir -p /usr/local/lib/nexolab; \
+    ln -s "$plugin_path" /usr/local/lib/nexolab/mosquitto_dynamic_security.so
 
 COPY mosquitto.conf /mosquitto/config/mosquitto.conf
 COPY entrypoint.sh /usr/local/bin/nexolab-mqtt-entrypoint
