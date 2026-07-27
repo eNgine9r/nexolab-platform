@@ -39,6 +39,22 @@ jobs:
           ' .github/workflows/node-broker-sync-wiring.yml \
             > /tmp/node-broker-sync-wiring.py
           test -s /tmp/node-broker-sync-wiring.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("/tmp/node-broker-sync-wiring.py")
+          content = path.read_text()
+          source = '    if count != 1:\n        raise SystemExit(f"{label}: expected one anchor, found {count}")\n'
+          target = '''    expected = 3 if label == "node read model exclusion" else 1
+          if count != expected:
+              raise SystemExit(
+                  f"{label}: expected {expected} anchor(s), found {count}"
+              )
+          '''.replace("          ", "")
+          if content.count(source) != 1:
+              raise SystemExit("patch guard anchor was not found exactly once")
+          path.write_text(content.replace(source, target, 1))
+          PY
           set +e
           python /tmp/node-broker-sync-wiring.py \
             > /tmp/node-broker-sync-patch.log 2>&1
