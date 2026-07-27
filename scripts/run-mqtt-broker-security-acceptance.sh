@@ -175,9 +175,13 @@ start_node_b_live_connection() {
 }
 
 assert_node_b_disconnected() {
+  local disconnect_evidence
+  disconnect_evidence="Client ${NODE_B_CLIENT_ID} been disconnected by administrative action."
   for _ in $(seq 1 20); do
-    if ! kill -0 "$NODE_B_CONNECTION_PID" >/dev/null 2>&1; then
-      wait "$NODE_B_CONNECTION_PID" || true
+    if compose logs --no-color mqtt-security 2>&1 \
+      | grep -Fq -- "$disconnect_evidence"; then
+      kill "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
+      wait "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
       NODE_B_CONNECTION_PID=""
       exec 9>&-
       rm -f "$NODE_B_CONNECTION_FIFO"
@@ -188,7 +192,7 @@ assert_node_b_disconnected() {
     fi
     sleep 0.25
   done
-  echo "Disabled node remained connected to the broker." >&2
+  echo "Broker did not record administrative client disconnection." >&2
   return 1
 }
 
