@@ -1,0 +1,33 @@
+name: nexolab-edge-secure
+
+services:
+  device-agent:
+    image: ${DEVICE_AGENT_IMAGE:-ghcr.io/engine9r/nexolab-device-agent:edge}
+    restart: unless-stopped
+    init: true
+    environment:
+      NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:?NEXOLAB_NODE_ID is required}
+      NEXOLAB_ORGANIZATION_ID: ${NEXOLAB_ORGANIZATION_ID:?NEXOLAB_ORGANIZATION_ID is required}
+      NEXOLAB_DEVICE_AGENT_VERSION: ${NEXOLAB_DEVICE_AGENT_VERSION:-0.16.0}
+      DEVICE_MODE: ${DEVICE_MODE:-simulator}
+      MQTT_HOST: ${CENTRAL_MQTT_HOST:?CENTRAL_MQTT_HOST is required}
+      MQTT_PORT: ${CENTRAL_MQTT_PORT:-1883}
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: ${MQTT_USERNAME:?MQTT_USERNAME is required}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:?MQTT_CLIENT_ID is required}
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/mqtt-password
+      SAMPLE_INTERVAL_SECONDS: ${SAMPLE_INTERVAL_SECONDS:-5}
+      NODE_HEALTH_INTERVAL_SECONDS: ${NODE_HEALTH_INTERVAL_SECONDS:-30}
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: 8081
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:${DEVICE_AGENT_HEALTH_PORT:-8081}:8081"
+    volumes:
+      - edge-secure-data:/var/lib/nexolab
+      - ${EDGE_MQTT_PASSWORD_FILE:?EDGE_MQTT_PASSWORD_FILE is required}:/run/secrets/nexolab/mqtt-password:ro
+    stop_grace_period: 15s
+
+volumes:
+  edge-secure-data:
+    name: ${EDGE_DATA_VOLUME:-nexolab-edge-secure-data}
