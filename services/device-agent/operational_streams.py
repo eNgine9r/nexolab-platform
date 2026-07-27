@@ -186,19 +186,20 @@ class NodeOperationalPublisher:
         }
 
     def _publish(self, topic: str, payload: dict[str, Any], *, retain: bool) -> bool:
-        result = self._client.publish(
-            topic,
-            json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
-            qos=1,
-            retain=retain,
-        )
-        result.wait_for_publish(timeout=5)
+        try:
+            result = self._client.publish(
+                topic,
+                json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+                qos=1,
+                retain=retain,
+            )
+            result.wait_for_publish(timeout=5)
+        except (RuntimeError, ValueError, OSError):
+            return False
         return result.rc == 0
 
     def _topic(self, stream: str) -> str:
-        return (
-            f"nexolab/v1/{self._organization_id}/{self._node_id}/{stream}"
-        )
+        return f"nexolab/v1/{self._organization_id}/{self._node_id}/{stream}"
 
 
 def _now() -> str:
