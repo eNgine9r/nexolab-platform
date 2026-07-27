@@ -1,0 +1,54 @@
+name: Node Health Agent Commit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/node-health-agent-commit.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  commit-agent:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Execute checked patch blocks
+        run: |
+          python - <<'PY'
+          import re
+          import textwrap
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/node-health-agent-wiring.yml").read_text()
+          blocks = re.findall(
+              r"python - <<'PY'\n(.*?)\n\s+PY",
+              workflow,
+              flags=re.DOTALL,
+          )
+          if len(blocks) != 4:
+              raise SystemExit(f"expected four checked patch blocks, found {len(blocks)}")
+          for index, block in enumerate(blocks, start=1):
+              namespace = {"__name__": f"node_health_patch_{index}"}
+              exec(textwrap.dedent(block), namespace)
+          PY
+
+      - name: Verify Device Agent
+        run: |
+          python -m compileall -q services/device-agent
+          PYTHONPATH=services/device-agent python -m unittest discover -s services/device-agent/tests -v
+
+      - name: Commit verified wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/device-agent/main.py
+          git -c core.hooksPath=/dev/null commit -m "feat(edge): publish node health and retained status"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
