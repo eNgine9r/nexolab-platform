@@ -117,9 +117,7 @@ function runCompose(arguments_: string[], allowFailure = false): string {
     env: process.env,
   });
   if (!allowFailure && result.status !== 0) {
-    throw new Error(
-      `docker compose ${arguments_.join(" ")} failed with ${result.status}:\n${result.stderr}`,
-    );
+    throw new Error(`docker compose ${arguments_.join(" ")} failed with ${result.status}:\n${result.stderr}`);
   }
   return result.stdout;
 }
@@ -298,21 +296,9 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
     await managerPage.getByTestId("activate-node").click();
     await expect(managerPage.getByTestId("node-detail")).toContainText("Активний");
 
-    const edgeOneOnline = statusPayload(
-      "edge-01",
-      1,
-      "online",
-      true,
-      "simulated device agent connected",
-    );
+    const edgeOneOnline = statusPayload("edge-01", 1, "online", true, "simulated device agent connected");
     const edgeOneHealthy = healthPayload("edge-01", 1, "healthy", 0, null);
-    const edgeOneDegraded = healthPayload(
-      "edge-01",
-      2,
-      "degraded",
-      12,
-      "offline queue backlog",
-    );
+    const edgeOneDegraded = healthPayload("edge-01", 2, "degraded", 12, "offline queue backlog");
     publishOperationalEvent("edge-01", "status", edgeOneOnline, true);
     publishOperationalEvent("edge-01", "health", edgeOneHealthy);
     publishOperationalEvent("edge-01", "health", edgeOneHealthy);
@@ -332,17 +318,14 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
     const edgeOneHealthHistory = await managerA.get("/api/v1/nodes/edge-01/health-history?limit=10");
     expect(edgeOneHealthHistory.status()).toBe(200);
     expect(((await edgeOneHealthHistory.json()) as NodeHealth[]).map((row) => row.node_sequence)).toEqual([
-      2,
-      1,
+      2, 1,
     ]);
 
     await managerPage.getByLabel("Оновити вузли").click();
     await expect(managerPage.getByTestId("node-row-availability-edge-01")).toHaveText("online");
     await expect(managerPage.getByTestId("node-availability")).toHaveText("Online");
     await expect(managerPage.getByTestId("node-operational-state")).toContainText("12 events");
-    await expect(managerPage.getByTestId("node-degraded-reason")).toContainText(
-      "offline queue backlog",
-    );
+    await expect(managerPage.getByTestId("node-degraded-reason")).toContainText("offline queue backlog");
 
     await managerPage.getByTestId("rotate-node-credential").click();
     await expect(managerPage.getByTestId("one-time-node-secret")).toContainText("generation 2");
@@ -402,13 +385,7 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
     expect(activateEdgeTwo.status()).toBe(200);
     expect(((await activateEdgeTwo.json()) as NodeResponse).state).toBe("active");
 
-    const edgeTwoOnline = statusPayload(
-      "edge-02",
-      1,
-      "online",
-      true,
-      "simulated device agent connected",
-    );
+    const edgeTwoOnline = statusPayload("edge-02", 1, "online", true, "simulated device agent connected");
     const edgeTwoHealth = healthPayload("edge-02", 1, "healthy", 0, null);
     const edgeTwoWill = statusPayload("edge-02", 2, "offline", false, "mqtt last will");
     publishOperationalEvent("edge-02", "status", edgeTwoOnline, true);
