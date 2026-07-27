@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  Clock3,
-  Database,
-  RadioTower,
-  ServerCog,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
+import { Activity, Clock3, Database, RadioTower, ServerCog, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { createNodeApiClient } from "@/lib/nodes/api-client";
 import type {
@@ -266,11 +258,7 @@ function NodeBrokerControlPanel({ nodeId }: { nodeId: string }) {
           label="Attempts"
           value={latest ? new Intl.NumberFormat("uk-UA").format(latest.attempts) : "—"}
         />
-        <OperationalMetric
-          icon={Clock3}
-          label="Last update"
-          value={formatDate(latest?.updated_at ?? null)}
-        />
+        <OperationalMetric icon={Clock3} label="Last update" value={formatDate(latest?.updated_at ?? null)} />
       </div>
 
       {latest?.error_detail ? (
@@ -285,7 +273,9 @@ function NodeBrokerControlPanel({ nodeId }: { nodeId: string }) {
 
       {control && control.commands.length > 0 ? (
         <div className="space-y-2 border-t border-white/[0.055] pt-3">
-          <p className="text-[9px] font-semibold tracking-[0.12em] text-slate-600 uppercase">Command history</p>
+          <p className="text-[9px] font-semibold tracking-[0.12em] text-slate-600 uppercase">
+            Command history
+          </p>
           {control.commands.slice(0, 5).map((command) => (
             <div
               key={command.id}
