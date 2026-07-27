@@ -28,7 +28,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: device-agent-fleet-acceptance-${{ github.ref }}
@@ -42,87 +42,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-
-      - name: Integrate browser acceptance into fleet script
-        if: github.event_name == 'pull_request'
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("scripts/run-device-agent-fleet-acceptance.sh")
-          lines = path.read_text(encoding="utf-8").splitlines()
-          marker = "NEXOLAB_DEVICE_AGENT_FLEET_FRONTEND_URL"
-          if not any(marker in line for line in lines):
-              service_index = next(
-                  index for index, line in enumerate(lines)
-                  if line.startswith('SERVICE_LOG=')
-              )
-              lines[service_index + 1:service_index + 1] = [
-                  'FRONTEND_LOG="$EVIDENCE_DIR/frontend.log"',
-                  'FRONTEND_PID=""',
-                  'FRONTEND_PORT="${FLEET_FRONTEND_PORT:-3112}"',
-                  'FRONTEND_BASE_URL="http://127.0.0.1:${FRONTEND_PORT}"',
-              ]
-
-              cleanup_function = next(
-                  index for index, line in enumerate(lines)
-                  if line == "cleanup() {"
-              )
-              cleanup_set = next(
-                  index for index in range(cleanup_function + 1, len(lines))
-                  if lines[index] == "  set +e"
-              )
-              lines[cleanup_set + 1:cleanup_set + 1] = [
-                  '  if [[ -n "$FRONTEND_PID" ]]; then',
-                  '    kill "$FRONTEND_PID" >/dev/null 2>&1 || true',
-                  '    wait "$FRONTEND_PID" >/dev/null 2>&1 || true',
-                  '  fi',
-              ]
-
-              secret_check = max(
-                  index for index, line in enumerate(lines)
-                  if line == "assert_no_plaintext_secrets"
-              )
-              browser_lines = [
-                  "",
-                  'cd "$ROOT_DIR"',
-                  'export NEXT_PUBLIC_NEXOLAB_DATA_MODE="live"',
-                  'export NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$API_BASE_URL"',
-                  'export NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="ws://127.0.0.1:${API_PORT}/api/v1/telemetry/live"',
-                  'export NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="acceptance"',
-                  'export NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$ORGANIZATION_ID"',
-                  'export NEXT_TELEMETRY_DISABLED="1"',
-                  'npm run build >"$FRONTEND_LOG" 2>&1',
-                  'npm run start -- --hostname 127.0.0.1 --port "$FRONTEND_PORT" >>"$FRONTEND_LOG" 2>&1 &',
-                  'FRONTEND_PID=$!',
-                  'wait_for_url "$FRONTEND_BASE_URL/nodes" "fleet operator UI"',
-                  "",
-                  'export NEXOLAB_DEVICE_AGENT_FLEET_FRONTEND_URL="$FRONTEND_BASE_URL"',
-                  'export NEXOLAB_DEVICE_AGENT_FLEET_ORGANIZATION_ID="$ORGANIZATION_ID"',
-                  'export NEXOLAB_DEVICE_AGENT_FLEET_MANAGER_TOKEN="$MANAGER_TOKEN"',
-                  'npx playwright test --config=playwright.device-agent-fleet.config.ts',
-              ]
-              lines[secret_check + 1:secret_check + 1] = browser_lines
-
-              summary_index = next(
-                  index for index, line in enumerate(lines)
-                  if "operational_state_recovery=verified" in line
-              )
-              lines.insert(
-                  summary_index + 1,
-                  "  'browser_operator_state=verified' \\",
-              )
-              path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add scripts/run-device-agent-fleet-acceptance.sh
-            git commit -m "test: add fleet browser operator acceptance"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
