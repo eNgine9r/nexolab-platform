@@ -1,0 +1,84 @@
+name: MQTT Active Revocation Fix
+
+on:
+  push:
+    branches: [feat/m6-broker-dynamic-security]
+    paths:
+      - ".github/workflows/mqtt-active-revocation-fix.yml"
+      - "scripts/run-mqtt-broker-security-acceptance.sh"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/m6-broker-dynamic-security
+          fetch-depth: 0
+
+      - name: Apply checked broker-side disconnect oracle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-mqtt-broker-security-acceptance.sh")
+          content = path.read_text()
+          old = '''assert_node_b_disconnected() {
+            for _ in $(seq 1 20); do
+              if ! kill -0 "$NODE_B_CONNECTION_PID" >/dev/null 2>&1; then
+                wait "$NODE_B_CONNECTION_PID" || true
+                NODE_B_CONNECTION_PID=""
+                exec 9>&-
+                rm -f "$NODE_B_CONNECTION_FIFO"
+                NODE_B_CONNECTION_FIFO=""
+                printf 'active_client_disconnected=true\\n' \\
+                  >"$EVIDENCE_DIR/node-b-active-revocation.log"
+                return 0
+              fi
+              sleep 0.25
+            done
+            echo "Disabled node remained connected to the broker." >&2
+            return 1
+          }
+          '''
+          new = '''assert_node_b_disconnected() {
+            local disconnect_evidence
+            disconnect_evidence="Client ${NODE_B_CLIENT_ID} been disconnected by administrative action."
+            for _ in $(seq 1 20); do
+              if compose logs --no-color mqtt-security 2>&1 \\
+                | grep -Fq -- "$disconnect_evidence"; then
+                kill "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
+                wait "$NODE_B_CONNECTION_PID" >/dev/null 2>&1 || true
+                NODE_B_CONNECTION_PID=""
+                exec 9>&-
+                rm -f "$NODE_B_CONNECTION_FIFO"
+                NODE_B_CONNECTION_FIFO=""
+                printf 'active_client_disconnected=true\\n' \\
+                  >"$EVIDENCE_DIR/node-b-active-revocation.log"
+                return 0
+              fi
+              sleep 0.25
+            done
+            echo "Broker did not record administrative client disconnection." >&2
+            return 1
+          }
+          '''
+          count = content.count(old)
+          if count != 1:
+              raise SystemExit(f"expected one active revocation oracle, found {count}")
+          path.write_text(content.replace(old, new, 1))
+          PY
+          bash -n scripts/run-mqtt-broker-security-acceptance.sh
+
+      - name: Commit verified patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/run-mqtt-broker-security-acceptance.sh
+          git diff --cached --quiet && exit 0
+          git -c core.hooksPath=/dev/null commit -m "fix(mqtt): verify broker-side active revocation"
+          git push origin HEAD:feat/m6-broker-dynamic-security
