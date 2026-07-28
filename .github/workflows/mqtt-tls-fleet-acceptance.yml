@@ -73,35 +73,46 @@ jobs:
           BROKER_CONTROL_TLS_EVIDENCE_DIR: /tmp/nexolab-mqtt-tls-preflight/evidence
         run: |
           set -Eeuo pipefail
-          bash -n scripts/run-device-agent-fleet-acceptance.sh
-          bash -n scripts/run-mqtt-tls-fleet-acceptance.sh
-          bash -n scripts/generate-mqtt-tls-acceptance-material.sh
-          rm -rf /tmp/nexolab-mqtt-tls-preflight
-          mkdir -p \
-            "$BROKER_CONTROL_SECRETS_DIR" \
-            "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
-          bash scripts/generate-mqtt-tls-acceptance-material.sh \
-            "$BROKER_CONTROL_SECRETS_DIR" \
-            "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
-          docker compose \
-            -f infrastructure/compose/compose.broker-control-acceptance.yaml \
-            -f infrastructure/compose/compose.device-agent-fleet-acceptance.yaml \
-            -f infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml \
-            config --quiet
-          grep -Fq 'listener 8883' \
-            infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
-          ! grep -Eq '^listener[[:space:]]+1883([[:space:]]|$)' \
-            infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
-          ! grep -ER \
-            --exclude-dir=tests \
-            --exclude='*.pyc' \
-            -- '--insecure|tls_insecure_set|CERT_NONE' \
-            services/device-agent \
-            services/telemetry-service/app \
-            services/telemetry-service/bin \
-            infrastructure/mqtt/dynamic-security \
-            infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml
-          rm -rf /tmp/nexolab-mqtt-tls-preflight
+          {
+            bash -n scripts/run-device-agent-fleet-acceptance.sh
+            bash -n scripts/run-mqtt-tls-fleet-acceptance.sh
+            bash -n scripts/generate-mqtt-tls-acceptance-material.sh
+            rm -rf /tmp/nexolab-mqtt-tls-preflight
+            mkdir -p \
+              "$BROKER_CONTROL_SECRETS_DIR" \
+              "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
+            bash scripts/generate-mqtt-tls-acceptance-material.sh \
+              "$BROKER_CONTROL_SECRETS_DIR" \
+              "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
+            docker compose \
+              -f infrastructure/compose/compose.broker-control-acceptance.yaml \
+              -f infrastructure/compose/compose.device-agent-fleet-acceptance.yaml \
+              -f infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml \
+              config --quiet
+            grep -Fq 'listener 8883' \
+              infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
+            ! grep -Eq '^listener[[:space:]]+1883([[:space:]]|$)' \
+              infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
+            ! grep -ER \
+              --exclude-dir=tests \
+              --exclude='*.pyc' \
+              -- '--insecure|tls_insecure_set|CERT_NONE' \
+              services/device-agent \
+              services/telemetry-service/app \
+              services/telemetry-service/bin \
+              infrastructure/mqtt/dynamic-security \
+              infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml
+            rm -rf /tmp/nexolab-mqtt-tls-preflight
+          } 2>&1 | tee /tmp/mqtt-tls-preflight.log
+
+      - name: Upload MQTT TLS preflight diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mqtt-tls-preflight-diagnostics
+          path: /tmp/mqtt-tls-preflight.log
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Run MQTT TLS fleet acceptance
         run: bash scripts/run-mqtt-tls-fleet-acceptance.sh
