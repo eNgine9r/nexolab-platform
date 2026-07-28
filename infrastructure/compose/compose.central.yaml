@@ -182,13 +182,13 @@ services:
 
 volumes:
   central-mqtt-data:
-    name: nexolab-central-mqtt-data
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-mqtt-data
   central-postgres-data:
-    name: nexolab-central-postgres-data
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-postgres-data
   central-object-storage-data:
-    name: nexolab-central-object-storage-data
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-object-storage-data
 
 networks:
   central:
-    name: nexolab-central
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}
     driver: bridge
