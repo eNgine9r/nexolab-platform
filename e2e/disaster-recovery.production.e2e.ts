@@ -38,6 +38,7 @@ async function installBrowserCredentials(page: Page): Promise<void> {
 
 test("restored nodes, reports and refrigeration state remain operator-visible", async ({ browser }) => {
   const api = await apiContext();
+  const publicObjects = await request.newContext();
   const context = await browser.newContext();
   const page = await context.newPage();
   await installBrowserCredentials(page);
@@ -126,7 +127,7 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
       ]),
     );
 
-    const imageResponse = await api.get(draft.image.content_url, {
+    const imageResponse = await publicObjects.get(draft.image.content_url, {
       headers: { Accept: "image/png" },
     });
     expect(imageResponse.status()).toBe(200);
@@ -147,5 +148,6 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     await page.close();
     await context.close();
     await api.dispose();
+    await publicObjects.dispose();
   }
 });
