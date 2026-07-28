@@ -48,6 +48,7 @@ def test_prometheus_metrics_and_json_snapshot(tmp_path: Path, monkeypatch) -> No
         auto_create_schema=True,
         mqtt_enabled=False,
         retention_enabled=False,
+        ingestion_queue_maxsize=317,
     )
     app = create_app(settings)
 
@@ -71,7 +72,8 @@ def test_prometheus_metrics_and_json_snapshot(tmp_path: Path, monkeypatch) -> No
             'nexolab_telemetry_service_info{version="0.15.0-test"} 1'
             in response.text
         )
-        assert "nexolab_telemetry_queue_capacity 250" in response.text
+        assert "nexolab_telemetry_queue_capacity 317" in response.text
+        assert "nexolab_telemetry_queue_capacity 250" not in response.text
         assert "nexolab_telemetry_persisted_total 1" in response.text
         assert "nexolab_telemetry_rejected_total 1" in response.text
         assert (
@@ -82,6 +84,7 @@ def test_prometheus_metrics_and_json_snapshot(tmp_path: Path, monkeypatch) -> No
         assert "nexolab_telemetry_last_persisted_timestamp_seconds" in response.text
 
         snapshot = client.get("/metrics/json").json()
+        assert snapshot["queue_capacity"] == 317
         assert snapshot["persisted_total"] == 1
         assert snapshot["dead_letter_persisted_total"] == 1
         assert snapshot["ingestion_lag_seconds"] is not None
