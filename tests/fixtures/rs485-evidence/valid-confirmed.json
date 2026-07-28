@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "evidence_id": "le01mp-201-voltage-register-0000",
+  "created_at_utc": "2026-07-23T09:27:52.785640Z",
+  "node_id": "edge-rpi5-01",
+  "device": {
+    "vendor": "F&F",
+    "model": "LE-01MP",
+    "device_id": "LE01MP-201"
+  },
+  "adapter_path": "/dev/ttyUSB0",
+  "serial": {
+    "baudrate": 9600,
+    "parity": "N",
+    "stop_bits": 1,
+    "data_bits": 8
+  },
+  "unit_id": 1,
+  "function_code": 3,
+  "register": {
+    "address": 0,
+    "quantity": 1,
+    "value_type": "uint16",
+    "word_order": "not-applicable",
+    "byte_order": "big",
+    "scale": 0.1,
+    "offset": 0,
+    "engineering_unit": "V"
+  },
+  "profiler": {
+    "name": "nexolab-rs485-profiler",
+    "version": "1.0.0",
+    "commit": "d8e2c2d"
+  },
+  "register_profile": {
+    "profile_id": "ff-le01mp",
+    "version": 1
+  },
+  "samples": [
+    {
+      "sample_id": "le01mp-201-voltage-no-load-001",
+      "timestamp_utc": "2026-07-23T09:27:52.785640Z",
+      "device_id": "LE01MP-201",
+      "request_frame": "010300000001840A",
+      "response_frame": "01030208E17FCC",
+      "frame_sha256": "20274201c03a4c38d661add1080826a783ca1dc77358adddd1e504b2f16879a7",
+      "crc_ok": true,
+      "latency_ms": 18.4,
+      "unsigned_value": 2273,
+      "signed_value": 2273,
+      "decoded_value": 227.3,
+      "scale": 0.1,
+      "physical_reference": {
+        "kind": "display",
+        "value": 227.3,
+        "unit": "V",
+        "source": "LE-01MP front display photo IMG_20260723_122752.jpg"
+      },
+      "test_condition": "no-load baseline",
+      "correlation": "confirmed",
+      "sample_pass": true,
+      "notes": "Display and decoded register value agree within 0.1 V."
+    },
+    {
+      "sample_id": "le01mp-201-voltage-controlled-load-002",
+      "timestamp_utc": "2026-07-23T09:31:04.120000Z",
+      "device_id": "LE01MP-201",
+      "request_frame": "010300000001840A",
+      "response_frame": "01030208F0BFC0",
+      "frame_sha256": "016f43aa998992cab97fe7119df0017ddfa0bcdedc101844d148c51e77dfce2a",
+      "crc_ok": true,
+      "latency_ms": 17.9,
+      "unsigned_value": 2288,
+      "signed_value": 2288,
+      "decoded_value": 228.8,
+      "scale": 0.1,
+      "physical_reference": {
+        "kind": "reference-instrument",
+        "value": 228.8,
+        "unit": "V",
+        "source": "Fluke reference reading recorded in test log 2026-07-23T09:31Z"
+      },
+      "test_condition": "controlled resistive load enabled",
+      "correlation": "confirmed",
+      "sample_pass": true,
+      "notes": "Reference instrument and decoded register value agree within 0.1 V."
+    }
+  ],
+  "decision": {
+    "confidence": "confirmed",
+    "register_key": "voltage",
+    "rationale": "Two CRC-valid reads under distinct conditions matched the device display and an external reference instrument.",
+    "rejection_reason": null
+  }
+}
