@@ -32,7 +32,7 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
     page.getByText("NEXOLAB · Platform Operations", { exact: true }),
   ).toBeVisible();
 
-  for (const panelTitle of [
+  const panelTitles = [
     "Telemetry Service",
     "Platform dependencies",
     "MQTT subscription",
@@ -45,7 +45,8 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
     "Bundle verification",
     "Firing alerts",
     "Alertmanager delivery evidence",
-  ]) {
+  ];
+  for (const panelTitle of panelTitles) {
     await expect(page.getByText(panelTitle, { exact: true }).first()).toBeVisible();
   }
 
@@ -53,17 +54,42 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
   await expect(page.getByText(/Datasource .* not found/i)).toHaveCount(0);
 
   await fs.mkdir(evidenceDirectory, { recursive: true });
+
+  const readinessSection = page.getByText("Platform readiness", { exact: true });
+  await readinessSection.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1_000);
   await page.screenshot({
-    path: path.join(evidenceDirectory, "grafana-operator-dashboard.png"),
-    fullPage: true,
+    path: path.join(evidenceDirectory, "grafana-platform-readiness.png"),
   });
+
+  const recoverySection = page.getByText("Disaster recovery readiness", {
+    exact: true,
+  });
+  await recoverySection.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1_000);
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "grafana-disaster-recovery.png"),
+  });
+
+  const alertSection = page.getByText("Alert delivery", { exact: true });
+  await alertSection.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1_000);
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "grafana-alert-delivery.png"),
+  });
+
   await fs.writeFile(
     path.join(evidenceDirectory, "grafana-browser-summary.json"),
     `${JSON.stringify(
       {
         dashboardUid: "nexolab-platform-overview",
         dashboardTitle: "NEXOLAB · Platform Operations",
-        panelChecks: 12,
+        panelChecks: panelTitles.length,
+        screenshots: [
+          "grafana-platform-readiness.png",
+          "grafana-disaster-recovery.png",
+          "grafana-alert-delivery.png",
+        ],
         pageErrors: browserErrors,
         renderedInChromium: true,
       },
