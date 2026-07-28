@@ -97,8 +97,8 @@ def parse_findings(report: dict[str, Any]) -> list[Finding]:
             vulnerability = item.get("VulnerabilityID")
             package = item.get("PkgName")
             severity = item.get("Severity")
-            if not isinstance(vulnerability, str) or not vulnerability.startswith("CVE-"):
-                raise PolicyFailure(f"{label}.VulnerabilityID must be a CVE")
+            if not isinstance(vulnerability, str) or not vulnerability.strip():
+                raise PolicyFailure(f"{label}.VulnerabilityID is required")
             if not isinstance(package, str) or not package.strip():
                 raise PolicyFailure(f"{label}.PkgName is required")
             if not isinstance(severity, str) or not severity.strip():
@@ -148,7 +148,7 @@ def evaluate(
             blocked.append(finding)
             continue
         if finding.severity == "HIGH":
-            if finding.key in exceptions:
+            if finding.vulnerability.startswith("CVE-") and finding.key in exceptions:
                 accepted.append(finding)
             else:
                 blocked.append(finding)
