@@ -23,11 +23,7 @@ services:
     volumes:
       - source-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -41,11 +37,7 @@ services:
     volumes:
       - restore-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -77,11 +69,7 @@ services:
     volumes:
       - source-object-storage-data:/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null",
-        ]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -96,11 +84,7 @@ services:
     volumes:
       - restore-object-storage-data:/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null",
-        ]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -117,11 +101,7 @@ services:
       - source-mqtt-data:/mosquitto/data
       - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null",
-        ]
+      test: ["CMD-SHELL", "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -139,11 +119,7 @@ services:
       - restore-mqtt-data:/mosquitto/data
       - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null",
-        ]
+      test: ["CMD-SHELL", "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null"]
       interval: 2s
       timeout: 3s
       retries: 30
