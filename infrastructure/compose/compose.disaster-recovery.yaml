@@ -126,6 +126,62 @@ services:
       start_period: 3s
     networks: [dr]
 
+  restore-telemetry-service:
+    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+    restart: "no"
+    init: true
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@restore-postgres:5432/${DR_POSTGRES_DB:-nexolab}
+      DATABASE_CONNECT_TIMEOUT_SECONDS: "3"
+      DATABASE_RETRY_INITIAL_SECONDS: "0.1"
+      DATABASE_RETRY_MAX_SECONDS: "1"
+      MQTT_ENABLED: "true"
+      MQTT_HOST: restore-mqtt
+      MQTT_PORT: "1883"
+      MQTT_NODE_REGISTRY_ENFORCED: "false"
+      MQTT_NODE_TOPIC_FILTER: nexolab/v1/+/+/telemetry
+      MQTT_NODE_HEALTH_TOPIC_FILTER: nexolab/v1/+/+/health
+      MQTT_NODE_STATUS_TOPIC_FILTER: nexolab/v1/+/+/status
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: nexolab-central-ingestion
+      MQTT_CLIENT_ID: nexolab-central-ingestion
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/ingestion-password
+      MQTT_TLS_REQUIRED: "false"
+      BROKER_CONTROL_ENABLED: "false"
+      OBJECT_STORAGE_BACKEND: s3
+      OBJECT_STORAGE_BUCKET: nexolab-equipment-images
+      OBJECT_STORAGE_ENDPOINT_URL: http://restore-minio:9000
+      OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: http://restore-minio:9000
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${DR_MINIO_ROOT_USER:?DR_MINIO_ROOT_USER is required}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
+      OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
+      AUTH_MODE: disabled
+      CORS_ALLOWED_ORIGINS: ""
+      RETENTION_ENABLED: "false"
+    ports:
+      - "127.0.0.1:${DR_RESTORE_API_PORT:-8094}:8082"
+    volumes:
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      restore-postgres:
+        condition: service_healthy
+      restore-minio:
+        condition: service_healthy
+      restore-mqtt:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
+    networks: [dr]
+
   minio-client:
     image: ${DR_MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}
     restart: "no"
