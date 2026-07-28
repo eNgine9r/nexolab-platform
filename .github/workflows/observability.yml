@@ -180,6 +180,45 @@ jobs:
             'Plugin successfully installed|Installing plugin' \
             test-results-observability/services.log
 
+      - name: Warm post-recovery telemetry and recording rules
+        run: |
+          event_id="$(python3 -c 'import uuid; print(uuid.uuid4())')"
+          captured_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          payload="$(python3 - "$event_id" "$captured_at" <<'PY'
+          import json
+          import sys
+
+          print(json.dumps({
+              "event_id": sys.argv[1],
+              "node_id": "observability-edge-01",
+              "captured_at": sys.argv[2],
+              "metric": "temperature.probe",
+              "value": 4.3,
+              "unit": "degC",
+              "quality": "valid",
+              "source": "observability-browser-warmup",
+              "equipment_id": "monitoring-case-01",
+              "channel_id": "monitoring-01",
+              "alarm": None,
+              "raw_value": 43,
+              "raw_status": None,
+          }, separators=(",", ":")))
+          PY
+          )"
+          docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            exec -T mqtt mosquitto_pub -h mqtt -t nexolab/telemetry -m "$payload"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18082/metrics \
+              | grep -q 'nexolab_telemetry_persisted_total 1'; then
+              break
+            fi
+            sleep 1
+          done
+          sleep 15
+
       - name: Install Chromium acceptance dependencies
         run: |
           npm install --no-audit --no-fund
