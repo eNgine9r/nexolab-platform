@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from run_capacity_acceptance import event  # noqa: E402
 from validate_capacity_policy import PolicyError, validate_policy  # noqa: E402
 
 
@@ -63,3 +65,11 @@ def test_rejects_unknown_policy_keys(policy: dict[str, object]) -> None:
     candidate["silent_override"] = True
     with pytest.raises(PolicyError, match="unknown top-level"):
         validate_policy(candidate)
+
+
+def test_generator_covers_all_48_streams(policy: dict[str, object]) -> None:
+    generated = [event(policy, "test", index, datetime.now(UTC)) for index in range(48)]
+    streams = {(item["node_id"], item["channel_id"]) for item in generated}
+    event_ids = {item["event_id"] for item in generated}
+    assert len(streams) == 48
+    assert len(event_ids) == 48
