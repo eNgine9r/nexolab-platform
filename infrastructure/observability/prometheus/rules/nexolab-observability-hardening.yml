@@ -1,0 +1,31 @@
+groups:
+  - name: nexolab-observability-hardening
+    interval: 5s
+    rules:
+      - alert: NexolabDisasterRecoveryExporterDown
+        expr: up{job="disaster-recovery-status"} != 1
+        for: 1m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB disaster-recovery status exporter is unavailable
+          description: Prometheus cannot scrape the disaster-recovery status exporter, so backup and restore readiness cannot be evaluated.
+          runbook_url: /docs/operations/observability.md#disaster-recovery-status
+
+      - alert: NexolabDisasterRecoveryMetricsMissing
+        expr: |
+          absent(nexolab_dr_last_verified_backup_timestamp_seconds)
+          or absent(nexolab_dr_last_offsite_copy_timestamp_seconds)
+          or absent(nexolab_dr_last_restore_rehearsal_timestamp_seconds)
+          or absent(nexolab_dr_last_bundle_verification_success)
+        for: 1m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB disaster-recovery metric contract is incomplete
+          description: One or more mandatory backup verification, off-host copy, restore rehearsal or bundle verification metrics are absent.
+          runbook_url: /docs/operations/observability.md#disaster-recovery-status
