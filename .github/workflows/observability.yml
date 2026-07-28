@@ -55,12 +55,33 @@ jobs:
 
       - name: Validate repository observability policy
         run: |
-          python scripts/validate-observability.py
-          python -m pytest -q tests/test_observability_policy.py
-          python -m py_compile \
-            scripts/observability-alert-sink.py \
-            scripts/serve-prometheus-textfile.py \
-            scripts/validate-observability.py
+          set +e
+          {
+            python scripts/validate-observability.py
+            validator_status=$?
+            if [ "$validator_status" -eq 0 ]; then
+              python -m pytest -q tests/test_observability_policy.py
+              validator_status=$?
+            fi
+            if [ "$validator_status" -eq 0 ]; then
+              python -m py_compile \
+                scripts/observability-alert-sink.py \
+                scripts/serve-prometheus-textfile.py \
+                scripts/validate-observability.py
+              validator_status=$?
+            fi
+            printf 'exit_status=%s\n' "$validator_status"
+          } 2>&1 | tee observability-policy-diagnostics.txt
+          exit "${validator_status:-1}"
+
+      - name: Upload sanitized policy diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-policy-diagnostics-${{ github.sha }}
+          path: observability-policy-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Validate Prometheus configuration and rules
         run: |
