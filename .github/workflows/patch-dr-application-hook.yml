@@ -1,9 +1,8 @@
 name: Patch DR Application Hook
 
 on:
-  push:
-    branches:
-      - feat/m7-disaster-recovery-gate
+  pull_request:
+    branches: [main]
     paths:
       - ".github/workflows/patch-dr-application-hook.yml"
   workflow_dispatch:
