@@ -12,6 +12,12 @@ const dashboardPath =
   "/d/nexolab-platform-overview/nexolab-platform-operations" +
   "?orgId=1&from=now-6h&to=now&timezone=browser&refresh=5s";
 
+async function scrollToStart(locator: ReturnType<Parameters<typeof test>[1]>) {
+  await locator.evaluate((element) =>
+    element.scrollIntoView({ block: "start", inline: "nearest" }),
+  );
+}
+
 test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async ({
   page,
 }) => {
@@ -56,7 +62,9 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
   await fs.mkdir(evidenceDirectory, { recursive: true });
 
   const readinessSection = page.getByText("Platform readiness", { exact: true });
-  await readinessSection.scrollIntoViewIfNeeded();
+  await readinessSection.evaluate((element) =>
+    element.scrollIntoView({ block: "start", inline: "nearest" }),
+  );
   await page.waitForTimeout(1_000);
   await page.screenshot({
     path: path.join(evidenceDirectory, "grafana-platform-readiness.png"),
@@ -65,14 +73,20 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
   const recoverySection = page.getByText("Disaster recovery readiness", {
     exact: true,
   });
-  await recoverySection.scrollIntoViewIfNeeded();
+  await recoverySection.evaluate((element) =>
+    element.scrollIntoView({ block: "start", inline: "nearest" }),
+  );
   await page.waitForTimeout(1_000);
   await page.screenshot({
     path: path.join(evidenceDirectory, "grafana-disaster-recovery.png"),
   });
 
-  const alertSection = page.getByText("Alert delivery", { exact: true });
-  await alertSection.scrollIntoViewIfNeeded();
+  const alertDeliveryPanel = page
+    .getByText("Alertmanager delivery evidence", { exact: true })
+    .first();
+  await alertDeliveryPanel.evaluate((element) =>
+    element.scrollIntoView({ block: "center", inline: "nearest" }),
+  );
   await page.waitForTimeout(1_000);
   await page.screenshot({
     path: path.join(evidenceDirectory, "grafana-alert-delivery.png"),
