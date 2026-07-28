@@ -1,0 +1,112 @@
+name: Patch fleet acceptance overlay support
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-fleet-overlay-support.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Add optional fleet overlay and setup hook
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-device-agent-fleet-acceptance.sh")
+          source = path.read_text(encoding="utf-8")
+
+          header_anchor = '''BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.broker-control-acceptance.yaml"
+          FLEET_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+          PROJECT_NAME="nexolab-device-agent-fleet-acceptance"
+          EVIDENCE_DIR="$ROOT_DIR/test-results-device-agent-fleet"
+          '''
+          header_replacement = '''BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.broker-control-acceptance.yaml"
+          FLEET_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+          EXTRA_COMPOSE="${FLEET_EXTRA_COMPOSE_FILE:-}"
+          SETUP_HOOK="${FLEET_SETUP_HOOK:-}"
+          PROJECT_NAME="${FLEET_PROJECT_NAME:-nexolab-device-agent-fleet-acceptance}"
+          EVIDENCE_DIR="${FLEET_EVIDENCE_DIR:-$ROOT_DIR/test-results-device-agent-fleet}"
+          '''
+          if 'EXTRA_COMPOSE="${FLEET_EXTRA_COMPOSE_FILE:-}"' not in source:
+              if source.count(header_anchor) != 1:
+                  raise SystemExit("fleet header anchor not found")
+              source = source.replace(header_anchor, header_replacement, 1)
+
+          compose_anchor = '''compose() {
+            docker compose --project-name "$PROJECT_NAME" \\
+              -f "$BASE_COMPOSE" \\
+              -f "$FLEET_COMPOSE" \\
+              "$@"
+          }
+          '''
+          compose_replacement = '''compose() {
+            local compose_args=(
+              --project-name "$PROJECT_NAME"
+              -f "$BASE_COMPOSE"
+              -f "$FLEET_COMPOSE"
+            )
+            if [[ -n "$EXTRA_COMPOSE" ]]; then
+              compose_args+=(-f "$EXTRA_COMPOSE")
+            fi
+            docker compose "${compose_args[@]}" "$@"
+          }
+          '''
+          if 'local compose_args=(' not in source:
+              if source.count(compose_anchor) != 1:
+                  raise SystemExit("fleet compose function anchor not found")
+              source = source.replace(compose_anchor, compose_replacement, 1)
+
+          source = source.replace(
+              'export BROKER_CONTROL_FRONTEND_ORIGIN="http://127.0.0.1:3112"\n',
+              'export BROKER_CONTROL_FRONTEND_ORIGIN="$FRONTEND_BASE_URL"\n',
+              1,
+          )
+
+          hook_anchor = '''mkdir -p "$EVIDENCE_DIR" "$SECRETS_DIR"
+          chmod 0755 "$SECRETS_DIR"
+          generate_secret "$SECRETS_DIR/admin-password" 'nxl_mqtt_admin_'
+          '''
+          hook_replacement = '''mkdir -p "$EVIDENCE_DIR" "$SECRETS_DIR"
+          chmod 0755 "$SECRETS_DIR"
+          if [[ -n "$SETUP_HOOK" ]]; then
+            bash "$SETUP_HOOK" "$SECRETS_DIR" "$EVIDENCE_DIR"
+          fi
+          generate_secret "$SECRETS_DIR/admin-password" 'nxl_mqtt_admin_'
+          '''
+          if 'bash "$SETUP_HOOK" "$SECRETS_DIR" "$EVIDENCE_DIR"' not in source:
+              if source.count(hook_anchor) != 1:
+                  raise SystemExit("fleet setup hook anchor not found")
+              source = source.replace(hook_anchor, hook_replacement, 1)
+
+          path.write_text(source, encoding="utf-8")
+          PY
+
+      - name: Validate fleet harness
+        run: |
+          bash -n scripts/run-device-agent-fleet-acceptance.sh
+          bash -n scripts/run-mqtt-tls-fleet-acceptance.sh
+          bash -n scripts/generate-mqtt-tls-acceptance-material.sh
+          grep -Fq 'compose_args+=(-f "$EXTRA_COMPOSE")' \
+            scripts/run-device-agent-fleet-acceptance.sh
+          grep -Fq 'bash "$SETUP_HOOK" "$SECRETS_DIR" "$EVIDENCE_DIR"' \
+            scripts/run-device-agent-fleet-acceptance.sh
+
+      - name: Commit fleet harness support
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/run-device-agent-fleet-acceptance.sh
+          git commit -m "test: support isolated fleet acceptance overlays"
+          git push origin "HEAD:${{ github.head_ref }}"
