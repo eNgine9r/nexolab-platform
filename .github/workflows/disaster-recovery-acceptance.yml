@@ -9,6 +9,7 @@ on:
       - "scripts/nexolab-backup-bundle.py"
       - "scripts/nexolab-volume-archive.py"
       - "scripts/run-disaster-recovery-acceptance.sh"
+      - "scripts/verify-restored-platform.sh"
       - "tests/test_disaster_recovery_assets.py"
       - "tests/test_nexolab_backup_bundle.py"
       - "tests/test_nexolab_volume_archive.py"
@@ -23,6 +24,7 @@ on:
       - "scripts/nexolab-backup-bundle.py"
       - "scripts/nexolab-volume-archive.py"
       - "scripts/run-disaster-recovery-acceptance.sh"
+      - "scripts/verify-restored-platform.sh"
       - "tests/test_disaster_recovery_assets.py"
       - "tests/test_nexolab_backup_bundle.py"
       - "tests/test_nexolab_volume_archive.py"
@@ -61,6 +63,7 @@ jobs:
       - name: Validate shell and Compose syntax
         run: |
           bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
           DR_POSTGRES_PASSWORD=validation \
           DR_MINIO_ROOT_USER=validation \
           DR_MINIO_ROOT_PASSWORD=validation \
@@ -90,6 +93,7 @@ jobs:
             scripts/nexolab-backup-bundle.py \
             scripts/nexolab-volume-archive.py \
             scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
             tests/test_disaster_recovery_assets.py \
             tests/test_nexolab_backup_bundle.py \
             tests/test_nexolab_volume_archive.py
@@ -102,12 +106,13 @@ jobs:
             scripts/nexolab-backup-bundle.py \
             scripts/nexolab-volume-archive.py \
             scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
             tests/test_disaster_recovery_assets.py \
             tests/test_nexolab_backup_bundle.py \
             tests/test_nexolab_volume_archive.py
 
   runtime:
-    name: Restore PostgreSQL, MinIO and MQTT into fresh volumes
+    name: Restore platform state and verify application flows
     needs: policy
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -143,8 +148,11 @@ jobs:
           path: |
             test-results-disaster-recovery/compose-ps.txt
             test-results-disaster-recovery/services.log
+            test-results-disaster-recovery/application-compose-ps.txt
+            test-results-disaster-recovery/application-services.log
             test-results-disaster-recovery/bundle-create.json
             test-results-disaster-recovery/bundle-verify.json
             test-results-disaster-recovery/bundle-extract.json
+            test-results-disaster-recovery/application-summary.json
           if-no-files-found: warn
           retention-days: 3
