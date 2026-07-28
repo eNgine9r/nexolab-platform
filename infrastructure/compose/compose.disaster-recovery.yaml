@@ -139,6 +139,7 @@ services:
       MQTT_HOST: restore-mqtt
       MQTT_PORT: "1883"
       MQTT_NODE_REGISTRY_ENFORCED: "false"
+      MQTT_TOPIC: nexolab/v1/+/+/telemetry
       MQTT_NODE_TOPIC_FILTER: nexolab/v1/+/+/telemetry
       MQTT_NODE_HEALTH_TOPIC_FILTER: nexolab/v1/+/+/health
       MQTT_NODE_STATUS_TOPIC_FILTER: nexolab/v1/+/+/status
