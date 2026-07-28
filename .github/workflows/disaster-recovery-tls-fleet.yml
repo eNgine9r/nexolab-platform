@@ -60,6 +60,15 @@ jobs:
             -f infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml \
             config --quiet
 
+      - name: Enforce distinct control-plane client IDs
+        run: |
+          grep -q 'NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dr-admin-cli' \
+            infrastructure/compose/compose.disaster-recovery.yaml
+          test "$(grep -c 'NEXOLAB_MQTT_ADMIN_CLIENT_ID=nexolab-dr-healthcheck' \
+            infrastructure/compose/compose.disaster-recovery.yaml)" -eq 2
+          ! grep -q 'NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dr-healthcheck' \
+            infrastructure/compose/compose.disaster-recovery.yaml
+
       - name: Reject plaintext or insecure TLS configuration
         run: |
           grep -q 'MQTT_TLS_REQUIRED: "true"' \
