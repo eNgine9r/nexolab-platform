@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Check,
   Grid3X3,
+  History,
   LoaderCircle,
   MousePointer2,
   Redo2,
@@ -27,6 +28,14 @@ import type {
   RefrigerationEquipment,
   RefrigerationSensor,
 } from "@/data/refrigeration";
+import {
+  createBrowserLayoutDraftStorage,
+  createLayoutDraftPayload,
+  parseLayoutDraft,
+  serializeLayoutDraft,
+  type LayoutDraftPayload,
+  type LayoutDraftStorage,
+} from "@/features/refrigeration/layout-draft-storage";
 import {
   applySnap,
   movePlacement,
@@ -68,7 +77,10 @@ type DragState = {
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSizeBytes = 15 * 1024 * 1024;
-const emptyHistory: CommandHistory = { past: [], future: [] };
+
+function createEmptyHistory(): CommandHistory {
+  return { past: [], future: [] };
+}
 
 export function RefrigerationLayoutEditor({
   equipment,
@@ -82,6 +94,10 @@ export function RefrigerationLayoutEditor({
   const initialPlacements = useMemo(
     () => equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
     [equipment.sensors],
+  );
+  const allowedSensorIds = useMemo(
+    () => new Set(initialPlacements.map(({ sensorId }) => sensorId)),
+    [initialPlacements],
   );
   const slots = useMemo(() => initialPlacements.map(({ x, y }) => ({ x, y })), [initialPlacements]);
 
@@ -102,24 +118,33 @@ export function RefrigerationLayoutEditor({
       });
   }
 
-  const [persistedPlacements, setPersistedPlacements] = useState<LayoutPlacement[]>(initialPlacements);
+  const [persistedPlacements, setPersistedPlacements] =
+    useState<LayoutPlacement[]>(initialPlacements);
   const [draftPlacements, setDraftPlacements] = useState<LayoutPlacement[]>(initialPlacements);
-  const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(equipment.image);
+  const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(
+    equipment.image,
+  );
   const [draftImage, setDraftImage] = useState<EquipmentImageMetadata | null>(equipment.image);
   const [draftVersion, setDraftVersion] = useState(1);
-  const [history, setHistory] = useState<CommandHistory>(emptyHistory);
+  const [history, setHistory] = useState<CommandHistory>(createEmptyHistory);
   const [snapMode, setSnapMode] = useState<SnapMode>("none");
   const [imageError, setImageError] = useState<string | null>(null);
   const [repositoryError, setRepositoryError] = useState<string | null>(null);
   const [versionConflict, setVersionConflict] = useState<VersionConflict | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [repositoryState, setRepositoryState] = useState<"loading" | "ready" | "saving">("loading");
+  const [repositoryState, setRepositoryState] = useState<"loading" | "ready" | "saving">(
+    "loading",
+  );
+  const [recoveryDraft, setRecoveryDraft] = useState<LayoutDraftPayload | null>(null);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const draftPlacementsRef = useRef(draftPlacements);
+  const historyRef = useRef(history);
   const objectUrlsRef = useRef(new Set<string>());
+  const recoveryStorageRef = useRef<LayoutDraftStorage | null>(null);
+  const recoveryCheckedEquipmentRef = useRef<string | null>(null);
 
   useEffect(() => {
     draftPlacementsRef.current = draftPlacements;
@@ -159,8 +184,52 @@ export function RefrigerationLayoutEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipment.id]);
 
-  const dirty =
-    !placementsEqual(draftPlacements, persistedPlacements) || !imagesEqual(draftImage, persistedImage);
+  const placementDirty = !placementsEqual(draftPlacements, persistedPlacements);
+  const dirty = placementDirty || !imagesEqual(draftImage, persistedImage);
+
+  useEffect(() => {
+    if (repositoryState !== "ready") return;
+    if (recoveryCheckedEquipmentRef.current === equipment.id) return;
+
+    const storage =
+      recoveryStorageRef.current ?? createBrowserLayoutDraftStorage(window.sessionStorage);
+    recoveryStorageRef.current = storage;
+
+    const raw = storage.load(equipment.id);
+    const parsed = parseLayoutDraft(raw, equipment.id, allowedSensorIds);
+    if (raw && !parsed) {
+      storage.remove(equipment.id);
+    }
+
+    if (parsed && !placementsEqual(parsed.placements, persistedPlacements)) {
+      setRecoveryDraft(parsed);
+    } else {
+      if (parsed) storage.remove(equipment.id);
+      setRecoveryDraft(null);
+    }
+
+    recoveryCheckedEquipmentRef.current = equipment.id;
+  }, [allowedSensorIds, equipment.id, persistedPlacements, repositoryState]);
+
+  useEffect(() => {
+    if (repositoryState !== "ready") return;
+    if (recoveryCheckedEquipmentRef.current !== equipment.id) return;
+    if (recoveryDraft) return;
+
+    const storage = recoveryStorageRef.current;
+    if (!storage) return;
+
+    if (!placementDirty) {
+      storage.remove(equipment.id);
+      return;
+    }
+    if (mode !== "edit") return;
+
+    storage.save(
+      equipment.id,
+      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, draftPlacements)),
+    );
+  }, [draftPlacements, equipment.id, mode, placementDirty, recoveryDraft, repositoryState]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -193,19 +262,50 @@ export function RefrigerationLayoutEditor({
     setDraftPlacements(placements);
   };
 
+  const setHistoryState = (nextHistory: CommandHistory) => {
+    historyRef.current = nextHistory;
+    setHistory(nextHistory);
+  };
+
   const clearSaveFeedback = () => {
     setSaveMessage(null);
     setRepositoryError(null);
     setVersionConflict(null);
   };
 
+  useEffect(() => {
+    if (mode !== "edit") return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || isEditableTarget(event.target)) return;
+      const modifier = event.metaKey || event.ctrlKey;
+      if (!modifier) return;
+
+      const key = event.key.toLowerCase();
+      const shouldRedo = key === "y" || (key === "z" && event.shiftKey);
+      const shouldUndo = key === "z" && !event.shiftKey;
+      if (!shouldUndo && !shouldRedo) return;
+
+      event.preventDefault();
+      const result = shouldRedo
+        ? redo(draftPlacementsRef.current, historyRef.current)
+        : undo(draftPlacementsRef.current, historyRef.current);
+      setPlacements(result.placements);
+      setHistoryState(result.history);
+      clearSaveFeedback();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mode]);
+
   const applyMovement = (sensorId: string, point: NormalizedPoint, before: NormalizedPoint) => {
     const after = applySnap(point, snapMode, { gridDivisions: 40, slots });
     if (pointsEqual(before, after)) return;
 
     setPlacements(movePlacement(draftPlacementsRef.current, sensorId, after));
-    setHistory((current) =>
-      pushHistory(current, {
+    setHistoryState(
+      pushHistory(historyRef.current, {
         type: "move-placement",
         sensorId,
         before,
@@ -233,7 +333,10 @@ export function RefrigerationLayoutEditor({
     );
   };
 
-  const handleMarkerPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => {
+  const handleMarkerPointerDown = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    sensorId: string,
+  ) => {
     onSelect(sensorId);
     if (mode !== "edit") return;
 
@@ -280,8 +383,8 @@ export function RefrigerationLayoutEditor({
     dragRef.current = null;
     if (!placement || pointsEqual(drag.before, placement)) return;
 
-    setHistory((current) =>
-      pushHistory(current, {
+    setHistoryState(
+      pushHistory(historyRef.current, {
         type: "move-placement",
         sensorId: drag.sensorId,
         before: drag.before,
@@ -291,30 +394,51 @@ export function RefrigerationLayoutEditor({
   };
 
   const handleUndo = () => {
-    const result = undo(draftPlacementsRef.current, history);
+    const result = undo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
-    setHistory(result.history);
+    setHistoryState(result.history);
     clearSaveFeedback();
   };
 
   const handleRedo = () => {
-    const result = redo(draftPlacementsRef.current, history);
+    const result = redo(draftPlacementsRef.current, historyRef.current);
     setPlacements(result.placements);
-    setHistory(result.history);
+    setHistoryState(result.history);
     clearSaveFeedback();
   };
 
   const handleReset = () => {
     setPlacements(initialPlacements);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
     clearSaveFeedback();
+  };
+
+  const clearRecoveryStorage = () => {
+    recoveryStorageRef.current?.remove(equipment.id);
+    setRecoveryDraft(null);
+  };
+
+  const handleRestoreRecovery = () => {
+    if (!recoveryDraft) return;
+    setPlacements(recoveryDraft.placements);
+    setHistoryState(createEmptyHistory());
+    setRecoveryDraft(null);
+    clearSaveFeedback();
+    setSaveMessage("Відновлено незбережені позиції датчиків.");
+    onModeChange("edit");
+  };
+
+  const handleDiscardRecovery = () => {
+    clearRecoveryStorage();
+    setSaveMessage("Незбережену локальну чернетку відхилено.");
   };
 
   const handleCancel = () => {
     setPlacements(persistedPlacements);
     setDraftImage(persistedImage);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
     setImageError(null);
+    clearRecoveryStorage();
     clearSaveFeedback();
     onModeChange("view");
   };
@@ -351,7 +475,8 @@ export function RefrigerationLayoutEditor({
     setPersistedPlacements(result.value.placements);
     setPlacements(result.value.placements);
     setPersistedImage(localImage);
-    setHistory(emptyHistory);
+    setHistoryState(createEmptyHistory());
+    clearRecoveryStorage();
     setSaveMessage(`Чернетку схеми збережено · версія ${result.value.version}`);
     setRepositoryState("ready");
     onModeChange("view");
@@ -396,7 +521,9 @@ export function RefrigerationLayoutEditor({
 
   const handleImageDimensions = (widthPx: number, heightPx: number) => {
     setDraftImage((current) => {
-      if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) return current;
+      if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) {
+        return current;
+      }
       return { ...current, widthPx, heightPx };
     });
   };
@@ -454,6 +581,13 @@ export function RefrigerationLayoutEditor({
             Завантаження чернетки схеми…
           </p>
         ) : null}
+        {recoveryDraft ? (
+          <RecoveryBanner
+            savedAt={recoveryDraft.savedAt}
+            onRestore={handleRestoreRecovery}
+            onDiscard={handleDiscardRecovery}
+          />
+        ) : null}
         {imageError ? <Alert tone="error">{imageError}</Alert> : null}
         {repositoryError ? <Alert tone="error">{repositoryError}</Alert> : null}
         {versionConflict ? (
@@ -466,8 +600,8 @@ export function RefrigerationLayoutEditor({
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">Конфлікт версій схеми</p>
                 <p className="mt-1 leading-5 text-amber-100/80">
-                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є версія{" "}
-                  {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
+                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є
+                  версія {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
                 </p>
                 <button
                   type="button"
@@ -507,6 +641,53 @@ export function RefrigerationLayoutEditor({
           onMarkerPointerUp={finishPointerDrag}
           onImageDimensions={handleImageDimensions}
         />
+      </div>
+    </div>
+  );
+}
+
+function RecoveryBanner({
+  savedAt,
+  onRestore,
+  onDiscard,
+}: {
+  savedAt: string;
+  onRestore: () => void;
+  onDiscard: () => void;
+}) {
+  return (
+    <div
+      className="mb-3 rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-3 text-xs text-cyan-100"
+      role="alert"
+      aria-live="polite"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-2">
+          <History className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Знайдено незбережену чернетку позицій</p>
+            <p className="mt-1 leading-5 text-cyan-100/75">
+              Збережено локально {formatRecoveryTimestamp(savedAt)}. Фото та серверна версія не
+              змінювалися.
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onRestore}
+            className="rounded-lg border border-cyan-300/30 bg-cyan-300/15 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-50 hover:bg-cyan-300/20"
+          >
+            Відновити
+          </button>
+          <button
+            type="button"
+            onClick={onDiscard}
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[10px] font-medium text-slate-300 hover:bg-white/[0.07]"
+          >
+            Відхилити
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -598,8 +779,18 @@ function EditorToolbar({
         </select>
       </label>
 
-      <ToolbarButton label="Скасувати останню дію" icon={Undo2} disabled={!canUndo} onClick={onUndo} />
-      <ToolbarButton label="Повторити останню дію" icon={Redo2} disabled={!canRedo} onClick={onRedo} />
+      <ToolbarButton
+        label="Скасувати останню дію"
+        icon={Undo2}
+        disabled={!canUndo}
+        onClick={onUndo}
+      />
+      <ToolbarButton
+        label="Повторити останню дію"
+        icon={Redo2}
+        disabled={!canRedo}
+        onClick={onRedo}
+      />
       <ToolbarButton label="Скинути позиції" icon={RotateCcw} onClick={onReset} />
       <button
         type="button"
@@ -607,7 +798,11 @@ function EditorToolbar({
         disabled={!dirty || saving || loading}
         className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-200 enabled:hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {saving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        {saving ? (
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Save className="h-3.5 w-3.5" />
+        )}
         {saving ? "Збереження…" : "Зберегти чернетку"}
       </button>
       <button
@@ -699,7 +894,10 @@ function pointsEqual(first: NormalizedPoint, second: NormalizedPoint): boolean {
   return Math.abs(first.x - second.x) < 0.000001 && Math.abs(first.y - second.y) < 0.000001;
 }
 
-function placementsEqual(first: readonly LayoutPlacement[], second: readonly LayoutPlacement[]): boolean {
+function placementsEqual(
+  first: readonly LayoutPlacement[],
+  second: readonly LayoutPlacement[],
+): boolean {
   if (first.length !== second.length) return false;
   const secondById = new Map(second.map((placement) => [placement.sensorId, placement]));
   return first.every((placement) => {
@@ -708,7 +906,10 @@ function placementsEqual(first: readonly LayoutPlacement[], second: readonly Lay
   });
 }
 
-function imagesEqual(first: EquipmentImageMetadata | null, second: EquipmentImageMetadata | null): boolean {
+function imagesEqual(
+  first: EquipmentImageMetadata | null,
+  second: EquipmentImageMetadata | null,
+): boolean {
   if (first === null || second === null) return first === second;
   return first.id === second.id && first.sourceUrl === second.sourceUrl;
 }
@@ -724,11 +925,34 @@ function resolveImageMetadata(
   return null;
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  );
+}
+
+function formatRecoveryTimestamp(value: string): string {
+  try {
+    return new Intl.DateTimeFormat("uk-UA", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 function repositoryErrorMessage(error: LayoutRepositoryError): string {
   if (error.code === "LAYOUT_NOT_FOUND") return "Чернетку схеми не знайдено.";
   if (error.code === "LAYOUT_VALIDATION_FAILED") {
     return `Схема не пройшла перевірку: ${error.issues.map((issue) => issue.message).join(" ")}`;
   }
-  if (error.code === "LAYOUT_REVISION_NOT_FOUND") return "Вибрану ревізію схеми не знайдено.";
+  if (error.code === "LAYOUT_REVISION_NOT_FOUND") {
+    return "Вибрану ревізію схеми не знайдено.";
+  }
   return "Схема була змінена іншим користувачем.";
 }
