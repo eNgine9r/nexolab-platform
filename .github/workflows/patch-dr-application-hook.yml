@@ -22,50 +22,28 @@ jobs:
 
       - name: Wire restored application verification
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          file=scripts/run-disaster-recovery-acceptance.sh
+          test "$(grep -c "'degC', 'good', 'dr-acceptance'" "$file")" -eq 2
+          sed -i "s/'degC', 'good', 'dr-acceptance'/'degC', 'valid', 'dr-acceptance'/g" "$file"
 
-          path = Path("scripts/run-disaster-recovery-acceptance.sh")
-          content = path.read_text(encoding="utf-8")
+          test "$(grep -c 'source-mqtt restore-mqtt >"$EVIDENCE_DIR/services.log"' "$file")" -eq 1
+          sed -i 's/source-mqtt restore-mqtt >"$EVIDENCE_DIR\/services.log"/source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR\/services.log"/' "$file"
 
-          quality_old = "'2026-07-28T07:00:00Z', 'temperature', 3.7, 'degC', 'good', 'dr-acceptance',"
-          quality_new = "'2026-07-28T07:00:00Z', 'temperature', 3.7, 'degC', 'valid', 'dr-acceptance',"
-          if content.count(quality_old) != 1:
-              raise SystemExit("First seed quality anchor was not found exactly once")
-          content = content.replace(quality_old, quality_new)
+          test "$(grep -c '^MQTT_CLIENT_COUNT=' "$file")" -eq 1
+          sed -i '/^MQTT_CLIENT_COUNT=/a\
+          \
+          bash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\
+            "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"' "$file"
 
-          quality_old = "'2026-07-28T07:00:01Z', 'temperature', 4.1, 'degC', 'good', 'dr-acceptance',"
-          quality_new = "'2026-07-28T07:00:01Z', 'temperature', 4.1, 'degC', 'valid', 'dr-acceptance',"
-          if content.count(quality_old) != 1:
-              raise SystemExit("Second seed quality anchor was not found exactly once")
-          content = content.replace(quality_old, quality_new)
-
-          log_old = 'source-mqtt restore-mqtt >"$EVIDENCE_DIR/services.log" 2>&1 || true'
-          log_new = 'source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR/services.log" 2>&1 || true'
-          if content.count(log_old) != 1:
-              raise SystemExit("Cleanup log anchor was not found exactly once")
-          content = content.replace(log_old, log_new)
-
-          hook_old = '''MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"\n\ngrep -Fq'''
-          hook_new = '''MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"\n\nbash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\
-  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"\n\ngrep -Fq'''
-          if content.count(hook_old) != 1:
-              raise SystemExit("Application hook anchor was not found exactly once")
-          content = content.replace(hook_old, hook_new)
-
-          final_old = 'echo "Disaster-recovery component acceptance passed."'
-          final_new = 'echo "Disaster-recovery platform acceptance passed."'
-          if content.count(final_old) != 1:
-              raise SystemExit("Final message anchor was not found exactly once")
-          content = content.replace(final_old, final_new)
-
-          path.write_text(content, encoding="utf-8")
-          PY
+          test "$(grep -c 'Disaster-recovery component acceptance passed' "$file")" -eq 1
+          sed -i 's/Disaster-recovery component acceptance passed/Disaster-recovery platform acceptance passed/' "$file"
 
       - name: Validate scripts
         run: |
           bash -n scripts/run-disaster-recovery-acceptance.sh
           bash -n scripts/verify-restored-platform.sh
+          grep -q 'verify-restored-platform.sh' scripts/run-disaster-recovery-acceptance.sh
+          test "$(grep -c "'degC', 'valid', 'dr-acceptance'" scripts/run-disaster-recovery-acceptance.sh)" -eq 2
 
       - name: Commit patch
         run: |
