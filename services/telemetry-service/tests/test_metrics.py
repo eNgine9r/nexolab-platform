@@ -40,7 +40,9 @@ def payload() -> bytes:
     ).encode()
 
 
-def test_prometheus_metrics_and_json_snapshot(tmp_path: Path) -> None:
+def test_prometheus_metrics_and_json_snapshot(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("INGESTION_QUEUE_MAXSIZE", "250")
+    monkeypatch.setenv("NEXOLAB_TELEMETRY_VERSION", "0.15.0-test")
     settings = Settings(
         database_url=f"sqlite:///{tmp_path / 'telemetry.db'}",
         auto_create_schema=True,
@@ -60,6 +62,11 @@ def test_prometheus_metrics_and_json_snapshot(tmp_path: Path) -> None:
         response = client.get("/metrics")
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/plain")
+        assert (
+            'nexolab_telemetry_service_info{version="0.15.0-test"} 1'
+            in response.text
+        )
+        assert "nexolab_telemetry_queue_capacity 250" in response.text
         assert "nexolab_telemetry_persisted_total 1" in response.text
         assert "nexolab_telemetry_rejected_total 1" in response.text
         assert (
