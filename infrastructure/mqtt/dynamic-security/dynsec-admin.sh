@@ -12,6 +12,8 @@ TLS_CERT_FILE="${NEXOLAB_MQTT_TLS_CERT_FILE:-}"
 TLS_KEY_FILE="${NEXOLAB_MQTT_TLS_KEY_FILE:-}"
 TLS_ENABLED=false
 CONTROL_OPTIONS=""
+CONTROL_STDOUT=""
+CONTROL_STDERR=""
 
 usage() {
   cat >&2 <<'EOF'
@@ -30,9 +32,11 @@ EOF
 }
 
 cleanup() {
-  if [ -n "$CONTROL_OPTIONS" ]; then
-    rm -f "$CONTROL_OPTIONS"
-  fi
+  for path in "$CONTROL_OPTIONS" "$CONTROL_STDOUT" "$CONTROL_STDERR"; do
+    if [ -n "$path" ]; then
+      rm -f "$path"
+    fi
+  done
 }
 trap cleanup EXIT INT TERM
 
@@ -128,24 +132,40 @@ prepare_control_options() {
     printf '%s\n' "-u $ADMIN_USERNAME"
     printf '%s\n' "-P $admin_password"
     if [ "$TLS_ENABLED" = "true" ]; then
-    printf '%s
-' "--cafile $TLS_CA_FILE"
-    printf '%s
-' "--tls-version tlsv1.2"
-    if [ -n "$TLS_CERT_FILE" ]; then
-      printf '%s
-' "--cert $TLS_CERT_FILE"
-      printf '%s
-' "--key $TLS_KEY_FILE"
+      printf '%s\n' "--cafile $TLS_CA_FILE"
+      printf '%s\n' "--tls-version tlsv1.2"
+      if [ -n "$TLS_CERT_FILE" ]; then
+        printf '%s\n' "--cert $TLS_CERT_FILE"
+        printf '%s\n' "--key $TLS_KEY_FILE"
+      fi
     fi
-  fi
     printf '%s\n' "--quiet"
   } >"$CONTROL_OPTIONS"
   unset admin_password
 }
 
 ctrl() {
-  mosquitto_ctrl -o "$CONTROL_OPTIONS" dynsec "$@"
+  CONTROL_STDOUT="$(mktemp)"
+  CONTROL_STDERR="$(mktemp)"
+  status=0
+  mosquitto_ctrl -o "$CONTROL_OPTIONS" dynsec "$@" \
+    >"$CONTROL_STDOUT" 2>"$CONTROL_STDERR" || status=$?
+
+  if [ "$status" -ne 0 ] || [ -s "$CONTROL_STDERR" ]; then
+    cat "$CONTROL_STDERR" >&2
+    rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+    CONTROL_STDOUT=""
+    CONTROL_STDERR=""
+    if [ "$status" -eq 0 ]; then
+      return 77
+    fi
+    return "$status"
+  fi
+
+  cat "$CONTROL_STDOUT"
+  rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+  CONTROL_STDOUT=""
+  CONTROL_STDERR=""
 }
 
 client_exists() {
