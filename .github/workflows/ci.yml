@@ -35,7 +35,18 @@ jobs:
         run: npm install --no-audit
 
       - name: Check formatting
-        run: npm run format:check
+        run: |
+          npm exec prettier -- --list-different . \
+            2>&1 | tee prettier-diagnostics.txt
+
+      - name: Upload formatting diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-diagnostics-${{ github.sha }}
+          path: prettier-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Lint
         run: npm run lint
