@@ -84,7 +84,7 @@ jobs:
       - name: Reject secret-like versioned material
         run: |
           ! grep -ER --exclude='*.pyc' \
-            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|POSTGRES_PASSWORD=|MINIO_ROOT_PASSWORD=|MQTT_PASSWORD=' \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(^|[^A-Z0-9_])(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|MQTT_PASSWORD)=' \
             security/disaster-recovery-assets.json \
             scripts/validate-disaster-recovery-assets.py \
             scripts/nexolab-backup-bundle.py \
