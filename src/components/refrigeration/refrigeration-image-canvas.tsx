@@ -7,7 +7,7 @@ import type {
   SyntheticEvent,
 } from "react";
 import Image from "next/image";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { clsx } from "clsx";
 import { ImageIcon, Minus, Plus, Scan } from "lucide-react";
 
@@ -66,11 +66,7 @@ export function RefrigerationImageCanvas({
   onImageDimensions,
 }: RefrigerationImageCanvasProps) {
   const sliderId = useId();
-  const [scalePercent, setScalePercent] = useState(DEFAULT_SCALE_PERCENT);
-
-  useEffect(() => {
-    setScalePercent(readStoredScale(equipmentId));
-  }, [equipmentId]);
+  const [scalePercent, setScalePercent] = useState(() => readStoredScale(equipmentId));
 
   const updateScale = (nextValue: number) => {
     const nextScale = clampScale(nextValue);
@@ -272,7 +268,13 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
 
 function clampScale(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_SCALE_PERCENT;
-  return Math.min(MAX_SCALE_PERCENT, Math.max(MIN_SCALE_PERCENT, Math.round(value / SCALE_STEP_PERCENT) * SCALE_STEP_PERCENT));
+  return Math.min(
+    MAX_SCALE_PERCENT,
+    Math.max(
+      MIN_SCALE_PERCENT,
+      Math.round(value / SCALE_STEP_PERCENT) * SCALE_STEP_PERCENT,
+    ),
+  );
 }
 
 function readStoredScale(equipmentId: string): number {
