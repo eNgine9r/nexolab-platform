@@ -3,7 +3,7 @@ groups:
     interval: 5s
     rules:
       - alert: NexolabDisasterRecoveryExporterDown
-        expr: up{job="disaster-recovery-status"} != 1
+        expr: up{job="disaster-recovery-status"} != 1 or absent(up{job="disaster-recovery-status"})
         for: 1m
         labels:
           severity: critical
