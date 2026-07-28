@@ -21,28 +21,53 @@ jobs:
 
       - name: Wire restored application verification
         run: |
-          file=scripts/run-disaster-recovery-acceptance.sh
-          test "$(grep -c "'degC', 'good', 'dr-acceptance'" "$file")" -eq 2
-          sed -i "s/'degC', 'good', 'dr-acceptance'/'degC', 'valid', 'dr-acceptance'/g" "$file"
+          python - <<'PY'
+          from pathlib import Path
 
-          test "$(grep -c 'source-mqtt restore-mqtt >"$EVIDENCE_DIR/services.log"' "$file")" -eq 1
-          sed -i 's/source-mqtt restore-mqtt >"$EVIDENCE_DIR\/services.log"/source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR\/services.log"/' "$file"
+          path = Path("scripts/run-disaster-recovery-acceptance.sh")
+          content = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  "'degC', 'good', 'dr-acceptance'",
+                  "'degC', 'valid', 'dr-acceptance'",
+                  2,
+              ),
+              (
+                  'source-mqtt restore-mqtt >"$EVIDENCE_DIR/services.log" 2>&1 || true',
+                  'source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR/services.log" 2>&1 || true',
+                  1,
+              ),
+              (
+                  'echo "Disaster-recovery component acceptance passed."',
+                  'echo "Disaster-recovery platform acceptance passed."',
+                  1,
+              ),
+          ]
+          for old, new, expected in replacements:
+              count = content.count(old)
+              if count != expected:
+                  raise SystemExit(f"Expected {expected} occurrences of {old!r}, found {count}")
+              content = content.replace(old, new)
 
-          test "$(grep -c '^MQTT_CLIENT_COUNT=' "$file")" -eq 1
-          sed -i '/^MQTT_CLIENT_COUNT=/a\
-          \
-          bash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\
-            "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"' "$file"
-
-          test "$(grep -c 'Disaster-recovery component acceptance passed' "$file")" -eq 1
-          sed -i 's/Disaster-recovery component acceptance passed/Disaster-recovery platform acceptance passed/' "$file"
+          anchor = 'MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed \'/^[[:space:]]*$/d\' | wc -l | tr -d \' \')"\n'
+          hook = (
+              anchor
+              + '\nbash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\\n'
+              + '  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"\n'
+          )
+          count = content.count(anchor)
+          if count != 1:
+              raise SystemExit(f"Expected one application hook anchor, found {count}")
+          content = content.replace(anchor, hook)
+          path.write_text(content, encoding="utf-8")
+          PY
 
       - name: Validate scripts
         run: |
           bash -n scripts/run-disaster-recovery-acceptance.sh
           bash -n scripts/verify-restored-platform.sh
           grep -q 'verify-restored-platform.sh' scripts/run-disaster-recovery-acceptance.sh
-          test "$(grep -c "'degC', 'valid', 'dr-acceptance'" scripts/run-disaster-recovery-acceptance.sh)" -eq 2
+          test "$(grep -Fc "'degC', 'valid', 'dr-acceptance'" scripts/run-disaster-recovery-acceptance.sh)" -eq 2
 
       - name: Commit patch
         run: |
