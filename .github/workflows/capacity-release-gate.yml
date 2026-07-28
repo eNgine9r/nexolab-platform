@@ -1,0 +1,146 @@
+name: Capacity Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/capacity-release-gate.yml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.capacity.yaml"
+      - "infrastructure/performance/**"
+      - "scripts/run-capacity-acceptance.sh"
+      - "scripts/run_capacity_acceptance.py"
+      - "scripts/validate_capacity_policy.py"
+      - "scripts/verify_capacity_evidence.py"
+      - "services/telemetry-service/**"
+      - "tests/test_capacity_*.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/capacity-release-gate.yml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.capacity.yaml"
+      - "infrastructure/performance/**"
+      - "scripts/run-capacity-acceptance.sh"
+      - "scripts/run_capacity_acceptance.py"
+      - "scripts/validate_capacity_policy.py"
+      - "scripts/verify_capacity_evidence.py"
+      - "services/telemetry-service/**"
+      - "tests/test_capacity_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capacity-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate capacity policy and evidence contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install policy dependencies
+        run: python -m pip install --disable-pip-version-check pytest pyyaml websockets
+
+      - name: Validate versioned workload policy
+        run: python scripts/validate_capacity_policy.py
+
+      - name: Run capacity contract regressions
+        run: python -m pytest -q tests/test_capacity_policy.py tests/test_capacity_evidence.py
+
+      - name: Compile acceptance tooling
+        run: |
+          python -m py_compile \
+            scripts/run_capacity_acceptance.py \
+            scripts/validate_capacity_policy.py \
+            scripts/verify_capacity_evidence.py
+          bash -n scripts/run-capacity-acceptance.sh
+
+      - name: Validate isolated Compose topology
+        env:
+          COMPOSE_PROJECT_NAME: nexolab-capacity-policy
+          POSTGRES_PASSWORD: validation-password
+          MINIO_ROOT_USER: validation
+          MINIO_ROOT_PASSWORD: validation-password
+        run: |
+          docker compose \
+            -f infrastructure/compose/compose.central.yaml \
+            -f infrastructure/compose/compose.capacity.yaml \
+            config --quiet
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            .github/workflows/capacity-release-gate.yml \
+            infrastructure/compose/compose.capacity.yaml \
+            infrastructure/performance \
+            scripts/run-capacity-acceptance.sh \
+            scripts/run_capacity_acceptance.py \
+            scripts/validate_capacity_policy.py \
+            scripts/verify_capacity_evidence.py \
+            tests/test_capacity_policy.py \
+            tests/test_capacity_evidence.py
+
+  runtime:
+    name: Verify MQTT, PostgreSQL, REST, WebSocket and recovery capacity
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-capacity-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXOLAB_CAPACITY_EVIDENCE_DIR: test-results-capacity
+      CAPACITY_API_PORT: "18083"
+      CAPACITY_MQTT_PORT: "11885"
+      CAPACITY_OBJECT_STORAGE_PORT: "19010"
+      CAPACITY_OBJECT_STORAGE_CONSOLE_PORT: "19011"
+      HUSKY: "0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install runtime dependencies
+        run: python -m pip install --disable-pip-version-check pyyaml websockets
+
+      - name: Generate temporary acceptance credentials
+        run: |
+          for variable in POSTGRES_PASSWORD MINIO_ROOT_PASSWORD; do
+            value="$(openssl rand -hex 24)"
+            printf '::add-mask::%s\n' "$value"
+            printf '%s=%s\n' "$variable" "$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Run release-candidate capacity acceptance
+        run: bash scripts/run-capacity-acceptance.sh
+
+      - name: Re-verify hashed release evidence
+        if: always()
+        run: |
+          if test -f test-results-capacity/release-readiness-manifest.json; then
+            python scripts/verify_capacity_evidence.py test-results-capacity
+          fi
+
+      - name: Upload sanitized capacity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capacity-release-evidence-${{ github.sha }}
+          path: test-results-capacity
+          if-no-files-found: warn
+          retention-days: 14

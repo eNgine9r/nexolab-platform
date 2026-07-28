@@ -1,0 +1,61 @@
+schema_version: 1
+name: nexolab-central-release-candidate
+purpose: software-only release regression gate; not an actual-host capacity claim
+
+topology:
+  nodes: 6
+  streams_per_node: 8
+  total_streams: 48
+  node_prefix: capacity-edge
+  equipment_prefix: capacity-case
+  channel_prefix: temperature-channel
+
+steady_state:
+  duration_seconds: 60
+  events_per_stream_per_second: 1
+  expected_events: 2880
+  max_p95_capture_to_persistence_seconds: 3.0
+  max_queue_utilization_ratio: 0.70
+
+backlog_replay:
+  events: 5000
+  publish_batch_size: 250
+  max_drain_seconds: 120
+  duplicate_replay_events: 5000
+
+rest:
+  latest:
+    concurrency: 12
+    requests: 120
+    limit: 48
+    max_p95_seconds: 1.0
+  history:
+    concurrency: 8
+    requests: 80
+    limit: 200
+    max_p95_seconds: 2.0
+
+websocket:
+  clients: 20
+  events: 96
+  connect_timeout_seconds: 20
+  receive_timeout_seconds: 30
+
+failure_recovery:
+  dependency: postgres
+  outage_seconds: 8
+  events_during_outage: 240
+  live_events_after_restart: 48
+  max_recovery_seconds: 120
+
+limits:
+  max_total_generated_events: 15000
+  max_runtime_seconds: 1200
+  max_evidence_bytes: 52428800
+  ingestion_queue_capacity: 10000
+  websocket_client_queue_capacity: 256
+
+release_references:
+  supply_chain_workflow: Container Supply Chain
+  disaster_recovery_workflow: Disaster Recovery TLS Fleet
+  observability_workflow: Observability
