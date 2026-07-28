@@ -158,7 +158,7 @@ def extract_archive(archive_path: Path, destination: Path) -> None:
                 reverse=True,
             ):
                 apply_ownership(destination / safe_name(member.name), member)
-    except (OSError, tarfile.TarError):
+    except (OSError, tarfile.TarError, VolumeArchiveFailure):
         for path in sorted(created, key=lambda item: len(item.parts), reverse=True):
             if path.is_dir():
                 path.rmdir()
