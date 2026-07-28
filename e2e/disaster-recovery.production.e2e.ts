@@ -92,9 +92,14 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     );
 
     await page.goto("/reports");
+    const reportDetail = page.getByTestId("report-detail");
     await expect(page.getByTestId("reports-workspace")).toBeVisible();
-    await expect(page.getByText("Session 40000000-0000-0000-0000-000000000099")).toBeVisible();
-    await expect(page.getByTestId("report-detail")).toContainText("protocol-proof.bin");
+    await expect(
+      reportDetail.getByRole("heading", {
+        name: "Session 40000000-0000-0000-0000-000000000099",
+      }),
+    ).toBeVisible();
+    await expect(reportDetail).toContainText("protocol-proof.bin");
     await page.screenshot({ path: `${evidenceDirectory}/02-restored-reports.png`, fullPage: true });
 
     const draftResponse = await api.get("/api/v1/equipment/showcase-106-01/layout/draft");
