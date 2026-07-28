@@ -19,6 +19,7 @@ export interface TelemetryWebSocketClientOptions {
 }
 
 const DEFAULT_RECONNECT_DELAYS_MS = [500, 1_000, 2_000, 5_000, 10_000] as const;
+const CLIENT_AUTH_FAILURE_CLOSE_CODE = 4001;
 
 function buildUrl(baseUrl: string, filters: TelemetryFilters, after: string | null): string {
   const url = new URL(baseUrl);
@@ -54,6 +55,7 @@ export class TelemetryWebSocketClient {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempt = 0;
     let closed = false;
+    let terminalFailure = false;
     let lastState: TelemetryConnectionState | null = null;
     let lastCommittedCapturedAt: string | null = null;
     const seenEventIds = new Set<string>();
@@ -84,7 +86,7 @@ export class TelemetryWebSocketClient {
     };
 
     const connect = () => {
-      if (closed) {
+      if (closed || terminalFailure) {
         return;
       }
 
@@ -119,8 +121,9 @@ export class TelemetryWebSocketClient {
             );
           })
           .catch((error: unknown) => {
+            terminalFailure = true;
             reportError(error, "Telemetry WebSocket authentication failed");
-            nextSocket.close(1008, "telemetry authentication failed");
+            nextSocket.close(CLIENT_AUTH_FAILURE_CLOSE_CODE, "telemetry authentication failed");
           });
       });
 
@@ -160,7 +163,7 @@ export class TelemetryWebSocketClient {
         if (socket === nextSocket) {
           socket = null;
         }
-        if (closed) {
+        if (closed || terminalFailure) {
           setState("disconnected");
           return;
         }
