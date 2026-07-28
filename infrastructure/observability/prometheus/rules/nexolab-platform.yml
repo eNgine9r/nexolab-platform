@@ -1,0 +1,298 @@
+groups:
+  - name: nexolab-platform-recording
+    interval: 5s
+    rules:
+      - record: nexolab:telemetry_service:availability_ratio_30d
+        expr: avg_over_time(up{job="telemetry-service"}[30d])
+
+      - record: nexolab:platform_dependency_ready
+        expr: nexolab_telemetry_mqtt_connected * nexolab_telemetry_database_ready
+
+      - record: nexolab:ingestion_queue_utilization_ratio
+        expr: clamp_max(nexolab_telemetry_queue_size / clamp_min(nexolab_telemetry_queue_capacity, 1), 1)
+
+      - record: nexolab:ingestion_received_per_second
+        expr: rate(nexolab_telemetry_received_total[5m])
+
+      - record: nexolab:ingestion_persisted_per_second
+        expr: rate(nexolab_telemetry_persisted_total[5m])
+
+      - record: nexolab:ingestion_rejected_per_second
+        expr: rate(nexolab_telemetry_rejected_total[5m])
+
+      - record: nexolab:ingestion_duplicate_per_second
+        expr: rate(nexolab_telemetry_duplicate_total[5m])
+
+      - record: nexolab:persistence_freshness_age_seconds
+        expr: time() - nexolab_telemetry_last_persisted_timestamp_seconds
+
+      - record: nexolab:verified_backup_age_seconds
+        expr: time() - nexolab_dr_last_verified_backup_timestamp_seconds
+
+      - record: nexolab:offsite_backup_copy_age_seconds
+        expr: time() - nexolab_dr_last_offsite_copy_timestamp_seconds
+
+      - record: nexolab:restore_rehearsal_age_seconds
+        expr: time() - nexolab_dr_last_restore_rehearsal_timestamp_seconds
+
+      - record: nexolab:backup_destination_utilization_ratio
+        expr: clamp_max(1 - (nexolab_dr_backup_destination_free_bytes / clamp_min(nexolab_dr_backup_destination_capacity_bytes, 1)), 1)
+
+  - name: nexolab-platform-alerts
+    interval: 5s
+    rules:
+      - alert: NexolabTelemetryServiceDown
+        expr: up{job="telemetry-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: availability
+        annotations:
+          summary: NEXOLAB Telemetry Service is unavailable
+          description: Prometheus has not scraped the Telemetry Service for more than one minute.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md
+
+      - alert: NexolabTelemetryMqttDisconnected
+        expr: nexolab_telemetry_mqtt_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          dependency: mqtt
+          slo: availability
+        annotations:
+          summary: NEXOLAB MQTT ingestion is disconnected
+          description: The Telemetry Service has not held an acknowledged MQTT subscription for two minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#mqtt-broker-outage
+
+      - alert: NexolabTelemetryDatabaseUnavailable
+        expr: nexolab_telemetry_database_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          dependency: postgresql
+          slo: availability
+        annotations:
+          summary: NEXOLAB PostgreSQL persistence is unavailable
+          description: PostgreSQL has been unavailable to the Telemetry Service for two minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
+
+      - alert: NexolabIngestionQueuePressureWarning
+        expr: nexolab:ingestion_queue_utilization_ratio > 0.70
+        for: 5m
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: capacity
+        annotations:
+          summary: NEXOLAB ingestion queue pressure is elevated
+          description: The bounded persistence queue has exceeded 70% utilization for five minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#bounded-queue-incident
+
+      - alert: NexolabIngestionQueuePressureCritical
+        expr: nexolab:ingestion_queue_utilization_ratio > 0.90
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: capacity
+        annotations:
+          summary: NEXOLAB ingestion queue is near capacity
+          description: The bounded persistence queue has exceeded 90% utilization for two minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#bounded-queue-incident
+
+      - alert: NexolabIngestionQueueDroppedWork
+        expr: increase(nexolab_telemetry_queue_dropped_total[5m]) > 0
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB ingestion work was dropped
+          description: At least one telemetry or dead-letter item could not enter the bounded queue during the last five minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#bounded-queue-incident
+
+      - alert: NexolabIngestionLagWarning
+        expr: nexolab_telemetry_ingestion_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: latency
+        annotations:
+          summary: NEXOLAB ingestion lag is elevated
+          description: Capture-to-persistence lag has exceeded 30 seconds for five minutes.
+
+      - alert: NexolabIngestionLagCritical
+        expr: nexolab_telemetry_ingestion_lag_seconds > 120
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: latency
+        annotations:
+          summary: NEXOLAB ingestion lag is critical
+          description: Capture-to-persistence lag has exceeded 120 seconds for two minutes.
+
+      - alert: NexolabPersistenceFailures
+        expr: increase(nexolab_telemetry_persistence_failure_total[5m]) > 0
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB persistence attempts are failing
+          description: At least one PostgreSQL persistence attempt failed during the last five minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
+
+      - alert: NexolabPersistenceFailuresSustained
+        expr: increase(nexolab_telemetry_persistence_failure_total[10m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB persistence failures are sustained
+          description: More than five PostgreSQL persistence attempts failed during the last ten minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
+
+      - alert: NexolabDeadLetterGrowth
+        expr: increase(nexolab_telemetry_dead_letter_persisted_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: data-quality
+        annotations:
+          summary: NEXOLAB dead-letter volume is growing
+          description: Invalid or rejected MQTT payloads have been persisted during the last ten minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#poison-or-invalid-mqtt-payload
+
+      - alert: NexolabDeadLetterBurst
+        expr: increase(nexolab_telemetry_dead_letter_persisted_total[10m]) > 20
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: data-quality
+        annotations:
+          summary: NEXOLAB dead-letter volume is increasing rapidly
+          description: More than twenty rejected MQTT payloads were persisted during the last ten minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#poison-or-invalid-mqtt-payload
+
+      - alert: NexolabNoRecentPersistenceWhileReceiving
+        expr: nexolab:persistence_freshness_age_seconds > 180 and rate(nexolab_telemetry_received_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB receives telemetry but does not persist it
+          description: New MQTT payloads are arriving while the last successful persistence is more than three minutes old.
+
+      - alert: NexolabWebSocketSlowConsumers
+        expr: increase(nexolab_telemetry_websocket_slow_consumer_total[10m]) > 0
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: streaming
+        annotations:
+          summary: NEXOLAB isolated slow WebSocket consumers
+          description: At least one slow browser consumer was isolated during the last ten minutes.
+
+      - alert: NexolabWebSocketSendTimeouts
+        expr: increase(nexolab_telemetry_websocket_send_timeout_total[10m]) > 0
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: streaming
+        annotations:
+          summary: NEXOLAB WebSocket sends are timing out
+          description: At least one live telemetry WebSocket send exceeded its timeout during the last ten minutes.
+
+      - alert: NexolabVerifiedBackupStaleWarning
+        expr: nexolab:verified_backup_age_seconds > 108000
+        for: 10m
+        labels:
+          severity: warning
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB verified backup is stale
+          description: No successful verified encrypted backup has been recorded for more than 30 hours.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabVerifiedBackupStaleCritical
+        expr: nexolab:verified_backup_age_seconds > 172800
+        for: 10m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB verified backup is critically stale
+          description: No successful verified encrypted backup has been recorded for more than 48 hours.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabBackupVerificationFailed
+        expr: nexolab_dr_last_bundle_verification_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB backup verification failed
+          description: The newest encrypted bundle failed authentication or manifest verification.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabOffsiteBackupCopyStale
+        expr: nexolab:offsite_backup_copy_age_seconds > 172800
+        for: 10m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB off-host backup copy is stale
+          description: No off-host copy of a verified encrypted backup has been recorded for more than 48 hours.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabRestoreRehearsalStale
+        expr: nexolab:restore_rehearsal_age_seconds > 3024000
+        for: 1h
+        labels:
+          severity: warning
+          service: disaster-recovery
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB restore rehearsal is overdue
+          description: The last fresh-volume recovery rehearsal is older than 35 days.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabBackupDestinationCapacityCritical
+        expr: nexolab:backup_destination_utilization_ratio > 0.90
+        for: 10m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          slo: capacity
+        annotations:
+          summary: NEXOLAB backup destination is near capacity
+          description: Backup destination utilization has exceeded 90% for ten minutes.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabAlertDeliverySinkDown
+        expr: up{job="observability-alert-sink"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: observability
+          slo: alert-delivery
+        annotations:
+          summary: NEXOLAB local alert audit sink is unavailable
+          description: Alert delivery evidence cannot be recorded because the local sink is unreachable.
