@@ -38,6 +38,7 @@ GAUGES = {
     "mqtt_connected": "Whether the MQTT subscription is active after SUBACK.",
     "database_ready": "Whether PostgreSQL is currently reachable.",
     "queue_size": "Persistence queue items including the active retry item.",
+    "queue_capacity": "Configured maximum persistence queue capacity.",
     "websocket_clients": "Currently connected WebSocket clients.",
     "ingestion_lag_seconds": "Lag from event capture to successful persistence.",
 }
@@ -63,6 +64,13 @@ def _sample(lines: list[str], name: str, value: int | float | bool) -> None:
 
 def render_prometheus(snapshot: dict[str, Any]) -> str:
     lines: list[str] = []
+
+    service_version = snapshot.get("service_version")
+    if isinstance(service_version, str) and service_version:
+        name = f"{PREFIX}service_info"
+        lines.append(f"# HELP {name} Static build information for the telemetry service.")
+        lines.append(f"# TYPE {name} gauge")
+        lines.append(f'{name}{{version="{_escape_label(service_version)}"}} 1')
 
     for field, help_text in COUNTERS.items():
         name = f"{PREFIX}{field}"
