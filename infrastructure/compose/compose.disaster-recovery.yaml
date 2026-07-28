@@ -11,7 +11,7 @@ x-minio-environment: &minio-environment
 
 x-mqtt-environment: &mqtt-environment
   NEXOLAB_MQTT_ADMIN_USERNAME: ${DR_MQTT_ADMIN_USERNAME:?DR_MQTT_ADMIN_USERNAME is required}
-  NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dr-healthcheck
+  NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dr-admin-cli
   NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
 
 services:
@@ -101,7 +101,9 @@ services:
       - source-mqtt-data:/mosquitto/data
       - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
     healthcheck:
-      test: ["CMD-SHELL", "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null"]
+      test:
+        - CMD-SHELL
+        - NEXOLAB_MQTT_ADMIN_CLIENT_ID=nexolab-dr-healthcheck /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
       interval: 2s
       timeout: 3s
       retries: 30
@@ -119,7 +121,9 @@ services:
       - restore-mqtt-data:/mosquitto/data
       - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
     healthcheck:
-      test: ["CMD-SHELL", "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null"]
+      test:
+        - CMD-SHELL
+        - NEXOLAB_MQTT_ADMIN_CLIENT_ID=nexolab-dr-healthcheck /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
       interval: 2s
       timeout: 3s
       retries: 30
