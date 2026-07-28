@@ -45,12 +45,28 @@ def test_compose_rejects_public_default_bind(tmp_path: Path) -> None:
         validator.validate_compose(path)
 
 
+def test_grafana_plugin_preinstallation_is_disabled() -> None:
+    source = ROOT / "infrastructure/compose/compose.observability.yaml"
+    payload = yaml.safe_load(source.read_text(encoding="utf-8"))
+    environment = payload["services"]["grafana"]["environment"]
+
+    assert environment["GF_PLUGINS_PLUGIN_ADMIN_ENABLED"] == "false"
+    assert environment["GF_PLUGINS_PREINSTALL_DISABLED"] == "true"
+    assert environment["GF_PLUGINS_PREINSTALL_AUTO_UPDATE"] == "false"
+
+
 def test_rules_reject_missing_required_alert(tmp_path: Path) -> None:
     source = ROOT / "infrastructure/observability/prometheus/rules/nexolab-platform.yml"
     payload = yaml.safe_load(source.read_text(encoding="utf-8"))
-    alert_group = next(group for group in payload["groups"] if group["name"] == "nexolab-platform-alerts")
+    alert_group = next(
+        group
+        for group in payload["groups"]
+        if group["name"] == "nexolab-platform-alerts"
+    )
     alert_group["rules"] = [
-        rule for rule in alert_group["rules"] if rule.get("alert") != "NexolabTelemetryServiceDown"
+        rule
+        for rule in alert_group["rules"]
+        if rule.get("alert") != "NexolabTelemetryServiceDown"
     ]
     path = tmp_path / "rules.yml"
     write_yaml(path, payload)
@@ -71,7 +87,10 @@ def test_alertmanager_requires_resolved_delivery(tmp_path: Path) -> None:
 
 
 def test_dashboard_rejects_duplicate_panel_ids(tmp_path: Path) -> None:
-    source = ROOT / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json"
+    source = (
+        ROOT
+        / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json"
+    )
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["panels"][1]["id"] = payload["panels"][0]["id"]
     path = tmp_path / "dashboard.json"
@@ -82,7 +101,10 @@ def test_dashboard_rejects_duplicate_panel_ids(tmp_path: Path) -> None:
 
 
 def test_dashboard_rejects_missing_recovery_query(tmp_path: Path) -> None:
-    source = ROOT / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json"
+    source = (
+        ROOT
+        / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json"
+    )
     payload = json.loads(source.read_text(encoding="utf-8"))
     for panel in payload["panels"]:
         for target in panel.get("targets", []):
