@@ -1,6 +1,7 @@
 services:
   mqtt:
     environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
       NEXOLAB_MQTT_BROKER_PORT: "8883"
       NEXOLAB_MQTT_TLS_REQUIRED: "true"
       NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
