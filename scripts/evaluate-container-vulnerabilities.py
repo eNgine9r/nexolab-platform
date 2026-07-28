@@ -5,10 +5,9 @@ import argparse
 import json
 from dataclasses import dataclass
 from datetime import date
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from typing import Any
-
-from importlib.util import module_from_spec, spec_from_file_location
 
 
 class PolicyFailure(ValueError):
@@ -126,6 +125,18 @@ def parse_findings(report: dict[str, Any]) -> list[Finding]:
     return findings
 
 
+def find_stale_exceptions(
+    findings: list[Finding],
+    exceptions: dict[tuple[str, str], dict[str, str]],
+) -> list[tuple[str, str]]:
+    active_keys = {
+        finding.key
+        for finding in findings
+        if finding.severity in {"HIGH", "CRITICAL"}
+    }
+    return sorted(set(exceptions) - active_keys)
+
+
 def evaluate(
     findings: list[Finding],
     exceptions: dict[tuple[str, str], dict[str, str]],
@@ -179,6 +190,13 @@ def main() -> int:
         image_id=args.image_id,
         today=args.today,
     )
+    stale = find_stale_exceptions(findings, exceptions)
+    if stale:
+        formatted = ", ".join(f"{package}/{cve}" for package, cve in stale)
+        raise PolicyFailure(
+            "stale vulnerability exceptions must be removed: " + formatted
+        )
+
     blocked, accepted = evaluate(findings, exceptions)
 
     for finding in accepted:
