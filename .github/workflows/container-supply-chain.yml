@@ -1,0 +1,62 @@
+name: Container Supply Chain
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "security/container-images.json"
+      - "security/vulnerability-exceptions.json"
+      - "scripts/validate-container-supply-chain.py"
+      - "tests/test_container_supply_chain_policy.py"
+      - "services/device-agent/Dockerfile"
+      - "services/telemetry-service/Dockerfile"
+      - "infrastructure/mqtt/dynamic-security/Dockerfile"
+      - ".github/workflows/container-supply-chain.yml"
+  push:
+    branches: [main]
+    paths:
+      - "security/container-images.json"
+      - "security/vulnerability-exceptions.json"
+      - "scripts/validate-container-supply-chain.py"
+      - "tests/test_container_supply_chain_policy.py"
+      - "services/device-agent/Dockerfile"
+      - "services/telemetry-service/Dockerfile"
+      - "infrastructure/mqtt/dynamic-security/Dockerfile"
+      - ".github/workflows/container-supply-chain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-supply-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate image inventory and exceptions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependency
+        run: python -m pip install pytest==8.4.2
+
+      - name: Validate supply-chain policy
+        run: python scripts/validate-container-supply-chain.py
+
+      - name: Run policy regression tests
+        run: python -m pytest -q tests/test_container_supply_chain_policy.py
+
+      - name: Reject secret-like material
+        run: |
+          ! grep -ER --exclude='*.pyc' \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            security scripts/validate-container-supply-chain.py tests/test_container_supply_chain_policy.py
