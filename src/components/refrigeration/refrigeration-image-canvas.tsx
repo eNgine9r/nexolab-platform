@@ -7,7 +7,7 @@ import type {
   SyntheticEvent,
 } from "react";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useCallback, useId, useSyncExternalStore } from "react";
 import { clsx } from "clsx";
 import { ImageIcon, Minus, Plus, Scan } from "lucide-react";
 
@@ -47,6 +47,9 @@ const MIN_SCALE_PERCENT = 60;
 const MAX_SCALE_PERCENT = 160;
 const SCALE_STEP_PERCENT = 10;
 const DEFAULT_SCALE_PERCENT = 80;
+const SCALE_CHANGE_EVENT = "nexolab:refrigeration:image-scale-change";
+const scaleMemory = new Map<string, number>();
+const volatileScaleKeys = new Set<string>();
 
 export function RefrigerationImageCanvas({
   equipmentId,
@@ -66,12 +69,19 @@ export function RefrigerationImageCanvas({
   onImageDimensions,
 }: RefrigerationImageCanvasProps) {
   const sliderId = useId();
-  const [scalePercent, setScalePercent] = useState(() => readStoredScale(equipmentId));
+  const subscribeToScale = useCallback(
+    (onStoreChange: () => void) => subscribeToStoredScale(equipmentId, onStoreChange),
+    [equipmentId],
+  );
+  const getScaleSnapshot = useCallback(() => readStoredScale(equipmentId), [equipmentId]);
+  const scalePercent = useSyncExternalStore(
+    subscribeToScale,
+    getScaleSnapshot,
+    getDefaultScaleSnapshot,
+  );
 
   const updateScale = (nextValue: number) => {
-    const nextScale = clampScale(nextValue);
-    setScalePercent(nextScale);
-    storeScale(equipmentId, nextScale);
+    storeScale(equipmentId, clampScale(nextValue));
   };
 
   const aspectRatio =
@@ -224,7 +234,9 @@ export function RefrigerationImageCanvas({
                     style={{ left: `${placement.x * 100}%`, top: `${placement.y * 100}%` }}
                   >
                     <span className="block">{sensor.label}</span>
-                    <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
+                    <span className="block font-semibold">
+                      {formatTemperature(sensor.temperatureC)}
+                    </span>
                   </button>
                 );
               })}
@@ -256,7 +268,9 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
           <ImageIcon className="h-7 w-7" />
         </div>
-        <p className="mt-4 text-sm font-medium text-slate-200">Завантажте реальне фото вітрини</p>
+        <p className="mt-4 text-sm font-medium text-slate-200">
+          Завантажте реальне фото вітрини
+        </p>
         <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
           {equipmentName}: JPEG, PNG або WebP до 15 МБ. Розміщення датчиків збережеться при заміні
           зображення.
@@ -277,21 +291,64 @@ function clampScale(value: number): number {
   );
 }
 
+function getDefaultScaleSnapshot(): number {
+  return DEFAULT_SCALE_PERCENT;
+}
+
+function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void): () => void {
+  const key = scaleStorageKey(equipmentId);
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== key) return;
+    volatileScaleKeys.delete(key);
+    if (event.newValue === null) {
+      scaleMemory.delete(key);
+    } else {
+      scaleMemory.set(key, clampScale(Number(event.newValue)));
+    }
+    onStoreChange();
+  };
+  const handleLocalChange = (event: Event) => {
+    if (event instanceof CustomEvent && event.detail === key) onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(SCALE_CHANGE_EVENT, handleLocalChange);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(SCALE_CHANGE_EVENT, handleLocalChange);
+  };
+}
+
 function readStoredScale(equipmentId: string): number {
+  const key = scaleStorageKey(equipmentId);
+  if (volatileScaleKeys.has(key)) {
+    return scaleMemory.get(key) ?? DEFAULT_SCALE_PERCENT;
+  }
+
   try {
-    const storedValue = window.localStorage.getItem(scaleStorageKey(equipmentId));
-    return storedValue === null ? DEFAULT_SCALE_PERCENT : clampScale(Number(storedValue));
+    const storedValue = window.localStorage.getItem(key);
+    if (storedValue === null) {
+      scaleMemory.delete(key);
+      return DEFAULT_SCALE_PERCENT;
+    }
+    const scale = clampScale(Number(storedValue));
+    scaleMemory.set(key, scale);
+    return scale;
   } catch {
-    return DEFAULT_SCALE_PERCENT;
+    return scaleMemory.get(key) ?? DEFAULT_SCALE_PERCENT;
   }
 }
 
 function storeScale(equipmentId: string, scalePercent: number): void {
+  const key = scaleStorageKey(equipmentId);
+  scaleMemory.set(key, scalePercent);
   try {
-    window.localStorage.setItem(scaleStorageKey(equipmentId), String(scalePercent));
+    window.localStorage.setItem(key, String(scalePercent));
+    volatileScaleKeys.delete(key);
   } catch {
-    // View preferences must not block the operational layout editor.
+    volatileScaleKeys.add(key);
   }
+  window.dispatchEvent(new CustomEvent(SCALE_CHANGE_EVENT, { detail: key }));
 }
 
 function scaleStorageKey(equipmentId: string): string {

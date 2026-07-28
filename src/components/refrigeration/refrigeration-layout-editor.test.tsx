@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import {
   type RefrigerationLayoutRepository,
 } from "@/features/refrigeration/layout-repository";
 
+import { RefrigerationImageCanvas } from "./refrigeration-image-canvas";
 import { RefrigerationLayoutEditor, type LayoutEditorMode } from "./refrigeration-layout-editor";
 
 vi.mock("next/image", () => ({
@@ -57,6 +58,38 @@ function EditorHarness({ repository }: { repository?: RefrigerationLayoutReposit
       onModeChange={setMode}
       onSelect={setSelectedId}
       repository={repository}
+    />
+  );
+}
+
+function CanvasHarness({ equipmentId }: { equipmentId: string }) {
+  const equipment = referenceEquipment();
+  const stageRef = useRef<HTMLDivElement>(null);
+  const placementBySensorId = useMemo(
+    () =>
+      new Map(
+        equipment.sensors.map(({ id, x, y }) => [id, { sensorId: id, x, y }] as const),
+      ),
+    [equipment.sensors],
+  );
+
+  return (
+    <RefrigerationImageCanvas
+      equipmentId={equipmentId}
+      equipmentName={equipment.name}
+      image={equipment.image}
+      visibleSensors={equipment.sensors}
+      placementBySensorId={placementBySensorId}
+      selectedId={equipment.sensors[0]?.id ?? null}
+      mode="view"
+      snapMode="none"
+      stageRef={stageRef}
+      onSelect={() => undefined}
+      onMarkerKeyDown={() => undefined}
+      onMarkerPointerDown={() => undefined}
+      onMarkerPointerMove={() => undefined}
+      onMarkerPointerUp={() => undefined}
+      onImageDimensions={() => undefined}
     />
   );
 }
@@ -162,6 +195,44 @@ describe("RefrigerationLayoutEditor", () => {
     expect(window.localStorage.getItem("nexolab:refrigeration:image-scale:showcase-106-01")).toBe(
       "130",
     );
+  });
+
+  it("uses equipment-scoped scale snapshots when the active equipment changes", async () => {
+    window.localStorage.setItem("nexolab:refrigeration:image-scale:showcase-106-01", "120");
+    window.localStorage.setItem("nexolab:refrigeration:image-scale:showcase-115-01", "150");
+
+    const { rerender } = render(<CanvasHarness equipmentId="showcase-106-01" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute(
+        "data-scale-percent",
+        "120",
+      );
+    });
+
+    rerender(<CanvasHarness equipmentId="showcase-115-01" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute(
+        "data-scale-percent",
+        "150",
+      );
+    });
+  });
+
+  it("keeps scale controls operational when persistent storage rejects writes", () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+    });
+
+    render(<CanvasHarness equipmentId="blocked-storage-equipment" />);
+    const stage = screen.getByTestId("equipment-image-stage");
+
+    fireEvent.change(screen.getByRole("slider", { name: "Масштаб фото" }), {
+      target: { value: "140" },
+    });
+
+    expect(setItem).toHaveBeenCalled();
+    expect(stage).toHaveAttribute("data-scale-percent", "140");
+    expect(stage).toHaveStyle({ width: "140%" });
   });
 
   it("previews a validated equipment photo without discarding placements", () => {
