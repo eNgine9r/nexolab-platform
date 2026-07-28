@@ -168,10 +168,20 @@ SET equipment_id = '$EQUIPMENT_ID',
     placements = '[{"sensor_id":"sensor-1","x":0.25,"y":0.35},{"sensor_id":"sensor-2","x":0.75,"y":0.65}]'::jsonb
 WHERE id = '81000000-0000-0000-0000-000000000099';
 
-UPDATE refrigeration_layout_revisions
-SET equipment_id = '$EQUIPMENT_ID',
-    placements = '[{"sensor_id":"sensor-1","x":0.25,"y":0.35},{"sensor_id":"sensor-2","x":0.75,"y":0.65}]'::jsonb
-WHERE id = '82000000-0000-0000-0000-000000000099';
+INSERT INTO refrigeration_layout_revisions (
+  id, organization_id, equipment_id, revision, source_draft_version,
+  image_id, placements, published_by, published_at
+) VALUES (
+  '82000000-0000-0000-0000-000000000098',
+  '$ORGANIZATION_ID',
+  '$EQUIPMENT_ID',
+  1,
+  1,
+  '80000000-0000-0000-0000-000000000099',
+  '[{"sensor_id":"sensor-1","x":0.25,"y":0.35},{"sensor_id":"sensor-2","x":0.75,"y":0.65}]'::jsonb,
+  'dr-browser-operator',
+  '2026-07-28T06:54:00Z'
+);
 SQL
 
 compose run --rm minio-client "
