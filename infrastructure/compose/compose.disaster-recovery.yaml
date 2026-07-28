@@ -1,0 +1,191 @@
+name: nexolab-disaster-recovery-acceptance
+
+x-postgres-environment: &postgres-environment
+  POSTGRES_DB: ${DR_POSTGRES_DB:-nexolab}
+  POSTGRES_USER: ${DR_POSTGRES_USER:-nexolab}
+  POSTGRES_PASSWORD: ${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}
+
+x-minio-environment: &minio-environment
+  MINIO_ROOT_USER: ${DR_MINIO_ROOT_USER:?DR_MINIO_ROOT_USER is required}
+  MINIO_ROOT_PASSWORD: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
+
+x-mqtt-environment: &mqtt-environment
+  NEXOLAB_MQTT_ADMIN_USERNAME: ${DR_MQTT_ADMIN_USERNAME:?DR_MQTT_ADMIN_USERNAME is required}
+  NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dr-healthcheck
+  NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+
+services:
+  source-postgres:
+    image: postgres:16-alpine
+    restart: "no"
+    init: true
+    environment: *postgres-environment
+    volumes:
+      - source-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [dr]
+
+  restore-postgres:
+    image: postgres:16-alpine
+    restart: "no"
+    init: true
+    environment: *postgres-environment
+    volumes:
+      - restore-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [dr]
+
+  source-migrate:
+    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+    build:
+      context: ../../services/telemetry-service
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@source-postgres:5432/${DR_POSTGRES_DB:-nexolab}
+      MQTT_ENABLED: "false"
+      BROKER_CONTROL_ENABLED: "false"
+      OBJECT_STORAGE_BACKEND: disabled
+      RETENTION_ENABLED: "false"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      source-postgres:
+        condition: service_healthy
+    networks: [dr]
+
+  source-minio:
+    image: ${DR_MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    restart: "no"
+    init: true
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment: *minio-environment
+    volumes:
+      - source-object-storage-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [dr]
+
+  restore-minio:
+    image: ${DR_MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    restart: "no"
+    init: true
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment: *minio-environment
+    volumes:
+      - restore-object-storage-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [dr]
+
+  source-mqtt:
+    image: ${DR_MQTT_IMAGE:-nexolab-mqtt-dynamic-security:disaster-recovery}
+    build:
+      context: ../mqtt/dynamic-security
+    restart: "no"
+    init: true
+    environment: *mqtt-environment
+    volumes:
+      - source-mqtt-data:/mosquitto/data
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 3s
+    networks: [dr]
+
+  restore-mqtt:
+    image: ${DR_MQTT_IMAGE:-nexolab-mqtt-dynamic-security:disaster-recovery}
+    build:
+      context: ../mqtt/dynamic-security
+    restart: "no"
+    init: true
+    environment: *mqtt-environment
+    volumes:
+      - restore-mqtt-data:/mosquitto/data
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 3s
+    networks: [dr]
+
+  minio-client:
+    image: ${DR_MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["exit 0"]
+    environment: *minio-environment
+    volumes:
+      - ${DR_WORK_DIR:?DR_WORK_DIR is required}:/work
+    networks: [dr]
+
+  volume-helper:
+    image: python:3.13-alpine
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["exit 0"]
+    volumes:
+      - source-mqtt-data:/source-mqtt:ro
+      - restore-mqtt-data:/restore-mqtt
+      - ${DR_WORK_DIR:?DR_WORK_DIR is required}:/work
+    networks: [dr]
+
+volumes:
+  source-postgres-data:
+    name: ${DR_SOURCE_POSTGRES_VOLUME:-nexolab-dr-source-postgres}
+  restore-postgres-data:
+    name: ${DR_RESTORE_POSTGRES_VOLUME:-nexolab-dr-restore-postgres}
+  source-object-storage-data:
+    name: ${DR_SOURCE_OBJECT_STORAGE_VOLUME:-nexolab-dr-source-object-storage}
+  restore-object-storage-data:
+    name: ${DR_RESTORE_OBJECT_STORAGE_VOLUME:-nexolab-dr-restore-object-storage}
+  source-mqtt-data:
+    name: ${DR_SOURCE_MQTT_VOLUME:-nexolab-dr-source-mqtt}
+  restore-mqtt-data:
+    name: ${DR_RESTORE_MQTT_VOLUME:-nexolab-dr-restore-mqtt}
+
+networks:
+  dr:
+    name: ${DR_NETWORK:-nexolab-disaster-recovery-network}
+    driver: bridge
