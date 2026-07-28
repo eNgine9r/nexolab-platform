@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import os
+import stat
 import tarfile
 from pathlib import Path
 
@@ -33,15 +34,17 @@ def ignore_ownership(path: Path, member: tarfile.TarInfo) -> None:
     os.chmod(path, member.mode & 0o777)
 
 
-def test_archive_is_deterministic_and_round_trips(
+def test_archive_is_deterministic_and_round_trips_root_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     source = tmp_path / "source"
     source.mkdir()
+    source.chmod(0o750)
     (source / "dynamic-security.json").write_text('{"clients":[]}\n', encoding="utf-8")
     nested = source / "state"
     nested.mkdir()
     (nested / "mosquitto.db").write_bytes(b"persistent-state")
+    source_metadata = source.lstat()
 
     first = tmp_path / "first.tar"
     second = tmp_path / "second.tar"
@@ -49,9 +52,22 @@ def test_archive_is_deterministic_and_round_trips(
     volume_archive.create_archive(source, second)
     assert first.read_bytes() == second.read_bytes()
 
+    restored_root: list[tuple[int, int, int]] = []
     monkeypatch.setattr(volume_archive, "apply_ownership", ignore_ownership)
+    monkeypatch.setattr(
+        volume_archive,
+        "apply_root_metadata",
+        lambda destination, metadata: restored_root.append(metadata),
+    )
     destination = tmp_path / "restore"
     volume_archive.extract_archive(first, destination)
+    assert restored_root == [
+        (
+            stat.S_IMODE(source_metadata.st_mode),
+            source_metadata.st_uid,
+            source_metadata.st_gid,
+        )
+    ]
     assert (destination / "dynamic-security.json").read_text(encoding="utf-8") == (
         '{"clients":[]}\n'
     )
@@ -103,6 +119,18 @@ def test_extract_rejects_symlink_member(tmp_path: Path) -> None:
 
     with pytest.raises(volume_archive.VolumeArchiveFailure, match="file or directory"):
         volume_archive.extract_archive(archive_path, tmp_path / "restore")
+
+
+def test_extract_rejects_missing_root_metadata(tmp_path: Path) -> None:
+    archive_path = tmp_path / "legacy.tar"
+    write_tar(archive_path, [("dynamic-security.json", b"state")])
+    destination = tmp_path / "restore"
+
+    with pytest.raises(volume_archive.VolumeArchiveFailure, match="root metadata"):
+        volume_archive.extract_archive(archive_path, destination)
+
+    assert destination.exists()
+    assert list(destination.iterdir()) == []
 
 
 def test_extract_rejects_non_empty_destination(tmp_path: Path) -> None:
