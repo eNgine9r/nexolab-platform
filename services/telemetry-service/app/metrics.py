@@ -71,6 +71,22 @@ def _sample(lines: list[str], name: str, value: int | float | bool) -> None:
     lines.append(f"{PREFIX}{name} {numeric}")
 
 
+def _render_build_info(lines: list[str], service_version: object) -> None:
+    if not isinstance(service_version, str) or not service_version:
+        return
+    escaped = _escape_label(service_version)
+    name = f"{PREFIX}build_info"
+    lines.append(f"# HELP {name} Static build information for the telemetry service.")
+    lines.append(f"# TYPE {name} gauge")
+    lines.append(f'{name}{{version="{escaped}"}} 1')
+
+    # Compatibility alias introduced with the initial observability branch.
+    legacy_name = f"{PREFIX}service_info"
+    lines.append(f"# HELP {legacy_name} Static service information for compatibility.")
+    lines.append(f"# TYPE {legacy_name} gauge")
+    lines.append(f'{legacy_name}{{version="{escaped}"}} 1')
+
+
 def render_prometheus(snapshot: dict[str, Any]) -> str:
     lines: list[str] = []
     resolved = dict(snapshot)
@@ -78,11 +94,7 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
     service_version = resolved.get("service_version") or os.getenv(
         "NEXOLAB_TELEMETRY_VERSION"
     )
-    if isinstance(service_version, str) and service_version:
-        name = f"{PREFIX}service_info"
-        lines.append(f"# HELP {name} Static build information for the telemetry service.")
-        lines.append(f"# TYPE {name} gauge")
-        lines.append(f'{name}{{version="{_escape_label(service_version)}"}} 1')
+    _render_build_info(lines, service_version)
 
     queue_capacity = _positive_integer(resolved.get("queue_capacity"))
     if queue_capacity is None:
