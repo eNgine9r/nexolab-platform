@@ -23,22 +23,40 @@ services:
       - |
         /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
 
-        if NEXOLAB_MQTT_TLS_CA_FILE=/run/secrets/nexolab/mqtt-wrong-ca.pem \
-          /usr/local/bin/nexolab-dynsec-admin list-clients >/tmp/wrong-ca.log 2>&1; then
+        timeout 10 openssl s_client \
+          -connect mqtt:8883 \
+          -servername mqtt \
+          -CAfile /run/secrets/nexolab/mqtt-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt \
+          </dev/null >/tmp/trusted-ca.log 2>&1
+
+        if timeout 10 openssl s_client \
+          -connect mqtt:8883 \
+          -servername mqtt \
+          -CAfile /run/secrets/nexolab/mqtt-wrong-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt \
+          </dev/null >/tmp/wrong-ca.log 2>&1; then
           echo "Untrusted CA was accepted." >&2
           exit 80
         fi
 
-        if NEXOLAB_MQTT_BROKER_HOST=mqtt-wrong-host \
-          /usr/local/bin/nexolab-dynsec-admin list-clients >/tmp/wrong-host.log 2>&1; then
+        if timeout 10 openssl s_client \
+          -connect mqtt-wrong-host:8883 \
+          -servername mqtt-wrong-host \
+          -CAfile /run/secrets/nexolab/mqtt-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt-wrong-host \
+          </dev/null >/tmp/wrong-host.log 2>&1; then
           echo "MQTT hostname mismatch was accepted." >&2
           exit 81
         fi
 
-        if NEXOLAB_MQTT_TLS_REQUIRED=false \
-          NEXOLAB_MQTT_TLS_CA_FILE= \
-          NEXOLAB_MQTT_BROKER_PORT=1883 \
-          /usr/local/bin/nexolab-dynsec-admin list-clients >/tmp/plaintext.log 2>&1; then
+        if timeout 5 openssl s_client \
+          -connect mqtt:1883 \
+          -servername mqtt \
+          </dev/null >/tmp/plaintext.log 2>&1; then
           echo "Plaintext MQTT listener was available." >&2
           exit 82
         fi
