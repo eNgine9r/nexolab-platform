@@ -297,7 +297,7 @@ SOURCE_OBJECTS_SHA="$(sha256sum "$PAYLOAD_DIR/object-storage/objects.json" | awk
 
 compose stop source-mqtt
 compose run --rm volume-helper \
-  "python /opt/nexolab/scripts/nexolab-volume-archive.py create --source /source-mqtt --output /work/payload/mqtt/mosquitto-data.tar"
+  "python /opt/nexolab/scripts/nexolab-volume-archive.py create --source /source-mqtt --output /work/payload/mqtt/mosquitto-data.tar && chown $(id -u):$(id -g) /work/payload/mqtt/mosquitto-data.tar && chmod 0600 /work/payload/mqtt/mosquitto-data.tar"
 test -s "$PAYLOAD_DIR/mqtt/mosquitto-data.tar"
 compose start source-mqtt
 for _ in $(seq 1 60); do
