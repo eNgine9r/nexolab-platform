@@ -74,6 +74,7 @@ class TelemetryIngestor:
         self._database_retry_initial_seconds = database_retry_initial_seconds
         self._database_retry_max_seconds = database_retry_max_seconds
         self._queue: Queue[PersistenceWork] = Queue(maxsize=queue_maxsize)
+        self._state.set_queue_capacity(self._queue.maxsize)
         self._stop = Event()
         self._abort = Event()
         self._worker = Thread(
