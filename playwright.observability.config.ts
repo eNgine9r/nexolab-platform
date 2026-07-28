@@ -17,23 +17,14 @@ export default defineConfig({
   expect: {
     timeout: 20_000,
   },
-  reporter: [
-    ["line"],
-    [
-      "html",
-      {
-        outputFolder: path.join(evidenceDirectory, "playwright-report"),
-        open: "never",
-      },
-    ],
-  ],
+  reporter: [["line"]],
   outputDir: path.join(evidenceDirectory, "browser-test-results"),
   use: {
     baseURL: grafanaUrl,
     headless: true,
     screenshot: "only-on-failure",
-    trace: "retain-on-failure",
-    video: "retain-on-failure",
+    trace: "off",
+    video: "off",
   },
   projects: [
     {
