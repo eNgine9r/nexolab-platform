@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 1m
+
+route:
+  receiver: nexolab-local-audit
+  group_by:
+    - alertname
+    - service
+    - severity
+  group_wait: 5s
+  group_interval: 30s
+  repeat_interval: 4h
+
+receivers:
+  - name: nexolab-local-audit
+    webhook_configs:
+      - url: http://observability-alert-sink:8080/alerts
+        send_resolved: true
+        max_alerts: 0
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal:
+      - service
+      - slo
