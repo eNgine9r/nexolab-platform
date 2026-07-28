@@ -92,7 +92,9 @@ jobs:
           python-version: "3.13"
 
       - name: Run restored MQTT TLS fleet acceptance
-        run: bash scripts/run-disaster-recovery-tls-fleet.sh
+        run: |
+          chmod +x scripts/generate-mqtt-tls-acceptance-material.sh
+          bash scripts/run-disaster-recovery-tls-fleet.sh
 
       - name: Upload sanitized TLS fleet evidence
         if: success()
