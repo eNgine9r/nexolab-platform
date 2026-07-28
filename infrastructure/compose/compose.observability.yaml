@@ -1,0 +1,149 @@
+services:
+  telemetry-service:
+    environment:
+      NEXOLAB_TELEMETRY_VERSION: ${NEXOLAB_TELEMETRY_VERSION:-0.15.0}
+
+  observability-alert-sink:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    init: true
+    command: ["python", "/opt/nexolab/scripts/observability-alert-sink.py"]
+    environment:
+      NEXOLAB_ALERT_SINK_PATH: /var/lib/nexolab-alerts/events.jsonl
+    volumes:
+      - ../../scripts/observability-alert-sink.py:/opt/nexolab/scripts/observability-alert-sink.py:ro
+      - observability-alert-events:/var/lib/nexolab-alerts
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 3s
+    networks: [central]
+
+  observability-textfile:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    init: true
+    command: ["python", "/opt/nexolab/scripts/serve-prometheus-textfile.py"]
+    environment:
+      NEXOLAB_TEXTFILE_PATH: /var/lib/nexolab-observability/disaster-recovery.prom
+    volumes:
+      - ../../scripts/serve-prometheus-textfile.py:/opt/nexolab/scripts/serve-prometheus-textfile.py:ro
+      - ${OBSERVABILITY_TEXTFILE_DIR:-../../runtime/observability}:/var/lib/nexolab-observability:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:9109/health', timeout=3)
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 3s
+    networks: [central]
+
+  alertmanager:
+    image: prom/alertmanager:v0.32.1
+    restart: unless-stopped
+    init: true
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=0.0.0.0:9093
+    ports:
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ../observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - observability-alertmanager-data:/alertmanager
+    depends_on:
+      observability-alert-sink:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9093/-/ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 3s
+    networks: [central]
+
+  prometheus:
+    image: prom/prometheus:v3.13.0
+    restart: unless-stopped
+    init: true
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-15d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-8GB}
+      - --web.listen-address=0.0.0.0:9090
+    ports:
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observability/prometheus/rules:/etc/prometheus/rules:ro
+      - observability-prometheus-data:/prometheus
+    depends_on:
+      telemetry-service:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+      observability-alert-sink:
+        condition: service_healthy
+      observability-textfile:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9090/-/ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 5s
+    networks: [central]
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    restart: unless-stopped
+    init: true
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-nexolab-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_ORG_CREATE: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_LOG_MODE: console
+    ports:
+      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - observability-grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health"]
+      interval: 5s
+      timeout: 4s
+      retries: 18
+      start_period: 10s
+    networks: [central]
+
+volumes:
+  observability-prometheus-data:
+    name: nexolab-observability-prometheus-data
+  observability-alertmanager-data:
+    name: nexolab-observability-alertmanager-data
+  observability-grafana-data:
+    name: nexolab-observability-grafana-data
+  observability-alert-events:
+    name: nexolab-observability-alert-events

@@ -1,0 +1,14 @@
+apiVersion: 1
+
+providers:
+  - name: NEXOLAB Operator Monitoring
+    orgId: 1
+    folder: NEXOLAB
+    folderUid: nexolab
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

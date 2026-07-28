@@ -1,0 +1,268 @@
+name: Observability
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/observability.yml"
+      - "e2e/observability.production.e2e.ts"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.observability.yaml"
+      - "infrastructure/observability/**"
+      - "playwright.observability.config.ts"
+      - "scripts/observability-alert-sink.py"
+      - "scripts/run-observability-acceptance.sh"
+      - "scripts/serve-prometheus-textfile.py"
+      - "scripts/validate-observability.py"
+      - "services/telemetry-service/app/metrics.py"
+      - "services/telemetry-service/tests/test_metrics.py"
+      - "tests/test_observability_policy.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/observability.yml"
+      - "e2e/observability.production.e2e.ts"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.observability.yaml"
+      - "infrastructure/observability/**"
+      - "playwright.observability.config.ts"
+      - "scripts/observability-alert-sink.py"
+      - "scripts/run-observability-acceptance.sh"
+      - "scripts/serve-prometheus-textfile.py"
+      - "scripts/validate-observability.py"
+      - "services/telemetry-service/app/metrics.py"
+      - "services/telemetry-service/tests/test_metrics.py"
+      - "tests/test_observability_policy.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate observability policy and configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install policy test dependencies
+        run: python -m pip install --disable-pip-version-check pytest pyyaml
+
+      - name: Validate repository observability policy
+        run: |
+          set +e
+          {
+            validator_status=0
+            python scripts/validate-observability.py || validator_status=$?
+            if [ "$validator_status" -eq 0 ]; then
+              python -m pytest -q tests/test_observability_policy.py || validator_status=$?
+            fi
+            if [ "$validator_status" -eq 0 ]; then
+              python -m py_compile \
+                scripts/observability-alert-sink.py \
+                scripts/serve-prometheus-textfile.py \
+                scripts/validate-observability.py || validator_status=$?
+            fi
+            printf 'exit_status=%s\n' "$validator_status"
+            exit "$validator_status"
+          } 2>&1 | tee observability-policy-diagnostics.txt
+          validator_status=${PIPESTATUS[0]}
+          exit "$validator_status"
+
+      - name: Upload sanitized policy diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-policy-diagnostics-${{ github.sha }}
+          path: observability-policy-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Validate Prometheus configuration and rules
+        run: |
+          docker run --rm \
+            --entrypoint /bin/promtool \
+            -v "$PWD/infrastructure/observability/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v3.13.0 \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Alertmanager configuration
+        run: |
+          docker run --rm \
+            --entrypoint /bin/amtool \
+            -v "$PWD/infrastructure/observability/alertmanager:/etc/alertmanager:ro" \
+            prom/alertmanager:v0.32.1 \
+            check-config /etc/alertmanager/alertmanager.yml
+
+      - name: Validate Compose topology
+        env:
+          POSTGRES_PASSWORD: validation
+          MINIO_ROOT_USER: validation
+          MINIO_ROOT_PASSWORD: validation-password
+          GRAFANA_ADMIN_PASSWORD: validation-password
+          OBSERVABILITY_TEXTFILE_DIR: /tmp/nexolab-observability
+        run: |
+          mkdir -p "$OBSERVABILITY_TEXTFILE_DIR"
+          touch "$OBSERVABILITY_TEXTFILE_DIR/disaster-recovery.prom"
+          docker compose \
+            -f infrastructure/compose/compose.central.yaml \
+            -f infrastructure/compose/compose.observability.yaml \
+            config --quiet
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            e2e/observability.production.e2e.ts \
+            infrastructure/observability \
+            infrastructure/compose/compose.observability.yaml \
+            playwright.observability.config.ts \
+            scripts/observability-alert-sink.py \
+            scripts/run-observability-acceptance.sh \
+            scripts/serve-prometheus-textfile.py \
+            scripts/validate-observability.py \
+            tests/test_observability_policy.py
+
+  runtime:
+    name: Verify targets, alerts and Grafana in Chromium
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexolab-observability-${{ github.run_id }}-${{ github.run_attempt }}
+      KEEP_OBSERVABILITY_STACK: "1"
+      HUSKY: "0"
+      GRAFANA_ADMIN_USER: nexolab-admin
+      MINIO_ROOT_USER: nexolab-observability
+      OBSERVABILITY_API_PORT: "18082"
+      OBSERVABILITY_MQTT_PORT: "11884"
+      OBSERVABILITY_OBJECT_STORAGE_PORT: "19000"
+      OBSERVABILITY_OBJECT_STORAGE_CONSOLE_PORT: "19001"
+      OBSERVABILITY_PROMETHEUS_PORT: "19090"
+      OBSERVABILITY_ALERTMANAGER_PORT: "19093"
+      OBSERVABILITY_GRAFANA_PORT: "13030"
+      NEXOLAB_OBSERVABILITY_GRAFANA_URL: http://127.0.0.1:13030
+      NEXOLAB_OBSERVABILITY_EVIDENCE_DIR: test-results-observability
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Generate temporary acceptance credentials
+        run: |
+          for variable in POSTGRES_PASSWORD MINIO_ROOT_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+            value="$(openssl rand -hex 24)"
+            printf '::add-mask::%s\n' "$value"
+            printf '%s=%s\n' "$variable" "$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Run production-like observability acceptance
+        run: bash scripts/run-observability-acceptance.sh
+
+      - name: Reject Grafana background plugin installation
+        run: |
+          ! grep -Eq \
+            'Plugin successfully installed|Installing plugin' \
+            test-results-observability/services.log
+
+      - name: Warm post-recovery telemetry and recording rules
+        run: |
+          event_id="$(python3 -c 'import uuid; print(uuid.uuid4())')"
+          captured_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          payload="$(python3 - "$event_id" "$captured_at" <<'PY'
+          import json
+          import sys
+
+          print(json.dumps({
+              "event_id": sys.argv[1],
+              "node_id": "observability-edge-01",
+              "captured_at": sys.argv[2],
+              "metric": "temperature.probe",
+              "value": 4.3,
+              "unit": "degC",
+              "quality": "valid",
+              "source": "observability-browser-warmup",
+              "equipment_id": "monitoring-case-01",
+              "channel_id": "monitoring-01",
+              "alarm": None,
+              "raw_value": 43,
+              "raw_status": None,
+          }, separators=(",", ":")))
+          PY
+          )"
+          docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            exec -T mqtt mosquitto_pub -h mqtt -t nexolab/telemetry -m "$payload"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18082/metrics \
+              | grep -q 'nexolab_telemetry_persisted_total 1'; then
+              break
+            fi
+            sleep 1
+          done
+          sleep 15
+
+      - name: Install Chromium acceptance dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Verify Grafana operator dashboard in Chromium
+        run: npx playwright test --config=playwright.observability.config.ts
+
+      - name: Reject generated credentials in browser evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          root = Path("test-results-observability")
+          secrets = [
+              os.environ.get("POSTGRES_PASSWORD", ""),
+              os.environ.get("MINIO_ROOT_PASSWORD", ""),
+              os.environ.get("GRAFANA_ADMIN_PASSWORD", ""),
+          ]
+          for path in root.rglob("*") if root.is_dir() else []:
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="replace")
+              for secret in secrets:
+                  if secret and secret in text:
+                      raise SystemExit(f"generated credential found in evidence: {path}")
+          PY
+
+      - name: Stop isolated observability stack
+        if: always()
+        run: |
+          docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            down --volumes --remove-orphans
+
+      - name: Upload sanitized observability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-runtime-evidence-${{ github.sha }}
+          path: test-results-observability
+          if-no-files-found: warn
+          retention-days: 14
