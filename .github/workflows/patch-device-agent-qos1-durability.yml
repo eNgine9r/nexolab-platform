@@ -27,12 +27,14 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          from textwrap import dedent, indent
 
           path = Path("services/device-agent/main.py")
           source = path.read_text(encoding="utf-8")
           start = source.index("    def publish_or_queue(self, record: TelemetryRecord) -> bool:\n")
           end = source.index("    def run(self) -> None:\n", start)
-          replacement = '''    def publish_or_queue(self, record: TelemetryRecord) -> bool:
+          methods = dedent('''\
+          def publish_or_queue(self, record: TelemetryRecord) -> bool:
               payload_data = asdict(record)
               if self.settings.organization_id is not None:
                   payload_data["node_sequence"] = self.queue.next_sequence("telemetry")
@@ -50,7 +52,7 @@ jobs:
                   return False
               return self.flush_queue()
 
-              def flush_queue(self) -> bool:
+          def flush_queue(self) -> bool:
               if not self.state.mqtt_connected:
                   return False
 
@@ -80,14 +82,8 @@ jobs:
                   )
               return True
 
-          '''
-          # Build exact four-space method indentation independently of YAML heredoc.
-          normalized = []
-          for raw_line in replacement.splitlines():
-              line = raw_line[4:] if raw_line.startswith("    ") else raw_line
-              normalized.append(line)
-          block = "\n".join(normalized) + "\n"
-          block = block.replace("\n        def flush_queue", "\n    def flush_queue", 1)
+          ''')
+          block = indent(methods, "    ")
           path.write_text(source[:start] + block + source[end:], encoding="utf-8")
           PY
 
@@ -140,7 +136,7 @@ jobs:
                   result.is_published.return_value = acknowledged
                   return result
 
-              def make_agent(self) -> tuple[DeviceAgent, tempfile.TemporaryDirectory[str]]:
+              def make_agent(self) -> DeviceAgent:
                   temporary_directory = tempfile.TemporaryDirectory()
                   self.addCleanup(temporary_directory.cleanup)
                   database_path = Path(temporary_directory.name) / "edge.db"
@@ -149,10 +145,10 @@ jobs:
                   agent.state = AgentState()
                   agent.client = Mock()
                   agent.queue = OfflineQueue(database_path)
-                  return agent, temporary_directory
+                  return agent
 
               def test_record_is_persisted_before_network_publish(self) -> None:
-                  agent, _ = self.make_agent()
+                  agent = self.make_agent()
                   agent.state.update(mqtt_connected=True)
                   result = self.publish_result(acknowledged=True)
 
@@ -170,7 +166,7 @@ jobs:
                   result.is_published.assert_called_once_with()
 
               def test_unacknowledged_qos1_publish_remains_in_outbox(self) -> None:
-                  agent, _ = self.make_agent()
+                  agent = self.make_agent()
                   agent.state.update(mqtt_connected=True)
                   result = self.publish_result(acknowledged=False)
                   agent.client.publish.return_value = result
@@ -184,7 +180,7 @@ jobs:
                   self.assertEqual(json.loads(rows[0][2])["node_sequence"], 1)
 
               def test_disconnected_sample_is_persisted_without_publish(self) -> None:
-                  agent, _ = self.make_agent()
+                  agent = self.make_agent()
                   agent.state.update(mqtt_connected=False)
 
                   published = DeviceAgent.publish_or_queue(agent, self.record("event-1"))
