@@ -1,6 +1,11 @@
 name: Patch DR Failure Line
 
 on:
+  push:
+    branches:
+      - feat/m7-disaster-recovery-gate
+    paths:
+      - ".github/workflows/patch-dr-failure-line.yml"
   pull_request:
     branches: [main]
     paths:
@@ -9,6 +14,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: patch-dr-failure-line
+  cancel-in-progress: false
 
 jobs:
   patch:
@@ -23,8 +32,9 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path("scripts/run-disaster-recovery-acceptance.sh")
-          content = path.read_text(encoding="utf-8")
+
+          script = Path("scripts/run-disaster-recovery-acceptance.sh")
+          content = script.read_text(encoding="utf-8")
           old = 'trap cleanup EXIT\n\nfor command in docker python3 git sha256sum stat; do'
           new = '''trap cleanup EXIT
 
@@ -39,16 +49,31 @@ trap record_failure_line ERR
 for command in docker python3 git sha256sum stat; do'''
           if content.count(old) != 1:
               raise SystemExit("Expected failure instrumentation anchor exactly once")
-          path.write_text(content.replace(old, new), encoding="utf-8")
+          script.write_text(content.replace(old, new), encoding="utf-8")
+
+          workflow = Path(".github/workflows/disaster-recovery-acceptance.yml")
+          content = workflow.read_text(encoding="utf-8")
+          old = '''            test-results-disaster-recovery/application-compose-ps.txt
+            test-results-disaster-recovery/application-services.log'''
+          new = '''            test-results-disaster-recovery/application-compose-ps.txt
+            test-results-disaster-recovery/application-services.log
+            test-results-disaster-recovery/failure-location.txt'''
+          if content.count(old) != 1:
+              raise SystemExit("Expected failure artifact anchor exactly once")
+          workflow.write_text(content.replace(old, new), encoding="utf-8")
           PY
 
-      - name: Validate shell
-        run: bash -n scripts/run-disaster-recovery-acceptance.sh
+      - name: Validate instrumentation
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          grep -q 'failure-location.txt' .github/workflows/disaster-recovery-acceptance.yml
 
       - name: Commit instrumentation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/run-disaster-recovery-acceptance.sh
+          git add \
+            scripts/run-disaster-recovery-acceptance.sh \
+            .github/workflows/disaster-recovery-acceptance.yml
           git commit -m "test: record sanitized DR failure location"
           git push origin HEAD:feat/m7-disaster-recovery-gate
