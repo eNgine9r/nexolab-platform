@@ -1,0 +1,140 @@
+name: Disaster Recovery Browser
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-browser.yml"
+      - "e2e/disaster-recovery.production.e2e.ts"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/compose/compose.disaster-recovery-browser.yaml"
+      - "playwright.disaster-recovery.config.ts"
+      - "scripts/disaster-recovery-domain-fixtures.sql"
+      - "scripts/run-disaster-recovery-browser.sh"
+      - "services/telemetry-service/**"
+      - "src/app/nodes/**"
+      - "src/app/reports/**"
+      - "src/app/refrigeration/**"
+      - "src/components/nodes/**"
+      - "src/components/reports/**"
+      - "src/components/refrigeration/**"
+      - "src/features/refrigeration/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-browser.yml"
+      - "e2e/disaster-recovery.production.e2e.ts"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/compose/compose.disaster-recovery-browser.yaml"
+      - "playwright.disaster-recovery.config.ts"
+      - "scripts/disaster-recovery-domain-fixtures.sql"
+      - "scripts/run-disaster-recovery-browser.sh"
+      - "services/telemetry-service/**"
+      - "src/app/nodes/**"
+      - "src/app/reports/**"
+      - "src/app/refrigeration/**"
+      - "src/components/nodes/**"
+      - "src/components/reports/**"
+      - "src/components/refrigeration/**"
+      - "src/features/refrigeration/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disaster-recovery-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate restored browser topology and contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate shell, types and Compose
+        env:
+          DR_POSTGRES_PASSWORD: validation
+          DR_MINIO_ROOT_USER: validation
+          DR_MINIO_ROOT_PASSWORD: validation
+          DR_MQTT_ADMIN_USERNAME: validation
+          DR_SECRETS_DIR: /tmp/nexolab-dr-browser-secrets
+          DR_WORK_DIR: /tmp/nexolab-dr-browser-work
+        run: |
+          bash -n scripts/run-disaster-recovery-browser.sh
+          npx tsc --noEmit --pretty false --project tsconfig.json
+          docker compose \
+            -f infrastructure/compose/compose.disaster-recovery.yaml \
+            -f infrastructure/compose/compose.disaster-recovery-browser.yaml \
+            config --quiet
+
+      - name: Reject demo fallback and secret-like material
+        run: |
+          grep -q 'NEXT_PUBLIC_NEXOLAB_DATA_MODE="live"' \
+            scripts/run-disaster-recovery-browser.sh
+          grep -q 'Чернетка v1 · PostgreSQL' \
+            e2e/disaster-recovery.production.e2e.ts
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(^|[^A-Z0-9_])(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|MQTT_PASSWORD)=' \
+            infrastructure/compose/compose.disaster-recovery-browser.yaml \
+            scripts/run-disaster-recovery-browser.sh \
+            e2e/disaster-recovery.production.e2e.ts
+
+  runtime:
+    name: Restore state and verify operator routes in Chromium
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run restored operator browser acceptance
+        run: bash scripts/run-disaster-recovery-browser.sh
+
+      - name: Upload sanitized browser evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-browser-evidence-${{ github.sha }}
+          path: test-results-disaster-recovery-browser
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload sanitized browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-browser-failure-${{ github.sha }}
+          path: |
+            test-results-disaster-recovery-browser/compose-ps.txt
+            test-results-disaster-recovery-browser/services.log
+            test-results-disaster-recovery-browser/frontend.log
+            test-results-disaster-recovery-browser/playwright
+            playwright-report-disaster-recovery
+          if-no-files-found: warn
+          retention-days: 3
