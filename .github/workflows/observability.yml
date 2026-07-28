@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/observability.yml"
+      - "e2e/observability.production.e2e.ts"
       - "infrastructure/compose/compose.central.yaml"
       - "infrastructure/compose/compose.observability.yaml"
       - "infrastructure/observability/**"
+      - "playwright.observability.config.ts"
       - "scripts/observability-alert-sink.py"
       - "scripts/run-observability-acceptance.sh"
       - "scripts/serve-prometheus-textfile.py"
@@ -19,9 +21,11 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/observability.yml"
+      - "e2e/observability.production.e2e.ts"
       - "infrastructure/compose/compose.central.yaml"
       - "infrastructure/compose/compose.observability.yaml"
       - "infrastructure/observability/**"
+      - "playwright.observability.config.ts"
       - "scripts/observability-alert-sink.py"
       - "scripts/run-observability-acceptance.sh"
       - "scripts/serve-prometheus-textfile.py"
@@ -120,8 +124,10 @@ jobs:
         run: |
           ! grep -ER \
             'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            e2e/observability.production.e2e.ts \
             infrastructure/observability \
             infrastructure/compose/compose.observability.yaml \
+            playwright.observability.config.ts \
             scripts/observability-alert-sink.py \
             scripts/run-observability-acceptance.sh \
             scripts/serve-prometheus-textfile.py \
@@ -129,18 +135,89 @@ jobs:
             tests/test_observability_policy.py
 
   runtime:
-    name: Verify targets, dashboard and alert lifecycle
+    name: Verify targets, alerts and Grafana in Chromium
     needs: policy
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
+      COMPOSE_PROJECT_NAME: nexolab-observability-${{ github.run_id }}-${{ github.run_attempt }}
+      KEEP_OBSERVABILITY_STACK: "1"
+      HUSKY: "0"
+      GRAFANA_ADMIN_USER: nexolab-admin
+      MINIO_ROOT_USER: nexolab-observability
+      OBSERVABILITY_API_PORT: "18082"
+      OBSERVABILITY_MQTT_PORT: "11884"
+      OBSERVABILITY_OBJECT_STORAGE_PORT: "19000"
+      OBSERVABILITY_OBJECT_STORAGE_CONSOLE_PORT: "19001"
+      OBSERVABILITY_PROMETHEUS_PORT: "19090"
+      OBSERVABILITY_ALERTMANAGER_PORT: "19093"
+      OBSERVABILITY_GRAFANA_PORT: "13030"
+      NEXOLAB_OBSERVABILITY_GRAFANA_URL: http://127.0.0.1:13030
       NEXOLAB_OBSERVABILITY_EVIDENCE_DIR: test-results-observability
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Generate temporary acceptance credentials
+        run: |
+          for variable in POSTGRES_PASSWORD MINIO_ROOT_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+            value="$(openssl rand -hex 24)"
+            printf '::add-mask::%s\n' "$value"
+            printf '%s=%s\n' "$variable" "$value" >> "$GITHUB_ENV"
+          done
+
       - name: Run production-like observability acceptance
         run: bash scripts/run-observability-acceptance.sh
+
+      - name: Reject Grafana background plugin installation
+        run: |
+          ! grep -Eq \
+            'Plugin successfully installed|Installing plugin' \
+            test-results-observability/services.log
+
+      - name: Install Chromium acceptance dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Verify Grafana operator dashboard in Chromium
+        run: npx playwright test --config=playwright.observability.config.ts
+
+      - name: Reject generated credentials in browser evidence
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          root = Path("test-results-observability")
+          secrets = [
+              os.environ.get("POSTGRES_PASSWORD", ""),
+              os.environ.get("MINIO_ROOT_PASSWORD", ""),
+              os.environ.get("GRAFANA_ADMIN_PASSWORD", ""),
+          ]
+          for path in root.rglob("*") if root.is_dir() else []:
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="replace")
+              for secret in secrets:
+                  if secret and secret in text:
+                      raise SystemExit(f"generated credential found in evidence: {path}")
+          PY
+
+      - name: Stop isolated observability stack
+        if: always()
+        run: |
+          docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            down --volumes --remove-orphans
 
       - name: Upload sanitized observability evidence
         if: always()
