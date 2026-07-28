@@ -49,6 +49,7 @@ const SCALE_STEP_PERCENT = 10;
 const DEFAULT_SCALE_PERCENT = 80;
 const SCALE_CHANGE_EVENT = "nexolab:refrigeration:image-scale-change";
 const scaleMemory = new Map<string, number>();
+const volatileScaleKeys = new Set<string>();
 
 export function RefrigerationImageCanvas({
   equipmentId,
@@ -298,6 +299,7 @@ function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void):
   const key = scaleStorageKey(equipmentId);
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== key) return;
+    volatileScaleKeys.delete(key);
     if (event.newValue === null) {
       scaleMemory.delete(key);
     } else {
@@ -319,16 +321,21 @@ function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void):
 
 function readStoredScale(equipmentId: string): number {
   const key = scaleStorageKey(equipmentId);
-  const remembered = scaleMemory.get(key);
-  if (remembered !== undefined) return remembered;
+  if (volatileScaleKeys.has(key)) {
+    return scaleMemory.get(key) ?? DEFAULT_SCALE_PERCENT;
+  }
 
   try {
     const storedValue = window.localStorage.getItem(key);
-    const scale = storedValue === null ? DEFAULT_SCALE_PERCENT : clampScale(Number(storedValue));
+    if (storedValue === null) {
+      scaleMemory.delete(key);
+      return DEFAULT_SCALE_PERCENT;
+    }
+    const scale = clampScale(Number(storedValue));
     scaleMemory.set(key, scale);
     return scale;
   } catch {
-    return DEFAULT_SCALE_PERCENT;
+    return scaleMemory.get(key) ?? DEFAULT_SCALE_PERCENT;
   }
 }
 
@@ -337,8 +344,9 @@ function storeScale(equipmentId: string, scalePercent: number): void {
   scaleMemory.set(key, scalePercent);
   try {
     window.localStorage.setItem(key, String(scalePercent));
+    volatileScaleKeys.delete(key);
   } catch {
-    // View preferences must not block the operational layout editor.
+    volatileScaleKeys.add(key);
   }
   window.dispatchEvent(new CustomEvent(SCALE_CHANGE_EVENT, { detail: key }));
 }
