@@ -34,14 +34,14 @@ services:
       OBJECT_STORAGE_SECRET_ACCESS_KEY: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
       OBJECT_STORAGE_FORCE_PATH_STYLE: "true"
       RETENTION_ENABLED: "false"
-    ports:
+    ports: !override
       - "127.0.0.1:${DR_BROWSER_API_PORT:-8098}:8082"
-    depends_on:
+    depends_on: !override
       restore-postgres:
         condition: service_healthy
       restore-minio:
         condition: service_healthy
 
   restore-minio:
-    ports:
+    ports: !override
       - "127.0.0.1:${DR_BROWSER_MINIO_PORT:-9014}:9000"
