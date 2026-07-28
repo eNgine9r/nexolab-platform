@@ -59,6 +59,48 @@ jobs:
                   check=True,
               )
 
+          adapter_path = Path(
+              "services/telemetry-service/app/nodes/broker_adapter.py"
+          )
+          adapter = adapter_path.read_text(encoding="utf-8")
+          marker = "self._tls_config = tls_config or MQTTTLSConfig(enabled=False)"
+          marker_index = adapter.index(marker)
+          block_start = adapter.rfind("\n", 0, marker_index) + 1
+          block_end = adapter.index("    def apply(", marker_index)
+          tls_block = '''        self._tls_config = tls_config or MQTTTLSConfig(enabled=False)
+          self._environment["NEXOLAB_MQTT_TLS_REQUIRED"] = (
+              "true" if self._tls_config.enabled else "false"
+          )
+          if self._tls_config.enabled:
+              if self._tls_config.ca_file is None:
+                  raise BrokerControlAdapterError(
+                      "broker_admin_tls_invalid",
+                      "broker administrator TLS CA is unavailable",
+                      retryable=False,
+                  )
+              certificate_file = self._tls_config.client_certificate_file
+              key_file = self._tls_config.client_key_file
+              if (certificate_file is None) != (key_file is None):
+                  raise BrokerControlAdapterError(
+                      "broker_admin_tls_invalid",
+                      "broker administrator TLS client identity is incomplete",
+                      retryable=False,
+                  )
+              self._environment["NEXOLAB_MQTT_TLS_CA_FILE"] = str(
+                  self._tls_config.ca_file
+              )
+              if certificate_file is not None and key_file is not None:
+                  self._environment["NEXOLAB_MQTT_TLS_CERT_FILE"] = str(
+                      certificate_file
+                  )
+                  self._environment["NEXOLAB_MQTT_TLS_KEY_FILE"] = str(key_file)
+
+          '''
+          adapter_path.write_text(
+              adapter[:block_start] + tls_block + adapter[block_end:],
+              encoding="utf-8",
+          )
+
           test_path = Path(
               "services/telemetry-service/tests/test_node_broker_adapter_tls.py"
           )
