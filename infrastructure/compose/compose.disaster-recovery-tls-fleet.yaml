@@ -1,0 +1,150 @@
+services:
+  source-mqtt:
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: "8883"
+      NEXOLAB_MQTT_TLS_REQUIRED: "true"
+      NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+    volumes:
+      - ../mqtt/dynamic-security/mosquitto.tls.conf:/mosquitto/config/mosquitto.conf:ro
+      - ${DR_MQTT_TLS_SERVER_DIR:?DR_MQTT_TLS_SERVER_DIR is required}:/run/tls/server:ro
+    networks:
+      dr:
+        aliases: [mqtt]
+
+  restore-mqtt:
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: "8883"
+      NEXOLAB_MQTT_TLS_REQUIRED: "true"
+      NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+    volumes:
+      - ../mqtt/dynamic-security/mosquitto.tls.conf:/mosquitto/config/mosquitto.conf:ro
+      - ${DR_MQTT_TLS_SERVER_DIR:?DR_MQTT_TLS_SERVER_DIR is required}:/run/tls/server:ro
+    networks:
+      dr:
+        aliases: [mqtt]
+
+  restore-migrate:
+    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+    build:
+      context: ../../services/telemetry-service
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@restore-postgres:5432/${DR_POSTGRES_DB:-nexolab}
+      MQTT_ENABLED: "false"
+      BROKER_CONTROL_ENABLED: "false"
+      OBJECT_STORAGE_BACKEND: disabled
+      RETENTION_ENABLED: "false"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      restore-postgres:
+        condition: service_healthy
+    networks: [dr]
+
+  restore-telemetry-service:
+    environment:
+      MQTT_HOST: mqtt
+      MQTT_PORT: "8883"
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+      OBJECT_STORAGE_BACKEND: disabled
+    depends_on:
+      restore-postgres:
+        condition: service_healthy
+      restore-mqtt:
+        condition: service_healthy
+
+  restore-device-agent-a:
+    image: ${DR_DEVICE_AGENT_IMAGE:-nexolab-device-agent:disaster-recovery-tls}
+    build:
+      context: ../../services/device-agent
+    restart: "no"
+    init: true
+    environment:
+      NEXOLAB_NODE_ID: edge-01
+      NEXOLAB_ORGANIZATION_ID: ${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+      NEXOLAB_DEVICE_AGENT_VERSION: disaster-recovery-tls
+      DEVICE_MODE: simulator
+      MQTT_HOST: mqtt
+      MQTT_PORT: "8883"
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: node:${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}:edge-01
+      MQTT_CLIENT_ID: nexolab-${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}-edge-01
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/edge-01-password
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+      SAMPLE_INTERVAL_SECONDS: "0.2"
+      NODE_HEALTH_INTERVAL_SECONDS: "0.5"
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: "8081"
+      LOG_LEVEL: INFO
+    volumes:
+      - restore-edge-a:/var/lib/nexolab
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      restore-mqtt:
+        condition: service_healthy
+      restore-telemetry-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=3)
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
+    networks: [dr]
+
+  restore-device-agent-b:
+    image: ${DR_DEVICE_AGENT_IMAGE:-nexolab-device-agent:disaster-recovery-tls}
+    build:
+      context: ../../services/device-agent
+    restart: "no"
+    init: true
+    environment:
+      NEXOLAB_NODE_ID: edge-02
+      NEXOLAB_ORGANIZATION_ID: ${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+      NEXOLAB_DEVICE_AGENT_VERSION: disaster-recovery-tls
+      DEVICE_MODE: simulator
+      MQTT_HOST: mqtt
+      MQTT_PORT: "8883"
+      MQTT_AUTH_REQUIRED: "true"
+      MQTT_USERNAME: node:${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}:edge-02
+      MQTT_CLIENT_ID: nexolab-${DR_TLS_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}-edge-02
+      MQTT_PASSWORD_FILE: /run/secrets/nexolab/edge-02-password
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+      SAMPLE_INTERVAL_SECONDS: "0.2"
+      NODE_HEALTH_INTERVAL_SECONDS: "0.5"
+      DATABASE_PATH: /var/lib/nexolab/edge.db
+      HEALTH_PORT: "8081"
+      LOG_LEVEL: INFO
+    volumes:
+      - restore-edge-b:/var/lib/nexolab
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+    depends_on:
+      restore-mqtt:
+        condition: service_healthy
+      restore-telemetry-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=3)
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
+    networks: [dr]
+
+volumes:
+  restore-edge-a:
+    name: ${DR_RESTORE_EDGE_A_VOLUME:-nexolab-dr-restore-edge-a}
+  restore-edge-b:
+    name: ${DR_RESTORE_EDGE_B_VOLUME:-nexolab-dr-restore-edge-b}

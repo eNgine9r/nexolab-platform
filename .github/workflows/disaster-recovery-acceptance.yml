@@ -1,0 +1,158 @@
+name: Disaster Recovery Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "security/disaster-recovery-assets.json"
+      - "scripts/validate-disaster-recovery-assets.py"
+      - "scripts/nexolab-backup-bundle.py"
+      - "scripts/nexolab-volume-archive.py"
+      - "scripts/run-disaster-recovery-acceptance.sh"
+      - "scripts/verify-restored-platform.sh"
+      - "tests/test_disaster_recovery_assets.py"
+      - "tests/test_nexolab_backup_bundle.py"
+      - "tests/test_nexolab_volume_archive.py"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "docs/operations/disaster-recovery.md"
+      - ".github/workflows/disaster-recovery-acceptance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "security/disaster-recovery-assets.json"
+      - "scripts/validate-disaster-recovery-assets.py"
+      - "scripts/nexolab-backup-bundle.py"
+      - "scripts/nexolab-volume-archive.py"
+      - "scripts/run-disaster-recovery-acceptance.sh"
+      - "scripts/verify-restored-platform.sh"
+      - "tests/test_disaster_recovery_assets.py"
+      - "tests/test_nexolab_backup_bundle.py"
+      - "tests/test_nexolab_volume_archive.py"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "docs/operations/disaster-recovery.md"
+      - ".github/workflows/disaster-recovery-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disaster-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate recovery inventory and encrypted bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependencies
+        run: python -m pip install pytest==8.4.2 cryptography==48.0.1
+
+      - name: Compile recovery tooling
+        run: python -m compileall -q scripts tests
+
+      - name: Validate shell and Compose syntax
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              config --quiet
+
+      - name: Validate recovery inventory
+        run: python scripts/validate-disaster-recovery-assets.py
+
+      - name: Run recovery policy and bundle tests
+        run: |
+          python -m pytest -q \
+            tests/test_disaster_recovery_assets.py \
+            tests/test_nexolab_backup_bundle.py \
+            tests/test_nexolab_volume_archive.py
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER --exclude='*.pyc' \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(^|[^A-Z0-9_])(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|MQTT_PASSWORD)=' \
+            security/disaster-recovery-assets.json \
+            scripts/validate-disaster-recovery-assets.py \
+            scripts/nexolab-backup-bundle.py \
+            scripts/nexolab-volume-archive.py \
+            scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
+            tests/test_disaster_recovery_assets.py \
+            tests/test_nexolab_backup_bundle.py \
+            tests/test_nexolab_volume_archive.py
+
+      - name: Reject destructive source-volume operations
+        run: |
+          ! grep -ER \
+            'docker compose down[^\n]*(--volumes|-v)|docker volume rm[[:space:]]+nexolab-central-|rm[[:space:]]+-rf[[:space:]]+/var/lib/postgresql/data|rm[[:space:]]+-rf[[:space:]]+/mosquitto/data' \
+            scripts/validate-disaster-recovery-assets.py \
+            scripts/nexolab-backup-bundle.py \
+            scripts/nexolab-volume-archive.py \
+            scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
+            tests/test_disaster_recovery_assets.py \
+            tests/test_nexolab_backup_bundle.py \
+            tests/test_nexolab_volume_archive.py
+
+  runtime:
+    name: Restore platform state and verify application flows
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install bundle dependency
+        run: python -m pip install cryptography==48.0.1
+
+      - name: Run encrypted source-to-restore acceptance
+        run: bash scripts/run-disaster-recovery-acceptance.sh
+
+      - name: Upload sanitized recovery evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-evidence-${{ github.sha }}
+          path: test-results-disaster-recovery
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload sanitized failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-failure-${{ github.sha }}
+          path: |
+            test-results-disaster-recovery/compose-ps.txt
+            test-results-disaster-recovery/services.log
+            test-results-disaster-recovery/application-compose-ps.txt
+            test-results-disaster-recovery/application-services.log
+            test-results-disaster-recovery/bundle-create.json
+            test-results-disaster-recovery/bundle-verify.json
+            test-results-disaster-recovery/bundle-extract.json
+            test-results-disaster-recovery/application-summary.json
+          if-no-files-found: warn
+          retention-days: 3
