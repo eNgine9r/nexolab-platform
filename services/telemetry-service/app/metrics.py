@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from typing import Any
 
@@ -57,6 +58,14 @@ def _timestamp(value: object) -> float | None:
         return None
 
 
+def _positive_integer(value: object) -> int | None:
+    try:
+        parsed = int(str(value))
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
 def _sample(lines: list[str], name: str, value: int | float | bool) -> None:
     numeric = int(value) if isinstance(value, bool) else value
     lines.append(f"{PREFIX}{name} {numeric}")
@@ -64,22 +73,31 @@ def _sample(lines: list[str], name: str, value: int | float | bool) -> None:
 
 def render_prometheus(snapshot: dict[str, Any]) -> str:
     lines: list[str] = []
+    resolved = dict(snapshot)
 
-    service_version = snapshot.get("service_version")
+    service_version = resolved.get("service_version") or os.getenv(
+        "NEXOLAB_TELEMETRY_VERSION"
+    )
     if isinstance(service_version, str) and service_version:
         name = f"{PREFIX}service_info"
         lines.append(f"# HELP {name} Static build information for the telemetry service.")
         lines.append(f"# TYPE {name} gauge")
         lines.append(f'{name}{{version="{_escape_label(service_version)}"}} 1')
 
+    queue_capacity = _positive_integer(resolved.get("queue_capacity"))
+    if queue_capacity is None:
+        queue_capacity = _positive_integer(os.getenv("INGESTION_QUEUE_MAXSIZE"))
+    if queue_capacity is not None:
+        resolved["queue_capacity"] = queue_capacity
+
     for field, help_text in COUNTERS.items():
         name = f"{PREFIX}{field}"
         lines.append(f"# HELP {name} {help_text}")
         lines.append(f"# TYPE {name} counter")
-        _sample(lines, field, snapshot.get(field, 0))
+        _sample(lines, field, resolved.get(field, 0))
 
     for field, help_text in GAUGES.items():
-        value = snapshot.get(field)
+        value = resolved.get(field)
         if value is None:
             continue
         name = f"{PREFIX}{field}"
@@ -87,7 +105,7 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
         lines.append(f"# TYPE {name} gauge")
         _sample(lines, field, value)
 
-    outage = 1 if snapshot.get("database_outage_since") else 0
+    outage = 1 if resolved.get("database_outage_since") else 0
     lines.extend(
         [
             f"# HELP {PREFIX}database_outage Whether a database outage is active.",
@@ -97,14 +115,14 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
     )
 
     timestamp_metrics = {
-        "last_persisted_timestamp_seconds": snapshot.get("last_persisted_at"),
-        "last_event_captured_timestamp_seconds": snapshot.get(
+        "last_persisted_timestamp_seconds": resolved.get("last_persisted_at"),
+        "last_event_captured_timestamp_seconds": resolved.get(
             "last_event_captured_at"
         ),
-        "database_outage_since_timestamp_seconds": snapshot.get(
+        "database_outage_since_timestamp_seconds": resolved.get(
             "database_outage_since"
         ),
-        "last_database_recovery_timestamp_seconds": snapshot.get(
+        "last_database_recovery_timestamp_seconds": resolved.get(
             "last_database_recovery_at"
         ),
     }
@@ -117,7 +135,7 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
         lines.append(f"# TYPE {name} gauge")
         lines.append(f"{name} {parsed}")
 
-    reason_counts = snapshot.get("dead_letter_by_reason", {})
+    reason_counts = resolved.get("dead_letter_by_reason", {})
     if isinstance(reason_counts, dict):
         name = f"{PREFIX}dead_letter_reason_total"
         lines.append(
