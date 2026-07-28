@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
+
+
+DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 class AggregateFailure(ValueError):
@@ -21,7 +26,43 @@ def load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def aggregate(inventory_path: Path, manifests_dir: Path) -> dict[str, Any]:
+def sha256_file(path: Path) -> str:
+    try:
+        content = path.read_bytes()
+    except OSError as exc:
+        raise AggregateFailure(f"cannot read release evidence {path}") from exc
+    if not content:
+        raise AggregateFailure(f"release evidence is empty: {path}")
+    return f"sha256:{hashlib.sha256(content).hexdigest()}"
+
+
+def resolve_evidence_path(root: Path, value: Any, label: str) -> Path:
+    if not isinstance(value, str) or not value.strip():
+        raise AggregateFailure(f"{label}.path is required")
+    path = (root / value).resolve()
+    resolved_root = root.resolve()
+    if resolved_root not in path.parents and path != resolved_root:
+        raise AggregateFailure(f"{label}.path escapes evidence root")
+    return path
+
+
+def verify_digest(path: Path, expected: Any, label: str) -> None:
+    if not isinstance(expected, str) or not DIGEST.fullmatch(expected):
+        raise AggregateFailure(f"{label}.digest has invalid format")
+    actual = sha256_file(path)
+    if actual != expected:
+        raise AggregateFailure(
+            f"{label}.digest mismatch: expected {expected}, calculated {actual}"
+        )
+
+
+def aggregate(
+    inventory_path: Path,
+    manifests_dir: Path,
+    *,
+    evidence_root: Path | None = None,
+) -> dict[str, Any]:
+    root = (evidence_root or manifests_dir.parent).resolve()
     inventory = load_json(inventory_path)
     images = inventory.get("images")
     if not isinstance(images, list) or not images:
@@ -45,6 +86,18 @@ def aggregate(inventory_path: Path, manifests_dir: Path) -> dict[str, Any]:
             raise AggregateFailure(f"duplicate manifest for {image_id}")
         if image.get("name") != expected[image_id]["image"]:
             raise AggregateFailure(f"{path} image name does not match inventory")
+
+        dockerfile_path = resolve_evidence_path(
+            root,
+            image.get("dockerfile"),
+            f"{path}.image.dockerfile",
+        )
+        verify_digest(
+            dockerfile_path,
+            image.get("dockerfile_digest"),
+            f"{path}.image.dockerfile",
+        )
+
         evidence = payload.get("evidence")
         if not isinstance(evidence, dict) or set(evidence) != {
             "cyclonedx",
@@ -52,6 +105,12 @@ def aggregate(inventory_path: Path, manifests_dir: Path) -> dict[str, Any]:
             "vulnerabilities",
         }:
             raise AggregateFailure(f"{path} has incomplete evidence metadata")
+        for evidence_name, metadata in evidence.items():
+            label = f"{path}.evidence.{evidence_name}"
+            if not isinstance(metadata, dict):
+                raise AggregateFailure(f"{label} must be an object")
+            evidence_path = resolve_evidence_path(root, metadata.get("path"), label)
+            verify_digest(evidence_path, metadata.get("digest"), label)
         manifests[image_id] = payload
 
     missing = sorted(set(expected) - set(manifests))
@@ -81,10 +140,15 @@ def main() -> int:
         default=Path("security/container-images.json"),
     )
     parser.add_argument("--manifests-dir", type=Path, required=True)
+    parser.add_argument("--evidence-root", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    payload = aggregate(args.inventory, args.manifests_dir)
+    payload = aggregate(
+        args.inventory,
+        args.manifests_dir,
+        evidence_root=args.evidence_root,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
