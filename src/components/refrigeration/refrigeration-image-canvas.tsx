@@ -48,6 +48,7 @@ const MAX_SCALE_PERCENT = 160;
 const SCALE_STEP_PERCENT = 10;
 const DEFAULT_SCALE_PERCENT = 80;
 const SCALE_CHANGE_EVENT = "nexolab:refrigeration:image-scale-change";
+const scaleMemory = new Map<string, number>();
 
 export function RefrigerationImageCanvas({
   equipmentId,
@@ -296,7 +297,13 @@ function getDefaultScaleSnapshot(): number {
 function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void): () => void {
   const key = scaleStorageKey(equipmentId);
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === key) onStoreChange();
+    if (event.key !== key) return;
+    if (event.newValue === null) {
+      scaleMemory.delete(key);
+    } else {
+      scaleMemory.set(key, clampScale(Number(event.newValue)));
+    }
+    onStoreChange();
   };
   const handleLocalChange = (event: Event) => {
     if (event instanceof CustomEvent && event.detail === key) onStoreChange();
@@ -311,22 +318,29 @@ function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void):
 }
 
 function readStoredScale(equipmentId: string): number {
+  const key = scaleStorageKey(equipmentId);
+  const remembered = scaleMemory.get(key);
+  if (remembered !== undefined) return remembered;
+
   try {
-    const storedValue = window.localStorage.getItem(scaleStorageKey(equipmentId));
-    return storedValue === null ? DEFAULT_SCALE_PERCENT : clampScale(Number(storedValue));
+    const storedValue = window.localStorage.getItem(key);
+    const scale = storedValue === null ? DEFAULT_SCALE_PERCENT : clampScale(Number(storedValue));
+    scaleMemory.set(key, scale);
+    return scale;
   } catch {
     return DEFAULT_SCALE_PERCENT;
   }
 }
 
 function storeScale(equipmentId: string, scalePercent: number): void {
+  const key = scaleStorageKey(equipmentId);
+  scaleMemory.set(key, scalePercent);
   try {
-    const key = scaleStorageKey(equipmentId);
     window.localStorage.setItem(key, String(scalePercent));
-    window.dispatchEvent(new CustomEvent(SCALE_CHANGE_EVENT, { detail: key }));
   } catch {
     // View preferences must not block the operational layout editor.
   }
+  window.dispatchEvent(new CustomEvent(SCALE_CHANGE_EVENT, { detail: key }));
 }
 
 function scaleStorageKey(equipmentId: string): string {
