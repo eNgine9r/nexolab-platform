@@ -1,0 +1,119 @@
+name: Observability Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/observability-hardening.yml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.observability.yaml"
+      - "infrastructure/observability/alertmanager/alertmanager.yml"
+      - "infrastructure/observability/prometheus/rules/nexolab-observability-hardening.yml"
+      - "services/telemetry-service/app/ingestion.py"
+      - "services/telemetry-service/app/metrics.py"
+      - "services/telemetry-service/app/state.py"
+      - "services/telemetry-service/tests/test_metrics.py"
+      - "tests/observability-hardening-rules.test.yml"
+      - "tests/test_observability_hardening.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/observability-hardening.yml"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.observability.yaml"
+      - "infrastructure/observability/alertmanager/alertmanager.yml"
+      - "infrastructure/observability/prometheus/rules/nexolab-observability-hardening.yml"
+      - "services/telemetry-service/app/ingestion.py"
+      - "services/telemetry-service/app/metrics.py"
+      - "services/telemetry-service/app/state.py"
+      - "services/telemetry-service/tests/test_metrics.py"
+      - "tests/observability-hardening-rules.test.yml"
+      - "tests/test_observability_hardening.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observability-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hardening:
+    name: Validate isolation, alerts and runtime metrics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install repository policy dependencies
+        run: python -m pip install --disable-pip-version-check pytest pyyaml
+
+      - name: Verify project-scoped resources and alert contracts
+        run: python -m pytest -q tests/test_observability_hardening.py
+
+      - name: Verify disaster-recovery alert behavior
+        run: |
+          docker run --rm \
+            --entrypoint /bin/promtool \
+            --volume "$PWD:/workspace:ro" \
+            --workdir /workspace \
+            prom/prometheus:v3.13.0 \
+            test rules tests/observability-hardening-rules.test.yml
+
+      - name: Validate Alertmanager configuration
+        run: |
+          docker run --rm \
+            --entrypoint /bin/amtool \
+            --volume "$PWD/infrastructure/observability/alertmanager:/etc/alertmanager:ro" \
+            prom/alertmanager:v0.32.1 \
+            check-config /etc/alertmanager/alertmanager.yml
+
+      - name: Validate isolated Compose topology
+        env:
+          COMPOSE_PROJECT_NAME: nexolab-observability-hardening-validation
+          POSTGRES_PASSWORD: validation
+          MINIO_ROOT_USER: validation
+          MINIO_ROOT_PASSWORD: validation-password
+          GRAFANA_ADMIN_PASSWORD: validation-password
+          OBSERVABILITY_TEXTFILE_DIR: /tmp/nexolab-observability-hardening
+        run: |
+          mkdir -p "$OBSERVABILITY_TEXTFILE_DIR"
+          touch "$OBSERVABILITY_TEXTFILE_DIR/disaster-recovery.prom"
+          docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            config --quiet
+          rendered="$(docker compose \
+            --project-name "$COMPOSE_PROJECT_NAME" \
+            --file infrastructure/compose/compose.central.yaml \
+            --file infrastructure/compose/compose.observability.yaml \
+            config)"
+          grep -q 'name: nexolab-observability-hardening-validation-postgres-data' <<<"$rendered"
+          grep -q 'name: nexolab-observability-hardening-validation-observability-prometheus-data' <<<"$rendered"
+          grep -q 'name: nexolab-observability-hardening-validation' <<<"$rendered"
+          ! grep -q 'name: nexolab-central-postgres-data' <<<"$rendered"
+
+      - name: Install telemetry service test dependencies
+        working-directory: services/telemetry-service
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+
+      - name: Verify resolved queue capacity metric
+        working-directory: services/telemetry-service
+        run: python -m pytest -q tests/test_metrics.py
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            .github/workflows/observability-hardening.yml \
+            infrastructure/observability/prometheus/rules/nexolab-observability-hardening.yml \
+            tests/observability-hardening-rules.test.yml \
+            tests/test_observability_hardening.py
