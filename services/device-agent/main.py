@@ -683,23 +683,15 @@ class DeviceAgent:
             payload_data, separators=(",", ":"), ensure_ascii=False
         )
         topic = self.settings.resolved_telemetry_topic
-        # Once a backlog exists, append every new sample behind it. Publishing a
-        # newer sequence before queued older sequences would violate the central
-        # monotonic replay boundary after broker recovery.
-        if self.queue.size() == 0 and self.state.mqtt_connected:
-            try:
-                result = self.client.publish(topic, payload, qos=1)
-                result.wait_for_publish(timeout=5)
-                if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                    self.state.update(
-                        last_publish_at=datetime.now(timezone.utc).isoformat(),
-                    )
-                    return True
-            except (RuntimeError, ValueError, OSError) as exc:
-                LOG.warning("MQTT publish failed; queueing event: %s", exc)
 
+        # Persist before touching the network. A successful ``publish()`` return
+        # only means Paho accepted the message locally; durability starts only
+        # after the QoS 1 acknowledgement is observed and the queued row is
+        # deleted. This also preserves FIFO ordering across reconnects.
         self.queue.enqueue(topic, payload, record.event_id)
-        return False
+        if not self.state.mqtt_connected:
+            return False
+        return self.flush_queue()
 
     def flush_queue(self) -> bool:
         if not self.state.mqtt_connected:
@@ -717,6 +709,11 @@ class DeviceAgent:
                 LOG.warning(
                     "MQTT queue flush deferred: publish rc=%s",
                     result.rc,
+                )
+                return False
+            if not result.is_published():
+                LOG.warning(
+                    "MQTT queue flush deferred: QoS 1 acknowledgement timed out"
                 )
                 return False
 
