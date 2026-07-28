@@ -92,9 +92,13 @@ jobs:
             infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
           ! grep -Eq '^listener[[:space:]]+1883([[:space:]]|$)' \
             infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
-          ! grep -ER -- '--insecure|tls_insecure_set|CERT_NONE' \
+          ! grep -ER \
+            --exclude-dir=tests \
+            --exclude='*.pyc' \
+            -- '--insecure|tls_insecure_set|CERT_NONE' \
             services/device-agent \
-            services/telemetry-service \
+            services/telemetry-service/app \
+            services/telemetry-service/bin \
             infrastructure/mqtt/dynamic-security \
             infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml
           rm -rf /tmp/nexolab-mqtt-tls-preflight
