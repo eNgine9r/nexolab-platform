@@ -1,0 +1,116 @@
+name: Disaster Recovery TLS Fleet
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-tls-fleet.yml"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "scripts/generate-mqtt-tls-acceptance-material.sh"
+      - "scripts/nexolab-volume-archive.py"
+      - "scripts/run-disaster-recovery-tls-fleet.sh"
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-tls-fleet.yml"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "scripts/generate-mqtt-tls-acceptance-material.sh"
+      - "scripts/nexolab-volume-archive.py"
+      - "scripts/run-disaster-recovery-tls-fleet.sh"
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disaster-recovery-tls-fleet-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate restored TLS fleet topology
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate shell and Compose syntax
+        env:
+          DR_POSTGRES_PASSWORD: validation
+          DR_MINIO_ROOT_USER: validation
+          DR_MINIO_ROOT_PASSWORD: validation
+          DR_MQTT_ADMIN_USERNAME: validation
+          DR_SECRETS_DIR: /tmp/nexolab-dr-tls-secrets
+          DR_WORK_DIR: /tmp/nexolab-dr-tls-work
+          DR_MQTT_TLS_SERVER_DIR: /tmp/nexolab-dr-tls-server
+        run: |
+          bash -n scripts/run-disaster-recovery-tls-fleet.sh
+          bash -n scripts/generate-mqtt-tls-acceptance-material.sh
+          docker compose \
+            -f infrastructure/compose/compose.disaster-recovery.yaml \
+            -f infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml \
+            config --quiet
+
+      - name: Reject plaintext or insecure TLS configuration
+        run: |
+          grep -q 'MQTT_TLS_REQUIRED: "true"' \
+            infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml
+          grep -q 'MQTT_PORT: "8883"' \
+            infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml
+          ! grep -Eq 'MQTT_TLS_INSECURE|tls_insecure_set|CERT_NONE' \
+            infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml \
+            scripts/run-disaster-recovery-tls-fleet.sh
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(^|[^A-Z0-9_])(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|MQTT_PASSWORD)=' \
+            infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml \
+            scripts/run-disaster-recovery-tls-fleet.sh
+
+  runtime:
+    name: Restore TLS broker and reconnect two Device Agents
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run restored MQTT TLS fleet acceptance
+        run: bash scripts/run-disaster-recovery-tls-fleet.sh
+
+      - name: Upload sanitized TLS fleet evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-tls-fleet-evidence-${{ github.sha }}
+          path: test-results-disaster-recovery-tls-fleet
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload sanitized failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-tls-fleet-failure-${{ github.sha }}
+          path: |
+            test-results-disaster-recovery-tls-fleet/compose-ps.txt
+            test-results-disaster-recovery-tls-fleet/services.log
+            test-results-disaster-recovery-tls-fleet/mqtt-certificate-evidence.txt
+          if-no-files-found: warn
+          retention-days: 3
