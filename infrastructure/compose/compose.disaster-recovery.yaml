@@ -145,6 +145,7 @@ services:
       - source-mqtt-data:/source-mqtt:ro
       - restore-mqtt-data:/restore-mqtt
       - ${DR_WORK_DIR:?DR_WORK_DIR is required}:/work
+      - ../../scripts:/opt/nexolab/scripts:ro
     networks: [dr]
 
 volumes:
