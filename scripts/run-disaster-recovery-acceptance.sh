@@ -130,14 +130,14 @@ compose run --rm source-migrate
 compose exec -T source-postgres \
   psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO security_organizations (id, slug, name, is_active)
-VALUES ('00000000-0000-0000-0000-000000000001', 'nexolab-dr', 'NEXOLAB DR', true);
+VALUES ('00000000-0000-0000-0000-000000000099', 'nexolab-dr', 'NEXOLAB DR', true);
 
 INSERT INTO security_audit_events (
   id, organization_id, actor_subject, actor_roles, action,
   entity_type, entity_id, after_snapshot, reason, request_id, source_ip, user_agent
 ) VALUES (
   '10000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000099',
   'dr-acceptance', '["administrator"]'::json, 'backup.seed',
   'disaster_recovery', 'nexolab-dr-v1', '{"immutable":true}'::json,
   'Seed encrypted recovery acceptance', 'dr-request-001', '127.0.0.1', 'nexolab-dr-acceptance'
@@ -180,7 +180,7 @@ compose run --rm minio-client "
   mc mirror --overwrite /work/seed-objects source/$BUCKET >/dev/null
 "
 
-ORGANIZATION_ID="00000000-0000-0000-0000-000000000001"
+ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
 EDGE_01_USERNAME="node:${ORGANIZATION_ID}:edge-01"
 EDGE_02_USERNAME="node:${ORGANIZATION_ID}:edge-02"
 EDGE_01_CLIENT_ID="nexolab-${ORGANIZATION_ID}-edge-01"
