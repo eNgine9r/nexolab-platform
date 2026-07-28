@@ -27,7 +27,8 @@ fi
 
 mkdir -p "$SECRETS_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"
 rm -rf "$EVIDENCE_DIR"/*
-chmod 0700 "$PRIVATE_DIR" "$SECRETS_DIR" "$WORK_DIR"
+chmod 0700 "$PRIVATE_DIR" "$WORK_DIR"
+chmod 0755 "$SECRETS_DIR"
 
 random_secret() {
   python3 - <<'PY'
@@ -44,7 +45,7 @@ import secrets
 import sys
 path = Path(sys.argv[1])
 path.write_text(secrets.token_urlsafe(36), encoding="utf-8")
-path.chmod(0o400)
+path.chmod(0o444)
 PY
 }
 
