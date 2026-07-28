@@ -6,7 +6,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import yaml
 
@@ -75,9 +75,12 @@ REQUIRED_DASHBOARD_QUERIES = {
     "nexolab_alert_sink_resolved_total",
 }
 SECRET_PATTERN = re.compile(
-    r"BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY|"
-    r"ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|"
-    r"(?im)^\s*(?:password|token|secret|api[_-]?key)\s*[:=]\s*[^$<{\s][^\s]*"
+    "BEGIN " + r"(?:RSA |EC |OPENSSH )?PRIVATE KEY|"
+    + "g"
+    + r"hp_[A-Za-z0-9]{20,}|"
+    + "s"
+    + r"k-[A-Za-z0-9]{20,}|"
+    + r"(?im)^\s*(?:password|token|secret|api[_-]?key)\s*[:=]\s*[^$<{\s][^\s]*"
 )
 
 
@@ -85,30 +88,26 @@ class PolicyError(ValueError):
     pass
 
 
-def load_yaml(path: Path) -> dict[str, Any]:
-    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise PolicyError(f"{path} must contain a YAML object")
-    return payload
-
-
-def load_json(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise PolicyError(f"{path} must contain a JSON object")
-    return payload
-
-
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise PolicyError(message)
 
 
-def validate_compose(path: Path) -> None:
-    compose = load_yaml(path)
-    services = compose.get("services")
-    require(isinstance(services, dict), "observability Compose must define services")
+def load_yaml(path: Path) -> dict[str, Any]:
+    value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    require(isinstance(value, dict), f"{path} must contain a YAML object")
+    return value
 
+
+def load_json(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    require(isinstance(value, dict), f"{path} must contain a JSON object")
+    return value
+
+
+def validate_compose(path: Path) -> None:
+    services = load_yaml(path).get("services")
+    require(isinstance(services, dict), "observability Compose must define services")
     for service, expected_image in REQUIRED_IMAGES.items():
         definition = services.get(service)
         require(isinstance(definition, dict), f"Compose service {service!r} is required")
@@ -123,35 +122,21 @@ def validate_compose(path: Path) -> None:
                 f"{service} ports must bind to configurable loopback by default",
             )
 
-    grafana = services["grafana"]
-    environment = grafana.get("environment")
-    require(isinstance(environment, dict), "Grafana environment must be a mapping")
+    grafana = services["grafana"].get("environment")
+    require(isinstance(grafana, dict), "Grafana environment must be a mapping")
+    require(grafana.get("GF_AUTH_ANONYMOUS_ENABLED") == "false", "anonymous access must be disabled")
+    require(grafana.get("GF_USERS_ALLOW_SIGN_UP") == "false", "Grafana signup must be disabled")
     require(
-        environment.get("GF_AUTH_ANONYMOUS_ENABLED") == "false",
-        "Grafana anonymous access must remain disabled",
-    )
-    require(
-        environment.get("GF_USERS_ALLOW_SIGN_UP") == "false",
-        "Grafana self-registration must remain disabled",
-    )
-    require(
-        str(environment.get("GF_SECURITY_ADMIN_PASSWORD", "")).startswith("${"),
+        str(grafana.get("GF_SECURITY_ADMIN_PASSWORD", "")).startswith("${"),
         "Grafana admin password must be externally provided",
     )
     require(
-        environment.get("GF_PLUGINS_PLUGIN_ADMIN_ENABLED") == "false",
-        "Grafana runtime plugin administration must remain disabled",
+        grafana.get("GF_PLUGINS_PLUGIN_ADMIN_ENABLED") == "false",
+        "Grafana runtime plugin administration must be disabled",
     )
-
-    for service_name, definition in services.items():
-        if not isinstance(definition, dict):
-            continue
-        image = definition.get("image")
-        if isinstance(image, str):
-            require(
-                ":latest" not in image and not image.endswith(":latest"),
-                f"{service_name} must not use a latest image tag",
-            )
+    for service, definition in services.items():
+        if isinstance(definition, dict) and isinstance(definition.get("image"), str):
+            require(not definition["image"].endswith(":latest"), f"{service} must not use latest")
 
 
 def validate_prometheus(path: Path) -> None:
@@ -160,30 +145,20 @@ def validate_prometheus(path: Path) -> None:
     require(isinstance(global_config, dict), "Prometheus global config is required")
     require(global_config.get("scrape_interval") == "5s", "scrape_interval must be 5s")
     require(global_config.get("evaluation_interval") == "5s", "evaluation_interval must be 5s")
-
-    jobs = config.get("scrape_configs")
-    require(isinstance(jobs, list), "Prometheus scrape_configs must be a list")
-    names = {job.get("job_name") for job in jobs if isinstance(job, dict)}
-    missing = REQUIRED_JOBS - names
-    require(not missing, f"Prometheus scrape jobs are missing: {sorted(missing)}")
-
-    alerting = config.get("alerting")
-    require(isinstance(alerting, dict), "Prometheus Alertmanager routing is required")
-    serialized = json.dumps(alerting, sort_keys=True)
-    require("alertmanager:9093" in serialized, "Prometheus must route to alertmanager:9093")
-
-    rule_files = config.get("rule_files")
+    scrape_configs = config.get("scrape_configs")
+    require(isinstance(scrape_configs, list), "scrape_configs must be a list")
+    jobs = {item.get("job_name") for item in scrape_configs if isinstance(item, dict)}
+    require(REQUIRED_JOBS <= jobs, f"Prometheus jobs missing: {sorted(REQUIRED_JOBS - jobs)}")
+    require("alertmanager:9093" in json.dumps(config.get("alerting")), "Alertmanager target is required")
     require(
-        isinstance(rule_files, list) and "/etc/prometheus/rules/*.yml" in rule_files,
-        "Prometheus must load versioned NEXOLAB rule files",
+        "/etc/prometheus/rules/*.yml" in config.get("rule_files", []),
+        "versioned Prometheus rules are required",
     )
 
 
 def validate_rules(path: Path) -> None:
-    payload = load_yaml(path)
-    groups = payload.get("groups")
-    require(isinstance(groups, list) and groups, "Prometheus rules must define groups")
-
+    groups = load_yaml(path).get("groups")
+    require(isinstance(groups, list) and groups, "Prometheus rule groups are required")
     records: set[str] = set()
     alerts: set[str] = set()
     for group in groups:
@@ -192,26 +167,20 @@ def validate_rules(path: Path) -> None:
         require(isinstance(rules, list), "rule group rules must be a list")
         for rule in rules:
             require(isinstance(rule, dict), "rule must be an object")
-            expression = rule.get("expr")
-            require(isinstance(expression, str) and expression.strip(), "rule expr is required")
+            require(isinstance(rule.get("expr"), str) and rule["expr"].strip(), "rule expr is required")
             record = rule.get("record")
             alert = rule.get("alert")
-            require(bool(record) != bool(alert), "each rule must be a record or alert")
+            require(bool(record) != bool(alert), "rule must define exactly one record or alert")
             if isinstance(record, str):
                 require(record not in records, f"duplicate recording rule: {record}")
                 records.add(record)
                 continue
-
-            require(isinstance(alert, str), "alert name must be a string")
-            require(alert not in alerts, f"duplicate alert rule: {alert}")
+            require(isinstance(alert, str) and alert not in alerts, f"invalid or duplicate alert: {alert}")
             alerts.add(alert)
             labels = rule.get("labels")
             annotations = rule.get("annotations")
             require(isinstance(labels, dict), f"{alert} labels are required")
-            require(
-                labels.get("severity") in {"warning", "critical"},
-                f"{alert} must have warning or critical severity",
-            )
+            require(labels.get("severity") in {"warning", "critical"}, f"{alert} severity is invalid")
             require(isinstance(annotations, dict), f"{alert} annotations are required")
             require(bool(annotations.get("summary")), f"{alert} summary is required")
             require(bool(annotations.get("description")), f"{alert} description is required")
@@ -219,19 +188,9 @@ def validate_rules(path: Path) -> None:
                 "telemetry-service",
                 "disaster-recovery",
             }:
-                require(
-                    bool(annotations.get("runbook_url")),
-                    f"critical alert {alert} must reference a runbook",
-                )
-
-    require(
-        REQUIRED_RECORDS <= records,
-        f"recording rules are missing: {sorted(REQUIRED_RECORDS - records)}",
-    )
-    require(
-        REQUIRED_ALERTS <= alerts,
-        f"alert rules are missing: {sorted(REQUIRED_ALERTS - alerts)}",
-    )
+                require(bool(annotations.get("runbook_url")), f"{alert} must reference a runbook")
+    require(REQUIRED_RECORDS <= records, f"recording rules are missing: {sorted(REQUIRED_RECORDS - records)}")
+    require(REQUIRED_ALERTS <= alerts, f"alert rules are missing: {sorted(REQUIRED_ALERTS - alerts)}")
 
 
 def validate_alertmanager(path: Path) -> None:
@@ -241,35 +200,24 @@ def validate_alertmanager(path: Path) -> None:
     require(route.get("receiver") == "nexolab-local-audit", "default receiver must be local audit")
     require(
         set(route.get("group_by", [])) >= {"alertname", "service", "severity"},
-        "Alertmanager must group by alertname, service and severity",
+        "Alertmanager grouping is incomplete",
     )
-
     receivers = config.get("receivers")
-    require(isinstance(receivers, list), "Alertmanager receivers must be a list")
+    require(isinstance(receivers, list), "Alertmanager receivers are required")
     receiver = next(
-        (
-            item
-            for item in receivers
-            if isinstance(item, dict) and item.get("name") == "nexolab-local-audit"
-        ),
+        (item for item in receivers if isinstance(item, dict) and item.get("name") == "nexolab-local-audit"),
         None,
     )
     require(isinstance(receiver, dict), "local audit receiver is required")
     webhooks = receiver.get("webhook_configs")
     require(isinstance(webhooks, list) and len(webhooks) == 1, "exactly one local webhook is required")
     webhook = webhooks[0]
-    require(isinstance(webhook, dict), "webhook config must be an object")
-    require(
-        webhook.get("url") == "http://observability-alert-sink:8080/alerts",
-        "Alertmanager webhook must target the internal audit sink",
-    )
+    require(webhook.get("url") == "http://observability-alert-sink:8080/alerts", "webhook target is invalid")
     require(webhook.get("send_resolved") is True, "resolved alert delivery is required")
-
-    inhibit_rules = config.get("inhibit_rules")
-    require(isinstance(inhibit_rules, list) and inhibit_rules, "critical-to-warning inhibition is required")
+    require(bool(config.get("inhibit_rules")), "critical-to-warning inhibition is required")
 
 
-def iter_panels(panels: list[Any]):
+def iter_panels(panels: Iterable[Any]):
     for panel in panels:
         if not isinstance(panel, dict):
             continue
@@ -281,19 +229,14 @@ def iter_panels(panels: list[Any]):
 
 def validate_dashboard(path: Path) -> None:
     dashboard = load_json(path)
-    require(
-        dashboard.get("uid") == "nexolab-platform-overview",
-        "Grafana dashboard UID must remain deterministic",
-    )
-    require(dashboard.get("editable") is False, "provisioned dashboard must not be UI-editable")
-    require(dashboard.get("refresh") == "5s", "operator dashboard refresh must be 5s")
-
+    require(dashboard.get("uid") == "nexolab-platform-overview", "dashboard UID must be deterministic")
+    require(dashboard.get("editable") is False, "dashboard must not be UI-editable")
+    require(dashboard.get("refresh") == "5s", "dashboard refresh must be 5s")
     panels = list(iter_panels(dashboard.get("panels", [])))
     ids = [panel.get("id") for panel in panels]
-    require(all(isinstance(value, int) and value > 0 for value in ids), "panel IDs must be positive integers")
+    require(all(isinstance(value, int) and value > 0 for value in ids), "panel IDs must be positive")
     require(len(ids) == len(set(ids)), "Grafana panel IDs must be unique")
     require(len(ids) >= 20, "operator dashboard must contain at least twenty panels/rows")
-
     expressions: set[str] = set()
     for panel in panels:
         if panel.get("type") == "row":
@@ -301,19 +244,20 @@ def validate_dashboard(path: Path) -> None:
         datasource = panel.get("datasource")
         require(
             isinstance(datasource, dict) and datasource.get("uid") == "nexolab-prometheus",
-            f"panel {panel.get('id')} must use the provisioned Prometheus datasource",
+            f"panel {panel.get('id')} must use provisioned Prometheus",
         )
         for target in panel.get("targets", []):
             if isinstance(target, dict) and isinstance(target.get("expr"), str):
                 expressions.add(target["expr"])
-    missing = REQUIRED_DASHBOARD_QUERIES - expressions
-    require(not missing, f"Grafana dashboard queries are missing: {sorted(missing)}")
+    require(
+        REQUIRED_DASHBOARD_QUERIES <= expressions,
+        f"Grafana dashboard queries are missing: {sorted(REQUIRED_DASHBOARD_QUERIES - expressions)}",
+    )
 
 
-def validate_secrets(paths: list[Path]) -> None:
+def validate_secrets(paths: Iterable[Path]) -> None:
     for path in paths:
-        content = path.read_text(encoding="utf-8")
-        match = SECRET_PATTERN.search(content)
+        match = SECRET_PATTERN.search(path.read_text(encoding="utf-8"))
         require(match is None, f"secret-like versioned material found in {path}: {match.group(0)!r}")
 
 
@@ -323,38 +267,26 @@ def validate_repository(root: Path) -> None:
         "prometheus": root / "infrastructure/observability/prometheus/prometheus.yml",
         "rules": root / "infrastructure/observability/prometheus/rules/nexolab-platform.yml",
         "alertmanager": root / "infrastructure/observability/alertmanager/alertmanager.yml",
-        "datasource": root
-        / "infrastructure/observability/grafana/provisioning/datasources/prometheus.yml",
-        "provider": root
-        / "infrastructure/observability/grafana/provisioning/dashboards/nexolab.yml",
-        "dashboard": root
-        / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json",
+        "datasource": root / "infrastructure/observability/grafana/provisioning/datasources/prometheus.yml",
+        "provider": root / "infrastructure/observability/grafana/provisioning/dashboards/nexolab.yml",
+        "dashboard": root / "infrastructure/observability/grafana/dashboards/nexolab-platform-overview.json",
         "alert_sink": root / "scripts/observability-alert-sink.py",
         "textfile": root / "scripts/serve-prometheus-textfile.py",
     }
     missing = [str(path.relative_to(root)) for path in files.values() if not path.is_file()]
     require(not missing, f"observability files are missing: {missing}")
-
     validate_compose(files["compose"])
     validate_prometheus(files["prometheus"])
     validate_rules(files["rules"])
     validate_alertmanager(files["alertmanager"])
     validate_dashboard(files["dashboard"])
-    validate_secrets(list(files.values()))
-
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate NEXOLAB observability policy")
-    parser.add_argument(
-        "--repository-root",
-        type=Path,
-        default=Path(__file__).resolve().parents[1],
-    )
-    return parser.parse_args(argv)
+    validate_secrets(files.values())
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parse_args(sys.argv[1:] if argv is None else argv)
+    parser = argparse.ArgumentParser(description="Validate NEXOLAB observability policy")
+    parser.add_argument("--repository-root", type=Path, default=Path(__file__).resolve().parents[1])
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
     try:
         validate_repository(args.repository_root.resolve())
     except (OSError, json.JSONDecodeError, yaml.YAMLError, PolicyError) as error:
