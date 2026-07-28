@@ -103,7 +103,7 @@ compose exec -T source-postgres \
   -v ON_ERROR_STOP=1 <"$FIXTURES_SQL"
 
 compose exec -T source-postgres \
-  psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
+  psql -qAt -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
   -v ON_ERROR_STOP=1 <"$STATE_SQL" >"$SOURCE_STATE"
 test -s "$SOURCE_STATE"
 
@@ -117,7 +117,7 @@ compose exec -T restore-postgres \
   --clean --if-exists <"$DUMP_FILE"
 
 compose exec -T restore-postgres \
-  psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
+  psql -qAt -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
   -v ON_ERROR_STOP=1 <"$STATE_SQL" >"$RESTORE_STATE"
 test -s "$RESTORE_STATE"
 cmp -s "$SOURCE_STATE" "$RESTORE_STATE"
@@ -127,7 +127,7 @@ RESTORE_SHA="$(sha256sum "$RESTORE_STATE" | awk '{print $1}')"
 test "$SOURCE_SHA" = "$RESTORE_SHA"
 
 compose exec -T restore-postgres \
-  psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
+  psql -qAt -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
   -v ON_ERROR_STOP=1 <"$COUNTS_SQL" \
   >"$EVIDENCE_DIR/protected-domain-counts.json"
 
