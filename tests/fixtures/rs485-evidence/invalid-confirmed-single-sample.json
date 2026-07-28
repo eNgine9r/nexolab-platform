@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "evidence_id": "invalid-confirmed-single-sample",
+  "created_at_utc": "2026-07-23T09:27:52.785640Z",
+  "node_id": "edge-rpi5-01",
+  "device": {
+    "vendor": "F&F",
+    "model": "LE-01MP",
+    "device_id": "LE01MP-201"
+  },
+  "adapter_path": "/dev/ttyUSB0",
+  "serial": {
+    "baudrate": 9600,
+    "parity": "N",
+    "stop_bits": 1,
+    "data_bits": 8
+  },
+  "unit_id": 1,
+  "function_code": 3,
+  "register": {
+    "address": 0,
+    "quantity": 1,
+    "value_type": "uint16",
+    "word_order": "not-applicable",
+    "byte_order": "big",
+    "scale": 0.1,
+    "offset": 0,
+    "engineering_unit": "V"
+  },
+  "profiler": {
+    "name": "nexolab-rs485-profiler",
+    "version": "1.0.0",
+    "commit": "d8e2c2d"
+  },
+  "register_profile": {
+    "profile_id": "ff-le01mp",
+    "version": 1
+  },
+  "samples": [
+    {
+      "sample_id": "invalid-confirmed-single-sample-001",
+      "timestamp_utc": "2026-07-23T09:27:52.785640Z",
+      "device_id": "LE01MP-201",
+      "request_frame": "010300000001840A",
+      "response_frame": "01030208E17FCC",
+      "frame_sha256": "20274201c03a4c38d661add1080826a783ca1dc77358adddd1e504b2f16879a7",
+      "crc_ok": true,
+      "latency_ms": 18.4,
+      "unsigned_value": 2273,
+      "signed_value": 2273,
+      "decoded_value": 227.3,
+      "scale": 0.1,
+      "physical_reference": {
+        "kind": "display",
+        "value": 227.3,
+        "unit": "V",
+        "source": "single display observation"
+      },
+      "test_condition": "single baseline observation",
+      "correlation": "confirmed",
+      "sample_pass": true
+    }
+  ],
+  "decision": {
+    "confidence": "confirmed",
+    "register_key": "voltage",
+    "rationale": "This fixture must fail because a single passing observation cannot establish confirmation.",
+    "rejection_reason": null
+  }
+}

@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexolab.local/schemas/rs485-register-evidence.schema.json",
+  "title": "NEXOLAB RS-485 register evidence",
+  "description": "Immutable raw Modbus evidence and the confidence decision for one profiled register.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "created_at_utc",
+    "node_id",
+    "device",
+    "adapter_path",
+    "serial",
+    "unit_id",
+    "function_code",
+    "register",
+    "profiler",
+    "register_profile",
+    "samples",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{7,127}$"
+    },
+    "created_at_utc": {
+      "$ref": "#/$defs/utcTimestamp"
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{1,127}$"
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor", "model", "device_id"],
+      "properties": {
+        "vendor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "adapter_path": {
+      "type": "string",
+      "pattern": "^/dev/[a-zA-Z0-9._/-]+$"
+    },
+    "serial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baudrate", "parity", "stop_bits", "data_bits"],
+      "properties": {
+        "baudrate": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 4000000
+        },
+        "parity": {
+          "enum": ["N", "E", "O"]
+        },
+        "stop_bits": {
+          "enum": [1, 2]
+        },
+        "data_bits": {
+          "enum": [7, 8]
+        }
+      }
+    },
+    "unit_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 247
+    },
+    "function_code": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 127
+    },
+    "register": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address", "quantity", "value_type", "scale", "engineering_unit"],
+      "properties": {
+        "address": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 125
+        },
+        "value_type": {
+          "enum": ["uint16", "int16", "uint32", "int32", "float32", "bits"]
+        },
+        "word_order": {
+          "enum": ["big", "little", "not-applicable"]
+        },
+        "byte_order": {
+          "enum": ["big", "little"]
+        },
+        "scale": {
+          "type": "number"
+        },
+        "offset": {
+          "type": "number",
+          "default": 0
+        },
+        "engineering_unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "profiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "commit"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$"
+        }
+      }
+    },
+    "register_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_id", "version"],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/sample"
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confidence", "register_key", "rationale"],
+      "properties": {
+        "confidence": {
+          "enum": ["candidate", "correlated", "confirmed", "portable", "rejected"]
+        },
+        "register_key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,127}$"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 4000
+        },
+        "rejection_reason": {
+          "type": ["string", "null"],
+          "minLength": 5,
+          "maxLength": 2000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "utcTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?Z$"
+    },
+    "hexFrame": {
+      "type": "string",
+      "pattern": "^(?:[0-9A-F]{2}){4,256}$"
+    },
+    "physicalReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "unit", "source"],
+      "properties": {
+        "kind": {
+          "enum": ["none", "display", "reference-instrument", "controlled-condition"]
+        },
+        "value": {
+          "type": ["number", "null"]
+        },
+        "unit": {
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "timestamp_utc",
+        "device_id",
+        "request_frame",
+        "response_frame",
+        "frame_sha256",
+        "crc_ok",
+        "latency_ms",
+        "unsigned_value",
+        "signed_value",
+        "decoded_value",
+        "scale",
+        "physical_reference",
+        "test_condition",
+        "correlation",
+        "sample_pass"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{3,127}$"
+        },
+        "timestamp_utc": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "request_frame": {
+          "$ref": "#/$defs/hexFrame"
+        },
+        "response_frame": {
+          "$ref": "#/$defs/hexFrame"
+        },
+        "frame_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "crc_ok": {
+          "type": "boolean"
+        },
+        "latency_ms": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60000
+        },
+        "unsigned_value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "signed_value": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "decoded_value": {
+          "type": "number"
+        },
+        "scale": {
+          "type": "number"
+        },
+        "physical_reference": {
+          "$ref": "#/$defs/physicalReference"
+        },
+        "test_condition": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        },
+        "correlation": {
+          "enum": ["none", "observed", "confirmed"]
+        },
+        "sample_pass": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

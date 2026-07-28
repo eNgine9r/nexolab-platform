@@ -1,0 +1,97 @@
+name: RS485 Evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/rs485-evidence.yml"
+      - "docs/rs485/evidence-standard.md"
+      - "evidence/rs485/**"
+      - "schemas/rs485-register-evidence.schema.json"
+      - "scripts/check-rs485-evidence-immutability.sh"
+      - "scripts/validate-rs485-evidence.py"
+      - "tests/fixtures/rs485-evidence/**"
+      - "tests/test_validate_rs485_evidence.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/rs485-evidence.yml"
+      - "docs/rs485/evidence-standard.md"
+      - "evidence/rs485/**"
+      - "schemas/rs485-register-evidence.schema.json"
+      - "scripts/check-rs485-evidence-immutability.sh"
+      - "scripts/validate-rs485-evidence.py"
+      - "tests/fixtures/rs485-evidence/**"
+      - "tests/test_validate_rs485_evidence.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rs485-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate immutable register evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned validation dependencies
+        run: python -m pip install --disable-pip-version-check jsonschema==4.25.1 pytest==8.4.1
+
+      - name: Validate schema and tooling syntax
+        run: |
+          python -m json.tool schemas/rs485-register-evidence.schema.json >/dev/null
+          python -m py_compile scripts/validate-rs485-evidence.py
+          bash -n scripts/check-rs485-evidence-immutability.sh
+
+      - name: Validate positive fixture
+        run: |
+          python scripts/validate-rs485-evidence.py \
+            tests/fixtures/rs485-evidence/valid-confirmed.json \
+            --require-files
+
+      - name: Prove single-sample confirmation is rejected
+        run: |
+          if python scripts/validate-rs485-evidence.py \
+            tests/fixtures/rs485-evidence/invalid-confirmed-single-sample.json \
+            --require-files; then
+            echo "Invalid single-sample confirmed evidence was accepted" >&2
+            exit 1
+          fi
+
+      - name: Validate archive evidence
+        run: python scripts/validate-rs485-evidence.py evidence/rs485
+
+      - name: Run semantic regression suite
+        run: python -m pytest -q tests/test_validate_rs485_evidence.py
+
+      - name: Enforce append-only archive policy
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          bash scripts/check-rs485-evidence-immutability.sh "$BASE_REF"
+
+      - name: Reject secret-like evidence material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            schemas/rs485-register-evidence.schema.json \
+            scripts/check-rs485-evidence-immutability.sh \
+            scripts/validate-rs485-evidence.py \
+            tests/fixtures/rs485-evidence \
+            evidence/rs485
