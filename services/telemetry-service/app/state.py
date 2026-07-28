@@ -17,6 +17,7 @@ class RuntimeSnapshot:
     rejected_total: int = 0
     queue_dropped_total: int = 0
     queue_size: int = 0
+    queue_capacity: int = 0
     dead_letter_queued_total: int = 0
     dead_letter_persisted_total: int = 0
     dead_letter_dropped_total: int = 0
@@ -102,6 +103,12 @@ class RuntimeState:
     def set_queue_size(self, value: int) -> None:
         with self._lock:
             self._snapshot.queue_size = value
+
+    def set_queue_capacity(self, value: int) -> None:
+        if value <= 0:
+            raise ValueError("queue capacity must be positive")
+        with self._lock:
+            self._snapshot.queue_capacity = value
 
     def set_websocket_clients(self, value: int) -> None:
         with self._lock:
