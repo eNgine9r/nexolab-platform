@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "images": [
+    {
+      "id": "device-agent",
+      "image": "ghcr.io/engine9r/nexolab-device-agent",
+      "context": "services/device-agent",
+      "dockerfile": "services/device-agent/Dockerfile",
+      "platforms": ["linux/amd64", "linux/arm64"]
+    },
+    {
+      "id": "telemetry-service",
+      "image": "ghcr.io/engine9r/nexolab-telemetry-service",
+      "context": "services/telemetry-service",
+      "dockerfile": "services/telemetry-service/Dockerfile",
+      "platforms": ["linux/amd64", "linux/arm64"]
+    },
+    {
+      "id": "mqtt-dynamic-security",
+      "image": "ghcr.io/engine9r/nexolab-mqtt-dynamic-security",
+      "context": "infrastructure/mqtt/dynamic-security",
+      "dockerfile": "infrastructure/mqtt/dynamic-security/Dockerfile",
+      "platforms": ["linux/amd64", "linux/arm64"]
+    }
+  ]
+}
