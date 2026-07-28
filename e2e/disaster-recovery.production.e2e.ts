@@ -45,10 +45,12 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
   try {
     const nodesResponse = await api.get("/api/v1/nodes");
     expect(nodesResponse.status()).toBe(200);
-    const nodesPayload = (await nodesResponse.json()) as {
-      items: Array<{ node_id: string; display_name: string; state: string }>;
-    };
-    expect(nodesPayload.items).toEqual(
+    const nodesPayload = (await nodesResponse.json()) as Array<{
+      node_id: string;
+      display_name: string;
+      state: string;
+    }>;
+    expect(nodesPayload).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ node_id: "edge-01", display_name: "DR Edge 01", state: "active" }),
         expect.objectContaining({ node_id: "edge-02", display_name: "DR Edge 02", state: "suspended" }),
@@ -95,11 +97,9 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     await expect(page.getByTestId("report-detail")).toContainText("protocol-proof.bin");
     await page.screenshot({ path: `${evidenceDirectory}/02-restored-reports.png`, fullPage: true });
 
-    const draftResponse = await api.get(
-      "/api/v1/equipment/showcase-106-01/layout/draft",
-    );
+    const draftResponse = await api.get("/api/v1/equipment/showcase-106-01/layout/draft");
     expect(draftResponse.status()).toBe(200);
-    expect(draftResponse.headers()["etag"]).toBe('"layout-v1"');
+    expect(draftResponse.headers()["etag"]).toBe('W/"layout-draft-v1"');
     const draft = (await draftResponse.json()) as {
       equipment_id: string;
       version: number;
