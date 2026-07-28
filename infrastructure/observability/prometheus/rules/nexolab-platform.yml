@@ -79,6 +79,40 @@ groups:
           description: PostgreSQL has been unavailable to the Telemetry Service for two minutes.
           runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
 
+      - alert: NexolabDisasterRecoveryExporterDown
+        expr: up{job="disaster-recovery-status"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          dependency: status-exporter
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB disaster-recovery status exporter is unavailable
+          description: Prometheus has not scraped disaster-recovery status metrics for more than one minute, so backup and restore health cannot be trusted.
+          runbook_url: /docs/operations/disaster-recovery.md
+
+      - alert: NexolabDisasterRecoveryMetricsMissing
+        expr: |
+          (up{job="disaster-recovery-status"} == 1)
+          and on()
+          (
+            absent(nexolab_dr_last_verified_backup_timestamp_seconds)
+            or absent(nexolab_dr_last_bundle_verification_success)
+            or absent(nexolab_dr_backup_destination_free_bytes)
+            or absent(nexolab_dr_backup_destination_capacity_bytes)
+          )
+        for: 1m
+        labels:
+          severity: critical
+          service: disaster-recovery
+          dependency: metric-contract
+          slo: recoverability
+        annotations:
+          summary: NEXOLAB disaster-recovery metric contract is incomplete
+          description: The exporter is reachable but one or more required backup verification or destination capacity metrics are absent.
+          runbook_url: /docs/operations/disaster-recovery.md
+
       - alert: NexolabIngestionQueuePressureWarning
         expr: nexolab:ingestion_queue_utilization_ratio > 0.70
         for: 5m

@@ -20,9 +20,27 @@ receivers:
 
 inhibit_rules:
   - source_matchers:
-      - severity="critical"
+      - alertname="NexolabIngestionQueuePressureCritical"
     target_matchers:
-      - severity="warning"
-    equal:
-      - service
-      - slo
+      - alertname="NexolabIngestionQueuePressureWarning"
+    equal: [service]
+  - source_matchers:
+      - alertname="NexolabIngestionLagCritical"
+    target_matchers:
+      - alertname="NexolabIngestionLagWarning"
+    equal: [service]
+  - source_matchers:
+      - alertname="NexolabPersistenceFailuresSustained"
+    target_matchers:
+      - alertname="NexolabPersistenceFailures"
+    equal: [service]
+  - source_matchers:
+      - alertname="NexolabDeadLetterBurst"
+    target_matchers:
+      - alertname="NexolabDeadLetterGrowth"
+    equal: [service]
+  - source_matchers:
+      - alertname="NexolabVerifiedBackupStaleCritical"
+    target_matchers:
+      - alertname="NexolabVerifiedBackupStaleWarning"
+    equal: [service]

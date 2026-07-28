@@ -97,8 +97,6 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
     _render_build_info(lines, service_version)
 
     queue_capacity = _positive_integer(resolved.get("queue_capacity"))
-    if queue_capacity is None:
-        queue_capacity = _positive_integer(os.getenv("INGESTION_QUEUE_MAXSIZE"))
     if queue_capacity is not None:
         resolved["queue_capacity"] = queue_capacity
 

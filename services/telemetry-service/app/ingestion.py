@@ -66,6 +66,7 @@ class TelemetryIngestor:
     ) -> None:
         self._database = database
         self._state = state
+        self._state.set_queue_capacity(queue_maxsize)
         self._on_persisted = on_persisted
         self._after_persist = after_persist
         self._authorize_ingress = authorize_ingress

@@ -140,10 +140,10 @@ services:
 
 volumes:
   observability-prometheus-data:
-    name: nexolab-observability-prometheus-data
+    name: ${OBSERVABILITY_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-observability}}-prometheus-data
   observability-alertmanager-data:
-    name: nexolab-observability-alertmanager-data
+    name: ${OBSERVABILITY_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-observability}}-alertmanager-data
   observability-grafana-data:
-    name: nexolab-observability-grafana-data
+    name: ${OBSERVABILITY_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-observability}}-grafana-data
   observability-alert-events:
-    name: nexolab-observability-alert-events
+    name: ${OBSERVABILITY_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-observability}}-alert-events
