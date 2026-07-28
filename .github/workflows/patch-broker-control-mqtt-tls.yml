@@ -18,46 +18,46 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Wire TLS through adapter and application bootstrap
+
+      - name: Wire broker-control TLS production code
         run: |
           python - <<'PY'
           from pathlib import Path
 
+          def insert_after_exact(lines: list[str], anchor: str, addition: str, label: str) -> None:
+              matches = [index for index, line in enumerate(lines) if line == anchor]
+              if len(matches) != 1:
+                  raise SystemExit(f"{label}: expected one anchor, found {len(matches)}")
+              lines.insert(matches[0] + 1, addition)
+
           adapter_path = Path("services/telemetry-service/app/nodes/broker_adapter.py")
           adapter = adapter_path.read_text(encoding="utf-8")
-          import_anchor = "from app.nodes.broker_models import CentralNodeBrokerCommand\n"
-          tls_import = "from app.mqtt_tls import MQTTTLSConfig\n"
-          if tls_import not in adapter:
-              if adapter.count(import_anchor) != 1:
-                  raise SystemExit("broker adapter TLS import anchor not found")
-              adapter = adapter.replace(import_anchor, tls_import + import_anchor, 1)
+          if "from app.mqtt_tls import MQTTTLSConfig\n" not in adapter:
+              adapter = adapter.replace(
+                  "from app.nodes.broker_models import CentralNodeBrokerCommand\n",
+                  "from app.mqtt_tls import MQTTTLSConfig\n"
+                  "from app.nodes.broker_models import CentralNodeBrokerCommand\n",
+                  1,
+              )
 
-          signature_anchor = "        timeout_seconds: float,\n    ) -> None:\n"
-          signature_replacement = (
-              "        timeout_seconds: float,\n"
-              "        tls_config: MQTTTLSConfig | None = None,\n"
-              "    ) -> None:\n"
-          )
-          if "tls_config: MQTTTLSConfig | None" not in adapter:
-              if adapter.count(signature_anchor) != 1:
-                  raise SystemExit("broker adapter TLS signature anchor not found")
-              adapter = adapter.replace(signature_anchor, signature_replacement, 1)
+          adapter_lines = adapter.splitlines(keepends=True)
+          if "        tls_config: MQTTTLSConfig | None = None,\n" not in adapter_lines:
+              insert_after_exact(
+                  adapter_lines,
+                  "        timeout_seconds: float,\n",
+                  "        tls_config: MQTTTLSConfig | None = None,\n",
+                  "broker adapter signature",
+              )
+          adapter = "".join(adapter_lines)
 
-          environment_anchor = '''        self._environment = {
-              "NEXOLAB_MQTT_BROKER_HOST": broker_host,
-              "NEXOLAB_MQTT_BROKER_PORT": str(broker_port),
-              "NEXOLAB_MQTT_ADMIN_USERNAME": _required(admin_username, "admin username"),
-              "NEXOLAB_MQTT_ADMIN_CLIENT_ID": _required(
-                  admin_client_id,
-                  "admin client ID",
-              ),
-              "NEXOLAB_MQTT_ADMIN_PASSWORD_FILE": str(password_path),
-          }
-          '''
-          environment_replacement = environment_anchor + '''        self._tls_config = tls_config or MQTTTLSConfig(enabled=False)
+          if "NEXOLAB_MQTT_TLS_REQUIRED" not in adapter:
+              start = adapter.index("        self._environment = {\n")
+              end = adapter.index("        }\n", start) + len("        }\n")
+              tls_block = '''        self._tls_config = tls_config or MQTTTLSConfig(enabled=False)
           self._environment["NEXOLAB_MQTT_TLS_REQUIRED"] = (
               "true" if self._tls_config.enabled else "false"
           )
@@ -68,94 +68,69 @@ jobs:
                       "broker administrator TLS CA is unavailable",
                       retryable=False,
                   )
+              certificate_file = self._tls_config.client_certificate_file
+              key_file = self._tls_config.client_key_file
+              if (certificate_file is None) != (key_file is None):
+                  raise BrokerControlAdapterError(
+                      "broker_admin_tls_invalid",
+                      "broker administrator TLS client identity is incomplete",
+                      retryable=False,
+                  )
               self._environment["NEXOLAB_MQTT_TLS_CA_FILE"] = str(
                   self._tls_config.ca_file
               )
-              if (
-                  self._tls_config.client_certificate_file is not None
-                  and self._tls_config.client_key_file is not None
-              ):
+              if certificate_file is not None and key_file is not None:
                   self._environment["NEXOLAB_MQTT_TLS_CERT_FILE"] = str(
-                      self._tls_config.client_certificate_file
+                      certificate_file
                   )
-                  self._environment["NEXOLAB_MQTT_TLS_KEY_FILE"] = str(
-                      self._tls_config.client_key_file
-                  )
+                  self._environment["NEXOLAB_MQTT_TLS_KEY_FILE"] = str(key_file)
           '''
-          if "NEXOLAB_MQTT_TLS_REQUIRED" not in adapter:
-              if adapter.count(environment_anchor) != 1:
-                  raise SystemExit("broker adapter environment anchor not found")
-              adapter = adapter.replace(
-                  environment_anchor,
-                  environment_replacement,
-                  1,
-              )
+              adapter = adapter[:end] + tls_block + adapter[end:]
 
-          permanent_anchor = "            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71}\n"
-          permanent_replacement = (
+          adapter = adapter.replace(
+              "            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71}\n",
               "            permanent = result.returncode in "
-              "{64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76}\n"
+              "{64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76}\n",
+              1,
           )
-          if "71, 72, 73, 74, 75, 76" not in adapter:
-              if adapter.count(permanent_anchor) != 1:
-                  raise SystemExit("broker adapter permanent-code anchor not found")
-              adapter = adapter.replace(permanent_anchor, permanent_replacement, 1)
           adapter_path.write_text(adapter, encoding="utf-8")
 
           main_path = Path("services/telemetry-service/app/main.py")
           main = main_path.read_text(encoding="utf-8")
-          main_import_anchor = "from app.mqtt_consumer import MqttConsumer\n"
           if "from app.mqtt_tls import MQTTTLSConfig\n" not in main:
-              if main.count(main_import_anchor) != 1:
-                  raise SystemExit("application MQTT TLS import anchor not found")
               main = main.replace(
-                  main_import_anchor,
-                  main_import_anchor + "from app.mqtt_tls import MQTTTLSConfig\n",
+                  "from app.mqtt_consumer import MqttConsumer\n",
+                  "from app.mqtt_consumer import MqttConsumer\n"
+                  "from app.mqtt_tls import MQTTTLSConfig\n",
+                  1,
+              )
+          main_lines = main.splitlines(keepends=True)
+          tls_call = "        tls_config=MQTTTLSConfig.from_settings(settings),\n"
+          if tls_call not in main_lines:
+              insert_after_exact(
+                  main_lines,
+                  "        timeout_seconds=settings.broker_control_command_timeout_seconds,\n",
+                  tls_call,
+                  "broker-control bootstrap",
+              )
+          main_path.write_text("".join(main_lines), encoding="utf-8")
+
+          script_path = Path("infrastructure/mqtt/dynamic-security/dynsec-admin.sh")
+          script = script_path.read_text(encoding="utf-8")
+          if "NEXOLAB_MQTT_TLS_REQUIRED" not in script:
+              script = script.replace(
+                  'ADMIN_PASSWORD_FILE="${NEXOLAB_MQTT_ADMIN_PASSWORD_FILE:-/run/secrets/mqtt_admin_password}"\n',
+                  'ADMIN_PASSWORD_FILE="${NEXOLAB_MQTT_ADMIN_PASSWORD_FILE:-/run/secrets/mqtt_admin_password}"\n'
+                  'TLS_REQUIRED="${NEXOLAB_MQTT_TLS_REQUIRED:-false}"\n'
+                  'TLS_CA_FILE="${NEXOLAB_MQTT_TLS_CA_FILE:-}"\n'
+                  'TLS_CERT_FILE="${NEXOLAB_MQTT_TLS_CERT_FILE:-}"\n'
+                  'TLS_KEY_FILE="${NEXOLAB_MQTT_TLS_KEY_FILE:-}"\n'
+                  'TLS_ENABLED=false\n',
                   1,
               )
 
-          adapter_call_anchor = '''        admin_password_file=settings.broker_control_admin_password_file or "",
-              timeout_seconds=settings.broker_control_command_timeout_seconds,
-          )
-          '''
-          adapter_call_replacement = '''        admin_password_file=settings.broker_control_admin_password_file or "",
-              timeout_seconds=settings.broker_control_command_timeout_seconds,
-              tls_config=MQTTTLSConfig.from_settings(settings),
-          )
-          '''
-          if "tls_config=MQTTTLSConfig.from_settings(settings)" not in main:
-              if main.count(adapter_call_anchor) != 1:
-                  raise SystemExit("application broker TLS call anchor not found")
-              main = main.replace(
-                  adapter_call_anchor,
-                  adapter_call_replacement,
-                  1,
-              )
-          main_path.write_text(main, encoding="utf-8")
-          PY
-      - name: Wire TLS options into hardened admin script
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("infrastructure/mqtt/dynamic-security/dynsec-admin.sh")
-          source = path.read_text(encoding="utf-8")
-
-          variables_anchor = 'ADMIN_PASSWORD_FILE="${NEXOLAB_MQTT_ADMIN_PASSWORD_FILE:-/run/secrets/mqtt_admin_password}"\n'
-          variables_block = variables_anchor + '''TLS_REQUIRED="${NEXOLAB_MQTT_TLS_REQUIRED:-false}"
-          TLS_CA_FILE="${NEXOLAB_MQTT_TLS_CA_FILE:-}"
-          TLS_CERT_FILE="${NEXOLAB_MQTT_TLS_CERT_FILE:-}"
-          TLS_KEY_FILE="${NEXOLAB_MQTT_TLS_KEY_FILE:-}"
-          TLS_ENABLED=false
-          '''
-          if "NEXOLAB_MQTT_TLS_REQUIRED" not in source:
-              if source.count(variables_anchor) != 1:
-                  raise SystemExit("dynsec TLS variable anchor not found")
-              source = source.replace(variables_anchor, variables_block, 1)
-
-          function_anchor = '''prepare_control_options() {
-          '''
-          function_block = '''prepare_tls_options() {
+          if "prepare_tls_options()" not in script:
+              tls_function = '''prepare_tls_options() {
             case "$TLS_REQUIRED" in
               1|true|TRUE|yes|YES|on|ON)
                 TLS_ENABLED=true
@@ -198,57 +173,47 @@ jobs:
             fi
           }
 
-          prepare_control_options() {
           '''
-          if "prepare_tls_options()" not in source:
-              if source.count(function_anchor) != 1:
-                  raise SystemExit("dynsec TLS function anchor not found")
-              source = source.replace(function_anchor, function_block, 1)
+              script = script.replace(
+                  "prepare_control_options() {\n",
+                  tls_function + "prepare_control_options() {\n",
+                  1,
+              )
 
-          prepare_anchor = '''  required_value "$ADMIN_USERNAME" "Admin username"
-            required_value "$ADMIN_CLIENT_ID" "Admin client ID"
-            admin_password="$(read_secret "$ADMIN_PASSWORD_FILE")"
-          '''
-          prepare_replacement = '''  required_value "$ADMIN_USERNAME" "Admin username"
-            required_value "$ADMIN_CLIENT_ID" "Admin client ID"
-            prepare_tls_options
-            admin_password="$(read_secret "$ADMIN_PASSWORD_FILE")"
-          '''
-          if "    prepare_tls_options\n" not in source:
-              if source.count(prepare_anchor) != 1:
-                  raise SystemExit("dynsec TLS prepare anchor not found")
-              source = source.replace(prepare_anchor, prepare_replacement, 1)
+          if "  prepare_tls_options\n" not in script:
+              script = script.replace(
+                  '  required_value "$ADMIN_CLIENT_ID" "Admin client ID"\n',
+                  '  required_value "$ADMIN_CLIENT_ID" "Admin client ID"\n'
+                  '  prepare_tls_options\n',
+                  1,
+              )
 
-          options_anchor = '''    printf '%s\n' "-P $admin_password"
-              printf '%s\n' "--quiet"
-          '''
-          options_replacement = '''    printf '%s\n' "-P $admin_password"
-              if [ "$TLS_ENABLED" = "true" ]; then
-                printf '%s\n' "--cafile $TLS_CA_FILE"
-                printf '%s\n' "--tls-version tlsv1.2"
-                if [ -n "$TLS_CERT_FILE" ]; then
-                  printf '%s\n' "--cert $TLS_CERT_FILE"
-                  printf '%s\n' "--key $TLS_KEY_FILE"
-                fi
+          if '    printf \'%s\\n\' "--cafile $TLS_CA_FILE"\n' not in script:
+              tls_options = '''    if [ "$TLS_ENABLED" = "true" ]; then
+              printf '%s\n' "--cafile $TLS_CA_FILE"
+              printf '%s\n' "--tls-version tlsv1.2"
+              if [ -n "$TLS_CERT_FILE" ]; then
+                printf '%s\n' "--cert $TLS_CERT_FILE"
+                printf '%s\n' "--key $TLS_KEY_FILE"
               fi
-              printf '%s\n' "--quiet"
+            fi
           '''
-          if '"--cafile $TLS_CA_FILE"' not in source:
-              if source.count(options_anchor) != 1:
-                  raise SystemExit("dynsec TLS options anchor not found")
-              source = source.replace(options_anchor, options_replacement, 1)
+              script = script.replace(
+                  '    printf \'%s\\n\' "-P $admin_password"\n',
+                  '    printf \'%s\\n\' "-P $admin_password"\n' + tls_options,
+                  1,
+              )
 
-          if "--insecure" in source:
+          if "--insecure" in script:
               raise SystemExit("insecure TLS option is forbidden")
-          path.write_text(source, encoding="utf-8")
-          Path("services/telemetry-service/bin/nexolab-dynsec-admin").write_text(
-              source,
-              encoding="utf-8",
-          )
+          script_path.write_text(script, encoding="utf-8")
+          executable_path = Path("services/telemetry-service/bin/nexolab-dynsec-admin")
+          executable_path.write_text(script, encoding="utf-8")
           PY
           chmod 0755 \
             infrastructure/mqtt/dynamic-security/dynsec-admin.sh \
             services/telemetry-service/bin/nexolab-dynsec-admin
+
       - name: Add broker-control TLS tests
         run: |
           cat > services/telemetry-service/tests/test_node_broker_adapter_tls.py <<'PY'
@@ -268,9 +233,8 @@ jobs:
               return path
 
 
-          def test_adapter_exports_only_verified_tls_paths(tmp_path: Path) -> None:
-              executable = tmp_path / "admin"
-              executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+          def test_adapter_exports_only_tls_paths(tmp_path: Path) -> None:
+              executable = write_file(tmp_path / "admin", "#!/bin/sh\nexit 0\n")
               executable.chmod(0o700)
               admin_password = write_file(tmp_path / "admin-password", "secret")
               ca_file = write_file(tmp_path / "ca.pem", "ca")
@@ -299,19 +263,39 @@ jobs:
                   certificate_file
               )
               assert adapter._environment["NEXOLAB_MQTT_TLS_KEY_FILE"] == str(key_file)
-              assert "insecure" not in " ".join(adapter._environment).lower()
+              assert "private-key" not in repr(adapter._environment)
+              assert "--insecure" not in repr(adapter._environment)
 
 
-          def test_admin_script_builds_tls_options_without_insecure_bypass(
-              tmp_path: Path,
-          ) -> None:
-              script = (
-                  Path(__file__).resolve().parents[2]
-                  / "infrastructure"
-                  / "mqtt"
-                  / "dynamic-security"
-                  / "dynsec-admin.sh"
+          def test_adapter_disables_tls_without_exporting_material(tmp_path: Path) -> None:
+              executable = write_file(tmp_path / "admin", "#!/bin/sh\nexit 0\n")
+              executable.chmod(0o700)
+              admin_password = write_file(tmp_path / "admin-password", "secret")
+
+              adapter = DynamicSecurityAdminAdapter(
+                  executable=str(executable),
+                  broker_host="mqtt",
+                  broker_port=1883,
+                  admin_username="admin",
+                  admin_client_id="broker-control",
+                  admin_password_file=str(admin_password),
+                  timeout_seconds=2,
               )
+
+              assert adapter._environment["NEXOLAB_MQTT_TLS_REQUIRED"] == "false"
+              assert "NEXOLAB_MQTT_TLS_CA_FILE" not in adapter._environment
+
+
+          def run_admin_script(
+              tmp_path: Path,
+              *,
+              tls_required: str,
+              ca_file: str = "",
+              certificate_file: str = "",
+              key_file: str = "",
+          ) -> tuple[subprocess.CompletedProcess[str], Path]:
+              root = Path(__file__).resolve().parents[3]
+              script = root / "infrastructure/mqtt/dynamic-security/dynsec-admin.sh"
               fake_bin = tmp_path / "bin"
               fake_bin.mkdir()
               captured = tmp_path / "captured-options"
@@ -324,66 +308,118 @@ jobs:
                   encoding="utf-8",
               )
               fake_ctrl.chmod(0o700)
-              admin_password = write_file(tmp_path / "admin-password", "secret")
-              ca_file = write_file(tmp_path / "ca.pem", "ca")
-              certificate_file = write_file(tmp_path / "client.pem", "certificate")
-              key_file = write_file(tmp_path / "client.key", "private-key")
+              password = write_file(tmp_path / "admin-password", "admin-secret")
               environment = os.environ.copy()
               environment.update(
                   {
                       "PATH": f"{fake_bin}:{environment['PATH']}",
                       "CAPTURED_OPTIONS": str(captured),
-                      "NEXOLAB_MQTT_ADMIN_PASSWORD_FILE": str(admin_password),
-                      "NEXOLAB_MQTT_TLS_REQUIRED": "true",
-                      "NEXOLAB_MQTT_TLS_CA_FILE": str(ca_file),
-                      "NEXOLAB_MQTT_TLS_CERT_FILE": str(certificate_file),
-                      "NEXOLAB_MQTT_TLS_KEY_FILE": str(key_file),
+                      "NEXOLAB_MQTT_ADMIN_PASSWORD_FILE": str(password),
+                      "NEXOLAB_MQTT_TLS_REQUIRED": tls_required,
+                      "NEXOLAB_MQTT_TLS_CA_FILE": ca_file,
+                      "NEXOLAB_MQTT_TLS_CERT_FILE": certificate_file,
+                      "NEXOLAB_MQTT_TLS_KEY_FILE": key_file,
                   }
               )
-
-              subprocess.run(
+              result = subprocess.run(
                   [str(script), "list-clients"],
-                  check=True,
-                  env=environment,
+                  check=False,
                   capture_output=True,
                   text=True,
+                  env=environment,
+              )
+              return result, captured
+
+
+          def test_admin_script_builds_verified_tls_options(tmp_path: Path) -> None:
+              ca_file = write_file(tmp_path / "ca.pem", "ca")
+              certificate_file = write_file(tmp_path / "client.pem", "certificate")
+              key_file = write_file(tmp_path / "client.key", "private-key")
+
+              result, captured = run_admin_script(
+                  tmp_path,
+                  tls_required="true",
+                  ca_file=str(ca_file),
+                  certificate_file=str(certificate_file),
+                  key_file=str(key_file),
               )
 
+              assert result.returncode == 0, result.stderr
               options = captured.read_text(encoding="utf-8")
               assert f"--cafile {ca_file}" in options
               assert "--tls-version tlsv1.2" in options
               assert f"--cert {certificate_file}" in options
               assert f"--key {key_file}" in options
               assert "--insecure" not in options
+              assert "private-key" not in options
+
+
+          def test_admin_script_fails_closed_for_partial_tls(tmp_path: Path) -> None:
+              ca_file = write_file(tmp_path / "ca.pem", "ca")
+              certificate_file = write_file(tmp_path / "client.pem", "certificate")
+
+              disabled, _ = run_admin_script(
+                  tmp_path / "disabled",
+                  tls_required="false",
+                  ca_file=str(ca_file),
+              )
+              missing_key, _ = run_admin_script(
+                  tmp_path / "partial",
+                  tls_required="true",
+                  ca_file=str(ca_file),
+                  certificate_file=str(certificate_file),
+              )
+
+              assert disabled.returncode == 72
+              assert missing_key.returncode == 74
+
+
+          def test_admin_script_copies_are_identical_and_have_no_bypass() -> None:
+              root = Path(__file__).resolve().parents[3]
+              infrastructure_script = (
+                  root / "infrastructure/mqtt/dynamic-security/dynsec-admin.sh"
+              )
+              service_script = (
+                  root / "services/telemetry-service/bin/nexolab-dynsec-admin"
+              )
+              assert infrastructure_script.read_bytes() == service_script.read_bytes()
+              source = infrastructure_script.read_text(encoding="utf-8")
+              assert "--insecure" not in source
+
+
+          def test_application_passes_verified_tls_to_broker_adapter() -> None:
+              root = Path(__file__).resolve().parents[3]
+              source = (root / "services/telemetry-service/app/main.py").read_text(
+                  encoding="utf-8"
+              )
+              assert "from app.mqtt_tls import MQTTTLSConfig" in source
+              assert "tls_config=MQTTTLSConfig.from_settings(settings)" in source
           PY
+
       - name: Validate broker-control TLS wiring
+        working-directory: services/telemetry-service
         run: |
-          sh -n infrastructure/mqtt/dynamic-security/dynsec-admin.sh
-          sh -n services/telemetry-service/bin/nexolab-dynsec-admin
-          cmp -s \
-            infrastructure/mqtt/dynamic-security/dynsec-admin.sh \
-            services/telemetry-service/bin/nexolab-dynsec-admin
-          ! grep -R -- '--insecure' \
-            infrastructure/mqtt/dynamic-security/dynsec-admin.sh \
-            services/telemetry-service/app \
-            services/telemetry-service/bin
-          cd services/telemetry-service
           python -m pip install -r requirements-dev.txt
           python -m compileall -q app tests
+          sh -n ../../infrastructure/mqtt/dynamic-security/dynsec-admin.sh
+          sh -n bin/nexolab-dynsec-admin
+          cmp ../../infrastructure/mqtt/dynamic-security/dynsec-admin.sh \
+            bin/nexolab-dynsec-admin
           python -m pytest -q \
-            tests/test_mqtt_tls.py \
-            tests/test_mqtt_tls_integration.py \
             tests/test_node_broker_adapter.py \
-            tests/test_node_broker_adapter_tls.py
+            tests/test_node_broker_adapter_tls.py \
+            tests/test_mqtt_tls.py \
+            tests/test_mqtt_tls_integration.py
+
       - name: Commit broker-control TLS wiring
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            infrastructure/mqtt/dynamic-security/dynsec-admin.sh \
-            services/telemetry-service/bin/nexolab-dynsec-admin \
             services/telemetry-service/app/main.py \
             services/telemetry-service/app/nodes/broker_adapter.py \
-            services/telemetry-service/tests/test_node_broker_adapter_tls.py
+            services/telemetry-service/bin/nexolab-dynsec-admin \
+            services/telemetry-service/tests/test_node_broker_adapter_tls.py \
+            infrastructure/mqtt/dynamic-security/dynsec-admin.sh
           git commit -m "feat: enforce TLS for broker control administration"
           git push origin "HEAD:${{ github.head_ref }}"
