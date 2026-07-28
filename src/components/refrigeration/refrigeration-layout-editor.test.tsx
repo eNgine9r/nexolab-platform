@@ -74,6 +74,7 @@ async function waitForRepositoryReady() {
 describe("RefrigerationLayoutEditor", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it("supports keyboard movement, undo, redo and cancel", () => {
@@ -99,7 +100,7 @@ describe("RefrigerationLayoutEditor", () => {
     expect(screen.getByText("Режим перегляду")).toBeInTheDocument();
   });
 
-  it("moves a marker with pointer drag using normalized stage coordinates", () => {
+  it("moves a marker with pointer drag using normalized image-canvas coordinates", () => {
     render(<EditorHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати схему" }));
@@ -136,6 +137,31 @@ describe("RefrigerationLayoutEditor", () => {
 
     expect(marker("01F")).toHaveAttribute("data-x", "0.5000");
     expect(marker("01F")).toHaveAttribute("data-y", "0.5000");
+  });
+
+  it("scales the photo canvas without changing sensor coordinates and keeps markers above media", () => {
+    render(<EditorHarness />);
+
+    const sensorMarker = marker("01F");
+    const originalX = sensorMarker.getAttribute("data-x");
+    const originalY = sensorMarker.getAttribute("data-y");
+    const stage = screen.getByTestId("equipment-image-stage");
+
+    expect(stage).toHaveStyle({ width: "80%" });
+    expect(screen.getByTestId("equipment-image-media-layer")).toHaveClass("z-0");
+    expect(screen.getByTestId("sensor-marker-layer")).toHaveClass("z-40");
+
+    fireEvent.change(screen.getByRole("slider", { name: "Масштаб фото" }), {
+      target: { value: "130" },
+    });
+
+    expect(stage).toHaveStyle({ width: "130%" });
+    expect(stage).toHaveAttribute("data-scale-percent", "130");
+    expect(marker("01F")).toHaveAttribute("data-x", originalX);
+    expect(marker("01F")).toHaveAttribute("data-y", originalY);
+    expect(window.localStorage.getItem("nexolab:refrigeration:image-scale:showcase-106-01")).toBe(
+      "130",
+    );
   });
 
   it("previews a validated equipment photo without discarding placements", () => {

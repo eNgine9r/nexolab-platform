@@ -4,16 +4,13 @@ import type {
   ChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
-  SyntheticEvent,
 } from "react";
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import {
   AlertTriangle,
   Check,
   Grid3X3,
-  ImageIcon,
   LoaderCircle,
   MousePointer2,
   Redo2,
@@ -24,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 
+import { RefrigerationImageCanvas } from "@/components/refrigeration/refrigeration-image-canvas";
 import type {
   EquipmentImageMetadata,
   RefrigerationEquipment,
@@ -66,13 +64,6 @@ type DragState = {
   pointerId: number;
   before: NormalizedPoint;
   offset: NormalizedPoint;
-};
-
-const markerTone = {
-  normal: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,.2)]",
-  warning: "border-amber-300/80 bg-amber-500/25 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,.25)]",
-  alarm: "border-rose-300/80 bg-rose-500/30 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,.32)]",
-  "no-data": "border-slate-400/60 bg-slate-600/40 text-slate-200",
 };
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -403,10 +394,7 @@ export function RefrigerationLayoutEditor({
     clearSaveFeedback();
   };
 
-  const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
-    const widthPx = event.currentTarget.naturalWidth;
-    const heightPx = event.currentTarget.naturalHeight;
-
+  const handleImageDimensions = (widthPx: number, heightPx: number) => {
     setDraftImage((current) => {
       if (!current || (current.widthPx === widthPx && current.heightPx === heightPx)) return current;
       return { ...current, widthPx, heightPx };
@@ -502,81 +490,23 @@ export function RefrigerationLayoutEditor({
           </p>
         ) : null}
 
-        <div
-          ref={stageRef}
-          data-testid="equipment-image-stage"
-          className={clsx(
-            "relative aspect-[16/10] overflow-hidden rounded-xl border border-cyan-300/[0.1] bg-[radial-gradient(circle_at_50%_10%,rgba(34,211,238,.12),transparent_42%),linear-gradient(160deg,#0a1f37,#030b15)]",
-            mode === "edit" && "ring-1 ring-blue-400/30",
-          )}
-        >
-          {draftImage?.sourceUrl ? (
-            <Image
-              src={draftImage.sourceUrl}
-              alt={draftImage.alt}
-              fill
-              unoptimized
-              draggable={false}
-              sizes="(min-width: 1536px) 900px, 70vw"
-              className="object-cover select-none"
-              onLoad={handleImageLoad}
-            />
-          ) : (
-            <PhotoPlaceholder equipmentName={equipment.name} />
-          )}
-
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,8,23,.08),rgba(2,8,23,.28))]" />
-          {mode === "edit" && snapMode === "grid" ? (
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] bg-[size:2.5%_2.5%]" />
-          ) : null}
-
-          {visibleSensors.map((sensor) => {
-            const placement = placementBySensorId.get(sensor.id);
-            if (!placement) return null;
-
-            return (
-              <button
-                key={sensor.id}
-                type="button"
-                aria-label={`Вибрати датчик ${sensor.label} на схемі`}
-                aria-pressed={sensor.id === selectedId}
-                data-x={placement.x.toFixed(4)}
-                data-y={placement.y.toFixed(4)}
-                onClick={() => onSelect(sensor.id)}
-                onKeyDown={(event) => handleMarkerKeyDown(event, sensor.id)}
-                onPointerDown={(event) => handleMarkerPointerDown(event, sensor.id)}
-                onPointerMove={handleMarkerPointerMove}
-                onPointerUp={finishPointerDrag}
-                onPointerCancel={finishPointerDrag}
-                className={clsx(
-                  "absolute z-10 min-w-10 -translate-x-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-center text-[8px] leading-tight font-bold backdrop-blur-sm transition focus:ring-2 focus:ring-cyan-300 focus:outline-none",
-                  markerTone[sensor.status],
-                  sensor.id === selectedId && "z-20 scale-110 ring-2 ring-white/80",
-                  mode === "edit"
-                    ? "cursor-grab touch-none hover:z-20 hover:scale-110 active:cursor-grabbing"
-                    : "cursor-pointer hover:z-20 hover:scale-110",
-                )}
-                style={{ left: `${placement.x * 100}%`, top: `${placement.y * 100}%` }}
-              >
-                <span className="block">{sensor.label}</span>
-                <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
-              </button>
-            );
-          })}
-
-          <div className="absolute right-3 bottom-3 left-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-slate-950/70 px-3 py-2 text-[9px] text-slate-400 backdrop-blur">
-            <span>
-              {draftImage
-                ? `${draftImage.fileName} · ${formatFileSize(draftImage.sizeBytes)}${draftImage.widthPx > 0 ? ` · ${draftImage.widthPx}×${draftImage.heightPx}` : ""}`
-                : "Фото ще не завантажено"}
-            </span>
-            <span>
-              {mode === "edit"
-                ? "Перетягніть маркер або використовуйте стрілки"
-                : "Клікніть маркер для вибору"}
-            </span>
-          </div>
-        </div>
+        <RefrigerationImageCanvas
+          equipmentId={equipment.id}
+          equipmentName={equipment.name}
+          image={draftImage}
+          visibleSensors={visibleSensors}
+          placementBySensorId={placementBySensorId}
+          selectedId={selectedId}
+          mode={mode}
+          snapMode={snapMode}
+          stageRef={stageRef}
+          onSelect={onSelect}
+          onMarkerKeyDown={handleMarkerKeyDown}
+          onMarkerPointerDown={handleMarkerPointerDown}
+          onMarkerPointerMove={handleMarkerPointerMove}
+          onMarkerPointerUp={finishPointerDrag}
+          onImageDimensions={handleImageDimensions}
+        />
       </div>
     </div>
   );
@@ -746,22 +676,6 @@ function ToolbarButton({
   );
 }
 
-function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
-  return (
-    <div className="absolute inset-0 grid place-items-center p-8 text-center">
-      <div>
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
-          <ImageIcon className="h-7 w-7" />
-        </div>
-        <p className="mt-4 text-sm font-medium text-slate-200">Завантажте реальне фото вітрини</p>
-        <p className="mt-2 max-w-md text-xs leading-5 text-slate-500">
-          {equipmentName}: JPEG, PNG або WebP до 15 МБ. Розміщення датчиків збережеться при заміні зображення.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function pointFromPointer(
   clientX: number,
   clientY: number,
@@ -817,14 +731,4 @@ function repositoryErrorMessage(error: LayoutRepositoryError): string {
   }
   if (error.code === "LAYOUT_REVISION_NOT_FOUND") return "Вибрану ревізію схеми не знайдено.";
   return "Схема була змінена іншим користувачем.";
-}
-
-function formatTemperature(temperatureC: number | null): string {
-  return temperatureC === null ? "—" : `${temperatureC.toFixed(1)}°`;
-}
-
-function formatFileSize(sizeBytes: number): string {
-  if (sizeBytes <= 0) return "локальне фото";
-  if (sizeBytes < 1024 * 1024) return `${Math.round(sizeBytes / 1024)} КБ`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
