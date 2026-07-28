@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-trixie
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -11,7 +11,9 @@ RUN apt-get update \
         mosquitto \
         mosquitto-clients \
     && command -v mosquitto_ctrl >/dev/null \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get purge --yes --allow-remove-essential perl-base \
+    && apt-get autoremove --yes \
+    && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/*
 
 COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir -r requirements.txt
