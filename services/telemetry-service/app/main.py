@@ -20,6 +20,7 @@ from app.live_api import create_live_router
 from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
+from app.mqtt_tls import MQTTTLSConfig
 from app.nodes.api import create_node_router
 from app.nodes.broker_adapter import DynamicSecurityAdminAdapter
 from app.nodes.broker_api import create_broker_control_router
@@ -366,6 +367,7 @@ def _create_broker_control(
         admin_client_id=settings.broker_control_admin_client_id,
         admin_password_file=settings.broker_control_admin_password_file or "",
         timeout_seconds=settings.broker_control_command_timeout_seconds,
+        tls_config=MQTTTLSConfig.from_settings(settings),
     )
     worker = BrokerControlWorker(
         database=database,

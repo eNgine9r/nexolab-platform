@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.nodes.broker_control import BrokerControlOperation
+from app.mqtt_tls import MQTTTLSConfig
 from app.nodes.broker_models import CentralNodeBrokerCommand
 
 
@@ -43,6 +44,7 @@ class DynamicSecurityAdminAdapter:
         admin_client_id: str,
         admin_password_file: str,
         timeout_seconds: float,
+        tls_config: MQTTTLSConfig | None = None,
     ) -> None:
         executable_path = Path(executable)
         password_path = Path(admin_password_file)
@@ -70,6 +72,33 @@ class DynamicSecurityAdminAdapter:
             ),
             "NEXOLAB_MQTT_ADMIN_PASSWORD_FILE": str(password_path),
         }
+        self._tls_config = tls_config or MQTTTLSConfig(enabled=False)
+        self._environment["NEXOLAB_MQTT_TLS_REQUIRED"] = (
+            "true" if self._tls_config.enabled else "false"
+        )
+        if self._tls_config.enabled:
+            if self._tls_config.ca_file is None:
+                raise BrokerControlAdapterError(
+                    "broker_admin_tls_invalid",
+                    "broker administrator TLS CA is unavailable",
+                    retryable=False,
+                )
+            certificate_file = self._tls_config.client_certificate_file
+            key_file = self._tls_config.client_key_file
+            if (certificate_file is None) != (key_file is None):
+                raise BrokerControlAdapterError(
+                    "broker_admin_tls_invalid",
+                    "broker administrator TLS client identity is incomplete",
+                    retryable=False,
+                )
+            self._environment["NEXOLAB_MQTT_TLS_CA_FILE"] = str(
+                self._tls_config.ca_file
+            )
+            if certificate_file is not None and key_file is not None:
+                self._environment["NEXOLAB_MQTT_TLS_CERT_FILE"] = str(
+                    certificate_file
+                )
+                self._environment["NEXOLAB_MQTT_TLS_KEY_FILE"] = str(key_file)
 
     def apply(self, command: CentralNodeBrokerCommand, secret: str | None) -> None:
         operation = BrokerControlOperation(command.operation)
@@ -223,7 +252,7 @@ class DynamicSecurityAdminAdapter:
             ) from error
 
         if result.returncode != 0:
-            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71}
+            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76}
             raise BrokerControlAdapterError(
                 "broker_command_rejected" if permanent else "broker_unavailable",
                 "broker administration command failed",
