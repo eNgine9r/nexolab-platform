@@ -54,10 +54,14 @@ describe("layout draft storage", () => {
 
   it("rejects stale and implausibly future drafts", () => {
     const stale = validPayload(new Date(nowMs - LAYOUT_DRAFT_MAX_AGE_MS - 1).toISOString());
-    expect(parseLayoutDraft(JSON.stringify(stale), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
+    expect(
+      parseLayoutDraft(JSON.stringify(stale), "equipment-1", allowedSensorIds, nowMs),
+    ).toBeNull();
 
     const future = validPayload(new Date(nowMs + 10 * 60 * 1000).toISOString());
-    expect(parseLayoutDraft(JSON.stringify(future), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
+    expect(
+      parseLayoutDraft(JSON.stringify(future), "equipment-1", allowedSensorIds, nowMs),
+    ).toBeNull();
   });
 
   it("rejects equipment mismatches, missing sensors and duplicate sensors", () => {
@@ -65,7 +69,9 @@ describe("layout draft storage", () => {
     expect(parseLayoutDraft(serialized, "equipment-2", allowedSensorIds, nowMs)).toBeNull();
 
     const missing = { ...validPayload(), placements: placements.slice(0, 1) };
-    expect(parseLayoutDraft(JSON.stringify(missing), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
+    expect(
+      parseLayoutDraft(JSON.stringify(missing), "equipment-1", allowedSensorIds, nowMs),
+    ).toBeNull();
 
     const duplicate = {
       ...validPayload(),
@@ -102,7 +108,7 @@ describe("layout draft storage", () => {
     const adapter = createBrowserLayoutDraftStorage(storage);
 
     expect(adapter.load("equipment-1")).toBeNull();
-    expect(adapter.save("equipment-1", "{}")) .toBe(false);
+    expect(adapter.save("equipment-1", "{}")).toBe(false);
     expect(adapter.remove("equipment-1")).toBe(false);
   });
 
