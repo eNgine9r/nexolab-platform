@@ -1,0 +1,127 @@
+name: Disaster Recovery Domain Completeness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-domain-completeness.yml"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "scripts/disaster-recovery-domain-counts.sql"
+      - "scripts/disaster-recovery-domain-fixtures.sql"
+      - "scripts/disaster-recovery-domain-state.sql"
+      - "scripts/nexolab-backup-bundle.py"
+      - "scripts/run-disaster-recovery-domain-completeness.sh"
+      - "security/disaster-recovery-assets.json"
+      - "services/telemetry-service/alembic/**"
+      - "services/telemetry-service/app/alerts/**"
+      - "services/telemetry-service/app/nodes/**"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/app/reports/**"
+      - "services/telemetry-service/app/sessions/**"
+      - "tests/test_nexolab_backup_bundle.py"
+      - "tests/test_nexolab_backup_bundle_archive_validation.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/disaster-recovery-domain-completeness.yml"
+      - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "scripts/disaster-recovery-domain-counts.sql"
+      - "scripts/disaster-recovery-domain-fixtures.sql"
+      - "scripts/disaster-recovery-domain-state.sql"
+      - "scripts/nexolab-backup-bundle.py"
+      - "scripts/run-disaster-recovery-domain-completeness.sh"
+      - "security/disaster-recovery-assets.json"
+      - "services/telemetry-service/alembic/**"
+      - "services/telemetry-service/app/alerts/**"
+      - "services/telemetry-service/app/nodes/**"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/app/reports/**"
+      - "services/telemetry-service/app/sessions/**"
+      - "tests/test_nexolab_backup_bundle.py"
+      - "tests/test_nexolab_backup_bundle_archive_validation.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disaster-recovery-domain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Validate authenticated archive failure modes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependencies
+        run: python -m pip install pytest==8.4.2 cryptography==48.0.1
+
+      - name: Validate scripts
+        run: |
+          bash -n scripts/run-disaster-recovery-domain-completeness.sh
+          python -m compileall -q \
+            scripts/nexolab-backup-bundle.py \
+            tests/test_nexolab_backup_bundle.py \
+            tests/test_nexolab_backup_bundle_archive_validation.py
+
+      - name: Run authenticated archive regression tests
+        run: |
+          python -m pytest -q \
+            tests/test_nexolab_backup_bundle.py \
+            tests/test_nexolab_backup_bundle_archive_validation.py
+
+      - name: Reject secret-like versioned material
+        run: |
+          ! grep -ER \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(^|[^A-Z0-9_])(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|MQTT_PASSWORD)=' \
+            scripts/disaster-recovery-domain-counts.sql \
+            scripts/disaster-recovery-domain-fixtures.sql \
+            scripts/disaster-recovery-domain-state.sql \
+            scripts/run-disaster-recovery-domain-completeness.sh \
+            tests/test_nexolab_backup_bundle_archive_validation.py
+
+  runtime:
+    name: Restore sessions, alerts, reports, nodes and refrigeration
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run protected-domain restore acceptance
+        run: bash scripts/run-disaster-recovery-domain-completeness.sh
+
+      - name: Upload protected-domain evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-domain-evidence-${{ github.sha }}
+          path: test-results-disaster-recovery-domain
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload sanitized failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-domain-failure-${{ github.sha }}
+          path: |
+            test-results-disaster-recovery-domain/compose-ps.txt
+            test-results-disaster-recovery-domain/services.log
+          if-no-files-found: warn
+          retention-days: 3
