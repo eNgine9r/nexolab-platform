@@ -218,6 +218,23 @@ describe("RefrigerationLayoutEditor", () => {
     });
   });
 
+  it("keeps scale controls operational when persistent storage rejects writes", () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage quota exceeded", "QuotaExceededError");
+    });
+
+    render(<CanvasHarness equipmentId="blocked-storage-equipment" />);
+    const stage = screen.getByTestId("equipment-image-stage");
+
+    fireEvent.change(screen.getByRole("slider", { name: "Масштаб фото" }), {
+      target: { value: "140" },
+    });
+
+    expect(setItem).toHaveBeenCalled();
+    expect(stage).toHaveAttribute("data-scale-percent", "140");
+    expect(stage).toHaveStyle({ width: "140%" });
+  });
+
   it("previews a validated equipment photo without discarding placements", () => {
     const createObjectUrl = vi.fn(() => "blob:nexolab-equipment-photo");
     Object.defineProperty(URL, "createObjectURL", {
