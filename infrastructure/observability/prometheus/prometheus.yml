@@ -1,0 +1,47 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 3s
+  evaluation_interval: 5s
+  external_labels:
+    platform: nexolab
+    environment: central
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus:9090
+
+  - job_name: telemetry-service
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - telemetry-service:8082
+        labels:
+          component: ingestion
+
+  - job_name: alertmanager
+    static_configs:
+      - targets:
+          - alertmanager:9093
+
+  - job_name: observability-alert-sink
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - observability-alert-sink:8080
+
+  - job_name: disaster-recovery-status
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - observability-textfile:9109
