@@ -89,17 +89,13 @@ chmod 0444 \
 
 openssl verify \
   -CAfile "$SECRETS_DIR/mqtt-ca.pem" \
+  -verify_hostname mqtt \
   "$SERVER_DIR/mqtt-server.pem" \
   >/dev/null
-openssl x509 \
-  -in "$SERVER_DIR/mqtt-server.pem" \
-  -noout \
-  -checkhost mqtt \
-  >/dev/null
-if openssl x509 \
-  -in "$SERVER_DIR/mqtt-server.pem" \
-  -noout \
-  -checkhost mqtt-wrong-host \
+if openssl verify \
+  -CAfile "$SECRETS_DIR/mqtt-ca.pem" \
+  -verify_hostname mqtt-wrong-host \
+  "$SERVER_DIR/mqtt-server.pem" \
   >/dev/null 2>&1; then
   echo "Generated MQTT server certificate unexpectedly accepts wrong hostname." >&2
   exit 1
