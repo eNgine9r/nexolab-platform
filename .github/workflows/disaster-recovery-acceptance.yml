@@ -134,3 +134,17 @@ jobs:
           path: test-results-disaster-recovery
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload sanitized failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-failure-${{ github.sha }}
+          path: |
+            test-results-disaster-recovery/compose-ps.txt
+            test-results-disaster-recovery/services.log
+            test-results-disaster-recovery/bundle-create.json
+            test-results-disaster-recovery/bundle-verify.json
+            test-results-disaster-recovery/bundle-extract.json
+          if-no-files-found: warn
+          retention-days: 3
