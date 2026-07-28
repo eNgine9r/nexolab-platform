@@ -135,6 +135,7 @@ groups:
         annotations:
           summary: NEXOLAB ingestion lag is critical
           description: Capture-to-persistence lag has exceeded 120 seconds for two minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#health-and-metrics
 
       - alert: NexolabPersistenceFailures
         expr: increase(nexolab_telemetry_persistence_failure_total[5m]) > 0
@@ -193,6 +194,7 @@ groups:
         annotations:
           summary: NEXOLAB receives telemetry but does not persist it
           description: New MQTT payloads are arriving while the last successful persistence is more than three minutes old.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
 
       - alert: NexolabWebSocketSlowConsumers
         expr: increase(nexolab_telemetry_websocket_slow_consumer_total[10m]) > 0
