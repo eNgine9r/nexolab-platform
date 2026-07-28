@@ -2,12 +2,23 @@
 from __future__ import annotations
 
 import argparse
-import io
 import os
 import shutil
 import stat
 import tarfile
 from pathlib import Path, PurePosixPath
+
+
+ROOT_SCHEMA_KEY = "NEXOLAB.volume.schema"
+ROOT_MODE_KEY = "NEXOLAB.volume.root.mode"
+ROOT_UID_KEY = "NEXOLAB.volume.root.uid"
+ROOT_GID_KEY = "NEXOLAB.volume.root.gid"
+ROOT_METADATA_KEYS = {
+    ROOT_SCHEMA_KEY,
+    ROOT_MODE_KEY,
+    ROOT_UID_KEY,
+    ROOT_GID_KEY,
+}
 
 
 class VolumeArchiveFailure(ValueError):
@@ -23,17 +34,60 @@ def safe_name(value: str) -> str:
     return path.as_posix()
 
 
-def inspect_root(path: Path, label: str) -> None:
+def inspect_root(path: Path, label: str) -> os.stat_result:
     try:
         metadata = path.lstat()
     except OSError as exc:
         raise VolumeArchiveFailure(f"{label} is not accessible") from exc
     if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
         raise VolumeArchiveFailure(f"{label} must be a non-symlink directory")
+    return metadata
 
 
-def collect(source: Path) -> list[tuple[str, Path, os.stat_result]]:
-    inspect_root(source, "source volume")
+def root_pax_headers(metadata: os.stat_result) -> dict[str, str]:
+    return {
+        ROOT_SCHEMA_KEY: "1",
+        ROOT_MODE_KEY: f"{stat.S_IMODE(metadata.st_mode):04o}",
+        ROOT_UID_KEY: str(metadata.st_uid),
+        ROOT_GID_KEY: str(metadata.st_gid),
+    }
+
+
+def parse_root_metadata(archive: tarfile.TarFile) -> tuple[int, int, int]:
+    headers = archive.pax_headers
+    missing = ROOT_METADATA_KEYS - set(headers)
+    if missing:
+        raise VolumeArchiveFailure(
+            "volume archive root metadata is incomplete: " + ", ".join(sorted(missing))
+        )
+    unexpected = {
+        key
+        for key in headers
+        if key.startswith("NEXOLAB.volume.") and key not in ROOT_METADATA_KEYS
+    }
+    if unexpected:
+        raise VolumeArchiveFailure(
+            "volume archive root metadata contains unsupported keys"
+        )
+    if headers[ROOT_SCHEMA_KEY] != "1":
+        raise VolumeArchiveFailure("volume archive root metadata schema is unsupported")
+    try:
+        mode = int(headers[ROOT_MODE_KEY], 8)
+        uid = int(headers[ROOT_UID_KEY], 10)
+        gid = int(headers[ROOT_GID_KEY], 10)
+    except ValueError as exc:
+        raise VolumeArchiveFailure("volume archive root metadata is invalid") from exc
+    if not 0 <= mode <= 0o7777 or uid < 0 or gid < 0:
+        raise VolumeArchiveFailure("volume archive root metadata is out of range")
+    if headers[ROOT_MODE_KEY] != f"{mode:04o}":
+        raise VolumeArchiveFailure("volume archive root mode is not canonical")
+    if headers[ROOT_UID_KEY] != str(uid) or headers[ROOT_GID_KEY] != str(gid):
+        raise VolumeArchiveFailure("volume archive root ownership is not canonical")
+    return mode, uid, gid
+
+
+def collect(source: Path) -> tuple[os.stat_result, list[tuple[str, Path, os.stat_result]]]:
+    root_metadata = inspect_root(source, "source volume")
     entries: list[tuple[str, Path, os.stat_result]] = []
     for path in sorted(source.rglob("*")):
         relative = safe_name(path.relative_to(source).as_posix())
@@ -45,18 +99,23 @@ def collect(source: Path) -> list[tuple[str, Path, os.stat_result]]:
         entries.append((relative, path, metadata))
     if not any(stat.S_ISREG(metadata.st_mode) for _, _, metadata in entries):
         raise VolumeArchiveFailure("source volume contains no files")
-    return entries
+    return root_metadata, entries
 
 
 def create_archive(source: Path, output: Path) -> None:
     if output.exists():
         raise VolumeArchiveFailure("volume archive output already exists")
-    entries = collect(source)
+    root_metadata, entries = collect(source)
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
     try:
         with temporary.open("xb") as destination:
-            with tarfile.open(fileobj=destination, mode="w", format=tarfile.PAX_FORMAT) as archive:
+            with tarfile.open(
+                fileobj=destination,
+                mode="w",
+                format=tarfile.PAX_FORMAT,
+                pax_headers=root_pax_headers(root_metadata),
+            ) as archive:
                 for relative, path, metadata in entries:
                     info = tarfile.TarInfo(relative)
                     info.mode = stat.S_IMODE(metadata.st_mode)
@@ -101,28 +160,46 @@ def validate_members(archive: tarfile.TarFile) -> list[tarfile.TarInfo]:
     return members
 
 
-def destination_is_empty(destination: Path) -> None:
+def destination_is_empty(destination: Path) -> os.stat_result:
     if destination.exists():
-        inspect_root(destination, "restore volume")
+        metadata = inspect_root(destination, "restore volume")
         try:
             if next(destination.iterdir(), None) is not None:
                 raise VolumeArchiveFailure("restore volume must be empty")
         except OSError as exc:
             raise VolumeArchiveFailure("restore volume is not accessible") from exc
-    else:
-        destination.mkdir(parents=True, mode=0o700)
+        return metadata
+    destination.mkdir(parents=True, mode=0o700)
+    return inspect_root(destination, "restore volume")
 
 
-def apply_ownership(path: Path, member: tarfile.TarInfo) -> None:
-    os.chmod(path, member.mode & 0o777)
+def apply_path_metadata(path: Path, *, mode: int, uid: int, gid: int) -> None:
     try:
-        os.chown(path, member.uid, member.gid)
+        os.chown(path, uid, gid)
+        os.chmod(path, mode & 0o7777)
     except PermissionError as exc:
         raise VolumeArchiveFailure("restoring volume ownership requires root") from exc
 
 
+def apply_ownership(path: Path, member: tarfile.TarInfo) -> None:
+    apply_path_metadata(path, mode=member.mode, uid=member.uid, gid=member.gid)
+
+
+def apply_root_metadata(destination: Path, metadata: tuple[int, int, int]) -> None:
+    mode, uid, gid = metadata
+    apply_path_metadata(destination, mode=mode, uid=uid, gid=gid)
+
+
+def restore_original_root(destination: Path, metadata: os.stat_result) -> None:
+    try:
+        os.chown(destination, metadata.st_uid, metadata.st_gid)
+        os.chmod(destination, stat.S_IMODE(metadata.st_mode))
+    except OSError:
+        pass
+
+
 def extract_archive(archive_path: Path, destination: Path) -> None:
-    destination_is_empty(destination)
+    original_root = destination_is_empty(destination)
     try:
         archive = tarfile.open(archive_path, mode="r:")
     except (OSError, tarfile.TarError) as exc:
@@ -131,6 +208,7 @@ def extract_archive(archive_path: Path, destination: Path) -> None:
     try:
         with archive:
             members = validate_members(archive)
+            root_metadata = parse_root_metadata(archive)
             directories = sorted(
                 (member for member in members if member.isdir()),
                 key=lambda member: len(PurePosixPath(member.name).parts),
@@ -158,12 +236,14 @@ def extract_archive(archive_path: Path, destination: Path) -> None:
                 reverse=True,
             ):
                 apply_ownership(destination / safe_name(member.name), member)
+            apply_root_metadata(destination, root_metadata)
     except (OSError, tarfile.TarError, VolumeArchiveFailure):
         for path in sorted(created, key=lambda item: len(item.parts), reverse=True):
             if path.is_dir():
                 path.rmdir()
             else:
                 path.unlink(missing_ok=True)
+        restore_original_root(destination, original_root)
         raise
 
 
