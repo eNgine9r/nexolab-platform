@@ -24,11 +24,11 @@ Actual-host scheduling, off-host storage, hardware-backed key custody, physical-
 
 The authoritative inventory is `security/disaster-recovery-assets.json`.
 
-| Order | Asset | Consistency boundary | Backup format | Restore verification |
-|---:|---|---|---|---|
-| 10 | PostgreSQL | logical snapshot | `pg_dump --format=custom` | archive list, Alembic head, row counts, immutable hashes |
-| 20 | MinIO bucket `nexolab-equipment-images` | application quiesce | object tree + sorted metadata manifest | private bucket, count, size and SHA-256 |
-| 30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar | clients, roles, ACLs, disabled state and credential rotation |
+| Order | Asset                                      | Consistency boundary       | Backup format                          | Restore verification                                         |
+| ----: | ------------------------------------------ | -------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+|    10 | PostgreSQL                                 | logical snapshot           | `pg_dump --format=custom`              | archive list, Alembic head, row counts, immutable hashes     |
+|    20 | MinIO bucket `nexolab-equipment-images`    | application quiesce        | object tree + sorted metadata manifest | private bucket, count, size and SHA-256                      |
+|    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation |
 
 Software acceptance objectives:
 
@@ -194,15 +194,15 @@ A production deployment should expose these recovery signals to the monitoring s
 
 Minimum alerts:
 
-| Severity | Condition |
-|---|---|
-| warning | no successful verified backup for 30 hours |
-| critical | no successful verified backup for 48 hours |
+| Severity | Condition                                                          |
+| -------- | ------------------------------------------------------------------ |
+| warning  | no successful verified backup for 30 hours                         |
+| critical | no successful verified backup for 48 hours                         |
 | critical | bundle verification, manifest hash or AES-GCM authentication fails |
-| warning | backup or restore exceeds its software target |
-| critical | off-host copy is missing for the newest verified bundle |
-| warning | restore rehearsal is older than 35 days |
-| critical | backup destination free space is below the approved reserve |
+| warning  | backup or restore exceeds its software target                      |
+| critical | off-host copy is missing for the newest verified bundle            |
+| warning  | restore rehearsal is older than 35 days                            |
+| critical | backup destination free space is below the approved reserve        |
 
 The monitoring implementation and dashboards are a separate production-observability scope; this section defines its required contract.
 
