@@ -151,15 +151,25 @@ ctrl() {
   mosquitto_ctrl -o "$CONTROL_OPTIONS" dynsec "$@" \
     >"$CONTROL_STDOUT" 2>"$CONTROL_STDERR" || status=$?
 
-  if [ "$status" -ne 0 ] || [ -s "$CONTROL_STDERR" ]; then
+  if [ "$status" -ne 0 ]; then
     cat "$CONTROL_STDERR" >&2
     rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
     CONTROL_STDOUT=""
     CONTROL_STDERR=""
-    if [ "$status" -eq 0 ]; then
+    return "$status"
+  fi
+
+  if [ -s "$CONTROL_STDERR" ]; then
+    if grep -Eiq \
+      '(^|[^[:alpha:]])(error|failed|failure|unable|refused|certificate|verification|tls)([^[:alpha:]]|$)' \
+      "$CONTROL_STDERR"; then
+      cat "$CONTROL_STDERR" >&2
+      rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+      CONTROL_STDOUT=""
+      CONTROL_STDERR=""
       return 77
     fi
-    return "$status"
+    cat "$CONTROL_STDERR" >&2
   fi
 
   cat "$CONTROL_STDOUT"

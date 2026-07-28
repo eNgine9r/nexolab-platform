@@ -252,7 +252,7 @@ class DynamicSecurityAdminAdapter:
             ) from error
 
         if result.returncode != 0:
-            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76}
+            permanent = result.returncode in {64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77}
             raise BrokerControlAdapterError(
                 "broker_command_rejected" if permanent else "broker_unavailable",
                 "broker administration command failed",

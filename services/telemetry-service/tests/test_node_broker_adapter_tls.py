@@ -176,3 +176,60 @@ def test_application_passes_verified_tls_to_broker_adapter() -> None:
     )
     assert "from app.mqtt_tls import MQTTTLSConfig" in source
     assert "tls_config=MQTTTLSConfig.from_settings(settings)" in source
+
+
+def run_admin_with_diagnostic(
+    tmp_path: Path,
+    diagnostic: str,
+) -> subprocess.CompletedProcess[str]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    root = Path(__file__).resolve().parents[3]
+    script = root / "infrastructure/mqtt/dynamic-security/dynsec-admin.sh"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_ctrl = fake_bin / "mosquitto_ctrl"
+    fake_ctrl.write_text(
+        "#!/bin/sh\n"
+        "printf '%s\\n' \"$CTRL_DIAGNOSTIC\" >&2\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    fake_ctrl.chmod(0o700)
+    password = write_file(tmp_path / "admin-password", "admin-secret")
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PATH": f"{fake_bin}:{environment['PATH']}",
+            "CTRL_DIAGNOSTIC": diagnostic,
+            "NEXOLAB_MQTT_ADMIN_PASSWORD_FILE": str(password),
+        }
+    )
+    return subprocess.run(
+        [str(script), "list-clients"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+
+def test_admin_script_allows_non_error_cli_warning(tmp_path: Path) -> None:
+    result = run_admin_with_diagnostic(
+        tmp_path,
+        "Warning: client session closed cleanly.",
+    )
+
+    assert result.returncode == 0
+    assert "Warning" in result.stderr
+
+
+def test_admin_script_rejects_tls_diagnostic_even_on_zero_exit(
+    tmp_path: Path,
+) -> None:
+    result = run_admin_with_diagnostic(
+        tmp_path,
+        "Error: A TLS certificate verification failure occurred.",
+    )
+
+    assert result.returncode == 77
+    assert "TLS certificate verification" in result.stderr
