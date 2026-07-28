@@ -1,0 +1,135 @@
+name: MQTT TLS Fleet Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+      - "infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml"
+      - "scripts/run-device-agent-fleet-acceptance.sh"
+      - "scripts/run-mqtt-tls-fleet-acceptance.sh"
+      - "scripts/generate-mqtt-tls-acceptance-material.sh"
+      - "e2e/device-agent-fleet.production.e2e.ts"
+      - "playwright.device-agent-fleet.config.ts"
+      - ".github/workflows/mqtt-tls-fleet-acceptance.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/compose/compose.broker-control-acceptance.yaml"
+      - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
+      - "infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml"
+      - "scripts/run-device-agent-fleet-acceptance.sh"
+      - "scripts/run-mqtt-tls-fleet-acceptance.sh"
+      - "scripts/generate-mqtt-tls-acceptance-material.sh"
+      - "e2e/device-agent-fleet.production.e2e.ts"
+      - "playwright.device-agent-fleet.config.ts"
+      - ".github/workflows/mqtt-tls-fleet-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mqtt-tls-fleet-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: TLS-only two-agent outage rotation and browser gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate TLS acceptance contracts
+        env:
+          POSTGRES_PASSWORD: preflight-postgres
+          NEXOLAB_MQTT_ADMIN_USERNAME: preflight-admin
+          BROKER_CONTROL_JWT_SECRET: preflight-jwt-secret-with-at-least-thirty-two-bytes
+          BROKER_CONTROL_JWT_ISSUER: https://auth.nexolab.local/preflight
+          BROKER_CONTROL_JWT_AUDIENCE: nexolab-preflight
+          BROKER_CONTROL_SECRETS_DIR: /tmp/nexolab-mqtt-tls-preflight/secrets
+          MQTT_TLS_SERVER_DIR: /tmp/nexolab-mqtt-tls-preflight/server
+          BROKER_CONTROL_TLS_EVIDENCE_DIR: /tmp/nexolab-mqtt-tls-preflight/evidence
+        run: |
+          set -Eeuo pipefail
+          bash -n scripts/run-device-agent-fleet-acceptance.sh
+          bash -n scripts/run-mqtt-tls-fleet-acceptance.sh
+          bash -n scripts/generate-mqtt-tls-acceptance-material.sh
+          rm -rf /tmp/nexolab-mqtt-tls-preflight
+          mkdir -p \
+            "$BROKER_CONTROL_SECRETS_DIR" \
+            "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
+          bash scripts/generate-mqtt-tls-acceptance-material.sh \
+            "$BROKER_CONTROL_SECRETS_DIR" \
+            "$BROKER_CONTROL_TLS_EVIDENCE_DIR"
+          docker compose \
+            -f infrastructure/compose/compose.broker-control-acceptance.yaml \
+            -f infrastructure/compose/compose.device-agent-fleet-acceptance.yaml \
+            -f infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml \
+            config --quiet
+          grep -Fq 'listener 8883' \
+            infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
+          ! grep -Eq '^listener[[:space:]]+1883([[:space:]]|$)' \
+            infrastructure/mqtt/dynamic-security/mosquitto.tls.conf
+          ! grep -ER -- '--insecure|tls_insecure_set|CERT_NONE' \
+            services/device-agent \
+            services/telemetry-service \
+            infrastructure/mqtt/dynamic-security \
+            infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml
+          rm -rf /tmp/nexolab-mqtt-tls-preflight
+
+      - name: Run MQTT TLS fleet acceptance
+        run: bash scripts/run-mqtt-tls-fleet-acceptance.sh
+
+      - name: Validate TLS evidence hygiene
+        run: |
+          set -Eeuo pipefail
+          test -s test-results-device-agent-fleet-tls/mqtt-certificate-evidence.txt
+          test -s test-results-device-agent-fleet-tls/mqtt-transport-negative-tests.txt
+          test -s test-results-device-agent-fleet-tls/acceptance-summary.txt
+          grep -Fq 'server_san=DNS:mqtt' \
+            test-results-device-agent-fleet-tls/mqtt-certificate-evidence.txt
+          grep -Fq 'untrusted_ca=rejected' \
+            test-results-device-agent-fleet-tls/mqtt-transport-negative-tests.txt
+          grep -Fq 'hostname_mismatch=rejected' \
+            test-results-device-agent-fleet-tls/mqtt-transport-negative-tests.txt
+          grep -Fq 'plaintext_listener=unavailable' \
+            test-results-device-agent-fleet-tls/mqtt-transport-negative-tests.txt
+          grep -Fq 'browser_operator_state=verified' \
+            test-results-device-agent-fleet-tls/acceptance-summary.txt
+          ! grep -ER -- \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|PRIVATE KEY-----' \
+            test-results-device-agent-fleet-tls \
+            playwright-report-device-agent-fleet
+
+      - name: Upload MQTT TLS fleet evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mqtt-tls-fleet-acceptance-evidence
+          path: |
+            test-results-device-agent-fleet-tls
+            playwright-report-device-agent-fleet
+          if-no-files-found: warn
+          retention-days: 14
