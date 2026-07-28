@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "repository": "eNgine9r/nexolab-platform",
+  "profile": "pilot-release-candidate-v1",
+  "topology": {
+    "nodes": 6,
+    "streams_per_node": 8,
+    "total_streams": 48
+  },
+  "ingestion_queue": {
+    "capacity": 12000,
+    "maximum_utilization_ratio": 0.7
+  },
+  "steady_state": {
+    "duration_seconds": 60,
+    "events_per_stream_per_second": 1,
+    "expected_events": 2880,
+    "p95_capture_to_persistence_seconds": 3.0,
+    "maximum_drain_seconds": 30
+  },
+  "backlog_replay": {
+    "events": 5000,
+    "publisher_concurrency": 16,
+    "maximum_drain_seconds": 120,
+    "exact_replay_sample_events": 500,
+    "live_events_while_draining": 480
+  },
+  "rest": {
+    "latest": {
+      "requests": 200,
+      "concurrency": 16,
+      "p95_seconds": 1.0
+    },
+    "history": {
+      "requests": 100,
+      "concurrency": 16,
+      "p95_seconds": 2.0,
+      "maximum_range_minutes": 10
+    }
+  },
+  "websocket": {
+    "clients": 20,
+    "expected_events_per_client": 200,
+    "connection_timeout_seconds": 10,
+    "delivery_timeout_seconds": 30,
+    "maximum_missing_events_per_client": 0,
+    "maximum_slow_consumers": 0,
+    "maximum_send_timeouts": 0
+  },
+  "failure_recovery": {
+    "dependency": "postgres",
+    "outage_seconds": 10,
+    "traffic_events_per_second": 48,
+    "minimum_events_during_outage": 480,
+    "maximum_recovery_seconds": 120,
+    "maximum_queue_drops": 0,
+    "maximum_persistence_failures_after_recovery": 0
+  },
+  "correctness": {
+    "maximum_missing_events": 0,
+    "maximum_duplicate_rows": 0,
+    "maximum_valid_dead_letters": 0,
+    "maximum_queue_drops": 0
+  },
+  "resource_observation": {
+    "record_only": true,
+    "sample_interval_seconds": 1,
+    "maximum_samples": 900
+  },
+  "evidence": {
+    "schema_version": 1,
+    "required_files": [
+      "workload-summary.json",
+      "ingestion-latency.json",
+      "database-correctness.json",
+      "queue-observations.json",
+      "rest-latency.json",
+      "websocket-delivery.json",
+      "failure-recovery.json",
+      "container-resources.json",
+      "release-readiness-manifest.json"
+    ]
+  }
+}
