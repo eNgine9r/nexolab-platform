@@ -84,6 +84,22 @@ compose run --rm source-migrate
 
 compose exec -T source-postgres \
   psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
+  -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO security_organizations (id, slug, name, is_active)
+VALUES (
+  '00000000-0000-0000-0000-000000000099',
+  'nexolab-dr-domain',
+  'NEXOLAB DR Domain Completeness',
+  true
+)
+ON CONFLICT (id) DO UPDATE
+SET slug = EXCLUDED.slug,
+    name = EXCLUDED.name,
+    is_active = true;
+SQL
+
+compose exec -T source-postgres \
+  psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \
   -v ON_ERROR_STOP=1 <"$FIXTURES_SQL"
 
 compose exec -T source-postgres \
