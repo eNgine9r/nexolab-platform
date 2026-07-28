@@ -1,0 +1,76 @@
+rule_files:
+  - ../infrastructure/observability/prometheus/rules/nexolab-observability-hardening.yml
+
+evaluation_interval: 5s
+
+tests:
+  - name: disaster recovery exporter down fires independently
+    interval: 5s
+    input_series:
+      - series: 'up{job="disaster-recovery-status"}'
+        values: '0+0x20'
+      - series: nexolab_dr_last_verified_backup_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_offsite_copy_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_restore_rehearsal_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_bundle_verification_success
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryExporterDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: disaster-recovery
+              slo: recoverability
+            exp_annotations:
+              summary: NEXOLAB disaster-recovery status exporter is unavailable
+              description: Prometheus cannot scrape the disaster-recovery status exporter, so backup and restore readiness cannot be evaluated.
+              runbook_url: /docs/operations/observability.md#disaster-recovery-status
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryMetricsMissing
+        exp_alerts: []
+
+  - name: missing disaster recovery metrics fire with healthy exporter
+    interval: 5s
+    input_series:
+      - series: 'up{job="disaster-recovery-status"}'
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryExporterDown
+        exp_alerts: []
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryMetricsMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: disaster-recovery
+              slo: recoverability
+            exp_annotations:
+              summary: NEXOLAB disaster-recovery metric contract is incomplete
+              description: One or more mandatory backup verification, off-host copy, restore rehearsal or bundle verification metrics are absent.
+              runbook_url: /docs/operations/observability.md#disaster-recovery-status
+
+  - name: healthy disaster recovery contract remains quiet
+    interval: 5s
+    input_series:
+      - series: 'up{job="disaster-recovery-status"}'
+        values: '1+0x20'
+      - series: nexolab_dr_last_verified_backup_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_offsite_copy_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_restore_rehearsal_timestamp_seconds
+        values: '1000+0x20'
+      - series: nexolab_dr_last_bundle_verification_success
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryExporterDown
+        exp_alerts: []
+      - eval_time: 65s
+        alertname: NexolabDisasterRecoveryMetricsMissing
+        exp_alerts: []
