@@ -27,10 +27,10 @@
       "restore_order": 10,
       "restore_volume_prefix": "nexolab-dr-postgres-",
       "verification": [
-        "pg_restore_list",
-        "schema_head",
-        "row_counts",
-        "immutable_hashes"
+        "pg-restore-list",
+        "schema-head",
+        "row-counts",
+        "immutable-hashes"
       ]
     },
     {
@@ -48,10 +48,10 @@
       "restore_order": 20,
       "restore_volume_prefix": "nexolab-dr-object-storage-",
       "verification": [
-        "private_bucket",
-        "object_count",
-        "object_size",
-        "object_sha256"
+        "private-bucket",
+        "object-count",
+        "object-size",
+        "object-sha256"
       ]
     },
     {
@@ -67,11 +67,11 @@
       "restore_order": 30,
       "restore_volume_prefix": "nexolab-dr-mqtt-",
       "verification": [
-        "dynamic_security_clients",
-        "dynamic_security_roles",
-        "dynamic_security_acls",
-        "disabled_clients",
-        "credential_rotation"
+        "dynamic-security-clients",
+        "dynamic-security-roles",
+        "dynamic-security-acls",
+        "disabled-clients",
+        "credential-rotation"
       ]
     }
   ]
