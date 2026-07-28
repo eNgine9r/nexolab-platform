@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "bundle": {
+    "format": "nexolab-dr-v1",
+    "encryption": "aes-256-gcm",
+    "key_source": "mounted_file",
+    "manifest": "manifest.json",
+    "archive": "payload.tar",
+    "encrypted_archive": "nexolab-backup.nxl"
+  },
+  "objectives": {
+    "software_rpo_seconds": 0,
+    "software_backup_target_seconds": 300,
+    "software_restore_target_seconds": 600
+  },
+  "assets": [
+    {
+      "id": "postgresql",
+      "kind": "postgresql",
+      "required": true,
+      "source_service": "postgres",
+      "source_volume": "nexolab-central-postgres-data",
+      "source_path": "/var/lib/postgresql/data",
+      "consistency_boundary": "logical_snapshot",
+      "backup_format": "pg_custom",
+      "backup_path": "postgresql/nexolab.dump",
+      "restore_order": 10,
+      "restore_volume_prefix": "nexolab-dr-postgres-",
+      "verification": [
+        "pg_restore_list",
+        "schema_head",
+        "row_counts",
+        "immutable_hashes"
+      ]
+    },
+    {
+      "id": "object-storage",
+      "kind": "s3_bucket",
+      "required": true,
+      "source_service": "minio",
+      "source_volume": "nexolab-central-object-storage-data",
+      "source_path": "/data",
+      "bucket": "nexolab-equipment-images",
+      "consistency_boundary": "application_quiesce",
+      "backup_format": "object_tree",
+      "backup_path": "object-storage/objects",
+      "metadata_path": "object-storage/objects.json",
+      "restore_order": 20,
+      "restore_volume_prefix": "nexolab-dr-object-storage-",
+      "verification": [
+        "private_bucket",
+        "object_count",
+        "object_size",
+        "object_sha256"
+      ]
+    },
+    {
+      "id": "mqtt-dynamic-security",
+      "kind": "docker_volume",
+      "required": true,
+      "source_service": "mqtt",
+      "source_volume": "nexolab-central-mqtt-data",
+      "source_path": "/mosquitto/data",
+      "consistency_boundary": "service_quiesce",
+      "backup_format": "deterministic_tar",
+      "backup_path": "mqtt/mosquitto-data.tar",
+      "restore_order": 30,
+      "restore_volume_prefix": "nexolab-dr-mqtt-",
+      "verification": [
+        "dynamic_security_clients",
+        "dynamic_security_roles",
+        "dynamic_security_acls",
+        "disabled_clients",
+        "credential_rotation"
+      ]
+    }
+  ]
+}
