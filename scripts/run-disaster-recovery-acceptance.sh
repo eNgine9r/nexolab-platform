@@ -96,7 +96,7 @@ cleanup() {
   compose ps --all >"$EVIDENCE_DIR/compose-ps.txt" 2>&1 || true
   compose logs --no-color \
     source-postgres restore-postgres source-minio restore-minio \
-    source-mqtt restore-mqtt >"$EVIDENCE_DIR/services.log" 2>&1 || true
+    source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR/services.log" 2>&1 || true
   compose down --remove-orphans >/dev/null 2>&1 || true
   docker volume rm \
     "$DR_SOURCE_POSTGRES_VOLUME" "$DR_RESTORE_POSTGRES_VOLUME" \
@@ -150,13 +150,13 @@ INSERT INTO telemetry_samples (
 ) VALUES
   (
     '20000000-0000-0000-0000-000000000001', 'edge-01',
-    '2026-07-28T07:00:00Z', 'temperature', 3.7, 'degC', 'good', 'dr-acceptance',
+    '2026-07-28T07:00:00Z', 'temperature', 3.7, 'degC', 'valid', 'dr-acceptance',
     'SIM-DR-01', 'ambient-temperature', NULL, 37, 0,
     '{"sequence":1,"proof":"source"}'::json, true
   ),
   (
     '20000000-0000-0000-0000-000000000002', 'edge-02',
-    '2026-07-28T07:00:01Z', 'temperature', 4.1, 'degC', 'good', 'dr-acceptance',
+    '2026-07-28T07:00:01Z', 'temperature', 4.1, 'degC', 'valid', 'dr-acceptance',
     'SIM-DR-02', 'ambient-temperature', NULL, 41, 0,
     '{"sequence":1,"proof":"source"}'::json, true
   );
@@ -406,6 +406,9 @@ DATABASE_ROWS="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d
 OBJECT_COUNT="$(find "$WORK_DIR/restore-objects" -type f | wc -l | tr -d ' ')"
 MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
 
+bash "$ROOT_DIR/scripts/verify-restored-platform.sh" \
+  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"
+
 grep -Fq 'Disabled: true' "$WORK_DIR/restore-mqtt-state.txt"
 cp "$BUNDLE_FILE" "$EVIDENCE_DIR/nexolab-backup.nxl"
 printf '%s\n' \
@@ -459,4 +462,4 @@ print("Evidence leakage scan passed.")
 PY
 
 python3 -m json.tool "$EVIDENCE_DIR/summary.json"
-echo "Disaster-recovery component acceptance passed."
+echo "Disaster-recovery platform acceptance passed."
