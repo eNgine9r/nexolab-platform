@@ -243,7 +243,7 @@ def event(
     equipment: str | None = None,
 ) -> dict[str, Any]:
     topology = policy["topology"]
-    node_index = index % topology["nodes"]
+    node_index = (index // topology["streams_per_node"]) % topology["nodes"]
     stream_index = index % topology["streams_per_node"]
     node_id = f"{topology['node_prefix']}-{node_index + 1:02d}"
     channel_id = f"{topology['channel_prefix']}-{stream_index + 1:02d}"
