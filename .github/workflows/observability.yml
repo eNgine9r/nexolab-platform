@@ -9,6 +9,7 @@ on:
       - "infrastructure/compose/compose.observability.yaml"
       - "infrastructure/observability/**"
       - "scripts/observability-alert-sink.py"
+      - "scripts/run-observability-acceptance.sh"
       - "scripts/serve-prometheus-textfile.py"
       - "scripts/validate-observability.py"
       - "services/telemetry-service/app/metrics.py"
@@ -22,6 +23,7 @@ on:
       - "infrastructure/compose/compose.observability.yaml"
       - "infrastructure/observability/**"
       - "scripts/observability-alert-sink.py"
+      - "scripts/run-observability-acceptance.sh"
       - "scripts/serve-prometheus-textfile.py"
       - "scripts/validate-observability.py"
       - "services/telemetry-service/app/metrics.py"
@@ -121,6 +123,30 @@ jobs:
             infrastructure/observability \
             infrastructure/compose/compose.observability.yaml \
             scripts/observability-alert-sink.py \
+            scripts/run-observability-acceptance.sh \
             scripts/serve-prometheus-textfile.py \
             scripts/validate-observability.py \
             tests/test_observability_policy.py
+
+  runtime:
+    name: Verify targets, dashboard and alert lifecycle
+    needs: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      NEXOLAB_OBSERVABILITY_EVIDENCE_DIR: test-results-observability
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run production-like observability acceptance
+        run: bash scripts/run-observability-acceptance.sh
+
+      - name: Upload sanitized observability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-runtime-evidence-${{ github.sha }}
+          path: test-results-observability
+          if-no-files-found: warn
+          retention-days: 14
