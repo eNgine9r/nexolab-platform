@@ -1,0 +1,258 @@
+name: Patch DR Domain Completeness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-dr-domain-completeness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/m7-disaster-recovery-gate
+          fetch-depth: 0
+
+      - name: Wire protected domain restore evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-disaster-recovery-acceptance.sh")
+          content = path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  'BUNDLE_TOOL="$ROOT_DIR/scripts/nexolab-backup-bundle.py"\n',
+                  'BUNDLE_TOOL="$ROOT_DIR/scripts/nexolab-backup-bundle.py"\n'
+                  'DOMAIN_FIXTURES_SQL="$ROOT_DIR/scripts/disaster-recovery-domain-fixtures.sql"\n'
+                  'DOMAIN_STATE_SQL="$ROOT_DIR/scripts/disaster-recovery-domain-state.sql"\n'
+                  'DOMAIN_COUNTS_SQL="$ROOT_DIR/scripts/disaster-recovery-domain-counts.sql"\n',
+              ),
+              (
+                  "SQL\n\nmkdir -p \"$WORK_DIR/seed-objects/equipment\"",
+                  "SQL\n\ncompose exec -T source-postgres \\\n"
+                  "  psql -U \"$DR_POSTGRES_USER\" -d \"$DR_POSTGRES_DB\" \\\n"
+                  "  -v ON_ERROR_STOP=1 <\"$DOMAIN_FIXTURES_SQL\"\n\n"
+                  "mkdir -p \"$WORK_DIR/seed-objects/equipment\"",
+              ),
+              (
+                  "}\n\ncapture_mqtt_state() {",
+                  "}\n\ncapture_protected_domain_state() {\n"
+                  "  local service=$1\n"
+                  "  local output=$2\n"
+                  "  compose exec -T \"$service\" \\\n"
+                  "    psql -U \"$DR_POSTGRES_USER\" -d \"$DR_POSTGRES_DB\" \\\n"
+                  "    -v ON_ERROR_STOP=1 <\"$DOMAIN_STATE_SQL\" >\"$output\"\n"
+                  "}\n\n"
+                  "capture_mqtt_state() {",
+              ),
+              (
+                  'capture_database_state source-postgres "$WORK_DIR/source-database-state.json"\n'
+                  'capture_mqtt_state source-mqtt "$WORK_DIR/source-mqtt-state.txt"\n'
+                  'SOURCE_DATABASE_SHA="$(sha256sum "$WORK_DIR/source-database-state.json" | awk \'{print $1}\')"\n'
+                  'SOURCE_MQTT_SHA="$(sha256sum "$WORK_DIR/source-mqtt-state.txt" | awk \'{print $1}\')"',
+                  'capture_database_state source-postgres "$WORK_DIR/source-database-state.json"\n'
+                  'capture_protected_domain_state source-postgres "$WORK_DIR/source-protected-domain-state.json"\n'
+                  'capture_mqtt_state source-mqtt "$WORK_DIR/source-mqtt-state.txt"\n'
+                  'SOURCE_DATABASE_SHA="$(sha256sum "$WORK_DIR/source-database-state.json" | awk \'{print $1}\')"\n'
+                  'SOURCE_PROTECTED_DOMAIN_SHA="$(sha256sum "$WORK_DIR/source-protected-domain-state.json" | awk \'{print $1}\')"\n'
+                  'SOURCE_MQTT_SHA="$(sha256sum "$WORK_DIR/source-mqtt-state.txt" | awk \'{print $1}\')"',
+              ),
+              (
+                  'capture_database_state restore-postgres "$WORK_DIR/restore-database-state.json"\n'
+                  'capture_mqtt_state restore-mqtt "$WORK_DIR/restore-mqtt-state.txt"\n'
+                  'RESTORE_DATABASE_SHA="$(sha256sum "$WORK_DIR/restore-database-state.json" | awk \'{print $1}\')"\n'
+                  'RESTORE_MQTT_SHA="$(sha256sum "$WORK_DIR/restore-mqtt-state.txt" | awk \'{print $1}\')"\n'
+                  'test "$SOURCE_DATABASE_SHA" = "$RESTORE_DATABASE_SHA"\n'
+                  'test "$SOURCE_MQTT_SHA" = "$RESTORE_MQTT_SHA"',
+                  'capture_database_state restore-postgres "$WORK_DIR/restore-database-state.json"\n'
+                  'capture_protected_domain_state restore-postgres "$WORK_DIR/restore-protected-domain-state.json"\n'
+                  'capture_mqtt_state restore-mqtt "$WORK_DIR/restore-mqtt-state.txt"\n'
+                  'RESTORE_DATABASE_SHA="$(sha256sum "$WORK_DIR/restore-database-state.json" | awk \'{print $1}\')"\n'
+                  'RESTORE_PROTECTED_DOMAIN_SHA="$(sha256sum "$WORK_DIR/restore-protected-domain-state.json" | awk \'{print $1}\')"\n'
+                  'RESTORE_MQTT_SHA="$(sha256sum "$WORK_DIR/restore-mqtt-state.txt" | awk \'{print $1}\')"\n'
+                  'test "$SOURCE_DATABASE_SHA" = "$RESTORE_DATABASE_SHA"\n'
+                  'test "$SOURCE_PROTECTED_DOMAIN_SHA" = "$RESTORE_PROTECTED_DOMAIN_SHA"\n'
+                  'test "$SOURCE_MQTT_SHA" = "$RESTORE_MQTT_SHA"',
+              ),
+              (
+                  'printf \'%s\\n\' "$SOURCE_DATABASE_SHA" >"$EVIDENCE_DIR/database-state.sha256"\n'
+                  'printf \'%s\\n\' "$SOURCE_OBJECTS_SHA" >"$EVIDENCE_DIR/object-manifest.sha256"',
+                  'printf \'%s\\n\' "$SOURCE_DATABASE_SHA" >"$EVIDENCE_DIR/database-state.sha256"\n'
+                  'printf \'%s\\n\' "$SOURCE_PROTECTED_DOMAIN_SHA" >"$EVIDENCE_DIR/protected-domain-state.sha256"\n'
+                  'compose exec -T restore-postgres \\\n'
+                  '  psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" \\\n'
+                  '  -v ON_ERROR_STOP=1 <"$DOMAIN_COUNTS_SQL" \\\n'
+                  '  >"$EVIDENCE_DIR/protected-domain-counts.json"\n'
+                  'python3 -m json.tool "$EVIDENCE_DIR/protected-domain-counts.json" >/dev/null\n'
+                  'printf \'%s\\n\' "$SOURCE_OBJECTS_SHA" >"$EVIDENCE_DIR/object-manifest.sha256"',
+              ),
+              (
+                  '    "database": {"telemetry_rows": int("$DATABASE_ROWS"), "state_sha256": "$SOURCE_DATABASE_SHA"},\n'
+                  '    "object_storage":',
+                  '    "database": {"telemetry_rows": int("$DATABASE_ROWS"), "state_sha256": "$SOURCE_DATABASE_SHA"},\n'
+                  '    "protected_domains": {"state_sha256": "$SOURCE_PROTECTED_DOMAIN_SHA", "counts_evidence": "protected-domain-counts.json"},\n'
+                  '    "object_storage":',
+              ),
+          ]
+          for old, new in replacements:
+              count = content.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected one run-script anchor, found {count}: {old[:100]!r}")
+              content = content.replace(old, new)
+          path.write_text(content, encoding="utf-8")
+          PY
+
+      - name: Add authenticated archive regressions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/test_nexolab_backup_bundle.py")
+          content = path.read_text(encoding="utf-8")
+          marker = "def test_authenticated_duplicate_archive_entry_is_rejected"
+          if marker not in content:
+              content += r'''
+
+
+def crafted_manifest(files: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "format": "nexolab-dr-v1",
+        "repository": "eNgine9r/nexolab-platform",
+        "commit": "b" * 40,
+        "created_at": "2026-07-28T08:00:00Z",
+        "files": files,
+        "assets": [],
+    }
+
+
+def test_authenticated_duplicate_archive_entry_is_rejected(tmp_path: Path) -> None:
+    manifest = MODULE.canonical_json(crafted_manifest([])) + b"\n"
+    archive = tar_with_entries(
+        [("manifest.json", manifest), ("manifest.json", manifest)]
+    )
+    key, bundle = encrypted_archive(tmp_path, archive)
+
+    with pytest.raises(MODULE.BundleFailure, match="duplicate archive entry"):
+        MODULE.verify_bundle(
+            bundle=bundle,
+            key_file=key,
+            policy_path=POLICY_PATH,
+        )
+
+
+def test_authenticated_missing_declared_entry_is_rejected(tmp_path: Path) -> None:
+    manifest = crafted_manifest(
+        [
+            {
+                "path": "postgresql/nexolab.dump",
+                "size": 7,
+                "sha256": MODULE.sha256_bytes(b"payload"),
+            }
+        ]
+    )
+    archive = tar_with_entries(
+        [("manifest.json", MODULE.canonical_json(manifest) + b"\n")]
+    )
+    key, bundle = encrypted_archive(tmp_path, archive)
+
+    with pytest.raises(MODULE.BundleFailure, match="missing declared file"):
+        MODULE.verify_bundle(
+            bundle=bundle,
+            key_file=key,
+            policy_path=POLICY_PATH,
+        )
+
+
+def test_authenticated_unexpected_entry_is_rejected(tmp_path: Path) -> None:
+    payload = b"payload"
+    manifest = crafted_manifest(
+        [
+            {
+                "path": "postgresql/nexolab.dump",
+                "size": len(payload),
+                "sha256": MODULE.sha256_bytes(payload),
+            }
+        ]
+    )
+    archive = tar_with_entries(
+        [
+            ("manifest.json", MODULE.canonical_json(manifest) + b"\n"),
+            ("postgresql/nexolab.dump", payload),
+            ("unexpected.txt", b"blocked"),
+        ]
+    )
+    key, bundle = encrypted_archive(tmp_path, archive)
+
+    with pytest.raises(MODULE.BundleFailure, match="unexpected files"):
+        MODULE.verify_bundle(
+            bundle=bundle,
+            key_file=key,
+            policy_path=POLICY_PATH,
+        )
+'''
+          path.write_text(content, encoding="utf-8")
+          PY
+
+      - name: Extend workflow coverage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path(".github/workflows/disaster-recovery-acceptance.yml")
+          content = path.read_text(encoding="utf-8")
+          anchor = '      - "scripts/run-disaster-recovery-acceptance.sh"\n'
+          addition = (
+              anchor
+              + '      - "scripts/disaster-recovery-domain-fixtures.sql"\n'
+              + '      - "scripts/disaster-recovery-domain-state.sql"\n'
+              + '      - "scripts/disaster-recovery-domain-counts.sql"\n'
+          )
+          count = content.count(anchor)
+          if count != 2:
+              raise SystemExit(f"Expected two workflow path anchors, found {count}")
+          content = content.replace(anchor, addition)
+
+          scan_anchor = "            scripts/run-disaster-recovery-acceptance.sh \\\n"
+          scan_addition = (
+              scan_anchor
+              + "            scripts/disaster-recovery-domain-fixtures.sql \\\n"
+              + "            scripts/disaster-recovery-domain-state.sql \\\n"
+              + "            scripts/disaster-recovery-domain-counts.sql \\\n"
+          )
+          count = content.count(scan_anchor)
+          if count != 2:
+              raise SystemExit(f"Expected two workflow scan anchors, found {count}")
+          content = content.replace(scan_anchor, scan_addition)
+          path.write_text(content, encoding="utf-8")
+          PY
+
+      - name: Validate patched files
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          python -m compileall -q scripts tests
+          grep -q 'protected-domain-state.sha256' scripts/run-disaster-recovery-acceptance.sh
+          grep -q 'test_authenticated_unexpected_entry_is_rejected' tests/test_nexolab_backup_bundle.py
+
+      - name: Format and commit
+        run: |
+          npm ci
+          npx prettier --write \
+            .github/workflows/disaster-recovery-acceptance.yml \
+            scripts/run-disaster-recovery-acceptance.sh \
+            tests/test_nexolab_backup_bundle.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/disaster-recovery-acceptance.yml \
+            scripts/run-disaster-recovery-acceptance.sh \
+            tests/test_nexolab_backup_bundle.py
+          git commit -m "test: prove protected domain recovery completeness"
+          git push origin HEAD:feat/m7-disaster-recovery-gate
