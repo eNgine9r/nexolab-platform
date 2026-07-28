@@ -12,12 +12,6 @@ const dashboardPath =
   "/d/nexolab-platform-overview/nexolab-platform-operations" +
   "?orgId=1&from=now-6h&to=now&timezone=browser&refresh=5s";
 
-async function scrollToStart(locator: ReturnType<Parameters<typeof test>[1]>) {
-  await locator.evaluate((element) =>
-    element.scrollIntoView({ block: "start", inline: "nearest" }),
-  );
-}
-
 test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async ({
   page,
 }) => {
