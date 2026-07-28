@@ -22,6 +22,7 @@ tests:
         alertname: NexolabDisasterRecoveryExporterDown
         exp_alerts:
           - exp_labels:
+              job: disaster-recovery-status
               severity: critical
               service: disaster-recovery
               slo: recoverability
