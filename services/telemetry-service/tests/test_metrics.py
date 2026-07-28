@@ -63,6 +63,11 @@ def test_prometheus_metrics_and_json_snapshot(tmp_path: Path, monkeypatch) -> No
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/plain")
         assert (
+            'nexolab_telemetry_build_info{version="0.15.0-test"} 1'
+            in response.text
+        )
+        assert response.text.count("nexolab_telemetry_build_info{") == 1
+        assert (
             'nexolab_telemetry_service_info{version="0.15.0-test"} 1'
             in response.text
         )
