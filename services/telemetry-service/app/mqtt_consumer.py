@@ -6,6 +6,7 @@ from typing import Any
 
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
+from app.mqtt_tls import MQTTTLSConfig
 from app.nodes.domain import NodeTopicStream, parse_node_topic
 from app.nodes.stream_ingestion import NodeStreamIngestor
 from app.state import RuntimeState
@@ -67,6 +68,8 @@ class MqttConsumer:
                 settings.mqtt_username,
                 load_mqtt_password(settings.mqtt_password_file),
             )
+        self._mqtt_tls = MQTTTLSConfig.from_settings(settings)
+        self._mqtt_tls.apply(self._client)
         self._client.reconnect_delay_set(min_delay=1, max_delay=30)
         self._client.on_connect = self._on_connect
         self._client.on_disconnect = self._on_disconnect

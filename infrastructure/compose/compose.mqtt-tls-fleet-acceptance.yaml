@@ -1,0 +1,113 @@
+services:
+  mqtt:
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: "8883"
+      NEXOLAB_MQTT_TLS_REQUIRED: "true"
+      NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+    ports:
+      - "127.0.0.1:${FLEET_MQTT_TLS_PORT:-8892}:8883"
+    volumes:
+      - ../mqtt/dynamic-security/mosquitto.tls.conf:/mosquitto/config/mosquitto.conf:ro
+      - ${MQTT_TLS_SERVER_DIR:?MQTT_TLS_SERVER_DIR is required}:/run/tls/server:ro
+    networks:
+      broker-control:
+        aliases:
+          - mqtt-wrong-host
+
+  mqtt-tls-negative-tests:
+    image: ${BROKER_CONTROL_MQTT_IMAGE:-nexolab-mqtt-dynamic-security:device-agent-fleet-acceptance}
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null
+
+        timeout 10 openssl s_client \
+          -connect mqtt:8883 \
+          -servername mqtt \
+          -CAfile /run/secrets/nexolab/mqtt-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt \
+          </dev/null >/tmp/trusted-ca.log 2>&1
+
+        if timeout 10 openssl s_client \
+          -connect mqtt:8883 \
+          -servername mqtt \
+          -CAfile /run/secrets/nexolab/mqtt-wrong-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt \
+          </dev/null >/tmp/wrong-ca.log 2>&1; then
+          echo "Untrusted CA was accepted." >&2
+          exit 80
+        fi
+
+        if timeout 10 openssl s_client \
+          -connect mqtt-wrong-host:8883 \
+          -servername mqtt-wrong-host \
+          -CAfile /run/secrets/nexolab/mqtt-ca.pem \
+          -verify_return_error \
+          -verify_hostname mqtt-wrong-host \
+          </dev/null >/tmp/wrong-host.log 2>&1; then
+          echo "MQTT hostname mismatch was accepted." >&2
+          exit 81
+        fi
+
+        if timeout 5 openssl s_client \
+          -connect mqtt:1883 \
+          -servername mqtt \
+          </dev/null >/tmp/plaintext.log 2>&1; then
+          echo "Plaintext MQTT listener was available." >&2
+          exit 82
+        fi
+
+        printf '%s\n' \
+          'trusted_ca=accepted' \
+          'untrusted_ca=rejected' \
+          'hostname_mismatch=rejected' \
+          'plaintext_listener=unavailable' \
+          'tls_minimum=tlsv1.2' \
+          > /evidence/mqtt-transport-negative-tests.txt
+    environment:
+      NEXOLAB_MQTT_BROKER_HOST: mqtt
+      NEXOLAB_MQTT_BROKER_PORT: "8883"
+      NEXOLAB_MQTT_ADMIN_USERNAME: ${NEXOLAB_MQTT_ADMIN_USERNAME:?NEXOLAB_MQTT_ADMIN_USERNAME is required}
+      NEXOLAB_MQTT_ADMIN_CLIENT_ID: nexolab-dynsec-tls-negative-tests
+      NEXOLAB_MQTT_ADMIN_PASSWORD_FILE: /run/secrets/nexolab/admin-password
+      NEXOLAB_MQTT_TLS_REQUIRED: "true"
+      NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+    volumes:
+      - ${BROKER_CONTROL_SECRETS_DIR:?BROKER_CONTROL_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+      - ${BROKER_CONTROL_TLS_EVIDENCE_DIR:?BROKER_CONTROL_TLS_EVIDENCE_DIR is required}:/evidence
+    depends_on:
+      mqtt:
+        condition: service_healthy
+    networks:
+      - broker-control
+
+  mqtt-policy-init:
+    environment:
+      NEXOLAB_MQTT_BROKER_PORT: "8883"
+      NEXOLAB_MQTT_TLS_REQUIRED: "true"
+      NEXOLAB_MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+    depends_on:
+      mqtt-tls-negative-tests:
+        condition: service_completed_successfully
+
+  telemetry-service:
+    environment:
+      MQTT_PORT: "8883"
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+
+  device-agent-a:
+    environment:
+      MQTT_PORT: "8883"
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
+
+  device-agent-b:
+    environment:
+      MQTT_PORT: "8883"
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem

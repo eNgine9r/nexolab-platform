@@ -6,7 +6,14 @@ BROKER_PORT="${NEXOLAB_MQTT_BROKER_PORT:-1883}"
 ADMIN_USERNAME="${NEXOLAB_MQTT_ADMIN_USERNAME:-admin}"
 ADMIN_CLIENT_ID="${NEXOLAB_MQTT_ADMIN_CLIENT_ID:-nexolab-dynsec-admin-cli}"
 ADMIN_PASSWORD_FILE="${NEXOLAB_MQTT_ADMIN_PASSWORD_FILE:-/run/secrets/mqtt_admin_password}"
+TLS_REQUIRED="${NEXOLAB_MQTT_TLS_REQUIRED:-false}"
+TLS_CA_FILE="${NEXOLAB_MQTT_TLS_CA_FILE:-}"
+TLS_CERT_FILE="${NEXOLAB_MQTT_TLS_CERT_FILE:-}"
+TLS_KEY_FILE="${NEXOLAB_MQTT_TLS_KEY_FILE:-}"
+TLS_ENABLED=false
 CONTROL_OPTIONS=""
+CONTROL_STDOUT=""
+CONTROL_STDERR=""
 
 usage() {
   cat >&2 <<'EOF'
@@ -25,9 +32,11 @@ EOF
 }
 
 cleanup() {
-  if [ -n "$CONTROL_OPTIONS" ]; then
-    rm -f "$CONTROL_OPTIONS"
-  fi
+  for path in "$CONTROL_OPTIONS" "$CONTROL_STDOUT" "$CONTROL_STDERR"; do
+    if [ -n "$path" ]; then
+      rm -f "$path"
+    fi
+  done
 }
 trap cleanup EXIT INT TERM
 
@@ -66,9 +75,53 @@ read_secret() {
   printf '%s' "$secret_value"
 }
 
+prepare_tls_options() {
+  case "$TLS_REQUIRED" in
+    1|true|TRUE|yes|YES|on|ON)
+      TLS_ENABLED=true
+      ;;
+    0|false|FALSE|no|NO|off|OFF)
+      if [ -n "$TLS_CA_FILE$TLS_CERT_FILE$TLS_KEY_FILE" ]; then
+        echo "TLS files require NEXOLAB_MQTT_TLS_REQUIRED=true." >&2
+        exit 72
+      fi
+      TLS_ENABLED=false
+      return
+      ;;
+    *)
+      echo "NEXOLAB_MQTT_TLS_REQUIRED must be true or false." >&2
+      exit 72
+      ;;
+  esac
+
+  if [ -z "$TLS_CA_FILE" ] || [ ! -r "$TLS_CA_FILE" ]; then
+    echo "TLS CA file is required and must be readable." >&2
+    exit 73
+  fi
+  if [ -n "$TLS_CERT_FILE" ] && [ -z "$TLS_KEY_FILE" ]; then
+    echo "TLS client certificate and key must be configured together." >&2
+    exit 74
+  fi
+  if [ -z "$TLS_CERT_FILE" ] && [ -n "$TLS_KEY_FILE" ]; then
+    echo "TLS client certificate and key must be configured together." >&2
+    exit 74
+  fi
+  if [ -n "$TLS_CERT_FILE" ]; then
+    if [ ! -r "$TLS_CERT_FILE" ]; then
+      echo "TLS client certificate file is not readable." >&2
+      exit 75
+    fi
+    if [ ! -r "$TLS_KEY_FILE" ]; then
+      echo "TLS client key file is not readable." >&2
+      exit 76
+    fi
+  fi
+}
+
 prepare_control_options() {
   required_value "$ADMIN_USERNAME" "Admin username"
   required_value "$ADMIN_CLIENT_ID" "Admin client ID"
+  prepare_tls_options
   admin_password="$(read_secret "$ADMIN_PASSWORD_FILE")"
   CONTROL_OPTIONS="$(mktemp)"
   chmod 0600 "$CONTROL_OPTIONS"
@@ -78,13 +131,51 @@ prepare_control_options() {
     printf '%s\n' "-i $ADMIN_CLIENT_ID"
     printf '%s\n' "-u $ADMIN_USERNAME"
     printf '%s\n' "-P $admin_password"
+    if [ "$TLS_ENABLED" = "true" ]; then
+      printf '%s\n' "--cafile $TLS_CA_FILE"
+      printf '%s\n' "--tls-version tlsv1.2"
+      if [ -n "$TLS_CERT_FILE" ]; then
+        printf '%s\n' "--cert $TLS_CERT_FILE"
+        printf '%s\n' "--key $TLS_KEY_FILE"
+      fi
+    fi
     printf '%s\n' "--quiet"
   } >"$CONTROL_OPTIONS"
   unset admin_password
 }
 
 ctrl() {
-  mosquitto_ctrl -o "$CONTROL_OPTIONS" dynsec "$@"
+  CONTROL_STDOUT="$(mktemp)"
+  CONTROL_STDERR="$(mktemp)"
+  status=0
+  mosquitto_ctrl -o "$CONTROL_OPTIONS" dynsec "$@" \
+    >"$CONTROL_STDOUT" 2>"$CONTROL_STDERR" || status=$?
+
+  if [ "$status" -ne 0 ]; then
+    cat "$CONTROL_STDERR" >&2
+    rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+    CONTROL_STDOUT=""
+    CONTROL_STDERR=""
+    return "$status"
+  fi
+
+  if [ -s "$CONTROL_STDERR" ]; then
+    if grep -Eiq \
+      '(^|[^[:alpha:]])(error|failed|failure|unable|refused|certificate|verification|tls)([^[:alpha:]]|$)' \
+      "$CONTROL_STDERR"; then
+      cat "$CONTROL_STDERR" >&2
+      rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+      CONTROL_STDOUT=""
+      CONTROL_STDERR=""
+      return 77
+    fi
+    cat "$CONTROL_STDERR" >&2
+  fi
+
+  cat "$CONTROL_STDOUT"
+  rm -f "$CONTROL_STDOUT" "$CONTROL_STDERR"
+  CONTROL_STDOUT=""
+  CONTROL_STDERR=""
 }
 
 client_exists() {

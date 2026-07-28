@@ -4,8 +4,10 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.broker-control-acceptance.yaml"
 FLEET_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
-PROJECT_NAME="nexolab-device-agent-fleet-acceptance"
-EVIDENCE_DIR="$ROOT_DIR/test-results-device-agent-fleet"
+EXTRA_COMPOSE="${FLEET_EXTRA_COMPOSE_FILE:-}"
+SETUP_HOOK="${FLEET_SETUP_HOOK:-}"
+PROJECT_NAME="${FLEET_PROJECT_NAME:-nexolab-device-agent-fleet-acceptance}"
+EVIDENCE_DIR="${FLEET_EVIDENCE_DIR:-$ROOT_DIR/test-results-device-agent-fleet}"
 PRIVATE_DIR="${TMPDIR:-/tmp}/${PROJECT_NAME}-private"
 SECRETS_DIR="$PRIVATE_DIR/secrets"
 SERVICE_LOG="$EVIDENCE_DIR/services.log"
@@ -41,7 +43,7 @@ export BROKER_CONTROL_ORGANIZATION_A="$ORGANIZATION_ID"
 export BROKER_CONTROL_JWT_SECRET="$JWT_SECRET"
 export BROKER_CONTROL_JWT_ISSUER="$JWT_ISSUER"
 export BROKER_CONTROL_JWT_AUDIENCE="$JWT_AUDIENCE"
-export BROKER_CONTROL_FRONTEND_ORIGIN="http://127.0.0.1:3112"
+export BROKER_CONTROL_FRONTEND_ORIGIN="$FRONTEND_BASE_URL"
 export BROKER_CONTROL_API_PORT="$API_PORT"
 export BROKER_CONTROL_MQTT_PORT="$MQTT_PORT"
 export BROKER_CONTROL_SECRETS_DIR="$SECRETS_DIR"
@@ -55,10 +57,15 @@ export FLEET_EDGE_A_VOLUME="${PROJECT_NAME}-edge-a"
 export FLEET_EDGE_B_VOLUME="${PROJECT_NAME}-edge-b"
 
 compose() {
-  docker compose --project-name "$PROJECT_NAME" \
-    -f "$BASE_COMPOSE" \
-    -f "$FLEET_COMPOSE" \
-    "$@"
+  local compose_args=(
+    --project-name "$PROJECT_NAME"
+    -f "$BASE_COMPOSE"
+    -f "$FLEET_COMPOSE"
+  )
+  if [[ -n "$EXTRA_COMPOSE" ]]; then
+    compose_args+=(-f "$EXTRA_COMPOSE")
+  fi
+  docker compose "${compose_args[@]}" "$@"
 }
 
 cleanup() {
@@ -443,6 +450,9 @@ PY
 rm -rf "$EVIDENCE_DIR" "$PRIVATE_DIR"
 mkdir -p "$EVIDENCE_DIR" "$SECRETS_DIR"
 chmod 0755 "$SECRETS_DIR"
+if [[ -n "$SETUP_HOOK" ]]; then
+  bash "$SETUP_HOOK" "$SECRETS_DIR" "$EVIDENCE_DIR"
+fi
 generate_secret "$SECRETS_DIR/admin-password" 'nxl_mqtt_admin_'
 generate_secret "$SECRETS_DIR/ingestion-password" 'nxl_mqtt_ingestion_'
 generate_encryption_key "$SECRETS_DIR/broker-control-key"

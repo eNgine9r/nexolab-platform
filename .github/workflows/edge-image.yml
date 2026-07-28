@@ -59,6 +59,12 @@ jobs:
             config --quiet
           grep -Fq 'MQTT_AUTH_REQUIRED: "true"' \
             infrastructure/compose/compose.edge-secure.yaml
+          grep -Fq 'MQTT_TLS_REQUIRED: "true"' \
+            infrastructure/compose/compose.edge-secure.yaml
+          grep -Fq 'MQTT_TLS_CA_FILE:' \
+            infrastructure/compose/compose.edge-secure.yaml
+          ! grep -ER 'tls_insecure_set|CERT_NONE|MQTT_TLS_INSECURE' \
+            services/device-agent infrastructure/compose/compose.edge-secure.yaml
           ! grep -E '^(MQTT_PASSWORD|PASSWORD)=' \
             infrastructure/compose/.env.edge-secure.example
 

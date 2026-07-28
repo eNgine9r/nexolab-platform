@@ -8,14 +8,16 @@ services:
     environment:
       NEXOLAB_NODE_ID: ${NEXOLAB_NODE_ID:?NEXOLAB_NODE_ID is required}
       NEXOLAB_ORGANIZATION_ID: ${NEXOLAB_ORGANIZATION_ID:?NEXOLAB_ORGANIZATION_ID is required}
-      NEXOLAB_DEVICE_AGENT_VERSION: ${NEXOLAB_DEVICE_AGENT_VERSION:-0.16.0}
+      NEXOLAB_DEVICE_AGENT_VERSION: ${NEXOLAB_DEVICE_AGENT_VERSION:-0.17.0}
       DEVICE_MODE: ${DEVICE_MODE:-simulator}
       MQTT_HOST: ${CENTRAL_MQTT_HOST:?CENTRAL_MQTT_HOST is required}
-      MQTT_PORT: ${CENTRAL_MQTT_PORT:-1883}
+      MQTT_PORT: ${CENTRAL_MQTT_PORT:-8883}
       MQTT_AUTH_REQUIRED: "true"
       MQTT_USERNAME: ${MQTT_USERNAME:?MQTT_USERNAME is required}
       MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:?MQTT_CLIENT_ID is required}
       MQTT_PASSWORD_FILE: /run/secrets/nexolab/mqtt-password
+      MQTT_TLS_REQUIRED: "true"
+      MQTT_TLS_CA_FILE: /run/secrets/nexolab/mqtt-ca.pem
       SAMPLE_INTERVAL_SECONDS: ${SAMPLE_INTERVAL_SECONDS:-5}
       NODE_HEALTH_INTERVAL_SECONDS: ${NODE_HEALTH_INTERVAL_SECONDS:-30}
       DATABASE_PATH: /var/lib/nexolab/edge.db
@@ -26,6 +28,7 @@ services:
     volumes:
       - edge-secure-data:/var/lib/nexolab
       - ${EDGE_MQTT_PASSWORD_FILE:?EDGE_MQTT_PASSWORD_FILE is required}:/run/secrets/nexolab/mqtt-password:ro
+      - ${EDGE_MQTT_CA_FILE:?EDGE_MQTT_CA_FILE is required}:/run/secrets/nexolab/mqtt-ca.pem:ro
     stop_grace_period: 15s
 
 volumes:
