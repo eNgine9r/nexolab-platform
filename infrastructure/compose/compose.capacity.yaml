@@ -1,0 +1,25 @@
+name: nexolab-capacity
+
+services:
+  postgres:
+    volumes:
+      - capacity-postgres-data:/var/lib/postgresql/data
+
+  mqtt:
+    volumes:
+      - capacity-mqtt-data:/mosquitto/data
+
+  minio:
+    volumes:
+      - capacity-object-storage-data:/data
+
+volumes:
+  central-mqtt-data: null
+  central-postgres-data: null
+  central-object-storage-data: null
+  capacity-mqtt-data:
+    name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}-mqtt-data
+  capacity-postgres-data:
+    name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}-postgres-data
+  capacity-object-storage-data:
+    name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}-object-storage-data
