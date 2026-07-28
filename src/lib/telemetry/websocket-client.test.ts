@@ -22,6 +22,12 @@ const sample: TelemetrySample = {
 class MockWebSocket extends EventTarget {
   readonly send = vi.fn();
   readonly close = vi.fn((code = 1000, reason = "") => {
+    if (code !== 1000 && (code < 3000 || code > 4999)) {
+      throw new DOMException(
+        "The close code must be either 1000, or between 3000 and 4999.",
+        "InvalidAccessError",
+      );
+    }
     this.dispatchEvent(new CloseEvent("close", { code, reason }));
   });
 
@@ -144,6 +150,43 @@ describe("TelemetryWebSocketClient", () => {
     await Promise.resolve();
     expect(sockets[1].send).toHaveBeenCalledWith(expect.stringContaining("jwt-two"));
     expect(credentials).toHaveBeenCalledTimes(2);
+  });
+
+  it("closes with a browser-safe private code and stops retrying when authentication fails", async () => {
+    vi.useFakeTimers();
+    const sockets: MockWebSocket[] = [];
+    const states: TelemetryConnectionState[] = [];
+    const onError = vi.fn();
+    const credentials = vi.fn().mockRejectedValue(new Error("session unavailable"));
+    const client = new TelemetryWebSocketClient("wss://central/api/v1/telemetry/live", {
+      createSocket: (url) => {
+        const socket = new MockWebSocket(url);
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      credentials,
+      reconnectDelaysMs: [10],
+    });
+
+    client.subscribe(
+      {},
+      {
+        onSample: vi.fn(),
+        onError,
+        onStateChange: (state) => states.push(state),
+      },
+    );
+
+    sockets[0].open();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sockets[0].close).toHaveBeenCalledWith(4001, "telemetry authentication failed");
+    expect(states.at(-1)).toBe("disconnected");
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "session unavailable" }));
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sockets).toHaveLength(1);
   });
 
   it("handles heartbeat and bounded reconnect exhaustion", async () => {
