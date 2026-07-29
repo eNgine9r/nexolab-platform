@@ -1,6 +1,6 @@
-import type { EquipmentImageMetadata, SensorSide } from "@/data/refrigeration";
-import { equipmentEtag, parseEquipment, type RefrigerationEquipmentRepositoryError } from "./equipment-repository";
-import type { RefrigerationEquipment } from "@/data/refrigeration";
+import type { EquipmentImageMetadata, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
+
+import { equipmentEtag, parseEquipment } from "./equipment-repository";
 
 export type EquipmentNodeOption = {
   nodeId: string;
@@ -72,80 +72,6 @@ export interface EquipmentLifecycleRepository {
     slotKey: string,
     expectedEquipmentVersion: number,
   ): Promise<SensorBindingMutation>;
-}
-
-export class InMemoryEquipmentLifecycleRepository implements EquipmentLifecycleRepository {
-  private readonly bindings = new Map<string, SensorBinding[]>();
-
-  async listNodes(): Promise<EquipmentNodeOption[]> {
-    return [
-      { nodeId: "edge-lab-01", displayName: "Edge laboratory 01", state: "active", lastSeenAt: null },
-      { nodeId: "edge-lab-02", displayName: "Edge laboratory 02", state: "active", lastSeenAt: null },
-    ];
-  }
-
-  async listImages(): Promise<EquipmentImageMetadata[]> {
-    return [];
-  }
-
-  async retireImage(): Promise<EquipmentImageMetadata> {
-    throw new Error("У demo-режимі немає завантажених історичних фотографій.");
-  }
-
-  async listBindings(equipmentId: string, includeHistory = false): Promise<SensorBinding[]> {
-    const rows = this.bindings.get(equipmentId) ?? [];
-    return rows.filter((item) => includeHistory || item.unboundAt === null).map((item) => ({ ...item }));
-  }
-
-  async listAvailableSensors(): Promise<AvailableSensor[]> {
-    return Array.from({ length: 48 }, (_, index) => ({
-      channelId: `sensor-${index + 1}`,
-      metric: "temperature",
-      unit: "°C",
-      latestValue: Number((1.4 + ((index * 7) % 29) / 10).toFixed(1)),
-      quality: "good",
-      capturedAt: new Date().toISOString(),
-      isBound: false,
-      boundEquipmentId: null,
-      boundSlotKey: null,
-    }));
-  }
-
-  async bindSensor(
-    equipmentId: string,
-    slotKey: string,
-    input: SensorBindingInput,
-  ): Promise<SensorBindingMutation> {
-    const now = new Date().toISOString();
-    const current = this.bindings.get(equipmentId) ?? [];
-    const history = current.map((item) =>
-      item.slotKey === slotKey && item.unboundAt === null
-        ? { ...item, version: item.version + 1, unboundAt: now, unboundBy: "demo-operator" }
-        : item,
-    );
-    const binding: SensorBinding = {
-      id: globalThis.crypto?.randomUUID?.() ?? `${equipmentId}-${slotKey}-${Date.now()}`,
-      equipmentId,
-      nodeId: "demo-node",
-      channelId: input.channelId,
-      slotKey,
-      label: input.label,
-      side: input.side,
-      shelf: input.shelf,
-      position: input.position,
-      version: 1,
-      boundBy: "demo-operator",
-      boundAt: now,
-      unboundBy: null,
-      unboundAt: null,
-    };
-    this.bindings.set(equipmentId, [...history, binding]);
-    throw new Error("Demo binding requires the equipment aggregate supplied by the screen.");
-  }
-
-  async unbindSensor(): Promise<SensorBindingMutation> {
-    throw new Error("Demo unbind requires the equipment aggregate supplied by the screen.");
-  }
 }
 
 export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepository {
