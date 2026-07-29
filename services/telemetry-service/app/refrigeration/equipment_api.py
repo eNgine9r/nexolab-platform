@@ -122,7 +122,6 @@ def create_refrigeration_equipment_router(
     def delete_equipment(
         equipment_id: str,
         request: Request,
-        response: Response,
         if_match: str = Header(alias="If-Match"),
         audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
         authorized: AuthorizedRequest = Depends(manage_access),
@@ -146,8 +145,10 @@ def create_refrigeration_equipment_router(
             )
         except EquipmentRepositoryError as error:
             raise _repository_http_error(error) from error
-        response.headers["ETag"] = _equipment_etag(deleted.version)
-        return response
+        return Response(
+            status_code=status.HTTP_204_NO_CONTENT,
+            headers={"ETag": _equipment_etag(deleted.version)},
+        )
 
     return router
 
