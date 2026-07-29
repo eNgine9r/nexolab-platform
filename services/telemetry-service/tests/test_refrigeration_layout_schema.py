@@ -9,6 +9,7 @@ from app.model_registry import register_models
 
 
 REFRIGERATION_TABLES = {
+    "refrigeration_equipment",
     "equipment_images",
     "refrigeration_layout_drafts",
     "refrigeration_layout_revisions",
@@ -28,6 +29,30 @@ def test_alembic_migration_created_refrigeration_schema() -> None:
     try:
         inspector = inspect(engine)
         assert REFRIGERATION_TABLES <= set(inspector.get_table_names())
+
+        equipment_unique = {
+            item["name"]: tuple(item["column_names"])
+            for item in inspector.get_unique_constraints("refrigeration_equipment")
+        }
+        assert equipment_unique["uq_refrigeration_equipment_organization_code"] == (
+            "organization_id",
+            "code",
+        )
+        equipment_foreign_keys = {
+            item["name"] for item in inspector.get_foreign_keys("refrigeration_equipment")
+        }
+        assert "fk_refrigeration_equipment_organization" in equipment_foreign_keys
+        equipment_checks = {
+            item["name"] for item in inspector.get_check_constraints("refrigeration_equipment")
+        }
+        assert {
+            "ck_refrigeration_equipment_status",
+            "ck_refrigeration_equipment_version_positive",
+            "ck_refrigeration_equipment_online_non_negative",
+            "ck_refrigeration_equipment_total_non_negative",
+            "ck_refrigeration_equipment_online_within_total",
+            "ck_refrigeration_equipment_alarms_non_negative",
+        } <= equipment_checks
 
         draft_unique = {
             item["name"]: tuple(item["column_names"])
