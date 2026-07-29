@@ -55,6 +55,19 @@ export function SensorPlacementManager({
     [assignedIds, equipment.sensors],
   );
 
+  const syncSelections = (nextDraft: RefrigerationLayoutDraft, preferredAssignedId?: string) => {
+    const nextAssignedIds = new Set(nextDraft.placements.map(({ sensorId }) => sensorId));
+    const nextAssignedId =
+      preferredAssignedId && nextAssignedIds.has(preferredAssignedId)
+        ? preferredAssignedId
+        : (nextDraft.placements[0]?.sensorId ?? "");
+    const nextAvailable = availableSensors(equipment.sensors, nextDraft.placements);
+
+    setSelectedAssignedId(nextAssignedId);
+    setSelectedAvailableId(nextAvailable[0]?.id ?? "");
+    if (nextAssignedId) onSelect(nextAssignedId);
+  };
+
   const load = async () => {
     setOperation("loading");
     setError(null);
@@ -65,20 +78,15 @@ export function SensorPlacementManager({
       return;
     }
     setDraft(result.value);
-    setSelectedAssignedId((current) =>
-      result.value.placements.some(({ sensorId }) => sensorId === current)
-        ? current
-        : (result.value.placements[0]?.sensorId ?? ""),
-    );
-    const nextAvailable = availableSensors(equipment.sensors, result.value.placements);
-    setSelectedAvailableId((current) =>
-      nextAvailable.some(({ id }) => id === current) ? current : (nextAvailable[0]?.id ?? ""),
-    );
+    syncSelections(result.value, selectedAssignedId);
     setOperation("idle");
   };
 
   useEffect(() => {
-    void load();
+    const timeoutId = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
     // Repository identity is stable for the workspace lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipment.id, repository]);
@@ -87,8 +95,8 @@ export function SensorPlacementManager({
     nextPlacements: RefrigerationLayoutDraft["placements"],
     message: string,
     selectedSensorId: string,
-  ) => {
-    if (!draft) return;
+  ): Promise<boolean> => {
+    if (!draft) return false;
     setOperation("saving");
     setError(null);
     setNotice(null);
@@ -105,14 +113,14 @@ export function SensorPlacementManager({
           : "Не вдалося зберегти склад датчиків на підкладці.",
       );
       setOperation("idle");
-      return;
+      return false;
     }
     setDraft(result.value);
+    syncSelections(result.value, selectedSensorId);
     setNotice(message);
-    setSelectedAssignedId(selectedSensorId);
-    onSelect(selectedSensorId);
     onAssignmentsChanged();
     setOperation("idle");
+    return true;
   };
 
   const canMutate = canEdit && mode !== "edit" && operation === "idle" && Boolean(draft);
@@ -125,9 +133,13 @@ export function SensorPlacementManager({
         sensorId: selectedAvailableId,
       });
       const sensor = equipment.sensors.find(({ id }) => id === selectedAvailableId);
-      void save(next, `Датчик ${sensor?.label ?? selectedAvailableId} додано на підкладку.`, selectedAvailableId).then(
-        () => onModeChange("edit"),
-      );
+      void save(
+        next,
+        `Датчик ${sensor?.label ?? selectedAvailableId} додано на підкладку.`,
+        selectedAvailableId,
+      ).then((saved) => {
+        if (saved) onModeChange("edit");
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося додати датчик.");
     }
@@ -164,19 +176,27 @@ export function SensorPlacementManager({
         sensorId: selectedAssignedId,
       });
       const nextSelectedId = next[0]?.sensorId ?? "";
-      void save(next, `Датчик ${sensor?.label ?? selectedAssignedId} видалено з підкладки.`, nextSelectedId);
+      void save(
+        next,
+        `Датчик ${sensor?.label ?? selectedAssignedId} видалено з підкладки.`,
+        nextSelectedId,
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося видалити датчик.");
     }
   };
 
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4" aria-label="Керування датчиками на підкладці">
+    <section
+      className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4"
+      aria-label="Керування датчиками на підкладці"
+    >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <p className="text-xs font-semibold text-white">Датчики на підкладці</p>
           <p className="mt-1 text-[10px] leading-4 text-slate-500">
-            {assignedSensors.length} встановлено · {unassigned.length} доступно. Заміна зберігає координати позиції.
+            {assignedSensors.length} встановлено · {unassigned.length} доступно. Заміна зберігає
+            координати позиції.
           </p>
         </div>
         <button
@@ -185,14 +205,17 @@ export function SensorPlacementManager({
           disabled={operation !== "idle"}
           className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-[10px] text-slate-300 disabled:opacity-40"
         >
-          <RefreshCw className={operation === "loading" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
+          <RefreshCw
+            className={operation === "loading" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"}
+          />
           Оновити
         </button>
       </div>
 
       {mode === "edit" ? (
         <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-200">
-          Спочатку збережіть або скасуйте переміщення маркерів. Зміна складу датчиків виконується атомарно на актуальній версії чернетки.
+          Спочатку збережіть або скасуйте переміщення маркерів. Зміна складу датчиків виконується
+          атомарно на актуальній версії чернетки.
         </p>
       ) : null}
       {!canEdit ? (
@@ -201,20 +224,28 @@ export function SensorPlacementManager({
         </p>
       ) : null}
       {error ? (
-        <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200" role="alert">
+        <p
+          className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200"
+          role="alert"
+        >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-200" role="status">
+        <p
+          className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-200"
+          role="status"
+        >
           {notice}
         </p>
       ) : null}
 
       <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
         <label className="space-y-1.5">
-          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">Встановлена позиція</span>
+          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
+            Встановлена позиція
+          </span>
           <select
             aria-label="Встановлений датчик"
             value={selectedAssignedId}
@@ -233,7 +264,9 @@ export function SensorPlacementManager({
         </label>
 
         <label className="space-y-1.5">
-          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">Доступний датчик</span>
+          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
+            Доступний датчик
+          </span>
           <select
             aria-label="Доступний датчик"
             value={selectedAvailableId}
