@@ -19,16 +19,17 @@ export function RefrigerationEquipmentRoute({
 }) {
   const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
   const [equipment, setEquipment] = useState<RefrigerationEquipment | null>(initialEquipment);
-  const [loading, setLoading] = useState(runtime.mode === "live" || initialEquipment === null);
+  const [loading, setLoading] = useState(
+    runtime.repository !== null && (runtime.mode === "live" || initialEquipment === null),
+  );
   const [error, setError] = useState<string | null>(runtime.error);
 
   useEffect(() => {
-    if (!runtime.repository) {
-      setLoading(false);
-      return;
-    }
+    const repository = runtime.repository;
+    if (!repository) return;
+
     let active = true;
-    void runtime.repository
+    void repository
       .get(equipmentId)
       .then((loaded) => {
         if (!active) return;
