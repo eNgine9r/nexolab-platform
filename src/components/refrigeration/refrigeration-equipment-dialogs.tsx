@@ -39,7 +39,6 @@ export function CreateEquipmentDialog({
 
   useEffect(() => {
     if (!open) return;
-    setForm(initialForm);
     const frame = window.requestAnimationFrame(() => firstField.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
@@ -73,7 +72,9 @@ export function CreateEquipmentDialog({
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#091a31]/95 px-5 py-4 backdrop-blur">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Equipment registry</p>
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+              Equipment registry
+            </p>
             <h2 id={titleId} className="mt-1 text-lg font-semibold text-white">
               Нове холодильне обладнання
             </h2>
@@ -198,7 +199,10 @@ export function CreateEquipmentDialog({
           </div>
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200"
+            >
               {error}
             </p>
           ) : null}
@@ -275,14 +279,18 @@ export function DeleteEquipmentDialog({
               Видалити обладнання?
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              <span className="font-medium text-slate-200">{equipment.name}</span> буде прибрано з каталогу. Історичні схеми та аудит залишаться збереженими.
+              <span className="font-medium text-slate-200">{equipment.name}</span> буде прибрано
+              з каталогу. Історичні схеми та аудит залишаться збереженими.
             </p>
             <p className="mt-2 text-xs text-slate-600">{equipment.code}</p>
           </div>
         </div>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">
+          <p
+            role="alert"
+            className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200"
+          >
             {error}
           </p>
         ) : null}
