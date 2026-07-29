@@ -162,7 +162,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     }
   });
 
-  await test.step("publish an empty equipment layout as engineer and persist verified actor audit", async () => {
+  await test.step("publish the first valid sensor placement as engineer and persist verified actor audit", async () => {
     const context = await authenticatedContext(browser, tokens.engineer);
     const page = await context.newPage();
     try {
@@ -181,8 +181,30 @@ test("enforces authenticated organization roles and immutable audit attribution"
         { headers: apiHeaders(tokens.engineer) },
       );
       expect(attachedDraft.status()).toBe(200);
-      expect((await attachedDraft.json()).placements).toEqual([]);
+      const attachedDraftBody = (await attachedDraft.json()) as {
+        image: { id: string };
+        placements: unknown[];
+      };
+      expect(attachedDraftBody.placements).toEqual([]);
 
+      const positionedDraft = await context.request.put(
+        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+        {
+          headers: {
+            ...apiHeaders(tokens.engineer),
+            "If-Match": attachedDraft.headers().etag,
+          },
+          data: {
+            image_id: attachedDraftBody.image.id,
+            placements: [{ sensor_id: "security-sensor-01", x: 0.5, y: 0.5 }],
+          },
+        },
+      );
+      expect(positionedDraft.status()).toBe(200);
+      expect(positionedDraft.headers().etag).toBe('W/"layout-draft-v3"');
+
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(page.getByText("Чернетка v3 · PostgreSQL", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       await expect(page.getByText("Опубліковано ревізію r1.")).toBeVisible();
 
@@ -193,7 +215,9 @@ test("enforces authenticated organization roles and immutable audit attribution"
       expect(historyResponse.status()).toBe(200);
       const history = await historyResponse.json();
       expect(history.items[0].published_by).toBe("engineer-acceptance");
-      expect(history.items[0].placements).toEqual([]);
+      expect(history.items[0].placements).toEqual([
+        { sensor_id: "security-sensor-01", x: 0.5, y: 0.5 },
+      ]);
 
       const auditResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/audit/events?entity_type=equipment_layout&entity_id=${equipmentId}`,
@@ -203,7 +227,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       const audit = await auditResponse.json();
       const auditActions = audit.items.map((item: { action: string }) => item.action);
       expect(auditActions[0]).toBe("layout.published");
-      expect(auditActions.filter((action: string) => action === "layout.draft.updated")).toHaveLength(1);
+      expect(auditActions.filter((action: string) => action === "layout.draft.updated")).toHaveLength(2);
       expect(
         audit.items.every((item: { actor_subject: string }) => item.actor_subject === "engineer-acceptance"),
       ).toBe(true);
