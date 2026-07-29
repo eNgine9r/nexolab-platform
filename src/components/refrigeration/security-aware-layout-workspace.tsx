@@ -4,11 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, ShieldCheck } from "lucide-react";
 import { clsx } from "clsx";
 
+import { CameraScopedLayoutEditor } from "@/components/refrigeration/camera-scoped-layout-editor";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
-import { SensorPlacementManager } from "@/components/refrigeration/sensor-placement-manager";
 import type { RefrigerationEquipment, RefrigerationSensor } from "@/data/refrigeration";
+import type {
+  AvailableSensor,
+  EquipmentLifecycleRepository,
+  SensorBinding,
+} from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationLayoutRuntime } from "@/features/refrigeration/layout-repository-runtime";
+import type { RefrigerationLayoutRepository } from "@/features/refrigeration/layout-repository";
 import {
   getSecurityCredentials,
   hasPermission,
@@ -29,8 +35,12 @@ type SecurityAwareLayoutWorkspaceProps = {
   selectedId: string | null;
   mode: LayoutEditorMode;
   forceReadOnly?: boolean;
+  lifecycleRepository?: EquipmentLifecycleRepository | null;
+  channels?: readonly AvailableSensor[];
+  bindings?: readonly SensorBinding[];
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
+  onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
   onCapabilitiesChange?: (capabilities: LayoutCapabilities) => void;
 };
 
@@ -52,8 +62,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   selectedId,
   mode,
   forceReadOnly = false,
+  lifecycleRepository = null,
+  channels = [],
+  bindings = [],
   onModeChange,
   onSelect,
+  onEquipmentChange,
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
   const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
@@ -120,6 +134,14 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     };
   }, [runtime]);
 
+  const notifyRepositoryMutation = () => {
+    window.setTimeout(() => setWorkspaceEpoch((current) => current + 1), 0);
+  };
+  const synchronizedRepository = useMemo(
+    () => (runtime.repository ? observeMutations(runtime.repository, notifyRepositoryMutation) : null),
+    [runtime.repository],
+  );
+
   const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
 
   if (liveRuntimeUnavailable) {
@@ -140,7 +162,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     );
   }
 
-  if (securityState === "error" || !runtime.repository) {
+  if (securityState === "error" || !runtime.repository || !synchronizedRepository) {
     return (
       <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
         <AlertTriangle className="mr-2 inline h-4 w-4" />
@@ -149,24 +171,30 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     );
   }
 
+  const cameraScoped = Boolean(lifecycleRepository && equipment.nodeId);
+
   return (
     <div
       className={clsx(
         "nexolab-rbac-layout space-y-3",
+        cameraScoped && "nexolab-camera-scoped-layout",
         !capabilities.canEdit && "nexolab-rbac-no-edit",
         !capabilities.canPublish && "nexolab-rbac-no-publish",
         !capabilities.canRestore && "nexolab-rbac-no-restore",
       )}
     >
       <style jsx global>{`
-        .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > button,
-        .nexolab-rbac-no-edit > div > section > div:nth-child(1) button {
+        .nexolab-rbac-no-edit button[aria-label="Редагувати схему та датчики"],
+        .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > button {
           display: none !important;
         }
         .nexolab-rbac-no-publish > div > section > div:nth-child(2) > button {
           display: none !important;
         }
         .nexolab-rbac-no-restore > div > section > div:nth-child(3) button {
+          display: none !important;
+        }
+        .nexolab-camera-scoped-layout .camera-scoped-secondary .production-layout-editor {
           display: none !important;
         }
       `}</style>
@@ -195,26 +223,66 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         </div>
       ) : null}
 
-      <SensorPlacementManager
-        equipment={equipment}
-        repository={runtime.repository}
-        canEdit={capabilities.canEdit}
-        mode={mode}
-        onModeChange={onModeChange}
-        onSelect={onSelect}
-        onAssignmentsChanged={() => setWorkspaceEpoch((current) => current + 1)}
-      />
+      {cameraScoped && lifecycleRepository ? (
+        <CameraScopedLayoutEditor
+          key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
+          equipment={equipment}
+          visibleSensors={visibleSensors}
+          selectedId={selectedId}
+          mode={capabilities.canEdit ? mode : "view"}
+          onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
+          onSelect={onSelect}
+          repository={runtime.repository}
+          lifecycleRepository={lifecycleRepository}
+          channels={channels}
+          bindings={bindings}
+          onEquipmentChange={(updated) => {
+            onEquipmentChange?.(updated);
+            setWorkspaceEpoch((current) => current + 1);
+          }}
+          onDraftChange={() => setWorkspaceEpoch((current) => current + 1)}
+        />
+      ) : null}
 
-      <RefrigerationLayoutWorkspace
-        key={`${equipment.id}-${workspaceEpoch}`}
-        equipment={equipment}
-        visibleSensors={visibleSensors}
-        selectedId={selectedId}
-        mode={capabilities.canEdit ? mode : "view"}
-        onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
-        onSelect={onSelect}
-        repository={runtime.repository}
-      />
+      <div className={cameraScoped ? "camera-scoped-secondary" : undefined}>
+        <RefrigerationLayoutWorkspace
+          key={`lifecycle-workspace-${equipment.id}-${workspaceEpoch}`}
+          equipment={equipment}
+          visibleSensors={visibleSensors}
+          selectedId={selectedId}
+          mode={capabilities.canEdit ? mode : "view"}
+          onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
+          onSelect={onSelect}
+          repository={synchronizedRepository}
+        />
+      </div>
     </div>
   );
+}
+
+function observeMutations(
+  repository: RefrigerationLayoutRepository,
+  onMutation: () => void,
+): RefrigerationLayoutRepository {
+  return {
+    getDraft: (equipmentId) => repository.getDraft(equipmentId),
+    getPublished: (equipmentId) => repository.getPublished(equipmentId),
+    listHistory: (equipmentId) => repository.listHistory(equipmentId),
+    async saveDraft(input) {
+      const result = await repository.saveDraft(input);
+      if (result.ok) onMutation();
+      return result;
+    },
+    async publishDraft(input) {
+      const result = await repository.publishDraft(input);
+      if (result.ok) onMutation();
+      return result;
+    },
+    async restoreRevision(input) {
+      const result = await repository.restoreRevision(input);
+      if (result.ok) onMutation();
+      return result;
+    },
+    uploadImage: (input) => repository.uploadImage(input),
+  };
 }
