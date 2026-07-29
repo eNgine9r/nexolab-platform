@@ -61,6 +61,125 @@ compose() {
     "$@"
 }
 
+seed_camera_scoped_fixtures() {
+  compose exec -T postgres \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO central_nodes (
+    id,
+    organization_id,
+    node_id,
+    display_name,
+    state,
+    state_reason,
+    clock_warning_ms,
+    clock_critical_ms,
+    last_seen_at,
+    last_clock_offset_ms,
+    clock_status,
+    clock_observed_at,
+    created_by,
+    created_at,
+    updated_at
+) VALUES (
+    '00000000-0000-4000-8000-000000000202',
+    '00000000-0000-0000-0000-000000000001',
+    'kk2-acceptance',
+    'Кліматична камера КК2',
+    'active',
+    'refrigeration browser acceptance fixture',
+    30000,
+    120000,
+    CURRENT_TIMESTAMP,
+    0,
+    'ok',
+    CURRENT_TIMESTAMP,
+    'browser-acceptance',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT (organization_id, node_id) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    state = EXCLUDED.state,
+    state_reason = EXCLUDED.state_reason,
+    last_seen_at = EXCLUDED.last_seen_at,
+    updated_at = EXCLUDED.updated_at;
+
+INSERT INTO telemetry_samples (
+    event_id,
+    node_id,
+    captured_at,
+    metric,
+    value,
+    unit,
+    quality,
+    source,
+    equipment_id,
+    channel_id,
+    alarm,
+    raw_value,
+    raw_status,
+    raw_payload,
+    raw_payload_retained,
+    received_at
+) VALUES
+    (
+        '00000000-0000-4000-8000-000000002201',
+        'kk2-acceptance',
+        CURRENT_TIMESTAMP,
+        'temperature',
+        2.1,
+        'degC',
+        'good',
+        'acceptance-fixture',
+        'unassigned',
+        'kk2-temp-01',
+        NULL,
+        21,
+        0,
+        '{"fixture":"refrigeration-browser-acceptance"}'::jsonb,
+        TRUE,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        '00000000-0000-4000-8000-000000002202',
+        'kk2-acceptance',
+        CURRENT_TIMESTAMP,
+        'temperature',
+        3.4,
+        'degC',
+        'good',
+        'acceptance-fixture',
+        'unassigned',
+        'kk2-temp-02',
+        NULL,
+        34,
+        0,
+        '{"fixture":"refrigeration-browser-acceptance"}'::jsonb,
+        TRUE,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        '00000000-0000-4000-8000-000000002203',
+        'kk2-acceptance',
+        CURRENT_TIMESTAMP,
+        'active_power',
+        742.0,
+        'W',
+        'good',
+        'acceptance-fixture',
+        'unassigned',
+        'kk2-power-01',
+        NULL,
+        742,
+        0,
+        '{"fixture":"refrigeration-browser-acceptance"}'::jsonb,
+        TRUE,
+        CURRENT_TIMESTAMP
+    )
+ON CONFLICT (event_id) DO NOTHING;
+SQL
+}
+
 collect_evidence() {
   if [[ "$STACK_STARTED" != "1" ]]; then
     return 0
@@ -73,6 +192,23 @@ collect_evidence() {
     psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
     >"$EVIDENCE_DIR/postgresql-state.txt" 2>&1 <<'SQL' || true
 \pset pager off
+SELECT node_id, display_name, state, last_seen_at
+FROM central_nodes
+WHERE node_id = 'kk2-acceptance';
+
+SELECT node_id, channel_id, metric, value, unit, quality, captured_at
+FROM telemetry_samples
+WHERE node_id = 'kk2-acceptance'
+ORDER BY channel_id;
+
+SELECT id, code, name, node_id, version, lifecycle_status, deleted_at
+FROM refrigeration_equipment
+ORDER BY created_at;
+
+SELECT equipment_id, slot_key, channel_id, label, side, shelf, position, version, unbound_at
+FROM refrigeration_sensor_bindings
+ORDER BY equipment_id, bound_at;
+
 SELECT equipment_id, version, image_id, json_array_length(placements) AS placement_count
 FROM refrigeration_layout_drafts
 ORDER BY equipment_id;
@@ -146,6 +282,8 @@ if [[ "$ready" != "1" ]]; then
   printf 'Central acceptance stack did not become ready.\n' >&2
   exit 1
 fi
+
+seed_camera_scoped_fixtures
 
 npm run build
 npm run test:e2e:production
