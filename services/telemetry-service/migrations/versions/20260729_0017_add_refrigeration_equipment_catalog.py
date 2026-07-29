@@ -85,7 +85,7 @@ def upgrade() -> None:
             name="fk_refrigeration_equipment_organization",
             ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("organization_id", "id"),
         sa.UniqueConstraint(
             "organization_id",
             "code",
