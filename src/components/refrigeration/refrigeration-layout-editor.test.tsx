@@ -180,7 +180,7 @@ describe("RefrigerationLayoutEditor", () => {
     const originalY = sensorMarker.getAttribute("data-y");
     const stage = screen.getByTestId("equipment-image-stage");
 
-    expect(stage).toHaveStyle({ width: "80%" });
+    expect(stage).toHaveStyle({ width: "100%" });
     expect(screen.getByTestId("equipment-image-media-layer")).toHaveClass("z-0");
     expect(screen.getByTestId("sensor-marker-layer")).toHaveClass("z-40");
 
@@ -195,6 +195,21 @@ describe("RefrigerationLayoutEditor", () => {
     expect(window.localStorage.getItem("nexolab:refrigeration:image-scale:showcase-106-01")).toBe(
       "130",
     );
+  });
+
+  it("expands the canvas and falls back to expanded mode when Fullscreen API is unavailable", () => {
+    render(<CanvasHarness equipmentId="fullscreen-equipment" />);
+    const workspace = screen.getByTestId("equipment-image-workspace");
+    const viewport = screen.getByTestId("equipment-image-viewport");
+    workspace.scrollIntoView = vi.fn();
+
+    fireEvent.click(screen.getByRole("button", { name: "Збільшити підкладку" }));
+    expect(workspace).toHaveAttribute("data-expanded", "true");
+    expect(viewport.className).toContain("84vh");
+
+    fireEvent.click(screen.getByRole("button", { name: "Відкрити підкладку на повний екран" }));
+    expect(workspace).toHaveAttribute("data-expanded", "true");
+    expect(workspace.scrollIntoView).toHaveBeenCalled();
   });
 
   it("uses equipment-scoped scale snapshots when the active equipment changes", async () => {

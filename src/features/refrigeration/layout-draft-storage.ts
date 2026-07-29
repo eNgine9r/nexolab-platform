@@ -59,7 +59,9 @@ export function parseLayoutDraft(
     if (savedAtMs > nowMs + FUTURE_CLOCK_SKEW_MS) return null;
     if (nowMs - savedAtMs > LAYOUT_DRAFT_MAX_AGE_MS) return null;
     if (!Array.isArray(candidate.placements)) return null;
-    if (candidate.placements.length !== allowedSensorIds.size) return null;
+    if (candidate.placements.length < 1 || candidate.placements.length > allowedSensorIds.size) {
+      return null;
+    }
 
     const placements: LayoutPlacement[] = [];
     const seen = new Set<string>();
@@ -75,8 +77,6 @@ export function parseLayoutDraft(
       seen.add(sensorId);
       placements.push({ sensorId, x, y });
     }
-
-    if (seen.size !== allowedSensorIds.size) return null;
 
     return {
       schemaVersion: LAYOUT_DRAFT_SCHEMA_VERSION,

@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
+import { SensorPlacementManager } from "@/components/refrigeration/sensor-placement-manager";
 import type { RefrigerationEquipment, RefrigerationSensor } from "@/data/refrigeration";
 import { createRefrigerationLayoutRuntime } from "@/features/refrigeration/layout-repository-runtime";
 import {
@@ -60,6 +61,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     runtime.mode === "demo" ? "ready" : "loading",
   );
   const [securityError, setSecurityError] = useState<string | null>(runtime.error);
+  const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
 
   const capabilities = useMemo<LayoutCapabilities>(() => {
     if (runtime.mode === "demo") return demoCapabilities;
@@ -197,7 +199,18 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         </div>
       ) : null}
 
+      <SensorPlacementManager
+        equipment={equipment}
+        repository={runtime.repository}
+        canEdit={capabilities.canEdit}
+        mode={mode}
+        onModeChange={onModeChange}
+        onSelect={onSelect}
+        onAssignmentsChanged={() => setWorkspaceEpoch((current) => current + 1)}
+      />
+
       <RefrigerationLayoutWorkspace
+        key={`${equipment.id}-${workspaceEpoch}`}
         equipment={equipment}
         visibleSensors={visibleSensors}
         selectedId={selectedId}

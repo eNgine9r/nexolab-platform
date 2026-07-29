@@ -29,6 +29,17 @@ describe("layout draft storage", () => {
     );
   });
 
+  it("round-trips a valid partial sensor assignment", () => {
+    const partial = {
+      ...validPayload(),
+      placements: placements.slice(0, 1),
+    };
+
+    expect(
+      parseLayoutDraft(JSON.stringify(partial), "equipment-1", allowedSensorIds, nowMs),
+    ).toEqual(partial);
+  });
+
   it("stores only normalized placement geometry", () => {
     const serialized = serializeLayoutDraft(validPayload());
 
@@ -64,13 +75,13 @@ describe("layout draft storage", () => {
     ).toBeNull();
   });
 
-  it("rejects equipment mismatches, missing sensors and duplicate sensors", () => {
+  it("rejects equipment mismatches, empty drafts and duplicate sensors", () => {
     const serialized = serializeLayoutDraft(validPayload());
     expect(parseLayoutDraft(serialized, "equipment-2", allowedSensorIds, nowMs)).toBeNull();
 
-    const missing = { ...validPayload(), placements: placements.slice(0, 1) };
+    const empty = { ...validPayload(), placements: [] };
     expect(
-      parseLayoutDraft(JSON.stringify(missing), "equipment-1", allowedSensorIds, nowMs),
+      parseLayoutDraft(JSON.stringify(empty), "equipment-1", allowedSensorIds, nowMs),
     ).toBeNull();
 
     const duplicate = {
