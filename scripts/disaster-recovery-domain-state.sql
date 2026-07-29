@@ -72,6 +72,11 @@ SELECT jsonb_build_object(
     ), '[]'::jsonb)
   ),
   'refrigeration', jsonb_build_object(
+    'equipment', COALESCE((
+      SELECT jsonb_agg(to_jsonb(item) ORDER BY item.id)
+      FROM refrigeration_equipment AS item
+      WHERE item.id = 'K106'
+    ), '[]'::jsonb),
     'images', COALESCE((
       SELECT jsonb_agg(to_jsonb(item) ORDER BY item.id)
       FROM equipment_images AS item
