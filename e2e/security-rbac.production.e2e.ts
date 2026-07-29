@@ -47,6 +47,42 @@ async function authenticatedContext(
   return context;
 }
 
+async function provisionEquipmentPassport(browser: Browser): Promise<void> {
+  const context = await authenticatedContext(browser, tokens.administrator);
+  try {
+    const response = await context.request.post(`${apiBaseUrl}/api/v1/equipment`, {
+      headers: {
+        ...apiHeaders(tokens.administrator),
+        "X-Audit-Reason": "Provision security acceptance equipment passport",
+      },
+      data: {
+        code: "SECURITY-CS-106-01",
+        name: "Вітрина №106-01",
+        location: "Security acceptance · Лабораторія 1",
+        equipment_type: "Холодильна вітрина",
+        manufacturer: "ColdStream",
+        model: "Premium 1250",
+        serial_number: "SECURITY-X-PROD-10601",
+        temperature_class: "3M1 (0…+5 °C)",
+        total_sensors: 48,
+      },
+    });
+    expect(response.status()).toBe(201);
+    const equipment = (await response.json()) as { id: string };
+    expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
+
+    if (equipment.id !== equipmentId) {
+      const createdDraft = await context.request.get(
+        `${apiBaseUrl}/api/v1/equipment/${equipment.id}/layout/draft`,
+        { headers: apiHeaders(tokens.administrator) },
+      );
+      expect(createdDraft.status()).toBe(200);
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 async function openEquipment(page: Page) {
   await page.goto(equipmentRoute, { waitUntil: "networkidle" });
   await expect(page.getByText(/Чернетка v\d+ · PostgreSQL/)).toBeVisible();
@@ -58,6 +94,7 @@ function editor(page: Page) {
 
 test("enforces authenticated organization roles and immutable audit attribution", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
+  await provisionEquipmentPassport(browser);
 
   await test.step("reject an unauthenticated browser before loading protected layout data", async () => {
     const context = await browser.newContext();
