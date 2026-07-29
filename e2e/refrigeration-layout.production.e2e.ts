@@ -53,7 +53,7 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
   const pageB = await operatorB.newPage();
 
   try {
-    await test.step("verify sidebar shell, enlarged canvas and versioned sensor swap", async () => {
+    await test.step("verify sidebar shell, enlarged canvas and versioned sensor assignment", async () => {
       await openProductionEquipment(pageA, 1);
 
       await expect(pageA.getByRole("link", { name: "Холодильне обладнання" })).toHaveAttribute(
@@ -65,15 +65,23 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await pageA.getByRole("button", { name: "Збільшити підкладку" }).click();
       await expect(canvasWorkspace).toHaveAttribute("data-expanded", "true");
 
-      const assigned = pageA.getByRole("combobox", { name: "Встановлений датчик" });
       const candidate = pageA.getByRole("combobox", { name: "Датчик зі списку" });
+      await candidate.selectOption({ index: 0 });
+      await expect(pageA.getByRole("button", { name: "Додати" })).toBeEnabled();
+      await pageA.getByRole("button", { name: "Додати" }).click();
+
+      await expect(pageA.getByText(/додано на підкладку/)).toBeVisible();
+      await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
+      await expect(editor(pageA).getByText("Режим редагування")).toBeVisible();
+      await editor(pageA).getByRole("button", { name: "Скасувати" }).click();
+      await expect(editor(pageA).getByText("Режим перегляду")).toBeVisible();
+
       await expect(pageA.getByRole("button", { name: "Замінити" })).toBeEnabled();
-      await assigned.selectOption({ index: 0 });
       await candidate.selectOption({ index: 0 });
       await pageA.getByRole("button", { name: "Замінити" }).click();
 
-      await expect(pageA.getByText(/поміняно місцями/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText(/замінено на/)).toBeVisible();
+      await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
     });
 
     await test.step("upload a real image and verify its MinIO signed URL", async () => {
@@ -83,8 +91,8 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
         buffer: equipmentPhoto,
       });
 
-      await expect(pageA.getByText(/завантажено та прив’язано до чернетки v3/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText(/завантажено та прив’язано до чернетки v4/)).toBeVisible();
+      await expect(pageA.getByText("Чернетка v4 · PostgreSQL")).toBeVisible();
 
       const image = pageA.locator(`img[alt="Фото обладнання ${equipmentId}"]`).first();
       await expect(image).toBeVisible();
@@ -122,18 +130,18 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await expect(editor(pageA).getByText("Незбережені зміни")).toBeVisible();
       await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
 
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 4")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v4 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText("Чернетку схеми збережено · версія 5")).toBeVisible();
+      await expect(pageA.getByText("Чернетка v5 · PostgreSQL")).toBeVisible();
 
       await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       await expect(pageA.getByText("Опубліковано ревізію r1.")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v5 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText("Чернетка v6 · PostgreSQL")).toBeVisible();
       await expect(pageA.getByText("Ревізія r1")).toBeVisible();
       await expect(pageA.getByText("showcase-acceptance.png").first()).toBeVisible();
     });
 
     await test.step("run two isolated operators against the same draft version", async () => {
-      await openProductionEquipment(pageB, 5);
+      await openProductionEquipment(pageB, 6);
       await enterEditMode(pageA);
       await enterEditMode(pageB);
 
@@ -151,11 +159,11 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       expect(winningX).not.toBe(losingLocalX);
 
       await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 6")).toBeVisible();
+      await expect(pageA.getByText("Чернетку схеми збережено · версія 7")).toBeVisible();
 
       await editor(pageB).getByRole("button", { name: "Зберегти чернетку" }).click();
       await expect(pageB.getByText("End-to-end конфлікт версій")).toBeVisible();
-      await expect(pageB.getByText(/очікувала v5, але сервер уже зберігає v6/)).toBeVisible();
+      await expect(pageB.getByText(/очікувала v6, але сервер уже зберігає v7/)).toBeVisible();
       await expect(markerB).toHaveAttribute("data-x", losingLocalX ?? "");
 
       await pageB.screenshot({
@@ -164,8 +172,8 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       });
 
       pageB.once("dialog", (dialog) => void dialog.accept());
-      await pageB.getByRole("button", { name: "Завантажити серверну v6" }).click();
-      await expect(pageB.getByText("Завантажено серверну чернетку v6.")).toBeVisible();
+      await pageB.getByRole("button", { name: "Завантажити серверну v7" }).click();
+      await expect(pageB.getByText("Завантажено серверну чернетку v7.")).toBeVisible();
       await expect(editor(pageB).getByText("Режим перегляду")).toBeVisible();
       await expect(sensorMarker(pageB, "01F")).toHaveAttribute("data-x", winningX ?? "");
 
@@ -180,9 +188,9 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
       );
       expect(draftResponse.status()).toBe(200);
-      expect(draftResponse.headers().etag).toBe('W/"layout-draft-v6"');
+      expect(draftResponse.headers().etag).toBe('W/"layout-draft-v7"');
       const draft = (await draftResponse.json()) as DraftPayload;
-      expect(draft.version).toBe(6);
+      expect(draft.version).toBe(7);
       expect(draft.placements).toHaveLength(48);
       expect(draft.image).not.toBeNull();
 
@@ -194,7 +202,7 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       expect(history.items).toHaveLength(1);
       expect(history.items[0]).toMatchObject({
         revision: 1,
-        source_draft_version: 4,
+        source_draft_version: 5,
       });
       expect(history.items[0]?.placements).toHaveLength(48);
 
