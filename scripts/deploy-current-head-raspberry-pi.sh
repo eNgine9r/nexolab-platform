@@ -412,7 +412,7 @@ paths = document.get("paths", {})
 required = {
     "/api/v1/sessions",
     "/api/v1/nodes",
-    "/api/v1/refrigeration/{equipment_id}/layout/draft",
+    "/api/v1/equipment/{equipment_id}/layout/draft",
     "/api/v1/reports",
     "/api/v1/alerts",
 }
