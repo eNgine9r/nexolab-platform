@@ -56,6 +56,7 @@ class RefrigerationEquipmentRecord(Base):
             name="fk_refrigeration_equipment_organization",
             ondelete="RESTRICT",
         ),
+        primary_key=True,
         nullable=False,
     )
     code: Mapped[str] = mapped_column(String(128), nullable=False)
