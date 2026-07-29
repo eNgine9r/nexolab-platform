@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  CopyPlus,
   Eye,
   Plus,
   Search,
@@ -23,12 +24,14 @@ import {
   DeleteEquipmentDialog,
   type EquipmentNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
+import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import {
   refrigerationEquipment,
   type EquipmentLifecycleStatus,
   type EquipmentStatus,
   type RefrigerationEquipment,
 } from "@/data/refrigeration";
+import { createEquipmentCopyDraft } from "@/features/refrigeration/equipment-copy";
 import type { RefrigerationEquipmentCreateInput } from "@/features/refrigeration/equipment-repository";
 import {
   createRefrigerationEquipmentRuntime,
@@ -56,14 +59,15 @@ const lifecycleStyles: Record<EquipmentLifecycleStatus, string> = {
 };
 
 const lifecycleLabels: Record<EquipmentLifecycleStatus, string> = {
-  active: "Active",
-  maintenance: "Maintenance",
-  retired: "Retired",
+  active: "Активне",
+  maintenance: "Обслуговування",
+  retired: "Виведене",
 };
 
 type StatusFilter = "all" | EquipmentStatus;
 type LifecycleFilter = "all" | EquipmentLifecycleStatus;
 type Notice = { tone: "success" | "error"; message: string } | null;
+type CreateIntent = "create" | "duplicate";
 
 export function RefrigerationCatalogScreen({
   runtime: providedRuntime,
@@ -88,6 +92,9 @@ export function RefrigerationCatalogScreen({
     runtime.error ? { tone: "error", message: runtime.error } : null,
   );
   const [createOpen, setCreateOpen] = useState(false);
+  const [createIntent, setCreateIntent] = useState<CreateIntent>("create");
+  const [createInitialValue, setCreateInitialValue] =
+    useState<RefrigerationEquipmentCreateInput | null>(null);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RefrigerationEquipment | null>(null);
@@ -188,6 +195,27 @@ export function RefrigerationCatalogScreen({
     });
   }, [items, lifecycle, query, status]);
 
+  const openCreate = () => {
+    setCreateError(null);
+    setCreateIntent("create");
+    setCreateInitialValue(null);
+    setCreateOpen(true);
+  };
+
+  const openDuplicate = (source: RefrigerationEquipment) => {
+    setCreateError(null);
+    setCreateIntent("duplicate");
+    setCreateInitialValue(createEquipmentCopyDraft(source, items));
+    setCreateOpen(true);
+  };
+
+  const closeCreate = () => {
+    if (createBusy) return;
+    setCreateOpen(false);
+    setCreateInitialValue(null);
+    setCreateIntent("create");
+  };
+
   const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
     if (!runtime.repository) return;
     setCreateBusy(true);
@@ -196,7 +224,15 @@ export function RefrigerationCatalogScreen({
       const created = await runtime.repository.create(input);
       setItems((current) => [...current, created]);
       setCreateOpen(false);
-      setNotice({ tone: "success", message: `${created.name} додано до каталогу.` });
+      setCreateInitialValue(null);
+      setNotice({
+        tone: "success",
+        message:
+          createIntent === "duplicate"
+            ? `${created.name} створено як незалежну копію.`
+            : `${created.name} додано до каталогу.`,
+      });
+      setCreateIntent("create");
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Обладнання не створено.");
     } finally {
@@ -239,7 +275,7 @@ export function RefrigerationCatalogScreen({
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold text-white">Холодильне обладнання</h1>
                 <p className="mt-2 max-w-2xl text-sm text-slate-400">
-                  Паспорти, lifecycle, оперативний стан і інтерактивні схеми температурних датчиків.
+                  Паспорти, життєвий цикл, оперативний стан і схеми температурних датчиків.
                 </p>
               </div>
 
@@ -272,7 +308,7 @@ export function RefrigerationCatalogScreen({
                 </select>
 
                 <label className="sr-only" htmlFor="equipment-lifecycle-filter">
-                  Фільтр за lifecycle
+                  Фільтр за життєвим циклом
                 </label>
                 <select
                   id="equipment-lifecycle-filter"
@@ -280,23 +316,21 @@ export function RefrigerationCatalogScreen({
                   onChange={(event) => setLifecycle(event.target.value as LifecycleFilter)}
                   className={selectClass}
                 >
-                  <option value="all">Увесь lifecycle</option>
-                  <option value="active">Active</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="retired">Retired</option>
+                  <option value="all">Усі етапи</option>
+                  <option value="active">Активне</option>
+                  <option value="maintenance">Обслуговування</option>
+                  <option value="retired">Виведене</option>
                 </select>
 
                 {canManage ? (
-                  <IconButton
+                  <RefrigerationIconButton
                     label="Додати холодильне обладнання"
-                    onClick={() => {
-                      setCreateError(null);
-                      setCreateOpen(true);
-                    }}
-                    accent
+                    onClick={openCreate}
+                    tone="accent"
+                    size="lg"
                   >
                     <Plus className="h-4 w-4" />
-                  </IconButton>
+                  </RefrigerationIconButton>
                 ) : null}
               </div>
             </div>
@@ -320,7 +354,10 @@ export function RefrigerationCatalogScreen({
             ) : null}
 
             {loading ? (
-              <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Завантаження обладнання">
+              <section
+                className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
+                aria-label="Завантаження обладнання"
+              >
                 {[0, 1, 2].map((index) => (
                   <div
                     key={index}
@@ -329,7 +366,10 @@ export function RefrigerationCatalogScreen({
                 ))}
               </section>
             ) : equipment.length > 0 ? (
-              <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Перелік холодильного обладнання">
+              <section
+                className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
+                aria-label="Перелік холодильного обладнання"
+              >
                 {equipment.map((item) => (
                   <article
                     key={item.id}
@@ -338,14 +378,20 @@ export function RefrigerationCatalogScreen({
                     <div className="relative h-48 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
                       <div className="absolute inset-x-[12%] top-[16%] bottom-0 rounded-t-2xl border border-slate-500/30 bg-[linear-gradient(90deg,#101b26_0_3%,#23384a_3%_49%,#0f1a25_49%_52%,#23384a_52%_97%,#101b26_97%)] shadow-[0_0_40px_rgba(34,211,238,.06)]">
                         {[22, 43, 64, 85].map((top) => (
-                          <div key={top} className="absolute right-[4%] left-[4%] h-px bg-cyan-200/25" style={{ top: `${top}%` }} />
+                          <div
+                            key={top}
+                            className="absolute right-[4%] left-[4%] h-px bg-cyan-200/25"
+                            style={{ top: `${top}%` }}
+                          />
                         ))}
                       </div>
                       <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/65 px-3 py-1.5 text-[10px] text-cyan-200 backdrop-blur">
                         <Snowflake className="h-3.5 w-3.5" />
                         {item.type}
                       </div>
-                      <span className={`absolute top-4 right-4 rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}>
+                      <span
+                        className={`absolute top-4 right-4 rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}
+                      >
                         {lifecycleLabels[item.lifecycleStatus]}
                       </span>
                     </div>
@@ -359,43 +405,67 @@ export function RefrigerationCatalogScreen({
                             {item.nodeId ?? "Node не прив’язано"}
                           </p>
                         </div>
-                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}>
+                        <span
+                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}
+                        >
                           {statusLabels[item.status]}
                         </span>
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
-                        <Metric icon={Wifi} label="Датчики" value={`${item.onlineSensors}/${item.totalSensors}`} />
-                        <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
+                        <Metric
+                          icon={Thermometer}
+                          label="Середня"
+                          value={`${item.averageTemperatureC} °C`}
+                        />
+                        <Metric
+                          icon={Wifi}
+                          label="Датчики"
+                          value={`${item.onlineSensors}/${item.totalSensors}`}
+                        />
+                        <Metric
+                          icon={AlertTriangle}
+                          label="Тривоги"
+                          value={String(item.activeAlarms)}
+                        />
                       </div>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
-                        <div className="text-[11px] text-slate-500">
-                          <span className="text-slate-300">
+                        <div className="min-w-0 text-[11px] text-slate-500">
+                          <span className="block truncate text-slate-300">
                             {item.manufacturer} {item.model}
                           </span>
-                          <br />
-                          {item.code}
+                          <span className="block truncate">{item.code}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="ml-3 flex items-center gap-2">
                           {canManage ? (
-                            <IconButton
-                              label={`Видалити ${item.name}`}
-                              tone="danger"
-                              onClick={() => {
-                                setDeleteError(null);
-                                setDeleteTarget(item);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </IconButton>
+                            <>
+                              <RefrigerationIconButton
+                                label={`Копіювати ${item.name}`}
+                                onClick={() => openDuplicate(item)}
+                                tone="info"
+                                size="lg"
+                              >
+                                <CopyPlus className="h-4 w-4" />
+                              </RefrigerationIconButton>
+                              <RefrigerationIconButton
+                                label={`Видалити ${item.name}`}
+                                tone="danger"
+                                size="lg"
+                                onClick={() => {
+                                  setDeleteError(null);
+                                  setDeleteTarget(item);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </RefrigerationIconButton>
+                            </>
                           ) : null}
                           <Link
                             href={`/refrigeration/${item.id}`}
                             aria-label={`Відкрити ${item.name}`}
-                            title="Відкрити"
-                            className="grid h-11 w-11 place-items-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200 transition hover:bg-blue-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                            title={`Відкрити ${item.name}`}
+                            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200 transition hover:border-blue-300/40 hover:bg-blue-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -409,23 +479,25 @@ export function RefrigerationCatalogScreen({
               <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
                 <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
                 <h2 className="mt-4 text-sm font-semibold text-slate-200">
-                  {items.length === 0 ? "Каталог холодильного обладнання порожній" : "Обладнання не знайдено"}
+                  {items.length === 0
+                    ? "Каталог холодильного обладнання порожній"
+                    : "Обладнання не знайдено"}
                 </h2>
                 <p className="mt-2 text-xs text-slate-500">
                   {items.length === 0
                     ? "Додайте першу вітрину або холодильну камеру."
-                    : "Змініть пошук, health-фільтр або lifecycle-фільтр."}
+                    : "Змініть пошук або фільтри."}
                 </p>
                 {items.length === 0 && canManage ? (
-                  <button
-                    type="button"
-                    aria-label="Додати перше холодильне обладнання"
-                    title="Додати обладнання"
-                    onClick={() => setCreateOpen(true)}
-                    className="mx-auto mt-5 grid h-11 w-11 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-400/15 text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                  <RefrigerationIconButton
+                    label="Додати перше холодильне обладнання"
+                    onClick={openCreate}
+                    tone="accent"
+                    size="lg"
+                    className="mx-auto mt-5"
                   >
                     <Plus className="h-4 w-4" />
-                  </button>
+                  </RefrigerationIconButton>
                 ) : null}
               </section>
             )}
@@ -439,9 +511,9 @@ export function RefrigerationCatalogScreen({
           busy={createBusy}
           error={createError}
           nodeOptions={nodeOptions}
-          onClose={() => {
-            if (!createBusy) setCreateOpen(false);
-          }}
+          initialValue={createInitialValue}
+          intent={createIntent}
+          onClose={closeCreate}
           onSubmit={createEquipment}
         />
       ) : null}
@@ -455,37 +527,6 @@ export function RefrigerationCatalogScreen({
         onConfirm={deleteEquipment}
       />
     </div>
-  );
-}
-
-function IconButton({
-  label,
-  children,
-  onClick,
-  accent = false,
-  tone = "default",
-}: {
-  label: string;
-  children: ReactNode;
-  onClick: () => void;
-  accent?: boolean;
-  tone?: "default" | "danger";
-}) {
-  const classes = accent
-    ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100 hover:bg-cyan-400/20"
-    : tone === "danger"
-      ? "border-rose-400/15 bg-rose-400/[0.06] text-rose-300 hover:border-rose-400/30 hover:bg-rose-400/12"
-      : "border-white/10 bg-white/[0.035] text-slate-400 hover:text-white";
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={`grid h-11 w-11 place-items-center rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${classes}`}
-    >
-      {children}
-    </button>
   );
 }
 
