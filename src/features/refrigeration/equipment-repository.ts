@@ -18,10 +18,17 @@ export type RefrigerationEquipmentCreateInput = {
   totalSensors: number;
 };
 
+export type RefrigerationEquipmentUpdateInput = RefrigerationEquipmentCreateInput;
+
 export interface RefrigerationEquipmentRepository {
   list(): Promise<RefrigerationEquipment[]>;
   get(equipmentId: string): Promise<RefrigerationEquipment>;
   create(input: RefrigerationEquipmentCreateInput): Promise<RefrigerationEquipment>;
+  update(
+    equipmentId: string,
+    input: RefrigerationEquipmentUpdateInput,
+    expectedVersion: number,
+  ): Promise<RefrigerationEquipment>;
   remove(equipmentId: string, expectedVersion: number): Promise<void>;
 }
 
@@ -49,44 +56,22 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
 
   async get(equipmentId: string): Promise<RefrigerationEquipment> {
     const item = this.items.find((candidate) => candidate.id === equipmentId);
-    if (!item) {
-      throw new RefrigerationEquipmentRepositoryError(
-        "Холодильне обладнання не знайдено.",
-        "equipment_not_found",
-        404,
-      );
-    }
+    if (!item) throw notFound();
     return cloneEquipment(item);
   }
 
   async create(input: RefrigerationEquipmentCreateInput): Promise<RefrigerationEquipment> {
-    const normalizedCode = input.code.trim();
-    if (this.items.some((item) => item.code.toLocaleLowerCase("uk-UA") === normalizedCode.toLocaleLowerCase("uk-UA"))) {
-      throw new RefrigerationEquipmentRepositoryError(
-        "Обладнання з таким кодом уже існує.",
-        "equipment_code_conflict",
-        409,
-      );
-    }
+    const normalized = normalizeInput(input);
+    assertUniqueCode(this.items, normalized.code);
     const now = new Date().toISOString();
     const item: RefrigerationEquipment = {
       id: createClientId(),
-      code: normalizedCode,
-      name: input.name.trim(),
-      location: input.location.trim(),
-      type: input.type.trim(),
-      manufacturer: input.manufacturer.trim(),
-      model: input.model.trim(),
-      serialNumber: input.serialNumber.trim(),
-      temperatureClass: input.temperatureClass.trim(),
-      installedAt: input.installedAt,
-      servicedAt: input.servicedAt,
+      ...normalized,
       status: "offline",
       averageTemperatureC: 0,
       minTemperatureC: 0,
       maxTemperatureC: 0,
       onlineSensors: 0,
-      totalSensors: input.totalSensors,
       activeAlarms: 0,
       lastSeenAt: now,
       version: 1,
@@ -97,22 +82,30 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
     return cloneEquipment(item);
   }
 
+  async update(
+    equipmentId: string,
+    input: RefrigerationEquipmentUpdateInput,
+    expectedVersion: number,
+  ): Promise<RefrigerationEquipment> {
+    const index = this.items.findIndex((candidate) => candidate.id === equipmentId);
+    if (index < 0) throw notFound();
+    const current = this.items[index];
+    assertVersion(current, expectedVersion);
+    const normalized = normalizeInput(input);
+    assertUniqueCode(this.items, normalized.code, equipmentId);
+    const updated: RefrigerationEquipment = {
+      ...current,
+      ...normalized,
+      version: current.version + 1,
+    };
+    this.items = this.items.map((item) => (item.id === equipmentId ? updated : item));
+    return cloneEquipment(updated);
+  }
+
   async remove(equipmentId: string, expectedVersion: number): Promise<void> {
     const item = this.items.find((candidate) => candidate.id === equipmentId);
-    if (!item) {
-      throw new RefrigerationEquipmentRepositoryError(
-        "Холодильне обладнання не знайдено.",
-        "equipment_not_found",
-        404,
-      );
-    }
-    if (item.version !== expectedVersion) {
-      throw new RefrigerationEquipmentRepositoryError(
-        "Запис обладнання вже змінено. Оновіть каталог і повторіть дію.",
-        "equipment_version_conflict",
-        409,
-      );
-    }
+    if (!item) throw notFound();
+    assertVersion(item, expectedVersion);
     this.items = this.items.filter((candidate) => candidate.id !== equipmentId);
   }
 }
@@ -134,9 +127,7 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
   async list(): Promise<RefrigerationEquipment[]> {
     const response = await this.request("/api/v1/equipment", { method: "GET" });
     const payload = asRecord(await readJson(response));
-    if (!payload || !Array.isArray(payload.items)) {
-      throw invalidResponse();
-    }
+    if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseEquipment);
   }
 
@@ -151,19 +142,24 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
     const response = await this.request("/api/v1/equipment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code: input.code,
-        name: input.name,
-        location: input.location,
-        equipment_type: input.type,
-        manufacturer: input.manufacturer,
-        model: input.model,
-        serial_number: input.serialNumber,
-        temperature_class: input.temperatureClass,
-        installed_at: input.installedAt || null,
-        serviced_at: input.servicedAt || null,
-        total_sensors: input.totalSensors,
-      }),
+      body: JSON.stringify(toApiPayload(input)),
+    });
+    return parseEquipment(await readJson(response));
+  }
+
+  async update(
+    equipmentId: string,
+    input: RefrigerationEquipmentUpdateInput,
+    expectedVersion: number,
+  ): Promise<RefrigerationEquipment> {
+    const response = await this.request(`/api/v1/equipment/${encodeURIComponent(equipmentId)}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": equipmentEtag(expectedVersion),
+        "X-Audit-Reason": "Updated refrigeration equipment passport",
+      },
+      body: JSON.stringify(toApiPayload(input)),
     });
     return parseEquipment(await readJson(response));
   }
@@ -172,7 +168,7 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
     await this.request(`/api/v1/equipment/${encodeURIComponent(equipmentId)}`, {
       method: "DELETE",
       headers: {
-        "If-Match": `W/\"equipment-v${expectedVersion}\"`,
+        "If-Match": equipmentEtag(expectedVersion),
         "X-Audit-Reason": "Removed from refrigeration equipment catalog",
       },
     });
@@ -184,10 +180,7 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
       response = await this.fetchImpl(`${this.apiBaseUrl}${path}`, {
         ...init,
         credentials: init.credentials ?? "same-origin",
-        headers: {
-          Accept: "application/json",
-          ...init.headers,
-        },
+        headers: { Accept: "application/json", ...init.headers },
       });
     } catch {
       throw new RefrigerationEquipmentRepositoryError(
@@ -207,6 +200,81 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
     }
     return response;
   }
+}
+
+function normalizeInput(input: RefrigerationEquipmentCreateInput): RefrigerationEquipmentCreateInput {
+  return {
+    code: input.code.trim(),
+    name: input.name.trim(),
+    location: input.location.trim(),
+    type: input.type.trim(),
+    manufacturer: input.manufacturer.trim(),
+    model: input.model.trim(),
+    serialNumber: input.serialNumber.trim(),
+    temperatureClass: input.temperatureClass.trim(),
+    installedAt: input.installedAt,
+    servicedAt: input.servicedAt,
+    totalSensors: input.totalSensors,
+  };
+}
+
+function toApiPayload(input: RefrigerationEquipmentCreateInput) {
+  const normalized = normalizeInput(input);
+  return {
+    code: normalized.code,
+    name: normalized.name,
+    location: normalized.location,
+    equipment_type: normalized.type,
+    manufacturer: normalized.manufacturer,
+    model: normalized.model,
+    serial_number: normalized.serialNumber,
+    temperature_class: normalized.temperatureClass,
+    installed_at: normalized.installedAt || null,
+    serviced_at: normalized.servicedAt || null,
+    total_sensors: normalized.totalSensors,
+  };
+}
+
+function equipmentEtag(version: number): string {
+  return `W/"equipment-v${version}"`;
+}
+
+function assertUniqueCode(
+  items: RefrigerationEquipment[],
+  code: string,
+  excludedId: string | null = null,
+): void {
+  if (
+    items.some(
+      (item) =>
+        item.id !== excludedId &&
+        item.code.toLocaleLowerCase("uk-UA") === code.toLocaleLowerCase("uk-UA"),
+    )
+  ) {
+    throw new RefrigerationEquipmentRepositoryError(
+      "Обладнання з таким кодом уже існує.",
+      "equipment_code_conflict",
+      409,
+    );
+  }
+}
+
+function assertVersion(item: RefrigerationEquipment, expectedVersion: number): void {
+  if (item.version !== expectedVersion) {
+    throw new RefrigerationEquipmentRepositoryError(
+      "Запис обладнання вже змінено. Оновіть каталог і повторіть дію.",
+      "equipment_version_conflict",
+      409,
+    );
+  }
+}
+
+function notFound(): RefrigerationEquipmentRepositoryError {
+  return new RefrigerationEquipmentRepositoryError(
+    "Холодильне обладнання не знайдено.",
+    "equipment_not_found",
+    404,
+  );
 }
 
 function parseEquipment(value: unknown): RefrigerationEquipment {
@@ -273,7 +341,8 @@ function parseEquipment(value: unknown): RefrigerationEquipment {
     onlineSensors,
     totalSensors,
     activeAlarms,
-    lastSeenAt: readOptionalString(record.last_seen_at) ?? readString(record.updated_at) ?? new Date(0).toISOString(),
+    lastSeenAt:
+      readOptionalString(record.last_seen_at) ?? readString(record.updated_at) ?? new Date(0).toISOString(),
     version,
     image: fixture?.image ?? null,
     sensors: fixture?.sensors.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })) ?? [],
