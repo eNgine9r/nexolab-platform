@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     object_storage_secret_access_key: str | None = None
     object_storage_force_path_style: bool = True
     equipment_image_max_bytes: int = Field(
-        default=15 * 1024 * 1024,
+        default=1536 * 1024,
         ge=1024,
         le=50 * 1024 * 1024,
     )
