@@ -8,8 +8,8 @@ const otherOrganizationId =
   process.env.NEXOLAB_SECURITY_OTHER_ORGANIZATION_ID ?? "22222222-2222-2222-2222-222222222222";
 const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18092";
 const evidenceDirectory = process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
-const equipmentId = "showcase-106-01";
-const equipmentRoute = `/refrigeration/${equipmentId}`;
+let equipmentId = "";
+let equipmentRoute = "";
 const equipmentPhoto = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAF0lEQVR4nGPkUbJgIAUwkaR6VMOg0QAA11IAejJlKAQAAAAASUVORK5CYII=",
   "base64",
@@ -70,14 +70,15 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
     expect(response.status()).toBe(201);
     const equipment = (await response.json()) as { id: string };
     expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
+    equipmentId = equipment.id;
+    equipmentRoute = `/refrigeration/${equipmentId}`;
 
-    if (equipment.id !== equipmentId) {
-      const createdDraft = await context.request.get(
-        `${apiBaseUrl}/api/v1/equipment/${equipment.id}/layout/draft`,
-        { headers: apiHeaders(tokens.administrator) },
-      );
-      expect(createdDraft.status()).toBe(200);
-    }
+    const draftResponse = await context.request.get(
+      `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+      { headers: apiHeaders(tokens.administrator) },
+    );
+    expect(draftResponse.status()).toBe(200);
+    expect(draftResponse.headers().etag).toBe('W/"layout-draft-v1"');
   } finally {
     await context.close();
   }
@@ -259,6 +260,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
         `${JSON.stringify(
           {
             organizationId,
+            equipmentId,
             unauthenticatedStatus: 401,
             viewerMutationStatus: 403,
             operatorPublishStatus: 403,
