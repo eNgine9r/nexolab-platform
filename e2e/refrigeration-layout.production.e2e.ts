@@ -70,7 +70,7 @@ test("creates and safely removes equipment through icon-first catalog actions", 
   await page.getByLabel(/^Модель/).fill("NX-1250-A");
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
   await page.getByLabel(/^Температурний клас/).fill("3M1 (0…+5 °C)");
-  await page.getByLabel(/^Кількість датчиків/).fill("48");
+  await page.getByLabel(/^Кількість слотів датчиків/).fill("48");
   await page.getByRole("button", { name: "Створити", exact: true }).click();
 
   await expect(page.getByRole("status")).toContainText(`${name} додано до каталогу.`);
