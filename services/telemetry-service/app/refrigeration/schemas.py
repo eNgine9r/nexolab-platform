@@ -1,9 +1,74 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Annotated
+from datetime import date, datetime
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+EquipmentStatus = Literal["normal", "warning", "alarm", "offline"]
+
+
+class RefrigerationEquipmentCreate(BaseModel):
+    code: Annotated[str, Field(min_length=1, max_length=128)]
+    name: Annotated[str, Field(min_length=1, max_length=255)]
+    location: Annotated[str, Field(min_length=1, max_length=255)]
+    equipment_type: Annotated[str, Field(min_length=1, max_length=128)] = "Холодильна вітрина"
+    manufacturer: Annotated[str, Field(min_length=1, max_length=128)]
+    model: Annotated[str, Field(min_length=1, max_length=128)]
+    serial_number: Annotated[str, Field(min_length=1, max_length=128)]
+    temperature_class: Annotated[str, Field(min_length=1, max_length=128)]
+    installed_at: date | None = None
+    serviced_at: date | None = None
+    total_sensors: Annotated[int, Field(ge=0, le=48)] = 0
+
+    @field_validator(
+        "code",
+        "name",
+        "location",
+        "equipment_type",
+        "manufacturer",
+        "model",
+        "serial_number",
+        "temperature_class",
+    )
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+
+class RefrigerationEquipmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    code: str
+    name: str
+    location: str
+    equipment_type: str
+    manufacturer: str
+    model: str
+    serial_number: str
+    temperature_class: str
+    installed_at: date | None
+    serviced_at: date | None
+    status: EquipmentStatus
+    average_temperature_c: float
+    min_temperature_c: float
+    max_temperature_c: float
+    online_sensors: int
+    total_sensors: int
+    active_alarms: int
+    last_seen_at: datetime | None
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class RefrigerationEquipmentListResponse(BaseModel):
+    items: list[RefrigerationEquipmentResponse]
 
 
 class SensorPlacementPayload(BaseModel):
