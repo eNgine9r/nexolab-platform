@@ -1,6 +1,4 @@
-import { notFound } from "next/navigation";
-
-import { RefrigerationDetailScreen } from "@/components/refrigeration/refrigeration-detail-screen";
+import { RefrigerationEquipmentRoute } from "@/components/refrigeration/refrigeration-equipment-route";
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 
 export default async function RefrigerationEquipmentPage({
@@ -9,11 +7,11 @@ export default async function RefrigerationEquipmentPage({
   params: Promise<{ equipmentId: string }>;
 }) {
   const { equipmentId } = await params;
-  const equipment = getRefrigerationEquipment(equipmentId);
 
-  if (!equipment) {
-    notFound();
-  }
-
-  return <RefrigerationDetailScreen equipment={equipment} />;
+  return (
+    <RefrigerationEquipmentRoute
+      equipmentId={equipmentId}
+      initialEquipment={getRefrigerationEquipment(equipmentId) ?? null}
+    />
+  );
 }
