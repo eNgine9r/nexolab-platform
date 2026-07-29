@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db import Database
 from app.refrigeration.models import RefrigerationEquipmentRecord, RefrigerationLayoutDraft
-from app.refrigeration.schemas import RefrigerationEquipmentCreate
+from app.refrigeration.schemas import RefrigerationEquipmentCreate, RefrigerationEquipmentUpdate
 from app.security.repository import AuditEventInput, SecurityRepository
 
 DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
@@ -147,6 +147,74 @@ class PostgresRefrigerationEquipmentRepository:
                                 audit_event,
                                 entity_id=record.id,
                                 before_snapshot=None,
+                                after_snapshot=_equipment_snapshot(record),
+                            ),
+                            session=session,
+                        )
+                session.expunge(record)
+                return record
+        except IntegrityError as error:
+            raise EquipmentCodeConflictError(
+                f"equipment code {payload.code!r} already exists in this organization"
+            ) from error
+
+    def update(
+        self,
+        equipment_id: str,
+        payload: RefrigerationEquipmentUpdate,
+        *,
+        expected_version: int,
+        actor_id: str,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
+    ) -> RefrigerationEquipmentRecord:
+        del actor_id  # actor attribution is persisted in the immutable audit event
+        now = datetime.now(UTC)
+        try:
+            with Session(self._engine, expire_on_commit=False) as session:
+                with session.begin():
+                    record = session.scalar(
+                        select(RefrigerationEquipmentRecord)
+                        .where(
+                            RefrigerationEquipmentRecord.id == equipment_id,
+                            RefrigerationEquipmentRecord.organization_id == organization_id,
+                            RefrigerationEquipmentRecord.deleted_at.is_(None),
+                        )
+                        .with_for_update()
+                    )
+                    if record is None:
+                        raise EquipmentNotFoundError(
+                            f"equipment {equipment_id!r} was not found"
+                        )
+                    if record.version != expected_version:
+                        raise EquipmentVersionConflictError(
+                            expected_version=expected_version,
+                            actual_version=record.version,
+                        )
+
+                    before = _equipment_snapshot(record)
+                    record.code = payload.code
+                    record.name = payload.name
+                    record.location = payload.location
+                    record.equipment_type = payload.equipment_type
+                    record.manufacturer = payload.manufacturer
+                    record.model = payload.model
+                    record.serial_number = payload.serial_number
+                    record.temperature_class = payload.temperature_class
+                    record.installed_at = payload.installed_at
+                    record.serviced_at = payload.serviced_at
+                    record.total_sensors = payload.total_sensors
+                    record.updated_at = now
+                    record.version += 1
+                    session.flush()
+
+                    if audit_repository is not None and audit_event is not None:
+                        audit_repository.append_audit_event(
+                            replace(
+                                audit_event,
+                                entity_id=record.id,
+                                before_snapshot=before,
                                 after_snapshot=_equipment_snapshot(record),
                             ),
                             session=session,
