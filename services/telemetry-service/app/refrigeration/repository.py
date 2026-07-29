@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db import Database
 from app.refrigeration.models import (
     EquipmentImage,
+    RefrigerationEquipmentRecord,
     RefrigerationLayoutDraft,
     RefrigerationLayoutRevision,
 )
@@ -34,6 +35,10 @@ class LayoutImageNotFoundError(LayoutRepositoryError):
 
 class LayoutRevisionNotFoundError(LayoutRepositoryError):
     code = "layout_revision_not_found"
+
+
+class LayoutEquipmentRetiredError(LayoutRepositoryError):
+    code = "equipment_retired"
 
 
 class LayoutValidationError(LayoutRepositoryError):
@@ -73,6 +78,7 @@ class PostgresRefrigerationLayoutRepository:
     ) -> RefrigerationLayoutDraft:
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
+                self._ensure_equipment_record(session, organization_id, equipment_id)
                 draft = session.scalar(
                     select(RefrigerationLayoutDraft)
                     .where(
@@ -130,11 +136,18 @@ class PostgresRefrigerationLayoutRepository:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
+                self._require_mutable_equipment(session, organization_id, equipment_id)
                 draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
                 before = _draft_snapshot(draft)
                 if image_id is not None:
-                    self._require_image(session, organization_id, equipment_id, image_id)
+                    self._require_image(
+                        session,
+                        organization_id,
+                        equipment_id,
+                        image_id,
+                        active_only=True,
+                    )
                 draft.image_id = image_id
                 draft.placements = normalized
                 draft.version += 1
@@ -162,6 +175,7 @@ class PostgresRefrigerationLayoutRepository:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
+                self._require_mutable_equipment(session, organization_id, equipment_id)
                 draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
                 before = _draft_snapshot(draft)
@@ -173,6 +187,7 @@ class PostgresRefrigerationLayoutRepository:
                     organization_id,
                     equipment_id,
                     draft.image_id,
+                    active_only=True,
                 )
                 next_revision = int(
                     session.scalar(
@@ -265,6 +280,7 @@ class PostgresRefrigerationLayoutRepository:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
+                self._require_mutable_equipment(session, organization_id, equipment_id)
                 draft = self._locked_draft(session, organization_id, equipment_id)
                 self._check_version(draft, expected_version)
                 before = _draft_snapshot(draft)
@@ -279,6 +295,13 @@ class PostgresRefrigerationLayoutRepository:
                     raise LayoutRevisionNotFoundError(
                         f"layout revision {revision_id!r} was not found"
                     )
+                self._require_image(
+                    session,
+                    organization_id,
+                    equipment_id,
+                    revision.image_id,
+                    active_only=False,
+                )
                 draft.image_id = revision.image_id
                 draft.placements = [dict(item) for item in revision.placements]
                 draft.version += 1
@@ -329,9 +352,12 @@ class PostgresRefrigerationLayoutRepository:
             object_etag=object_etag,
             created_by=created_by.strip(),
             created_at=datetime.now(UTC),
+            retired_by=None,
+            retired_at=None,
         )
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
+                self._require_mutable_equipment(session, organization_id, equipment_id)
                 session.add(record)
                 self._append_audit(
                     session,
@@ -363,8 +389,77 @@ class PostgresRefrigerationLayoutRepository:
             session.expunge(image)
             return image
 
+    @staticmethod
+    def _ensure_equipment_record(
+        session: Session,
+        organization_id: str,
+        equipment_id: str,
+    ) -> RefrigerationEquipmentRecord:
+        equipment = session.scalar(
+            select(RefrigerationEquipmentRecord)
+            .where(
+                RefrigerationEquipmentRecord.organization_id == organization_id,
+                RefrigerationEquipmentRecord.id == equipment_id,
+            )
+            .with_for_update()
+        )
+        if equipment is not None:
+            return equipment
+
+        now = datetime.now(UTC)
+        legacy_code = f"LEGACY-{equipment_id}"[:128]
+        equipment = RefrigerationEquipmentRecord(
+            id=equipment_id,
+            organization_id=organization_id,
+            code=legacy_code,
+            name=f"Legacy equipment {equipment_id}"[:255],
+            location="Legacy layout",
+            laboratory=None,
+            zone=None,
+            node_id=None,
+            equipment_type="Refrigeration equipment",
+            manufacturer="Unknown",
+            model="Unknown",
+            serial_number=legacy_code,
+            temperature_class="Unknown",
+            installed_at=None,
+            serviced_at=None,
+            lifecycle_status="active",
+            status="offline",
+            average_temperature_c=0.0,
+            min_temperature_c=0.0,
+            max_temperature_c=0.0,
+            online_sensors=0,
+            total_sensors=0,
+            active_alarms=0,
+            last_seen_at=None,
+            version=1,
+            created_by="layout-compatibility",
+            created_at=now,
+            updated_at=now,
+            deleted_by=None,
+            deleted_at=None,
+        )
+        session.add(equipment)
+        session.flush()
+        return equipment
+
+    @classmethod
+    def _require_mutable_equipment(
+        cls,
+        session: Session,
+        organization_id: str,
+        equipment_id: str,
+    ) -> RefrigerationEquipmentRecord:
+        equipment = cls._ensure_equipment_record(session, organization_id, equipment_id)
+        if equipment.deleted_at is not None:
+            raise LayoutEquipmentRetiredError("deleted equipment layout is read-only")
+        if equipment.lifecycle_status == "retired":
+            raise LayoutEquipmentRetiredError("retired equipment layout is read-only")
+        return equipment
+
+    @staticmethod
     def _locked_draft(
-        self,
         session: Session,
         organization_id: str,
         equipment_id: str,
@@ -395,16 +490,19 @@ class PostgresRefrigerationLayoutRepository:
         organization_id: str,
         equipment_id: str,
         image_id: str,
+        *,
+        active_only: bool,
     ) -> EquipmentImage:
-        image = session.scalar(
-            select(EquipmentImage).where(
-                EquipmentImage.id == image_id,
-                EquipmentImage.organization_id == organization_id,
-                EquipmentImage.equipment_id == equipment_id,
-            )
+        statement = select(EquipmentImage).where(
+            EquipmentImage.id == image_id,
+            EquipmentImage.organization_id == organization_id,
+            EquipmentImage.equipment_id == equipment_id,
         )
+        if active_only:
+            statement = statement.where(EquipmentImage.retired_at.is_(None))
+        image = session.scalar(statement)
         if image is None:
-            raise LayoutImageNotFoundError(f"image {image_id!r} was not found")
+            raise LayoutImageNotFoundError(f"active image {image_id!r} was not found")
         return image
 
     @staticmethod
@@ -467,6 +565,8 @@ def _image_snapshot(image: EquipmentImage) -> dict[str, Any]:
         "checksum_sha256": image.checksum_sha256,
         "created_by": image.created_by,
         "created_at": image.created_at.isoformat(),
+        "retired_by": image.retired_by,
+        "retired_at": image.retired_at.isoformat() if image.retired_at else None,
     }
 
 

@@ -33,6 +33,8 @@ from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
+from app.refrigeration.lifecycle_api import create_equipment_lifecycle_router
+from app.refrigeration.lifecycle_repository import PostgresEquipmentLifecycleRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.reports.api import create_report_router
@@ -54,7 +56,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.16.0"
+SERVICE_VERSION = "0.17.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -78,6 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(database)
+    equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
     security_repository = SecurityRepository(database)
     broker_control_repository, broker_control_worker = _create_broker_control(
         resolved,
@@ -214,6 +217,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
     app.state.refrigeration_equipment_repository = refrigeration_equipment_repository
+    app.state.equipment_lifecycle_repository = equipment_lifecycle_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
     app.state.broker_control_repository = broker_control_repository
@@ -279,6 +283,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(
         create_refrigeration_equipment_router(
             refrigeration_equipment_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_equipment_lifecycle_router(
+            equipment_lifecycle_repository,
+            refrigeration_repository,
+            object_storage,
+            signed_url_seconds=resolved.equipment_image_signed_url_seconds,
             security_dependencies=security_dependencies,
             security_repository=security_repository,
             default_organization_id=resolved.auth_default_organization_id,

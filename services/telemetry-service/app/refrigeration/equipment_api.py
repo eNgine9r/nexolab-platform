@@ -7,7 +7,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 
 from app.refrigeration.equipment_repository import (
     DEFAULT_ORGANIZATION_ID,
+    EquipmentBindingConflictError,
     EquipmentCodeConflictError,
+    EquipmentLifecycleConflictError,
+    EquipmentNodeNotFoundError,
     EquipmentNotFoundError,
     EquipmentRepositoryError,
     EquipmentVersionConflictError,
@@ -54,7 +57,7 @@ def create_refrigeration_equipment_router(
     ) -> RefrigerationEquipmentListResponse:
         return RefrigerationEquipmentListResponse(
             items=[
-                _equipment_response(item)
+                equipment_response(item)
                 for item in repository.list_active(
                     organization_id=authorized.principal.organization_id
                 )
@@ -65,7 +68,7 @@ def create_refrigeration_equipment_router(
         "",
         response_model=RefrigerationEquipmentResponse,
         status_code=status.HTTP_201_CREATED,
-        responses={409: {"model": ApiErrorResponse}},
+        responses={409: {"model": ApiErrorResponse}, 422: {"model": ApiErrorResponse}},
     )
     def create_equipment(
         payload: RefrigerationEquipmentCreate,
@@ -91,9 +94,9 @@ def create_refrigeration_equipment_router(
             )
         except EquipmentRepositoryError as error:
             raise _repository_http_error(error) from error
-        response.headers["ETag"] = _equipment_etag(item.version)
+        response.headers["ETag"] = equipment_etag(item.version)
         response.headers["Location"] = f"/api/v1/equipment/{item.id}"
-        return _equipment_response(item)
+        return equipment_response(item)
 
     @router.get(
         "/{equipment_id}",
@@ -112,8 +115,8 @@ def create_refrigeration_equipment_router(
             )
         except EquipmentRepositoryError as error:
             raise _repository_http_error(error) from error
-        response.headers["ETag"] = _equipment_etag(item.version)
-        return _equipment_response(item)
+        response.headers["ETag"] = equipment_etag(item.version)
+        return equipment_response(item)
 
     @router.put(
         "/{equipment_id}",
@@ -121,6 +124,7 @@ def create_refrigeration_equipment_router(
         responses={
             404: {"model": ApiErrorResponse},
             409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
             428: {"model": ApiErrorResponse},
         },
     )
@@ -133,7 +137,7 @@ def create_refrigeration_equipment_router(
         audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> RefrigerationEquipmentResponse:
-        expected_version = _parse_equipment_if_match(if_match)
+        expected_version = parse_equipment_if_match(if_match)
         try:
             item = repository.update(
                 equipment_id,
@@ -153,8 +157,8 @@ def create_refrigeration_equipment_router(
             )
         except EquipmentRepositoryError as error:
             raise _repository_http_error(error) from error
-        response.headers["ETag"] = _equipment_etag(item.version)
-        return _equipment_response(item)
+        response.headers["ETag"] = equipment_etag(item.version)
+        return equipment_response(item)
 
     @router.delete(
         "/{equipment_id}",
@@ -172,7 +176,7 @@ def create_refrigeration_equipment_router(
         audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> Response:
-        expected_version = _parse_equipment_if_match(if_match)
+        expected_version = parse_equipment_if_match(if_match)
         try:
             deleted = repository.soft_delete(
                 equipment_id,
@@ -193,18 +197,21 @@ def create_refrigeration_equipment_router(
             raise _repository_http_error(error) from error
         return Response(
             status_code=status.HTTP_204_NO_CONTENT,
-            headers={"ETag": _equipment_etag(deleted.version)},
+            headers={"ETag": equipment_etag(deleted.version)},
         )
 
     return router
 
 
-def _equipment_response(item: RefrigerationEquipmentRecord) -> RefrigerationEquipmentResponse:
+def equipment_response(item: RefrigerationEquipmentRecord) -> RefrigerationEquipmentResponse:
     return RefrigerationEquipmentResponse(
         id=item.id,
         code=item.code,
         name=item.name,
         location=item.location,
+        laboratory=item.laboratory,
+        zone=item.zone,
+        node_id=item.node_id,
         equipment_type=item.equipment_type,
         manufacturer=item.manufacturer,
         model=item.model,
@@ -212,6 +219,7 @@ def _equipment_response(item: RefrigerationEquipmentRecord) -> RefrigerationEqui
         temperature_class=item.temperature_class,
         installed_at=item.installed_at,
         serviced_at=item.serviced_at,
+        lifecycle_status=item.lifecycle_status,
         status=item.status,
         average_temperature_c=item.average_temperature_c,
         min_temperature_c=item.min_temperature_c,
@@ -273,7 +281,7 @@ def _audit_event(
     )
 
 
-def _parse_equipment_if_match(value: str) -> int:
+def parse_equipment_if_match(value: str) -> int:
     match = _EQUIPMENT_ETAG_RE.fullmatch(value.strip())
     if match is None:
         raise _api_http_error(
@@ -284,7 +292,7 @@ def _parse_equipment_if_match(value: str) -> int:
     return int(match.group("version"))
 
 
-def _equipment_etag(version: int) -> str:
+def equipment_etag(version: int) -> str:
     return f'W/"equipment-v{version}"'
 
 
@@ -297,8 +305,17 @@ def _repository_http_error(error: EquipmentRepositoryError) -> HTTPException:
             expected_version=error.expected_version,
             actual_version=error.actual_version,
         )
-    if isinstance(error, EquipmentCodeConflictError):
+    if isinstance(
+        error,
+        (
+            EquipmentCodeConflictError,
+            EquipmentLifecycleConflictError,
+            EquipmentBindingConflictError,
+        ),
+    ):
         return _api_http_error(409, error.code, str(error))
+    if isinstance(error, EquipmentNodeNotFoundError):
+        return _api_http_error(422, error.code, str(error))
     if isinstance(error, EquipmentNotFoundError):
         return _api_http_error(404, error.code, str(error))
     return _api_http_error(500, error.code, str(error))

@@ -1,15 +1,27 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Trash2, X } from "lucide-react";
 
-import type { RefrigerationEquipment } from "@/data/refrigeration";
-import type { RefrigerationEquipmentCreateInput } from "@/features/refrigeration/equipment-repository";
+import type { EquipmentLifecycleStatus, RefrigerationEquipment } from "@/data/refrigeration";
+import type {
+  RefrigerationEquipmentCreateInput,
+  RefrigerationEquipmentUpdateInput,
+} from "@/features/refrigeration/equipment-repository";
+
+export type EquipmentNodeOption = {
+  nodeId: string;
+  displayName: string;
+  state: string;
+};
 
 const initialForm: RefrigerationEquipmentCreateInput = {
   code: "",
   name: "",
   location: "",
+  laboratory: "",
+  zone: "",
+  nodeId: "",
   type: "Холодильна вітрина",
   manufacturer: "",
   model: "",
@@ -17,6 +29,7 @@ const initialForm: RefrigerationEquipmentCreateInput = {
   temperatureClass: "",
   installedAt: "",
   servicedAt: "",
+  lifecycleStatus: "active",
   totalSensors: 0,
 };
 
@@ -24,21 +37,89 @@ export function CreateEquipmentDialog({
   open,
   busy,
   error,
+  nodeOptions = [],
   onClose,
   onSubmit,
 }: {
   open: boolean;
   busy: boolean;
   error: string | null;
+  nodeOptions?: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
 }) {
-  const [form, setForm] = useState(initialForm);
+  return (
+    <EquipmentPassportDialog
+      mode="create"
+      open={open}
+      busy={busy}
+      error={error}
+      initialValue={initialForm}
+      nodeOptions={nodeOptions}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
+export function EditEquipmentDialog({
+  equipment,
+  busy,
+  error,
+  nodeOptions,
+  onClose,
+  onSubmit,
+}: {
+  equipment: RefrigerationEquipment | null;
+  busy: boolean;
+  error: string | null;
+  nodeOptions: EquipmentNodeOption[];
+  onClose: () => void;
+  onSubmit: (input: RefrigerationEquipmentUpdateInput) => Promise<void>;
+}) {
+  if (!equipment) return null;
+  return (
+    <EquipmentPassportDialog
+      mode="edit"
+      open
+      busy={busy}
+      error={error}
+      initialValue={equipmentToInput(equipment)}
+      nodeOptions={nodeOptions}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
+function EquipmentPassportDialog({
+  mode,
+  open,
+  busy,
+  error,
+  initialValue,
+  nodeOptions,
+  onClose,
+  onSubmit,
+}: {
+  mode: "create" | "edit";
+  open: boolean;
+  busy: boolean;
+  error: string | null;
+  initialValue: RefrigerationEquipmentCreateInput;
+  nodeOptions: EquipmentNodeOption[];
+  onClose: () => void;
+  onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
+}) {
+  const [form, setForm] = useState(initialValue);
+  const [retirementConfirmed, setRetirementConfirmed] = useState(false);
   const titleId = useId();
   const firstField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    setForm(initialValue);
+    setRetirementConfirmed(false);
     const frame = window.requestAnimationFrame(() => firstField.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
@@ -48,19 +129,25 @@ export function CreateEquipmentDialog({
       window.cancelAnimationFrame(frame);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [busy, onClose, open]);
+  }, [busy, initialValue, onClose, open]);
 
   if (!open) return null;
 
   const update = <K extends keyof RefrigerationEquipmentCreateInput>(
     key: K,
     value: RefrigerationEquipmentCreateInput[K],
-  ) => setForm((current) => ({ ...current, [key]: value }));
+  ) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    if (key === "lifecycleStatus" && value !== "retired") setRetirementConfirmed(false);
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (form.lifecycleStatus === "retired" && !retirementConfirmed) return;
     await onSubmit(form);
   };
+
+  const retirementBlocked = form.lifecycleStatus === "retired" && !retirementConfirmed;
 
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm">
@@ -68,15 +155,15 @@ export function CreateEquipmentDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-[#091a31] shadow-[0_32px_100px_rgba(0,0,0,.55)]"
+        className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/10 bg-[#091a31] shadow-[0_32px_100px_rgba(0,0,0,.55)]"
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#091a31]/95 px-5 py-4 backdrop-blur">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-              Equipment registry
+              Equipment passport
             </p>
             <h2 id={titleId} className="mt-1 text-lg font-semibold text-white">
-              Нове холодильне обладнання
+              {mode === "create" ? "Нове холодильне обладнання" : "Редагування паспорта"}
             </h2>
           </div>
           <button
@@ -92,7 +179,7 @@ export function CreateEquipmentDialog({
         </header>
 
         <form onSubmit={submit} className="p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Назва" required>
               <input
                 ref={firstField}
@@ -125,7 +212,37 @@ export function CreateEquipmentDialog({
                 <option>Інше холодильне обладнання</option>
               </select>
             </Field>
-            <Field label="Розташування" required>
+            <Field label="Лабораторія">
+              <input
+                value={form.laboratory}
+                onChange={(event) => update("laboratory", event.target.value)}
+                className={inputClass}
+                placeholder="Лабораторія 1"
+              />
+            </Field>
+            <Field label="Зона">
+              <input
+                value={form.zone}
+                onChange={(event) => update("zone", event.target.value)}
+                className={inputClass}
+                placeholder="Зона C"
+              />
+            </Field>
+            <Field label="Node">
+              <select
+                value={form.nodeId}
+                onChange={(event) => update("nodeId", event.target.value)}
+                className={inputClass}
+              >
+                <option value="">Не прив’язано</option>
+                {nodeOptions.map((node) => (
+                  <option key={node.nodeId} value={node.nodeId}>
+                    {node.displayName} · {node.nodeId}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Відображуване розташування" required hint="Каталог і звіти">
               <input
                 required
                 value={form.location}
@@ -170,6 +287,19 @@ export function CreateEquipmentDialog({
                 placeholder="3M1 (0…+5 °C)"
               />
             </Field>
+            <Field label="Lifecycle">
+              <select
+                value={form.lifecycleStatus}
+                onChange={(event) =>
+                  update("lifecycleStatus", event.target.value as EquipmentLifecycleStatus)
+                }
+                className={inputClass}
+              >
+                <option value="active">Active</option>
+                <option value="maintenance">Maintenance</option>
+                {mode === "edit" ? <option value="retired">Retired</option> : null}
+              </select>
+            </Field>
             <Field label="Дата встановлення">
               <input
                 type="date"
@@ -186,7 +316,7 @@ export function CreateEquipmentDialog({
                 className={inputClass}
               />
             </Field>
-            <Field label="Кількість датчиків" hint="0–48">
+            <Field label="Кількість слотів датчиків" hint="0–48">
               <input
                 type="number"
                 min={0}
@@ -197,6 +327,22 @@ export function CreateEquipmentDialog({
               />
             </Field>
           </div>
+
+          {form.lifecycleStatus === "retired" ? (
+            <label className="mt-5 flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 p-4 text-xs text-rose-100">
+              <input
+                type="checkbox"
+                checked={retirementConfirmed}
+                onChange={(event) => setRetirementConfirmed(event.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-rose-400"
+              />
+              <span>
+                Підтверджую незворотне виведення обладнання з експлуатації. Активні bindings
+                буде завершено, чернетка стане read-only, історичні фото та опубліковані ревізії
+                залишаться доступними.
+              </span>
+            </label>
+          ) : null}
 
           {error ? (
             <p
@@ -218,11 +364,11 @@ export function CreateEquipmentDialog({
             </button>
             <button
               type="submit"
-              disabled={busy}
-              className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-wait disabled:opacity-50"
+              disabled={busy || retirementBlocked}
+              className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" />
-              {busy ? "Створення…" : "Створити"}
+              {mode === "create" ? <Plus className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              {busy ? "Збереження…" : mode === "create" ? "Створити" : "Зберегти паспорт"}
             </button>
           </footer>
         </form>
@@ -320,6 +466,26 @@ export function DeleteEquipmentDialog({
   );
 }
 
+function equipmentToInput(equipment: RefrigerationEquipment): RefrigerationEquipmentUpdateInput {
+  return {
+    code: equipment.code,
+    name: equipment.name,
+    location: equipment.location,
+    laboratory: equipment.laboratory ?? "",
+    zone: equipment.zone ?? "",
+    nodeId: equipment.nodeId ?? "",
+    type: equipment.type,
+    manufacturer: equipment.manufacturer,
+    model: equipment.model,
+    serialNumber: equipment.serialNumber,
+    temperatureClass: equipment.temperatureClass,
+    installedAt: equipment.installedAt,
+    servicedAt: equipment.servicedAt,
+    lifecycleStatus: equipment.lifecycleStatus,
+    totalSensors: equipment.totalSensors,
+  };
+}
+
 function Field({
   label,
   hint,
@@ -338,7 +504,7 @@ function Field({
           {label}
           {required ? <span className="ml-1 text-cyan-300">*</span> : null}
         </span>
-        {hint ? <span className="font-normal text-slate-600">{hint}</span> : null}
+        {hint ? <span className="text-[10px] font-normal text-slate-600">{hint}</span> : null}
       </span>
       {children}
     </label>
@@ -346,4 +512,4 @@ function Field({
 }
 
 const inputClass =
-  "min-h-11 rounded-xl border border-white/10 bg-[#07162b] px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/40 focus:ring-2 focus:ring-cyan-300/10";
+  "min-h-11 w-full rounded-xl border border-white/10 bg-[#07172c] px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
