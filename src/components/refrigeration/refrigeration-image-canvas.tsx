@@ -7,9 +7,9 @@ import type {
   SyntheticEvent,
 } from "react";
 import Image from "next/image";
-import { useCallback, useId, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { clsx } from "clsx";
-import { ImageIcon, Minus, Plus, Scan } from "lucide-react";
+import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Plus, Scan, Shrink } from "lucide-react";
 
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
 import type { LayoutPlacement, SnapMode } from "@/features/refrigeration/layout-editor";
@@ -44,9 +44,9 @@ const markerTone = {
 };
 
 const MIN_SCALE_PERCENT = 60;
-const MAX_SCALE_PERCENT = 160;
+const MAX_SCALE_PERCENT = 180;
 const SCALE_STEP_PERCENT = 10;
-const DEFAULT_SCALE_PERCENT = 80;
+const DEFAULT_SCALE_PERCENT = 100;
 const SCALE_CHANGE_EVENT = "nexolab:refrigeration:image-scale-change";
 const scaleMemory = new Map<string, number>();
 const volatileScaleKeys = new Set<string>();
@@ -69,6 +69,9 @@ export function RefrigerationImageCanvas({
   onImageDimensions,
 }: RefrigerationImageCanvasProps) {
   const sliderId = useId();
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const subscribeToScale = useCallback(
     (onStoreChange: () => void) => subscribeToStoredScale(equipmentId, onStoreChange),
     [equipmentId],
@@ -80,8 +83,43 @@ export function RefrigerationImageCanvas({
     getDefaultScaleSnapshot,
   );
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullscreen(document.fullscreenElement === workspaceRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [fullscreen]);
+
   const updateScale = (nextValue: number) => {
     storeScale(equipmentId, clampScale(nextValue));
+  };
+
+  const toggleFullscreen = async () => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+
+    if (document.fullscreenElement === workspace) {
+      await document.exitFullscreen?.();
+      return;
+    }
+
+    try {
+      if (!workspace.requestFullscreen) throw new Error("Fullscreen API is unavailable");
+      await workspace.requestFullscreen();
+    } catch {
+      setExpanded(true);
+      workspace.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const aspectRatio =
@@ -94,65 +132,96 @@ export function RefrigerationImageCanvas({
   };
 
   return (
-    <div className="space-y-2">
+    <div
+      ref={workspaceRef}
+      data-testid="equipment-image-workspace"
+      data-expanded={expanded}
+      data-fullscreen={fullscreen}
+      className={clsx(
+        "space-y-2",
+        fullscreen && "h-screen overflow-auto bg-[#06142a] p-4 text-slate-100",
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] leading-4 text-slate-500">
           Масштаб змінює фото та координатний canvas разом, тому точки датчиків не зміщуються.
         </p>
-        <div
-          className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-2.5 py-2"
-          role="group"
-          aria-label="Керування масштабом фото"
-        >
-          <Scan className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" />
-          <label htmlFor={sliderId} className="text-[10px] font-medium text-slate-300">
-            Масштаб фото
-          </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-2.5 py-2"
+            role="group"
+            aria-label="Керування масштабом фото"
+          >
+            <Scan className="h-3.5 w-3.5 text-cyan-300" aria-hidden="true" />
+            <label htmlFor={sliderId} className="text-[10px] font-medium text-slate-300">
+              Масштаб фото
+            </label>
+            <button
+              type="button"
+              aria-label="Зменшити масштаб фото"
+              title="Зменшити масштаб фото"
+              disabled={scalePercent <= MIN_SCALE_PERCENT}
+              onClick={() => updateScale(scalePercent - SCALE_STEP_PERCENT)}
+              className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-slate-400 enabled:hover:bg-white/[0.06] enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <input
+              id={sliderId}
+              type="range"
+              min={MIN_SCALE_PERCENT}
+              max={MAX_SCALE_PERCENT}
+              step={SCALE_STEP_PERCENT}
+              value={scalePercent}
+              aria-label="Масштаб фото"
+              aria-valuetext={`${scalePercent} відсотків`}
+              onChange={(event) => updateScale(Number(event.target.value))}
+              className="h-1.5 w-28 cursor-pointer accent-cyan-400 sm:w-36"
+            />
+            <output
+              htmlFor={sliderId}
+              className="min-w-10 text-right text-[10px] font-semibold tabular-nums text-cyan-200"
+              aria-live="polite"
+            >
+              {scalePercent}%
+            </output>
+            <button
+              type="button"
+              aria-label="Збільшити масштаб фото"
+              title="Збільшити масштаб фото"
+              disabled={scalePercent >= MAX_SCALE_PERCENT}
+              onClick={() => updateScale(scalePercent + SCALE_STEP_PERCENT)}
+              className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-slate-400 enabled:hover:bg-white/[0.06] enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateScale(DEFAULT_SCALE_PERCENT)}
+              className="rounded-lg border border-cyan-400/15 bg-cyan-500/[0.06] px-2 py-1 text-[9px] font-medium text-cyan-200 hover:bg-cyan-500/10"
+            >
+              Вмістити
+            </button>
+          </div>
+
           <button
             type="button"
-            aria-label="Зменшити масштаб фото"
-            title="Зменшити масштаб фото"
-            disabled={scalePercent <= MIN_SCALE_PERCENT}
-            onClick={() => updateScale(scalePercent - SCALE_STEP_PERCENT)}
-            className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-slate-400 enabled:hover:bg-white/[0.06] enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label={expanded ? "Звичайний розмір підкладки" : "Збільшити підкладку"}
+            aria-pressed={expanded}
+            onClick={() => setExpanded((current) => !current)}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-[10px] text-slate-300 hover:bg-white/[0.06]"
           >
-            <Minus className="h-3.5 w-3.5" />
+            {expanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
+            {expanded ? "Звичайний" : "Розгорнути"}
           </button>
-          <input
-            id={sliderId}
-            type="range"
-            min={MIN_SCALE_PERCENT}
-            max={MAX_SCALE_PERCENT}
-            step={SCALE_STEP_PERCENT}
-            value={scalePercent}
-            aria-label="Масштаб фото"
-            aria-valuetext={`${scalePercent} відсотків`}
-            onChange={(event) => updateScale(Number(event.target.value))}
-            className="h-1.5 w-28 cursor-pointer accent-cyan-400 sm:w-36"
-          />
-          <output
-            htmlFor={sliderId}
-            className="min-w-10 text-right text-[10px] font-semibold tabular-nums text-cyan-200"
-            aria-live="polite"
-          >
-            {scalePercent}%
-          </output>
           <button
             type="button"
-            aria-label="Збільшити масштаб фото"
-            title="Збільшити масштаб фото"
-            disabled={scalePercent >= MAX_SCALE_PERCENT}
-            onClick={() => updateScale(scalePercent + SCALE_STEP_PERCENT)}
-            className="grid h-7 w-7 place-items-center rounded-lg border border-white/[0.08] text-slate-400 enabled:hover:bg-white/[0.06] enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label={fullscreen ? "Вийти з повноекранного режиму" : "Відкрити підкладку на повний екран"}
+            onClick={() => void toggleFullscreen()}
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-2 text-[10px] font-medium text-cyan-200 hover:bg-cyan-500/15"
           >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => updateScale(DEFAULT_SCALE_PERCENT)}
-            className="rounded-lg border border-cyan-400/15 bg-cyan-500/[0.06] px-2 py-1 text-[9px] font-medium text-cyan-200 hover:bg-cyan-500/10"
-          >
-            Вмістити
+            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {fullscreen ? "Вийти" : "Повний екран"}
           </button>
         </div>
       </div>
@@ -160,7 +229,12 @@ export function RefrigerationImageCanvas({
       <div
         data-testid="equipment-image-viewport"
         className={clsx(
-          "relative h-[clamp(420px,68vh,760px)] overflow-auto overscroll-contain rounded-xl border border-cyan-300/[0.1] bg-[radial-gradient(circle_at_50%_10%,rgba(34,211,238,.12),transparent_42%),linear-gradient(160deg,#0a1f37,#030b15)]",
+          "relative overflow-auto overscroll-contain rounded-xl border border-cyan-300/[0.1] bg-[radial-gradient(circle_at_50%_10%,rgba(34,211,238,.12),transparent_42%),linear-gradient(160deg,#0a1f37,#030b15)] transition-[height] duration-300",
+          fullscreen
+            ? "h-[calc(100vh-116px)]"
+            : expanded
+              ? "h-[clamp(720px,84vh,1120px)]"
+              : "h-[clamp(560px,76vh,920px)]",
           mode === "edit" && "ring-1 ring-blue-400/30",
         )}
       >
@@ -187,7 +261,7 @@ export function RefrigerationImageCanvas({
                   fill
                   unoptimized
                   draggable={false}
-                  sizes="(min-width: 1536px) 1100px, 90vw"
+                  sizes="(min-width: 1536px) 1500px, 96vw"
                   className="object-contain select-none"
                   onLoad={handleImageLoad}
                 />
