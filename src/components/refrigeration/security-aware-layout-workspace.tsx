@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 
 import { CameraScopedLayoutEditor } from "@/components/refrigeration/camera-scoped-layout-editor";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
+import { RefrigerationLayoutLifecyclePanel } from "@/components/refrigeration/refrigeration-layout-lifecycle-panel";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
 import type { RefrigerationEquipment, RefrigerationSensor } from "@/data/refrigeration";
 import type {
@@ -14,7 +15,6 @@ import type {
   SensorBinding,
 } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationLayoutRuntime } from "@/features/refrigeration/layout-repository-runtime";
-import type { RefrigerationLayoutRepository } from "@/features/refrigeration/layout-repository";
 import {
   getSecurityCredentials,
   hasPermission,
@@ -49,7 +49,6 @@ const readOnlyCapabilities: LayoutCapabilities = {
   canPublish: false,
   canRestore: false,
 };
-
 const demoCapabilities: LayoutCapabilities = {
   canEdit: true,
   canPublish: true,
@@ -99,7 +98,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     if (runtime.mode === "demo") return;
     const client = runtime.sessionClient;
     if (!client) return;
-
     let cancelled = false;
     void client.getSession().then((result) => {
       if (cancelled) return;
@@ -108,7 +106,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         setSecurityError(result.error.message);
         return;
       }
-
       const selectedMembership =
         result.value.memberships.find((item) => item.organizationId === runtime.organizationId) ??
         result.value.memberships[0];
@@ -117,7 +114,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         setSecurityError("Користувач не має активного членства в організації NEXOLAB.");
         return;
       }
-
       const currentCredentials = getSecurityCredentials();
       setSecurityCredentials({
         accessToken: currentCredentials.accessToken,
@@ -128,22 +124,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       setSecurityState("ready");
       setSecurityError(null);
     });
-
     return () => {
       cancelled = true;
     };
   }, [runtime]);
 
-  const notifyRepositoryMutation = () => {
-    window.setTimeout(() => setWorkspaceEpoch((current) => current + 1), 0);
-  };
-  const synchronizedRepository = useMemo(
-    () => (runtime.repository ? observeMutations(runtime.repository, notifyRepositoryMutation) : null),
-    [runtime.repository],
-  );
-
   const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
-
   if (liveRuntimeUnavailable) {
     return (
       <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
@@ -152,7 +138,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
-
   if (securityState === "loading") {
     return (
       <div className="rounded-2xl border border-cyan-400/15 bg-[#08182e]/90 p-5 text-sm text-cyan-200">
@@ -161,8 +146,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
-
-  if (securityState === "error" || !runtime.repository || !synchronizedRepository) {
+  if (securityState === "error" || !runtime.repository) {
     return (
       <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
         <AlertTriangle className="mr-2 inline h-4 w-4" />
@@ -172,12 +156,13 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   }
 
   const cameraScoped = Boolean(lifecycleRepository && equipment.nodeId);
+  const effectiveMode = capabilities.canEdit ? mode : "view";
+  const effectiveModeChange = capabilities.canEdit ? onModeChange : () => undefined;
 
   return (
     <div
       className={clsx(
         "nexolab-rbac-layout space-y-3",
-        cameraScoped && "nexolab-camera-scoped-layout",
         !capabilities.canEdit && "nexolab-rbac-no-edit",
         !capabilities.canPublish && "nexolab-rbac-no-publish",
         !capabilities.canRestore && "nexolab-rbac-no-restore",
@@ -188,13 +173,10 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > button {
           display: none !important;
         }
-        .nexolab-rbac-no-publish > div > section > div:nth-child(2) > button {
+        .nexolab-rbac-no-publish button[aria-label="Опублікувати поточну чернетку"] {
           display: none !important;
         }
-        .nexolab-rbac-no-restore > div > section > div:nth-child(3) button {
-          display: none !important;
-        }
-        .nexolab-camera-scoped-layout .camera-scoped-secondary .production-layout-editor {
+        .nexolab-rbac-no-restore button[aria-label^="Відновити ревізію"] {
           display: none !important;
         }
       `}</style>
@@ -224,65 +206,46 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       ) : null}
 
       {cameraScoped && lifecycleRepository ? (
-        <CameraScopedLayoutEditor
-          key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
+        <>
+          <CameraScopedLayoutEditor
+            key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
+            equipment={equipment}
+            visibleSensors={visibleSensors}
+            selectedId={selectedId}
+            mode={effectiveMode}
+            onModeChange={effectiveModeChange}
+            onSelect={onSelect}
+            repository={runtime.repository}
+            lifecycleRepository={lifecycleRepository}
+            channels={channels}
+            bindings={bindings}
+            onEquipmentChange={(updated) => {
+              onEquipmentChange?.(updated);
+              setWorkspaceEpoch((current) => current + 1);
+            }}
+            onDraftChange={() => setWorkspaceEpoch((current) => current + 1)}
+          />
+          <RefrigerationLayoutLifecyclePanel
+            key={`layout-lifecycle-${equipment.id}-${workspaceEpoch}`}
+            equipment={equipment}
+            mode={effectiveMode}
+            repository={runtime.repository}
+            actorId={runtime.actorId}
+            onServerMutation={() => setWorkspaceEpoch((current) => current + 1)}
+          />
+        </>
+      ) : (
+        <RefrigerationLayoutWorkspace
+          key={`${equipment.id}-${workspaceEpoch}`}
           equipment={equipment}
           visibleSensors={visibleSensors}
           selectedId={selectedId}
-          mode={capabilities.canEdit ? mode : "view"}
-          onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
+          mode={effectiveMode}
+          onModeChange={effectiveModeChange}
           onSelect={onSelect}
           repository={runtime.repository}
-          lifecycleRepository={lifecycleRepository}
-          channels={channels}
-          bindings={bindings}
-          onEquipmentChange={(updated) => {
-            onEquipmentChange?.(updated);
-            setWorkspaceEpoch((current) => current + 1);
-          }}
-          onDraftChange={() => setWorkspaceEpoch((current) => current + 1)}
         />
-      ) : null}
-
-      <div className={cameraScoped ? "camera-scoped-secondary" : undefined}>
-        <RefrigerationLayoutWorkspace
-          key={`lifecycle-workspace-${equipment.id}-${workspaceEpoch}`}
-          equipment={equipment}
-          visibleSensors={visibleSensors}
-          selectedId={selectedId}
-          mode={capabilities.canEdit ? mode : "view"}
-          onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
-          onSelect={onSelect}
-          repository={synchronizedRepository}
-        />
-      </div>
+      )}
     </div>
   );
-}
-
-function observeMutations(
-  repository: RefrigerationLayoutRepository,
-  onMutation: () => void,
-): RefrigerationLayoutRepository {
-  return {
-    getDraft: (equipmentId) => repository.getDraft(equipmentId),
-    getPublished: (equipmentId) => repository.getPublished(equipmentId),
-    listHistory: (equipmentId) => repository.listHistory(equipmentId),
-    async saveDraft(input) {
-      const result = await repository.saveDraft(input);
-      if (result.ok) onMutation();
-      return result;
-    },
-    async publishDraft(input) {
-      const result = await repository.publishDraft(input);
-      if (result.ok) onMutation();
-      return result;
-    },
-    async restoreRevision(input) {
-      const result = await repository.restoreRevision(input);
-      if (result.ok) onMutation();
-      return result;
-    },
-    uploadImage: (input) => repository.uploadImage(input),
-  };
 }
