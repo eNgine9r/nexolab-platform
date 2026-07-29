@@ -138,7 +138,13 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
     await expect(page.getByText("Чернетка v1 · PostgreSQL")).toBeVisible();
     await expect(page.getByText("Ревізія r1")).toBeVisible();
-    await expect(page.getByText("dr-restored-showcase.png").first()).toBeVisible();
+
+    const passportDisclosure = page.locator("details").filter({
+      hasText: "Паспорт, lifecycle, фото та bindings",
+    });
+    await expect(passportDisclosure.locator("summary")).toBeVisible();
+    await passportDisclosure.locator("summary").click();
+    await expect(passportDisclosure.getByText("dr-restored-showcase.png").first()).toBeVisible();
     await expect(page.getByText("Завантаження production-схеми, публікації та історії…")).toBeHidden();
     await page.screenshot({
       path: `${evidenceDirectory}/03-restored-refrigeration.png`,
