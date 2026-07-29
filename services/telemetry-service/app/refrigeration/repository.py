@@ -400,7 +400,6 @@ class PostgresRefrigerationLayoutRepository:
             .where(
                 RefrigerationEquipmentRecord.organization_id == organization_id,
                 RefrigerationEquipmentRecord.id == equipment_id,
-                RefrigerationEquipmentRecord.deleted_at.is_(None),
             )
             .with_for_update()
         )
@@ -453,6 +452,8 @@ class PostgresRefrigerationLayoutRepository:
         equipment_id: str,
     ) -> RefrigerationEquipmentRecord:
         equipment = cls._ensure_equipment_record(session, organization_id, equipment_id)
+        if equipment.deleted_at is not None:
+            raise LayoutEquipmentRetiredError("deleted equipment layout is read-only")
         if equipment.lifecycle_status == "retired":
             raise LayoutEquipmentRetiredError("retired equipment layout is read-only")
         return equipment
