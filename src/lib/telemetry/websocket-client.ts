@@ -14,6 +14,7 @@ export type TelemetryWebSocketFactory = (url: string) => WebSocket;
 export interface TelemetryWebSocketClientOptions {
   createSocket?: TelemetryWebSocketFactory;
   credentials?: SecurityCredentialProvider;
+  authenticationRequired?: boolean;
   reconnectDelaysMs?: readonly number[];
   maxSeenEventIds?: number;
 }
@@ -34,9 +35,14 @@ function buildUrl(baseUrl: string, filters: TelemetryFilters, after: string | nu
   return url.toString();
 }
 
+function runtimeAuthenticationRequired(): boolean {
+  return process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER !== "disabled";
+}
+
 export class TelemetryWebSocketClient {
   private readonly createSocket: TelemetryWebSocketFactory;
   private readonly credentials: SecurityCredentialProvider | null;
+  private readonly authenticationRequired: boolean;
   private readonly reconnectDelaysMs: readonly number[];
   private readonly maxSeenEventIds: number;
 
@@ -46,6 +52,7 @@ export class TelemetryWebSocketClient {
   ) {
     this.createSocket = options.createSocket ?? ((url) => new WebSocket(url));
     this.credentials = options.credentials ?? null;
+    this.authenticationRequired = options.authenticationRequired ?? runtimeAuthenticationRequired();
     this.reconnectDelaysMs = options.reconnectDelaysMs ?? DEFAULT_RECONNECT_DELAYS_MS;
     this.maxSeenEventIds = options.maxSeenEventIds ?? 10_000;
   }
@@ -95,7 +102,7 @@ export class TelemetryWebSocketClient {
       socket = nextSocket;
 
       nextSocket.addEventListener("open", () => {
-        if (!this.credentials) {
+        if (!this.authenticationRequired || !this.credentials) {
           reconnectAttempt = 0;
           setState("connected");
           return;
