@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import type { SensorSide } from "@/data/refrigeration";
@@ -41,6 +41,11 @@ export function SensorPlacementManager({
   );
   const [selectedChannelId, setSelectedChannelId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const effectiveSelectedChannelId = unused.some(
+    (channel) => channel.channelId === selectedChannelId,
+  )
+    ? selectedChannelId
+    : (unused[0]?.channelId ?? "");
   const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
   const replacementChannels = useMemo(
     () =>
@@ -50,13 +55,10 @@ export function SensorPlacementManager({
     [channels, configuration, equipmentId, selectedSensor],
   );
 
-  useEffect(() => {
-    if (unused.some((channel) => channel.channelId === selectedChannelId)) return;
-    setSelectedChannelId(unused[0]?.channelId ?? "");
-  }, [selectedChannelId, unused]);
-
   const add = () => {
-    const channel = channels.find((candidate) => candidate.channelId === selectedChannelId);
+    const channel = channels.find(
+      (candidate) => candidate.channelId === effectiveSelectedChannelId,
+    );
     if (!channel) return;
     setError(null);
     try {
@@ -130,7 +132,7 @@ export function SensorPlacementManager({
             </span>
             <select
               aria-label="Доступний датчик кліматичної камери"
-              value={selectedChannelId}
+              value={effectiveSelectedChannelId}
               disabled={unused.length === 0 || configuration.length >= totalSlots}
               onChange={(event) => setSelectedChannelId(event.target.value)}
               className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:cursor-not-allowed disabled:opacity-40"
@@ -139,7 +141,9 @@ export function SensorPlacementManager({
               {unused.map((channel) => (
                 <option key={channel.channelId} value={channel.channelId}>
                   {channel.channelId} · {channel.metric}
-                  {channel.latestValue === null ? " · немає даних" : ` · ${channel.latestValue} ${channel.unit}`}
+                  {channel.latestValue === null
+                    ? " · немає даних"
+                    : ` · ${channel.latestValue} ${channel.unit}`}
                 </option>
               ))}
             </select>
@@ -147,7 +151,7 @@ export function SensorPlacementManager({
           <RefrigerationIconButton
             label="Додати вибраний датчик на підкладку"
             onClick={add}
-            disabled={!selectedChannelId || configuration.length >= totalSlots}
+            disabled={!effectiveSelectedChannelId || configuration.length >= totalSlots}
             tone="success"
             size="lg"
           >
@@ -228,7 +232,9 @@ export function SensorPlacementManager({
                 className={inputClass}
               >
                 {[1, 2, 3, 4].map((value) => (
-                  <option key={value} value={value}>{value}</option>
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
                 ))}
               </select>
             </EditorField>
@@ -240,19 +246,13 @@ export function SensorPlacementManager({
                 className={inputClass}
               >
                 {[1, 2, 3, 4, 5, 6].map((value) => (
-                  <option key={value} value={value}>{value}</option>
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
                 ))}
               </select>
             </EditorField>
-            <div className="flex items-end gap-2">
-              <RefrigerationIconButton
-                label="Замінити датчик"
-                onClick={() => undefined}
-                disabled
-                tone="info"
-              >
-                <Replace className="h-3.5 w-3.5" />
-              </RefrigerationIconButton>
+            <div className="flex items-end">
               <RefrigerationIconButton
                 label="Видалити датчик з підкладки"
                 onClick={remove}
