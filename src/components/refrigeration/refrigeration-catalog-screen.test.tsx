@@ -79,25 +79,50 @@ describe("RefrigerationCatalogScreen", () => {
     await screen.findByText("Вітрина №106-01");
 
     fireEvent.click(screen.getByRole("button", { name: "Додати холодильне обладнання" }));
-    fireEvent.change(screen.getByLabelText(/Назва/), { target: { value: "Вітрина №108-01" } });
-    fireEvent.change(screen.getByLabelText(/Код обладнання/), {
+    fireEvent.change(screen.getByLabelText(/^Назва/), { target: { value: "Вітрина №108-01" } });
+    fireEvent.change(screen.getByLabelText(/^Код обладнання/), {
       target: { value: "CS-P1250-2026-108-01" },
     });
-    fireEvent.change(screen.getByLabelText(/Розташування/i), {
+    fireEvent.change(screen.getByLabelText(/^Відображуване розташування/), {
       target: { value: "Лабораторія 1 · Зона C" },
     });
-    fireEvent.change(screen.getByLabelText(/Виробник/), { target: { value: "NEXOLAB" } });
-    fireEvent.change(screen.getByLabelText(/Модель/), { target: { value: "NX-1250" } });
-    fireEvent.change(screen.getByLabelText(/Серійний номер/), { target: { value: "NX-10801" } });
-    fireEvent.change(screen.getByLabelText(/Температурний клас/), {
+    fireEvent.change(screen.getByLabelText(/^Виробник/), { target: { value: "NEXOLAB" } });
+    fireEvent.change(screen.getByLabelText(/^Модель/), { target: { value: "NX-1250" } });
+    fireEvent.change(screen.getByLabelText(/^Серійний номер/), { target: { value: "NX-10801" } });
+    fireEvent.change(screen.getByLabelText(/^Температурний клас/), {
       target: { value: "3M1 (0…+5 °C)" },
     });
-    fireEvent.change(screen.getByLabelText(/Кількість.*датчиків/i), { target: { value: "48" } });
+    fireEvent.change(screen.getByLabelText(/^Кількість слотів датчиків/), {
+      target: { value: "48" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Створити" }));
 
     expect(await screen.findByText("Вітрина №108-01")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("додано до каталогу");
     expect(screen.getByRole("link", { name: "Відкрити Вітрина №108-01" })).toBeInTheDocument();
+  });
+
+  it("creates an independent copy from reusable passport fields", async () => {
+    render(<RefrigerationCatalogScreen runtime={runtime()} />);
+    const source = refrigerationEquipment[0];
+    await screen.findByText(source.name);
+
+    fireEvent.click(screen.getByRole("button", { name: `Копіювати ${source.name}` }));
+
+    expect(screen.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Назва/)).toHaveValue(`${source.name} — копія`);
+    expect(screen.getByLabelText(/^Код обладнання/)).toHaveValue(`${source.code}-COPY`);
+    expect(screen.getByLabelText(/^Серійний номер/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Node/)).toHaveValue("");
+    expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^Серійний номер/), {
+      target: { value: "COPY-SN-001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Створити копію" }));
+
+    expect(await screen.findByText(`${source.name} — копія`)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("створено як незалежну копію");
   });
 
   it("deletes equipment through the destructive confirmation dialog", async () => {
