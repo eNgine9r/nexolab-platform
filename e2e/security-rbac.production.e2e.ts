@@ -8,8 +8,8 @@ const otherOrganizationId =
   process.env.NEXOLAB_SECURITY_OTHER_ORGANIZATION_ID ?? "22222222-2222-2222-2222-222222222222";
 const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18092";
 const evidenceDirectory = process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
-const equipmentId = "showcase-106-01";
-const equipmentRoute = `/refrigeration/${equipmentId}`;
+let equipmentId = "";
+let equipmentRoute = "";
 const equipmentPhoto = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAF0lEQVR4nGPkUbJgIAUwkaR6VMOg0QAA11IAejJlKAQAAAAASUVORK5CYII=",
   "base64",
@@ -47,17 +47,52 @@ async function authenticatedContext(
   return context;
 }
 
+async function provisionEquipmentPassport(browser: Browser): Promise<void> {
+  const context = await authenticatedContext(browser, tokens.administrator);
+  try {
+    const response = await context.request.post(`${apiBaseUrl}/api/v1/equipment`, {
+      headers: {
+        ...apiHeaders(tokens.administrator),
+        "X-Audit-Reason": "Provision security acceptance equipment passport",
+      },
+      data: {
+        code: "SECURITY-CS-106-01",
+        name: "Вітрина №106-01",
+        location: "Security acceptance · Лабораторія 1",
+        equipment_type: "Холодильна вітрина",
+        manufacturer: "ColdStream",
+        model: "Premium 1250",
+        serial_number: "SECURITY-X-PROD-10601",
+        temperature_class: "3M1 (0…+5 °C)",
+        total_sensors: 48,
+      },
+    });
+    expect(response.status()).toBe(201);
+    const equipment = (await response.json()) as { id: string };
+    expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
+    equipmentId = equipment.id;
+    equipmentRoute = `/refrigeration/${equipmentId}`;
+
+    const draftResponse = await context.request.get(
+      `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+      { headers: apiHeaders(tokens.administrator) },
+    );
+    expect(draftResponse.status()).toBe(200);
+    expect(draftResponse.headers().etag).toBe('W/"layout-draft-v1"');
+    expect((await draftResponse.json()).placements).toEqual([]);
+  } finally {
+    await context.close();
+  }
+}
+
 async function openEquipment(page: Page) {
   await page.goto(equipmentRoute, { waitUntil: "networkidle" });
   await expect(page.getByText(/Чернетка v\d+ · PostgreSQL/)).toBeVisible();
 }
 
-function editor(page: Page) {
-  return page.locator("#layout-editor");
-}
-
 test("enforces authenticated organization roles and immutable audit attribution", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
+  await provisionEquipmentPassport(browser);
 
   await test.step("reject an unauthenticated browser before loading protected layout data", async () => {
     const context = await browser.newContext();
@@ -127,7 +162,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     }
   });
 
-  await test.step("publish as engineer and persist verified actor audit", async () => {
+  await test.step("publish the first valid sensor placement as engineer and persist verified actor audit", async () => {
     const context = await authenticatedContext(browser, tokens.engineer);
     const page = await context.newPage();
     try {
@@ -141,11 +176,35 @@ test("enforces authenticated organization roles and immutable audit attribution"
       });
       await expect(page.getByText(/завантажено та прив’язано до чернетки v2/)).toBeVisible();
 
-      await editor(page).getByRole("button", { name: "Редагувати схему" }).click();
-      await editor(page).getByRole("button", { name: "Скинути позиції" }).click();
-      await editor(page).getByRole("button", { name: "Зберегти чернетку" }).click();
-      await expect(page.getByText("Чернетку схеми збережено · версія 3")).toBeVisible();
+      const attachedDraft = await context.request.get(
+        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+        { headers: apiHeaders(tokens.engineer) },
+      );
+      expect(attachedDraft.status()).toBe(200);
+      const attachedDraftBody = (await attachedDraft.json()) as {
+        image: { id: string };
+        placements: unknown[];
+      };
+      expect(attachedDraftBody.placements).toEqual([]);
 
+      const positionedDraft = await context.request.put(
+        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+        {
+          headers: {
+            ...apiHeaders(tokens.engineer),
+            "If-Match": attachedDraft.headers().etag,
+          },
+          data: {
+            image_id: attachedDraftBody.image.id,
+            placements: [{ sensor_id: "security-sensor-01", x: 0.5, y: 0.5 }],
+          },
+        },
+      );
+      expect(positionedDraft.status()).toBe(200);
+      expect(positionedDraft.headers().etag).toBe('W/"layout-draft-v3"');
+
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(page.getByText("Чернетка v3 · PostgreSQL", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       await expect(page.getByText("Опубліковано ревізію r1.")).toBeVisible();
 
@@ -156,6 +215,9 @@ test("enforces authenticated organization roles and immutable audit attribution"
       expect(historyResponse.status()).toBe(200);
       const history = await historyResponse.json();
       expect(history.items[0].published_by).toBe("engineer-acceptance");
+      expect(history.items[0].placements).toEqual([
+        { sensor_id: "security-sensor-01", x: 0.5, y: 0.5 },
+      ]);
 
       const auditResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/audit/events?entity_type=equipment_layout&entity_id=${equipmentId}`,
@@ -222,6 +284,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
         `${JSON.stringify(
           {
             organizationId,
+            equipmentId,
             unauthenticatedStatus: 401,
             viewerMutationStatus: 403,
             operatorPublishStatus: 403,

@@ -26,6 +26,14 @@ type HistoryPayload = {
   }>;
 };
 
+type EquipmentListPayload = {
+  items: Array<{ id: string; code: string; name: string }>;
+};
+
+type AuditPayload = {
+  items: Array<{ action: string; entity_id: string; actor_subject: string }>;
+};
+
 function editor(page: Page) {
   return page.locator("#layout-editor");
 }
@@ -43,6 +51,83 @@ async function enterEditMode(page: Page) {
   await editor(page).getByRole("button", { name: "Редагувати схему" }).click();
   await expect(editor(page).getByText("Режим редагування")).toBeVisible();
 }
+
+test("creates and safely removes equipment through icon-first catalog actions", async ({ page }) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const name = "Вітрина acceptance №108-01";
+  const code = "ACCEPTANCE-CS-108-01";
+
+  await page.goto("/refrigeration", { waitUntil: "networkidle" });
+  const addButton = page.getByRole("button", { name: "Додати холодильне обладнання" });
+  await expect(addButton).toBeVisible();
+  await expect(addButton).toHaveAttribute("title", "Додати холодильне обладнання");
+  await addButton.click();
+
+  await page.getByLabel(/^Назва/).fill(name);
+  await page.getByLabel(/^Код обладнання/).fill(code);
+  await page.getByLabel(/^Розташування/).fill("Лабораторія acceptance · Зона C");
+  await page.getByLabel(/^Виробник/).fill("NEXOLAB");
+  await page.getByLabel(/^Модель/).fill("NX-1250-A");
+  await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
+  await page.getByLabel(/^Температурний клас/).fill("3M1 (0…+5 °C)");
+  await page.getByLabel(/^Кількість датчиків/).fill("48");
+  await page.getByRole("button", { name: "Створити", exact: true }).click();
+
+  await expect(page.getByRole("status")).toContainText(`${name} додано до каталогу.`);
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+
+  const openLink = page.getByRole("link", { name: `Відкрити ${name}` });
+  await expect(openLink).toHaveAttribute("title", "Відкрити");
+  const href = await openLink.getAttribute("href");
+  expect(href).toMatch(/^\/refrigeration\/[0-9a-f-]{36}$/);
+  const createdEquipmentId = href?.split("/").at(-1);
+  expect(createdEquipmentId).toBeTruthy();
+
+  const deleteButton = page.getByRole("button", { name: `Видалити ${name}` });
+  await expect(deleteButton).toHaveAttribute("title", `Видалити ${name}`);
+  await deleteButton.click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toContainText(name);
+  await expect(confirmation).toContainText("Історичні схеми та аудит залишаться збереженими");
+  await confirmation.getByRole("button", { name: "Видалити", exact: true }).click();
+
+  await expect(page.getByRole("status")).toContainText(`${name} видалено з каталогу.`);
+  await expect(page.getByRole("heading", { name })).toHaveCount(0);
+
+  const listResponse = await page.request.get(`${apiBaseUrl}/api/v1/equipment`);
+  expect(listResponse.status()).toBe(200);
+  const list = (await listResponse.json()) as EquipmentListPayload;
+  expect(list.items.some((item) => item.id === createdEquipmentId)).toBe(false);
+
+  const deletedResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/equipment/${createdEquipmentId}`,
+  );
+  expect(deletedResponse.status()).toBe(404);
+
+  const draftResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/equipment/${createdEquipmentId}/layout/draft`,
+  );
+  expect(draftResponse.status()).toBe(200);
+  const preservedDraft = (await draftResponse.json()) as DraftPayload;
+  expect(preservedDraft.version).toBe(1);
+  expect(preservedDraft.placements).toEqual([]);
+
+  const auditResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/audit/events?entity_type=refrigeration_equipment&entity_id=${createdEquipmentId}`,
+  );
+  expect(auditResponse.status()).toBe(200);
+  const audit = (await auditResponse.json()) as AuditPayload;
+  expect(audit.items.map((item) => item.action)).toEqual([
+    "equipment.deleted",
+    "equipment.created",
+  ]);
+  expect(audit.items.every((item) => item.actor_subject === "development-system")).toBe(true);
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "equipment-catalog-after-safe-delete.png"),
+    fullPage: true,
+  });
+});
 
 test("persists, publishes and recovers a parallel stale-writer conflict", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });

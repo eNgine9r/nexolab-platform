@@ -35,6 +35,14 @@ def test_cors_allows_only_configured_dashboard_origin(tmp_path: Path) -> None:
                 "Access-Control-Request-Method": "GET",
             },
         )
+        delete_preflight = client.options(
+            "/api/v1/equipment/example",
+            headers={
+                "Origin": "http://127.0.0.1:3000",
+                "Access-Control-Request-Method": "DELETE",
+                "Access-Control-Request-Headers": "if-match,x-audit-reason",
+            },
+        )
 
     assert allowed.headers["access-control-allow-origin"] == (
         "http://localhost:3000"
@@ -42,6 +50,11 @@ def test_cors_allows_only_configured_dashboard_origin(tmp_path: Path) -> None:
     assert "access-control-allow-origin" not in denied.headers
     assert preflight.status_code == 200
     assert preflight.headers["access-control-allow-origin"] == (
+        "http://127.0.0.1:3000"
+    )
+    assert delete_preflight.status_code == 200
+    assert "DELETE" in delete_preflight.headers["access-control-allow-methods"]
+    assert delete_preflight.headers["access-control-allow-origin"] == (
         "http://127.0.0.1:3000"
     )
 

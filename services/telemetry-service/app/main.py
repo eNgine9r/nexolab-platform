@@ -31,6 +31,8 @@ from app.nodes.broker_worker import BrokerControlWorker
 from app.nodes.ingress import NodeIngressAuthorizer
 from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
+from app.refrigeration.equipment_api import create_refrigeration_equipment_router
+from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.reports.api import create_report_router
@@ -52,7 +54,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.15.0"
+SERVICE_VERSION = "0.16.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -75,6 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         default_organization_id=resolved.auth_default_organization_id,
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
+    refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(database)
     security_repository = SecurityRepository(database)
     broker_control_repository, broker_control_worker = _create_broker_control(
         resolved,
@@ -191,12 +194,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=cors_origins,
             allow_credentials=resolved.cors_allow_credentials,
-            allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             allow_headers=["*"],
             expose_headers=[
                 "Content-Disposition",
                 "ETag",
                 "Idempotent-Replay",
+                "Location",
                 "X-Content-SHA256",
                 "X-Manifest-SHA256",
             ],
@@ -209,6 +213,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alert_repository = alert_repository
     app.state.alert_processor = alert_processor
     app.state.refrigeration_repository = refrigeration_repository
+    app.state.refrigeration_equipment_repository = refrigeration_equipment_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
     app.state.broker_control_repository = broker_control_repository
@@ -269,6 +274,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_history_days=resolved.history_max_range_days,
             max_page_size=resolved.api_max_page_size,
             security_dependencies=security_dependencies,
+        )
+    )
+    app.include_router(
+        create_refrigeration_equipment_router(
+            refrigeration_equipment_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
         )
     )
     app.include_router(

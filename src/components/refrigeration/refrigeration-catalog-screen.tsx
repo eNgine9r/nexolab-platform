@@ -1,12 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, Gauge, Search, Snowflake, Thermometer, Wifi } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  Gauge,
+  Plus,
+  Search,
+  Snowflake,
+  Thermometer,
+  Trash2,
+  Wifi,
+} from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import { refrigerationEquipment, type EquipmentStatus } from "@/data/refrigeration";
+import {
+  CreateEquipmentDialog,
+  DeleteEquipmentDialog,
+} from "@/components/refrigeration/refrigeration-equipment-dialogs";
+import {
+  refrigerationEquipment,
+  type EquipmentStatus,
+  type RefrigerationEquipment,
+} from "@/data/refrigeration";
+import type { RefrigerationEquipmentCreateInput } from "@/features/refrigeration/equipment-repository";
+import {
+  createRefrigerationEquipmentRuntime,
+  type RefrigerationEquipmentRuntime,
+} from "@/features/refrigeration/equipment-repository-runtime";
 
 const statusStyles: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -23,16 +48,93 @@ const statusLabels: Record<EquipmentStatus, string> = {
 };
 
 type StatusFilter = "all" | EquipmentStatus;
+type Notice = { tone: "success" | "error"; message: string } | null;
 
-export function RefrigerationCatalogScreen() {
+export function RefrigerationCatalogScreen({
+  runtime: providedRuntime,
+}: {
+  runtime?: RefrigerationEquipmentRuntime;
+} = {}) {
+  const runtime = useMemo(
+    () => providedRuntime ?? createRefrigerationEquipmentRuntime(),
+    [providedRuntime],
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [items, setItems] = useState<RefrigerationEquipment[]>(
+    runtime.mode === "demo" ? refrigerationEquipment : [],
+  );
+  const [loading, setLoading] = useState(runtime.mode === "live" && runtime.repository !== null);
+  const [liveCanManage, setLiveCanManage] = useState(false);
+  const [notice, setNotice] = useState<Notice>(
+    runtime.error ? { tone: "error", message: runtime.error } : null,
+  );
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RefrigerationEquipment | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const canManage = runtime.mode === "demo" || liveCanManage;
+
+  useEffect(() => {
+    const repository = runtime.repository;
+    if (!repository) return;
+
+    let active = true;
+    void repository
+      .list()
+      .then((loaded) => {
+        if (!active) return;
+        setItems(loaded);
+        setNotice((current) => (current?.tone === "error" ? null : current));
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Не вдалося завантажити каталог обладнання.",
+        });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [runtime.repository]);
+
+  useEffect(() => {
+    const sessionClient = runtime.sessionClient;
+    if (runtime.mode !== "live" || !sessionClient) return;
+
+    let active = true;
+    void sessionClient.getSession().then((result) => {
+      if (!active) return;
+      setLiveCanManage(
+        result.ok &&
+          result.value.memberships.some(
+            (membership) =>
+              (runtime.organizationId === null ||
+                membership.organizationId === runtime.organizationId) &&
+              membership.permissions.includes("equipment.manage"),
+          ),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, [runtime.mode, runtime.organizationId, runtime.sessionClient]);
 
   const equipment = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
 
-    return refrigerationEquipment.filter((item) => {
+    return items.filter((item) => {
       const searchText = `${item.name} ${item.code} ${item.location} ${item.model}`.toLocaleLowerCase(
         "uk-UA",
       );
@@ -41,7 +143,39 @@ export function RefrigerationCatalogScreen() {
 
       return matchesQuery && matchesStatus;
     });
-  }, [query, status]);
+  }, [items, query, status]);
+
+  const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
+    if (!runtime.repository) return;
+    setCreateBusy(true);
+    setCreateError(null);
+    try {
+      const created = await runtime.repository.create(input);
+      setItems((current) => [...current, created]);
+      setCreateOpen(false);
+      setNotice({ tone: "success", message: `${created.name} додано до каталогу.` });
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Обладнання не створено.");
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
+  const deleteEquipment = async () => {
+    if (!runtime.repository || !deleteTarget) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await runtime.repository.remove(deleteTarget.id, deleteTarget.version);
+      setItems((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setNotice({ tone: "success", message: `${deleteTarget.name} видалено з каталогу.` });
+      setDeleteTarget(null);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Обладнання не видалено.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -66,7 +200,7 @@ export function RefrigerationCatalogScreen() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <label className="flex min-w-72 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
                   <Search className="h-4 w-4 text-slate-500" />
                   <span className="sr-only">Пошук обладнання</span>
@@ -85,7 +219,7 @@ export function RefrigerationCatalogScreen() {
                   id="equipment-status-filter"
                   value={status}
                   onChange={(event) => setStatus(event.target.value as StatusFilter)}
-                  className="rounded-xl border border-white/10 bg-[#0a1c35] px-3 py-2.5 text-sm text-slate-300 outline-none"
+                  className="min-h-11 rounded-xl border border-white/10 bg-[#0a1c35] px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-cyan-300/35"
                 >
                   <option value="all">Усі стани</option>
                   <option value="normal">Норма</option>
@@ -93,10 +227,53 @@ export function RefrigerationCatalogScreen() {
                   <option value="alarm">Тривога</option>
                   <option value="offline">Offline</option>
                 </select>
+
+                {canManage ? (
+                  <IconButton
+                    label="Додати холодильне обладнання"
+                    onClick={() => {
+                      setCreateError(null);
+                      setCreateOpen(true);
+                    }}
+                    accent
+                  >
+                    <Plus className="h-4 w-4" />
+                  </IconButton>
+                ) : null}
               </div>
             </div>
 
-            {equipment.length > 0 ? (
+            {notice ? (
+              <div
+                role={notice.tone === "error" ? "alert" : "status"}
+                className={`mb-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+                  notice.tone === "success"
+                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                    : "border-rose-400/20 bg-rose-400/10 text-rose-200"
+                }`}
+              >
+                {notice.tone === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                )}
+                <span>{notice.message}</span>
+              </div>
+            ) : null}
+
+            {loading ? (
+              <section
+                className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
+                aria-label="Завантаження обладнання"
+              >
+                {[0, 1, 2].map((index) => (
+                  <div
+                    key={index}
+                    className="h-[418px] animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.025]"
+                  />
+                ))}
+              </section>
+            ) : equipment.length > 0 ? (
               <section
                 className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
                 aria-label="Перелік холодильного обладнання"
@@ -136,13 +313,21 @@ export function RefrigerationCatalogScreen() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
+                        <Metric
+                          icon={Thermometer}
+                          label="Середня"
+                          value={`${item.averageTemperatureC} °C`}
+                        />
                         <Metric
                           icon={Wifi}
                           label="Датчики"
                           value={`${item.onlineSensors}/${item.totalSensors}`}
                         />
-                        <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
+                        <Metric
+                          icon={AlertTriangle}
+                          label="Тривоги"
+                          value={String(item.activeAlarms)}
+                        />
                       </div>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
@@ -153,13 +338,28 @@ export function RefrigerationCatalogScreen() {
                           <br />
                           {item.code}
                         </div>
-                        <Link
-                          href={`/refrigeration/${item.id}`}
-                          className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200 transition hover:bg-blue-500/20"
-                        >
-                          Відкрити
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          {canManage ? (
+                            <IconButton
+                              label={`Видалити ${item.name}`}
+                              tone="danger"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setDeleteTarget(item);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </IconButton>
+                          ) : null}
+                          <Link
+                            href={`/refrigeration/${item.id}`}
+                            aria-label={`Відкрити ${item.name}`}
+                            title="Відкрити"
+                            className="grid h-10 w-10 place-items-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200 transition hover:bg-blue-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -168,14 +368,85 @@ export function RefrigerationCatalogScreen() {
             ) : (
               <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
                 <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
-                <h2 className="mt-4 text-sm font-semibold text-slate-200">Обладнання не знайдено</h2>
-                <p className="mt-2 text-xs text-slate-500">Змініть пошуковий запит або фільтр стану.</p>
+                <h2 className="mt-4 text-sm font-semibold text-slate-200">
+                  {items.length === 0
+                    ? "Каталог холодильного обладнання порожній"
+                    : "Обладнання не знайдено"}
+                </h2>
+                <p className="mt-2 text-xs text-slate-500">
+                  {items.length === 0
+                    ? "Додайте першу вітрину або холодильну камеру."
+                    : "Змініть пошуковий запит або фільтр стану."}
+                </p>
+                {items.length === 0 && canManage ? (
+                  <button
+                    type="button"
+                    aria-label="Додати перше холодильне обладнання"
+                    title="Додати обладнання"
+                    onClick={() => setCreateOpen(true)}
+                    className="mx-auto mt-5 grid h-11 w-11 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-400/15 text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                ) : null}
               </section>
             )}
           </div>
         </main>
       </div>
+
+      {createOpen ? (
+        <CreateEquipmentDialog
+          open
+          busy={createBusy}
+          error={createError}
+          onClose={() => {
+            if (!createBusy) setCreateOpen(false);
+          }}
+          onSubmit={createEquipment}
+        />
+      ) : null}
+      <DeleteEquipmentDialog
+        equipment={deleteTarget}
+        busy={deleteBusy}
+        error={deleteError}
+        onClose={() => {
+          if (!deleteBusy) setDeleteTarget(null);
+        }}
+        onConfirm={deleteEquipment}
+      />
     </div>
+  );
+}
+
+function IconButton({
+  label,
+  children,
+  onClick,
+  accent = false,
+  tone = "default",
+}: {
+  label: string;
+  children: React.ReactNode;
+  onClick: () => void;
+  accent?: boolean;
+  tone?: "default" | "danger";
+}) {
+  const classes = accent
+    ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100 hover:bg-cyan-400/20"
+    : tone === "danger"
+      ? "border-rose-400/15 bg-rose-400/[0.06] text-rose-300 hover:border-rose-400/30 hover:bg-rose-400/12"
+      : "border-white/10 bg-white/[0.035] text-slate-400 hover:text-white";
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`grid h-11 w-11 place-items-center rounded-xl border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${classes}`}
+    >
+      {children}
+    </button>
   );
 }
 

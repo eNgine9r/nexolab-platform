@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import (
     CheckConstraint,
+    Date,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -18,6 +20,73 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+
+class RefrigerationEquipmentRecord(Base):
+    __tablename__ = "refrigeration_equipment"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "code",
+            name="uq_refrigeration_equipment_organization_code",
+        ),
+        CheckConstraint(
+            "status IN ('normal', 'warning', 'alarm', 'offline')",
+            name="ck_refrigeration_equipment_status",
+        ),
+        CheckConstraint("version >= 1", name="ck_refrigeration_equipment_version_positive"),
+        CheckConstraint("online_sensors >= 0", name="ck_refrigeration_equipment_online_non_negative"),
+        CheckConstraint("total_sensors >= 0", name="ck_refrigeration_equipment_total_non_negative"),
+        CheckConstraint("online_sensors <= total_sensors", name="ck_refrigeration_equipment_online_within_total"),
+        CheckConstraint("active_alarms >= 0", name="ck_refrigeration_equipment_alarms_non_negative"),
+        Index(
+            "ix_refrigeration_equipment_active",
+            "organization_id",
+            "deleted_at",
+            "status",
+            "name",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_equipment_organization",
+            ondelete="RESTRICT",
+        ),
+        primary_key=True,
+        nullable=False,
+    )
+    code: Mapped[str] = mapped_column(String(128), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    location: Mapped[str] = mapped_column(String(255), nullable=False)
+    equipment_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    manufacturer: Mapped[str] = mapped_column(String(128), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    serial_number: Mapped[str] = mapped_column(String(128), nullable=False)
+    temperature_class: Mapped[str] = mapped_column(String(128), nullable=False)
+    installed_at: Mapped[date | None] = mapped_column(Date(), nullable=True)
+    serviced_at: Mapped[date | None] = mapped_column(Date(), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="offline", server_default="offline")
+    average_temperature_c: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default=text("0"))
+    min_temperature_c: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default=text("0"))
+    max_temperature_c: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default=text("0"))
+    online_sensors: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    total_sensors: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    active_alarms: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    deleted_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class EquipmentImage(Base):
