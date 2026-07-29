@@ -1,323 +1,291 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Plus, RefreshCw, Replace, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
-import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
-import type { RefrigerationEquipment } from "@/data/refrigeration";
-import type {
-  RefrigerationLayoutDraft,
-  RefrigerationLayoutRepository,
-} from "@/features/refrigeration/layout-repository";
+import type { SensorSide } from "@/data/refrigeration";
+import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 import {
-  applySensorPlacementChange,
-  availableSensors,
-  replacementSensors,
-} from "@/features/refrigeration/sensor-placement-management";
-
-type SensorPlacementManagerProps = {
-  equipment: RefrigerationEquipment;
-  repository: RefrigerationLayoutRepository;
-  canEdit: boolean;
-  mode: LayoutEditorMode;
-  onModeChange: (mode: LayoutEditorMode) => void;
-  onSelect: (sensorId: string) => void;
-  onAssignmentsChanged: () => void;
-};
-
-type Operation = "loading" | "idle" | "saving";
+  addChannelToConfiguration,
+  removeConfiguredSensor,
+  replaceConfiguredChannel,
+  selectableReplacementChannels,
+  type StagedSensorConfiguration,
+  unusedClimateChamberChannels,
+  updateConfiguredSensor,
+} from "@/features/refrigeration/sensor-configuration";
 
 export function SensorPlacementManager({
-  equipment,
-  repository,
-  canEdit,
-  mode,
-  onModeChange,
+  equipmentId,
+  totalSlots,
+  channels,
+  configuration,
+  editingSensorId,
+  onEditingSensorIdChange,
+  onConfigurationChange,
   onSelect,
-  onAssignmentsChanged,
-}: SensorPlacementManagerProps) {
-  const [draft, setDraft] = useState<RefrigerationLayoutDraft | null>(null);
-  const [operation, setOperation] = useState<Operation>("loading");
-  const [selectedAssignedId, setSelectedAssignedId] = useState("");
-  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+}: {
+  equipmentId: string;
+  totalSlots: number;
+  channels: readonly AvailableSensor[];
+  configuration: readonly StagedSensorConfiguration[];
+  editingSensorId: string | null;
+  onEditingSensorIdChange: (sensorId: string | null) => void;
+  onConfigurationChange: (configuration: StagedSensorConfiguration[]) => void;
+  onSelect: (sensorId: string) => void;
+}) {
+  const unused = useMemo(
+    () => unusedClimateChamberChannels(channels, configuration, equipmentId),
+    [channels, configuration, equipmentId],
+  );
+  const [selectedChannelId, setSelectedChannelId] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const assignedIds = useMemo(
-    () => new Set(draft?.placements.map(({ sensorId }) => sensorId) ?? []),
-    [draft?.placements],
+  const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
+  const replacementChannels = useMemo(
+    () =>
+      selectedSensor
+        ? selectableReplacementChannels(channels, configuration, selectedSensor.id, equipmentId)
+        : [],
+    [channels, configuration, equipmentId, selectedSensor],
   );
-  const unassigned = useMemo(
-    () => availableSensors(equipment.sensors, draft?.placements ?? []),
-    [draft?.placements, equipment.sensors],
-  );
-  const assignedSensors = useMemo(
-    () => equipment.sensors.filter(({ id }) => assignedIds.has(id)),
-    [assignedIds, equipment.sensors],
-  );
-  const candidates = useMemo(
-    () => replacementSensors(equipment.sensors, selectedAssignedId),
-    [equipment.sensors, selectedAssignedId],
-  );
-  const candidateIsAvailable = unassigned.some(({ id }) => id === selectedCandidateId);
-
-  const syncSelections = (nextDraft: RefrigerationLayoutDraft, preferredAssignedId?: string) => {
-    const nextAssignedIds = new Set(nextDraft.placements.map(({ sensorId }) => sensorId));
-    const nextAssignedId =
-      preferredAssignedId && nextAssignedIds.has(preferredAssignedId)
-        ? preferredAssignedId
-        : (nextDraft.placements[0]?.sensorId ?? "");
-    const nextCandidates = replacementSensors(equipment.sensors, nextAssignedId);
-
-    setSelectedAssignedId(nextAssignedId);
-    setSelectedCandidateId(nextCandidates[0]?.id ?? "");
-    if (nextAssignedId) onSelect(nextAssignedId);
-  };
-
-  const load = async () => {
-    setOperation("loading");
-    setError(null);
-    const result = await repository.getDraft(equipment.id);
-    if (!result.ok) {
-      setError("Не вдалося завантажити актуальний склад датчиків на підкладці.");
-      setOperation("idle");
-      return;
-    }
-    setDraft(result.value);
-    syncSelections(result.value, selectedAssignedId);
-    setOperation("idle");
-  };
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void load();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
-    // Repository identity is stable for the workspace lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipment.id, repository]);
+    if (unused.some((channel) => channel.channelId === selectedChannelId)) return;
+    setSelectedChannelId(unused[0]?.channelId ?? "");
+  }, [selectedChannelId, unused]);
 
-  const save = async (
-    nextPlacements: RefrigerationLayoutDraft["placements"],
-    message: string,
-    selectedSensorId: string,
-  ): Promise<boolean> => {
-    if (!draft) return false;
-    setOperation("saving");
+  const add = () => {
+    const channel = channels.find((candidate) => candidate.channelId === selectedChannelId);
+    if (!channel) return;
     setError(null);
-    setNotice(null);
-    const result = await repository.saveDraft({
-      equipmentId: equipment.id,
-      expectedVersion: draft.version,
-      imageId: draft.imageId,
-      placements: nextPlacements,
-    });
-    if (!result.ok) {
-      setError(
-        result.error.code === "LAYOUT_VERSION_CONFLICT"
-          ? "Склад датчиків змінився в іншій сесії. Оновіть чернетку та повторіть дію."
-          : "Не вдалося зберегти склад датчиків на підкладці.",
-      );
-      setOperation("idle");
-      return false;
-    }
-    setDraft(result.value);
-    syncSelections(result.value, selectedSensorId);
-    setNotice(message);
-    onAssignmentsChanged();
-    setOperation("idle");
-    return true;
-  };
-
-  const canMutate = canEdit && mode !== "edit" && operation === "idle" && Boolean(draft);
-
-  const handleAdd = () => {
-    if (!draft || !selectedCandidateId || !candidateIsAvailable) return;
     try {
-      const next = applySensorPlacementChange(draft.placements, equipment.sensors, {
-        type: "add",
-        sensorId: selectedCandidateId,
-      });
-      const sensor = equipment.sensors.find(({ id }) => id === selectedCandidateId);
-      void save(
-        next,
-        `Датчик ${sensor?.label ?? selectedCandidateId} додано на підкладку.`,
-        selectedCandidateId,
-      ).then((saved) => {
-        if (saved) onModeChange("edit");
-      });
+      const next = addChannelToConfiguration(configuration, channel, totalSlots);
+      onConfigurationChange(next);
+      onSelect(channel.channelId);
+      onEditingSensorIdChange(channel.channelId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося додати датчик.");
     }
   };
 
-  const handleReplace = () => {
-    if (!draft || !selectedAssignedId || !selectedCandidateId) return;
-    const candidateWasAssigned = assignedIds.has(selectedCandidateId);
+  const replace = (channelId: string) => {
+    if (!selectedSensor) return;
+    const channel = channels.find((candidate) => candidate.channelId === channelId);
+    if (!channel) return;
+    setError(null);
     try {
-      const next = applySensorPlacementChange(draft.placements, equipment.sensors, {
-        type: "replace",
-        sensorId: selectedAssignedId,
-        replacementSensorId: selectedCandidateId,
-      });
-      const replacement = equipment.sensors.find(({ id }) => id === selectedCandidateId);
-      void save(
-        next,
-        candidateWasAssigned
-          ? `Датчики ${replacement?.label ?? selectedCandidateId} та вибраної позиції поміняно місцями.`
-          : `Датчик у вибраній позиції замінено на ${replacement?.label ?? selectedCandidateId}.`,
-        selectedCandidateId,
-      );
+      const next = replaceConfiguredChannel(configuration, selectedSensor.id, channel);
+      onConfigurationChange(next);
+      onSelect(channel.channelId);
+      onEditingSensorIdChange(channel.channelId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося замінити датчик.");
     }
   };
 
-  const handleRemove = () => {
-    if (!draft || !selectedAssignedId) return;
-    const sensor = equipment.sensors.find(({ id }) => id === selectedAssignedId);
-    if (!window.confirm(`Видалити датчик ${sensor?.label ?? selectedAssignedId} з підкладки?`)) {
-      return;
-    }
+  const update = (
+    patch: Partial<Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position">>,
+  ) => {
+    if (!selectedSensor) return;
+    setError(null);
     try {
-      const next = applySensorPlacementChange(draft.placements, equipment.sensors, {
-        type: "remove",
-        sensorId: selectedAssignedId,
-      });
-      const nextSelectedId = next[0]?.sensorId ?? "";
-      void save(
-        next,
-        `Датчик ${sensor?.label ?? selectedAssignedId} видалено з підкладки.`,
-        nextSelectedId,
-      );
+      onConfigurationChange(updateConfiguredSensor(configuration, selectedSensor.id, patch));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Не вдалося видалити датчик.");
+      setError(cause instanceof Error ? cause.message : "Не вдалося змінити параметри датчика.");
     }
+  };
+
+  const remove = () => {
+    if (!selectedSensor) return;
+    if (!window.confirm(`Видалити датчик ${selectedSensor.label} з підкладки?`)) return;
+    onConfigurationChange(removeConfiguredSensor(configuration, selectedSensor.id));
+    onEditingSensorIdChange(null);
+    setError(null);
   };
 
   return (
     <section
-      className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4"
-      aria-label="Керування датчиками на підкладці"
+      className="mb-3 rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.045] p-3"
+      aria-label="Редагування складу датчиків кліматичної камери"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-white">Датчики на підкладці</p>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold text-white">Датчики кліматичної камери</p>
+            <span className="rounded-full border border-cyan-300/15 bg-cyan-400/[0.07] px-2 py-1 text-[9px] text-cyan-200">
+              {configuration.length}/{totalSlots}
+            </span>
+          </div>
           <p className="mt-1 text-[10px] leading-4 text-slate-500">
-            {assignedSensors.length} встановлено · {unassigned.length} доступно. Заміна на вже
-            встановлений датчик міняє дві позиції місцями без втрати координат.
+            Додавайте й налаштовуйте кілька каналів. Сервер буде змінено лише після загального
+            збереження схеми.
           </p>
         </div>
-        <RefrigerationIconButton
-          label="Оновити склад датчиків"
-          onClick={() => void load()}
-          disabled={operation !== "idle"}
-          size="sm"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${operation === "loading" ? "animate-spin" : ""}`} />
-        </RefrigerationIconButton>
+
+        <div className="flex min-w-0 items-end gap-2 xl:min-w-[420px]">
+          <label className="min-w-0 flex-1 space-y-1.5">
+            <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
+              Доступний датчик або прилад
+            </span>
+            <select
+              aria-label="Доступний датчик кліматичної камери"
+              value={selectedChannelId}
+              disabled={unused.length === 0 || configuration.length >= totalSlots}
+              onChange={(event) => setSelectedChannelId(event.target.value)}
+              className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {unused.length === 0 ? <option value="">Немає доступних каналів</option> : null}
+              {unused.map((channel) => (
+                <option key={channel.channelId} value={channel.channelId}>
+                  {channel.channelId} · {channel.metric}
+                  {channel.latestValue === null ? " · немає даних" : ` · ${channel.latestValue} ${channel.unit}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <RefrigerationIconButton
+            label="Додати вибраний датчик на підкладку"
+            onClick={add}
+            disabled={!selectedChannelId || configuration.length >= totalSlots}
+            tone="success"
+            size="lg"
+          >
+            <Plus className="h-4 w-4" />
+          </RefrigerationIconButton>
+        </div>
       </div>
 
-      {mode === "edit" ? (
-        <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-200">
-          Спочатку збережіть або скасуйте переміщення маркерів. Зміна складу датчиків виконується
-          атомарно на актуальній версії чернетки.
+      {unused.length === 0 && configuration.length === 0 ? (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-200">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          У вибраній кліматичній камері ще немає доступних telemetry channels. Перевірте, що її
+          node активний і вже передав хоча б один пакет вимірювань.
         </p>
       ) : null}
-      {!canEdit ? (
-        <p className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[10px] text-slate-500">
-          Поточна роль має доступ лише для перегляду.
-        </p>
+
+      {selectedSensor ? (
+        <div className="mt-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Pencil className="h-3.5 w-3.5 text-blue-300" />
+              <div>
+                <p className="text-xs font-semibold text-blue-100">
+                  {selectedSensor.label} · {selectedSensor.id}
+                </p>
+                <p className="mt-1 text-[9px] text-blue-200/55">Незбережена конфігурація</p>
+              </div>
+            </div>
+            <RefrigerationIconButton
+              label="Закрити налаштування датчика"
+              onClick={() => onEditingSensorIdChange(null)}
+              size="sm"
+            >
+              <X className="h-3.5 w-3.5" />
+            </RefrigerationIconButton>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_140px_120px_120px_auto]">
+            <EditorField label="Канал вимірювання">
+              <select
+                aria-label="Замінити канал датчика"
+                value={selectedSensor.id}
+                onChange={(event) => replace(event.target.value)}
+                className={inputClass}
+              >
+                {replacementChannels.map((channel) => (
+                  <option key={channel.channelId} value={channel.channelId}>
+                    {channel.channelId} · {channel.metric}
+                  </option>
+                ))}
+              </select>
+            </EditorField>
+            <EditorField label="Підпис маркера">
+              <input
+                aria-label="Підпис датчика"
+                value={selectedSensor.label}
+                maxLength={128}
+                onChange={(event) => update({ label: event.target.value })}
+                className={inputClass}
+              />
+            </EditorField>
+            <EditorField label="Фронт">
+              <select
+                aria-label="Фронт датчика"
+                value={selectedSensor.side}
+                onChange={(event) => update({ side: event.target.value as SensorSide })}
+                className={inputClass}
+              >
+                <option value="front">Передній</option>
+                <option value="rear">Задній</option>
+              </select>
+            </EditorField>
+            <EditorField label="Полиця">
+              <select
+                aria-label="Полиця датчика"
+                value={selectedSensor.shelf}
+                onChange={(event) => update({ shelf: Number(event.target.value) })}
+                className={inputClass}
+              >
+                {[1, 2, 3, 4].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </EditorField>
+            <EditorField label="Позиція">
+              <select
+                aria-label="Позиція датчика"
+                value={selectedSensor.position}
+                onChange={(event) => update({ position: Number(event.target.value) })}
+                className={inputClass}
+              >
+                {[1, 2, 3, 4, 5, 6].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </EditorField>
+            <div className="flex items-end gap-2">
+              <RefrigerationIconButton
+                label="Замінити датчик"
+                onClick={() => undefined}
+                disabled
+                tone="info"
+              >
+                <Replace className="h-3.5 w-3.5" />
+              </RefrigerationIconButton>
+              <RefrigerationIconButton
+                label="Видалити датчик з підкладки"
+                onClick={remove}
+                tone="danger"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </RefrigerationIconButton>
+            </div>
+          </div>
+        </div>
       ) : null}
+
       {error ? (
         <p
-          className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200"
           role="alert"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200"
         >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {error}
         </p>
       ) : null}
-      {notice ? (
-        <p
-          className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-200"
-          role="status"
-        >
-          {notice}
-        </p>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
-            Позиція на підкладці
-          </span>
-          <select
-            aria-label="Встановлений датчик"
-            value={selectedAssignedId}
-            onChange={(event) => {
-              const nextId = event.target.value;
-              setSelectedAssignedId(nextId);
-              setSelectedCandidateId(replacementSensors(equipment.sensors, nextId)[0]?.id ?? "");
-              onSelect(nextId);
-            }}
-            className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none"
-          >
-            {assignedSensors.map((sensor) => (
-              <option key={sensor.id} value={sensor.id}>
-                Позиція: {sensor.label} · {sensor.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1.5">
-          <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
-            Датчик зі списку
-          </span>
-          <select
-            aria-label="Датчик зі списку"
-            value={selectedCandidateId}
-            disabled={candidates.length === 0}
-            onChange={(event) => setSelectedCandidateId(event.target.value)}
-            className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:opacity-40"
-          >
-            {candidates.map((sensor) => (
-              <option key={sensor.id} value={sensor.id}>
-                {assignedIds.has(sensor.id) ? "Встановлено" : "Доступно"}: {sensor.label} · {sensor.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="flex items-end gap-2" aria-label="Операції з датчиками">
-          <RefrigerationIconButton
-            label="Додати вибраний датчик на підкладку"
-            onClick={handleAdd}
-            disabled={!canMutate || !selectedCandidateId || !candidateIsAvailable}
-            tone="success"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </RefrigerationIconButton>
-          <RefrigerationIconButton
-            label="Замінити датчик у вибраній позиції"
-            onClick={handleReplace}
-            disabled={!canMutate || !selectedAssignedId || !selectedCandidateId}
-            tone="info"
-          >
-            <Replace className="h-3.5 w-3.5" />
-          </RefrigerationIconButton>
-          <RefrigerationIconButton
-            label="Видалити датчик із вибраної позиції"
-            onClick={handleRemove}
-            disabled={!canMutate || assignedSensors.length <= 1 || !selectedAssignedId}
-            tone="danger"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </RefrigerationIconButton>
-        </div>
-      </div>
     </section>
   );
 }
+
+function EditorField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass =
+  "w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
