@@ -57,6 +57,8 @@ class RefrigerationEquipmentCreate(BaseModel):
     def validate_location_hierarchy(self) -> "RefrigerationEquipmentCreate":
         if self.zone is not None and self.laboratory is None:
             raise ValueError("laboratory is required when zone is selected")
+        if self.lifecycle_status != "retired" and self.node_id is None:
+            raise ValueError("climate chamber is required for active equipment")
         return self
 
 
@@ -210,6 +212,35 @@ class SensorBindingWrite(BaseModel):
         return normalized
 
 
+class SensorBindingConfigurationItem(SensorBindingWrite):
+    slot_key: Annotated[str, Field(min_length=1, max_length=128)]
+    x: Annotated[float, Field(ge=0.0, le=1.0)]
+    y: Annotated[float, Field(ge=0.0, le=1.0)]
+
+    @field_validator("slot_key")
+    @classmethod
+    def normalize_slot_key(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("slot_key must not be blank")
+        return normalized
+
+
+class SensorConfigurationWrite(BaseModel):
+    expected_draft_version: Annotated[int, Field(ge=1)]
+    bindings: Annotated[list[SensorBindingConfigurationItem], Field(max_length=48)]
+
+    @model_validator(mode="after")
+    def validate_unique_bindings(self) -> "SensorConfigurationWrite":
+        slot_keys = [item.slot_key for item in self.bindings]
+        channel_ids = [item.channel_id for item in self.bindings]
+        if len(slot_keys) != len(set(slot_keys)):
+            raise ValueError("sensor configuration contains duplicate slot keys")
+        if len(channel_ids) != len(set(channel_ids)):
+            raise ValueError("sensor configuration contains duplicate channel ids")
+        return self
+
+
 class SensorBindingResponse(BaseModel):
     id: str
     equipment_id: str
@@ -234,6 +265,12 @@ class SensorBindingListResponse(BaseModel):
 class SensorBindingMutationResponse(BaseModel):
     equipment: RefrigerationEquipmentResponse
     binding: SensorBindingResponse | None
+    draft: LayoutDraftResponse
+
+
+class SensorConfigurationMutationResponse(BaseModel):
+    equipment: RefrigerationEquipmentResponse
+    bindings: list[SensorBindingResponse]
     draft: LayoutDraftResponse
 
 
