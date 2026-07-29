@@ -20,6 +20,7 @@ from app.refrigeration.schemas import (
     RefrigerationEquipmentCreate,
     RefrigerationEquipmentListResponse,
     RefrigerationEquipmentResponse,
+    RefrigerationEquipmentUpdate,
 )
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
@@ -114,10 +115,55 @@ def create_refrigeration_equipment_router(
         response.headers["ETag"] = _equipment_etag(item.version)
         return _equipment_response(item)
 
+    @router.put(
+        "/{equipment_id}",
+        response_model=RefrigerationEquipmentResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            428: {"model": ApiErrorResponse},
+        },
+    )
+    def update_equipment(
+        equipment_id: str,
+        payload: RefrigerationEquipmentUpdate,
+        request: Request,
+        response: Response,
+        if_match: str = Header(alias="If-Match"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> RefrigerationEquipmentResponse:
+        expected_version = _parse_equipment_if_match(if_match)
+        try:
+            item = repository.update(
+                equipment_id,
+                payload,
+                expected_version=expected_version,
+                actor_id=authorized.principal.subject,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="equipment.updated",
+                    entity_type="refrigeration_equipment",
+                    entity_id=equipment_id,
+                    reason=audit_reason,
+                ),
+            )
+        except EquipmentRepositoryError as error:
+            raise _repository_http_error(error) from error
+        response.headers["ETag"] = _equipment_etag(item.version)
+        return _equipment_response(item)
+
     @router.delete(
         "/{equipment_id}",
         status_code=status.HTTP_204_NO_CONTENT,
-        responses={404: {"model": ApiErrorResponse}, 409: {"model": ApiErrorResponse}},
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            428: {"model": ApiErrorResponse},
+        },
     )
     def delete_equipment(
         equipment_id: str,
