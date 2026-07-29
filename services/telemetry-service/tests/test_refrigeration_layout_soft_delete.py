@@ -26,7 +26,7 @@ def test_soft_deleted_equipment_layout_remains_readable_and_read_only(tmp_path: 
             location="Лабораторія 1 · Зона A",
             laboratory="Лабораторія 1",
             zone="Зона A",
-            node_id=None,
+            node_id="kk2",
             equipment_type="Холодильна вітрина",
             manufacturer="NEXOLAB",
             model="NX-SOFT-DELETE",
