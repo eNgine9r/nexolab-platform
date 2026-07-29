@@ -152,6 +152,35 @@ describe("TelemetryWebSocketClient", () => {
     expect(credentials).toHaveBeenCalledTimes(2);
   });
 
+  it("connects without a credential handshake when authentication is disabled", () => {
+    const sockets: MockWebSocket[] = [];
+    const states: TelemetryConnectionState[] = [];
+    const credentials = vi.fn();
+    const client = new TelemetryWebSocketClient("ws://central/api/v1/telemetry/live", {
+      createSocket: (url) => {
+        const socket = new MockWebSocket(url);
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      credentials,
+      authenticationRequired: false,
+    });
+
+    client.subscribe(
+      {},
+      {
+        onSample: vi.fn(),
+        onStateChange: (state) => states.push(state),
+      },
+    );
+
+    sockets[0].open();
+
+    expect(credentials).not.toHaveBeenCalled();
+    expect(sockets[0].send).not.toHaveBeenCalled();
+    expect(states.at(-1)).toBe("connected");
+  });
+
   it("closes with a browser-safe private code and stops retrying when authentication fails", async () => {
     vi.useFakeTimers();
     const sockets: MockWebSocket[] = [];
