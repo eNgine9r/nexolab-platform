@@ -7,7 +7,9 @@ WORKDIR /opt/app
 COPY requirements.txt ./
 RUN python -m pip install --target /opt/app/site-packages -r requirements.txt
 COPY *.py ./
-RUN mkdir -p /opt/runtime-data
+RUN mkdir -p /opt/runtime-data \
+    && find /opt/app -type d -exec chmod 0755 {} + \
+    && find /opt/app -type f -exec chmod 0644 {} +
 
 FROM gcr.io/distroless/python3-debian13:nonroot
 
