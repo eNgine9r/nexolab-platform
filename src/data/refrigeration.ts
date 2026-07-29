@@ -1,4 +1,5 @@
 export type EquipmentStatus = "normal" | "warning" | "alarm" | "offline";
+export type EquipmentLifecycleStatus = "active" | "maintenance" | "retired";
 export type SensorSide = "front" | "rear";
 export type SensorStatus = "normal" | "warning" | "alarm" | "no-data";
 
@@ -14,6 +15,8 @@ export interface EquipmentImageMetadata {
   sourceUrl: string | null;
   alt: string;
   updatedAt: string;
+  retiredAt?: string | null;
+  retiredBy?: string | null;
 }
 
 export interface RefrigerationSensor {
@@ -36,6 +39,9 @@ export interface RefrigerationEquipment {
   code: string;
   name: string;
   location: string;
+  laboratory: string | null;
+  zone: string | null;
+  nodeId: string | null;
   type: string;
   manufacturer: string;
   model: string;
@@ -43,6 +49,7 @@ export interface RefrigerationEquipment {
   temperatureClass: string;
   installedAt: string;
   servicedAt: string;
+  lifecycleStatus: EquipmentLifecycleStatus;
   status: EquipmentStatus;
   averageTemperatureC: number;
   minTemperatureC: number;
@@ -102,6 +109,9 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     code: "CS-P1250-2024-106-01",
     name: "Вітрина №106-01",
     location: "Лабораторія 1 · Зона A",
+    laboratory: "Лабораторія 1",
+    zone: "Зона A",
+    nodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
     model: "Premium 1250",
@@ -109,6 +119,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     temperatureClass: "3M1 (0…+5 °C)",
     installedAt: "2025-05-15",
     servicedAt: "2026-07-12",
+    lifecycleStatus: "active",
     status: "normal",
     averageTemperatureC: 2.2,
     minTemperatureC: 1.1,
@@ -126,6 +137,9 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     code: "CS-P900-2024-107-02",
     name: "Вітрина №107-02",
     location: "Лабораторія 1 · Зона B",
+    laboratory: "Лабораторія 1",
+    zone: "Зона B",
+    nodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
     model: "Compact 900",
@@ -133,6 +147,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     temperatureClass: "3M2 (-1…+7 °C)",
     installedAt: "2025-06-02",
     servicedAt: "2026-06-28",
+    lifecycleStatus: "maintenance",
     status: "warning",
     averageTemperatureC: 4.8,
     minTemperatureC: 2.4,
@@ -150,6 +165,9 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     code: "CR-2024-201",
     name: "Холодильна камера №201",
     location: "Лабораторія 2 · Північна стіна",
+    laboratory: "Лабораторія 2",
+    zone: "Північна стіна",
+    nodeId: "edge-lab-02",
     type: "Холодильна камера",
     manufacturer: "NEXOTHERM",
     model: "CR-12",
@@ -157,6 +175,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     temperatureClass: "2L1 (-18…-15 °C)",
     installedAt: "2025-08-09",
     servicedAt: "2026-07-03",
+    lifecycleStatus: "active",
     status: "normal",
     averageTemperatureC: -17.2,
     minTemperatureC: -18.4,
