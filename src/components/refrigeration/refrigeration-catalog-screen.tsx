@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -48,7 +48,6 @@ const statusLabels: Record<EquipmentStatus, string> = {
 };
 
 type StatusFilter = "all" | EquipmentStatus;
-
 type Notice = { tone: "success" | "error"; message: string } | null;
 
 export function RefrigerationCatalogScreen({
@@ -66,56 +65,63 @@ export function RefrigerationCatalogScreen({
   const [items, setItems] = useState<RefrigerationEquipment[]>(
     runtime.mode === "demo" ? refrigerationEquipment : [],
   );
-  const [loading, setLoading] = useState(runtime.mode === "live");
-  const [canManage, setCanManage] = useState(runtime.mode === "demo");
-  const [notice, setNotice] = useState<Notice>(runtime.error ? { tone: "error", message: runtime.error } : null);
+  const [loading, setLoading] = useState(runtime.mode === "live" && runtime.repository !== null);
+  const [liveCanManage, setLiveCanManage] = useState(false);
+  const [notice, setNotice] = useState<Notice>(
+    runtime.error ? { tone: "error", message: runtime.error } : null,
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RefrigerationEquipment | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const canManage = runtime.mode === "demo" || liveCanManage;
 
-  const loadCatalog = useCallback(async () => {
-    if (!runtime.repository) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const loaded = await runtime.repository.list();
-      setItems(loaded);
-      setNotice((current) => (current?.tone === "error" ? null : current));
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Не вдалося завантажити каталог обладнання.",
+  useEffect(() => {
+    const repository = runtime.repository;
+    if (!repository) return;
+
+    let active = true;
+    void repository
+      .list()
+      .then((loaded) => {
+        if (!active) return;
+        setItems(loaded);
+        setNotice((current) => (current?.tone === "error" ? null : current));
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Не вдалося завантажити каталог обладнання.",
+        });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-    } finally {
-      setLoading(false);
-    }
+
+    return () => {
+      active = false;
+    };
   }, [runtime.repository]);
 
   useEffect(() => {
-    void loadCatalog();
-  }, [loadCatalog]);
+    const sessionClient = runtime.sessionClient;
+    if (runtime.mode !== "live" || !sessionClient) return;
 
-  useEffect(() => {
-    if (runtime.mode === "demo") {
-      setCanManage(true);
-      return;
-    }
-    if (!runtime.sessionClient) {
-      setCanManage(false);
-      return;
-    }
     let active = true;
-    void runtime.sessionClient.getSession().then((result) => {
+    void sessionClient.getSession().then((result) => {
       if (!active) return;
-      setCanManage(
+      setLiveCanManage(
         result.ok &&
           result.value.memberships.some(
             (membership) =>
-              (runtime.organizationId === null || membership.organizationId === runtime.organizationId) &&
+              (runtime.organizationId === null ||
+                membership.organizationId === runtime.organizationId) &&
               membership.permissions.includes("equipment.manage"),
           ),
       );
@@ -256,7 +262,10 @@ export function RefrigerationCatalogScreen({
             ) : null}
 
             {loading ? (
-              <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Завантаження обладнання">
+              <section
+                className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
+                aria-label="Завантаження обладнання"
+              >
                 {[0, 1, 2].map((index) => (
                   <div
                     key={index}
@@ -304,13 +313,21 @@ export function RefrigerationCatalogScreen({
                       </div>
 
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
+                        <Metric
+                          icon={Thermometer}
+                          label="Середня"
+                          value={`${item.averageTemperatureC} °C`}
+                        />
                         <Metric
                           icon={Wifi}
                           label="Датчики"
                           value={`${item.onlineSensors}/${item.totalSensors}`}
                         />
-                        <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
+                        <Metric
+                          icon={AlertTriangle}
+                          label="Тривоги"
+                          value={String(item.activeAlarms)}
+                        />
                       </div>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
@@ -352,7 +369,9 @@ export function RefrigerationCatalogScreen({
               <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
                 <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
                 <h2 className="mt-4 text-sm font-semibold text-slate-200">
-                  {items.length === 0 ? "Каталог холодильного обладнання порожній" : "Обладнання не знайдено"}
+                  {items.length === 0
+                    ? "Каталог холодильного обладнання порожній"
+                    : "Обладнання не знайдено"}
                 </h2>
                 <p className="mt-2 text-xs text-slate-500">
                   {items.length === 0
@@ -376,15 +395,17 @@ export function RefrigerationCatalogScreen({
         </main>
       </div>
 
-      <CreateEquipmentDialog
-        open={createOpen}
-        busy={createBusy}
-        error={createError}
-        onClose={() => {
-          if (!createBusy) setCreateOpen(false);
-        }}
-        onSubmit={createEquipment}
-      />
+      {createOpen ? (
+        <CreateEquipmentDialog
+          open
+          busy={createBusy}
+          error={createError}
+          onClose={() => {
+            if (!createBusy) setCreateOpen(false);
+          }}
+          onSubmit={createEquipment}
+        />
+      ) : null}
       <DeleteEquipmentDialog
         equipment={deleteTarget}
         busy={deleteBusy}
