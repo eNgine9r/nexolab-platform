@@ -65,7 +65,7 @@ test("creates and safely removes equipment through icon-first catalog actions", 
 
   await page.getByLabel(/^Назва/).fill(name);
   await page.getByLabel(/^Код обладнання/).fill(code);
-  await page.getByLabel(/^Розташування/).fill("Лабораторія acceptance · Зона C");
+  await page.getByLabel(/^Відображуване розташування/).fill("Лабораторія acceptance · Зона C");
   await page.getByLabel(/^Виробник/).fill("NEXOLAB");
   await page.getByLabel(/^Модель/).fill("NX-1250-A");
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
@@ -152,8 +152,8 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
 
       const candidate = pageA.getByRole("combobox", { name: "Датчик зі списку" });
       await candidate.selectOption({ index: 0 });
-      await expect(pageA.getByRole("button", { name: "Додати" })).toBeEnabled();
-      await pageA.getByRole("button", { name: "Додати" }).click();
+      await expect(pageA.getByRole("button", { name: "Додати", exact: true })).toBeEnabled();
+      await pageA.getByRole("button", { name: "Додати", exact: true }).click();
 
       await expect(pageA.getByText(/додано на підкладку/)).toBeVisible();
       await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
@@ -161,9 +161,9 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await editor(pageA).getByRole("button", { name: "Скасувати", exact: true }).click();
       await expect(editor(pageA).getByText("Режим перегляду")).toBeVisible();
 
-      await expect(pageA.getByRole("button", { name: "Замінити" })).toBeEnabled();
+      await expect(pageA.getByRole("button", { name: "Замінити", exact: true })).toBeEnabled();
       await candidate.selectOption({ index: 0 });
-      await pageA.getByRole("button", { name: "Замінити" }).click();
+      await pageA.getByRole("button", { name: "Замінити", exact: true }).click();
 
       await expect(pageA.getByText(/замінено на/)).toBeVisible();
       await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
