@@ -21,42 +21,49 @@ _FUNCTION_NAME = "nexolab_ensure_refrigeration_equipment_for_layout"
 
 
 def upgrade() -> None:
-    connection = op.get_bind()
-    _reject_oversized_legacy_ids(connection)
-    _backfill_existing_layouts(connection)
+    _reject_oversized_legacy_ids()
+    _backfill_existing_layouts()
     _install_layout_equipment_invariant()
 
 
-def _reject_oversized_legacy_ids(connection: sa.Connection) -> None:
-    oversized = connection.execute(
+def _reject_oversized_legacy_ids() -> None:
+    op.execute(
         sa.text(
             """
-            SELECT organization_id, equipment_id
-            FROM refrigeration_layout_drafts AS draft
-            WHERE length(draft.equipment_id) > 36
-              AND NOT EXISTS (
-                SELECT 1
-                FROM refrigeration_equipment AS equipment
-                WHERE equipment.organization_id = draft.organization_id
-                  AND equipment.id = draft.equipment_id
-              )
-            ORDER BY organization_id, equipment_id
-            LIMIT 1
+            DO $$
+            DECLARE
+                unsupported record;
+            BEGIN
+                SELECT draft.organization_id, draft.equipment_id
+                INTO unsupported
+                FROM refrigeration_layout_drafts AS draft
+                WHERE length(draft.equipment_id) > 36
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM refrigeration_equipment AS equipment
+                    WHERE equipment.organization_id = draft.organization_id
+                      AND equipment.id = draft.equipment_id
+                  )
+                ORDER BY draft.organization_id, draft.equipment_id
+                LIMIT 1;
+
+                IF FOUND THEN
+                    RAISE EXCEPTION
+                        'cannot backfill refrigeration equipment passport for legacy equipment id % in organization %: the catalog identifier limit is 36 characters',
+                        unsupported.equipment_id,
+                        unsupported.organization_id;
+                END IF;
+            END;
+            $$
             """
         )
-    ).mappings().first()
-    if oversized is not None:
-        raise RuntimeError(
-            "cannot backfill refrigeration equipment passport for legacy equipment id "
-            f"{oversized['equipment_id']!r} in organization {oversized['organization_id']!r}: "
-            "the catalog identifier limit is 36 characters"
-        )
+    )
 
 
-def _backfill_existing_layouts(connection: sa.Connection) -> None:
-    connection.execute(
+def _backfill_existing_layouts() -> None:
+    op.execute(
         sa.text(
-            """
+            f"""
             INSERT INTO refrigeration_equipment (
                 id,
                 organization_id,
@@ -107,7 +114,7 @@ def _backfill_existing_layouts(connection: sa.Connection) -> None:
                 0,
                 NULL,
                 1,
-                :backfill_actor,
+                '{_BACKFILL_ACTOR}',
                 min(draft.created_at),
                 max(draft.updated_at),
                 NULL,
@@ -121,8 +128,7 @@ def _backfill_existing_layouts(connection: sa.Connection) -> None:
             )
             GROUP BY draft.organization_id, draft.equipment_id
             """
-        ),
-        {"backfill_actor": _BACKFILL_ACTOR},
+        )
     )
 
 
@@ -222,12 +228,9 @@ def downgrade() -> None:
     op.execute(sa.text(f"DROP FUNCTION IF EXISTS {_FUNCTION_NAME}()"))
     op.execute(
         sa.text(
-            """
+            f"""
             DELETE FROM refrigeration_equipment
-            WHERE created_by IN (:backfill_actor, :trigger_actor)
+            WHERE created_by IN ('{_BACKFILL_ACTOR}', '{_TRIGGER_ACTOR}')
             """
-        ).bindparams(
-            backfill_actor=_BACKFILL_ACTOR,
-            trigger_actor=_TRIGGER_ACTOR,
         )
     )
