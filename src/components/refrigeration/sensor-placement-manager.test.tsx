@@ -9,6 +9,10 @@ import {
 
 import { SensorPlacementManager } from "./sensor-placement-manager";
 
+const addLabel = "Додати вибраний датчик на підкладку";
+const replaceLabel = "Замінити датчик у вибраній позиції";
+const removeLabel = "Видалити датчик із вибраної позиції";
+
 function fixture() {
   const equipment = getRefrigerationEquipment("showcase-106-01");
   if (!equipment) throw new Error("Reference refrigeration equipment fixture is missing");
@@ -51,14 +55,14 @@ describe("SensorPlacementManager", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Замінити" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: replaceLabel })).toBeEnabled());
     fireEvent.change(screen.getByRole("combobox", { name: "Встановлений датчик" }), {
       target: { value: first.id },
     });
     fireEvent.change(screen.getByRole("combobox", { name: "Датчик зі списку" }), {
       target: { value: second.id },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Замінити" }));
+    fireEvent.click(screen.getByRole("button", { name: replaceLabel }));
 
     await screen.findByText(/поміняно місцями/);
     const result = await repository.getDraft(equipment.id);
@@ -95,18 +99,18 @@ describe("SensorPlacementManager", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Видалити" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: removeLabel })).toBeEnabled());
     fireEvent.change(screen.getByRole("combobox", { name: "Встановлений датчик" }), {
       target: { value: removed.id },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Видалити" }));
+    fireEvent.click(screen.getByRole("button", { name: removeLabel }));
     await screen.findByText(new RegExp(`${removed.label} видалено`));
 
     fireEvent.change(screen.getByRole("combobox", { name: "Датчик зі списку" }), {
       target: { value: removed.id },
     });
-    expect(screen.getByRole("button", { name: "Додати" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: "Додати" }));
+    expect(screen.getByRole("button", { name: addLabel })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: addLabel }));
 
     await screen.findByText(new RegExp(`${removed.label} додано`));
     expect(onModeChange).toHaveBeenCalledWith("edit");
