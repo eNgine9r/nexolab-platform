@@ -260,7 +260,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
           new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/layout/publish`,
       );
       await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
-      expect((await publishPromise).status()).toBe(200);
+      expect((await publishPromise).status()).toBe(201);
       await expect(page.getByText("Ревізія r1", { exact: true })).toBeVisible();
 
       const historyResponse = await context.request.get(
