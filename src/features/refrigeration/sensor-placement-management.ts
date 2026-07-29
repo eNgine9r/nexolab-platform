@@ -20,6 +20,13 @@ export function availableSensors(
   return sensors.filter(({ id }) => !assigned.has(id));
 }
 
+export function replacementSensors(
+  sensors: readonly RefrigerationSensor[],
+  selectedSensorId: string,
+): RefrigerationSensor[] {
+  return sensors.filter(({ id }) => id !== selectedSensorId);
+}
+
 export function applySensorPlacementChange(
   placements: readonly LayoutPlacement[],
   sensors: readonly RefrigerationSensor[],
@@ -52,9 +59,22 @@ export function applySensorPlacementChange(
   if (!assigned.has(change.sensorId)) {
     throw new Error(`Sensor ${change.sensorId} is not assigned.`);
   }
-  if (assigned.has(change.replacementSensorId)) {
-    throw new Error(`Sensor ${change.replacementSensorId} is already assigned.`);
+  if (change.sensorId === change.replacementSensorId) {
+    throw new Error("Replacement sensor must be different from the selected sensor.");
   }
+
+  if (assigned.has(change.replacementSensorId)) {
+    return placements.map((placement) => {
+      if (placement.sensorId === change.sensorId) {
+        return { ...placement, sensorId: change.replacementSensorId };
+      }
+      if (placement.sensorId === change.replacementSensorId) {
+        return { ...placement, sensorId: change.sensorId };
+      }
+      return placement;
+    });
+  }
+
   return placements.map((placement) =>
     placement.sensorId === change.sensorId
       ? { ...placement, sensorId: change.replacementSensorId }
