@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, CopyPlus, Pencil, Plus, Trash2, X } from "lucide-react";
 
+import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import type { EquipmentLifecycleStatus, RefrigerationEquipment } from "@/data/refrigeration";
 import type {
   RefrigerationEquipmentCreateInput,
@@ -14,6 +15,8 @@ export type EquipmentNodeOption = {
   displayName: string;
   state: string;
 };
+
+type PassportDialogMode = "create" | "duplicate" | "edit";
 
 const initialForm: RefrigerationEquipmentCreateInput = {
   code: "",
@@ -38,6 +41,8 @@ export function CreateEquipmentDialog({
   busy,
   error,
   nodeOptions = [],
+  initialValue,
+  intent = "create",
   onClose,
   onSubmit,
 }: {
@@ -45,16 +50,18 @@ export function CreateEquipmentDialog({
   busy: boolean;
   error: string | null;
   nodeOptions?: EquipmentNodeOption[];
+  initialValue?: RefrigerationEquipmentCreateInput | null;
+  intent?: "create" | "duplicate";
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
 }) {
   return (
     <EquipmentPassportDialog
-      mode="create"
+      mode={intent}
       open={open}
       busy={busy}
       error={error}
-      initialValue={initialForm}
+      initialValue={initialValue ?? initialForm}
       nodeOptions={nodeOptions}
       onClose={onClose}
       onSubmit={onSubmit}
@@ -102,7 +109,7 @@ function EquipmentPassportDialog({
   onClose,
   onSubmit,
 }: {
-  mode: "create" | "edit";
+  mode: PassportDialogMode;
   open: boolean;
   busy: boolean;
   error: string | null;
@@ -148,6 +155,12 @@ function EquipmentPassportDialog({
   };
 
   const retirementBlocked = form.lifecycleStatus === "retired" && !retirementConfirmed;
+  const title =
+    mode === "create"
+      ? "Нове холодильне обладнання"
+      : mode === "duplicate"
+        ? "Копія холодильного обладнання"
+        : "Редагування паспорта";
 
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm">
@@ -163,22 +176,25 @@ function EquipmentPassportDialog({
               Equipment passport
             </p>
             <h2 id={titleId} className="mt-1 text-lg font-semibold text-white">
-              {mode === "create" ? "Нове холодильне обладнання" : "Редагування паспорта"}
+              {title}
             </h2>
           </div>
-          <button
-            type="button"
-            aria-label="Закрити форму"
-            title="Закрити"
-            onClick={onClose}
-            disabled={busy}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 transition hover:border-white/20 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:opacity-40"
-          >
+          <RefrigerationIconButton label="Закрити форму" onClick={onClose} disabled={busy}>
             <X className="h-4 w-4" />
-          </button>
+          </RefrigerationIconButton>
         </header>
 
         <form onSubmit={submit} className="p-5">
+          {mode === "duplicate" ? (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-xs leading-5 text-blue-100">
+              <CopyPlus className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Перенесено лише технічні параметри паспорта. Перевірте назву, код і розташування та
+                введіть новий серійний номер. Node, датчики, фото, схеми, історія й аудит не копіюються.
+              </span>
+            </div>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Назва" required>
               <input
@@ -228,7 +244,7 @@ function EquipmentPassportDialog({
                 placeholder="Зона C"
               />
             </Field>
-            <Field label="Node">
+            <Field label="Node" hint={mode === "duplicate" ? "Не копіюється" : undefined}>
               <select
                 value={form.nodeId}
                 onChange={(event) => update("nodeId", event.target.value)}
@@ -269,7 +285,7 @@ function EquipmentPassportDialog({
                 placeholder="Модель"
               />
             </Field>
-            <Field label="Серійний номер" required>
+            <Field label="Серійний номер" required hint={mode === "duplicate" ? "Новий" : undefined}>
               <input
                 required
                 value={form.serialNumber}
@@ -295,9 +311,9 @@ function EquipmentPassportDialog({
                 }
                 className={inputClass}
               >
-                <option value="active">Active</option>
-                <option value="maintenance">Maintenance</option>
-                {mode === "edit" ? <option value="retired">Retired</option> : null}
+                <option value="active">Активне</option>
+                <option value="maintenance">Обслуговування</option>
+                {mode === "edit" ? <option value="retired">Виведене з експлуатації</option> : null}
               </select>
             </Field>
             <Field label="Дата встановлення">
@@ -337,8 +353,8 @@ function EquipmentPassportDialog({
                 className="mt-0.5 h-4 w-4 accent-rose-400"
               />
               <span>
-                Підтверджую незворотне виведення обладнання з експлуатації. Активні bindings
-                буде завершено, чернетка стане read-only, історичні фото та опубліковані ревізії
+                Підтверджую незворотне виведення обладнання з експлуатації. Активні bindings буде
+                завершено, чернетка стане read-only, історичні фото та опубліковані ревізії
                 залишаться доступними.
               </span>
             </label>
@@ -367,8 +383,20 @@ function EquipmentPassportDialog({
               disabled={busy || retirementBlocked}
               className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {mode === "create" ? <Plus className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-              {busy ? "Збереження…" : mode === "create" ? "Створити" : "Зберегти паспорт"}
+              {mode === "create" ? (
+                <Plus className="h-4 w-4" />
+              ) : mode === "duplicate" ? (
+                <CopyPlus className="h-4 w-4" />
+              ) : (
+                <Pencil className="h-4 w-4" />
+              )}
+              {busy
+                ? "Збереження…"
+                : mode === "create"
+                  ? "Створити"
+                  : mode === "duplicate"
+                    ? "Створити копію"
+                    : "Зберегти паспорт"}
             </button>
           </footer>
         </form>
@@ -425,8 +453,8 @@ export function DeleteEquipmentDialog({
               Видалити обладнання?
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              <span className="font-medium text-slate-200">{equipment.name}</span> буде прибрано
-              з каталогу. Історичні схеми та аудит залишаться збереженими.
+              <span className="font-medium text-slate-200">{equipment.name}</span> буде прибрано з
+              каталогу. Історичні схеми та аудит залишаться збереженими.
             </p>
             <p className="mt-2 text-xs text-slate-600">{equipment.code}</p>
           </div>
