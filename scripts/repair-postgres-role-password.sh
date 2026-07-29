@@ -42,6 +42,26 @@ for key in POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD; do
   }
 done
 
+readarray -t POSTGRES_SETTINGS < <(
+  python3 - "$CENTRAL_ENV" <<'PY'
+from pathlib import Path
+import sys
+
+values = {}
+for raw_line in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    values[key.strip()] = value.strip()
+
+print(values["POSTGRES_USER"])
+print(values["POSTGRES_DB"])
+PY
+)
+DB_USER="${POSTGRES_SETTINGS[0]}"
+DB_NAME="${POSTGRES_SETTINGS[1]}"
+
 log "Capturing configuration checksum without exposing secrets"
 sha256sum "$CENTRAL_ENV" > "$EVIDENCE_DIR/env-central.sha256"
 
@@ -52,7 +72,7 @@ docker compose --env-file "$CENTRAL_ENV" \
 
 for attempt in $(seq 1 60); do
   if docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_COMPOSE" \
-    exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+    exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" \
     >/dev/null 2>&1; then
     log "PostgreSQL is ready"
     break
@@ -66,13 +86,11 @@ done
 
 log "Synchronizing existing database role password with current .env.central"
 docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_COMPOSE" \
-  exec -T postgres sh -ec '
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <<'"'"'SQL'"'"'
+  exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 <<'SQL'
 \getenv role_name POSTGRES_USER
 \getenv new_password POSTGRES_PASSWORD
-ALTER ROLE :"role_name" WITH LOGIN PASSWORD :'"'"'new_password'"'"';
+ALTER ROLE :"role_name" WITH LOGIN PASSWORD :'new_password';
 SQL
-  '
 
 log "Verifying SCRAM password authentication over TCP"
 docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_COMPOSE" \
@@ -89,10 +107,9 @@ grep -qx '1' "$EVIDENCE_DIR/password-auth-check.txt" || {
 
 log "Reading current Alembic revision through local socket"
 docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_COMPOSE" \
-  exec -T postgres sh -ec '
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \
-      "SELECT version_num FROM alembic_version;"
-  ' | tee "$EVIDENCE_DIR/alembic-before.txt"
+  exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -Atc \
+  "SELECT version_num FROM alembic_version;" \
+  | tee "$EVIDENCE_DIR/alembic-before.txt"
 
 cat > "$EVIDENCE_DIR/manifest.txt" <<EOF
 status=passed
