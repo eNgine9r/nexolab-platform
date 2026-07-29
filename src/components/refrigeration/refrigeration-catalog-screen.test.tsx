@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
+import type { EquipmentLifecycleRepository } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { InMemoryRefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 
@@ -24,15 +25,61 @@ vi.mock("@/components/dashboard/topbar", () => ({
   Topbar: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
+const lifecycleRepository: EquipmentLifecycleRepository = {
+  async listNodes() {
+    return [
+      {
+        nodeId: "kk2",
+        displayName: "Кліматична камера КК2",
+        state: "active",
+        lastSeenAt: "2026-07-29T12:00:00.000Z",
+      },
+    ];
+  },
+  async listClimateChamberChannels() {
+    return [];
+  },
+  async listImages() {
+    return [];
+  },
+  async retireImage() {
+    throw new Error("not used");
+  },
+  async listBindings() {
+    return [];
+  },
+  async listAvailableSensors() {
+    return [];
+  },
+  async replaceSensorConfiguration() {
+    throw new Error("not used");
+  },
+  async bindSensor() {
+    throw new Error("not used");
+  },
+  async unbindSensor() {
+    throw new Error("not used");
+  },
+};
+
 function runtime(): RefrigerationEquipmentRuntime {
   return {
     mode: "demo",
     repository: new InMemoryRefrigerationEquipmentRepository(refrigerationEquipment),
-    lifecycleRepository: null,
+    lifecycleRepository,
     sessionClient: null,
     organizationId: null,
     error: null,
   };
+}
+
+async function selectClimateChamber() {
+  await waitFor(() =>
+    expect(screen.getByRole("option", { name: /Кліматична камера КК2/ })).toBeInTheDocument(),
+  );
+  fireEvent.change(screen.getByLabelText(/^Кліматична камера/), {
+    target: { value: "kk2" },
+  });
 }
 
 describe("RefrigerationCatalogScreen", () => {
@@ -74,11 +121,17 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getByText("Обладнання не знайдено")).toBeInTheDocument();
   });
 
-  it("creates equipment from the icon-first catalog action", async () => {
+  it("requires a climate chamber before creating equipment", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");
 
     fireEvent.click(screen.getByRole("button", { name: "Додати холодильне обладнання" }));
+    expect(screen.getByText(/Спочатку оберіть кліматичну камеру/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
+
+    await selectClimateChamber();
+    expect(screen.getByLabelText(/^Назва/)).toBeEnabled();
+
     fireEvent.change(screen.getByLabelText(/^Назва/), { target: { value: "Вітрина №108-01" } });
     fireEvent.change(screen.getByLabelText(/^Код обладнання/), {
       target: { value: "CS-P1250-2026-108-01" },
@@ -102,7 +155,7 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getByRole("link", { name: "Відкрити Вітрина №108-01" })).toBeInTheDocument();
   });
 
-  it("creates an independent copy from reusable passport fields", async () => {
+  it("creates an independent copy only after selecting its climate chamber", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     const source = refrigerationEquipment[0];
     await screen.findByText(source.name);
@@ -110,11 +163,14 @@ describe("RefrigerationCatalogScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: `Копіювати ${source.name}` }));
 
     expect(screen.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
+    expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
+
+    await selectClimateChamber();
     expect(screen.getByLabelText(/^Назва/)).toHaveValue(`${source.name} — копія`);
     expect(screen.getByLabelText(/^Код обладнання/)).toHaveValue(`${source.code}-COPY`);
     expect(screen.getByLabelText(/^Серійний номер/)).toHaveValue("");
-    expect(screen.getByLabelText(/^Node/)).toHaveValue("");
-    expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/^Серійний номер/), {
       target: { value: "COPY-SN-001" },
