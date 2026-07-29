@@ -77,8 +77,6 @@ export function CameraScopedLayoutEditor({
 
   useEffect(() => {
     let cancelled = false;
-    setState("loading");
-    setError(null);
     void repository.getDraft(equipment.id).then((result) => {
       if (cancelled) return;
       if (!result.ok) {
