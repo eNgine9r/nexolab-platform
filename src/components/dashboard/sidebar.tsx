@@ -27,24 +27,24 @@ import { BrandLogo } from "./brand-logo";
 type NavItem = {
   label: string;
   icon: LucideIcon;
-  href?: string;
+  href: string;
   badge?: number;
 };
 
-const navItems: NavItem[] = [
+export const platformNavItems: readonly NavItem[] = [
   { label: "Огляд", icon: Home, href: "/" },
   { label: "Вузли", icon: Network, href: "/nodes" },
   { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions" },
-  { label: "Live дані", icon: ChartNoAxesCombined },
-  { label: "Схеми обладнання", icon: Boxes },
-  { label: "Поштомати", icon: LockKeyhole },
+  { label: "Live дані", icon: ChartNoAxesCombined, href: "/live" },
+  { label: "Схеми обладнання", icon: Boxes, href: "/equipment-layouts" },
+  { label: "Поштомати", icon: LockKeyhole, href: "/lockers" },
   { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration" },
   { label: "Тривоги", icon: AlertTriangle, href: "/alerts" },
-  { label: "Камери", icon: Camera },
-  { label: "Енергомоніторинг", icon: Zap },
+  { label: "Камери", icon: Camera, href: "/cameras" },
+  { label: "Енергомоніторинг", icon: Zap, href: "/energy" },
   { label: "Звіти", icon: FileText, href: "/reports" },
-  { label: "Обладнання", icon: Cpu },
-  { label: "Налаштування", icon: Settings },
+  { label: "Обладнання", icon: Cpu, href: "/equipment" },
+  { label: "Налаштування", icon: Settings, href: "/settings" },
 ];
 
 interface SidebarProps {
@@ -85,17 +85,26 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
             Платформа
           </p>
           <div className="space-y-1">
-            {navItems.map(({ label, icon: Icon, badge, href }) => {
-              const routeActive = href === "/" ? pathname === "/" : href ? pathname.startsWith(href) : false;
-              const active = routeActive || (!href && activeItem === label);
+            {platformNavItems.map(({ label, icon: Icon, badge, href }) => {
+              const routeActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active = routeActive || activeItem === label;
               const classes = clsx(
                 "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
                 active
                   ? "border-blue-400/45 bg-blue-500/12 text-white shadow-[inset_0_0_22px_rgba(0,119,255,.07)]"
                   : "border-transparent text-slate-400 hover:border-white/[0.055] hover:bg-white/[0.035] hover:text-slate-100",
               );
-              const content = (
-                <>
+
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  className={classes}
+                  onClick={() => {
+                    onSelect(label);
+                    onClose();
+                  }}
+                >
                   <Icon
                     className={clsx(
                       "h-[17px] w-[17px]",
@@ -116,24 +125,7 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
                       )}
                     />
                   )}
-                </>
-              );
-
-              return href ? (
-                <Link key={label} href={href} className={classes} onClick={onClose}>
-                  {content}
                 </Link>
-              ) : (
-                <button
-                  key={label}
-                  onClick={() => {
-                    onSelect(label);
-                    onClose();
-                  }}
-                  className={classes}
-                >
-                  {content}
-                </button>
               );
             })}
           </div>
