@@ -51,6 +51,7 @@ export interface RefrigerationEquipment {
   totalSensors: number;
   activeAlarms: number;
   lastSeenAt: string;
+  version: number;
   image: EquipmentImageMetadata | null;
   sensors: RefrigerationSensor[];
 }
@@ -116,6 +117,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 48,
     activeAlarms: 1,
     lastSeenAt: "2026-07-24T14:23:45Z",
+    version: 1,
     image: null,
     sensors,
   },
@@ -139,6 +141,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 24,
     activeAlarms: 2,
     lastSeenAt: "2026-07-24T14:21:19Z",
+    version: 1,
     image: null,
     sensors: sensors.slice(0, 24),
   },
@@ -162,6 +165,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     totalSensors: 16,
     activeAlarms: 0,
     lastSeenAt: "2026-07-24T14:23:30Z",
+    version: 1,
     image: null,
     sensors: sensors.slice(0, 16).map((sensor, index) => ({
       ...sensor,
