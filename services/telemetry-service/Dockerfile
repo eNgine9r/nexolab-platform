@@ -23,7 +23,12 @@ COPY migrations ./migrations
 COPY app ./app
 COPY bin/nexolab-dynsec-admin /usr/local/bin/nexolab-dynsec-admin
 
-RUN chmod 0755 /usr/local/bin/nexolab-dynsec-admin \
+# Build contexts can originate from hosts with a restrictive umask. Normalize
+# application source modes before dropping privileges so Alembic and Uvicorn
+# remain readable by the dedicated runtime account.
+RUN find /app -type d -exec chmod 0755 {} + \
+    && find /app -type f -exec chmod 0644 {} + \
+    && chmod 0755 /usr/local/bin/nexolab-dynsec-admin \
     && useradd --create-home --uid 10001 nexolab
 USER nexolab
 
