@@ -80,6 +80,7 @@ async function selectClimateChamber() {
   fireEvent.change(screen.getByLabelText(/^Кліматична камера/), {
     target: { value: "kk2" },
   });
+  await screen.findByText(/Доступно каналів вимірювання:/);
 }
 
 describe("RefrigerationCatalogScreen", () => {
