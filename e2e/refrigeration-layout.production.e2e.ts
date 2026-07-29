@@ -53,17 +53,38 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
   const pageB = await operatorB.newPage();
 
   try {
-    await test.step("upload a real image and verify its MinIO signed URL", async () => {
+    await test.step("verify sidebar shell, enlarged canvas and versioned sensor swap", async () => {
       await openProductionEquipment(pageA, 1);
 
+      await expect(pageA.getByRole("link", { name: "Холодильне обладнання" })).toHaveAttribute(
+        "href",
+        "/refrigeration",
+      );
+      const canvasWorkspace = pageA.getByTestId("equipment-image-workspace");
+      await expect(canvasWorkspace).toHaveAttribute("data-expanded", "false");
+      await pageA.getByRole("button", { name: "Збільшити підкладку" }).click();
+      await expect(canvasWorkspace).toHaveAttribute("data-expanded", "true");
+
+      const assigned = pageA.getByRole("combobox", { name: "Встановлений датчик" });
+      const candidate = pageA.getByRole("combobox", { name: "Датчик зі списку" });
+      await expect(pageA.getByRole("button", { name: "Замінити" })).toBeEnabled();
+      await assigned.selectOption({ index: 0 });
+      await candidate.selectOption({ index: 0 });
+      await pageA.getByRole("button", { name: "Замінити" }).click();
+
+      await expect(pageA.getByText(/поміняно місцями/)).toBeVisible();
+      await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
+    });
+
+    await test.step("upload a real image and verify its MinIO signed URL", async () => {
       await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
         name: "showcase-acceptance.png",
         mimeType: "image/png",
         buffer: equipmentPhoto,
       });
 
-      await expect(pageA.getByText(/завантажено та прив’язано до чернетки v2/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText(/завантажено та прив’язано до чернетки v3/)).toBeVisible();
+      await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
 
       const image = pageA.locator(`img[alt="Фото обладнання ${equipmentId}"]`).first();
       await expect(image).toBeVisible();
@@ -101,18 +122,18 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await expect(editor(pageA).getByText("Незбережені зміни")).toBeVisible();
       await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
 
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 3")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText("Чернетку схеми збережено · версія 4")).toBeVisible();
+      await expect(pageA.getByText("Чернетка v4 · PostgreSQL")).toBeVisible();
 
       await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       await expect(pageA.getByText("Опубліковано ревізію r1.")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v4 · PostgreSQL")).toBeVisible();
+      await expect(pageA.getByText("Чернетка v5 · PostgreSQL")).toBeVisible();
       await expect(pageA.getByText("Ревізія r1")).toBeVisible();
       await expect(pageA.getByText("showcase-acceptance.png").first()).toBeVisible();
     });
 
     await test.step("run two isolated operators against the same draft version", async () => {
-      await openProductionEquipment(pageB, 4);
+      await openProductionEquipment(pageB, 5);
       await enterEditMode(pageA);
       await enterEditMode(pageB);
 
@@ -130,11 +151,11 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       expect(winningX).not.toBe(losingLocalX);
 
       await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 5")).toBeVisible();
+      await expect(pageA.getByText("Чернетку схеми збережено · версія 6")).toBeVisible();
 
       await editor(pageB).getByRole("button", { name: "Зберегти чернетку" }).click();
       await expect(pageB.getByText("End-to-end конфлікт версій")).toBeVisible();
-      await expect(pageB.getByText(/очікувала v4, але сервер уже зберігає v5/)).toBeVisible();
+      await expect(pageB.getByText(/очікувала v5, але сервер уже зберігає v6/)).toBeVisible();
       await expect(markerB).toHaveAttribute("data-x", losingLocalX ?? "");
 
       await pageB.screenshot({
@@ -143,8 +164,8 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       });
 
       pageB.once("dialog", (dialog) => void dialog.accept());
-      await pageB.getByRole("button", { name: "Завантажити серверну v5" }).click();
-      await expect(pageB.getByText("Завантажено серверну чернетку v5.")).toBeVisible();
+      await pageB.getByRole("button", { name: "Завантажити серверну v6" }).click();
+      await expect(pageB.getByText("Завантажено серверну чернетку v6.")).toBeVisible();
       await expect(editor(pageB).getByText("Режим перегляду")).toBeVisible();
       await expect(sensorMarker(pageB, "01F")).toHaveAttribute("data-x", winningX ?? "");
 
@@ -159,9 +180,9 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
       );
       expect(draftResponse.status()).toBe(200);
-      expect(draftResponse.headers().etag).toBe('W/"layout-draft-v5"');
+      expect(draftResponse.headers().etag).toBe('W/"layout-draft-v6"');
       const draft = (await draftResponse.json()) as DraftPayload;
-      expect(draft.version).toBe(5);
+      expect(draft.version).toBe(6);
       expect(draft.placements).toHaveLength(48);
       expect(draft.image).not.toBeNull();
 
@@ -173,7 +194,7 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       expect(history.items).toHaveLength(1);
       expect(history.items[0]).toMatchObject({
         revision: 1,
-        source_draft_version: 3,
+        source_draft_version: 4,
       });
       expect(history.items[0]?.placements).toHaveLength(48);
 
