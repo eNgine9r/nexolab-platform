@@ -52,10 +52,14 @@ async function enterEditMode(page: Page) {
   await expect(editor(page).getByText("Режим редагування")).toBeVisible();
 }
 
-test("creates and safely removes equipment through icon-first catalog actions", async ({ page }) => {
+test("creates, copies and safely removes equipment through icon-first catalog actions", async ({
+  page,
+}) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const name = "Вітрина acceptance №108-01";
   const code = "ACCEPTANCE-CS-108-01";
+  const copyName = `${name} — копія`;
+  const copyCode = `${code}-COPY`;
 
   await page.goto("/refrigeration", { waitUntil: "networkidle" });
   const addButton = page.getByRole("button", { name: "Додати холодильне обладнання" });
@@ -77,11 +81,39 @@ test("creates and safely removes equipment through icon-first catalog actions", 
   await expect(page.getByRole("heading", { name })).toBeVisible();
 
   const openLink = page.getByRole("link", { name: `Відкрити ${name}` });
-  await expect(openLink).toHaveAttribute("title", "Відкрити");
+  await expect(openLink).toHaveAttribute("title", `Відкрити ${name}`);
   const href = await openLink.getAttribute("href");
   expect(href).toMatch(/^\/refrigeration\/[0-9a-f-]{36}$/);
   const createdEquipmentId = href?.split("/").at(-1);
   expect(createdEquipmentId).toBeTruthy();
+
+  const copyButton = page.getByRole("button", { name: `Копіювати ${name}` });
+  await expect(copyButton).toHaveAttribute("title", `Копіювати ${name}`);
+  await copyButton.click();
+  await expect(page.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeVisible();
+  await expect(page.getByLabel(/^Назва/)).toHaveValue(copyName);
+  await expect(page.getByLabel(/^Код обладнання/)).toHaveValue(copyCode);
+  await expect(page.getByLabel(/^Серійний номер/)).toHaveValue("");
+  await expect(page.getByLabel(/^Node/)).toHaveValue("");
+  await expect(page.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeVisible();
+  await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-COPY-10801");
+  await page.getByRole("button", { name: "Створити копію", exact: true }).click();
+
+  await expect(page.getByRole("status")).toContainText(`${copyName} створено як незалежну копію.`);
+  await expect(page.getByRole("heading", { name: copyName })).toBeVisible();
+  const copyOpenLink = page.getByRole("link", { name: `Відкрити ${copyName}` });
+  const copyHref = await copyOpenLink.getAttribute("href");
+  expect(copyHref).toMatch(/^\/refrigeration\/[0-9a-f-]{36}$/);
+  const copiedEquipmentId = copyHref?.split("/").at(-1);
+  expect(copiedEquipmentId).toBeTruthy();
+  expect(copiedEquipmentId).not.toBe(createdEquipmentId);
+
+  await page.getByRole("button", { name: `Видалити ${copyName}` }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Видалити", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(`${copyName} видалено з каталогу.`);
 
   const deleteButton = page.getByRole("button", { name: `Видалити ${name}` });
   await expect(deleteButton).toHaveAttribute("title", `Видалити ${name}`);
@@ -98,6 +130,7 @@ test("creates and safely removes equipment through icon-first catalog actions", 
   expect(listResponse.status()).toBe(200);
   const list = (await listResponse.json()) as EquipmentListPayload;
   expect(list.items.some((item) => item.id === createdEquipmentId)).toBe(false);
+  expect(list.items.some((item) => item.id === copiedEquipmentId)).toBe(false);
 
   const deletedResponse = await page.request.get(
     `${apiBaseUrl}/api/v1/equipment/${createdEquipmentId}`,
@@ -152,8 +185,12 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
 
       const candidate = pageA.getByRole("combobox", { name: "Датчик зі списку" });
       await candidate.selectOption({ index: 0 });
-      await expect(pageA.getByRole("button", { name: "Додати", exact: true })).toBeEnabled();
-      await pageA.getByRole("button", { name: "Додати", exact: true }).click();
+      const addSensor = pageA.getByRole("button", {
+        name: "Додати вибраний датчик на підкладку",
+      });
+      await expect(addSensor).toBeEnabled();
+      await expect(addSensor).toHaveAttribute("title", "Додати вибраний датчик на підкладку");
+      await addSensor.click();
 
       await expect(pageA.getByText(/додано на підкладку/)).toBeVisible();
       await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
@@ -161,9 +198,12 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await editor(pageA).getByRole("button", { name: "Скасувати", exact: true }).click();
       await expect(editor(pageA).getByText("Режим перегляду")).toBeVisible();
 
-      await expect(pageA.getByRole("button", { name: "Замінити", exact: true })).toBeEnabled();
+      const replaceSensor = pageA.getByRole("button", {
+        name: "Замінити датчик у вибраній позиції",
+      });
+      await expect(replaceSensor).toBeEnabled();
       await candidate.selectOption({ index: 0 });
-      await pageA.getByRole("button", { name: "Замінити", exact: true }).click();
+      await replaceSensor.click();
 
       await expect(pageA.getByText(/замінено на/)).toBeVisible();
       await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();

@@ -2,19 +2,17 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
-import { ArrowLeft, CircleDot, Edit3, Thermometer, Wifi, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronDown, CircleDot, Thermometer, Wifi, type LucideIcon } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-lifecycle-panel";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
-import {
-  SecurityAwareRefrigerationLayoutWorkspace,
-  type LayoutCapabilities,
-} from "@/components/refrigeration/security-aware-layout-workspace";
+import { SecurityAwareRefrigerationLayoutWorkspace } from "@/components/refrigeration/security-aware-layout-workspace";
 import type {
+  EquipmentLifecycleStatus,
   EquipmentStatus,
   RefrigerationEquipment,
   RefrigerationSensor,
@@ -38,6 +36,18 @@ const equipmentStatusLabel: Record<EquipmentStatus, string> = {
   offline: "Offline",
 };
 
+const lifecycleLabel: Record<EquipmentLifecycleStatus, string> = {
+  active: "Активне",
+  maintenance: "Обслуговування",
+  retired: "Виведене з експлуатації",
+};
+
+const lifecycleTone: Record<EquipmentLifecycleStatus, string> = {
+  active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+  maintenance: "border-amber-400/20 bg-amber-400/10 text-amber-200",
+  retired: "border-slate-400/20 bg-slate-400/10 text-slate-300",
+};
+
 const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> = [
   { value: "all", label: "Усі" },
   { value: "front", label: "Передній фронт" },
@@ -55,11 +65,6 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
   const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
-  const [layoutCapabilities, setLayoutCapabilities] = useState<LayoutCapabilities>({
-    canEdit: false,
-    canPublish: false,
-    canRestore: false,
-  });
   const [canManageEquipment, setCanManageEquipment] = useState(runtime.mode === "demo");
   const [bindingEpoch, setBindingEpoch] = useState(0);
 
@@ -122,7 +127,10 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
             temperatureC: telemetry?.latestValue ?? null,
             status: sensorStatus(telemetry?.quality),
             updatedAt: telemetry?.capturedAt ?? binding.boundAt,
-            trend: telemetry?.latestValue === null || telemetry?.latestValue === undefined ? [] : [telemetry.latestValue],
+            trend:
+              telemetry?.latestValue === null || telemetry?.latestValue === undefined
+                ? []
+                : [telemetry.latestValue],
           };
         }),
       );
@@ -137,14 +145,11 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
     [bindingSensors, equipmentRecord],
   );
 
-  const handleCapabilitiesChange = useCallback((capabilities: LayoutCapabilities) => {
-    setLayoutCapabilities(capabilities);
-  }, []);
-
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
+        (sensor) =>
+          (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
@@ -168,73 +173,76 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[1900px]">
             <header className="mb-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-4">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex items-start gap-3">
-                  <Link
-                    href="/refrigeration"
-                    aria-label="Назад до обладнання"
-                    title="Назад"
-                    className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 hover:text-white"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Link>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold text-white">{equipment.name}</h1>
-                      <span
-                        className={clsx(
-                          "rounded-full border px-2.5 py-1 text-[10px]",
-                          equipmentStatusTone[equipment.status],
-                        )}
-                      >
-                        {equipmentStatusLabel[equipment.status]}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {equipment.location} · {equipment.model} · {equipment.serialNumber}
-                    </p>
+              <div className="flex items-start gap-3">
+                <Link
+                  href="/refrigeration"
+                  aria-label="Назад до обладнання"
+                  title="Назад"
+                  className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-xl font-semibold text-white">{equipment.name}</h1>
+                    <span
+                      className={clsx(
+                        "rounded-full border px-2.5 py-1 text-[10px]",
+                        equipmentStatusTone[equipment.status],
+                      )}
+                    >
+                      {equipmentStatusLabel[equipment.status]}
+                    </span>
                   </div>
+                  <p className="mt-1 truncate text-xs text-slate-500">
+                    {equipment.location} · {equipment.model} · {equipment.serialNumber}
+                  </p>
                 </div>
-
-                {layoutCapabilities.canEdit && !retired ? (
-                  <button
-                    type="button"
-                    aria-label="Редагувати схему датчиків"
-                    title="Редагувати схему"
-                    onClick={() => setLayoutMode("edit")}
-                    disabled={layoutMode === "edit"}
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-blue-400/25 bg-blue-500/15 text-blue-200 enabled:hover:bg-blue-500/20 disabled:cursor-default disabled:opacity-60"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                  </button>
-                ) : null}
               </div>
             </header>
 
-            <EquipmentLifecyclePanel
-              equipment={equipmentRecord}
-              repository={runtime.repository}
-              lifecycleRepository={runtime.lifecycleRepository}
-              canManage={canManageEquipment}
-              onEquipmentChange={(updated) => {
-                setEquipmentRecord(updated);
-                if (updated.lifecycleStatus === "retired") setLayoutMode("view");
-              }}
-              onBindingsChanged={() => setBindingEpoch((current) => current + 1)}
-            />
+            <details className="group mb-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 px-4 py-3 transition hover:border-cyan-300/15 [&::-webkit-details-marker]:hidden">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-white">
+                      Паспорт, lifecycle, фото та bindings
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-1 text-[9px] ${lifecycleTone[equipment.lifecycleStatus]}`}
+                    >
+                      {lifecycleLabel[equipment.lifecycleStatus]}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-[10px] text-slate-500">
+                    Паспорт v{equipment.version} · {equipment.laboratory ?? "Лабораторію не задано"}
+                    {equipment.zone ? ` · ${equipment.zone}` : ""} · {equipment.nodeId ?? "Node не прив’язано"}
+                  </p>
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="pt-3">
+                <EquipmentLifecyclePanel
+                  equipment={equipmentRecord}
+                  repository={runtime.repository}
+                  lifecycleRepository={runtime.lifecycleRepository}
+                  canManage={canManageEquipment}
+                  onEquipmentChange={(updated) => {
+                    setEquipmentRecord(updated);
+                    if (updated.lifecycleStatus === "retired") setLayoutMode("view");
+                  }}
+                  onBindingsChanged={() => setBindingEpoch((current) => current + 1)}
+                />
+              </div>
+            </details>
 
-            <div className="grid gap-3 2xl:grid-cols-[260px_minmax(0,1fr)_370px]">
+            <div className="grid gap-3 2xl:grid-cols-[220px_minmax(0,1fr)_340px]">
               <aside className="space-y-3">
-                <Panel title="Інформація">
+                <Panel title="Ключові дані">
                   <Info label="Тип" value={equipment.type} />
                   <Info label="Модель" value={`${equipment.manufacturer} ${equipment.model}`} />
                   <Info label="Серійний номер" value={equipment.serialNumber} />
                   <Info label="Температурний клас" value={equipment.temperatureClass} />
-                  <Info label="Лабораторія" value={equipment.laboratory ?? "Не задано"} />
-                  <Info label="Зона" value={equipment.zone ?? "Не задано"} />
-                  <Info label="Node" value={equipment.nodeId ?? "Не прив’язано"} />
-                  <Info label="Встановлено" value={equipment.installedAt || "Не задано"} />
-                  <Info label="Обслуговування" value={equipment.servicedAt || "Не задано"} />
                 </Panel>
 
                 <Panel title="Поточний стан">
@@ -243,12 +251,6 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
                   <State label="Відтаювання" value="Неактивне" muted={retired} />
                   <State label="Двері" value="Зачинені" muted={retired} />
                   <State label="Живлення" value={retired ? "Відключено" : "Норма"} muted={retired} />
-                </Panel>
-
-                <Panel title="Фото обладнання">
-                  <Info label="Стан" value={equipment.image ? "Фото прив’язане" : "Очікує завантаження"} />
-                  <Info label="Формати" value="JPEG, PNG, WebP · до 15 МБ" />
-                  <Info label="Координати" value="Нормалізовані 0..1" />
                 </Panel>
               </aside>
 
@@ -311,14 +313,21 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
                   forceReadOnly={retired}
                   onModeChange={setLayoutMode}
                   onSelect={setSelectedId}
-                  onCapabilitiesChange={handleCapabilitiesChange}
                 />
 
                 <div className="grid gap-3 md:grid-cols-4">
-                  <Metric label="Середня температура" value={`${equipment.averageTemperatureC} °C`} icon={Thermometer} />
+                  <Metric
+                    label="Середня температура"
+                    value={`${equipment.averageTemperatureC} °C`}
+                    icon={Thermometer}
+                  />
                   <Metric label="Мінімальна" value={`${equipment.minTemperatureC} °C`} icon={Thermometer} />
                   <Metric label="Максимальна" value={`${equipment.maxTemperatureC} °C`} icon={Thermometer} />
-                  <Metric label="Online датчики" value={`${equipment.onlineSensors}/${equipment.sensors.length}`} icon={Wifi} />
+                  <Metric
+                    label="Online датчики"
+                    value={`${equipment.onlineSensors}/${equipment.sensors.length}`}
+                    icon={Wifi}
+                  />
                 </div>
               </section>
 
@@ -334,16 +343,23 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
                 </div>
 
                 {selected ? (
-                  <div className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3" aria-live="polite">
+                  <div
+                    className="mb-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.07] p-3"
+                    aria-live="polite"
+                  >
                     <p className="text-[9px] tracking-wider text-blue-300 uppercase">Вибраний датчик</p>
                     <div className="mt-2 flex items-end justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-white">{selected.label} · {selected.name}</p>
+                        <p className="font-semibold text-white">
+                          {selected.label} · {selected.name}
+                        </p>
                         <p className="mt-1 text-[10px] text-slate-500">
                           Полиця {selected.shelf} · позиція {selected.position}
                         </p>
                       </div>
-                      <p className="text-xl font-semibold text-white">{formatTemperature(selected.temperatureC)}</p>
+                      <p className="text-xl font-semibold text-white">
+                        {formatTemperature(selected.temperatureC)}
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -381,7 +397,9 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
                         <span className="block truncate text-[11px] text-slate-300">{sensor.name}</span>
                         <span className="text-[9px] text-slate-600">Полиця {sensor.shelf}</span>
                       </span>
-                      <span className="text-xs font-semibold text-white">{formatTemperature(sensor.temperatureC, false)}</span>
+                      <span className="text-xs font-semibold text-white">
+                        {formatTemperature(sensor.temperatureC, false)}
+                      </span>
                       <Sparkline values={sensor.trend} />
                     </button>
                   ))}
@@ -451,7 +469,10 @@ function Sparkline({ values }: { values: number[] }) {
   const max = Math.max(...values);
   const range = Math.max(0.1, max - min);
   const points = values
-    .map((value, index) => `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`)
+    .map(
+      (value, index) =>
+        `${(index / (values.length - 1)) * 46},${14 - ((value - min) / range) * 11}`,
+    )
     .join(" ");
   return (
     <svg width="46" height="16" viewBox="0 0 46 16" aria-hidden="true" className="text-cyan-400">
