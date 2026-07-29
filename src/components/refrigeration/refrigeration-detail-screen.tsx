@@ -96,7 +96,7 @@ export function RefrigerationDetailScreen({ equipment: initialEquipment }: { equ
   useEffect(() => {
     const lifecycle = runtime.lifecycleRepository;
     if (!lifecycle || !equipmentRecord.nodeId) {
-      setBindingSensors(runtime.mode === "demo" ? null : []);
+      setBindingSensors(null);
       return;
     }
     let active = true;
