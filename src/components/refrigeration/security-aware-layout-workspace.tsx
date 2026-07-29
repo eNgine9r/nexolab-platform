@@ -214,9 +214,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
         onSelect={onSelect}
         repository={runtime.repository}
-        canEdit={capabilities.canEdit}
-        canPublish={capabilities.canPublish}
-        canRestore={capabilities.canRestore}
       />
     </div>
   );
