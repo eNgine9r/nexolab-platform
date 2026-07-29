@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     JSON,
@@ -34,6 +35,10 @@ class RefrigerationEquipmentRecord(Base):
             "status IN ('normal', 'warning', 'alarm', 'offline')",
             name="ck_refrigeration_equipment_status",
         ),
+        CheckConstraint(
+            "lifecycle_status IN ('active', 'maintenance', 'retired')",
+            name="ck_refrigeration_equipment_lifecycle_status",
+        ),
         CheckConstraint("version >= 1", name="ck_refrigeration_equipment_version_positive"),
         CheckConstraint("online_sensors >= 0", name="ck_refrigeration_equipment_online_non_negative"),
         CheckConstraint("total_sensors >= 0", name="ck_refrigeration_equipment_total_non_negative"),
@@ -43,8 +48,15 @@ class RefrigerationEquipmentRecord(Base):
             "ix_refrigeration_equipment_active",
             "organization_id",
             "deleted_at",
+            "lifecycle_status",
             "status",
             "name",
+        ),
+        Index(
+            "ix_refrigeration_equipment_node",
+            "organization_id",
+            "node_id",
+            "deleted_at",
         ),
     )
 
@@ -62,6 +74,9 @@ class RefrigerationEquipmentRecord(Base):
     code: Mapped[str] = mapped_column(String(128), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     location: Mapped[str] = mapped_column(String(255), nullable=False)
+    laboratory: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    zone: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    node_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     equipment_type: Mapped[str] = mapped_column(String(128), nullable=False)
     manufacturer: Mapped[str] = mapped_column(String(128), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -69,6 +84,9 @@ class RefrigerationEquipmentRecord(Base):
     temperature_class: Mapped[str] = mapped_column(String(128), nullable=False)
     installed_at: Mapped[date | None] = mapped_column(Date(), nullable=True)
     serviced_at: Mapped[date | None] = mapped_column(Date(), nullable=True)
+    lifecycle_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="active", server_default="active"
+    )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="offline", server_default="offline")
     average_temperature_c: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default=text("0"))
     min_temperature_c: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default=text("0"))
@@ -99,6 +117,7 @@ class EquipmentImage(Base):
             "ix_equipment_images_equipment_created",
             "organization_id",
             "equipment_id",
+            "retired_at",
             "created_at",
         ),
     )
@@ -126,6 +145,72 @@ class EquipmentImage(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    retired_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class EquipmentSensorBinding(Base):
+    __tablename__ = "refrigeration_sensor_bindings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "equipment_id"],
+            ["refrigeration_equipment.organization_id", "refrigeration_equipment.id"],
+            name="fk_refrigeration_sensor_binding_equipment",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint("side IN ('front', 'rear')", name="ck_refrigeration_sensor_binding_side"),
+        CheckConstraint("shelf BETWEEN 1 AND 4", name="ck_refrigeration_sensor_binding_shelf"),
+        CheckConstraint("position BETWEEN 1 AND 6", name="ck_refrigeration_sensor_binding_position"),
+        CheckConstraint("version >= 1", name="ck_refrigeration_sensor_binding_version_positive"),
+        Index(
+            "ix_refrigeration_sensor_bindings_equipment_history",
+            "organization_id",
+            "equipment_id",
+            "bound_at",
+        ),
+        Index(
+            "uq_refrigeration_sensor_bindings_active_channel",
+            "organization_id",
+            "node_id",
+            "channel_id",
+            unique=True,
+            postgresql_where=text("unbound_at IS NULL"),
+            sqlite_where=text("unbound_at IS NULL"),
+        ),
+        Index(
+            "uq_refrigeration_sensor_bindings_active_slot",
+            "organization_id",
+            "equipment_id",
+            "slot_key",
+            unique=True,
+            postgresql_where=text("unbound_at IS NULL"),
+            sqlite_where=text("unbound_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_sensor_bindings_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    equipment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    slot_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    label: Mapped[str] = mapped_column(String(128), nullable=False)
+    side: Mapped[str] = mapped_column(String(8), nullable=False)
+    shelf: Mapped[int] = mapped_column(Integer, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
+    bound_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    bound_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    unbound_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    unbound_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class RefrigerationLayoutDraft(Base):
