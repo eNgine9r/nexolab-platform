@@ -268,7 +268,7 @@ export function SensorPlacementManager({
           >
             {assignedSensors.map((sensor) => (
               <option key={sensor.id} value={sensor.id}>
-                {sensor.label} · {sensor.name}
+                Позиція: {sensor.label} · {sensor.name}
               </option>
             ))}
           </select>
@@ -287,8 +287,8 @@ export function SensorPlacementManager({
           >
             {candidates.map((sensor) => (
               <option key={sensor.id} value={sensor.id}>
-                {sensor.label} · {sensor.name}
-                {assignedIds.has(sensor.id) ? " · встановлено" : " · доступно"}
+                {assignedIds.has(sensor.id) ? "Встановлено" : "Доступно"}: {sensor.label} ·{" "}
+                {sensor.name}
               </option>
             ))}
           </select>
