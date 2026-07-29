@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, CopyPlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, CopyPlus, LoaderCircle, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import type { EquipmentLifecycleStatus, RefrigerationEquipment } from "@/data/refrigeration";
@@ -17,6 +17,7 @@ export type EquipmentNodeOption = {
 };
 
 type PassportDialogMode = "create" | "duplicate" | "edit";
+type ChamberLoadState = "idle" | "loading" | "ready" | "error";
 
 const initialForm: RefrigerationEquipmentCreateInput = {
   code: "",
@@ -45,6 +46,7 @@ export function CreateEquipmentDialog({
   intent = "create",
   onClose,
   onSubmit,
+  onClimateChamberChange,
 }: {
   open: boolean;
   busy: boolean;
@@ -54,6 +56,7 @@ export function CreateEquipmentDialog({
   intent?: "create" | "duplicate";
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
+  onClimateChamberChange?: (nodeId: string) => Promise<number>;
 }) {
   return (
     <EquipmentPassportDialog
@@ -65,6 +68,7 @@ export function CreateEquipmentDialog({
       nodeOptions={nodeOptions}
       onClose={onClose}
       onSubmit={onSubmit}
+      onClimateChamberChange={onClimateChamberChange}
     />
   );
 }
@@ -108,6 +112,7 @@ function EquipmentPassportDialog({
   nodeOptions,
   onClose,
   onSubmit,
+  onClimateChamberChange,
 }: {
   mode: PassportDialogMode;
   open: boolean;
@@ -117,17 +122,24 @@ function EquipmentPassportDialog({
   nodeOptions: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
+  onClimateChamberChange?: (nodeId: string) => Promise<number>;
 }) {
   const [form, setForm] = useState(initialValue);
   const [retirementConfirmed, setRetirementConfirmed] = useState(false);
+  const [chamberLoadState, setChamberLoadState] = useState<ChamberLoadState>("idle");
+  const [chamberChannelCount, setChamberChannelCount] = useState<number | null>(null);
+  const [chamberError, setChamberError] = useState<string | null>(null);
   const titleId = useId();
-  const firstField = useRef<HTMLInputElement>(null);
+  const chamberField = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setForm(initialValue);
     setRetirementConfirmed(false);
-    const frame = window.requestAnimationFrame(() => firstField.current?.focus());
+    setChamberLoadState("idle");
+    setChamberChannelCount(null);
+    setChamberError(null);
+    const frame = window.requestAnimationFrame(() => chamberField.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
     };
@@ -148,13 +160,39 @@ function EquipmentPassportDialog({
     if (key === "lifecycleStatus" && value !== "retired") setRetirementConfirmed(false);
   };
 
+  const selectClimateChamber = async (nodeId: string) => {
+    update("nodeId", nodeId);
+    setChamberChannelCount(null);
+    setChamberError(null);
+    if (!nodeId || !onClimateChamberChange) {
+      setChamberLoadState("idle");
+      return;
+    }
+    setChamberLoadState("loading");
+    try {
+      const count = await onClimateChamberChange(nodeId);
+      setChamberChannelCount(count);
+      setChamberLoadState("ready");
+    } catch (cause) {
+      setChamberLoadState("error");
+      setChamberError(
+        cause instanceof Error
+          ? cause.message
+          : "Не вдалося завантажити датчики та вимірювальні прилади камери.",
+      );
+    }
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (form.lifecycleStatus !== "retired" && !form.nodeId) return;
     if (form.lifecycleStatus === "retired" && !retirementConfirmed) return;
     await onSubmit(form);
   };
 
   const retirementBlocked = form.lifecycleStatus === "retired" && !retirementConfirmed;
+  const chamberRequired = form.lifecycleStatus !== "retired";
+  const passportLocked = mode !== "edit" && !form.nodeId;
   const title =
     mode === "create"
       ? "Нове холодильне обладнання"
@@ -189,160 +227,209 @@ function EquipmentPassportDialog({
             <div className="mb-5 flex items-start gap-3 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-xs leading-5 text-blue-100">
               <CopyPlus className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Перенесено лише технічні параметри паспорта. Перевірте назву, код і розташування та
-                введіть новий серійний номер. Node, датчики, фото, схеми, історія й аудит не копіюються.
+                Перенесено лише технічні параметри паспорта. Оберіть кліматичну камеру, перевірте
+                назву, код і розташування та введіть новий серійний номер. Датчики, фото, схеми,
+                історія й аудит не копіюються.
               </span>
             </div>
           ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Назва" required>
-              <input
-                ref={firstField}
-                required
-                value={form.name}
-                onChange={(event) => update("name", event.target.value)}
-                className={inputClass}
-                placeholder="Вітрина №108-01"
-              />
-            </Field>
-            <Field label="Код обладнання" required>
-              <input
-                required
-                value={form.code}
-                onChange={(event) => update("code", event.target.value)}
-                className={inputClass}
-                placeholder="CS-P1250-2026-108-01"
-              />
-            </Field>
-            <Field label="Тип" required>
-              <select
-                required
-                value={form.type}
-                onChange={(event) => update("type", event.target.value)}
-                className={inputClass}
-              >
-                <option>Холодильна вітрина</option>
-                <option>Холодильна камера</option>
-                <option>Морозильна вітрина</option>
-                <option>Інше холодильне обладнання</option>
-              </select>
-            </Field>
-            <Field label="Лабораторія">
-              <input
-                value={form.laboratory}
-                onChange={(event) => update("laboratory", event.target.value)}
-                className={inputClass}
-                placeholder="Лабораторія 1"
-              />
-            </Field>
-            <Field label="Зона">
-              <input
-                value={form.zone}
-                onChange={(event) => update("zone", event.target.value)}
-                className={inputClass}
-                placeholder="Зона C"
-              />
-            </Field>
-            <Field label="Node" hint={mode === "duplicate" ? "Не копіюється" : undefined}>
-              <select
-                value={form.nodeId}
-                onChange={(event) => update("nodeId", event.target.value)}
-                className={inputClass}
-              >
-                <option value="">Не прив’язано</option>
-                {nodeOptions.map((node) => (
-                  <option key={node.nodeId} value={node.nodeId}>
-                    {node.displayName} · {node.nodeId}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Відображуване розташування" required hint="Каталог і звіти">
-              <input
-                required
-                value={form.location}
-                onChange={(event) => update("location", event.target.value)}
-                className={inputClass}
-                placeholder="Лабораторія 1 · Зона C"
-              />
-            </Field>
-            <Field label="Виробник" required>
-              <input
-                required
-                value={form.manufacturer}
-                onChange={(event) => update("manufacturer", event.target.value)}
-                className={inputClass}
-                placeholder="Виробник"
-              />
-            </Field>
-            <Field label="Модель" required>
-              <input
-                required
-                value={form.model}
-                onChange={(event) => update("model", event.target.value)}
-                className={inputClass}
-                placeholder="Модель"
-              />
-            </Field>
-            <Field label="Серійний номер" required hint={mode === "duplicate" ? "Новий" : undefined}>
-              <input
-                required
-                value={form.serialNumber}
-                onChange={(event) => update("serialNumber", event.target.value)}
-                className={inputClass}
-                placeholder="SN-00001"
-              />
-            </Field>
-            <Field label="Температурний клас" required>
-              <input
-                required
-                value={form.temperatureClass}
-                onChange={(event) => update("temperatureClass", event.target.value)}
-                className={inputClass}
-                placeholder="3M1 (0…+5 °C)"
-              />
-            </Field>
-            <Field label="Lifecycle">
-              <select
-                value={form.lifecycleStatus}
-                onChange={(event) =>
-                  update("lifecycleStatus", event.target.value as EquipmentLifecycleStatus)
-                }
-                className={inputClass}
-              >
-                <option value="active">Активне</option>
-                <option value="maintenance">Обслуговування</option>
-                {mode === "edit" ? <option value="retired">Виведене з експлуатації</option> : null}
-              </select>
-            </Field>
-            <Field label="Дата встановлення">
-              <input
-                type="date"
-                value={form.installedAt}
-                onChange={(event) => update("installedAt", event.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Останнє обслуговування">
-              <input
-                type="date"
-                value={form.servicedAt}
-                onChange={(event) => update("servicedAt", event.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Кількість слотів датчиків" hint="0–48">
-              <input
-                type="number"
-                min={0}
-                max={48}
-                value={form.totalSensors}
-                onChange={(event) => update("totalSensors", Number(event.target.value))}
-                className={inputClass}
-              />
-            </Field>
+          <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
+                <RadioTower className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Field
+                  label="Кліматична камера"
+                  required={chamberRequired}
+                  hint={mode === "edit" ? "Зміна потребує відсутності активних bindings" : "Перший крок"}
+                >
+                  <select
+                    ref={chamberField}
+                    required={chamberRequired}
+                    value={form.nodeId}
+                    onChange={(event) => void selectClimateChamber(event.target.value)}
+                    className={inputClass}
+                    aria-describedby="climate-chamber-help"
+                  >
+                    <option value="">Оберіть кліматичну камеру</option>
+                    {nodeOptions.map((node) => (
+                      <option
+                        key={node.nodeId}
+                        value={node.nodeId}
+                        disabled={mode !== "edit" && node.state !== "active"}
+                      >
+                        {node.displayName} · {node.nodeId}
+                        {node.state !== "active" ? ` · ${node.state}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <div id="climate-chamber-help" className="mt-2 min-h-5 text-[10px] leading-5">
+                  {chamberLoadState === "loading" ? (
+                    <span className="inline-flex items-center gap-2 text-cyan-200">
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                      Завантаження доступних датчиків і приладів…
+                    </span>
+                  ) : chamberLoadState === "ready" ? (
+                    <span className="text-emerald-300">
+                      Доступно каналів вимірювання: {chamberChannelCount ?? 0}. На схемі будуть
+                      показані лише канали цієї камери.
+                    </span>
+                  ) : chamberLoadState === "error" ? (
+                    <span className="text-rose-300">{chamberError}</span>
+                  ) : (
+                    <span className="text-slate-500">
+                      Камера визначає набір доступних датчиків і вимірювальних приладів.
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+
+          {passportLocked ? (
+            <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              Спочатку оберіть кліматичну камеру. Після цього стане доступним паспорт обладнання.
+            </p>
+          ) : null}
+
+          <fieldset disabled={passportLocked || busy} className="disabled:opacity-45">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label="Назва" required>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(event) => update("name", event.target.value)}
+                  className={inputClass}
+                  placeholder="Вітрина №108-01"
+                />
+              </Field>
+              <Field label="Код обладнання" required>
+                <input
+                  required
+                  value={form.code}
+                  onChange={(event) => update("code", event.target.value)}
+                  className={inputClass}
+                  placeholder="CS-P1250-2026-108-01"
+                />
+              </Field>
+              <Field label="Тип" required>
+                <select
+                  required
+                  value={form.type}
+                  onChange={(event) => update("type", event.target.value)}
+                  className={inputClass}
+                >
+                  <option>Холодильна вітрина</option>
+                  <option>Холодильна камера</option>
+                  <option>Морозильна вітрина</option>
+                  <option>Інше холодильне обладнання</option>
+                </select>
+              </Field>
+              <Field label="Лабораторія">
+                <input
+                  value={form.laboratory}
+                  onChange={(event) => update("laboratory", event.target.value)}
+                  className={inputClass}
+                  placeholder="Лабораторія 1"
+                />
+              </Field>
+              <Field label="Зона">
+                <input
+                  value={form.zone}
+                  onChange={(event) => update("zone", event.target.value)}
+                  className={inputClass}
+                  placeholder="Зона C"
+                />
+              </Field>
+              <Field label="Відображуване розташування" required hint="Каталог і звіти">
+                <input
+                  required
+                  value={form.location}
+                  onChange={(event) => update("location", event.target.value)}
+                  className={inputClass}
+                  placeholder="Лабораторія 1 · Зона C"
+                />
+              </Field>
+              <Field label="Виробник" required>
+                <input
+                  required
+                  value={form.manufacturer}
+                  onChange={(event) => update("manufacturer", event.target.value)}
+                  className={inputClass}
+                  placeholder="Виробник"
+                />
+              </Field>
+              <Field label="Модель" required>
+                <input
+                  required
+                  value={form.model}
+                  onChange={(event) => update("model", event.target.value)}
+                  className={inputClass}
+                  placeholder="Модель"
+                />
+              </Field>
+              <Field label="Серійний номер" required hint={mode === "duplicate" ? "Новий" : undefined}>
+                <input
+                  required
+                  value={form.serialNumber}
+                  onChange={(event) => update("serialNumber", event.target.value)}
+                  className={inputClass}
+                  placeholder="SN-00001"
+                />
+              </Field>
+              <Field label="Температурний клас" required>
+                <input
+                  required
+                  value={form.temperatureClass}
+                  onChange={(event) => update("temperatureClass", event.target.value)}
+                  className={inputClass}
+                  placeholder="3M1 (0…+5 °C)"
+                />
+              </Field>
+              <Field label="Lifecycle">
+                <select
+                  value={form.lifecycleStatus}
+                  onChange={(event) =>
+                    update("lifecycleStatus", event.target.value as EquipmentLifecycleStatus)
+                  }
+                  className={inputClass}
+                >
+                  <option value="active">Активне</option>
+                  <option value="maintenance">Обслуговування</option>
+                  {mode === "edit" ? <option value="retired">Виведене з експлуатації</option> : null}
+                </select>
+              </Field>
+              <Field label="Дата встановлення">
+                <input
+                  type="date"
+                  value={form.installedAt}
+                  onChange={(event) => update("installedAt", event.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Останнє обслуговування">
+                <input
+                  type="date"
+                  value={form.servicedAt}
+                  onChange={(event) => update("servicedAt", event.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Кількість слотів датчиків" hint="0–48">
+                <input
+                  type="number"
+                  min={0}
+                  max={48}
+                  value={form.totalSensors}
+                  onChange={(event) => update("totalSensors", Number(event.target.value))}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+          </fieldset>
 
           {form.lifecycleStatus === "retired" ? (
             <label className="mt-5 flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 p-4 text-xs text-rose-100">
@@ -380,7 +467,7 @@ function EquipmentPassportDialog({
             </button>
             <button
               type="submit"
-              disabled={busy || retirementBlocked}
+              disabled={busy || retirementBlocked || (chamberRequired && !form.nodeId) || chamberLoadState === "loading"}
               className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {mode === "create" ? (
@@ -540,4 +627,4 @@ function Field({
 }
 
 const inputClass =
-  "min-h-11 w-full rounded-xl border border-white/10 bg-[#07172c] px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
+  "min-h-11 w-full rounded-xl border border-white/10 bg-[#07172c] px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10 disabled:cursor-not-allowed";

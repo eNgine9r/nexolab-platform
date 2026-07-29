@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -105,7 +105,6 @@ export function RefrigerationCatalogScreen({
   useEffect(() => {
     const repository = runtime.repository;
     if (!repository) return;
-
     let active = true;
     void repository
       .list()
@@ -127,7 +126,6 @@ export function RefrigerationCatalogScreen({
       .finally(() => {
         if (active) setLoading(false);
       });
-
     return () => {
       active = false;
     };
@@ -136,7 +134,6 @@ export function RefrigerationCatalogScreen({
   useEffect(() => {
     const lifecycleRepository = runtime.lifecycleRepository;
     if (!lifecycleRepository) return;
-
     let active = true;
     void lifecycleRepository
       .listNodes()
@@ -150,7 +147,10 @@ export function RefrigerationCatalogScreen({
         if (!active) return;
         setNotice({
           tone: "error",
-          message: error instanceof Error ? error.message : "Список node не завантажено.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Список кліматичних камер не завантажено.",
         });
       });
     return () => {
@@ -161,7 +161,6 @@ export function RefrigerationCatalogScreen({
   useEffect(() => {
     const sessionClient = runtime.sessionClient;
     if (runtime.mode !== "live" || !sessionClient) return;
-
     let active = true;
     void sessionClient.getSession().then((result) => {
       if (!active) return;
@@ -182,38 +181,39 @@ export function RefrigerationCatalogScreen({
 
   const equipment = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
-
     return items.filter((item) => {
       const searchText = `${item.name} ${item.code} ${item.location} ${item.laboratory ?? ""} ${item.zone ?? ""} ${item.nodeId ?? ""} ${item.model}`.toLocaleLowerCase(
         "uk-UA",
       );
-      const matchesQuery = normalizedQuery.length === 0 || searchText.includes(normalizedQuery);
-      const matchesStatus = status === "all" || item.status === status;
-      const matchesLifecycle = lifecycle === "all" || item.lifecycleStatus === lifecycle;
-
-      return matchesQuery && matchesStatus && matchesLifecycle;
+      return (
+        (normalizedQuery.length === 0 || searchText.includes(normalizedQuery)) &&
+        (status === "all" || item.status === status) &&
+        (lifecycle === "all" || item.lifecycleStatus === lifecycle)
+      );
     });
   }, [items, lifecycle, query, status]);
 
   const openCreate = () => {
-    setCreateError(null);
     setCreateIntent("create");
     setCreateInitialValue(null);
+    setCreateError(null);
     setCreateOpen(true);
   };
 
   const openDuplicate = (source: RefrigerationEquipment) => {
-    setCreateError(null);
     setCreateIntent("duplicate");
     setCreateInitialValue(createEquipmentCopyDraft(source, items));
+    setCreateError(null);
     setCreateOpen(true);
   };
 
-  const closeCreate = () => {
-    if (createBusy) return;
-    setCreateOpen(false);
-    setCreateInitialValue(null);
-    setCreateIntent("create");
+  const loadClimateChamberChannels = async (nodeId: string): Promise<number> => {
+    const repository = runtime.lifecycleRepository;
+    if (!repository) {
+      throw new Error("Сховище кліматичних камер і вимірювальних каналів недоступне.");
+    }
+    const channels = await repository.listClimateChamberChannels(nodeId);
+    return channels.length;
   };
 
   const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
@@ -232,7 +232,6 @@ export function RefrigerationCatalogScreen({
             ? `${created.name} створено як незалежну копію.`
             : `${created.name} додано до каталогу.`,
       });
-      setCreateIntent("create");
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Обладнання не створено.");
     } finally {
@@ -275,7 +274,7 @@ export function RefrigerationCatalogScreen({
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold text-white">Холодильне обладнання</h1>
                 <p className="mt-2 max-w-2xl text-sm text-slate-400">
-                  Паспорти, життєвий цикл, оперативний стан і схеми температурних датчиків.
+                  Паспорти, кліматичні камери та інтерактивні схеми вимірювальних каналів.
                 </p>
               </div>
 
@@ -308,7 +307,7 @@ export function RefrigerationCatalogScreen({
                 </select>
 
                 <label className="sr-only" htmlFor="equipment-lifecycle-filter">
-                  Фільтр за життєвим циклом
+                  Фільтр за lifecycle
                 </label>
                 <select
                   id="equipment-lifecycle-filter"
@@ -316,7 +315,7 @@ export function RefrigerationCatalogScreen({
                   onChange={(event) => setLifecycle(event.target.value as LifecycleFilter)}
                   className={selectClass}
                 >
-                  <option value="all">Усі етапи</option>
+                  <option value="all">Увесь lifecycle</option>
                   <option value="active">Активне</option>
                   <option value="maintenance">Обслуговування</option>
                   <option value="retired">Виведене</option>
@@ -326,7 +325,7 @@ export function RefrigerationCatalogScreen({
                   <RefrigerationIconButton
                     label="Додати холодильне обладнання"
                     onClick={openCreate}
-                    tone="accent"
+                    tone="primary"
                     size="lg"
                   >
                     <Plus className="h-4 w-4" />
@@ -335,23 +334,7 @@ export function RefrigerationCatalogScreen({
               </div>
             </div>
 
-            {notice ? (
-              <div
-                role={notice.tone === "error" ? "alert" : "status"}
-                className={`mb-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
-                  notice.tone === "success"
-                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                    : "border-rose-400/20 bg-rose-400/10 text-rose-200"
-                }`}
-              >
-                {notice.tone === "success" ? (
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                )}
-                <span>{notice.message}</span>
-              </div>
-            ) : null}
+            {notice ? <NoticeBanner notice={notice} /> : null}
 
             {loading ? (
               <section
@@ -371,135 +354,24 @@ export function RefrigerationCatalogScreen({
                 aria-label="Перелік холодильного обладнання"
               >
                 {equipment.map((item) => (
-                  <article
+                  <EquipmentCard
                     key={item.id}
-                    className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1b33]/85 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/20"
-                  >
-                    <div className="relative h-48 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
-                      <div className="absolute inset-x-[12%] top-[16%] bottom-0 rounded-t-2xl border border-slate-500/30 bg-[linear-gradient(90deg,#101b26_0_3%,#23384a_3%_49%,#0f1a25_49%_52%,#23384a_52%_97%,#101b26_97%)] shadow-[0_0_40px_rgba(34,211,238,.06)]">
-                        {[22, 43, 64, 85].map((top) => (
-                          <div
-                            key={top}
-                            className="absolute right-[4%] left-[4%] h-px bg-cyan-200/25"
-                            style={{ top: `${top}%` }}
-                          />
-                        ))}
-                      </div>
-                      <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/65 px-3 py-1.5 text-[10px] text-cyan-200 backdrop-blur">
-                        <Snowflake className="h-3.5 w-3.5" />
-                        {item.type}
-                      </div>
-                      <span
-                        className={`absolute top-4 right-4 rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}
-                      >
-                        {lifecycleLabels[item.lifecycleStatus]}
-                      </span>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h2 className="truncate text-base font-semibold text-white">{item.name}</h2>
-                          <p className="mt-1 truncate text-xs text-slate-500">{item.location}</p>
-                          <p className="mt-1 truncate text-[10px] text-slate-600">
-                            {item.nodeId ?? "Node не прив’язано"}
-                          </p>
-                        </div>
-                        <span
-                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}
-                        >
-                          {statusLabels[item.status]}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-3 gap-2">
-                        <Metric
-                          icon={Thermometer}
-                          label="Середня"
-                          value={`${item.averageTemperatureC} °C`}
-                        />
-                        <Metric
-                          icon={Wifi}
-                          label="Датчики"
-                          value={`${item.onlineSensors}/${item.totalSensors}`}
-                        />
-                        <Metric
-                          icon={AlertTriangle}
-                          label="Тривоги"
-                          value={String(item.activeAlarms)}
-                        />
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
-                        <div className="min-w-0 text-[11px] text-slate-500">
-                          <span className="block truncate text-slate-300">
-                            {item.manufacturer} {item.model}
-                          </span>
-                          <span className="block truncate">{item.code}</span>
-                        </div>
-                        <div className="ml-3 flex items-center gap-2">
-                          {canManage ? (
-                            <>
-                              <RefrigerationIconButton
-                                label={`Копіювати ${item.name}`}
-                                onClick={() => openDuplicate(item)}
-                                tone="info"
-                                size="lg"
-                              >
-                                <CopyPlus className="h-4 w-4" />
-                              </RefrigerationIconButton>
-                              <RefrigerationIconButton
-                                label={`Видалити ${item.name}`}
-                                tone="danger"
-                                size="lg"
-                                onClick={() => {
-                                  setDeleteError(null);
-                                  setDeleteTarget(item);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </RefrigerationIconButton>
-                            </>
-                          ) : null}
-                          <Link
-                            href={`/refrigeration/${item.id}`}
-                            aria-label={`Відкрити ${item.name}`}
-                            title={`Відкрити ${item.name}`}
-                            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200 transition hover:border-blue-300/40 hover:bg-blue-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
+                    item={item}
+                    canManage={canManage}
+                    onDuplicate={() => openDuplicate(item)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(item);
+                    }}
+                  />
                 ))}
               </section>
             ) : (
-              <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
-                <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
-                <h2 className="mt-4 text-sm font-semibold text-slate-200">
-                  {items.length === 0
-                    ? "Каталог холодильного обладнання порожній"
-                    : "Обладнання не знайдено"}
-                </h2>
-                <p className="mt-2 text-xs text-slate-500">
-                  {items.length === 0
-                    ? "Додайте першу вітрину або холодильну камеру."
-                    : "Змініть пошук або фільтри."}
-                </p>
-                {items.length === 0 && canManage ? (
-                  <RefrigerationIconButton
-                    label="Додати перше холодильне обладнання"
-                    onClick={openCreate}
-                    tone="accent"
-                    size="lg"
-                    className="mx-auto mt-5"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </RefrigerationIconButton>
-                ) : null}
-              </section>
+              <EmptyState
+                catalogEmpty={items.length === 0}
+                canManage={canManage}
+                onCreate={openCreate}
+              />
             )}
           </div>
         </main>
@@ -513,10 +385,17 @@ export function RefrigerationCatalogScreen({
           nodeOptions={nodeOptions}
           initialValue={createInitialValue}
           intent={createIntent}
-          onClose={closeCreate}
+          onClimateChamberChange={loadClimateChamberChannels}
+          onClose={() => {
+            if (!createBusy) {
+              setCreateOpen(false);
+              setCreateInitialValue(null);
+            }
+          }}
           onSubmit={createEquipment}
         />
       ) : null}
+
       <DeleteEquipmentDialog
         equipment={deleteTarget}
         busy={deleteBusy}
@@ -527,6 +406,160 @@ export function RefrigerationCatalogScreen({
         onConfirm={deleteEquipment}
       />
     </div>
+  );
+}
+
+function EquipmentCard({
+  item,
+  canManage,
+  onDuplicate,
+  onDelete,
+}: {
+  item: RefrigerationEquipment;
+  canManage: boolean;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1b33]/85 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/20">
+      <div className="relative h-48 overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.13),transparent_45%),linear-gradient(145deg,#0c2440,#071528)]">
+        <div className="absolute inset-x-[12%] top-[16%] bottom-0 rounded-t-2xl border border-slate-500/30 bg-[linear-gradient(90deg,#101b26_0_3%,#23384a_3%_49%,#0f1a25_49%_52%,#23384a_52%_97%,#101b26_97%)] shadow-[0_0_40px_rgba(34,211,238,.06)]">
+          {[22, 43, 64, 85].map((top) => (
+            <div
+              key={top}
+              className="absolute right-[4%] left-[4%] h-px bg-cyan-200/25"
+              style={{ top: `${top}%` }}
+            />
+          ))}
+        </div>
+        <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/65 px-3 py-1.5 text-[10px] text-cyan-200 backdrop-blur">
+          <Snowflake className="h-3.5 w-3.5" />
+          {item.type}
+        </div>
+        <span
+          className={`absolute top-4 right-4 rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${lifecycleStyles[item.lifecycleStatus]}`}
+        >
+          {lifecycleLabels[item.lifecycleStatus]}
+        </span>
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-white">{item.name}</h2>
+            <p className="mt-1 truncate text-xs text-slate-500">{item.location}</p>
+            <p className="mt-1 truncate text-[10px] text-slate-600">
+              {item.nodeId ? `Кліматична камера ${item.nodeId}` : "Камеру не вибрано"}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] ${statusStyles[item.status]}`}
+          >
+            {statusLabels[item.status]}
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <Metric icon={Thermometer} label="Середня" value={`${item.averageTemperatureC} °C`} />
+          <Metric icon={Wifi} label="Датчики" value={`${item.onlineSensors}/${item.totalSensors}`} />
+          <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
+          <div className="text-[11px] text-slate-500">
+            <span className="text-slate-300">
+              {item.manufacturer} {item.model}
+            </span>
+            <br />
+            {item.code}
+          </div>
+          <div className="flex items-center gap-2">
+            {canManage ? (
+              <>
+                <RefrigerationIconButton
+                  label={`Копіювати ${item.name}`}
+                  onClick={onDuplicate}
+                  size="lg"
+                >
+                  <CopyPlus className="h-4 w-4" />
+                </RefrigerationIconButton>
+                <RefrigerationIconButton
+                  label={`Видалити ${item.name}`}
+                  onClick={onDelete}
+                  tone="danger"
+                  size="lg"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </RefrigerationIconButton>
+              </>
+            ) : null}
+            <Link
+              href={`/refrigeration/${item.id}`}
+              aria-label={`Відкрити ${item.name}`}
+              title="Відкрити"
+              className="grid h-11 w-11 place-items-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-blue-200 transition hover:bg-blue-500/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function NoticeBanner({ notice }: { notice: Exclude<Notice, null> }) {
+  return (
+    <div
+      role={notice.tone === "error" ? "alert" : "status"}
+      className={`mb-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+        notice.tone === "success"
+          ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+          : "border-rose-400/20 bg-rose-400/10 text-rose-200"
+      }`}
+    >
+      {notice.tone === "success" ? (
+        <CheckCircle2 className="h-4 w-4 shrink-0" />
+      ) : (
+        <AlertCircle className="h-4 w-4 shrink-0" />
+      )}
+      <span>{notice.message}</span>
+    </div>
+  );
+}
+
+function EmptyState({
+  catalogEmpty,
+  canManage,
+  onCreate,
+}: {
+  catalogEmpty: boolean;
+  canManage: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
+      <Snowflake className="mx-auto h-8 w-8 text-slate-600" />
+      <h2 className="mt-4 text-sm font-semibold text-slate-200">
+        {catalogEmpty ? "Каталог холодильного обладнання порожній" : "Обладнання не знайдено"}
+      </h2>
+      <p className="mt-2 text-xs text-slate-500">
+        {catalogEmpty
+          ? "Додайте першу вітрину або холодильну камеру."
+          : "Змініть пошук, health-фільтр або lifecycle-фільтр."}
+      </p>
+      {catalogEmpty && canManage ? (
+        <RefrigerationIconButton
+          label="Додати перше холодильне обладнання"
+          onClick={onCreate}
+          tone="primary"
+          size="lg"
+          className="mx-auto mt-5"
+        >
+          <Plus className="h-4 w-4" />
+        </RefrigerationIconButton>
+      ) : null}
+    </section>
   );
 }
 
@@ -542,3 +575,5 @@ function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string;
 
 const selectClass =
   "min-h-11 rounded-xl border border-white/10 bg-[#0a1c35] px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-cyan-300/35";
+
+void (null as ReactNode | null);

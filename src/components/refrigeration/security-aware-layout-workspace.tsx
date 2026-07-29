@@ -4,10 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, ShieldCheck } from "lucide-react";
 import { clsx } from "clsx";
 
+import { CameraScopedLayoutEditor } from "@/components/refrigeration/camera-scoped-layout-editor";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
+import { RefrigerationLayoutLifecyclePanel } from "@/components/refrigeration/refrigeration-layout-lifecycle-panel";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
-import { SensorPlacementManager } from "@/components/refrigeration/sensor-placement-manager";
 import type { RefrigerationEquipment, RefrigerationSensor } from "@/data/refrigeration";
+import type {
+  AvailableSensor,
+  EquipmentLifecycleRepository,
+  SensorBinding,
+} from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationLayoutRuntime } from "@/features/refrigeration/layout-repository-runtime";
 import {
   getSecurityCredentials,
@@ -29,8 +35,12 @@ type SecurityAwareLayoutWorkspaceProps = {
   selectedId: string | null;
   mode: LayoutEditorMode;
   forceReadOnly?: boolean;
+  lifecycleRepository?: EquipmentLifecycleRepository | null;
+  channels?: readonly AvailableSensor[];
+  bindings?: readonly SensorBinding[];
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
+  onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
   onCapabilitiesChange?: (capabilities: LayoutCapabilities) => void;
 };
 
@@ -39,7 +49,6 @@ const readOnlyCapabilities: LayoutCapabilities = {
   canPublish: false,
   canRestore: false,
 };
-
 const demoCapabilities: LayoutCapabilities = {
   canEdit: true,
   canPublish: true,
@@ -52,8 +61,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   selectedId,
   mode,
   forceReadOnly = false,
+  lifecycleRepository = null,
+  channels = [],
+  bindings = [],
   onModeChange,
   onSelect,
+  onEquipmentChange,
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
   const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
@@ -85,7 +98,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     if (runtime.mode === "demo") return;
     const client = runtime.sessionClient;
     if (!client) return;
-
     let cancelled = false;
     void client.getSession().then((result) => {
       if (cancelled) return;
@@ -94,7 +106,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         setSecurityError(result.error.message);
         return;
       }
-
       const selectedMembership =
         result.value.memberships.find((item) => item.organizationId === runtime.organizationId) ??
         result.value.memberships[0];
@@ -103,7 +114,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         setSecurityError("Користувач не має активного членства в організації NEXOLAB.");
         return;
       }
-
       const currentCredentials = getSecurityCredentials();
       setSecurityCredentials({
         accessToken: currentCredentials.accessToken,
@@ -114,14 +124,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       setSecurityState("ready");
       setSecurityError(null);
     });
-
     return () => {
       cancelled = true;
     };
   }, [runtime]);
 
   const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
-
   if (liveRuntimeUnavailable) {
     return (
       <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
@@ -130,7 +138,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
-
   if (securityState === "loading") {
     return (
       <div className="rounded-2xl border border-cyan-400/15 bg-[#08182e]/90 p-5 text-sm text-cyan-200">
@@ -139,7 +146,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
-
   if (securityState === "error" || !runtime.repository) {
     return (
       <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
@@ -148,6 +154,10 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
+
+  const cameraScoped = Boolean(lifecycleRepository && equipment.nodeId);
+  const effectiveMode = capabilities.canEdit ? mode : "view";
+  const effectiveModeChange = capabilities.canEdit ? onModeChange : () => undefined;
 
   return (
     <div
@@ -159,14 +169,14 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       )}
     >
       <style jsx global>{`
-        .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > button,
-        .nexolab-rbac-no-edit > div > section > div:nth-child(1) button {
+        .nexolab-rbac-no-edit button[aria-label="Редагувати схему та датчики"],
+        .nexolab-rbac-no-edit .production-layout-editor #layout-editor > div > div:first-child > button {
           display: none !important;
         }
-        .nexolab-rbac-no-publish > div > section > div:nth-child(2) > button {
+        .nexolab-rbac-no-publish button[aria-label="Опублікувати поточну чернетку"] {
           display: none !important;
         }
-        .nexolab-rbac-no-restore > div > section > div:nth-child(3) button {
+        .nexolab-rbac-no-restore button[aria-label^="Відновити ревізію"] {
           display: none !important;
         }
       `}</style>
@@ -195,26 +205,47 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         </div>
       ) : null}
 
-      <SensorPlacementManager
-        equipment={equipment}
-        repository={runtime.repository}
-        canEdit={capabilities.canEdit}
-        mode={mode}
-        onModeChange={onModeChange}
-        onSelect={onSelect}
-        onAssignmentsChanged={() => setWorkspaceEpoch((current) => current + 1)}
-      />
-
-      <RefrigerationLayoutWorkspace
-        key={`${equipment.id}-${workspaceEpoch}`}
-        equipment={equipment}
-        visibleSensors={visibleSensors}
-        selectedId={selectedId}
-        mode={capabilities.canEdit ? mode : "view"}
-        onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
-        onSelect={onSelect}
-        repository={runtime.repository}
-      />
+      {cameraScoped && lifecycleRepository ? (
+        <>
+          <CameraScopedLayoutEditor
+            key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
+            equipment={equipment}
+            visibleSensors={visibleSensors}
+            selectedId={selectedId}
+            mode={effectiveMode}
+            onModeChange={effectiveModeChange}
+            onSelect={onSelect}
+            repository={runtime.repository}
+            lifecycleRepository={lifecycleRepository}
+            channels={channels}
+            bindings={bindings}
+            onEquipmentChange={(updated) => {
+              onEquipmentChange?.(updated);
+              setWorkspaceEpoch((current) => current + 1);
+            }}
+            onDraftChange={() => setWorkspaceEpoch((current) => current + 1)}
+          />
+          <RefrigerationLayoutLifecyclePanel
+            key={`layout-lifecycle-${equipment.id}-${workspaceEpoch}`}
+            equipment={equipment}
+            mode={effectiveMode}
+            repository={runtime.repository}
+            actorId={runtime.actorId}
+            onServerMutation={() => setWorkspaceEpoch((current) => current + 1)}
+          />
+        </>
+      ) : (
+        <RefrigerationLayoutWorkspace
+          key={`${equipment.id}-${workspaceEpoch}`}
+          equipment={equipment}
+          visibleSensors={visibleSensors}
+          selectedId={selectedId}
+          mode={effectiveMode}
+          onModeChange={effectiveModeChange}
+          onSelect={onSelect}
+          repository={runtime.repository}
+        />
+      )}
     </div>
   );
 }

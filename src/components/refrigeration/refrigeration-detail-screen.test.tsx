@@ -20,80 +20,56 @@ vi.mock("@/components/dashboard/topbar", () => ({
 
 function referenceEquipment() {
   const equipment = getRefrigerationEquipment("showcase-106-01");
-
-  if (!equipment) {
-    throw new Error("Reference refrigeration equipment fixture is missing");
-  }
-
+  if (!equipment) throw new Error("Reference refrigeration equipment fixture is missing");
   return equipment;
 }
 
 async function waitForLayout() {
-  await screen.findByRole("button", {
-    name: "Вибрати датчик 01F на схемі",
-  });
+  await screen.findByRole("button", { name: "Вибрати датчик 01F на схемі" });
 }
 
 describe("RefrigerationDetailScreen", () => {
-  it("filters the image and list by sensor side and shelf", async () => {
+  it("uses one expanded workspace without duplicated passport or live-sensor sidebars", async () => {
+    const equipment = referenceEquipment();
+    render(<RefrigerationDetailScreen equipment={equipment} />);
+    await waitForLayout();
+
+    expect(screen.getByText("Паспорт, lifecycle, фото та bindings")).toBeInTheDocument();
+    expect(screen.queryByText("Поточний стан")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Датчики в реальному часі" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Фото обладнання", { selector: "h2" })).not.toBeInTheDocument();
+    if (equipment.nodeId) {
+      expect(screen.getByText(`Камера ${equipment.nodeId}`)).toBeInTheDocument();
+    }
+    expect(screen.getByText(/48 bindings/)).toBeInTheDocument();
+  });
+
+  it("filters only the markers on the central image by side and shelf", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
     await waitForLayout();
 
-    expect(screen.getByText("Показано 48 із 48")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вибрати датчик 01F на схемі" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
-    expect(screen.getByText("Показано 24 із 48")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Вибрати датчик 01F на схемі" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Фільтр за полицею"), {
       target: { value: "2" },
     });
-    expect(screen.getByText("Показано 6 із 48")).toBeInTheDocument();
-    expect(
-      await screen.findByRole("button", {
-        name: "Вибрати датчик 07R на схемі",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", {
-        name: "Вибрати датчик 01R на схемі",
-      }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Вибрати датчик 07R на схемі" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Вибрати датчик 01R на схемі" })).not.toBeInTheDocument();
   });
 
-  it("keeps marker and list selection synchronized", async () => {
+  it("keeps marker selection in the central canvas without a duplicated sensor list", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
     await waitForLayout();
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Вибрати датчик 08F зі списку",
-      }),
-    );
+    const marker = screen.getByRole("button", { name: "Вибрати датчик 08F на схемі" });
+    fireEvent.click(marker);
 
-    expect(screen.getByText("08F · Передній фронт 08")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Вибрати датчик 08F на схемі",
-      }),
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByRole("button", {
-        name: "Вибрати датчик 08F зі списку",
-      }),
-    ).toHaveAttribute("aria-pressed", "true");
-  });
-
-  it("selects the first visible sensor when the active filter hides the previous selection", async () => {
-    render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
-    await waitForLayout();
-
-    fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
-
-    expect(screen.getByText("01R · Задній фронт 01")).toBeInTheDocument();
-    expect(
-      await screen.findByRole("button", {
-        name: "Вибрати датчик 01R на схемі",
-      }),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(marker).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Вибрати датчик 08F зі списку" })).not.toBeInTheDocument();
   });
 });

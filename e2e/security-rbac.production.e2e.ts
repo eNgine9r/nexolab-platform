@@ -8,6 +8,7 @@ const otherOrganizationId =
   process.env.NEXOLAB_SECURITY_OTHER_ORGANIZATION_ID ?? "22222222-2222-2222-2222-222222222222";
 const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18092";
 const evidenceDirectory = process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
+const climateChamberId = "security-kk2";
 let equipmentId = "";
 let equipmentRoute = "";
 const equipmentPhoto = Buffer.from(
@@ -50,6 +51,34 @@ async function authenticatedContext(
 async function provisionEquipmentPassport(browser: Browser): Promise<void> {
   const context = await authenticatedContext(browser, tokens.administrator);
   try {
+    const provisionedNode = await context.request.post(`${apiBaseUrl}/api/v1/nodes`, {
+      headers: {
+        ...apiHeaders(tokens.administrator),
+        "Idempotency-Key": "security-acceptance-climate-chamber-v1",
+      },
+      data: {
+        node_id: climateChamberId,
+        display_name: "Кліматична камера Security КК2",
+        clock_warning_ms: 30000,
+        clock_critical_ms: 120000,
+      },
+    });
+    expect(provisionedNode.status()).toBe(201);
+    expect((await provisionedNode.json()).node).toMatchObject({
+      node_id: climateChamberId,
+      state: "pending",
+    });
+
+    const activatedNode = await context.request.post(
+      `${apiBaseUrl}/api/v1/nodes/${climateChamberId}/activate`,
+      {
+        headers: apiHeaders(tokens.administrator),
+        data: { reason: "Activate security acceptance climate chamber" },
+      },
+    );
+    expect(activatedNode.status()).toBe(200);
+    expect((await activatedNode.json()).state).toBe("active");
+
     const response = await context.request.post(`${apiBaseUrl}/api/v1/equipment`, {
       headers: {
         ...apiHeaders(tokens.administrator),
@@ -58,18 +87,23 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
       data: {
         code: "SECURITY-CS-106-01",
         name: "Вітрина №106-01",
-        location: "Security acceptance · Лабораторія 1",
+        location: "Security acceptance · Лабораторія 1 · КК2",
+        laboratory: "Security acceptance · Лабораторія 1",
+        zone: "КК2",
+        node_id: climateChamberId,
         equipment_type: "Холодильна вітрина",
         manufacturer: "ColdStream",
         model: "Premium 1250",
         serial_number: "SECURITY-X-PROD-10601",
         temperature_class: "3M1 (0…+5 °C)",
+        lifecycle_status: "active",
         total_sensors: 48,
       },
     });
     expect(response.status()).toBe(201);
-    const equipment = (await response.json()) as { id: string };
+    const equipment = (await response.json()) as { id: string; node_id: string };
     expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(equipment.node_id).toBe(climateChamberId);
     equipmentId = equipment.id;
     equipmentRoute = `/refrigeration/${equipmentId}`;
 
@@ -87,7 +121,8 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
 
 async function openEquipment(page: Page) {
   await page.goto(equipmentRoute, { waitUntil: "networkidle" });
-  await expect(page.getByText(/Чернетка v\d+ · PostgreSQL/)).toBeVisible();
+  await expect(page.locator("#layout-editor").getByText(/Чернетка v\d+$/)).toBeVisible();
+  await expect(page.getByText(`Камера ${climateChamberId}`, { exact: true }).first()).toBeVisible();
 }
 
 test("enforces authenticated organization roles and immutable audit attribution", async ({ browser }) => {
@@ -100,7 +135,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     try {
       await page.goto(equipmentRoute, { waitUntil: "networkidle" });
       await expect(page.getByText("Authorization bearer token is required", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Редагувати схему та датчики" })).toHaveCount(0);
     } finally {
       await context.close();
     }
@@ -112,7 +147,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     try {
       await openEquipment(page);
       await expect(page.getByText("viewer", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему" })).toBeHidden();
+      await expect(page.getByRole("button", { name: "Редагувати схему та датчики" })).toBeHidden();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
@@ -139,7 +174,9 @@ test("enforces authenticated organization roles and immutable audit attribution"
     try {
       await openEquipment(page);
       await expect(page.getByText("operator", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему" }).first()).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Редагувати схему та датчики" }).first(),
+      ).toBeVisible();
       await expect(page.getByRole("button", { name: "Опублікувати поточну чернетку" })).toBeHidden();
 
       const draftResponse = await context.request.get(
@@ -169,18 +206,30 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expect(page.getByText("engineer", { exact: true })).toBeVisible();
 
+      const imageUploadPromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/images`,
+      );
+      const imageAttachPromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === "PUT" &&
+          new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/layout/draft`,
+      );
       await page.getByLabel("Вибрати production-фото обладнання").setInputFiles({
         name: "security-acceptance.png",
         mimeType: "image/png",
         buffer: equipmentPhoto,
       });
-      await expect(page.getByText(/завантажено та прив’язано до чернетки v2/)).toBeVisible();
+      expect((await imageUploadPromise).status()).toBe(201);
+      expect((await imageAttachPromise).status()).toBe(200);
 
       const attachedDraft = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
         { headers: apiHeaders(tokens.engineer) },
       );
       expect(attachedDraft.status()).toBe(200);
+      expect(attachedDraft.headers().etag).toBe('W/"layout-draft-v2"');
       const attachedDraftBody = (await attachedDraft.json()) as {
         image: { id: string };
         placements: unknown[];
@@ -204,9 +253,15 @@ test("enforces authenticated organization roles and immutable audit attribution"
       expect(positionedDraft.headers().etag).toBe('W/"layout-draft-v3"');
 
       await page.reload({ waitUntil: "networkidle" });
-      await expect(page.getByText("Чернетка v3 · PostgreSQL", { exact: true })).toBeVisible();
+      await expect(page.locator("#layout-editor").getByText("Чернетка v3", { exact: true })).toBeVisible();
+      const publishPromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/layout/publish`,
+      );
       await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
-      await expect(page.getByText("Опубліковано ревізію r1.")).toBeVisible();
+      expect((await publishPromise).status()).toBe(201);
+      await expect(page.getByText("Ревізія r1", { exact: true })).toBeVisible();
 
       const historyResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/history`,
@@ -285,6 +340,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
           {
             organizationId,
             equipmentId,
+            climateChamberId,
             unauthenticatedStatus: 401,
             viewerMutationStatus: 403,
             operatorPublishStatus: 403,

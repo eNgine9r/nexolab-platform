@@ -1,6 +1,7 @@
 import type { EquipmentImageMetadata, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
 
 import { equipmentEtag, parseEquipment } from "./equipment-repository";
+import { draftEtag, type RefrigerationLayoutDraft } from "./layout-repository";
 
 export type EquipmentNodeOption = {
   nodeId: string;
@@ -51,8 +52,21 @@ export type SensorBindingMutation = {
   binding: SensorBinding | null;
 };
 
+export type SensorConfigurationItem = SensorBindingInput & {
+  slotKey: string;
+  x: number;
+  y: number;
+};
+
+export type SensorConfigurationMutation = {
+  equipment: RefrigerationEquipment;
+  bindings: SensorBinding[];
+  draft: RefrigerationLayoutDraft;
+};
+
 export interface EquipmentLifecycleRepository {
   listNodes(): Promise<EquipmentNodeOption[]>;
+  listClimateChamberChannels(nodeId: string): Promise<AvailableSensor[]>;
   listImages(equipmentId: string): Promise<EquipmentImageMetadata[]>;
   retireImage(
     equipmentId: string,
@@ -61,6 +75,12 @@ export interface EquipmentLifecycleRepository {
   ): Promise<EquipmentImageMetadata>;
   listBindings(equipmentId: string, includeHistory?: boolean): Promise<SensorBinding[]>;
   listAvailableSensors(equipmentId: string): Promise<AvailableSensor[]>;
+  replaceSensorConfiguration(
+    equipmentId: string,
+    expectedEquipmentVersion: number,
+    expectedDraftVersion: number,
+    bindings: readonly SensorConfigurationItem[],
+  ): Promise<SensorConfigurationMutation>;
   bindSensor(
     equipmentId: string,
     slotKey: string,
@@ -87,6 +107,19 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     const payload = asRecord(await this.json("/api/v1/equipment/options/nodes", { method: "GET" }));
     if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseNode);
+  }
+
+  async listClimateChamberChannels(nodeId: string): Promise<AvailableSensor[]> {
+    const payload = asRecord(
+      await this.json(
+        `/api/v1/equipment/options/nodes/${encodeURIComponent(nodeId)}/channels`,
+        { method: "GET" },
+      ),
+    );
+    if (!payload || !Array.isArray(payload.items) || readString(payload.node_id) !== nodeId) {
+      throw invalidResponse();
+    }
+    return payload.items.map(parseAvailableSensor);
   }
 
   async listImages(equipmentId: string): Promise<EquipmentImageMetadata[]> {
@@ -135,6 +168,43 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     );
     if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseAvailableSensor);
+  }
+
+  async replaceSensorConfiguration(
+    equipmentId: string,
+    expectedEquipmentVersion: number,
+    expectedDraftVersion: number,
+    bindings: readonly SensorConfigurationItem[],
+  ): Promise<SensorConfigurationMutation> {
+    const payload = asRecord(
+      await this.json(`/api/v1/equipment/${encodeURIComponent(equipmentId)}/sensor-configuration`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": equipmentEtag(expectedEquipmentVersion),
+          "X-Audit-Reason": "Updated climate chamber sensor configuration",
+        },
+        body: JSON.stringify({
+          expected_draft_version: expectedDraftVersion,
+          bindings: bindings.map((item) => ({
+            slot_key: item.slotKey,
+            channel_id: item.channelId,
+            label: item.label,
+            side: item.side,
+            shelf: item.shelf,
+            position: item.position,
+            x: item.x,
+            y: item.y,
+          })),
+        }),
+      }),
+    );
+    if (!payload || !Array.isArray(payload.bindings)) throw invalidResponse();
+    return {
+      equipment: parseEquipment(payload.equipment),
+      bindings: payload.bindings.map(parseBinding),
+      draft: parseDraft(payload.draft, equipmentId),
+    };
   }
 
   async bindSensor(
@@ -199,9 +269,11 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     if (!response.ok) {
       const detail = asRecord(asRecord(payload)?.detail);
       const error = new Error(readString(detail?.message) ?? "Lifecycle-операцію не виконано.");
-      (error as Error & { code?: string; status?: number }).code =
+      (error as Error & { code?: string; status?: number; expectedVersion?: number; actualVersion?: number }).code =
         readString(detail?.code) ?? "request_failed";
       (error as Error & { code?: string; status?: number }).status = response.status;
+      (error as Error & { expectedVersion?: number }).expectedVersion = readInteger(detail?.expected_version) ?? undefined;
+      (error as Error & { actualVersion?: number }).actualVersion = readInteger(detail?.actual_version) ?? undefined;
       throw error;
     }
     return payload;
@@ -265,6 +337,48 @@ function parseImage(value: unknown): EquipmentImageMetadata {
     updatedAt,
     retiredAt: readOptionalString(record?.retired_at),
     retiredBy: readOptionalString(record?.retired_by),
+  };
+}
+
+function parseDraft(value: unknown, equipmentId: string): RefrigerationLayoutDraft {
+  const record = asRecord(value);
+  const id = readString(record?.id);
+  const responseEquipmentId = readString(record?.equipment_id);
+  const version = readPositiveInteger(record?.version);
+  const createdAt = readString(record?.created_at);
+  const updatedAt = readString(record?.updated_at);
+  const image = record?.image === null ? null : parseImage(record?.image);
+  if (
+    !record ||
+    !id ||
+    responseEquipmentId !== equipmentId ||
+    version === null ||
+    !createdAt ||
+    !updatedAt ||
+    !Array.isArray(record.placements)
+  ) {
+    throw invalidResponse();
+  }
+  const sensorIds = new Set<string>();
+  const placements = record.placements.map((value) => {
+    const placement = asRecord(value);
+    const sensorId = readString(placement?.sensor_id);
+    const x = readNormalizedNumber(placement?.x);
+    const y = readNormalizedNumber(placement?.y);
+    if (!sensorId || x === null || y === null || sensorIds.has(sensorId)) throw invalidResponse();
+    sensorIds.add(sensorId);
+    return { sensorId, x, y };
+  });
+  return {
+    id,
+    equipmentId,
+    version,
+    etag: draftEtag(version),
+    imageId: image?.id ?? null,
+    image,
+    placements,
+    createdAt,
+    updatedAt,
   };
 }
 
@@ -375,6 +489,14 @@ function readOptionalString(value: unknown): string | null {
 
 function readInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function readPositiveInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : null;
+}
+
+function readNormalizedNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
 }
 
 function readNullableNumber(value: unknown): number | null {

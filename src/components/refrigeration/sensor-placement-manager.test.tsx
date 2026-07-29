@@ -1,35 +1,77 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRefrigerationEquipment } from "@/data/refrigeration";
-import {
-  createLayoutDraft,
-  InMemoryRefrigerationLayoutRepository,
-} from "@/features/refrigeration/layout-repository";
+import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
+import type { StagedSensorConfiguration } from "@/features/refrigeration/sensor-configuration";
 
 import { SensorPlacementManager } from "./sensor-placement-manager";
 
-const addLabel = "Додати вибраний датчик на підкладку";
-const replaceLabel = "Замінити датчик у вибраній позиції";
-const removeLabel = "Видалити датчик із вибраної позиції";
+const channels: AvailableSensor[] = [
+  {
+    channelId: "kk2-temperature-01",
+    metric: "temperature",
+    unit: "degC",
+    latestValue: 2.4,
+    quality: "valid",
+    capturedAt: "2026-07-29T12:00:00.000Z",
+    isBound: false,
+    boundEquipmentId: null,
+    boundSlotKey: null,
+  },
+  {
+    channelId: "kk2-temperature-02",
+    metric: "temperature",
+    unit: "degC",
+    latestValue: 2.8,
+    quality: "valid",
+    capturedAt: "2026-07-29T12:00:00.000Z",
+    isBound: false,
+    boundEquipmentId: null,
+    boundSlotKey: null,
+  },
+];
 
-function fixture() {
-  const equipment = getRefrigerationEquipment("showcase-106-01");
-  if (!equipment) throw new Error("Reference refrigeration equipment fixture is missing");
-  const repository = new InMemoryRefrigerationLayoutRepository({
-    drafts: [
-      createLayoutDraft({
-        id: `draft-${equipment.id}`,
-        equipmentId: equipment.id,
-        imageId: equipment.image?.id ?? null,
-        image: equipment.image,
-        placements: equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
-        createdAt: "2026-07-29T00:00:00.000Z",
-      }),
-    ],
-    now: () => "2026-07-29T00:00:01.000Z",
-  });
-  return { equipment, repository };
+const configured: StagedSensorConfiguration = {
+  id: "kk2-temperature-01",
+  slotKey: "front-01",
+  label: "01F",
+  name: "temperature · kk2-temperature-01",
+  side: "front",
+  shelf: 1,
+  position: 1,
+  x: 0.14,
+  y: 0.21,
+  temperatureC: 2.4,
+  status: "normal",
+  updatedAt: "2026-07-29T12:00:00.000Z",
+  trend: [2.4],
+  metric: "temperature",
+  unit: "degC",
+};
+
+function renderManager({
+  configuration = [],
+  editingSensorId = null,
+}: {
+  configuration?: StagedSensorConfiguration[];
+  editingSensorId?: string | null;
+} = {}) {
+  const onConfigurationChange = vi.fn();
+  const onEditingSensorIdChange = vi.fn();
+  const onSelect = vi.fn();
+  render(
+    <SensorPlacementManager
+      equipmentId="showcase-kk2"
+      totalSlots={48}
+      channels={channels}
+      configuration={configuration}
+      editingSensorId={editingSensorId}
+      onEditingSensorIdChange={onEditingSensorIdChange}
+      onConfigurationChange={onConfigurationChange}
+      onSelect={onSelect}
+    />,
+  );
+  return { onConfigurationChange, onEditingSensorIdChange, onSelect };
 }
 
 describe("SensorPlacementManager", () => {
@@ -37,86 +79,73 @@ describe("SensorPlacementManager", () => {
     vi.restoreAllMocks();
   });
 
-  it("swaps two installed sensors through a versioned repository save", async () => {
-    const { equipment, repository } = fixture();
-    const first = equipment.sensors[0];
-    const second = equipment.sensors[1];
-    if (!first || !second) throw new Error("Sensor fixtures are missing");
+  it("stages an unused climate-chamber channel without persisting it", () => {
+    const { onConfigurationChange, onEditingSensorIdChange, onSelect } = renderManager();
 
-    render(
-      <SensorPlacementManager
-        equipment={equipment}
-        repository={repository}
-        canEdit
-        mode="view"
-        onModeChange={() => undefined}
-        onSelect={() => undefined}
-        onAssignmentsChanged={() => undefined}
-      />,
+    expect(screen.getByRole("option", { name: /kk2-temperature-01/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /kk2-temperature-02/ })).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
     );
 
-    await waitFor(() => expect(screen.getByRole("button", { name: replaceLabel })).toBeEnabled());
-    fireEvent.change(screen.getByRole("combobox", { name: "Встановлений датчик" }), {
-      target: { value: first.id },
-    });
-    fireEvent.change(screen.getByRole("combobox", { name: "Датчик зі списку" }), {
-      target: { value: second.id },
-    });
-    fireEvent.click(screen.getByRole("button", { name: replaceLabel }));
-
-    await screen.findByText(/поміняно місцями/);
-    const result = await repository.getDraft(equipment.id);
-    expect(result).toMatchObject({ ok: true, value: { version: 2 } });
-    if (!result.ok) throw new Error("Draft save failed");
-    expect(result.value.placements).toContainEqual({
-      sensorId: second.id,
-      x: first.x,
-      y: first.y,
-    });
-    expect(result.value.placements).toContainEqual({
-      sensorId: first.id,
-      x: second.x,
-      y: second.y,
-    });
+    expect(onConfigurationChange).toHaveBeenCalledTimes(1);
+    expect(onConfigurationChange.mock.calls[0]?.[0]).toEqual([
+      expect.objectContaining({
+        id: "kk2-temperature-01",
+        slotKey: "front-01",
+        side: "front",
+        shelf: 1,
+        position: 1,
+      }),
+    ]);
+    expect(onSelect).toHaveBeenCalledWith("kk2-temperature-01");
+    expect(onEditingSensorIdChange).toHaveBeenCalledWith("kk2-temperature-01");
   });
 
-  it("removes a sensor and then allows adding it back from the list", async () => {
-    const { equipment, repository } = fixture();
-    const removed = equipment.sensors[0];
-    if (!removed) throw new Error("Sensor fixture is missing");
+  it("hides used channels and stages replacement through the editor", () => {
+    const { onConfigurationChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
+
+    const addSelector = screen.getByRole("combobox", {
+      name: "Доступний датчик кліматичної камери",
+    });
+    expect(addSelector).not.toHaveTextContent("kk2-temperature-01");
+    expect(addSelector).toHaveTextContent("kk2-temperature-02");
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Замінити канал датчика" }), {
+      target: { value: "kk2-temperature-02" },
+    });
+
+    expect(onConfigurationChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "kk2-temperature-02",
+        slotKey: "front-01",
+        label: "01F",
+      }),
+    ]);
+  });
+
+  it("stages marker parameter edits and removal only through edit controls", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const onModeChange = vi.fn();
+    const { onConfigurationChange, onEditingSensorIdChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
 
-    render(
-      <SensorPlacementManager
-        equipment={equipment}
-        repository={repository}
-        canEdit
-        mode="view"
-        onModeChange={onModeChange}
-        onSelect={() => undefined}
-        onAssignmentsChanged={() => undefined}
-      />,
+    fireEvent.change(screen.getByRole("textbox", { name: "Підпис датчика" }), {
+      target: { value: "Тест-пакет 01" },
+    });
+    expect(onConfigurationChange).toHaveBeenCalledWith([
+      expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Видалити датчик з підкладки" }),
     );
-
-    await waitFor(() => expect(screen.getByRole("button", { name: removeLabel })).toBeEnabled());
-    fireEvent.change(screen.getByRole("combobox", { name: "Встановлений датчик" }), {
-      target: { value: removed.id },
-    });
-    fireEvent.click(screen.getByRole("button", { name: removeLabel }));
-    await screen.findByText(new RegExp(`${removed.label} видалено`));
-
-    fireEvent.change(screen.getByRole("combobox", { name: "Датчик зі списку" }), {
-      target: { value: removed.id },
-    });
-    expect(screen.getByRole("button", { name: addLabel })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: addLabel }));
-
-    await screen.findByText(new RegExp(`${removed.label} додано`));
-    expect(onModeChange).toHaveBeenCalledWith("edit");
-    const result = await repository.getDraft(equipment.id);
-    expect(result).toMatchObject({ ok: true, value: { version: 3 } });
-    if (!result.ok) throw new Error("Draft save failed");
-    expect(result.value.placements.some(({ sensorId }) => sensorId === removed.id)).toBe(true);
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([]);
+    expect(onEditingSensorIdChange).toHaveBeenCalledWith(null);
   });
 });

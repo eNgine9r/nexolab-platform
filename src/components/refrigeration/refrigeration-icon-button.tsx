@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
-type IconButtonTone = "default" | "accent" | "success" | "info" | "danger";
+type IconButtonTone = "default" | "accent" | "primary" | "success" | "info" | "danger";
 type IconButtonSize = "sm" | "md" | "lg";
 
 type RefrigerationIconButtonProps = Omit<
@@ -17,6 +17,8 @@ const toneClasses: Record<IconButtonTone, string> = {
   default:
     "border-white/10 bg-white/[0.035] text-slate-400 enabled:hover:border-white/20 enabled:hover:bg-white/[0.065] enabled:hover:text-white",
   accent:
+    "border-cyan-300/25 bg-cyan-400/15 text-cyan-100 enabled:hover:border-cyan-300/40 enabled:hover:bg-cyan-400/20",
+  primary:
     "border-cyan-300/25 bg-cyan-400/15 text-cyan-100 enabled:hover:border-cyan-300/40 enabled:hover:bg-cyan-400/20",
   success:
     "border-emerald-400/25 bg-emerald-500/15 text-emerald-200 enabled:hover:border-emerald-300/40 enabled:hover:bg-emerald-500/20",
