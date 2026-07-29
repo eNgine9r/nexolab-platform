@@ -202,7 +202,7 @@ def _install_layout_equipment_invariant() -> None:
                     NULL,
                     NULL
                 )
-                ON CONFLICT (id) DO NOTHING;
+                ON CONFLICT (organization_id, id) DO NOTHING;
 
                 RETURN NEW;
             END;
