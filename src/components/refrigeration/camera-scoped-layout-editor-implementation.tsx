@@ -16,7 +16,12 @@ import type {
   EquipmentLifecycleRepository,
   SensorBinding,
 } from "@/features/refrigeration/equipment-lifecycle-repository";
-import { applySnap, type NormalizedPoint, type SnapMode } from "@/features/refrigeration/layout-editor";
+import {
+  applySnap,
+  type LayoutPlacement,
+  type NormalizedPoint,
+  type SnapMode,
+} from "@/features/refrigeration/layout-editor";
 import type {
   RefrigerationLayoutDraft,
   RefrigerationLayoutRepository,
@@ -96,8 +101,14 @@ export function CameraScopedLayoutEditor({
   }, [bindings, channels, equipment.id, repository]);
 
   const dirty = !configurationsEqual(configuration, persisted);
-  const placementBySensorId = useMemo(
-    () => new Map(configuration.map((sensor) => [sensor.id, sensor])),
+  const placementBySensorId = useMemo<ReadonlyMap<string, LayoutPlacement>>(
+    () =>
+      new Map(
+        configuration.map((sensor) => [
+          sensor.id,
+          { sensorId: sensor.id, x: sensor.x, y: sensor.y },
+        ]),
+      ),
     [configuration],
   );
   const snapSlots = useMemo(
