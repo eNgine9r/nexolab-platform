@@ -28,6 +28,7 @@ type SecurityAwareLayoutWorkspaceProps = {
   visibleSensors: RefrigerationSensor[];
   selectedId: string | null;
   mode: LayoutEditorMode;
+  forceReadOnly?: boolean;
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
   onCapabilitiesChange?: (capabilities: LayoutCapabilities) => void;
@@ -50,6 +51,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   visibleSensors,
   selectedId,
   mode,
+  forceReadOnly = false,
   onModeChange,
   onSelect,
   onCapabilitiesChange,
@@ -64,6 +66,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
 
   const capabilities = useMemo<LayoutCapabilities>(() => {
+    if (forceReadOnly) return readOnlyCapabilities;
     if (runtime.mode === "demo") return demoCapabilities;
     if (!session || !membership) return readOnlyCapabilities;
     return {
@@ -71,13 +74,11 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       canPublish: hasPermission(session, membership.organizationId, "layout.publish"),
       canRestore: hasPermission(session, membership.organizationId, "layout.restore"),
     };
-  }, [membership, runtime.mode, session]);
+  }, [forceReadOnly, membership, runtime.mode, session]);
 
   useEffect(() => {
     onCapabilitiesChange?.(capabilities);
-    if (!capabilities.canEdit && mode === "edit") {
-      onModeChange("view");
-    }
+    if (!capabilities.canEdit && mode === "edit") onModeChange("view");
   }, [capabilities, mode, onCapabilitiesChange, onModeChange]);
 
   useEffect(() => {
@@ -123,10 +124,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 
   if (liveRuntimeUnavailable) {
     return (
-      <div
-        className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
-        role="alert"
-      >
+      <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
         <AlertTriangle className="mr-2 inline h-4 w-4" />
         {securityError ?? runtime.error ?? "Клієнт захищеної сесії не налаштований."}
       </div>
@@ -144,10 +142,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 
   if (securityState === "error" || !runtime.repository) {
     return (
-      <div
-        className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
-        role="alert"
-      >
+      <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
         <AlertTriangle className="mr-2 inline h-4 w-4" />
         {securityError ?? "Захищена сесія NEXOLAB недоступна."}
       </div>
@@ -176,7 +171,11 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         }
       `}</style>
 
-      {membership && session ? (
+      {forceReadOnly ? (
+        <div className="rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] px-4 py-3 text-xs text-slate-300">
+          Lifecycle `retired`: схема заблокована для змін, публікації та відновлення.
+        </div>
+      ) : membership && session ? (
         <div className="flex flex-col gap-2 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-emerald-100">
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
@@ -188,10 +187,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {membership.roles.map((role) => (
-              <span
-                key={role}
-                className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-1 text-[9px] text-emerald-200"
-              >
+              <span key={role} className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-1 text-[9px] text-emerald-200">
                 {role}
               </span>
             ))}
@@ -218,8 +214,9 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         onModeChange={capabilities.canEdit ? onModeChange : () => undefined}
         onSelect={onSelect}
         repository={runtime.repository}
-        actorId={session?.identity.subject ?? runtime.actorId}
-        runtimeMode={runtime.mode}
+        canEdit={capabilities.canEdit}
+        canPublish={capabilities.canPublish}
+        canRestore={capabilities.canRestore}
       />
     </div>
   );
