@@ -494,7 +494,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
         new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/layout/publish`,
     );
     await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
-    expect((await publishResponsePromise).status()).toBe(200);
+    expect((await publishResponsePromise).status()).toBe(201);
     await expect(pageA.getByText("Ревізія r1", { exact: true })).toBeVisible();
     await expect(editor(pageA).getByText("Чернетка v4", { exact: true })).toBeVisible();
 
