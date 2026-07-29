@@ -40,6 +40,10 @@ class RefrigerationEquipmentCreate(BaseModel):
         return normalized
 
 
+class RefrigerationEquipmentUpdate(RefrigerationEquipmentCreate):
+    """Complete, idempotent replacement of editable equipment passport fields."""
+
+
 class RefrigerationEquipmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
