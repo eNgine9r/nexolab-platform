@@ -23,6 +23,7 @@ from PIL import Image, UnidentifiedImageError
 from app.refrigeration.models import EquipmentImage, RefrigerationLayoutDraft, RefrigerationLayoutRevision
 from app.refrigeration.repository import (
     DEFAULT_ORGANIZATION_ID,
+    LayoutEquipmentRetiredError,
     LayoutImageNotFoundError,
     LayoutNotFoundError,
     LayoutRepositoryError,
@@ -260,7 +261,11 @@ def create_refrigeration_router(
         "/{equipment_id}/images",
         response_model=EquipmentImageResponse,
         status_code=status.HTTP_201_CREATED,
-        responses={413: {"model": ApiErrorResponse}, 415: {"model": ApiErrorResponse}},
+        responses={
+            409: {"model": ApiErrorResponse},
+            413: {"model": ApiErrorResponse},
+            415: {"model": ApiErrorResponse},
+        },
     )
     async def upload_image(
         equipment_id: str,
@@ -309,6 +314,9 @@ def create_refrigeration_router(
                     reason=audit_reason,
                 ),
             )
+        except LayoutRepositoryError as error:
+            storage.delete(storage_key)
+            raise _repository_http_error(error) from error
         except Exception:
             try:
                 storage.delete(storage_key)
@@ -411,6 +419,8 @@ def _repository_http_error(error: LayoutRepositoryError) -> HTTPException:
             expected_version=error.expected_version,
             actual_version=error.actual_version,
         )
+    if isinstance(error, LayoutEquipmentRetiredError):
+        return _api_http_error(409, error.code, str(error))
     if isinstance(error, LayoutValidationError):
         return _api_http_error(422, error.code, str(error), issues=error.issues)
     if isinstance(error, (LayoutNotFoundError, LayoutImageNotFoundError, LayoutRevisionNotFoundError)):
@@ -509,5 +519,7 @@ def _image_response(
         object_etag=image.object_etag,
         created_by=image.created_by,
         created_at=image.created_at,
+        retired_by=image.retired_by,
+        retired_at=image.retired_at,
         content_url=content_url,
     )
