@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.db import Database
+from app.nodes.models import CentralNode
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
@@ -21,6 +24,7 @@ ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111"
 SECRET = "test-only-secret-with-sufficient-length"
 ISSUER = "https://identity.example.test"
 AUDIENCE = "nexolab-api"
+CLIMATE_CHAMBER_ID = "kk2"
 
 
 def payload(code: str = "CS-P1250-2026-108-01") -> dict[str, object]:
@@ -28,7 +32,7 @@ def payload(code: str = "CS-P1250-2026-108-01") -> dict[str, object]:
         "code": code,
         "name": "Вітрина №108-01",
         "location": "Лабораторія 1 · Зона C",
-        "node_id": "kk2",
+        "node_id": CLIMATE_CHAMBER_ID,
         "equipment_type": "Холодильна вітрина",
         "manufacturer": "NEXOLAB",
         "model": "NX-1250",
@@ -38,6 +42,28 @@ def payload(code: str = "CS-P1250-2026-108-01") -> dict[str, object]:
         "serviced_at": None,
         "total_sensors": 48,
     }
+
+
+def provision_climate_chamber(database: Database, organization_id: str) -> None:
+    now = datetime.now(UTC)
+    with Session(database.engine) as session:
+        with session.begin():
+            session.add(
+                CentralNode(
+                    id=str(uuid4()),
+                    organization_id=organization_id,
+                    node_id=CLIMATE_CHAMBER_ID,
+                    display_name="Кліматична камера КК2",
+                    state="active",
+                    state_reason="test fixture",
+                    clock_warning_ms=30_000,
+                    clock_critical_ms=120_000,
+                    clock_status="ok",
+                    created_by="test-suite",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
 
 
 def development_client(
@@ -55,6 +81,7 @@ def development_client(
         slug="default",
         name="Default organization",
     )
+    provision_climate_chamber(database, DEFAULT_ORGANIZATION_ID)
     equipment = PostgresRefrigerationEquipmentRepository(database)
     layouts = PostgresRefrigerationLayoutRepository(database)
     app = FastAPI()
@@ -81,7 +108,7 @@ def test_create_get_list_and_soft_delete_preserve_layout_draft(tmp_path: Path) -
     assert created.json()["status"] == "offline"
     assert created.json()["online_sensors"] == 0
     assert created.json()["total_sensors"] == 48
-    assert created.json()["node_id"] == "kk2"
+    assert created.json()["node_id"] == CLIMATE_CHAMBER_ID
 
     equipment_id = created.json()["id"]
     assert layouts.get_draft(equipment_id).placements == []
@@ -159,6 +186,7 @@ def secured_client(
         slug="nexolab-lab",
         name="NEXOLAB Laboratory",
     )
+    provision_climate_chamber(database, ORGANIZATION_ID)
     security.provision_membership(
         organization_id=ORGANIZATION_ID,
         claims=VerifiedIdentityClaims(
