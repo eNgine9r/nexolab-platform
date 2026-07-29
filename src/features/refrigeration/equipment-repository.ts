@@ -1,5 +1,6 @@
 import {
   getRefrigerationEquipment,
+  type EquipmentLifecycleStatus,
   type EquipmentStatus,
   type RefrigerationEquipment,
 } from "@/data/refrigeration";
@@ -8,6 +9,9 @@ export type RefrigerationEquipmentCreateInput = {
   code: string;
   name: string;
   location: string;
+  laboratory: string;
+  zone: string;
+  nodeId: string;
   type: string;
   manufacturer: string;
   model: string;
@@ -15,6 +19,7 @@ export type RefrigerationEquipmentCreateInput = {
   temperatureClass: string;
   installedAt: string;
   servicedAt: string;
+  lifecycleStatus: EquipmentLifecycleStatus;
   totalSensors: number;
 };
 
@@ -67,6 +72,9 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
     const item: RefrigerationEquipment = {
       id: createClientId(),
       ...normalized,
+      laboratory: normalized.laboratory || null,
+      zone: normalized.zone || null,
+      nodeId: normalized.nodeId || null,
       status: "offline",
       averageTemperatureC: 0,
       minTemperatureC: 0,
@@ -91,11 +99,24 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
     if (index < 0) throw notFound();
     const current = this.items[index];
     assertVersion(current, expectedVersion);
+    if (current.lifecycleStatus === "retired") {
+      throw new RefrigerationEquipmentRepositoryError(
+        "Обладнання виведено з експлуатації та доступне лише для перегляду.",
+        "equipment_lifecycle_conflict",
+        409,
+      );
+    }
     const normalized = normalizeInput(input);
     assertUniqueCode(this.items, normalized.code, equipmentId);
     const updated: RefrigerationEquipment = {
       ...current,
       ...normalized,
+      laboratory: normalized.laboratory || null,
+      zone: normalized.zone || null,
+      nodeId: normalized.nodeId || null,
+      status: normalized.lifecycleStatus === "retired" ? "offline" : current.status,
+      onlineSensors: normalized.lifecycleStatus === "retired" ? 0 : current.onlineSensors,
+      activeAlarms: normalized.lifecycleStatus === "retired" ? 0 : current.activeAlarms,
       version: current.version + 1,
     };
     this.items = this.items.map((item) => (item.id === equipmentId ? updated : item));
@@ -207,6 +228,9 @@ function normalizeInput(input: RefrigerationEquipmentCreateInput): Refrigeration
     code: input.code.trim(),
     name: input.name.trim(),
     location: input.location.trim(),
+    laboratory: input.laboratory.trim(),
+    zone: input.zone.trim(),
+    nodeId: input.nodeId.trim(),
     type: input.type.trim(),
     manufacturer: input.manufacturer.trim(),
     model: input.model.trim(),
@@ -214,6 +238,7 @@ function normalizeInput(input: RefrigerationEquipmentCreateInput): Refrigeration
     temperatureClass: input.temperatureClass.trim(),
     installedAt: input.installedAt,
     servicedAt: input.servicedAt,
+    lifecycleStatus: input.lifecycleStatus,
     totalSensors: input.totalSensors,
   };
 }
@@ -224,6 +249,9 @@ function toApiPayload(input: RefrigerationEquipmentCreateInput) {
     code: normalized.code,
     name: normalized.name,
     location: normalized.location,
+    laboratory: normalized.laboratory || null,
+    zone: normalized.zone || null,
+    node_id: normalized.nodeId || null,
     equipment_type: normalized.type,
     manufacturer: normalized.manufacturer,
     model: normalized.model,
@@ -231,11 +259,12 @@ function toApiPayload(input: RefrigerationEquipmentCreateInput) {
     temperature_class: normalized.temperatureClass,
     installed_at: normalized.installedAt || null,
     serviced_at: normalized.servicedAt || null,
+    lifecycle_status: normalized.lifecycleStatus,
     total_sensors: normalized.totalSensors,
   };
 }
 
-function equipmentEtag(version: number): string {
+export function equipmentEtag(version: number): string {
   return `W/"equipment-v${version}"`;
 }
 
@@ -277,7 +306,7 @@ function notFound(): RefrigerationEquipmentRepositoryError {
   );
 }
 
-function parseEquipment(value: unknown): RefrigerationEquipment {
+export function parseEquipment(value: unknown): RefrigerationEquipment {
   const record = asRecord(value);
   if (!record) throw invalidResponse();
 
@@ -290,6 +319,7 @@ function parseEquipment(value: unknown): RefrigerationEquipment {
   const model = readString(record.model);
   const serialNumber = readString(record.serial_number);
   const temperatureClass = readString(record.temperature_class);
+  const lifecycleStatus = readLifecycleStatus(record.lifecycle_status);
   const status = readStatus(record.status);
   const version = readInteger(record.version);
   const totalSensors = readInteger(record.total_sensors);
@@ -309,6 +339,7 @@ function parseEquipment(value: unknown): RefrigerationEquipment {
     !model ||
     !serialNumber ||
     !temperatureClass ||
+    !lifecycleStatus ||
     !status ||
     version === null ||
     totalSensors === null ||
@@ -327,6 +358,9 @@ function parseEquipment(value: unknown): RefrigerationEquipment {
     code,
     name,
     location,
+    laboratory: readOptionalString(record.laboratory),
+    zone: readOptionalString(record.zone),
+    nodeId: readOptionalString(record.node_id),
     type,
     manufacturer,
     model,
@@ -334,6 +368,7 @@ function parseEquipment(value: unknown): RefrigerationEquipment {
     temperatureClass,
     installedAt: readOptionalString(record.installed_at) ?? "",
     servicedAt: readOptionalString(record.serviced_at) ?? "",
+    lifecycleStatus,
     status,
     averageTemperatureC,
     minTemperatureC,
@@ -414,4 +449,8 @@ function readStatus(value: unknown): EquipmentStatus | null {
   return value === "normal" || value === "warning" || value === "alarm" || value === "offline"
     ? value
     : null;
+}
+
+function readLifecycleStatus(value: unknown): EquipmentLifecycleStatus | null {
+  return value === "active" || value === "maintenance" || value === "retired" ? value : null;
 }
