@@ -73,7 +73,7 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
       await expect(pageA.getByText(/додано на підкладку/)).toBeVisible();
       await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
       await expect(editor(pageA).getByText("Режим редагування")).toBeVisible();
-      await editor(pageA).getByRole("button", { name: "Скасувати" }).click();
+      await editor(pageA).getByRole("button", { name: "Скасувати", exact: true }).click();
       await expect(editor(pageA).getByText("Режим перегляду")).toBeVisible();
 
       await expect(pageA.getByRole("button", { name: "Замінити" })).toBeEnabled();
