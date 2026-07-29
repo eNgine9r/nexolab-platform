@@ -476,7 +476,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(imageUploadWrites).toBe(1);
 
     await expect(editor(pageA).getByText("Чернетка v3", { exact: true })).toBeVisible();
-    const image = pageA.locator('img[alt="Фото холодильного обладнання showcase-acceptance.png"]').first();
+    const image = pageA.locator(`img[alt="Фото обладнання ${equipment.id}"]`).first();
     await expect(image).toBeVisible();
     const signedUrl = await image.getAttribute("src");
     expect(signedUrl).not.toBeNull();
