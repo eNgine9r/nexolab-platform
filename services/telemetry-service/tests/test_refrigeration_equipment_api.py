@@ -28,6 +28,7 @@ def payload(code: str = "CS-P1250-2026-108-01") -> dict[str, object]:
         "code": code,
         "name": "Вітрина №108-01",
         "location": "Лабораторія 1 · Зона C",
+        "node_id": "kk2",
         "equipment_type": "Холодильна вітрина",
         "manufacturer": "NEXOLAB",
         "model": "NX-1250",
@@ -80,6 +81,7 @@ def test_create_get_list_and_soft_delete_preserve_layout_draft(tmp_path: Path) -
     assert created.json()["status"] == "offline"
     assert created.json()["online_sensors"] == 0
     assert created.json()["total_sensors"] == 48
+    assert created.json()["node_id"] == "kk2"
 
     equipment_id = created.json()["id"]
     assert layouts.get_draft(equipment_id).placements == []
