@@ -15,6 +15,7 @@ SELECT jsonb_build_object(
   'nodes', (SELECT count(*) FROM central_nodes WHERE organization_id = '00000000-0000-0000-0000-000000000099'),
   'node_credentials', (SELECT count(*) FROM central_node_credentials WHERE organization_id = '00000000-0000-0000-0000-000000000099'),
   'broker_commands', (SELECT count(*) FROM central_node_broker_commands WHERE organization_id = '00000000-0000-0000-0000-000000000099'),
+  'refrigeration_equipment', (SELECT count(*) FROM refrigeration_equipment WHERE id = 'K106'),
   'equipment_images', (SELECT count(*) FROM equipment_images WHERE id = '80000000-0000-0000-0000-000000000099'),
   'refrigeration_drafts', (SELECT count(*) FROM refrigeration_layout_drafts WHERE id = '81000000-0000-0000-0000-000000000099'),
   'refrigeration_revisions', (SELECT count(*) FROM refrigeration_layout_revisions WHERE id = '82000000-0000-0000-0000-000000000099')
