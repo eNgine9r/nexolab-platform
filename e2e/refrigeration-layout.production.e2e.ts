@@ -1,21 +1,55 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-const equipmentId = "showcase-106-01";
-const equipmentRoute = `/refrigeration/${equipmentId}`;
 const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18082";
+const webBaseUrl = process.env.NEXOLAB_ACCEPTANCE_WEB_URL ?? "http://127.0.0.1:13000";
 const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "acceptance-evidence";
+const climateChamberId = "kk2-acceptance";
+const climateChamberName = "Кліматична камера КК2";
+const channelIds = {
+  power: "kk2-power-01",
+  temperatureOne: "kk2-temp-01",
+  temperatureTwo: "kk2-temp-02",
+} as const;
 const equipmentPhoto = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAF0lEQVR4nGPkUbJgIAUwkaR6VMOg0QAA11IAejJlKAQAAAAASUVORK5CYII=",
   "base64",
 );
+const oversizedImage = Buffer.alloc(1536 * 1024 + 1, 0);
+const imageLimitMessage =
+  "Розмір зображення перевищує допустимі 1,5 МБ. Стисніть файл або завантажте інше зображення.";
+
+type EquipmentPayload = {
+  id: string;
+  code: string;
+  name: string;
+  node_id: string | null;
+  version: number;
+};
+
+type EquipmentListPayload = {
+  items: EquipmentPayload[];
+};
+
+type BindingPayload = {
+  channel_id: string;
+  slot_key: string;
+  label: string;
+  side: "front" | "rear";
+  shelf: number;
+  position: number;
+};
+
+type BindingListPayload = {
+  items: BindingPayload[];
+};
 
 type DraftPayload = {
   version: number;
   placements: Array<{ sensor_id: string; x: number; y: number }>;
-  image: { id: string; content_url: string } | null;
+  image: { id: string; original_filename: string; content_url: string } | null;
 };
 
 type HistoryPayload = {
@@ -26,13 +60,17 @@ type HistoryPayload = {
   }>;
 };
 
-type EquipmentListPayload = {
-  items: Array<{ id: string; code: string; name: string }>;
+type ImageListPayload = {
+  items: Array<{ id: string; original_filename: string }>;
 };
 
 type AuditPayload = {
   items: Array<{ action: string; entity_id: string; actor_subject: string }>;
 };
+
+function absoluteRoute(route: string): string {
+  return `${webBaseUrl}${route}`;
+}
 
 function editor(page: Page) {
   return page.locator("#layout-editor");
@@ -42,17 +80,88 @@ function sensorMarker(page: Page, label: string) {
   return page.getByRole("button", { name: `Вибрати датчик ${label} на схемі` });
 }
 
-async function openProductionEquipment(page: Page, version: number) {
-  await page.goto(equipmentRoute, { waitUntil: "networkidle" });
-  await expect(page.getByText(`Чернетка v${version} · PostgreSQL`)).toBeVisible();
+function sensorConfigurationPath(equipmentId: string): string {
+  return `/api/v1/equipment/${equipmentId}/sensor-configuration`;
+}
+
+async function chooseClimateChamber(page: Page): Promise<void> {
+  const selector = page.getByLabel(/^Кліматична камера/);
+  await expect(selector).toContainText(climateChamberName);
+  await selector.selectOption(climateChamberId);
+  await expect(page.getByText("Доступно каналів вимірювання: 3.")).toBeVisible();
+}
+
+async function createEquipmentViaApi(
+  request: APIRequestContext,
+  options: { code: string; name: string; serialNumber: string; totalSensors?: number },
+): Promise<EquipmentPayload> {
+  const response = await request.post(`${apiBaseUrl}/api/v1/equipment`, {
+    headers: { "X-Audit-Reason": "Refrigeration browser camera-scoped fixture" },
+    data: {
+      code: options.code,
+      name: options.name,
+      location: "Лабораторія acceptance · КК2",
+      laboratory: "Лабораторія acceptance",
+      zone: "КК2",
+      node_id: climateChamberId,
+      equipment_type: "Холодильна вітрина",
+      manufacturer: "NEXOLAB",
+      model: "NX-CAMERA-SCOPED",
+      serial_number: options.serialNumber,
+      temperature_class: "3M1 (0…+5 °C)",
+      installed_at: "2026-07-29",
+      serviced_at: null,
+      lifecycle_status: "active",
+      total_sensors: options.totalSensors ?? 4,
+    },
+  });
+  expect(response.status()).toBe(201);
+  expect(response.headers().etag).toBe('W/"equipment-v1"');
+  return (await response.json()) as EquipmentPayload;
+}
+
+async function openProductionEquipment(page: Page, equipment: EquipmentPayload, draftVersion: number) {
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+  await expect(editor(page).getByText(`Чернетка v${draftVersion}`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`Камера ${climateChamberId}`, { exact: true }).first()).toBeVisible();
 }
 
 async function enterEditMode(page: Page) {
-  await editor(page).getByRole("button", { name: "Редагувати схему" }).click();
-  await expect(editor(page).getByText("Режим редагування")).toBeVisible();
+  await editor(page).getByRole("button", { name: "Редагувати схему та датчики" }).click();
+  await expect(
+    editor(page).getByRole("region", { name: "Редагування складу датчиків кліматичної камери" }),
+  ).toBeVisible();
+  await expect(editor(page).getByRole("button", { name: "Зберегти всі зміни" })).toBeVisible();
 }
 
-test("creates, copies and safely removes equipment through icon-first catalog actions", async ({
+async function addChannel(page: Page, channelId: string) {
+  const selector = editor(page).getByLabel("Доступний датчик кліматичної камери");
+  await expect(selector.locator(`option[value="${channelId}"]`)).toHaveCount(1);
+  await selector.selectOption(channelId);
+  await editor(page)
+    .getByRole("button", { name: "Додати вибраний датчик на підкладку" })
+    .click();
+}
+
+async function readDraft(request: APIRequestContext, equipmentId: string): Promise<DraftPayload> {
+  const response = await request.get(`${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`);
+  expect(response.status()).toBe(200);
+  return (await response.json()) as DraftPayload;
+}
+
+async function readBindings(
+  request: APIRequestContext,
+  equipmentId: string,
+): Promise<BindingListPayload> {
+  const response = await request.get(
+    `${apiBaseUrl}/api/v1/equipment/${equipmentId}/sensor-bindings`,
+  );
+  expect(response.status()).toBe(200);
+  return (await response.json()) as BindingListPayload;
+}
+
+test("requires a climate chamber before creating or copying refrigeration equipment", async ({
   page,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -61,27 +170,37 @@ test("creates, copies and safely removes equipment through icon-first catalog ac
   const copyName = `${name} — копія`;
   const copyCode = `${code}-COPY`;
 
-  await page.goto("/refrigeration", { waitUntil: "networkidle" });
+  await page.goto(absoluteRoute("/refrigeration"), { waitUntil: "networkidle" });
   const addButton = page.getByRole("button", { name: "Додати холодильне обладнання" });
   await expect(addButton).toBeVisible();
   await expect(addButton).toHaveAttribute("title", "Додати холодильне обладнання");
   await addButton.click();
 
+  await expect(page.getByText(/Спочатку оберіть кліматичну камеру/)).toBeVisible();
+  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
+  await chooseClimateChamber(page);
+  await expect(page.getByLabel(/^Назва/)).toBeEnabled();
+
   await page.getByLabel(/^Назва/).fill(name);
   await page.getByLabel(/^Код обладнання/).fill(code);
-  await page.getByLabel(/^Відображуване розташування/).fill("Лабораторія acceptance · Зона C");
+  await page.getByLabel(/^Лабораторія/).fill("Лабораторія acceptance");
+  await page.getByLabel(/^Зона/).fill("КК2");
+  await page.getByLabel(/^Відображуване розташування/).fill("Лабораторія acceptance · КК2");
   await page.getByLabel(/^Виробник/).fill("NEXOLAB");
   await page.getByLabel(/^Модель/).fill("NX-1250-A");
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-10801");
   await page.getByLabel(/^Температурний клас/).fill("3M1 (0…+5 °C)");
-  await page.getByLabel(/^Кількість слотів датчиків/).fill("48");
-  await page.getByRole("button", { name: "Створити", exact: true }).click();
+  await page.getByLabel(/^Кількість слотів датчиків/).fill("4");
+  const createButton = page.getByRole("button", { name: "Створити", exact: true });
+  await expect(createButton).toBeEnabled();
+  await createButton.click();
 
   await expect(page.getByRole("status")).toContainText(`${name} додано до каталогу.`);
   await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText(`Кліматична камера ${climateChamberId}`, { exact: true })).toBeVisible();
 
   const openLink = page.getByRole("link", { name: `Відкрити ${name}` });
-  await expect(openLink).toHaveAttribute("title", `Відкрити ${name}`);
+  await expect(openLink).toHaveAttribute("title", "Відкрити");
   const href = await openLink.getAttribute("href");
   expect(href).toMatch(/^\/refrigeration\/[0-9a-f-]{36}$/);
   const createdEquipmentId = href?.split("/").at(-1);
@@ -91,11 +210,14 @@ test("creates, copies and safely removes equipment through icon-first catalog ac
   await expect(copyButton).toHaveAttribute("title", `Копіювати ${name}`);
   await copyButton.click();
   await expect(page.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeVisible();
+  await expect(page.getByLabel(/^Кліматична камера/)).toHaveValue("");
+  await expect(page.getByLabel(/^Назва/)).toBeDisabled();
+  await expect(page.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeVisible();
+
+  await chooseClimateChamber(page);
   await expect(page.getByLabel(/^Назва/)).toHaveValue(copyName);
   await expect(page.getByLabel(/^Код обладнання/)).toHaveValue(copyCode);
   await expect(page.getByLabel(/^Серійний номер/)).toHaveValue("");
-  await expect(page.getByLabel(/^Node/)).toHaveValue("");
-  await expect(page.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeVisible();
   await page.getByLabel(/^Серійний номер/).fill("NX-ACCEPTANCE-COPY-10801");
   await page.getByRole("button", { name: "Створити копію", exact: true }).click();
 
@@ -137,11 +259,7 @@ test("creates, copies and safely removes equipment through icon-first catalog ac
   );
   expect(deletedResponse.status()).toBe(404);
 
-  const draftResponse = await page.request.get(
-    `${apiBaseUrl}/api/v1/equipment/${createdEquipmentId}/layout/draft`,
-  );
-  expect(draftResponse.status()).toBe(200);
-  const preservedDraft = (await draftResponse.json()) as DraftPayload;
+  const preservedDraft = await readDraft(page.request, createdEquipmentId ?? "");
   expect(preservedDraft.version).toBe(1);
   expect(preservedDraft.placements).toEqual([]);
 
@@ -157,13 +275,22 @@ test("creates, copies and safely removes equipment through icon-first catalog ac
   expect(audit.items.every((item) => item.actor_subject === "development-system")).toBe(true);
 
   await page.screenshot({
-    path: path.join(evidenceDirectory, "equipment-catalog-after-safe-delete.png"),
+    path: path.join(evidenceDirectory, "camera-scoped-catalog-after-safe-delete.png"),
     fullPage: true,
   });
 });
 
-test("persists, publishes and recovers a parallel stale-writer conflict", async ({ browser }) => {
+test("stages multiple chamber sensors and persists them in one atomic transaction", async ({
+  browser,
+  request,
+}) => {
   mkdirSync(evidenceDirectory, { recursive: true });
+  const equipment = await createEquipmentViaApi(request, {
+    code: "ACCEPTANCE-CAMERA-BATCH-01",
+    name: "Вітрина camera-scoped batch",
+    serialNumber: "NX-CAMERA-BATCH-0001",
+    totalSensors: 4,
+  });
 
   const operatorA = await browser.newContext();
   const operatorB = await browser.newContext();
@@ -171,184 +298,252 @@ test("persists, publishes and recovers a parallel stale-writer conflict", async 
   const pageB = await operatorB.newPage();
 
   try {
-    await test.step("verify sidebar shell, enlarged canvas and versioned sensor assignment", async () => {
-      await openProductionEquipment(pageA, 1);
+    await openProductionEquipment(pageA, equipment, 1);
+    await openProductionEquipment(pageB, equipment, 1);
 
-      await expect(pageA.getByRole("link", { name: "Холодильне обладнання" })).toHaveAttribute(
-        "href",
-        "/refrigeration",
-      );
-      const canvasWorkspace = pageA.getByTestId("equipment-image-workspace");
-      await expect(canvasWorkspace).toHaveAttribute("data-expanded", "false");
-      await pageA.getByRole("button", { name: "Збільшити підкладку" }).click();
-      await expect(canvasWorkspace).toHaveAttribute("data-expanded", "true");
+    await expect(pageA.getByText("Паспорт і стан", { exact: true })).toHaveCount(0);
+    await expect(pageA.getByText("Датчики в реальному часі", { exact: true })).toHaveCount(0);
+    const canvasWorkspace = pageA.getByTestId("equipment-image-workspace");
+    await expect(canvasWorkspace).toHaveAttribute("data-expanded", "false");
+    await pageA.getByRole("button", { name: "Збільшити підкладку" }).click();
+    await expect(canvasWorkspace).toHaveAttribute("data-expanded", "true");
 
-      const candidate = pageA.getByRole("combobox", { name: "Датчик зі списку" });
-      await candidate.selectOption({ index: 0 });
-      const addSensor = pageA.getByRole("button", {
-        name: "Додати вибраний датчик на підкладку",
-      });
-      await expect(addSensor).toBeEnabled();
-      await expect(addSensor).toHaveAttribute("title", "Додати вибраний датчик на підкладку");
-      await addSensor.click();
+    await enterEditMode(pageA);
+    await enterEditMode(pageB);
 
-      await expect(pageA.getByText(/додано на підкладку/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v2 · PostgreSQL")).toBeVisible();
-      await expect(editor(pageA).getByText("Режим редагування")).toBeVisible();
-      await editor(pageA).getByRole("button", { name: "Скасувати", exact: true }).click();
-      await expect(editor(pageA).getByText("Режим перегляду")).toBeVisible();
+    await addChannel(pageB, channelIds.temperatureTwo);
+    await expect(editor(pageB).getByText("Незбережені зміни")).toBeVisible();
 
-      const replaceSensor = pageA.getByRole("button", {
-        name: "Замінити датчик у вибраній позиції",
-      });
-      await expect(replaceSensor).toBeEnabled();
-      await candidate.selectOption({ index: 0 });
-      await replaceSensor.click();
-
-      await expect(pageA.getByText(/замінено на/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v3 · PostgreSQL")).toBeVisible();
+    let configurationWrites = 0;
+    pageA.on("request", (pending) => {
+      if (
+        pending.method() === "PUT" &&
+        new URL(pending.url()).pathname === sensorConfigurationPath(equipment.id)
+      ) {
+        configurationWrites += 1;
+      }
     });
 
-    await test.step("upload a real image and verify its MinIO signed URL", async () => {
-      await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
-        name: "showcase-acceptance.png",
-        mimeType: "image/png",
-        buffer: equipmentPhoto,
-      });
+    await addChannel(pageA, channelIds.temperatureOne);
+    await addChannel(pageA, channelIds.temperatureTwo);
+    expect(configurationWrites).toBe(0);
 
-      await expect(pageA.getByText(/завантажено та прив’язано до чернетки v4/)).toBeVisible();
-      await expect(pageA.getByText("Чернетка v4 · PostgreSQL")).toBeVisible();
+    const preSaveBindings = await readBindings(operatorA.request, equipment.id);
+    const preSaveDraft = await readDraft(operatorA.request, equipment.id);
+    expect(preSaveBindings.items).toEqual([]);
+    expect(preSaveDraft.version).toBe(1);
+    expect(preSaveDraft.placements).toEqual([]);
 
-      const image = pageA.locator(`img[alt="Фото обладнання ${equipmentId}"]`).first();
-      await expect(image).toBeVisible();
-      const signedUrl = await image.getAttribute("src");
-      expect(signedUrl).not.toBeNull();
+    await pageA.getByRole("button", { name: "Редагувати датчик 01F" }).click();
+    await editor(pageA).getByLabel("Замінити канал датчика").selectOption(channelIds.power);
+    await editor(pageA).getByLabel("Підпис датчика").fill("PWR-01");
+    await editor(pageA).getByLabel("Полиця датчика").selectOption("2");
+    await editor(pageA).getByLabel("Позиція датчика").selectOption("3");
 
-      const parsedSignedUrl = new URL(signedUrl ?? "");
-      expect(parsedSignedUrl.origin).toBe(process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL);
-      expect(parsedSignedUrl.searchParams.has("X-Amz-Signature")).toBe(true);
-      expect(parsedSignedUrl.searchParams.has("X-Amz-Expires")).toBe(true);
+    await pageA.getByRole("button", { name: "Редагувати датчик 02F" }).click();
+    pageA.once("dialog", (dialog) => void dialog.accept());
+    await editor(pageA).getByRole("button", { name: "Видалити датчик з підкладки" }).click();
 
-      const signedResponse = await operatorA.request.get(parsedSignedUrl.toString());
-      expect(signedResponse.status()).toBe(200);
-      expect(signedResponse.headers()["content-type"]).toContain("image/png");
+    await addChannel(pageA, channelIds.temperatureOne);
+    const powerMarker = sensorMarker(pageA, "PWR-01");
+    await expect(powerMarker).toBeVisible();
+    const powerXBefore = await powerMarker.getAttribute("data-x");
+    await powerMarker.press("ArrowRight");
+    const powerXAfter = await powerMarker.getAttribute("data-x");
+    expect(powerXBefore).not.toBe(powerXAfter);
 
-      writeFileSync(
-        path.join(evidenceDirectory, "signed-image.json"),
-        `${JSON.stringify(
-          {
-            origin: parsedSignedUrl.origin,
-            pathname: parsedSignedUrl.pathname,
-            queryParameters: [...parsedSignedUrl.searchParams.keys()].sort(),
-            status: signedResponse.status(),
-            contentType: signedResponse.headers()["content-type"],
-          },
-          null,
-          2,
-        )}\n`,
-      );
+    const availableSelector = editor(pageA).getByLabel("Доступний датчик кліматичної камери");
+    expect(await availableSelector.locator("option").allTextContents()).toEqual([
+      expect.stringContaining(channelIds.temperatureTwo),
+    ]);
+    await expect(
+      availableSelector.locator(`option[value="${channelIds.power}"]`),
+    ).toHaveCount(0);
+    await expect(
+      availableSelector.locator(`option[value="${channelIds.temperatureOne}"]`),
+    ).toHaveCount(0);
+    expect(configurationWrites).toBe(0);
+
+    const saveResponsePromise = pageA.waitForResponse(
+      (response) =>
+        response.request().method() === "PUT" &&
+        new URL(response.url()).pathname === sensorConfigurationPath(equipment.id),
+    );
+    await editor(pageA).getByRole("button", { name: "Зберегти всі зміни" }).click();
+    const saveResponse = await saveResponsePromise;
+    expect(saveResponse.status()).toBe(200);
+    expect(configurationWrites).toBe(1);
+
+    await expect(editor(pageA).getByText("Чернетка v2", { exact: true })).toBeVisible();
+    await expect(
+      editor(pageA).getByRole("button", { name: "Редагувати схему та датчики" }),
+    ).toBeVisible();
+    await expect(
+      editor(pageA).getByRole("region", {
+        name: "Редагування складу датчиків кліматичної камери",
+      }),
+    ).toHaveCount(0);
+    await expect(pageA.getByRole("button", { name: /^Редагувати датчик/ })).toHaveCount(0);
+
+    const equipmentResponse = await operatorA.request.get(
+      `${apiBaseUrl}/api/v1/equipment/${equipment.id}`,
+    );
+    expect(equipmentResponse.status()).toBe(200);
+    const equipmentAfterSave = (await equipmentResponse.json()) as EquipmentPayload;
+    expect(equipmentAfterSave.version).toBe(2);
+    expect(equipmentAfterSave.node_id).toBe(climateChamberId);
+
+    const bindingsAfterSave = await readBindings(operatorA.request, equipment.id);
+    const draftAfterSave = await readDraft(operatorA.request, equipment.id);
+    expect(bindingsAfterSave.items).toHaveLength(2);
+    expect(bindingsAfterSave.items.map((item) => item.channel_id).sort()).toEqual([
+      channelIds.power,
+      channelIds.temperatureOne,
+    ]);
+    expect(bindingsAfterSave.items.find((item) => item.channel_id === channelIds.power)).toMatchObject({
+      label: "PWR-01",
+      side: "front",
+      shelf: 2,
+      position: 3,
+    });
+    expect(draftAfterSave.version).toBe(2);
+    expect(draftAfterSave.placements).toHaveLength(2);
+    expect(draftAfterSave.placements.map((item) => item.sensor_id).sort()).toEqual([
+      channelIds.power,
+      channelIds.temperatureOne,
+    ]);
+
+    const staleSavePromise = pageB.waitForResponse(
+      (response) =>
+        response.request().method() === "PUT" &&
+        new URL(response.url()).pathname === sensorConfigurationPath(equipment.id),
+    );
+    await editor(pageB).getByRole("button", { name: "Зберегти всі зміни" }).click();
+    const staleSave = await staleSavePromise;
+    expect(staleSave.status()).toBe(409);
+    await expect(
+      editor(pageB).getByText(/Конфігурацію змінив інший оператор.*актуальна версія 2/),
+    ).toBeVisible();
+
+    pageB.on("dialog", (dialog) => void dialog.accept());
+    await pageB.reload({ waitUntil: "networkidle" });
+    await expect(editor(pageB).getByText("Чернетка v2", { exact: true })).toBeVisible();
+    await expect(sensorMarker(pageB, "PWR-01")).toBeVisible();
+    await expect(sensorMarker(pageB, "01F")).toBeVisible();
+    await expect(pageB.getByRole("button", { name: /^Редагувати датчик/ })).toHaveCount(0);
+
+    let imageUploadWrites = 0;
+    pageA.on("request", (pending) => {
+      if (
+        pending.method() === "POST" &&
+        new URL(pending.url()).pathname === `/api/v1/equipment/${equipment.id}/images`
+      ) {
+        imageUploadWrites += 1;
+      }
     });
 
-    await test.step("seed all sensor placements through the production editor and publish r1", async () => {
-      await enterEditMode(pageA);
-      await editor(pageA).getByRole("button", { name: "Скинути позиції" }).click();
-      await expect(editor(pageA).getByText("Незбережені зміни")).toBeVisible();
-      await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
-
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 5")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v5 · PostgreSQL")).toBeVisible();
-
-      await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
-      await expect(pageA.getByText("Опубліковано ревізію r1.")).toBeVisible();
-      await expect(pageA.getByText("Чернетка v6 · PostgreSQL")).toBeVisible();
-      await expect(pageA.getByText("Ревізія r1")).toBeVisible();
-      await expect(pageA.getByText("showcase-acceptance.png").first()).toBeVisible();
+    await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
+      name: "too-large.png",
+      mimeType: "image/png",
+      buffer: oversizedImage,
     });
+    await expect(pageA.getByText(imageLimitMessage, { exact: true })).toBeVisible();
+    expect(imageUploadWrites).toBe(0);
+    expect((await readDraft(operatorA.request, equipment.id)).version).toBe(2);
+    const noImagesResponse = await operatorA.request.get(
+      `${apiBaseUrl}/api/v1/equipment/${equipment.id}/images`,
+    );
+    expect(noImagesResponse.status()).toBe(200);
+    expect(((await noImagesResponse.json()) as ImageListPayload).items).toEqual([]);
 
-    await test.step("run two isolated operators against the same draft version", async () => {
-      await openProductionEquipment(pageB, 6);
-      await enterEditMode(pageA);
-      await enterEditMode(pageB);
-
-      const markerA = sensorMarker(pageA, "01F");
-      const markerB = sensorMarker(pageB, "01F");
-      await expect(markerA).toBeVisible();
-      await expect(markerB).toBeVisible();
-
-      await markerA.press("ArrowRight");
-      await markerB.press("ArrowLeft");
-      const winningX = await markerA.getAttribute("data-x");
-      const losingLocalX = await markerB.getAttribute("data-x");
-      expect(winningX).not.toBeNull();
-      expect(losingLocalX).not.toBeNull();
-      expect(winningX).not.toBe(losingLocalX);
-
-      await editor(pageA).getByRole("button", { name: "Зберегти чернетку" }).click();
-      await expect(pageA.getByText("Чернетку схеми збережено · версія 7")).toBeVisible();
-
-      await editor(pageB).getByRole("button", { name: "Зберегти чернетку" }).click();
-      await expect(pageB.getByText("End-to-end конфлікт версій")).toBeVisible();
-      await expect(pageB.getByText(/очікувала v6, але сервер уже зберігає v7/)).toBeVisible();
-      await expect(markerB).toHaveAttribute("data-x", losingLocalX ?? "");
-
-      await pageB.screenshot({
-        path: path.join(evidenceDirectory, "conflict-local-state-preserved.png"),
-        fullPage: true,
-      });
-
-      pageB.once("dialog", (dialog) => void dialog.accept());
-      await pageB.getByRole("button", { name: "Завантажити серверну v7" }).click();
-      await expect(pageB.getByText("Завантажено серверну чернетку v7.")).toBeVisible();
-      await expect(editor(pageB).getByText("Режим перегляду")).toBeVisible();
-      await expect(sensorMarker(pageB, "01F")).toHaveAttribute("data-x", winningX ?? "");
-
-      await pageB.screenshot({
-        path: path.join(evidenceDirectory, "conflict-server-version-reloaded.png"),
-        fullPage: true,
-      });
+    const uploadResponsePromise = pageA.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/images`,
+    );
+    const attachResponsePromise = pageA.waitForResponse(
+      (response) =>
+        response.request().method() === "PUT" &&
+        new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/layout/draft`,
+    );
+    await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
+      name: "showcase-acceptance.png",
+      mimeType: "image/png",
+      buffer: equipmentPhoto,
     });
+    expect((await uploadResponsePromise).status()).toBe(201);
+    expect((await attachResponsePromise).status()).toBe(200);
+    expect(imageUploadWrites).toBe(1);
 
-    await test.step("verify final PostgreSQL-backed API state", async () => {
-      const draftResponse = await operatorA.request.get(
-        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
-      );
-      expect(draftResponse.status()).toBe(200);
-      expect(draftResponse.headers().etag).toBe('W/"layout-draft-v7"');
-      const draft = (await draftResponse.json()) as DraftPayload;
-      expect(draft.version).toBe(7);
-      expect(draft.placements).toHaveLength(48);
-      expect(draft.image).not.toBeNull();
+    await expect(editor(pageA).getByText("Чернетка v3", { exact: true })).toBeVisible();
+    const image = pageA.locator('img[alt="Фото холодильного обладнання showcase-acceptance.png"]').first();
+    await expect(image).toBeVisible();
+    const signedUrl = await image.getAttribute("src");
+    expect(signedUrl).not.toBeNull();
+    const parsedSignedUrl = new URL(signedUrl ?? "");
+    expect(parsedSignedUrl.origin).toBe(process.env.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL);
+    expect(parsedSignedUrl.searchParams.has("X-Amz-Signature")).toBe(true);
+    expect(parsedSignedUrl.searchParams.has("X-Amz-Expires")).toBe(true);
+    const signedResponse = await operatorA.request.get(parsedSignedUrl.toString());
+    expect(signedResponse.status()).toBe(200);
+    expect(signedResponse.headers()["content-type"]).toContain("image/png");
 
-      const historyResponse = await operatorA.request.get(
-        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/history`,
-      );
-      expect(historyResponse.status()).toBe(200);
-      const history = (await historyResponse.json()) as HistoryPayload;
-      expect(history.items).toHaveLength(1);
-      expect(history.items[0]).toMatchObject({
-        revision: 1,
-        source_draft_version: 5,
-      });
-      expect(history.items[0]?.placements).toHaveLength(48);
+    const publishResponsePromise = pageA.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/layout/publish`,
+    );
+    await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
+    expect((await publishResponsePromise).status()).toBe(200);
+    await expect(pageA.getByText("Ревізія r1", { exact: true })).toBeVisible();
+    await expect(editor(pageA).getByText("Чернетка v4", { exact: true })).toBeVisible();
 
-      writeFileSync(
-        path.join(evidenceDirectory, "browser-acceptance-summary.json"),
-        `${JSON.stringify(
-          {
-            equipmentId,
-            finalDraftVersion: draft.version,
-            draftPlacementCount: draft.placements.length,
-            publishedRevision: history.items[0]?.revision,
-            publishedSourceDraftVersion: history.items[0]?.source_draft_version,
-            publishedPlacementCount: history.items[0]?.placements.length,
-          },
-          null,
-          2,
-        )}\n`,
-      );
+    const finalDraft = await readDraft(operatorA.request, equipment.id);
+    expect(finalDraft.version).toBe(4);
+    expect(finalDraft.placements).toHaveLength(2);
+    expect(finalDraft.image?.original_filename).toBe("showcase-acceptance.png");
+
+    const historyResponse = await operatorA.request.get(
+      `${apiBaseUrl}/api/v1/equipment/${equipment.id}/layout/history`,
+    );
+    expect(historyResponse.status()).toBe(200);
+    const history = (await historyResponse.json()) as HistoryPayload;
+    expect(history.items).toHaveLength(1);
+    expect(history.items[0]).toMatchObject({
+      revision: 1,
+      source_draft_version: 3,
     });
+    expect(history.items[0]?.placements).toHaveLength(2);
+
+    await pageA.screenshot({
+      path: path.join(evidenceDirectory, "camera-scoped-atomic-layout.png"),
+      fullPage: true,
+    });
+    await pageB.screenshot({
+      path: path.join(evidenceDirectory, "camera-scoped-stale-writer-reloaded.png"),
+      fullPage: true,
+    });
+    writeFileSync(
+      path.join(evidenceDirectory, "browser-acceptance-summary.json"),
+      `${JSON.stringify(
+        {
+          equipmentId: equipment.id,
+          climateChamberId,
+          configuredChannels: bindingsAfterSave.items.map((item) => item.channel_id).sort(),
+          sensorConfigurationWrites: configurationWrites,
+          staleWriterStatus: staleSave.status(),
+          finalDraftVersion: finalDraft.version,
+          finalPlacementCount: finalDraft.placements.length,
+          publishedRevision: history.items[0]?.revision,
+          publishedSourceDraftVersion: history.items[0]?.source_draft_version,
+          imageUploadWrites,
+          oversizedImageRejectedBeforeUpload: true,
+        },
+        null,
+        2,
+      )}\n`,
+    );
   } finally {
-    await operatorB.close();
-    await operatorA.close();
+    await Promise.allSettled([operatorB.close(), operatorA.close()]);
   }
 });
