@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
       // browser/session resources, so replacing them with render-time mutations would
       // make focus and cancellation semantics less deterministic.
       "react-hooks/set-state-in-effect": "off",
+      // An underscore marks an intentionally retained callback/argument in a public
+      // component contract. All other unused variables continue to fail lint.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   // Override default ignores of eslint-config-next.
