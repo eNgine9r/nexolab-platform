@@ -5,6 +5,7 @@ from typing import Callable
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 
+from app.climate_catalog.models import ClimateChamber, MeasurementBus
 from app.climate_catalog.repository import (
     ClimateCatalogRepositoryError,
     ClimateChamberEquipmentCatalog,
@@ -60,11 +61,19 @@ def create_climate_catalog_router(
     def list_chambers(
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> ClimateChamberListResponse:
-        rows = repository.list_chambers(
-            organization_id=authorized.principal.organization_id
-        )
+        organization_id = authorized.principal.organization_id
+        rows = repository.list_chambers(organization_id=organization_id)
         return ClimateChamberListResponse(
-            items=[ClimateChamberResponse.model_validate(item) for item in rows]
+            items=[
+                _chamber_response(
+                    item,
+                    repository.get_chamber_transport(
+                        item.id,
+                        organization_id=organization_id,
+                    ),
+                )
+                for item in rows
+            ]
         )
 
     def get_equipment(
@@ -93,6 +102,7 @@ def create_climate_catalog_router(
         ),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> ClimateChamberResponse:
+        organization_id = authorized.principal.organization_id
         try:
             chamber = repository.update_chamber(
                 chamber_id,
@@ -100,9 +110,9 @@ def create_climate_catalog_router(
                 status=payload.status,
                 expected_version=parse_climate_chamber_if_match(if_match),
                 actor_subject=authorized.principal.subject,
-                organization_id=authorized.principal.organization_id,
+                organization_id=organization_id,
                 audit_event=AuditEventInput(
-                    organization_id=authorized.principal.organization_id,
+                    organization_id=organization_id,
                     actor_identity_id=authorized.identity_id,
                     actor_subject=authorized.principal.subject,
                     actor_roles=authorized.principal.roles,
@@ -115,10 +125,14 @@ def create_climate_catalog_router(
                     user_agent=request.headers.get("User-Agent"),
                 ),
             )
+            bus = repository.get_chamber_transport(
+                chamber.id,
+                organization_id=organization_id,
+            )
         except ClimateCatalogRepositoryError as error:
             raise _repository_http_error(error) from error
         response.headers["ETag"] = climate_chamber_etag(chamber.version)
-        return ClimateChamberResponse.model_validate(chamber)
+        return _chamber_response(chamber, bus)
 
     for router in (versioned, compatibility):
         router.add_api_route(
@@ -164,11 +178,30 @@ def parse_climate_chamber_if_match(value: str) -> int:
     return int(match.group("version"))
 
 
+def _chamber_response(
+    chamber: ClimateChamber,
+    bus: MeasurementBus,
+) -> ClimateChamberResponse:
+    return ClimateChamberResponse(
+        id=chamber.id,
+        code=chamber.code,
+        node_id=bus.node_id,
+        bus_id=bus.id,
+        bus_key=bus.bus_key,
+        name=chamber.name,
+        display_order=chamber.display_order,
+        status=chamber.status,
+        version=chamber.version,
+        created_at=chamber.created_at,
+        updated_at=chamber.updated_at,
+    )
+
+
 def _catalog_response(
     catalog: ClimateChamberEquipmentCatalog,
 ) -> ClimateChamberEquipmentResponse:
     return ClimateChamberEquipmentResponse(
-        climate_chamber=ClimateChamberResponse.model_validate(catalog.chamber),
+        climate_chamber=_chamber_response(catalog.chamber, catalog.bus),
         temperature_controllers=[
             MeasurementDeviceResponse.model_validate(item)
             for item in catalog.temperature_controllers
@@ -177,6 +210,7 @@ def _catalog_response(
             MeasurementChannelResponse(
                 id=item.channel.id,
                 channel_id=item.channel.channel_id,
+                source_channel_id=item.channel.source_channel_id,
                 device_id=item.channel.device_id,
                 controller_unit_id=item.device.unit_id,
                 channel_number=item.channel.channel_number,
