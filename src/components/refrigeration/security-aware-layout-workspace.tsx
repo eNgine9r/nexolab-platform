@@ -269,6 +269,9 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
             mode={effectiveMode}
             repository={runtime.repository}
             actorId={runtime.actorId}
+            canEditDraft={capabilities.canEdit}
+            canPublish={capabilities.canPublish}
+            canRestore={capabilities.canRestore}
             onServerMutation={configurationChanged}
           />
         </>

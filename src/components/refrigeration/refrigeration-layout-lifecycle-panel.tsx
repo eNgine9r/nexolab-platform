@@ -33,12 +33,18 @@ export function RefrigerationLayoutLifecyclePanel({
   mode,
   repository,
   actorId = "dashboard-operator",
+  canEditDraft = true,
+  canPublish = true,
+  canRestore = true,
   onServerMutation,
 }: {
   equipment: RefrigerationEquipment;
   mode: "view" | "edit";
   repository: RefrigerationLayoutRepository;
   actorId?: string;
+  canEditDraft?: boolean;
+  canPublish?: boolean;
+  canRestore?: boolean;
   onServerMutation: () => void;
 }) {
   const [draft, setDraft] = useState<RefrigerationLayoutDraft | null>(null);
@@ -80,7 +86,7 @@ export function RefrigerationLayoutLifecyclePanel({
   const uploadPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !draft || action !== "idle") return;
+    if (!canEditDraft || !file || !draft || action !== "idle") return;
     setError(null);
     setNotice(null);
     if (mode === "edit") {
@@ -121,7 +127,7 @@ export function RefrigerationLayoutLifecyclePanel({
   };
 
   const publish = async () => {
-    if (!draft || action !== "idle") return;
+    if (!canPublish || !draft || action !== "idle") return;
     setError(null);
     setNotice(null);
     if (mode === "edit") {
@@ -157,7 +163,7 @@ export function RefrigerationLayoutLifecyclePanel({
   };
 
   const restore = async (revision: PublishedLayoutRevision) => {
-    if (!draft || action !== "idle") return;
+    if (!canRestore || !draft || action !== "idle") return;
     if (mode === "edit") {
       setError("Збережіть або скасуйте редагування перед відновленням історії.");
       return;
@@ -206,26 +212,32 @@ export function RefrigerationLayoutLifecyclePanel({
               </div>
               <p className="mt-1 text-[10px] text-slate-500">JPEG, PNG або WebP · максимум 1,5 МБ</p>
             </div>
-            <input
-              ref={photoInput}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label="Вибрати production-фото обладнання"
-              className="sr-only"
-              onChange={uploadPhoto}
-            />
-            <RefrigerationIconButton
-              label={draft.image ? "Замінити production-фото" : "Завантажити production-фото"}
-              onClick={() => photoInput.current?.click()}
-              disabled={action !== "idle" || mode === "edit"}
-              tone="info"
-            >
-              {action === "uploading" ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <UploadCloud className="h-4 w-4" />
-              )}
-            </RefrigerationIconButton>
+            {canEditDraft ? (
+              <>
+                <input
+                  ref={photoInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label="Вибрати production-фото обладнання"
+                  className="sr-only"
+                  onChange={uploadPhoto}
+                />
+                <RefrigerationIconButton
+                  label={
+                    draft.image ? "Замінити production-фото" : "Завантажити production-фото"
+                  }
+                  onClick={() => photoInput.current?.click()}
+                  disabled={action !== "idle" || mode === "edit"}
+                  tone="info"
+                >
+                  {action === "uploading" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <UploadCloud className="h-4 w-4" />
+                  )}
+                </RefrigerationIconButton>
+              </>
+            ) : null}
           </div>
           <p className="mt-4 truncate rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[10px] text-slate-300">
             {draft.image?.fileName ?? "Фото ще не завантажено"}
@@ -243,18 +255,25 @@ export function RefrigerationLayoutLifecyclePanel({
                 {published ? `Активна ревізія r${published.revision}` : "Опублікованої ревізії немає"}
               </p>
             </div>
-            <RefrigerationIconButton
-              label="Опублікувати поточну чернетку"
-              onClick={() => void publish()}
-              disabled={action !== "idle" || mode === "edit" || !draft.imageId || draft.placements.length === 0}
-              tone="success"
-            >
-              {action === "publishing" ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-            </RefrigerationIconButton>
+            {canPublish ? (
+              <RefrigerationIconButton
+                label="Опублікувати поточну чернетку"
+                onClick={() => void publish()}
+                disabled={
+                  action !== "idle" ||
+                  mode === "edit" ||
+                  !draft.imageId ||
+                  draft.placements.length === 0
+                }
+                tone="success"
+              >
+                {action === "publishing" ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </RefrigerationIconButton>
+            ) : null}
           </div>
           <p className="mt-4 text-[10px] leading-5 text-slate-400">
             Чернетка v{draft.version} · {draft.placements.length} розміщених датчиків
@@ -279,14 +298,16 @@ export function RefrigerationLayoutLifecyclePanel({
                     <p className="text-[10px] font-semibold text-slate-200">Ревізія r{revision.revision}</p>
                     <p className="truncate text-[9px] text-slate-600">{revision.image.fileName}</p>
                   </div>
-                  <RefrigerationIconButton
-                    label={`Відновити ревізію r${revision.revision}`}
-                    onClick={() => void restore(revision)}
-                    disabled={action !== "idle" || mode === "edit"}
-                    size="sm"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </RefrigerationIconButton>
+                  {canRestore ? (
+                    <RefrigerationIconButton
+                      label={`Відновити ревізію r${revision.revision}`}
+                      onClick={() => void restore(revision)}
+                      disabled={action !== "idle" || mode === "edit"}
+                      size="sm"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </RefrigerationIconButton>
+                  ) : null}
                 </div>
               ))
             )}
