@@ -22,6 +22,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import {
   CreateEquipmentDialog,
   DeleteEquipmentDialog,
+  type ClimateChamberEquipmentSummary,
   type EquipmentNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
@@ -254,19 +255,31 @@ export function RefrigerationCatalogScreen({
     setCreateOpen(true);
   };
 
-  const loadClimateChamberChannels = async (nodeId: string): Promise<number> => {
+  const loadClimateChamberEquipment = async (
+    nodeId: string,
+  ): Promise<ClimateChamberEquipmentSummary> => {
     const catalogRepository = runtime.climateCatalogRepository;
     const catalogChamber = chambers.find((item) => item.nodeId === nodeId);
     if (catalogRepository && catalogChamber) {
       const equipmentCatalog = await catalogRepository.getEquipment(catalogChamber.id);
-      return equipmentCatalog.temperatureChannels.length;
+      return {
+        temperatureControllers: equipmentCatalog.temperatureControllers.length,
+        temperatureChannels: equipmentCatalog.temperatureChannels.length,
+        energyMeters: equipmentCatalog.energyMeters.length,
+        energyMeterEmptyMessage: equipmentCatalog.energyMeterEmptyMessage,
+      };
     }
     const repository = runtime.lifecycleRepository;
     if (!repository) {
       throw new Error("Сховище кліматичних камер і вимірювальних каналів недоступне.");
     }
     const channels = await repository.listClimateChamberChannels(nodeId);
-    return channels.length;
+    return {
+      temperatureControllers: 0,
+      temperatureChannels: channels.length,
+      energyMeters: 0,
+      energyMeterEmptyMessage: null,
+    };
   };
 
   const createEquipment = async (input: RefrigerationEquipmentCreateInput) => {
@@ -453,7 +466,7 @@ export function RefrigerationCatalogScreen({
           nodeOptions={nodeOptions}
           initialValue={createInitialValue}
           intent={createIntent}
-          onClimateChamberChange={loadClimateChamberChannels}
+          onClimateChamberChange={loadClimateChamberEquipment}
           onClose={() => {
             if (!createBusy) {
               setCreateOpen(false);
