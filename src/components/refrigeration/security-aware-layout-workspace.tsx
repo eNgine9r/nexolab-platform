@@ -212,11 +212,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         }
       `}</style>
 
-      {externallyReadOnly ? (
-        <div className="rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] px-4 py-3 text-xs text-slate-300">
-          Схема доступна лише для перегляду відповідно до lifecycle та дозволів.
-        </div>
-      ) : membership && session ? (
+      {membership && session ? (
         <div className="flex flex-col gap-2 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-emerald-100">
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
@@ -238,6 +234,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
               </span>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {externallyReadOnly ? (
+        <div className="rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] px-4 py-3 text-xs text-slate-300">
+          Схема доступна лише для перегляду відповідно до lifecycle та дозволів.
         </div>
       ) : null}
 
