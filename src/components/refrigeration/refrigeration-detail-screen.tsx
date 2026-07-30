@@ -69,6 +69,7 @@ export function RefrigerationDetailScreen({
   const [channels, setChannels] = useState<AvailableSensor[]>([]);
   const [bindingSensors, setBindingSensors] = useState<RefrigerationSensor[] | null>(null);
   const [channelError, setChannelError] = useState<string | null>(null);
+  const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
@@ -83,6 +84,30 @@ export function RefrigerationDetailScreen({
     setBindings([]);
     setChannels([]);
   }, [initialEquipment]);
+
+  useEffect(() => {
+    const catalog = runtime.climateCatalogRepository;
+    const chamberId = equipmentRecord.climateChamberId;
+    if (!catalog || !chamberId) {
+      setChamberLabel(chamberId ? null : "Камеру не вибрано");
+      return;
+    }
+    let active = true;
+    setChamberLabel(null);
+    void catalog
+      .listChambers()
+      .then((items) => {
+        if (!active) return;
+        const chamber = items.find((item) => item.id === chamberId);
+        setChamberLabel(chamber ? `${chamber.name} · ${chamber.code}` : "Кліматична камера");
+      })
+      .catch(() => {
+        if (active) setChamberLabel("Кліматична камера");
+      });
+    return () => {
+      active = false;
+    };
+  }, [equipmentRecord.climateChamberId, runtime]);
 
   useEffect(() => {
     if (runtime.mode === "demo") {
@@ -111,12 +136,13 @@ export function RefrigerationDetailScreen({
 
   useEffect(() => {
     const lifecycle = runtime.lifecycleRepository;
-    if (!lifecycle || !equipmentRecord.nodeId) {
+    const chamberId = equipmentRecord.climateChamberId;
+    if (!lifecycle || !chamberId) {
       setBindingSensors(runtime.mode === "demo" ? null : []);
       setBindings([]);
       setChannels([]);
       setChannelError(
-        runtime.mode === "live" && !equipmentRecord.nodeId
+        runtime.mode === "live" && !chamberId
           ? "Для обладнання не вибрано кліматичну камеру. Відредагуйте паспорт перед роботою з датчиками."
           : null,
       );
@@ -126,7 +152,7 @@ export function RefrigerationDetailScreen({
     setChannelError(null);
     void Promise.all([
       lifecycle.listBindings(equipmentRecord.id),
-      lifecycle.listClimateChamberChannels(equipmentRecord.nodeId),
+      lifecycle.listClimateChamberChannels(chamberId),
     ])
       .then(([loadedBindings, availableChannels]) => {
         if (!active) return;
@@ -171,7 +197,13 @@ export function RefrigerationDetailScreen({
     return () => {
       active = false;
     };
-  }, [bindingEpoch, equipmentRecord.id, equipmentRecord.nodeId, equipmentRecord.version, runtime]);
+  }, [
+    bindingEpoch,
+    equipmentRecord.climateChamberId,
+    equipmentRecord.id,
+    equipmentRecord.version,
+    runtime,
+  ]);
 
   const equipment = useMemo(
     () => (bindingSensors === null ? equipmentRecord : { ...equipmentRecord, sensors: bindingSensors }),
@@ -189,6 +221,8 @@ export function RefrigerationDetailScreen({
     ? selectedId
     : (visibleSensors[0]?.id ?? null);
   const retired = equipment.lifecycleStatus === "retired";
+  const visibleChamberLabel =
+    chamberLabel ?? (equipment.climateChamberId ? "Кліматична камера" : "Камеру не вибрано");
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -223,10 +257,10 @@ export function RefrigerationDetailScreen({
                     >
                       {equipmentStatusLabel[equipment.status]}
                     </span>
-                    {equipment.nodeId ? (
+                    {equipment.climateChamberId ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] text-cyan-200">
                         <RadioTower className="h-3 w-3" />
-                        Камера {equipment.nodeId}
+                        {visibleChamberLabel}
                       </span>
                     ) : null}
                   </div>
@@ -252,104 +286,108 @@ export function RefrigerationDetailScreen({
                   </div>
                   <p className="mt-1 truncate text-[10px] text-slate-500">
                     Паспорт v{equipment.version} · {equipment.laboratory ?? "Лабораторію не задано"}
-                    {equipment.zone ? ` · ${equipment.zone}` : ""} · камера {equipment.nodeId ?? "не вибрана"}
+                    {equipment.zone ? ` · ${equipment.zone}` : ""} · {visibleChamberLabel}
                   </p>
                 </div>
                 <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
               </summary>
               <div className="pt-3">
                 <EquipmentLifecyclePanel
-                  equipment={equipmentRecord}
-                  repository={runtime.repository}
+                  equipment={equipment}
+                  repository={runtime.equipmentRepository}
                   lifecycleRepository={runtime.lifecycleRepository}
+                  climateCatalogRepository={runtime.climateCatalogRepository}
                   canManage={canManageEquipment}
-                  onEquipmentChange={(updated) => {
-                    setEquipmentRecord(updated);
-                    setBindingEpoch((current) => current + 1);
-                    if (updated.lifecycleStatus === "retired") setLayoutMode("view");
-                  }}
+                  onEquipmentChange={setEquipmentRecord}
                   onBindingsChanged={() => setBindingEpoch((current) => current + 1)}
                 />
               </div>
             </details>
 
+            {retired ? (
+              <div className="mb-3 flex items-start gap-2 rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] p-3 text-xs text-slate-300">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                Обладнання виведено з експлуатації. Схема, фото, історія та sensor bindings
+                залишаються доступними лише для перегляду й аудиту.
+              </div>
+            ) : null}
+
             {channelError ? (
               <div
                 role="alert"
-                className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-200"
+                className="mb-3 flex items-start gap-2 rounded-2xl border border-rose-400/20 bg-rose-400/[0.07] p-3 text-xs text-rose-200"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 {channelError}
               </div>
             ) : null}
 
-            <section className="min-w-0 space-y-3">
-              <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold text-white">Фільтри розміщених датчиків</h2>
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      {equipment.sensors.length} bindings · {channels.length} каналів у камері · місткість {equipment.totalSensors} слотів
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {sideOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        aria-pressed={side === option.value}
-                        onClick={() => setSide(option.value)}
-                        className={clsx(
-                          "rounded-lg border px-2.5 py-1.5 text-[10px]",
-                          side === option.value
-                            ? "border-blue-400/35 bg-blue-500/15 text-blue-200"
-                            : "border-white/[0.07] bg-white/[0.025] text-slate-500",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                    <label className="sr-only" htmlFor="shelf-filter">
-                      Фільтр за полицею
-                    </label>
-                    <select
-                      id="shelf-filter"
-                      value={shelf}
-                      onChange={(event) =>
-                        setShelf(event.target.value === "all" ? "all" : Number(event.target.value))
-                      }
-                      className="rounded-lg border border-white/[0.07] bg-[#0b1e38] px-2.5 py-1.5 text-[10px] text-slate-400 outline-none"
-                    >
-                      <option value="all">Усі полиці</option>
-                      {shelves.map((value) => (
-                        <option key={value} value={value}>
-                          Полиця {value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+            <section className="mb-3 flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {sideOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSide(option.value)}
+                    aria-pressed={side === option.value}
+                    className={clsx(
+                      "rounded-xl border px-3 py-2 text-[11px] transition",
+                      side === option.value
+                        ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
+                        : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
-
-              <SecurityAwareRefrigerationLayoutWorkspace
-                key={`${equipment.id}-${bindingEpoch}-${retired ? "retired" : "mutable"}`}
-                equipment={equipment}
-                visibleSensors={visibleSensors}
-                selectedId={activeSelectedId}
-                mode={layoutMode}
-                forceReadOnly={retired}
-                lifecycleRepository={runtime.lifecycleRepository}
-                channels={channels}
-                bindings={bindings}
-                onModeChange={setLayoutMode}
-                onSelect={setSelectedId}
-                onEquipmentChange={(updated) => {
-                  setEquipmentRecord(updated);
-                  setBindingEpoch((current) => current + 1);
-                }}
-              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShelf("all")}
+                  aria-pressed={shelf === "all"}
+                  className={clsx(
+                    "rounded-xl border px-3 py-2 text-[11px] transition",
+                    shelf === "all"
+                      ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
+                      : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
+                  )}
+                >
+                  Усі полиці
+                </button>
+                {shelves.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setShelf(item)}
+                    aria-pressed={shelf === item}
+                    className={clsx(
+                      "rounded-xl border px-3 py-2 text-[11px] transition",
+                      shelf === item
+                        ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
+                        : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
+                    )}
+                  >
+                    Полиця {item}
+                  </button>
+                ))}
+              </div>
             </section>
+
+            <SecurityAwareRefrigerationLayoutWorkspace
+              equipment={equipment}
+              visibleSensors={visibleSensors}
+              selectedId={activeSelectedId}
+              mode={layoutMode}
+              onModeChange={setLayoutMode}
+              onSelect={setSelectedId}
+              bindings={bindings}
+              availableSensors={channels}
+              sensorConfigurationRepository={runtime.sensorConfigurationRepository}
+              onEquipmentChange={setEquipmentRecord}
+              onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
+              canManageEquipment={canManageEquipment && !retired}
+            />
           </div>
         </main>
       </div>
@@ -364,8 +402,8 @@ function defaultCoordinates(side: SensorSide, shelf: number, position: number): 
 }
 
 function sensorStatus(quality: string | undefined): SensorStatus {
-  if (!quality || quality === "no-data") return "no-data";
-  if (quality === "good" || quality === "valid") return "normal";
-  if (quality === "uncertain" || quality === "warning") return "warning";
-  return "alarm";
+  if (quality === "good") return "normal";
+  if (quality === "warning" || quality === "stale") return "warning";
+  if (quality === "alarm" || quality === "critical") return "alarm";
+  return "no-data";
 }
