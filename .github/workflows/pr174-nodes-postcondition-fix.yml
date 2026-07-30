@@ -1,0 +1,75 @@
+name: PR 174 nodes postcondition fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/pr174-nodes-postcondition-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.number == 174
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Align SQL evidence with catalog edge node
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-nodes-browser-acceptance.sh")
+          text = path.read_text(encoding="utf-8")
+
+          replacements = {
+              "IF org_a_nodes <> 2 THEN\n    RAISE EXCEPTION 'expected two nodes for organization A, found %', org_a_nodes;":
+                  "IF org_a_nodes <> 3 THEN\n    RAISE EXCEPTION 'expected catalog node plus two acceptance nodes for organization A, found %', org_a_nodes;",
+              "AND node_id = 'edge-02'\n      AND state = 'revoked'":
+                  "AND node_id LIKE 'acceptance-edge-02-%'\n      AND state = 'revoked'",
+              "RAISE EXCEPTION 'edge-02 must be revoked';":
+                  "RAISE EXCEPTION 'acceptance secondary node must be revoked';",
+              "AND n.node_id = 'edge-01'\n    AND c.revoked_at IS NULL;":
+                  "AND n.node_id LIKE 'acceptance-edge-01-%'\n    AND c.revoked_at IS NULL;",
+              "RAISE EXCEPTION 'edge-01 must have one active credential, found %', edge_one_active_credentials;":
+                  "RAISE EXCEPTION 'acceptance primary node must have one active credential, found %', edge_one_active_credentials;",
+              "AND n.node_id = 'edge-02'\n    AND c.revoked_at IS NULL;":
+                  "AND n.node_id LIKE 'acceptance-edge-02-%'\n    AND c.revoked_at IS NULL;",
+              "RAISE EXCEPTION 'edge-02 must have no active credentials, found %', edge_two_active_credentials;":
+                  "RAISE EXCEPTION 'acceptance secondary node must have no active credentials, found %', edge_two_active_credentials;",
+              "AND n.node_id = 'edge-01'\n      AND h.node_sequence = 2":
+                  "AND n.node_id LIKE 'acceptance-edge-01-%'\n      AND h.node_sequence = 2",
+              "RAISE EXCEPTION 'edge-01 degraded heartbeat evidence is missing';":
+                  "RAISE EXCEPTION 'acceptance primary degraded heartbeat evidence is missing';",
+              "AND n.node_id = 'edge-02'\n      AND s.node_sequence = 2":
+                  "AND n.node_id LIKE 'acceptance-edge-02-%'\n      AND s.node_sequence = 2",
+              "RAISE EXCEPTION 'edge-02 retained last-will evidence is missing';":
+                  "RAISE EXCEPTION 'acceptance secondary retained last-will evidence is missing';",
+          }
+
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one occurrence, found {count}: {old!r}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          git diff --check
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/run-nodes-browser-acceptance.sh
+          git commit -m "test: align node database evidence with catalog topology"
+          git push origin HEAD:${{ github.head_ref }}
