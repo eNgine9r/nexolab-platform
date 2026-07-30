@@ -102,7 +102,7 @@ def _ensure_default_organization(
             session.add(
                 SecurityOrganization(
                     id=organization_id,
-                    slug="default",
+                    slug=_bootstrap_organization_slug(organization_id),
                     name="NEXOLAB",
                     is_active=True,
                 )
@@ -373,6 +373,12 @@ def _ensure_default_channels(
                     existing.add(channel_definition.channel_id)
                     created += 1
     return created
+
+
+def _bootstrap_organization_slug(organization_id: str) -> str:
+    compact = "".join(character for character in organization_id.lower() if character.isalnum())
+    suffix = compact[:24] or _stable_uuid(organization_id).replace("-", "")[:24]
+    return f"nexolab-{suffix}"
 
 
 def _stable_uuid(value: str) -> str:
