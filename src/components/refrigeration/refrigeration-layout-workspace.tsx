@@ -661,7 +661,6 @@ function HistoryCard({
               </div>
               <button
                 type="button"
-                aria-label={`Відновити ревізію r${revision.revision}`}
                 hidden={!canRestore}
                 disabled={busy || mode === "edit"}
                 onClick={() => onRestore(revision)}
