@@ -1,0 +1,102 @@
+name: PR 174 component RBAC fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/pr174-component-rbac-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.number == 174
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Enforce layout permissions through component props
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          workspace = Path("src/components/refrigeration/security-aware-layout-workspace.tsx")
+          text = workspace.read_text(encoding="utf-8")
+          text = replace_once(
+              text,
+              '''            repository={runtime.repository}\n            actorId={runtime.actorId}\n            onServerMutation={configurationChanged}\n''',
+              '''            repository={runtime.repository}\n            actorId={runtime.actorId}\n            canEditDraft={capabilities.canEdit}\n            canPublish={capabilities.canPublish}\n            canRestore={capabilities.canRestore}\n            onServerMutation={configurationChanged}\n''',
+              "workspace lifecycle capabilities",
+          )
+          workspace.write_text(text, encoding="utf-8")
+
+          panel = Path("src/components/refrigeration/refrigeration-layout-lifecycle-panel.tsx")
+          text = panel.read_text(encoding="utf-8")
+          text = replace_once(
+              text,
+              '''  actorId = "dashboard-operator",\n  onServerMutation,\n}: {\n  equipment: RefrigerationEquipment;\n  mode: "view" | "edit";\n  repository: RefrigerationLayoutRepository;\n  actorId?: string;\n  onServerMutation: () => void;\n}) {\n''',
+              '''  actorId = "dashboard-operator",\n  canEditDraft = true,\n  canPublish = true,\n  canRestore = true,\n  onServerMutation,\n}: {\n  equipment: RefrigerationEquipment;\n  mode: "view" | "edit";\n  repository: RefrigerationLayoutRepository;\n  actorId?: string;\n  canEditDraft?: boolean;\n  canPublish?: boolean;\n  canRestore?: boolean;\n  onServerMutation: () => void;\n}) {\n''',
+              "lifecycle capability props",
+          )
+          text = replace_once(
+              text,
+              '''    if (!file || !draft || action !== "idle") return;\n''',
+              '''    if (!canEditDraft || !file || !draft || action !== "idle") return;\n''',
+              "upload guard",
+          )
+          text = replace_once(
+              text,
+              '''    if (!draft || action !== "idle") return;\n    setError(null);\n    setNotice(null);\n    if (mode === "edit") {\n''',
+              '''    if (!canPublish || !draft || action !== "idle") return;\n    setError(null);\n    setNotice(null);\n    if (mode === "edit") {\n''',
+              "publish guard",
+          )
+          text = replace_once(
+              text,
+              '''    if (!draft || action !== "idle") return;\n    if (mode === "edit") {\n''',
+              '''    if (!canRestore || !draft || action !== "idle") return;\n    if (mode === "edit") {\n''',
+              "restore guard",
+          )
+          text = replace_once(
+              text,
+              '''            <input\n              ref={photoInput}\n              type="file"\n              accept="image/jpeg,image/png,image/webp"\n              aria-label="Вибрати production-фото обладнання"\n              className="sr-only"\n              onChange={uploadPhoto}\n            />\n            <RefrigerationIconButton\n              label={draft.image ? "Замінити production-фото" : "Завантажити production-фото"}\n              onClick={() => photoInput.current?.click()}\n              disabled={action !== "idle" || mode === "edit"}\n              tone="info"\n            >\n              {action === "uploading" ? (\n                <LoaderCircle className="h-4 w-4 animate-spin" />\n              ) : (\n                <UploadCloud className="h-4 w-4" />\n              )}\n            </RefrigerationIconButton>\n''',
+              '''            {canEditDraft ? (\n              <>\n                <input\n                  ref={photoInput}\n                  type="file"\n                  accept="image/jpeg,image/png,image/webp"\n                  aria-label="Вибрати production-фото обладнання"\n                  className="sr-only"\n                  onChange={uploadPhoto}\n                />\n                <RefrigerationIconButton\n                  label={\n                    draft.image ? "Замінити production-фото" : "Завантажити production-фото"\n                  }\n                  onClick={() => photoInput.current?.click()}\n                  disabled={action !== "idle" || mode === "edit"}\n                  tone="info"\n                >\n                  {action === "uploading" ? (\n                    <LoaderCircle className="h-4 w-4 animate-spin" />\n                  ) : (\n                    <UploadCloud className="h-4 w-4" />\n                  )}\n                </RefrigerationIconButton>\n              </>\n            ) : null}\n''',
+              "draft photo action",
+          )
+          text = replace_once(
+              text,
+              '''            <RefrigerationIconButton\n              label="Опублікувати поточну чернетку"\n              onClick={() => void publish()}\n              disabled={action !== "idle" || mode === "edit" || !draft.imageId || draft.placements.length === 0}\n              tone="success"\n            >\n              {action === "publishing" ? (\n                <LoaderCircle className="h-4 w-4 animate-spin" />\n              ) : (\n                <Check className="h-4 w-4" />\n              )}\n            </RefrigerationIconButton>\n''',
+              '''            {canPublish ? (\n              <RefrigerationIconButton\n                label="Опублікувати поточну чернетку"\n                onClick={() => void publish()}\n                disabled={\n                  action !== "idle" ||\n                  mode === "edit" ||\n                  !draft.imageId ||\n                  draft.placements.length === 0\n                }\n                tone="success"\n              >\n                {action === "publishing" ? (\n                  <LoaderCircle className="h-4 w-4 animate-spin" />\n                ) : (\n                  <Check className="h-4 w-4" />\n                )}\n              </RefrigerationIconButton>\n            ) : null}\n''',
+              "publish action",
+          )
+          text = replace_once(
+              text,
+              '''                  <RefrigerationIconButton\n                    label={`Відновити ревізію r${revision.revision}`}\n                    onClick={() => void restore(revision)}\n                    disabled={action !== "idle" || mode === "edit"}\n                    size="sm"\n                  >\n                    <RotateCcw className="h-3.5 w-3.5" />\n                  </RefrigerationIconButton>\n''',
+              '''                  {canRestore ? (\n                    <RefrigerationIconButton\n                      label={`Відновити ревізію r${revision.revision}`}\n                      onClick={() => void restore(revision)}\n                      disabled={action !== "idle" || mode === "edit"}\n                      size="sm"\n                    >\n                      <RotateCcw className="h-3.5 w-3.5" />\n                    </RefrigerationIconButton>\n                  ) : null}\n''',
+              "restore action",
+          )
+          panel.write_text(text, encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/refrigeration/security-aware-layout-workspace.tsx \
+            src/components/refrigeration/refrigeration-layout-lifecycle-panel.tsx
+          git commit -m "fix: enforce layout lifecycle permissions in components"
+          git push origin HEAD:${{ github.head_ref }}
