@@ -62,14 +62,14 @@ def build_client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
-def equipment_payload(node_id: str = "kk1") -> dict[str, object]:
+def equipment_payload(chamber_id: str = "KK1") -> dict[str, object]:
     return {
         "code": "CS-KK1-CATALOG-01",
         "name": "Вітрина КК1",
         "location": "Лабораторія 1 · КК1",
         "laboratory": "Лабораторія 1",
         "zone": "КК1",
-        "node_id": node_id,
+        "climate_chamber_id": chamber_id,
         "equipment_type": "Холодильна вітрина",
         "manufacturer": "NEXOLAB",
         "model": "NX-KK1",
@@ -105,25 +105,33 @@ def test_catalog_channels_exist_without_telemetry_and_reject_cross_chamber_bindi
 ) -> None:
     api = build_client(tmp_path)
 
-    kk1_channels = api.get("/api/v1/equipment/options/nodes/kk1/channels")
-    kk2_channels = api.get("/api/v1/equipment/options/nodes/kk2/channels")
+    kk1_channels = api.get(
+        "/api/v1/equipment/options/climate-chambers/KK1/channels"
+    )
+    kk2_channels = api.get(
+        "/api/v1/equipment/options/climate-chambers/KK2/channels"
+    )
     assert kk1_channels.status_code == 200
     assert kk2_channels.status_code == 200
+    assert kk1_channels.json()["node_id"] == "edge-01"
+    assert kk2_channels.json()["node_id"] == "edge-01"
     assert len(kk1_channels.json()["items"]) == 78
     assert len(kk2_channels.json()["items"]) == 84
-    assert kk1_channels.json()["items"][0]["channel_id"] == "KK1-DIXELL-126-CH1"
-    assert kk1_channels.json()["items"][-1]["channel_id"] == "KK1-DIXELL-138-CH6"
-    assert kk2_channels.json()["items"][0]["channel_id"] == "KK2-DIXELL-101-CH1"
+    assert kk1_channels.json()["items"][0]["channel_id"] == "126-01"
+    assert kk1_channels.json()["items"][-1]["channel_id"] == "138-06"
+    assert kk2_channels.json()["items"][0]["channel_id"] == "101-01"
     assert all(item["quality"] == "no-data" for item in kk1_channels.json()["items"])
 
     created = api.post("/api/v1/equipment", json=equipment_payload())
     assert created.status_code == 201
+    assert created.json()["climate_chamber_id"] is not None
+    assert created.json()["node_id"] == "edge-01"
     equipment_id = created.json()["id"]
 
     cross_chamber = api.put(
         f"/api/v1/equipment/{equipment_id}/sensor-configuration",
         headers={"If-Match": created.headers["etag"]},
-        json=configuration("KK2-DIXELL-101-CH1"),
+        json=configuration("101-01"),
     )
     assert cross_chamber.status_code == 422
     assert cross_chamber.json()["detail"]["code"] == "sensor_channel_not_found"
@@ -134,10 +142,11 @@ def test_catalog_channels_exist_without_telemetry_and_reject_cross_chamber_bindi
             "If-Match": created.headers["etag"],
             "X-Audit-Reason": "Bind a deterministic KK1 catalog channel",
         },
-        json=configuration("KK1-DIXELL-126-CH1"),
+        json=configuration("126-01"),
     )
     assert configured.status_code == 200
-    assert configured.json()["bindings"][0]["channel_id"] == "KK1-DIXELL-126-CH1"
+    assert configured.json()["bindings"][0]["node_id"] == "edge-01"
+    assert configured.json()["bindings"][0]["channel_id"] == "126-01"
     assert configured.json()["draft"]["placements"] == [
-        {"sensor_id": "KK1-DIXELL-126-CH1", "x": 0.2, "y": 0.3}
+        {"sensor_id": "126-01", "x": 0.2, "y": 0.3}
     ]
