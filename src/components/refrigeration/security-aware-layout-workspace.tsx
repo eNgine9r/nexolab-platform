@@ -285,6 +285,9 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           onModeChange={effectiveModeChange}
           onSelect={onSelect}
           repository={runtime.repository}
+          canEditDraft={capabilities.canEdit}
+          canPublish={capabilities.canPublish}
+          canRestore={capabilities.canRestore}
         />
       )}
     </div>

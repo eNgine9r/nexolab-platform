@@ -66,6 +66,7 @@ type RefrigerationLayoutEditorProps = {
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
   repository?: RefrigerationLayoutRepository;
+  canEdit?: boolean;
 };
 
 type DragState = {
@@ -76,7 +77,9 @@ type DragState = {
 };
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const maxImageSizeBytes = 15 * 1024 * 1024;
+const maxImageSizeBytes = 1536 * 1024;
+const imageLimitMessage =
+  "Розмір зображення перевищує допустимі 1,5 МБ. Стисніть файл або завантажте інше зображення.";
 
 function createEmptyHistory(): CommandHistory {
   return { past: [], future: [] };
@@ -90,6 +93,7 @@ export function RefrigerationLayoutEditor({
   onModeChange,
   onSelect,
   repository,
+  canEdit = true,
 }: RefrigerationLayoutEditorProps) {
   const initialPlacements = useMemo(
     () => equipment.sensors.map(({ id, x, y }) => ({ sensorId: id, x, y })),
@@ -419,7 +423,7 @@ export function RefrigerationLayoutEditor({
   };
 
   const handleRestoreRecovery = () => {
-    if (!recoveryDraft) return;
+    if (!canEdit || !recoveryDraft) return;
     setPlacements(recoveryDraft.placements);
     setHistoryState(createEmptyHistory());
     setRecoveryDraft(null);
@@ -444,6 +448,7 @@ export function RefrigerationLayoutEditor({
   };
 
   const handleSave = async () => {
+    if (!canEdit) return;
     const activeRepository = repositoryRef.current;
     if (!activeRepository || repositoryState === "saving") return;
 
@@ -483,6 +488,7 @@ export function RefrigerationLayoutEditor({
   };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return;
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -493,7 +499,7 @@ export function RefrigerationLayoutEditor({
     }
 
     if (file.size > maxImageSizeBytes) {
-      setImageError("Розмір фото не повинен перевищувати 15 МБ.");
+      setImageError(imageLimitMessage);
       return;
     }
 
@@ -569,6 +575,7 @@ export function RefrigerationLayoutEditor({
             onReset={handleReset}
             onSave={() => void handleSave()}
             onCancel={handleCancel}
+            canEdit={canEdit}
           />
         </div>
 
@@ -581,7 +588,7 @@ export function RefrigerationLayoutEditor({
             Завантаження чернетки схеми…
           </p>
         ) : null}
-        {recoveryDraft ? (
+        {canEdit && recoveryDraft ? (
           <RecoveryBanner
             savedAt={recoveryDraft.savedAt}
             onRestore={handleRestoreRecovery}
@@ -712,6 +719,7 @@ function EditorToolbar({
   onReset,
   onSave,
   onCancel,
+  canEdit,
 }: {
   mode: LayoutEditorMode;
   dirty: boolean;
@@ -731,8 +739,10 @@ function EditorToolbar({
   onReset: () => void;
   onSave: () => void;
   onCancel: () => void;
+  canEdit: boolean;
 }) {
   if (mode === "view") {
+    if (!canEdit) return null;
     return (
       <button
         type="button"

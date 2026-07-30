@@ -34,7 +34,9 @@ import type {
 } from "@/features/refrigeration/layout-repository";
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const maxImageSizeBytes = 15 * 1024 * 1024;
+const maxImageSizeBytes = 1536 * 1024;
+const imageLimitMessage =
+  "Розмір зображення перевищує допустимі 1,5 МБ. Стисніть файл або завантажте інше зображення.";
 
 type ConflictOperation = "save" | "publish" | "restore" | "attach-image";
 
@@ -62,6 +64,9 @@ type RefrigerationLayoutWorkspaceProps = {
   repository?: RefrigerationLayoutRepository;
   actorId?: string;
   runtimeMode?: "demo" | "live";
+  canEditDraft?: boolean;
+  canPublish?: boolean;
+  canRestore?: boolean;
 };
 
 export function RefrigerationLayoutWorkspace({
@@ -74,6 +79,9 @@ export function RefrigerationLayoutWorkspace({
   repository: repositoryOverride,
   actorId: actorIdOverride,
   runtimeMode,
+  canEditDraft = true,
+  canPublish = true,
+  canRestore = true,
 }: RefrigerationLayoutWorkspaceProps) {
   const runtime = useMemo(
     () =>
@@ -180,7 +188,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const attachImage = async (image: EquipmentImageMetadata, expectedVersion: number) => {
-    if (!repository || !draft) return;
+    if (!canEditDraft || !repository || !draft) return;
 
     setActionState("attaching");
     const result = await repository.saveDraft({
@@ -212,7 +220,7 @@ export function RefrigerationLayoutWorkspace({
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !repository || !draft) return;
+    if (!canEditDraft || !file || !repository || !draft) return;
 
     clearFeedback();
     if (mode === "edit") {
@@ -224,7 +232,7 @@ export function RefrigerationLayoutWorkspace({
       return;
     }
     if (file.size > maxImageSizeBytes) {
-      setErrorMessage("Розмір фото не повинен перевищувати 15 МБ.");
+      setErrorMessage(imageLimitMessage);
       return;
     }
 
@@ -253,7 +261,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const handlePublish = async () => {
-    if (!repository || !draft || actionState !== "idle") return;
+    if (!canPublish || !repository || !draft || actionState !== "idle") return;
     clearFeedback();
     if (mode === "edit") {
       setErrorMessage("Збережіть або скасуйте редагування перед публікацією.");
@@ -287,7 +295,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const handleRestore = async (revision: PublishedLayoutRevision) => {
-    if (!repository || !draft || actionState !== "idle") return;
+    if (!canRestore || !repository || !draft || actionState !== "idle") return;
     clearFeedback();
     if (mode === "edit") {
       setErrorMessage("Збережіть або скасуйте редагування перед відновленням історії.");
@@ -344,7 +352,7 @@ export function RefrigerationLayoutWorkspace({
   };
 
   const handleRetryImageAttachment = async () => {
-    if (!pendingImage || !draft || actionState !== "idle") return;
+    if (!canEditDraft || !pendingImage || !draft || actionState !== "idle") return;
     clearFeedback();
     await attachImage(pendingImage, draft.version);
   };
@@ -394,6 +402,7 @@ export function RefrigerationLayoutWorkspace({
           onModeChange={onModeChange}
           onSelect={onSelect}
           repository={repository}
+          canEdit={canEditDraft}
         />
       </div>
 
@@ -417,6 +426,7 @@ export function RefrigerationLayoutWorkspace({
           pendingImage={pendingImage}
           inputRef={photoInputRef}
           onChange={handlePhotoChange}
+          canEditDraft={canEditDraft}
           onOpen={() => photoInputRef.current?.click()}
           onRetry={() => void handleRetryImageAttachment()}
         />
@@ -427,12 +437,14 @@ export function RefrigerationLayoutWorkspace({
           busy={actionState !== "idle"}
           mode={mode}
           onPublish={() => void handlePublish()}
+          canPublish={canPublish}
         />
         <HistoryCard
           items={history}
           busy={actionState !== "idle"}
           mode={mode}
           onRestore={(revision) => void handleRestore(revision)}
+          canRestore={canRestore}
         />
       </section>
     </div>
@@ -449,6 +461,7 @@ function PhotoUploadCard({
   onChange,
   onOpen,
   onRetry,
+  canEditDraft,
 }: {
   draft: RefrigerationLayoutDraft;
   mode: LayoutEditorMode;
@@ -459,6 +472,7 @@ function PhotoUploadCard({
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onOpen: () => void;
   onRetry: () => void;
+  canEditDraft: boolean;
 }) {
   const uploading = actionState === "uploading" || actionState === "attaching";
   const disabled = mode === "edit" || actionState !== "idle";
@@ -468,7 +482,7 @@ function PhotoUploadCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-white">Production-фото</p>
-          <p className="mt-1 text-[10px] text-slate-500">S3-compatible storage · JPEG/PNG/WebP · до 15 МБ</p>
+          <p className="mt-1 text-[10px] text-slate-500">S3-compatible storage · JPEG/PNG/WebP · максимум 1,5 МБ</p>
         </div>
         <ImagePlus className="h-4 w-4 text-cyan-300" />
       </div>
@@ -479,6 +493,7 @@ function PhotoUploadCard({
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         aria-label="Вибрати production-фото обладнання"
+        disabled={!canEditDraft}
         onChange={onChange}
       />
 
@@ -516,6 +531,7 @@ function PhotoUploadCard({
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
+          hidden={!canEditDraft}
           disabled={disabled}
           onClick={onOpen}
           className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200 enabled:hover:bg-cyan-500/15 disabled:cursor-not-allowed disabled:opacity-40"
@@ -523,7 +539,7 @@ function PhotoUploadCard({
           <UploadCloud className="h-3.5 w-3.5" />
           {draft.image ? "Замінити фото" : "Завантажити фото"}
         </button>
-        {pendingImage && actionState === "idle" ? (
+        {canEditDraft && pendingImage && actionState === "idle" ? (
           <button
             type="button"
             onClick={onRetry}
@@ -548,6 +564,7 @@ function PublicationCard({
   busy,
   mode,
   onPublish,
+  canPublish,
 }: {
   draft: RefrigerationLayoutDraft;
   published: PublishedLayoutRevision | null;
@@ -555,6 +572,7 @@ function PublicationCard({
   busy: boolean;
   mode: LayoutEditorMode;
   onPublish: () => void;
+  canPublish: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4">
@@ -584,6 +602,8 @@ function PublicationCard({
 
       <button
         type="button"
+        aria-label="Опублікувати поточну чернетку"
+        hidden={!canPublish}
         disabled={busy || mode === "edit" || !draft.imageId}
         onClick={onPublish}
         className="mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-200 enabled:hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
@@ -600,11 +620,13 @@ function HistoryCard({
   busy,
   mode,
   onRestore,
+  canRestore,
 }: {
   items: PublishedLayoutRevision[];
   busy: boolean;
   mode: LayoutEditorMode;
   onRestore: (revision: PublishedLayoutRevision) => void;
+  canRestore: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4">
@@ -639,6 +661,8 @@ function HistoryCard({
               </div>
               <button
                 type="button"
+                aria-label={`Відновити ревізію r${revision.revision}`}
+                hidden={!canRestore}
                 disabled={busy || mode === "edit"}
                 onClick={() => onRestore(revision)}
                 className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1.5 text-[9px] text-slate-400 enabled:hover:bg-white/[0.05] enabled:hover:text-white disabled:opacity-35"
