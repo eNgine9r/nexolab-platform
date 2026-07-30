@@ -1,7 +1,10 @@
 export type ClimateChamber = {
   id: string;
   code: string;
+  /** @deprecated Compatibility alias for id in legacy chamber selectors. */
   nodeId: string;
+  /** Physical telemetry source, currently edge-01 for both chambers. */
+  transportNodeId: string;
   busId: string;
   busKey: string;
   name: string;
@@ -135,7 +138,7 @@ function parseChamber(value: unknown): ClimateChamber {
   const record = asRecord(value);
   const id = readString(record?.id);
   const code = readString(record?.code);
-  const nodeId = readString(record?.node_id);
+  const transportNodeId = readString(record?.node_id);
   const busId = readString(record?.bus_id);
   const busKey = readString(record?.bus_key);
   const name = readString(record?.name);
@@ -147,7 +150,7 @@ function parseChamber(value: unknown): ClimateChamber {
   if (
     !id ||
     !code ||
-    !nodeId ||
+    !transportNodeId ||
     !busId ||
     !busKey ||
     !name ||
@@ -159,7 +162,20 @@ function parseChamber(value: unknown): ClimateChamber {
   ) {
     throw invalidResponse();
   }
-  return { id, code, nodeId, busId, busKey, name, displayOrder, status, version, createdAt, updatedAt };
+  return {
+    id,
+    code,
+    nodeId: id,
+    transportNodeId,
+    busId,
+    busKey,
+    name,
+    displayOrder,
+    status,
+    version,
+    createdAt,
+    updatedAt,
+  };
 }
 
 function parseDevice(value: unknown): MeasurementDevice {
@@ -181,7 +197,9 @@ function parseDevice(value: unknown): MeasurementDevice {
     !model ||
     unitId === null ||
     !displayName ||
-    (connectionStatus !== "unknown" && connectionStatus !== "connected" && connectionStatus !== "disconnected") ||
+    (connectionStatus !== "unknown" &&
+      connectionStatus !== "connected" &&
+      connectionStatus !== "disconnected") ||
     !status
   ) {
     throw invalidResponse();
@@ -265,7 +283,10 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
     !id ||
     (sensorPosition !== "A" && sensorPosition !== "B") ||
     !inventoryNumber ||
-    (calibrationStatus !== "untracked" && calibrationStatus !== "current" && calibrationStatus !== "due" && calibrationStatus !== "expired") ||
+    (calibrationStatus !== "untracked" &&
+      calibrationStatus !== "current" &&
+      calibrationStatus !== "due" &&
+      calibrationStatus !== "expired") ||
     !status
   ) {
     throw invalidResponse();
@@ -281,7 +302,10 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
 }
 
 function compareChambers(left: ClimateChamber, right: ClimateChamber): number {
-  return left.displayOrder - right.displayOrder || left.code.localeCompare(right.code, "uk-UA", { numeric: true });
+  return (
+    left.displayOrder - right.displayOrder ||
+    left.code.localeCompare(right.code, "uk-UA", { numeric: true })
+  );
 }
 
 function invalidResponse(): Error {
