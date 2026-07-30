@@ -141,7 +141,12 @@ services:
     <<: *telemetry-image
     restart: "no"
     environment: *telemetry-environment
-    command: ["alembic", "upgrade", "head"]
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        alembic upgrade head
+        python -m app.climate_catalog.seed
     depends_on:
       postgres:
         condition: service_healthy
