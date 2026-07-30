@@ -143,7 +143,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
         page.getByText("Authorization bearer token is required", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }),
+        page.getByRole("button", { name: "Редагувати схему" }),
       ).toHaveCount(0);
     } finally {
       await context.close();
@@ -157,7 +157,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expect(page.getByText("viewer", { exact: true })).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }),
+        page.getByRole("button", { name: "Редагувати схему" }),
       ).toBeHidden();
 
       const draftResponse = await context.request.get(
@@ -189,7 +189,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expect(page.getByText("operator", { exact: true })).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }).first(),
+        page.getByRole("button", { name: "Редагувати схему" }).first(),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Опублікувати поточну чернетку" }),
