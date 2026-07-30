@@ -64,7 +64,8 @@ describe("HttpClimateCatalogRepository", () => {
 
     expect(items.map((item) => item.code)).toEqual(["KK1", "KK2"]);
     expect(items.map((item) => item.id)).toEqual(["chamber-kk1", "chamber-kk2"]);
-    expect(items.map((item) => item.nodeId)).toEqual(["edge-01", "edge-01"]);
+    expect(items.map((item) => item.nodeId)).toEqual(["chamber-kk1", "chamber-kk2"]);
+    expect(items.map((item) => item.transportNodeId)).toEqual(["edge-01", "edge-01"]);
     expect(items.map((item) => item.busKey)).toEqual(["rs485-main-01", "rs485-main-01"]);
     expect(fetchImpl).toHaveBeenCalledWith(
       "http://nexolab.test/api/v1/climate-chambers",
@@ -108,7 +109,8 @@ describe("HttpClimateCatalogRepository", () => {
 
     expect(catalog.climateChamber).toMatchObject({
       id: "chamber-kk2",
-      nodeId: "edge-01",
+      nodeId: "chamber-kk2",
+      transportNodeId: "edge-01",
       busKey: "rs485-main-01",
     });
     expect(catalog.temperatureControllers[0]?.unitId).toBe(101);
