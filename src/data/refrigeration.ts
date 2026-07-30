@@ -41,6 +41,7 @@ export interface RefrigerationEquipment {
   location: string;
   laboratory: string | null;
   zone: string | null;
+  climateChamberId: string | null;
   nodeId: string | null;
   type: string;
   manufacturer: string;
@@ -111,6 +112,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     location: "Лабораторія 1 · Зона A",
     laboratory: "Лабораторія 1",
     zone: "Зона A",
+    climateChamberId: "kk2",
     nodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
@@ -139,6 +141,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     location: "Лабораторія 1 · Зона B",
     laboratory: "Лабораторія 1",
     zone: "Зона B",
+    climateChamberId: "kk2",
     nodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
@@ -167,6 +170,7 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     location: "Лабораторія 2 · Північна стіна",
     laboratory: "Лабораторія 2",
     zone: "Північна стіна",
+    climateChamberId: "kk1",
     nodeId: "edge-lab-02",
     type: "Холодильна камера",
     manufacturer: "NEXOTHERM",
