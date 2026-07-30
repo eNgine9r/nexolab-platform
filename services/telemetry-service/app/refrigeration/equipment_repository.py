@@ -4,10 +4,11 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.climate_catalog.models import ClimateChamber, MeasurementBus
 from app.db import Database
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
@@ -18,6 +19,7 @@ from app.refrigeration.models import (
 )
 from app.refrigeration.schemas import RefrigerationEquipmentCreate, RefrigerationEquipmentUpdate
 from app.security.repository import AuditEventInput, SecurityRepository
+
 
 DEFAULT_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -80,8 +82,7 @@ class PostgresRefrigerationEquipmentRepository:
                     )
                 )
             )
-            for item in items:
-                session.expunge(item)
+            session.expunge_all()
             return items
 
     def get_active(
@@ -99,7 +100,9 @@ class PostgresRefrigerationEquipmentRepository:
                 )
             )
             if item is None:
-                raise EquipmentNotFoundError(f"equipment {equipment_id!r} was not found")
+                raise EquipmentNotFoundError(
+                    f"equipment {equipment_id!r} was not found"
+                )
             session.expunge(item)
             return item
 
@@ -113,15 +116,18 @@ class PostgresRefrigerationEquipmentRepository:
         audit_event: AuditEventInput | None = None,
     ) -> RefrigerationEquipmentRecord:
         if payload.lifecycle_status == "retired":
-            raise EquipmentLifecycleConflictError("new equipment cannot be created as retired")
+            raise EquipmentLifecycleConflictError(
+                "new equipment cannot be created as retired"
+            )
         now = datetime.now(UTC)
         equipment_id = str(uuid4())
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
-                    node_id = self._validated_node_id(
+                    climate_chamber_id, node_id = self._validated_assignment(
                         session,
-                        payload.node_id,
+                        climate_chamber_id=payload.climate_chamber_id,
+                        legacy_node_id=payload.node_id,
                         organization_id=organization_id,
                     )
                     record = RefrigerationEquipmentRecord(
@@ -132,6 +138,7 @@ class PostgresRefrigerationEquipmentRepository:
                         location=payload.location,
                         laboratory=payload.laboratory,
                         zone=payload.zone,
+                        climate_chamber_id=climate_chamber_id,
                         node_id=node_id,
                         equipment_type=payload.equipment_type,
                         manufacturer=payload.manufacturer,
@@ -200,16 +207,22 @@ class PostgresRefrigerationEquipmentRepository:
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
-                    record = self._locked_record(session, organization_id, equipment_id)
+                    record = self._locked_record(
+                        session,
+                        organization_id,
+                        equipment_id,
+                    )
                     self._check_version(record, expected_version)
                     if record.lifecycle_status == "retired":
-                        raise EquipmentLifecycleConflictError("retired equipment is read-only")
-
+                        raise EquipmentLifecycleConflictError(
+                            "retired equipment is read-only"
+                        )
                     active_bindings = list(
                         session.scalars(
                             select(EquipmentSensorBinding)
                             .where(
-                                EquipmentSensorBinding.organization_id == organization_id,
+                                EquipmentSensorBinding.organization_id
+                                == organization_id,
                                 EquipmentSensorBinding.equipment_id == equipment_id,
                                 EquipmentSensorBinding.unbound_at.is_(None),
                             )
@@ -220,17 +233,20 @@ class PostgresRefrigerationEquipmentRepository:
                         raise EquipmentBindingConflictError(
                             "total_sensors cannot be lower than the active sensor binding count"
                         )
-
-                    node_id = self._validated_node_id(
+                    climate_chamber_id, node_id = self._validated_assignment(
                         session,
-                        payload.node_id,
+                        climate_chamber_id=payload.climate_chamber_id,
+                        legacy_node_id=payload.node_id,
                         organization_id=organization_id,
                     )
-                    if active_bindings and node_id != record.node_id and payload.lifecycle_status != "retired":
+                    if (
+                        active_bindings
+                        and climate_chamber_id != record.climate_chamber_id
+                        and payload.lifecycle_status != "retired"
+                    ):
                         raise EquipmentBindingConflictError(
-                            "unbind active sensors before changing the assigned node"
+                            "unbind active sensors before changing the climate chamber"
                         )
-
                     before = _equipment_snapshot(record)
                     retired_binding_ids: list[str] = []
                     if payload.lifecycle_status == "retired":
@@ -244,15 +260,17 @@ class PostgresRefrigerationEquipmentRepository:
                             session,
                             organization_id=organization_id,
                             equipment_id=equipment_id,
-                            sensor_ids={binding.channel_id for binding in active_bindings},
+                            sensor_ids={
+                                binding.channel_id for binding in active_bindings
+                            },
                             now=now,
                         )
-
                     record.code = payload.code
                     record.name = payload.name
                     record.location = payload.location
                     record.laboratory = payload.laboratory
                     record.zone = payload.zone
+                    record.climate_chamber_id = climate_chamber_id
                     record.node_id = node_id
                     record.equipment_type = payload.equipment_type
                     record.manufacturer = payload.manufacturer
@@ -270,7 +288,6 @@ class PostgresRefrigerationEquipmentRepository:
                     record.updated_at = now
                     record.version += 1
                     session.flush()
-
                     if audit_repository is not None and audit_event is not None:
                         after = _equipment_snapshot(record)
                         if retired_binding_ids:
@@ -304,13 +321,18 @@ class PostgresRefrigerationEquipmentRepository:
         now = datetime.now(UTC)
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                record = self._locked_record(session, organization_id, equipment_id)
+                record = self._locked_record(
+                    session,
+                    organization_id,
+                    equipment_id,
+                )
                 self._check_version(record, expected_version)
                 active_bindings = list(
                     session.scalars(
                         select(EquipmentSensorBinding)
                         .where(
-                            EquipmentSensorBinding.organization_id == organization_id,
+                            EquipmentSensorBinding.organization_id
+                            == organization_id,
                             EquipmentSensorBinding.equipment_id == equipment_id,
                             EquipmentSensorBinding.unbound_at.is_(None),
                         )
@@ -318,7 +340,12 @@ class PostgresRefrigerationEquipmentRepository:
                     )
                 )
                 before = _equipment_snapshot(record)
-                ended = self._end_bindings(session, active_bindings, actor_id=actor_id, now=now)
+                ended = self._end_bindings(
+                    session,
+                    active_bindings,
+                    actor_id=actor_id,
+                    now=now,
+                )
                 self._remove_binding_placements(
                     session,
                     organization_id=organization_id,
@@ -349,6 +376,59 @@ class PostgresRefrigerationEquipmentRepository:
                     )
             session.expunge(record)
             return record
+
+    @staticmethod
+    def _validated_assignment(
+        session: Session,
+        *,
+        climate_chamber_id: str | None,
+        legacy_node_id: str | None,
+        organization_id: str,
+    ) -> tuple[str | None, str | None]:
+        if climate_chamber_id is not None:
+            normalized = climate_chamber_id.strip()
+            chamber = session.scalar(
+                select(ClimateChamber).where(
+                    ClimateChamber.organization_id == organization_id,
+                    or_(
+                        ClimateChamber.id == normalized,
+                        ClimateChamber.code == normalized.upper(),
+                    ),
+                    ClimateChamber.status == "active",
+                )
+            )
+            if chamber is None:
+                raise EquipmentNodeNotFoundError(
+                    f"active climate chamber {normalized!r} was not found in this organization"
+                )
+            bus = session.scalar(
+                select(MeasurementBus).where(
+                    MeasurementBus.organization_id == organization_id,
+                    MeasurementBus.id == chamber.bus_id,
+                    MeasurementBus.status == "active",
+                )
+            )
+            if bus is None:
+                raise EquipmentNodeNotFoundError(
+                    f"active measurement bus for climate chamber {normalized!r} was not found"
+                )
+            node = session.scalar(
+                select(CentralNode).where(
+                    CentralNode.organization_id == organization_id,
+                    CentralNode.node_id == bus.node_id,
+                    CentralNode.state != NodeState.REVOKED.value,
+                )
+            )
+            if node is None:
+                raise EquipmentNodeNotFoundError(
+                    f"active node {bus.node_id!r} was not found in this organization"
+                )
+            return chamber.id, bus.node_id
+        return None, PostgresRefrigerationEquipmentRepository._validated_node_id(
+            session,
+            legacy_node_id,
+            organization_id=organization_id,
+        )
 
     @staticmethod
     def _validated_node_id(
@@ -388,11 +468,16 @@ class PostgresRefrigerationEquipmentRepository:
             .with_for_update()
         )
         if record is None:
-            raise EquipmentNotFoundError(f"equipment {equipment_id!r} was not found")
+            raise EquipmentNotFoundError(
+                f"equipment {equipment_id!r} was not found"
+            )
         return record
 
     @staticmethod
-    def _check_version(record: RefrigerationEquipmentRecord, expected_version: int) -> None:
+    def _check_version(
+        record: RefrigerationEquipmentRecord,
+        expected_version: int,
+    ) -> None:
         if record.version != expected_version:
             raise EquipmentVersionConflictError(
                 expected_version=expected_version,
@@ -449,7 +534,9 @@ class PostgresRefrigerationEquipmentRepository:
             draft.updated_at = now
 
 
-def _equipment_snapshot(record: RefrigerationEquipmentRecord) -> dict[str, object]:
+def _equipment_snapshot(
+    record: RefrigerationEquipmentRecord,
+) -> dict[str, object]:
     return {
         "id": record.id,
         "organization_id": record.organization_id,
@@ -458,6 +545,7 @@ def _equipment_snapshot(record: RefrigerationEquipmentRecord) -> dict[str, objec
         "location": record.location,
         "laboratory": record.laboratory,
         "zone": record.zone,
+        "climate_chamber_id": record.climate_chamber_id,
         "node_id": record.node_id,
         "equipment_type": record.equipment_type,
         "manufacturer": record.manufacturer,

@@ -31,6 +31,12 @@ class RefrigerationEquipmentRecord(Base):
             "code",
             name="uq_refrigeration_equipment_organization_code",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "climate_chamber_id"],
+            ["climate_chambers.organization_id", "climate_chambers.id"],
+            name="fk_refrigeration_equipment_climate_chamber",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "status IN ('normal', 'warning', 'alarm', 'offline')",
             name="ck_refrigeration_equipment_status",
@@ -58,6 +64,12 @@ class RefrigerationEquipmentRecord(Base):
             "node_id",
             "deleted_at",
         ),
+        Index(
+            "ix_refrigeration_equipment_climate_chamber",
+            "organization_id",
+            "climate_chamber_id",
+            "deleted_at",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -77,6 +89,7 @@ class RefrigerationEquipmentRecord(Base):
     laboratory: Mapped[str | None] = mapped_column(String(128), nullable=True)
     zone: Mapped[str | None] = mapped_column(String(128), nullable=True)
     node_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    climate_chamber_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     equipment_type: Mapped[str] = mapped_column(String(128), nullable=False)
     manufacturer: Mapped[str] = mapped_column(String(128), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)

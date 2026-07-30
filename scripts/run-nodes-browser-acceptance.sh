@@ -292,8 +292,8 @@ BEGIN
   SELECT count(*) INTO org_a_nodes
   FROM central_nodes
   WHERE organization_id = '$ORGANIZATION_A';
-  IF org_a_nodes <> 2 THEN
-    RAISE EXCEPTION 'expected two nodes for organization A, found %', org_a_nodes;
+  IF org_a_nodes <> 3 THEN
+    RAISE EXCEPTION 'expected catalog node plus two acceptance nodes for organization A, found %', org_a_nodes;
   END IF;
 
   SELECT count(*) INTO org_b_nodes
@@ -315,10 +315,10 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM central_nodes
     WHERE organization_id = '$ORGANIZATION_A'
-      AND node_id = 'edge-02'
+      AND node_id LIKE 'acceptance-edge-02-%'
       AND state = 'revoked'
   ) THEN
-    RAISE EXCEPTION 'edge-02 must be revoked';
+    RAISE EXCEPTION 'acceptance secondary node must be revoked';
   END IF;
 
   SELECT count(*) INTO credential_count
@@ -332,20 +332,20 @@ BEGIN
   FROM central_node_credentials c
   JOIN central_nodes n ON n.id = c.node_record_id
   WHERE n.organization_id = '$ORGANIZATION_A'
-    AND n.node_id = 'edge-01'
+    AND n.node_id LIKE 'acceptance-edge-01-%'
     AND c.revoked_at IS NULL;
   IF edge_one_active_credentials <> 1 THEN
-    RAISE EXCEPTION 'edge-01 must have one active credential, found %', edge_one_active_credentials;
+    RAISE EXCEPTION 'acceptance primary node must have one active credential, found %', edge_one_active_credentials;
   END IF;
 
   SELECT count(*) INTO edge_two_active_credentials
   FROM central_node_credentials c
   JOIN central_nodes n ON n.id = c.node_record_id
   WHERE n.organization_id = '$ORGANIZATION_A'
-    AND n.node_id = 'edge-02'
+    AND n.node_id LIKE 'acceptance-edge-02-%'
     AND c.revoked_at IS NULL;
   IF edge_two_active_credentials <> 0 THEN
-    RAISE EXCEPTION 'edge-02 must have no active credentials, found %', edge_two_active_credentials;
+    RAISE EXCEPTION 'acceptance secondary node must have no active credentials, found %', edge_two_active_credentials;
   END IF;
 
   SELECT count(*) INTO health_sample_count
@@ -375,13 +375,13 @@ BEGIN
     FROM central_node_health_samples h
     JOIN central_nodes n ON n.id = h.node_record_id
     WHERE n.organization_id = '$ORGANIZATION_A'
-      AND n.node_id = 'edge-01'
+      AND n.node_id LIKE 'acceptance-edge-01-%'
       AND h.node_sequence = 2
       AND h.health = 'degraded'
       AND h.queue_depth = 12
       AND h.last_error = 'offline queue backlog'
   ) THEN
-    RAISE EXCEPTION 'edge-01 degraded heartbeat evidence is missing';
+    RAISE EXCEPTION 'acceptance primary degraded heartbeat evidence is missing';
   END IF;
 
   IF NOT EXISTS (
@@ -389,13 +389,13 @@ BEGIN
     FROM central_node_status_events s
     JOIN central_nodes n ON n.id = s.node_record_id
     WHERE n.organization_id = '$ORGANIZATION_A'
-      AND n.node_id = 'edge-02'
+      AND n.node_id LIKE 'acceptance-edge-02-%'
       AND s.node_sequence = 2
       AND s.status = 'offline'
       AND s.graceful = false
       AND s.reason = 'mqtt last will'
   ) THEN
-    RAISE EXCEPTION 'edge-02 retained last-will evidence is missing';
+    RAISE EXCEPTION 'acceptance secondary retained last-will evidence is missing';
   END IF;
 
   SELECT count(*) INTO telemetry_sample_count FROM telemetry_samples;

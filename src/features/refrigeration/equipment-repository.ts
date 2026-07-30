@@ -11,6 +11,9 @@ export type RefrigerationEquipmentCreateInput = {
   location: string;
   laboratory: string;
   zone: string;
+  /** Logical climate chamber id. */
+  climateChamberId?: string;
+  /** Compatibility alias used by the existing passport form; contains a chamber id, not a node id. */
   nodeId: string;
   type: string;
   manufacturer: string;
@@ -69,12 +72,26 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
     const normalized = normalizeInput(input);
     assertUniqueCode(this.items, normalized.code);
     const now = new Date().toISOString();
+    const chamberId = selectedChamberId(normalized);
     const item: RefrigerationEquipment = {
       id: createClientId(),
-      ...normalized,
+      code: normalized.code,
+      name: normalized.name,
+      location: normalized.location,
       laboratory: normalized.laboratory || null,
       zone: normalized.zone || null,
-      nodeId: normalized.nodeId || null,
+      climateChamberId: chamberId || null,
+      nodeId: chamberId || null,
+      transportNodeId: null,
+      type: normalized.type,
+      manufacturer: normalized.manufacturer,
+      model: normalized.model,
+      serialNumber: normalized.serialNumber,
+      temperatureClass: normalized.temperatureClass,
+      installedAt: normalized.installedAt,
+      servicedAt: normalized.servicedAt,
+      lifecycleStatus: normalized.lifecycleStatus,
+      totalSensors: normalized.totalSensors,
       status: "offline",
       averageTemperatureC: 0,
       minTemperatureC: 0,
@@ -108,12 +125,26 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
     }
     const normalized = normalizeInput(input);
     assertUniqueCode(this.items, normalized.code, equipmentId);
+    const chamberId = selectedChamberId(normalized);
     const updated: RefrigerationEquipment = {
       ...current,
-      ...normalized,
+      code: normalized.code,
+      name: normalized.name,
+      location: normalized.location,
       laboratory: normalized.laboratory || null,
       zone: normalized.zone || null,
-      nodeId: normalized.nodeId || null,
+      climateChamberId: chamberId || null,
+      nodeId: chamberId || null,
+      transportNodeId: current.transportNodeId,
+      type: normalized.type,
+      manufacturer: normalized.manufacturer,
+      model: normalized.model,
+      serialNumber: normalized.serialNumber,
+      temperatureClass: normalized.temperatureClass,
+      installedAt: normalized.installedAt,
+      servicedAt: normalized.servicedAt,
+      lifecycleStatus: normalized.lifecycleStatus,
+      totalSensors: normalized.totalSensors,
       status: normalized.lifecycleStatus === "retired" ? "offline" : current.status,
       onlineSensors: normalized.lifecycleStatus === "retired" ? 0 : current.onlineSensors,
       activeAlarms: normalized.lifecycleStatus === "retired" ? 0 : current.activeAlarms,
@@ -223,6 +254,10 @@ export class HttpRefrigerationEquipmentRepository implements RefrigerationEquipm
   }
 }
 
+function selectedChamberId(input: RefrigerationEquipmentCreateInput): string {
+  return (input.climateChamberId ?? input.nodeId).trim();
+}
+
 function normalizeInput(input: RefrigerationEquipmentCreateInput): RefrigerationEquipmentCreateInput {
   return {
     code: input.code.trim(),
@@ -230,6 +265,7 @@ function normalizeInput(input: RefrigerationEquipmentCreateInput): Refrigeration
     location: input.location.trim(),
     laboratory: input.laboratory.trim(),
     zone: input.zone.trim(),
+    climateChamberId: input.climateChamberId?.trim(),
     nodeId: input.nodeId.trim(),
     type: input.type.trim(),
     manufacturer: input.manufacturer.trim(),
@@ -251,7 +287,7 @@ function toApiPayload(input: RefrigerationEquipmentCreateInput) {
     location: normalized.location,
     laboratory: normalized.laboratory || null,
     zone: normalized.zone || null,
-    node_id: normalized.nodeId || null,
+    climate_chamber_id: selectedChamberId(normalized) || null,
     equipment_type: normalized.type,
     manufacturer: normalized.manufacturer,
     model: normalized.model,
@@ -353,6 +389,7 @@ export function parseEquipment(value: unknown): RefrigerationEquipment {
   }
 
   const fixture = getRefrigerationEquipment(id);
+  const climateChamberId = readOptionalString(record.climate_chamber_id);
   return {
     id,
     code,
@@ -360,7 +397,9 @@ export function parseEquipment(value: unknown): RefrigerationEquipment {
     location,
     laboratory: readOptionalString(record.laboratory),
     zone: readOptionalString(record.zone),
-    nodeId: readOptionalString(record.node_id),
+    climateChamberId,
+    nodeId: climateChamberId,
+    transportNodeId: readOptionalString(record.node_id),
     type,
     manufacturer,
     model,

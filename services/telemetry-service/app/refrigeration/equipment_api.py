@@ -29,6 +29,7 @@ from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository
 
+
 _EQUIPMENT_ETAG_RE = re.compile(r'^(?:W/)?"equipment-v(?P<version>[1-9][0-9]*)"$')
 
 
@@ -74,7 +75,11 @@ def create_refrigeration_equipment_router(
         payload: RefrigerationEquipmentCreate,
         request: Request,
         response: Response,
-        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        audit_reason: str | None = Header(
+            default=None,
+            alias="X-Audit-Reason",
+            max_length=1024,
+        ),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> RefrigerationEquipmentResponse:
         try:
@@ -134,15 +139,18 @@ def create_refrigeration_equipment_router(
         request: Request,
         response: Response,
         if_match: str = Header(alias="If-Match"),
-        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        audit_reason: str | None = Header(
+            default=None,
+            alias="X-Audit-Reason",
+            max_length=1024,
+        ),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> RefrigerationEquipmentResponse:
-        expected_version = parse_equipment_if_match(if_match)
         try:
             item = repository.update(
                 equipment_id,
                 payload,
-                expected_version=expected_version,
+                expected_version=parse_equipment_if_match(if_match),
                 actor_id=authorized.principal.subject,
                 organization_id=authorized.principal.organization_id,
                 audit_repository=security_repository,
@@ -173,14 +181,17 @@ def create_refrigeration_equipment_router(
         equipment_id: str,
         request: Request,
         if_match: str = Header(alias="If-Match"),
-        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        audit_reason: str | None = Header(
+            default=None,
+            alias="X-Audit-Reason",
+            max_length=1024,
+        ),
         authorized: AuthorizedRequest = Depends(manage_access),
     ) -> Response:
-        expected_version = parse_equipment_if_match(if_match)
         try:
             deleted = repository.soft_delete(
                 equipment_id,
-                expected_version=expected_version,
+                expected_version=parse_equipment_if_match(if_match),
                 actor_id=authorized.principal.subject,
                 organization_id=authorized.principal.organization_id,
                 audit_repository=security_repository,
@@ -203,7 +214,9 @@ def create_refrigeration_equipment_router(
     return router
 
 
-def equipment_response(item: RefrigerationEquipmentRecord) -> RefrigerationEquipmentResponse:
+def equipment_response(
+    item: RefrigerationEquipmentRecord,
+) -> RefrigerationEquipmentResponse:
     return RefrigerationEquipmentResponse(
         id=item.id,
         code=item.code,
@@ -211,6 +224,7 @@ def equipment_response(item: RefrigerationEquipmentRecord) -> RefrigerationEquip
         location=item.location,
         laboratory=item.laboratory,
         zone=item.zone,
+        climate_chamber_id=item.climate_chamber_id,
         node_id=item.node_id,
         equipment_type=item.equipment_type,
         manufacturer=item.manufacturer,

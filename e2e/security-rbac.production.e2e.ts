@@ -3,11 +3,14 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
-const organizationId = process.env.NEXOLAB_SECURITY_ORGANIZATION_ID ?? "11111111-1111-1111-1111-111111111111";
+const organizationId =
+  process.env.NEXOLAB_SECURITY_ORGANIZATION_ID ?? "11111111-1111-1111-1111-111111111111";
 const otherOrganizationId =
   process.env.NEXOLAB_SECURITY_OTHER_ORGANIZATION_ID ?? "22222222-2222-2222-2222-222222222222";
-const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18092";
-const evidenceDirectory = process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL ?? "http://127.0.0.1:18092";
+const evidenceDirectory =
+  process.env.NEXOLAB_SECURITY_EVIDENCE_DIR ?? "security-acceptance-evidence";
 const climateChamberId = "security-kk2";
 let equipmentId = "";
 let equipmentRoute = "";
@@ -122,10 +125,12 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
 async function openEquipment(page: Page) {
   await page.goto(equipmentRoute, { waitUntil: "networkidle" });
   await expect(page.locator("#layout-editor").getByText(/Чернетка v\d+$/)).toBeVisible();
-  await expect(page.getByText(`Камера ${climateChamberId}`, { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
 }
 
-test("enforces authenticated organization roles and immutable audit attribution", async ({ browser }) => {
+test("enforces authenticated organization roles and immutable audit attribution", async ({
+  browser,
+}) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   await provisionEquipmentPassport(browser);
 
@@ -134,8 +139,12 @@ test("enforces authenticated organization roles and immutable audit attribution"
     const page = await context.newPage();
     try {
       await page.goto(equipmentRoute, { waitUntil: "networkidle" });
-      await expect(page.getByText("Authorization bearer token is required", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему та датчики" })).toHaveCount(0);
+      await expect(
+        page.getByText("Authorization bearer token is required", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Редагувати схему" }),
+      ).toHaveCount(0);
     } finally {
       await context.close();
     }
@@ -147,20 +156,25 @@ test("enforces authenticated organization roles and immutable audit attribution"
     try {
       await openEquipment(page);
       await expect(page.getByText("viewer", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Редагувати схему та датчики" })).toBeHidden();
+      await expect(
+        page.getByRole("button", { name: "Редагувати схему" }),
+      ).toBeHidden();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
         { headers: apiHeaders(tokens.viewer) },
       );
       expect(draftResponse.status()).toBe(200);
-      const denied = await context.request.put(`${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`, {
-        headers: {
-          ...apiHeaders(tokens.viewer),
-          "If-Match": draftResponse.headers().etag,
+      const denied = await context.request.put(
+        `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
+        {
+          headers: {
+            ...apiHeaders(tokens.viewer),
+            "If-Match": draftResponse.headers().etag,
+          },
+          data: { image_id: null, placements: [] },
         },
-        data: { image_id: null, placements: [] },
-      });
+      );
       expect(denied.status()).toBe(403);
       expect((await denied.json()).detail.code).toBe("permission_denied");
     } finally {
@@ -175,9 +189,11 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expect(page.getByText("operator", { exact: true })).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }).first(),
+        page.getByRole("button", { name: "Редагувати схему" }).first(),
       ).toBeVisible();
-      await expect(page.getByRole("button", { name: "Опублікувати поточну чернетку" })).toBeHidden();
+      await expect(
+        page.getByRole("button", { name: "Опублікувати поточну чернетку" }),
+      ).toBeHidden();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
@@ -214,7 +230,8 @@ test("enforces authenticated organization roles and immutable audit attribution"
       const imageAttachPromise = page.waitForResponse(
         (response) =>
           response.request().method() === "PUT" &&
-          new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/layout/draft`,
+          new URL(response.url()).pathname ===
+            `/api/v1/equipment/${equipmentId}/layout/draft`,
       );
       await page.getByLabel("Вибрати production-фото обладнання").setInputFiles({
         name: "security-acceptance.png",
@@ -253,11 +270,14 @@ test("enforces authenticated organization roles and immutable audit attribution"
       expect(positionedDraft.headers().etag).toBe('W/"layout-draft-v3"');
 
       await page.reload({ waitUntil: "networkidle" });
-      await expect(page.locator("#layout-editor").getByText("Чернетка v3", { exact: true })).toBeVisible();
+      await expect(
+        page.locator("#layout-editor").getByText("Чернетка v3", { exact: true }),
+      ).toBeVisible();
       const publishPromise = page.waitForResponse(
         (response) =>
           response.request().method() === "POST" &&
-          new URL(response.url()).pathname === `/api/v1/equipment/${equipmentId}/layout/publish`,
+          new URL(response.url()).pathname ===
+            `/api/v1/equipment/${equipmentId}/layout/publish`,
       );
       await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       expect((await publishPromise).status()).toBe(201);
@@ -282,9 +302,13 @@ test("enforces authenticated organization roles and immutable audit attribution"
       const audit = await auditResponse.json();
       const auditActions = audit.items.map((item: { action: string }) => item.action);
       expect(auditActions[0]).toBe("layout.published");
-      expect(auditActions.filter((action: string) => action === "layout.draft.updated")).toHaveLength(2);
       expect(
-        audit.items.every((item: { actor_subject: string }) => item.actor_subject === "engineer-acceptance"),
+        auditActions.filter((action: string) => action === "layout.draft.updated"),
+      ).toHaveLength(2);
+      expect(
+        audit.items.every(
+          (item: { actor_subject: string }) => item.actor_subject === "engineer-acceptance",
+        ),
       ).toBe(true);
 
       await page.screenshot({
@@ -332,7 +356,9 @@ test("enforces authenticated organization roles and immutable audit attribution"
         { headers: apiHeaders(tokens.administrator, otherOrganizationId) },
       );
       expect(crossOrganization.status()).toBe(403);
-      expect((await crossOrganization.json()).detail.code).toBe("organization_membership_not_found");
+      expect((await crossOrganization.json()).detail.code).toBe(
+        "organization_membership_not_found",
+      );
 
       writeFileSync(
         path.join(evidenceDirectory, "security-acceptance-summary.json"),

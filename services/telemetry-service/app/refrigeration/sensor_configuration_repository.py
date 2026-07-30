@@ -8,6 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.climate_catalog.models import ClimateChamber, MeasurementBus
+from app.climate_catalog.repository import (
+    CatalogChannel,
+    PostgresClimateCatalogRepository,
+)
 from app.db import Database, TelemetrySample
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
@@ -27,7 +32,10 @@ from app.refrigeration.models import (
     RefrigerationEquipmentRecord,
     RefrigerationLayoutDraft,
 )
-from app.refrigeration.schemas import SensorBindingConfigurationItem, SensorConfigurationWrite
+from app.refrigeration.schemas import (
+    SensorBindingConfigurationItem,
+    SensorConfigurationWrite,
+)
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -68,24 +76,56 @@ class SensorConfigurationMutation:
     draft: RefrigerationLayoutDraft
 
 
+@dataclass(frozen=True, slots=True)
+class EquipmentChannelScope:
+    climate_chamber_id: str | None
+    climate_chamber_code: str | None
+    node_id: str
+    bus_id: str | None
+    bus_key: str | None
+    allowed_channel_ids: frozenset[str]
+
+
 class PostgresSensorConfigurationRepository:
-    def __init__(self, database: Database) -> None:
+    def __init__(
+        self,
+        database: Database,
+        *,
+        climate_catalog_repository: PostgresClimateCatalogRepository | None = None,
+    ) -> None:
         self._engine = database.engine
+        self._climate_catalog_repository = (
+            climate_catalog_repository
+            or PostgresClimateCatalogRepository(database)
+        )
 
     def list_climate_chamber_channels(
         self,
-        node_id: str,
+        chamber_id: str,
         *,
         organization_id: str = DEFAULT_ORGANIZATION_ID,
     ) -> tuple[str, list[ClimateChamberChannel]]:
-        normalized_node_id = normalize_node_id(node_id)
+        chamber, bus, catalog_channels = (
+            self._climate_catalog_repository.list_channels_for_chamber(
+                chamber_id,
+                organization_id=organization_id,
+            )
+        )
+        if chamber is None or bus is None:
+            return self._legacy_node_channels(
+                chamber_id,
+                organization_id=organization_id,
+            )
         with Session(self._engine, expire_on_commit=False) as session:
-            self._climate_chamber(session, organization_id, normalized_node_id)
-            return normalized_node_id, self._channels(
+            rows = self._catalog_channel_rows(
                 session,
                 organization_id=organization_id,
-                node_id=normalized_node_id,
+                chamber=chamber,
+                bus=bus,
+                catalog_channels=catalog_channels,
             )
+            session.expunge_all()
+            return bus.node_id, rows
 
     def replace_configuration(
         self,
@@ -102,53 +142,86 @@ class PostgresSensorConfigurationRepository:
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
-                    equipment = self._locked_equipment(session, organization_id, equipment_id)
-                    self._check_equipment_version(equipment, expected_equipment_version)
+                    equipment = self._locked_equipment(
+                        session,
+                        organization_id,
+                        equipment_id,
+                    )
+                    self._check_equipment_version(
+                        equipment,
+                        expected_equipment_version,
+                    )
                     self._require_mutable(equipment)
-                    if equipment.node_id is None:
-                        raise ClimateChamberNotFoundError(
-                            "select a climate chamber before configuring measurement channels"
-                        )
-                    self._climate_chamber(session, organization_id, equipment.node_id)
-                    if len(payload.bindings) > equipment.total_sensors:
-                        raise SensorConfigurationCapacityError(
-                            "sensor configuration exceeds the equipment slot capacity"
-                        )
-
-                    draft = self._locked_draft(session, organization_id, equipment_id)
-                    if draft.version != payload.expected_draft_version:
-                        raise SensorConfigurationDraftVersionConflictError(
-                            expected_version=payload.expected_draft_version,
-                            actual_version=draft.version,
-                        )
-
                     current = list(
                         session.scalars(
                             select(EquipmentSensorBinding)
                             .where(
-                                EquipmentSensorBinding.organization_id == organization_id,
+                                EquipmentSensorBinding.organization_id
+                                == organization_id,
                                 EquipmentSensorBinding.equipment_id == equipment_id,
                                 EquipmentSensorBinding.unbound_at.is_(None),
                             )
                             .with_for_update()
                         )
                     )
-                    requested_channel_ids = {item.channel_id for item in payload.bindings}
+                    scope = self._equipment_channel_scope(
+                        session,
+                        equipment,
+                        organization_id=organization_id,
+                        current_bindings=current,
+                    )
+                    if len(payload.bindings) > equipment.total_sensors:
+                        raise SensorConfigurationCapacityError(
+                            "sensor configuration exceeds the equipment slot capacity"
+                        )
+                    draft = self._locked_draft(
+                        session,
+                        organization_id,
+                        equipment_id,
+                    )
+                    if draft.version != payload.expected_draft_version:
+                        raise SensorConfigurationDraftVersionConflictError(
+                            expected_version=payload.expected_draft_version,
+                            actual_version=draft.version,
+                        )
+                    requested_channel_ids = {
+                        item.channel_id for item in payload.bindings
+                    }
+                    missing = sorted(
+                        requested_channel_ids - scope.allowed_channel_ids
+                    )
+                    if missing:
+                        scope_name = (
+                            scope.climate_chamber_code
+                            if scope.climate_chamber_code is not None
+                            else scope.node_id
+                        )
+                        raise SensorChannelNotFoundError(
+                            "channels are not available in measurement scope "
+                            f"{scope_name!r}: " + ", ".join(missing)
+                        )
                     if requested_channel_ids:
                         conflicts = list(
                             session.scalars(
                                 select(EquipmentSensorBinding)
                                 .where(
-                                    EquipmentSensorBinding.organization_id == organization_id,
-                                    EquipmentSensorBinding.node_id == equipment.node_id,
-                                    EquipmentSensorBinding.channel_id.in_(requested_channel_ids),
+                                    EquipmentSensorBinding.organization_id
+                                    == organization_id,
+                                    EquipmentSensorBinding.node_id == scope.node_id,
+                                    EquipmentSensorBinding.channel_id.in_(
+                                        requested_channel_ids
+                                    ),
                                     EquipmentSensorBinding.unbound_at.is_(None),
                                 )
                                 .with_for_update()
                             )
                         )
                         foreign = next(
-                            (binding for binding in conflicts if binding.equipment_id != equipment_id),
+                            (
+                                binding
+                                for binding in conflicts
+                                if binding.equipment_id != equipment_id
+                            ),
                             None,
                         )
                         if foreign is not None:
@@ -156,52 +229,49 @@ class PostgresSensorConfigurationRepository:
                                 f"channel {foreign.channel_id!r} is already bound to "
                                 f"{foreign.equipment_id}:{foreign.slot_key}"
                             )
-
-                    observed_channels = {
-                        channel.channel_id
-                        for channel in self._channels(
-                            session,
-                            organization_id=organization_id,
-                            node_id=equipment.node_id,
-                        )
-                    }
-                    missing = sorted(requested_channel_ids - observed_channels)
-                    if missing:
-                        raise SensorChannelNotFoundError(
-                            f"channels are not available in climate chamber {equipment.node_id!r}: "
-                            + ", ".join(missing)
-                        )
-
                     before = {
                         "equipment_version": equipment.version,
                         "draft_version": draft.version,
-                        "bindings": [_binding_snapshot(binding) for binding in current],
+                        "climate_chamber_id": scope.climate_chamber_id,
+                        "node_id": scope.node_id,
+                        "bus_id": scope.bus_id,
+                        "bindings": [
+                            _binding_snapshot(binding) for binding in current
+                        ],
                         "placements": list(draft.placements),
                     }
-                    desired_by_slot = {item.slot_key: item for item in payload.bindings}
-                    current_by_slot = {binding.slot_key: binding for binding in current}
+                    desired_by_slot = {
+                        item.slot_key: item for item in payload.bindings
+                    }
+                    current_by_slot = {
+                        binding.slot_key: binding for binding in current
+                    }
                     active: list[EquipmentSensorBinding] = []
                     bindings_changed = False
-
                     for slot_key, binding in current_by_slot.items():
                         desired = desired_by_slot.get(slot_key)
-                        if desired is not None and _binding_matches(binding, desired):
+                        if desired is not None and _binding_matches(
+                            binding,
+                            desired,
+                        ):
                             active.append(binding)
                             continue
                         binding.unbound_by = actor_id.strip()
                         binding.unbound_at = now
                         binding.version += 1
                         bindings_changed = True
-
                     for desired in payload.bindings:
                         current_binding = current_by_slot.get(desired.slot_key)
-                        if current_binding is not None and _binding_matches(current_binding, desired):
+                        if current_binding is not None and _binding_matches(
+                            current_binding,
+                            desired,
+                        ):
                             continue
                         binding = EquipmentSensorBinding(
                             id=str(uuid4()),
                             organization_id=organization_id,
                             equipment_id=equipment_id,
-                            node_id=equipment.node_id,
+                            node_id=scope.node_id,
                             channel_id=desired.channel_id,
                             slot_key=desired.slot_key,
                             label=desired.label,
@@ -217,9 +287,12 @@ class PostgresSensorConfigurationRepository:
                         session.add(binding)
                         active.append(binding)
                         bindings_changed = True
-
                     placements = [
-                        {"sensor_id": item.channel_id, "x": item.x, "y": item.y}
+                        {
+                            "sensor_id": item.channel_id,
+                            "x": item.x,
+                            "y": item.y,
+                        }
                         for item in payload.bindings
                     ]
                     placements_changed = placements != list(draft.placements)
@@ -230,11 +303,19 @@ class PostgresSensorConfigurationRepository:
                     if bindings_changed:
                         equipment.version += 1
                         equipment.updated_at = now
-
                     session.flush()
-                    active.sort(key=lambda item: (item.side, item.shelf, item.position, item.slot_key))
-                    if audit_repository is not None and audit_event is not None and (
-                        bindings_changed or placements_changed
+                    active.sort(
+                        key=lambda item: (
+                            item.side,
+                            item.shelf,
+                            item.position,
+                            item.slot_key,
+                        )
+                    )
+                    if (
+                        audit_repository is not None
+                        and audit_event is not None
+                        and (bindings_changed or placements_changed)
                     ):
                         audit_repository.append_audit_event(
                             replace(
@@ -244,17 +325,21 @@ class PostgresSensorConfigurationRepository:
                                 after_snapshot={
                                     "equipment_version": equipment.version,
                                     "draft_version": draft.version,
-                                    "bindings": [_binding_snapshot(binding) for binding in active],
+                                    "climate_chamber_id": scope.climate_chamber_id,
+                                    "climate_chamber_code": scope.climate_chamber_code,
+                                    "node_id": scope.node_id,
+                                    "bus_id": scope.bus_id,
+                                    "bus_key": scope.bus_key,
+                                    "bindings": [
+                                        _binding_snapshot(binding)
+                                        for binding in active
+                                    ],
                                     "placements": list(draft.placements),
                                 },
                             ),
                             session=session,
                         )
-
-                for binding in active:
-                    session.expunge(binding)
-                session.expunge(equipment)
-                session.expunge(draft)
+                session.expunge_all()
                 return SensorConfigurationMutation(
                     equipment=equipment,
                     bindings=active,
@@ -265,72 +350,228 @@ class PostgresSensorConfigurationRepository:
                 "sensor configuration was concurrently changed by another operator"
             ) from error
 
-    def _channels(
+    def _equipment_channel_scope(
         self,
         session: Session,
+        equipment: RefrigerationEquipmentRecord,
         *,
         organization_id: str,
-        node_id: str,
-    ) -> list[ClimateChamberChannel]:
-        bindings = list(
-            session.scalars(
-                select(EquipmentSensorBinding).where(
-                    EquipmentSensorBinding.organization_id == organization_id,
-                    EquipmentSensorBinding.node_id == node_id,
-                    EquipmentSensorBinding.unbound_at.is_(None),
+        current_bindings: list[EquipmentSensorBinding],
+    ) -> EquipmentChannelScope:
+        if equipment.climate_chamber_id is not None:
+            chamber, bus, channels = (
+                self._climate_catalog_repository.list_channels_for_chamber(
+                    equipment.climate_chamber_id,
+                    organization_id=organization_id,
                 )
             )
-        )
-        by_channel = {binding.channel_id: binding for binding in bindings}
-        samples = list(
-            session.scalars(
-                select(TelemetrySample)
-                .where(TelemetrySample.node_id == node_id)
-                .order_by(TelemetrySample.captured_at.desc(), TelemetrySample.id.desc())
-                .limit(5000)
+            if chamber is None or bus is None:
+                raise ClimateChamberNotFoundError(
+                    f"active climate chamber {equipment.climate_chamber_id!r} was not found"
+                )
+            if equipment.node_id != bus.node_id:
+                raise ClimateChamberNotFoundError(
+                    "equipment transport node does not match the selected chamber bus"
+                )
+            return EquipmentChannelScope(
+                climate_chamber_id=chamber.id,
+                climate_chamber_code=chamber.code,
+                node_id=bus.node_id,
+                bus_id=bus.id,
+                bus_key=bus.bus_key,
+                allowed_channel_ids=frozenset(
+                    item.channel.channel_id for item in channels
+                ),
             )
-        )
-        latest: dict[str, ClimateChamberChannel] = {}
-        for sample in samples:
-            if sample.channel_id in latest:
-                continue
-            latest[sample.channel_id] = ClimateChamberChannel(
-                channel_id=sample.channel_id,
-                metric=sample.metric,
-                unit=sample.unit,
-                latest_value=sample.value,
-                quality=sample.quality,
-                captured_at=sample.captured_at,
-                binding=by_channel.get(sample.channel_id),
-            )
-        for binding in bindings:
-            if binding.channel_id in latest:
-                continue
-            latest[binding.channel_id] = ClimateChamberChannel(
-                channel_id=binding.channel_id,
-                metric="temperature",
-                unit="degC",
-                latest_value=None,
-                quality="no-data",
-                captured_at=binding.bound_at,
-                binding=binding,
-            )
-        return sorted(latest.values(), key=lambda item: item.channel_id)
 
-    @staticmethod
-    def _climate_chamber(session: Session, organization_id: str, node_id: str) -> CentralNode:
+        if equipment.node_id is None:
+            raise ClimateChamberNotFoundError(
+                "select a climate chamber before configuring measurement channels"
+            )
+        normalized_node_id = normalize_node_id(equipment.node_id)
         node = session.scalar(
             select(CentralNode).where(
                 CentralNode.organization_id == organization_id,
-                CentralNode.node_id == node_id,
+                CentralNode.node_id == normalized_node_id,
                 CentralNode.state != NodeState.REVOKED.value,
             )
         )
         if node is None:
             raise ClimateChamberNotFoundError(
-                f"climate chamber {node_id!r} was not found in this organization"
+                f"active legacy node {normalized_node_id!r} was not found"
             )
-        return node
+        telemetry_channels = set(
+            session.scalars(
+                select(TelemetrySample.channel_id)
+                .where(TelemetrySample.node_id == normalized_node_id)
+                .distinct()
+            )
+        )
+        telemetry_channels.update(
+            binding.channel_id for binding in current_bindings
+        )
+        return EquipmentChannelScope(
+            climate_chamber_id=None,
+            climate_chamber_code=None,
+            node_id=normalized_node_id,
+            bus_id=None,
+            bus_key=None,
+            allowed_channel_ids=frozenset(telemetry_channels),
+        )
+
+    def _catalog_channel_rows(
+        self,
+        session: Session,
+        *,
+        organization_id: str,
+        chamber: ClimateChamber,
+        bus: MeasurementBus,
+        catalog_channels: tuple[CatalogChannel, ...],
+    ) -> list[ClimateChamberChannel]:
+        channel_ids = [item.channel.channel_id for item in catalog_channels]
+        source_ids = [
+            item.channel.source_channel_id for item in catalog_channels
+        ]
+        bindings = list(
+            session.scalars(
+                select(EquipmentSensorBinding).where(
+                    EquipmentSensorBinding.organization_id == organization_id,
+                    EquipmentSensorBinding.node_id == bus.node_id,
+                    EquipmentSensorBinding.channel_id.in_(channel_ids),
+                    EquipmentSensorBinding.unbound_at.is_(None),
+                )
+            )
+        )
+        by_channel = {binding.channel_id: binding for binding in bindings}
+        latest_samples = self._latest_samples(
+            session,
+            node_id=bus.node_id,
+            channel_ids=source_ids,
+        )
+        return [
+            ClimateChamberChannel(
+                channel_id=item.channel.channel_id,
+                metric=item.channel.metric_type,
+                unit=item.channel.unit,
+                latest_value=(
+                    latest_samples[item.channel.source_channel_id].value
+                    if item.channel.source_channel_id in latest_samples
+                    else None
+                ),
+                quality=(
+                    latest_samples[item.channel.source_channel_id].quality
+                    if item.channel.source_channel_id in latest_samples
+                    else "no-data"
+                ),
+                captured_at=(
+                    latest_samples[item.channel.source_channel_id].captured_at
+                    if item.channel.source_channel_id in latest_samples
+                    else item.channel.created_at
+                ),
+                binding=by_channel.get(item.channel.channel_id),
+            )
+            for item in catalog_channels
+        ]
+
+    def _legacy_node_channels(
+        self,
+        node_id: str,
+        *,
+        organization_id: str,
+    ) -> tuple[str, list[ClimateChamberChannel]]:
+        normalized_node_id = normalize_node_id(node_id)
+        with Session(self._engine, expire_on_commit=False) as session:
+            node = session.scalar(
+                select(CentralNode).where(
+                    CentralNode.organization_id == organization_id,
+                    CentralNode.node_id == normalized_node_id,
+                    CentralNode.state != NodeState.REVOKED.value,
+                )
+            )
+            if node is None:
+                raise ClimateChamberNotFoundError(
+                    f"climate chamber or node {node_id!r} was not found"
+                )
+            bindings = list(
+                session.scalars(
+                    select(EquipmentSensorBinding).where(
+                        EquipmentSensorBinding.organization_id == organization_id,
+                        EquipmentSensorBinding.node_id == normalized_node_id,
+                        EquipmentSensorBinding.unbound_at.is_(None),
+                    )
+                )
+            )
+            by_channel = {binding.channel_id: binding for binding in bindings}
+            samples = list(
+                session.scalars(
+                    select(TelemetrySample)
+                    .where(TelemetrySample.node_id == normalized_node_id)
+                    .order_by(
+                        TelemetrySample.captured_at.desc(),
+                        TelemetrySample.id.desc(),
+                    )
+                    .limit(5000)
+                )
+            )
+            latest: dict[str, ClimateChamberChannel] = {}
+            for sample in samples:
+                latest.setdefault(
+                    sample.channel_id,
+                    ClimateChamberChannel(
+                        channel_id=sample.channel_id,
+                        metric=sample.metric,
+                        unit=sample.unit,
+                        latest_value=sample.value,
+                        quality=sample.quality,
+                        captured_at=sample.captured_at,
+                        binding=by_channel.get(sample.channel_id),
+                    ),
+                )
+            for binding in bindings:
+                if binding.channel_id in latest:
+                    continue
+                latest[binding.channel_id] = ClimateChamberChannel(
+                    channel_id=binding.channel_id,
+                    metric="unknown",
+                    unit="",
+                    latest_value=None,
+                    quality="no-data",
+                    captured_at=binding.bound_at,
+                    binding=binding,
+                )
+            session.expunge_all()
+            return normalized_node_id, sorted(
+                latest.values(),
+                key=lambda item: item.channel_id,
+            )
+
+    @staticmethod
+    def _latest_samples(
+        session: Session,
+        *,
+        node_id: str,
+        channel_ids: list[str],
+    ) -> dict[str, TelemetrySample]:
+        if not channel_ids:
+            return {}
+        samples = list(
+            session.scalars(
+                select(TelemetrySample)
+                .where(
+                    TelemetrySample.node_id == node_id,
+                    TelemetrySample.channel_id.in_(channel_ids),
+                )
+                .order_by(
+                    TelemetrySample.captured_at.desc(),
+                    TelemetrySample.id.desc(),
+                )
+                .limit(max(5000, len(channel_ids) * 4))
+            )
+        )
+        latest: dict[str, TelemetrySample] = {}
+        for sample in samples:
+            latest.setdefault(sample.channel_id, sample)
+        return latest
 
     @staticmethod
     def _locked_equipment(
@@ -348,7 +589,9 @@ class PostgresSensorConfigurationRepository:
             .with_for_update()
         )
         if equipment is None:
-            raise EquipmentNotFoundError(f"equipment {equipment_id!r} was not found")
+            raise EquipmentNotFoundError(
+                f"equipment {equipment_id!r} was not found"
+            )
         return equipment
 
     @staticmethod
@@ -366,7 +609,9 @@ class PostgresSensorConfigurationRepository:
             .with_for_update()
         )
         if draft is None:
-            raise EquipmentNotFoundError(f"layout draft for {equipment_id!r} was not found")
+            raise EquipmentNotFoundError(
+                f"layout draft for {equipment_id!r} was not found"
+            )
         return draft
 
     @staticmethod
@@ -381,9 +626,16 @@ class PostgresSensorConfigurationRepository:
             )
 
     @staticmethod
-    def _require_mutable(equipment: RefrigerationEquipmentRecord) -> None:
-        if equipment.lifecycle_status == "retired" or equipment.deleted_at is not None:
-            raise EquipmentRetiredError("retired equipment sensor configuration is read-only")
+    def _require_mutable(
+        equipment: RefrigerationEquipmentRecord,
+    ) -> None:
+        if (
+            equipment.lifecycle_status == "retired"
+            or equipment.deleted_at is not None
+        ):
+            raise EquipmentRetiredError(
+                "retired equipment sensor configuration is read-only"
+            )
 
 
 def _binding_matches(
@@ -399,7 +651,9 @@ def _binding_matches(
     )
 
 
-def _binding_snapshot(binding: EquipmentSensorBinding) -> dict[str, object]:
+def _binding_snapshot(
+    binding: EquipmentSensorBinding,
+) -> dict[str, object]:
     return {
         "id": binding.id,
         "equipment_id": binding.equipment_id,
@@ -414,5 +668,9 @@ def _binding_snapshot(binding: EquipmentSensorBinding) -> dict[str, object]:
         "bound_by": binding.bound_by,
         "bound_at": binding.bound_at.isoformat(),
         "unbound_by": binding.unbound_by,
-        "unbound_at": binding.unbound_at.isoformat() if binding.unbound_at else None,
+        "unbound_at": (
+            binding.unbound_at.isoformat()
+            if binding.unbound_at is not None
+            else None
+        ),
     }

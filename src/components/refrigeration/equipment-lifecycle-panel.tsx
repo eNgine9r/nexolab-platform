@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Camera,
@@ -9,25 +9,20 @@ import {
   ImageIcon,
   Link2,
   Pencil,
-  Plus,
   RefreshCw,
   Trash2,
-  Unlink,
   Wrench,
-  X,
 } from "lucide-react";
 
 import {
   EditEquipmentDialog,
   type EquipmentNodeOption as DialogNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
-import type { EquipmentImageMetadata, RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
+import type { EquipmentImageMetadata, RefrigerationEquipment } from "@/data/refrigeration";
+import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import type {
-  AvailableSensor,
   EquipmentLifecycleRepository,
-  EquipmentNodeOption,
   SensorBinding,
-  SensorBindingInput,
 } from "@/features/refrigeration/equipment-lifecycle-repository";
 import type {
   RefrigerationEquipmentRepository,
@@ -52,53 +47,62 @@ export function EquipmentLifecyclePanel({
   equipment,
   repository,
   lifecycleRepository,
+  climateCatalogRepository,
   canManage,
   onEquipmentChange,
-  onBindingsChanged,
+  onBindingsChanged: _onBindingsChanged,
 }: {
   equipment: RefrigerationEquipment;
   repository: RefrigerationEquipmentRepository | null;
   lifecycleRepository: EquipmentLifecycleRepository | null;
+  climateCatalogRepository?: ClimateCatalogRepository | null;
   canManage: boolean;
   onEquipmentChange: (equipment: RefrigerationEquipment) => void;
   onBindingsChanged: () => void;
 }) {
-  const [nodes, setNodes] = useState<EquipmentNodeOption[]>([]);
+  const [chambers, setChambers] = useState<DialogNodeOption[]>([]);
   const [images, setImages] = useState<EquipmentImageMetadata[]>([]);
   const [bindings, setBindings] = useState<SensorBinding[]>([]);
-  const [availableSensors, setAvailableSensors] = useState<AvailableSensor[]>([]);
-  const [loading, setLoading] = useState(lifecycleRepository !== null);
+  const [loading, setLoading] = useState(
+    lifecycleRepository !== null || climateCatalogRepository !== null,
+  );
   const [notice, setNotice] = useState<Notice>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-  const [bindingOpen, setBindingOpen] = useState(false);
-  const [bindingBusy, setBindingBusy] = useState(false);
-  const [bindingError, setBindingError] = useState<string | null>(null);
-  const [bindingTarget, setBindingTarget] = useState<SensorBinding | null>(null);
   const [retiringImageId, setRetiringImageId] = useState<string | null>(null);
-  const [unbindingSlot, setUnbindingSlot] = useState<string | null>(null);
 
   const mutable = equipment.lifecycleStatus !== "retired";
-  const dialogNodes = useMemo<DialogNodeOption[]>(
-    () => nodes.map(({ nodeId, displayName, state }) => ({ nodeId, displayName, state })),
-    [nodes],
+  const chamberLabel = useMemo(
+    () =>
+      chambers.find((item) => item.nodeId === equipment.climateChamberId)?.displayName ??
+      (equipment.climateChamberId ? "Кліматична камера" : "Не вибрано"),
+    [chambers, equipment.climateChamberId],
   );
 
   const refresh = async () => {
-    if (!lifecycleRepository) return;
     setLoading(true);
     try {
-      const [loadedNodes, loadedImages, loadedBindings, loadedSensors] = await Promise.all([
-        lifecycleRepository.listNodes(),
-        lifecycleRepository.listImages(equipment.id),
-        lifecycleRepository.listBindings(equipment.id),
-        equipment.nodeId ? lifecycleRepository.listAvailableSensors(equipment.id) : Promise.resolve([]),
+      const [loadedChambers, loadedImages, loadedBindings] = await Promise.all([
+        climateCatalogRepository
+          ? climateCatalogRepository.listChambers().then((items) =>
+              items.map<DialogNodeOption>((item) => ({
+                nodeId: item.id,
+                displayName: `${item.name} · ${item.code}`,
+                state: item.status,
+              })),
+            )
+          : Promise.resolve([]),
+        lifecycleRepository
+          ? lifecycleRepository.listImages(equipment.id)
+          : Promise.resolve([]),
+        lifecycleRepository
+          ? lifecycleRepository.listBindings(equipment.id)
+          : Promise.resolve([]),
       ]);
-      setNodes(loadedNodes);
+      setChambers(loadedChambers);
       setImages(loadedImages);
       setBindings(loadedBindings);
-      setAvailableSensors(loadedSensors);
     } catch (error) {
       setNotice({
         tone: "error",
@@ -111,9 +115,15 @@ export function EquipmentLifecyclePanel({
 
   useEffect(() => {
     void refresh();
-    // Equipment node and version are deliberate refresh boundaries.
+    // Equipment assignment and version are deliberate refresh boundaries.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipment.id, equipment.nodeId, lifecycleRepository]);
+  }, [
+    equipment.id,
+    equipment.climateChamberId,
+    equipment.version,
+    lifecycleRepository,
+    climateCatalogRepository,
+  ]);
 
   const savePassport = async (input: RefrigerationEquipmentUpdateInput) => {
     if (!repository) return;
@@ -124,59 +134,10 @@ export function EquipmentLifecyclePanel({
       onEquipmentChange(updated);
       setEditOpen(false);
       setNotice({ tone: "success", message: "Паспорт обладнання оновлено." });
-      await refresh();
     } catch (error) {
       setEditError(error instanceof Error ? error.message : "Паспорт не оновлено.");
     } finally {
       setEditBusy(false);
-    }
-  };
-
-  const saveBinding = async (input: SensorBindingInput & { slotKey: string }) => {
-    if (!lifecycleRepository) return;
-    setBindingBusy(true);
-    setBindingError(null);
-    try {
-      const result = await lifecycleRepository.bindSensor(
-        equipment.id,
-        input.slotKey,
-        input,
-        equipment.version,
-      );
-      onEquipmentChange(result.equipment);
-      setBindingOpen(false);
-      setBindingTarget(null);
-      setNotice({
-        tone: "success",
-        message: bindingTarget ? "Датчик у слоті замінено." : "Датчик прив’язано до обладнання.",
-      });
-      await refresh();
-      onBindingsChanged();
-    } catch (error) {
-      setBindingError(error instanceof Error ? error.message : "Binding не збережено.");
-    } finally {
-      setBindingBusy(false);
-    }
-  };
-
-  const unbind = async (binding: SensorBinding) => {
-    if (!lifecycleRepository) return;
-    setUnbindingSlot(binding.slotKey);
-    setNotice(null);
-    try {
-      const result = await lifecycleRepository.unbindSensor(
-        equipment.id,
-        binding.slotKey,
-        equipment.version,
-      );
-      onEquipmentChange(result.equipment);
-      setNotice({ tone: "success", message: `${binding.label} відв’язано.` });
-      await refresh();
-      onBindingsChanged();
-    } catch (error) {
-      setNotice({ tone: "error", message: error instanceof Error ? error.message : "Датчик не відв’язано." });
-    } finally {
-      setUnbindingSlot(null);
     }
   };
 
@@ -188,7 +149,6 @@ export function EquipmentLifecyclePanel({
       await lifecycleRepository.retireImage(equipment.id, image.id, equipment.version);
       onEquipmentChange({ ...equipment, version: equipment.version + 1 });
       setNotice({ tone: "success", message: `${image.fileName} переміщено до історії.` });
-      await refresh();
     } catch (error) {
       setNotice({
         tone: "error",
@@ -200,10 +160,15 @@ export function EquipmentLifecyclePanel({
   };
 
   return (
-    <section className="mb-3 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 p-3" aria-label="Lifecycle обладнання">
+    <section
+      className="mb-3 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 p-3"
+      aria-label="Lifecycle обладнання"
+    >
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] ${lifecycleTone[equipment.lifecycleStatus]}`}>
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[10px] ${lifecycleTone[equipment.lifecycleStatus]}`}
+          >
             {lifecycleLabel[equipment.lifecycleStatus]}
           </span>
           <span className="text-[11px] text-slate-500">
@@ -212,7 +177,11 @@ export function EquipmentLifecyclePanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <IconButton label="Оновити lifecycle-дані" onClick={() => void refresh()} disabled={loading}>
+          <IconButton
+            label="Оновити lifecycle-дані"
+            onClick={() => void refresh()}
+            disabled={loading}
+          >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </IconButton>
           {canManage && repository && mutable ? (
@@ -227,20 +196,6 @@ export function EquipmentLifecyclePanel({
               <Pencil className="h-4 w-4" />
             </IconButton>
           ) : null}
-          {canManage && lifecycleRepository && mutable ? (
-            <IconButton
-              label="Додати прив’язування датчика"
-              onClick={() => {
-                setBindingTarget(null);
-                setBindingError(null);
-                setBindingOpen(true);
-              }}
-              accent
-              disabled={!equipment.nodeId}
-            >
-              <Plus className="h-4 w-4" />
-            </IconButton>
-          ) : null}
         </div>
       </div>
 
@@ -253,7 +208,11 @@ export function EquipmentLifecyclePanel({
               : "border-rose-400/20 bg-rose-400/10 text-rose-200"
           }`}
         >
-          {notice.tone === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {notice.tone === "success" ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
           {notice.message}
         </div>
       ) : null}
@@ -261,7 +220,8 @@ export function EquipmentLifecyclePanel({
       {equipment.lifecycleStatus === "retired" ? (
         <div className="mb-3 flex items-start gap-2 rounded-xl border border-slate-400/15 bg-slate-400/[0.06] p-3 text-xs text-slate-300">
           <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
-          Обладнання виведено з експлуатації. Паспорт, фото, bindings і схема доступні лише для аудиту.
+          Обладнання виведено з експлуатації. Паспорт, фото, bindings і схема доступні
+          лише для аудиту.
         </div>
       ) : null}
 
@@ -269,7 +229,8 @@ export function EquipmentLifecyclePanel({
         <LifecycleCard icon={Cpu} title="Структуроване розташування">
           <InfoRow label="Лабораторія" value={equipment.laboratory ?? "Не задано"} />
           <InfoRow label="Зона" value={equipment.zone ?? "Не задано"} />
-          <InfoRow label="Node" value={equipment.nodeId ?? "Не прив’язано"} />
+          <InfoRow label="Камера" value={chamberLabel} />
+          <InfoRow label="Джерело даних" value={equipment.transportNodeId ?? "Не визначено"} />
           <InfoRow label="Lifecycle" value={lifecycleLabel[equipment.lifecycleStatus]} />
         </LifecycleCard>
 
@@ -277,10 +238,17 @@ export function EquipmentLifecyclePanel({
           {images.length ? (
             <div className="space-y-2">
               {images.slice(0, 4).map((image) => (
-                <div key={image.id} className="flex items-center gap-2 rounded-xl border border-white/[0.06] p-2">
+                <div
+                  key={image.id}
+                  className="flex items-center gap-2 rounded-xl border border-white/[0.06] p-2"
+                >
                   {image.sourceUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image.sourceUrl} alt={image.alt} className="h-10 w-14 rounded-lg object-cover" />
+                    <img
+                      src={image.sourceUrl}
+                      alt={image.alt}
+                      className="h-10 w-14 rounded-lg object-cover"
+                    />
                   ) : (
                     <div className="grid h-10 w-14 place-items-center rounded-lg bg-white/[0.04]">
                       <ImageIcon className="h-4 w-4 text-slate-500" />
@@ -315,7 +283,10 @@ export function EquipmentLifecyclePanel({
           {bindings.length ? (
             <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
               {bindings.map((binding) => (
-                <div key={binding.id} className="flex items-center gap-2 rounded-xl border border-white/[0.06] p-2">
+                <div
+                  key={binding.id}
+                  className="flex items-center gap-2 rounded-xl border border-white/[0.06] p-2"
+                >
                   <div className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] text-cyan-200">
                     <Link2 className="h-3.5 w-3.5" />
                   </div>
@@ -327,36 +298,16 @@ export function EquipmentLifecyclePanel({
                       {binding.slotKey} · полиця {binding.shelf} · позиція {binding.position}
                     </p>
                   </div>
-                  {canManage && mutable ? (
-                    <>
-                      <IconButton
-                        label={`Замінити датчик у слоті ${binding.slotKey}`}
-                        compact
-                        onClick={() => {
-                          setBindingTarget(binding);
-                          setBindingError(null);
-                          setBindingOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </IconButton>
-                      <IconButton
-                        label={`Відв’язати ${binding.label}`}
-                        tone="danger"
-                        compact
-                        disabled={unbindingSlot === binding.slotKey}
-                        onClick={() => void unbind(binding)}
-                      >
-                        <Unlink className="h-3.5 w-3.5" />
-                      </IconButton>
-                    </>
-                  ) : null}
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyState text={equipment.nodeId ? "Активних bindings немає." : "Спочатку прив’яжіть обладнання до node."} />
+            <EmptyState text="Активних bindings немає." />
           )}
+          <p className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.035] px-3 py-2 text-[10px] leading-relaxed text-slate-500">
+            Додавання, заміна та видалення датчиків виконуються на підкладці в режимі
+            редагування. Усі зміни зберігаються одним атомарним пакетом.
+          </p>
         </LifecycleCard>
       </div>
 
@@ -364,188 +315,25 @@ export function EquipmentLifecyclePanel({
         equipment={editOpen ? equipment : null}
         busy={editBusy}
         error={editError}
-        nodeOptions={dialogNodes}
+        nodeOptions={chambers}
         onClose={() => {
           if (!editBusy) setEditOpen(false);
         }}
         onSubmit={savePassport}
       />
-      <SensorBindingDialog
-        open={bindingOpen}
-        busy={bindingBusy}
-        error={bindingError}
-        target={bindingTarget}
-        availableSensors={availableSensors}
-        onClose={() => {
-          if (!bindingBusy) {
-            setBindingOpen(false);
-            setBindingTarget(null);
-          }
-        }}
-        onSubmit={saveBinding}
-      />
     </section>
   );
 }
 
-function SensorBindingDialog({
-  open,
-  busy,
-  error,
-  target,
-  availableSensors,
-  onClose,
-  onSubmit,
+function LifecycleCard({
+  icon: Icon,
+  title,
+  children,
 }: {
-  open: boolean;
-  busy: boolean;
-  error: string | null;
-  target: SensorBinding | null;
-  availableSensors: AvailableSensor[];
-  onClose: () => void;
-  onSubmit: (input: SensorBindingInput & { slotKey: string }) => Promise<void>;
+  icon: typeof Cpu;
+  title: string;
+  children: React.ReactNode;
 }) {
-  const initial = useMemo(
-    () => ({
-      slotKey: target?.slotKey ?? "front-01",
-      channelId: target?.channelId ?? availableSensors.find((sensor) => !sensor.isBound)?.channelId ?? "",
-      label: target?.label ?? "01F",
-      side: target?.side ?? ("front" as SensorSide),
-      shelf: target?.shelf ?? 1,
-      position: target?.position ?? 1,
-    }),
-    [availableSensors, target],
-  );
-  const [form, setForm] = useState(initial);
-  const titleId = useId();
-  const firstField = useRef<HTMLSelectElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setForm(initial);
-    const frame = window.requestAnimationFrame(() => firstField.current?.focus());
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
-    };
-    window.addEventListener("keydown", keydown);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("keydown", keydown);
-    };
-  }, [busy, initial, onClose, open]);
-
-  if (!open) return null;
-  const selectable = availableSensors.filter(
-    (sensor) => !sensor.isBound || sensor.channelId === target?.channelId,
-  );
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    await onSubmit(form);
-  };
-
-  return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#091a31] shadow-[0_32px_100px_rgba(0,0,0,.55)]"
-      >
-        <header className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Sensor binding</p>
-            <h2 id={titleId} className="mt-1 text-base font-semibold text-white">
-              {target ? "Замінити датчик" : "Прив’язати датчик"}
-            </h2>
-          </div>
-          <IconButton label="Закрити binding dialog" onClick={onClose} disabled={busy}>
-            <X className="h-4 w-4" />
-          </IconButton>
-        </header>
-        <form onSubmit={submit} className="p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Канал датчика">
-              <select
-                ref={firstField}
-                required
-                value={form.channelId}
-                onChange={(event) => setForm((current) => ({ ...current, channelId: event.target.value }))}
-                className={inputClass}
-              >
-                <option value="">Оберіть канал</option>
-                {selectable.map((sensor) => (
-                  <option key={sensor.channelId} value={sensor.channelId}>
-                    {sensor.channelId} · {formatValue(sensor.latestValue, sensor.unit)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Slot key">
-              <input
-                required
-                pattern="[a-z0-9_-]+"
-                value={form.slotKey}
-                disabled={target !== null}
-                onChange={(event) => setForm((current) => ({ ...current, slotKey: event.target.value }))}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Позначення">
-              <input
-                required
-                value={form.label}
-                onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Фронт">
-              <select
-                value={form.side}
-                onChange={(event) => setForm((current) => ({ ...current, side: event.target.value as SensorSide }))}
-                className={inputClass}
-              >
-                <option value="front">Передній</option>
-                <option value="rear">Задній</option>
-              </select>
-            </Field>
-            <Field label="Полиця">
-              <input
-                type="number"
-                min={1}
-                max={4}
-                value={form.shelf}
-                onChange={(event) => setForm((current) => ({ ...current, shelf: Number(event.target.value) }))}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Позиція">
-              <input
-                type="number"
-                min={1}
-                max={6}
-                value={form.position}
-                onChange={(event) => setForm((current) => ({ ...current, position: Number(event.target.value) }))}
-                className={inputClass}
-              />
-            </Field>
-          </div>
-          {error ? <p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 p-3 text-xs text-rose-200">{error}</p> : null}
-          <footer className="mt-5 flex justify-end gap-2 border-t border-white/[0.07] pt-4">
-            <button type="button" onClick={onClose} disabled={busy} className={secondaryButtonClass}>
-              Скасувати
-            </button>
-            <button type="submit" disabled={busy || !form.channelId} className={primaryButtonClass}>
-              <Link2 className="h-4 w-4" />
-              {busy ? "Збереження…" : target ? "Замінити" : "Прив’язати"}
-            </button>
-          </footer>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-function LifecycleCard({ icon: Icon, title, children }: { icon: typeof Cpu; title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
       <div className="mb-3 flex items-center gap-2">
@@ -567,7 +355,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="rounded-xl border border-dashed border-white/[0.08] p-4 text-center text-[10px] text-slate-600">{text}</p>;
+  return (
+    <p className="rounded-xl border border-dashed border-white/[0.08] p-4 text-center text-[10px] text-slate-600">
+      {text}
+    </p>
+  );
 }
 
 function IconButton({
@@ -605,23 +397,3 @@ function IconButton({
     </button>
   );
 }
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1.5 text-xs font-medium text-slate-300">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function formatValue(value: number | null, unit: string): string {
-  return value === null ? "немає даних" : `${value.toFixed(1)} ${unit}`;
-}
-
-const inputClass =
-  "min-h-11 w-full rounded-xl border border-white/10 bg-[#07172c] px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10 disabled:opacity-50";
-const secondaryButtonClass =
-  "rounded-xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/[0.07] disabled:opacity-40";
-const primaryButtonClass =
-  "inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/15 px-4 py-2.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50";
