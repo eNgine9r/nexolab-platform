@@ -36,7 +36,6 @@ jobs:
           path.write_text(text.replace(old, new, 1), encoding="utf-8")
           PY
 
-          npx prettier --write src/components/refrigeration/refrigeration-detail-screen.tsx
           git diff --check
 
       - name: Commit patch
