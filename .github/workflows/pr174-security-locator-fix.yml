@@ -1,0 +1,47 @@
+name: PR 174 security locator fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/pr174-security-locator-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.number == 174
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Update security editor locators
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/security-rbac.production.e2e.ts")
+          text = path.read_text(encoding="utf-8")
+          old = 'Редагувати схему та датчики'
+          new = 'Редагувати схему'
+          count = text.count(old)
+          if count != 3:
+              raise SystemExit(f"expected three stale editor locators, found {count}")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/security-rbac.production.e2e.ts
+          git commit -m "test: align security editor locator"
+          git push origin HEAD:${{ github.head_ref }}
