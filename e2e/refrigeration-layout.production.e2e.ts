@@ -9,8 +9,8 @@ const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "accept
 const climateChamberId = "kk2";
 const climateChamberName = "Кліматична камера №2 · KK2";
 const channelIds = {
-  power: "KK2-DIXELL-101-CH3",
-  temperatureOne: "KK2-DIXELL-101-CH1",
+  power: "KK2-DIXELL-101-CH1",
+  temperatureOne: "KK2-DIXELL-101-CH3",
   temperatureTwo: "KK2-DIXELL-101-CH2",
 } as const;
 const equipmentPhoto = Buffer.from(
