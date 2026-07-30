@@ -1,0 +1,151 @@
+name: PR 174 fallback RBAC fix v2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/pr174-fallback-rbac-fix-v2.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.number == 174
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Enforce capabilities in fallback workspace
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          security = Path("src/components/refrigeration/security-aware-layout-workspace.tsx")
+          text = security.read_text(encoding="utf-8")
+          text = once(
+              text,
+              '''          repository={runtime.repository}\n        />\n''',
+              '''          repository={runtime.repository}\n          canEditDraft={capabilities.canEdit}\n          canPublish={capabilities.canPublish}\n          canRestore={capabilities.canRestore}\n        />\n''',
+              "fallback capabilities",
+          )
+          security.write_text(text, encoding="utf-8")
+
+          workspace = Path("src/components/refrigeration/refrigeration-layout-workspace.tsx")
+          text = workspace.read_text(encoding="utf-8")
+          text = once(
+              text,
+              'const maxImageSizeBytes = 15 * 1024 * 1024;\n',
+              'const maxImageSizeBytes = 1536 * 1024;\nconst imageLimitMessage =\n  "Розмір зображення перевищує допустимі 1,5 МБ. Стисніть файл або завантажте інше зображення.";\n',
+              "workspace image limit",
+          )
+          text = once(
+              text,
+              '''  runtimeMode?: "demo" | "live";\n};\n''',
+              '''  runtimeMode?: "demo" | "live";\n  canEditDraft?: boolean;\n  canPublish?: boolean;\n  canRestore?: boolean;\n};\n''',
+              "workspace capability types",
+          )
+          text = once(
+              text,
+              '''  actorId: actorIdOverride,\n  runtimeMode,\n}: RefrigerationLayoutWorkspaceProps) {\n''',
+              '''  actorId: actorIdOverride,\n  runtimeMode,\n  canEditDraft = true,\n  canPublish = true,\n  canRestore = true,\n}: RefrigerationLayoutWorkspaceProps) {\n''',
+              "workspace capability defaults",
+          )
+          text = once(
+              text,
+              '''  const attachImage = async (image: EquipmentImageMetadata, expectedVersion: number) => {\n    if (!repository || !draft) return;\n''',
+              '''  const attachImage = async (image: EquipmentImageMetadata, expectedVersion: number) => {\n    if (!canEditDraft || !repository || !draft) return;\n''',
+              "attach guard",
+          )
+          text = once(
+              text,
+              '''  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {\n    const file = event.target.files?.[0];\n    event.target.value = "";\n    if (!file || !repository || !draft) return;\n''',
+              '''  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {\n    const file = event.target.files?.[0];\n    event.target.value = "";\n    if (!canEditDraft || !file || !repository || !draft) return;\n''',
+              "photo guard",
+          )
+          text = once(text, '      setErrorMessage("Розмір фото не повинен перевищувати 15 МБ.");\n', '      setErrorMessage(imageLimitMessage);\n', "workspace image error")
+          text = once(
+              text,
+              '''  const handlePublish = async () => {\n    if (!repository || !draft || actionState !== "idle") return;\n''',
+              '''  const handlePublish = async () => {\n    if (!canPublish || !repository || !draft || actionState !== "idle") return;\n''',
+              "publish guard",
+          )
+          text = once(
+              text,
+              '''  const handleRestore = async (revision: PublishedLayoutRevision) => {\n    if (!repository || !draft || actionState !== "idle") return;\n''',
+              '''  const handleRestore = async (revision: PublishedLayoutRevision) => {\n    if (!canRestore || !repository || !draft || actionState !== "idle") return;\n''',
+              "restore guard",
+          )
+          text = once(
+              text,
+              '''  const handleRetryImageAttachment = async () => {\n    if (!pendingImage || !draft || actionState !== "idle") return;\n''',
+              '''  const handleRetryImageAttachment = async () => {\n    if (!canEditDraft || !pendingImage || !draft || actionState !== "idle") return;\n''',
+              "retry guard",
+          )
+          text = once(text, '          repository={repository}\n        />\n', '          repository={repository}\n          canEdit={canEditDraft}\n        />\n', "editor capability")
+          text = once(text, '          onChange={handlePhotoChange}\n', '          onChange={handlePhotoChange}\n          canEditDraft={canEditDraft}\n', "photo capability")
+          text = once(text, '          onPublish={() => void handlePublish()}\n', '          onPublish={() => void handlePublish()}\n          canPublish={canPublish}\n', "publish capability")
+          text = once(text, '          onRestore={(revision) => void handleRestore(revision)}\n', '          onRestore={(revision) => void handleRestore(revision)}\n          canRestore={canRestore}\n', "restore capability")
+          text = once(text, '  onRetry,\n}: {\n', '  onRetry,\n  canEditDraft,\n}: {\n', "photo destructuring")
+          text = once(text, '  onRetry: () => void;\n}) {\n', '  onRetry: () => void;\n  canEditDraft: boolean;\n}) {\n', "photo type")
+          text = once(text, 'S3-compatible storage · JPEG/PNG/WebP · до 15 МБ', 'S3-compatible storage · JPEG/PNG/WebP · максимум 1,5 МБ', "photo copy")
+          text = once(text, '        aria-label="Вибрати production-фото обладнання"\n        onChange={onChange}\n', '        aria-label="Вибрати production-фото обладнання"\n        disabled={!canEditDraft}\n        onChange={onChange}\n', "photo input state")
+          text = once(text, '          type="button"\n          disabled={disabled}\n          onClick={onOpen}\n', '          type="button"\n          hidden={!canEditDraft}\n          disabled={disabled}\n          onClick={onOpen}\n', "photo action state")
+          text = once(text, '        {pendingImage && actionState === "idle" ? (\n', '        {canEditDraft && pendingImage && actionState === "idle" ? (\n', "retry visibility")
+          text = once(text, '  onPublish,\n}: {\n', '  onPublish,\n  canPublish,\n}: {\n', "publication destructuring")
+          text = once(text, '  onPublish: () => void;\n}) {\n', '  onPublish: () => void;\n  canPublish: boolean;\n}) {\n', "publication type")
+          text = once(
+              text,
+              '''      <button\n        type="button"\n        disabled={busy || mode === "edit" || !draft.imageId}\n''',
+              '''      <button\n        type="button"\n        aria-label="Опублікувати поточну чернетку"\n        hidden={!canPublish}\n        disabled={busy || mode === "edit" || !draft.imageId}\n''',
+              "publication visibility",
+          )
+          text = once(text, '  onRestore,\n}: {\n', '  onRestore,\n  canRestore,\n}: {\n', "history destructuring")
+          text = once(text, '  onRestore: (revision: PublishedLayoutRevision) => void;\n}) {\n', '  onRestore: (revision: PublishedLayoutRevision) => void;\n  canRestore: boolean;\n}) {\n', "history type")
+          text = once(
+              text,
+              '''              <button\n                type="button"\n                disabled={busy || mode === "edit"}\n''',
+              '''              <button\n                type="button"\n                aria-label={`Відновити ревізію r${revision.revision}`}\n                hidden={!canRestore}\n                disabled={busy || mode === "edit"}\n''',
+              "history visibility",
+          )
+          workspace.write_text(text, encoding="utf-8")
+
+          editor = Path("src/components/refrigeration/refrigeration-layout-editor.tsx")
+          text = editor.read_text(encoding="utf-8")
+          text = once(text, 'const maxImageSizeBytes = 15 * 1024 * 1024;\n', 'const maxImageSizeBytes = 1536 * 1024;\nconst imageLimitMessage =\n  "Розмір зображення перевищує допустимі 1,5 МБ. Стисніть файл або завантажте інше зображення.";\n', "editor image limit")
+          text = once(text, '  repository?: RefrigerationLayoutRepository;\n};\n', '  repository?: RefrigerationLayoutRepository;\n  canEdit?: boolean;\n};\n', "editor capability type")
+          text = once(text, '  repository,\n}: RefrigerationLayoutEditorProps) {\n', '  repository,\n  canEdit = true,\n}: RefrigerationLayoutEditorProps) {\n', "editor capability default")
+          text = once(text, '  const handleRestoreRecovery = () => {\n    if (!recoveryDraft) return;\n', '  const handleRestoreRecovery = () => {\n    if (!canEdit || !recoveryDraft) return;\n', "recovery guard")
+          text = once(text, '  const handleSave = async () => {\n    const activeRepository = repositoryRef.current;\n', '  const handleSave = async () => {\n    if (!canEdit) return;\n    const activeRepository = repositoryRef.current;\n', "save guard")
+          text = once(text, '  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {\n    const file = event.target.files?.[0];\n', '  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {\n    if (!canEdit) return;\n    const file = event.target.files?.[0];\n', "image guard")
+          text = once(text, '      setImageError("Розмір фото не повинен перевищувати 15 МБ.");\n', '      setImageError(imageLimitMessage);\n', "editor image error")
+          text = once(text, '        {recoveryDraft ? (\n', '        {canEdit && recoveryDraft ? (\n', "recovery visibility")
+          text = once(text, '            onCancel={handleCancel}\n          />\n', '            onCancel={handleCancel}\n            canEdit={canEdit}\n          />\n', "toolbar capability")
+          text = once(text, '  onCancel,\n}: {\n', '  onCancel,\n  canEdit,\n}: {\n', "toolbar destructuring")
+          text = once(text, '  onCancel: () => void;\n}) {\n  if (mode === "view") {\n', '  onCancel: () => void;\n  canEdit: boolean;\n}) {\n  if (mode === "view") {\n    if (!canEdit) return null;\n', "toolbar type")
+          editor.write_text(text, encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/refrigeration/security-aware-layout-workspace.tsx \
+            src/components/refrigeration/refrigeration-layout-workspace.tsx \
+            src/components/refrigeration/refrigeration-layout-editor.tsx
+          git commit -m "fix: enforce RBAC in fallback layout workspace"
+          git push origin HEAD:${{ github.head_ref }}
