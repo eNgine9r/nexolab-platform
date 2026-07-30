@@ -89,7 +89,6 @@ class PostgresClimateCatalogRepository:
         *,
         security_repository: SecurityRepository | None = None,
     ) -> None:
-        self._database = database
         self._engine = database.engine
         self._security_repository = security_repository or SecurityRepository(database)
 
@@ -107,6 +106,19 @@ class PostgresClimateCatalogRepository:
             "channels_created": 0,
             "physical_sensors_created": 0,
         }
+        changed_codes: set[str] = set()
+        inserted_by_chamber: dict[str, dict[str, int]] = {
+            item.code.value: {
+                "central_nodes": 0,
+                "climate_chambers": 0,
+                "temperature_controllers": 0,
+                "temperature_channels": 0,
+                "physical_sensors": 0,
+                "energy_meters": 0,
+            }
+            for item in CLIMATE_CHAMBERS
+        }
+
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
                 organization = session.get(SecurityOrganization, organization_id)
@@ -118,7 +130,9 @@ class PostgresClimateCatalogRepository:
                     for row in session.scalars(
                         select(CentralNode).where(
                             CentralNode.organization_id == organization_id,
-                            CentralNode.node_id.in_([item.node_id for item in CLIMATE_CHAMBERS]),
+                            CentralNode.node_id.in_(
+                                [item.node_id for item in CLIMATE_CHAMBERS]
+                            ),
                         )
                     )
                 }
@@ -155,12 +169,15 @@ class PostgresClimateCatalogRepository:
                     )
                 }
 
-                chamber_changes: dict[str, dict[str, int]] = {}
                 for definition in CLIMATE_CHAMBERS:
+                    code = definition.code.value
+                    inserted = inserted_by_chamber[code]
                     node = nodes.get(definition.node_id)
                     if node is None:
                         node = CentralNode(
-                            id=_stable_uuid(f"central-node:{organization_id}:{definition.node_id}"),
+                            id=_stable_uuid(
+                                f"central-node:{organization_id}:{definition.node_id}"
+                            ),
                             organization_id=organization_id,
                             node_id=definition.node_id,
                             display_name=definition.name,
@@ -179,16 +196,18 @@ class PostgresClimateCatalogRepository:
                         session.add(node)
                         nodes[definition.node_id] = node
                         counters["nodes_created"] += 1
+                        inserted["central_nodes"] += 1
+                        changed_codes.add(code)
 
-                    chamber = chambers_by_code.get(definition.code.value)
+                    chamber = chambers_by_code.get(code)
                     if chamber is None:
                         chamber = ClimateChamber(
                             id=_stable_uuid(
-                                f"climate-chamber:{organization_id}:{definition.code.value}"
+                                f"climate-chamber:{organization_id}:{code}"
                             ),
                             organization_id=organization_id,
                             node_id=definition.node_id,
-                            code=definition.code.value,
+                            code=code,
                             name=definition.name,
                             display_order=definition.display_order,
                             status="active",
@@ -199,69 +218,77 @@ class PostgresClimateCatalogRepository:
                             updated_at=now,
                         )
                         session.add(chamber)
-                        chambers_by_code[definition.code.value] = chamber
+                        chambers_by_code[code] = chamber
                         counters["chambers_created"] += 1
+                        inserted["climate_chambers"] += 1
+                        changed_codes.add(code)
 
-                    chamber_counter = {
-                        "temperature_controllers": 0,
-                        "temperature_channels": 0,
-                        "physical_sensors": 0,
-                        "energy_meters": 0,
-                    }
                     for controller_unit_id in range(
                         definition.controller_start,
                         definition.controller_end + 1,
                     ):
-                        business_key = f"{definition.code.value}-DIXELL-{controller_unit_id}"
-                        controller = devices_by_key.get(business_key)
-                        if controller is None:
-                            controller = MeasurementDevice(
-                                id=_stable_uuid(
-                                    f"measurement-device:{organization_id}:{business_key}"
-                                ),
-                                organization_id=organization_id,
-                                climate_chamber_id=chamber.id,
-                                business_key=business_key,
-                                device_type=MeasurementDeviceType.TEMPERATURE_CONTROLLER.value,
-                                manufacturer="Dixell",
-                                model="Dixell temperature controller",
-                                unit_id=controller_unit_id,
-                                display_name=f"Dixell №{controller_unit_id}",
-                                designation=None,
-                                connection_status="unknown",
-                                status="active",
-                                measured_parameters=[
-                                    {"metric": "temperature", "unit": "degC"}
-                                ],
-                                created_at=now,
-                                updated_at=now,
-                            )
-                            session.add(controller)
-                            devices_by_key[business_key] = controller
-                            counters["devices_created"] += 1
-                            chamber_counter["temperature_controllers"] += 1
+                        business_key = f"{code}-DIXELL-{controller_unit_id}"
+                        if business_key in devices_by_key:
+                            continue
+                        controller = MeasurementDevice(
+                            id=_stable_uuid(
+                                f"measurement-device:{organization_id}:{business_key}"
+                            ),
+                            organization_id=organization_id,
+                            climate_chamber_id=chamber.id,
+                            business_key=business_key,
+                            device_type=(
+                                MeasurementDeviceType.TEMPERATURE_CONTROLLER.value
+                            ),
+                            manufacturer="Dixell",
+                            model="Dixell temperature controller",
+                            unit_id=controller_unit_id,
+                            display_name=f"Dixell №{controller_unit_id}",
+                            designation=None,
+                            connection_status="unknown",
+                            status="active",
+                            measured_parameters=[
+                                {"metric": "temperature", "unit": "degC"}
+                            ],
+                            created_at=now,
+                            updated_at=now,
+                        )
+                        session.add(controller)
+                        devices_by_key[business_key] = controller
+                        counters["devices_created"] += 1
+                        inserted["temperature_controllers"] += 1
+                        changed_codes.add(code)
 
-                    for channel_definition in iter_temperature_channels(definition.code):
+                    for channel_definition in iter_temperature_channels(
+                        definition.code
+                    ):
                         controller_key = (
-                            f"{definition.code.value}-DIXELL-"
+                            f"{code}-DIXELL-"
                             f"{channel_definition.controller_unit_id}"
                         )
                         controller = devices_by_key[controller_key]
-                        channel = channels_by_key.get(channel_definition.channel_id)
+                        channel = channels_by_key.get(
+                            channel_definition.channel_id
+                        )
                         if channel is None:
                             channel = MeasurementChannel(
                                 id=_stable_uuid(
                                     "measurement-channel:"
-                                    f"{organization_id}:{channel_definition.channel_id}"
+                                    f"{organization_id}:"
+                                    f"{channel_definition.channel_id}"
                                 ),
                                 organization_id=organization_id,
                                 climate_chamber_id=chamber.id,
                                 device_id=controller.id,
                                 channel_id=channel_definition.channel_id,
                                 channel_number=channel_definition.channel_number,
-                                logical_sensor_number=channel_definition.logical_sensor_number,
+                                logical_sensor_number=(
+                                    channel_definition.logical_sensor_number
+                                ),
                                 display_name=channel_definition.display_name,
-                                physical_sensor_count=channel_definition.physical_sensor_count,
+                                physical_sensor_count=(
+                                    channel_definition.physical_sensor_count
+                                ),
                                 metric_type="temperature",
                                 unit="degC",
                                 status="active",
@@ -269,9 +296,12 @@ class PostgresClimateCatalogRepository:
                                 updated_at=now,
                             )
                             session.add(channel)
-                            channels_by_key[channel_definition.channel_id] = channel
+                            channels_by_key[channel_definition.channel_id] = (
+                                channel
+                            )
                             counters["channels_created"] += 1
-                            chamber_counter["temperature_channels"] += 1
+                            inserted["temperature_channels"] += 1
+                            changed_codes.add(code)
 
                         for sensor_position in PHYSICAL_SENSOR_POSITIONS[
                             : channel_definition.physical_sensor_count
@@ -280,12 +310,13 @@ class PostgresClimateCatalogRepository:
                             if sensor_key in sensors_by_key:
                                 continue
                             inventory_number = (
-                                f"{channel_definition.logical_sensor_number}-{sensor_position}"
+                                f"{channel_definition.logical_sensor_number}-"
+                                f"{sensor_position}"
                             )
                             sensor = PhysicalSensor(
                                 id=_stable_uuid(
                                     f"physical-sensor:{organization_id}:"
-                                    f"{definition.code.value}:{inventory_number}"
+                                    f"{code}:{inventory_number}"
                                 ),
                                 organization_id=organization_id,
                                 climate_chamber_id=chamber.id,
@@ -301,15 +332,17 @@ class PostgresClimateCatalogRepository:
                             session.add(sensor)
                             sensors_by_key[sensor_key] = sensor
                             counters["physical_sensors_created"] += 1
-                            chamber_counter["physical_sensors"] += 1
+                            inserted["physical_sensors"] += 1
+                            changed_codes.add(code)
 
                     for meter in definition.energy_meters:
-                        business_key = f"{definition.code.value}-ENERGY-{meter.designation}"
+                        business_key = f"{code}-ENERGY-{meter.designation}"
                         if business_key in devices_by_key:
                             continue
                         device = MeasurementDevice(
                             id=_stable_uuid(
-                                f"measurement-device:{organization_id}:{business_key}"
+                                f"measurement-device:{organization_id}:"
+                                f"{business_key}"
                             ),
                             organization_id=organization_id,
                             climate_chamber_id=chamber.id,
@@ -334,20 +367,15 @@ class PostgresClimateCatalogRepository:
                         session.add(device)
                         devices_by_key[business_key] = device
                         counters["devices_created"] += 1
-                        chamber_counter["energy_meters"] += 1
-
-                    chamber_changes[definition.code.value] = chamber_counter
+                        inserted["energy_meters"] += 1
+                        changed_codes.add(code)
 
                 session.flush()
                 for definition in CLIMATE_CHAMBERS:
-                    changed = chamber_changes[definition.code.value]
-                    if not any(changed.values()) and definition.code.value not in {
-                        item.code.value
-                        for item in CLIMATE_CHAMBERS
-                        if counters["chambers_created"] > 0
-                    }:
+                    code = definition.code.value
+                    if code not in changed_codes:
                         continue
-                    chamber = chambers_by_code[definition.code.value]
+                    chamber = chambers_by_code[code]
                     self._security_repository.append_audit_event(
                         AuditEventInput(
                             organization_id=organization_id,
@@ -362,7 +390,7 @@ class PostgresClimateCatalogRepository:
                                 "code": chamber.code,
                                 "node_id": chamber.node_id,
                                 "name": chamber.name,
-                                "inserted": changed,
+                                "inserted": inserted_by_chamber[code],
                             },
                             reason="Idempotent default measurement catalog seed",
                         ),
@@ -456,7 +484,8 @@ class PostgresClimateCatalogRepository:
                     (
                         item
                         for item in devices
-                        if item.device_type == MeasurementDeviceType.ENERGY_METER.value
+                        if item.device_type
+                        == MeasurementDeviceType.ENERGY_METER.value
                     ),
                     key=lambda item: (item.designation or "", item.unit_id),
                 )
@@ -466,8 +495,9 @@ class PostgresClimateCatalogRepository:
                 chamber=chamber,
                 organization_id=organization_id,
             )
-            for row in [chamber, *devices]:
-                session.expunge(row)
+            session.expunge(chamber)
+            for device in devices:
+                session.expunge(device)
             for item in channels:
                 session.expunge(item.channel)
                 for sensor in item.physical_sensors:
@@ -500,19 +530,19 @@ class PostgresClimateCatalogRepository:
                 chamber=chamber,
                 organization_id=organization_id,
             )
+            devices = {
+                item.device.id: item.device for item in channels
+            }
             session.expunge(chamber)
             for item in channels:
                 session.expunge(item.channel)
-                session.expunge(item.device)
                 for sensor in item.physical_sensors:
                     session.expunge(sensor)
+            for device in devices.values():
+                session.expunge(device)
             return chamber, channels
 
-    def has_catalog(
-        self,
-        *,
-        organization_id: str,
-    ) -> bool:
+    def has_catalog(self, *, organization_id: str) -> bool:
         with Session(self._engine) as session:
             return (
                 session.scalar(
@@ -544,7 +574,8 @@ class PostgresClimateCatalogRepository:
                         or_(
                             ClimateChamber.id == identifier.strip(),
                             ClimateChamber.code == identifier.strip().upper(),
-                            ClimateChamber.node_id == identifier.strip().lower(),
+                            ClimateChamber.node_id
+                            == identifier.strip().lower(),
                         ),
                     )
                     .with_for_update()
@@ -560,9 +591,13 @@ class PostgresClimateCatalogRepository:
                     )
                 normalized_name = " ".join(name.split())
                 if not normalized_name:
-                    raise ClimateCatalogRepositoryError("climate chamber name is required")
+                    raise ClimateCatalogRepositoryError(
+                        "climate chamber name is required"
+                    )
                 if status not in {"active", "inactive"}:
-                    raise ClimateCatalogRepositoryError("unsupported climate chamber status")
+                    raise ClimateCatalogRepositoryError(
+                        "unsupported climate chamber status"
+                    )
                 before = _chamber_snapshot(chamber)
                 chamber.name = normalized_name
                 chamber.status = status
@@ -641,7 +676,7 @@ class PostgresClimateCatalogRepository:
                 select(MeasurementChannel).where(
                     MeasurementChannel.organization_id == organization_id,
                     MeasurementChannel.climate_chamber_id == chamber.id,
-                    MeasurementChannel.device_id.in_(devices),
+                    MeasurementChannel.device_id.in_(list(devices)),
                     MeasurementChannel.status == "active",
                 )
             )
@@ -651,11 +686,16 @@ class PostgresClimateCatalogRepository:
             for sensor in session.scalars(
                 select(PhysicalSensor).where(
                     PhysicalSensor.organization_id == organization_id,
-                    PhysicalSensor.channel_id.in_([item.id for item in channels]),
+                    PhysicalSensor.channel_id.in_(
+                        [item.id for item in channels]
+                    ),
                     PhysicalSensor.status == "active",
                 )
             ):
-                sensors_by_channel.setdefault(sensor.channel_id, []).append(sensor)
+                sensors_by_channel.setdefault(
+                    sensor.channel_id,
+                    [],
+                ).append(sensor)
         channels.sort(
             key=lambda item: (
                 devices[item.device_id].unit_id,
