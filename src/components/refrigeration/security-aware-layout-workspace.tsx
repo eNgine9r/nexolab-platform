@@ -35,12 +35,20 @@ type SecurityAwareLayoutWorkspaceProps = {
   selectedId: string | null;
   mode: LayoutEditorMode;
   forceReadOnly?: boolean;
+  /** Legacy camera-scoped repository prop. */
   lifecycleRepository?: EquipmentLifecycleRepository | null;
+  /** Explicit repository name used by the atomic configuration workspace. */
+  sensorConfigurationRepository?: EquipmentLifecycleRepository | null;
+  /** Legacy available-channel prop. */
   channels?: readonly AvailableSensor[];
+  /** Explicit available-channel prop used by the detail screen. */
+  availableSensors?: readonly AvailableSensor[];
   bindings?: readonly SensorBinding[];
+  canManageEquipment?: boolean;
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
   onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
+  onConfigurationSaved?: () => void;
   onCapabilitiesChange?: (capabilities: LayoutCapabilities) => void;
 };
 
@@ -62,11 +70,15 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   mode,
   forceReadOnly = false,
   lifecycleRepository = null,
+  sensorConfigurationRepository = null,
   channels = [],
+  availableSensors,
   bindings = [],
+  canManageEquipment,
   onModeChange,
   onSelect,
   onEquipmentChange,
+  onConfigurationSaved,
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
   const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
@@ -78,8 +90,13 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const [securityError, setSecurityError] = useState<string | null>(runtime.error);
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
 
+  const effectiveLifecycleRepository =
+    sensorConfigurationRepository ?? lifecycleRepository;
+  const effectiveChannels = availableSensors ?? channels;
+  const externallyReadOnly = forceReadOnly || canManageEquipment === false;
+
   const capabilities = useMemo<LayoutCapabilities>(() => {
-    if (forceReadOnly) return readOnlyCapabilities;
+    if (externallyReadOnly) return readOnlyCapabilities;
     if (runtime.mode === "demo") return demoCapabilities;
     if (!session || !membership) return readOnlyCapabilities;
     return {
@@ -87,7 +104,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       canPublish: hasPermission(session, membership.organizationId, "layout.publish"),
       canRestore: hasPermission(session, membership.organizationId, "layout.restore"),
     };
-  }, [forceReadOnly, membership, runtime.mode, session]);
+  }, [externallyReadOnly, membership, runtime.mode, session]);
 
   useEffect(() => {
     onCapabilitiesChange?.(capabilities);
@@ -107,8 +124,9 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         return;
       }
       const selectedMembership =
-        result.value.memberships.find((item) => item.organizationId === runtime.organizationId) ??
-        result.value.memberships[0];
+        result.value.memberships.find(
+          (item) => item.organizationId === runtime.organizationId,
+        ) ?? result.value.memberships[0];
       if (!selectedMembership) {
         setSecurityState("error");
         setSecurityError("Користувач не має активного членства в організації NEXOLAB.");
@@ -129,10 +147,14 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     };
   }, [runtime]);
 
-  const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
+  const liveRuntimeUnavailable =
+    runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
   if (liveRuntimeUnavailable) {
     return (
-      <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
+      <div
+        className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
+        role="alert"
+      >
         <AlertTriangle className="mr-2 inline h-4 w-4" />
         {securityError ?? runtime.error ?? "Клієнт захищеної сесії не налаштований."}
       </div>
@@ -148,16 +170,25 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   }
   if (securityState === "error" || !runtime.repository) {
     return (
-      <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
+      <div
+        className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
+        role="alert"
+      >
         <AlertTriangle className="mr-2 inline h-4 w-4" />
         {securityError ?? "Захищена сесія NEXOLAB недоступна."}
       </div>
     );
   }
 
-  const cameraScoped = Boolean(lifecycleRepository && equipment.nodeId);
+  const cameraScoped = Boolean(
+    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
+  );
   const effectiveMode = capabilities.canEdit ? mode : "view";
   const effectiveModeChange = capabilities.canEdit ? onModeChange : () => undefined;
+  const configurationChanged = () => {
+    setWorkspaceEpoch((current) => current + 1);
+    onConfigurationSaved?.();
+  };
 
   return (
     <div
@@ -181,23 +212,28 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         }
       `}</style>
 
-      {forceReadOnly ? (
+      {externallyReadOnly ? (
         <div className="rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] px-4 py-3 text-xs text-slate-300">
-          Lifecycle `retired`: схема заблокована для змін, публікації та відновлення.
+          Схема доступна лише для перегляду відповідно до lifecycle та дозволів.
         </div>
       ) : membership && session ? (
         <div className="flex flex-col gap-2 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-emerald-100">
             <ShieldCheck className="h-4 w-4 text-emerald-300" />
             <span className="font-medium">
-              {session.identity.displayName ?? session.identity.email ?? session.identity.subject}
+              {session.identity.displayName ??
+                session.identity.email ??
+                session.identity.subject}
             </span>
             <span className="text-emerald-200/50">·</span>
             <span className="text-emerald-200/70">{membership.organizationName}</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {membership.roles.map((role) => (
-              <span key={role} className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-1 text-[9px] text-emerald-200">
+              <span
+                key={role}
+                className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-1 text-[9px] text-emerald-200"
+              >
                 {role}
               </span>
             ))}
@@ -205,7 +241,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         </div>
       ) : null}
 
-      {cameraScoped && lifecycleRepository ? (
+      {cameraScoped && effectiveLifecycleRepository ? (
         <>
           <CameraScopedLayoutEditor
             key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
@@ -216,14 +252,14 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
             onModeChange={effectiveModeChange}
             onSelect={onSelect}
             repository={runtime.repository}
-            lifecycleRepository={lifecycleRepository}
-            channels={channels}
+            lifecycleRepository={effectiveLifecycleRepository}
+            channels={effectiveChannels}
             bindings={bindings}
             onEquipmentChange={(updated) => {
               onEquipmentChange?.(updated);
-              setWorkspaceEpoch((current) => current + 1);
+              configurationChanged();
             }}
-            onDraftChange={() => setWorkspaceEpoch((current) => current + 1)}
+            onDraftChange={configurationChanged}
           />
           <RefrigerationLayoutLifecyclePanel
             key={`layout-lifecycle-${equipment.id}-${workspaceEpoch}`}
@@ -231,7 +267,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
             mode={effectiveMode}
             repository={runtime.repository}
             actorId={runtime.actorId}
-            onServerMutation={() => setWorkspaceEpoch((current) => current + 1)}
+            onServerMutation={configurationChanged}
           />
         </>
       ) : (
