@@ -1,52 +1,44 @@
-export type ClimateChamberStatus = "active" | "inactive";
-
 export type ClimateChamber = {
   id: string;
-  code: "KK1" | "KK2" | string;
+  code: string;
   nodeId: string;
+  busId: string;
+  busKey: string;
   name: string;
   displayOrder: number;
-  status: ClimateChamberStatus;
+  status: "active" | "inactive";
   version: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export type MeasuredParameter = {
-  metric: string;
-  unit: string;
-};
-
 export type MeasurementDevice = {
   id: string;
   businessKey: string;
-  deviceType: "temperature_controller" | "energy_meter" | string;
+  deviceType: "temperature_controller" | "energy_meter";
   manufacturer: string;
   model: string;
   unitId: number;
   displayName: string;
   designation: string | null;
-  connectionStatus: string;
+  connectionStatus: "unknown" | "connected" | "disconnected";
   status: string;
-  measuredParameters: MeasuredParameter[];
-  createdAt: string;
-  updatedAt: string;
+  measuredParameters: Array<{ metric: string; unit: string }>;
 };
 
 export type PhysicalSensor = {
   id: string;
-  sensorPosition: "A" | "B" | string;
+  sensorPosition: "A" | "B";
   inventoryNumber: string;
   serialNumber: string | null;
-  calibrationStatus: string;
+  calibrationStatus: "untracked" | "current" | "due" | "expired";
   status: string;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type MeasurementChannel = {
   id: string;
   channelId: string;
+  sourceChannelId: string;
   deviceId: string;
   controllerUnitId: number;
   channelNumber: number;
@@ -57,8 +49,6 @@ export type MeasurementChannel = {
   metricType: string;
   unit: string;
   status: string;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type ClimateChamberEquipment = {
@@ -74,181 +64,269 @@ export interface ClimateCatalogRepository {
   getEquipment(chamberId: string): Promise<ClimateChamberEquipment>;
 }
 
-export type HttpClimateCatalogRepositoryOptions = {
-  apiBaseUrl: string;
-  fetchImpl?: typeof fetch;
-};
-
 export class HttpClimateCatalogRepository implements ClimateCatalogRepository {
   private readonly apiBaseUrl: string;
   private readonly fetchImpl: typeof fetch;
 
-  constructor(options: HttpClimateCatalogRepositoryOptions) {
-    this.apiBaseUrl = options.apiBaseUrl.replace(/\/$/, "");
+  constructor(options: { apiBaseUrl: string; fetchImpl?: typeof fetch }) {
+    this.apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl);
     this.fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   }
 
   async listChambers(): Promise<ClimateChamber[]> {
-    const response = await this.request("/api/v1/climate-chambers");
-    const payload = await response.json();
-    const record = requiredRecord(payload, "climate chamber list");
-    return requiredArray(record.items, "climate chamber items").map(parseClimateChamber);
+    const payload = asRecord(await this.json("/api/v1/climate-chambers"));
+    if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
+    return payload.items.map(parseChamber).sort(compareChambers);
   }
 
   async getEquipment(chamberId: string): Promise<ClimateChamberEquipment> {
-    const normalized = chamberId.trim();
-    if (!normalized) throw new Error("Climate chamber id is required.");
-    const response = await this.request(
-      `/api/v1/climate-chambers/${encodeURIComponent(normalized)}/equipment`,
+    const payload = asRecord(
+      await this.json(`/api/v1/climate-chambers/${encodeURIComponent(chamberId)}/equipment`),
     );
-    const record = requiredRecord(await response.json(), "climate chamber equipment");
+    if (!payload) throw invalidResponse();
+    const chamber = parseChamber(payload.climateChamber ?? payload.climate_chamber);
+    const controllers = readArray(
+      payload.temperatureControllers ?? payload.temperature_controllers,
+    ).map(parseDevice);
+    const channels = readArray(payload.temperatureChannels ?? payload.temperature_channels).map(
+      parseChannel,
+    );
+    const energyMeters = readArray(payload.energyMeters ?? payload.energy_meters).map(parseDevice);
     return {
-      climateChamber: parseClimateChamber(record.climateChamber),
-      temperatureControllers: requiredArray(
-        record.temperatureControllers,
-        "temperature controllers",
-      ).map(parseMeasurementDevice),
-      temperatureChannels: requiredArray(
-        record.temperatureChannels,
-        "temperature channels",
-      ).map(parseMeasurementChannel),
-      energyMeters: requiredArray(record.energyMeters, "energy meters").map(
-        parseMeasurementDevice,
+      climateChamber: chamber,
+      temperatureControllers: controllers.sort((left, right) => left.unitId - right.unitId),
+      temperatureChannels: channels.sort(
+        (left, right) =>
+          left.controllerUnitId - right.controllerUnitId || left.channelNumber - right.channelNumber,
       ),
-      energyMeterEmptyMessage: optionalString(record.energyMeterEmptyMessage),
+      energyMeters: energyMeters.sort(
+        (left, right) =>
+          (left.designation ?? "").localeCompare(right.designation ?? "", "uk-UA", {
+            numeric: true,
+          }) || left.unitId - right.unitId,
+      ),
+      energyMeterEmptyMessage: readOptionalString(
+        payload.energyMeterEmptyMessage ?? payload.energy_meter_empty_message,
+      ),
     };
   }
 
-  private async request(path: string): Promise<Response> {
-    const response = await this.fetchImpl(`${this.apiBaseUrl}${path}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      throw new Error(apiErrorMessage(payload, `Climate catalog request failed (${response.status}).`));
+  private async json(path: string): Promise<unknown> {
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.apiBaseUrl}${path}`, {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+    } catch {
+      throw new Error("Не вдалося з’єднатися з каталогом кліматичних камер.");
     }
-    return response;
+    const payload = await readJson(response);
+    if (!response.ok) {
+      const detail = asRecord(asRecord(payload)?.detail);
+      throw new Error(readString(detail?.message) ?? "Каталог кліматичних камер недоступний.");
+    }
+    return payload;
   }
 }
 
-function parseClimateChamber(value: unknown): ClimateChamber {
-  const item = requiredRecord(value, "climate chamber");
-  return {
-    id: requiredString(item.id, "climate chamber id"),
-    code: requiredString(item.code, "climate chamber code"),
-    nodeId: requiredString(item.node_id, "climate chamber node id"),
-    name: requiredString(item.name, "climate chamber name"),
-    displayOrder: requiredNumber(item.display_order, "climate chamber display order"),
-    status: requiredString(item.status, "climate chamber status") as ClimateChamberStatus,
-    version: requiredNumber(item.version, "climate chamber version"),
-    createdAt: requiredString(item.created_at, "climate chamber created at"),
-    updatedAt: requiredString(item.updated_at, "climate chamber updated at"),
-  };
+function parseChamber(value: unknown): ClimateChamber {
+  const record = asRecord(value);
+  const id = readString(record?.id);
+  const code = readString(record?.code);
+  const nodeId = readString(record?.node_id);
+  const busId = readString(record?.bus_id);
+  const busKey = readString(record?.bus_key);
+  const name = readString(record?.name);
+  const displayOrder = readPositiveInteger(record?.display_order);
+  const status = record?.status;
+  const version = readPositiveInteger(record?.version);
+  const createdAt = readString(record?.created_at);
+  const updatedAt = readString(record?.updated_at);
+  if (
+    !id ||
+    !code ||
+    !nodeId ||
+    !busId ||
+    !busKey ||
+    !name ||
+    displayOrder === null ||
+    (status !== "active" && status !== "inactive") ||
+    version === null ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    throw invalidResponse();
+  }
+  return { id, code, nodeId, busId, busKey, name, displayOrder, status, version, createdAt, updatedAt };
 }
 
-function parseMeasurementDevice(value: unknown): MeasurementDevice {
-  const item = requiredRecord(value, "measurement device");
+function parseDevice(value: unknown): MeasurementDevice {
+  const record = asRecord(value);
+  const id = readString(record?.id);
+  const businessKey = readString(record?.business_key);
+  const deviceType = record?.device_type;
+  const manufacturer = readString(record?.manufacturer);
+  const model = readString(record?.model);
+  const unitId = readPositiveInteger(record?.unit_id);
+  const displayName = readString(record?.display_name);
+  const connectionStatus = record?.connection_status;
+  const status = readString(record?.status);
+  if (
+    !id ||
+    !businessKey ||
+    (deviceType !== "temperature_controller" && deviceType !== "energy_meter") ||
+    !manufacturer ||
+    !model ||
+    unitId === null ||
+    !displayName ||
+    (connectionStatus !== "unknown" && connectionStatus !== "connected" && connectionStatus !== "disconnected") ||
+    !status
+  ) {
+    throw invalidResponse();
+  }
   return {
-    id: requiredString(item.id, "measurement device id"),
-    businessKey: requiredString(item.business_key, "measurement device business key"),
-    deviceType: requiredString(item.device_type, "measurement device type"),
-    manufacturer: requiredString(item.manufacturer, "measurement device manufacturer"),
-    model: requiredString(item.model, "measurement device model"),
-    unitId: requiredNumber(item.unit_id, "measurement device unit id"),
-    displayName: requiredString(item.display_name, "measurement device display name"),
-    designation: optionalString(item.designation),
-    connectionStatus: requiredString(item.connection_status, "measurement device connection status"),
-    status: requiredString(item.status, "measurement device status"),
-    measuredParameters: requiredArray(
-      item.measured_parameters,
-      "measurement device parameters",
-    ).map((parameter) => {
-      const record = requiredRecord(parameter, "measured parameter");
-      return {
-        metric: requiredString(record.metric, "measured parameter metric"),
-        unit: requiredString(record.unit, "measured parameter unit"),
-      };
+    id,
+    businessKey,
+    deviceType,
+    manufacturer,
+    model,
+    unitId,
+    displayName,
+    designation: readOptionalString(record?.designation),
+    connectionStatus,
+    status,
+    measuredParameters: readArray(record?.measured_parameters).map((parameter) => {
+      const item = asRecord(parameter);
+      const metric = readString(item?.metric);
+      const unit = readString(item?.unit);
+      if (!metric || !unit) throw invalidResponse();
+      return { metric, unit };
     }),
-    createdAt: requiredString(item.created_at, "measurement device created at"),
-    updatedAt: requiredString(item.updated_at, "measurement device updated at"),
   };
 }
 
-function parseMeasurementChannel(value: unknown): MeasurementChannel {
-  const item = requiredRecord(value, "measurement channel");
+function parseChannel(value: unknown): MeasurementChannel {
+  const record = asRecord(value);
+  const id = readString(record?.id);
+  const channelId = readString(record?.channel_id);
+  const sourceChannelId = readString(record?.source_channel_id);
+  const deviceId = readString(record?.device_id);
+  const controllerUnitId = readPositiveInteger(record?.controller_unit_id);
+  const channelNumber = readPositiveInteger(record?.channel_number);
+  const logicalSensorNumber = readPositiveInteger(record?.logical_sensor_number);
+  const displayName = readString(record?.display_name);
+  const physicalSensorCount = readPositiveInteger(record?.physical_sensor_count);
+  const metricType = readString(record?.metric_type);
+  const unit = readString(record?.unit);
+  const status = readString(record?.status);
+  if (
+    !id ||
+    !channelId ||
+    !sourceChannelId ||
+    !deviceId ||
+    controllerUnitId === null ||
+    channelNumber === null ||
+    logicalSensorNumber === null ||
+    !displayName ||
+    physicalSensorCount === null ||
+    !metricType ||
+    !unit ||
+    !status
+  ) {
+    throw invalidResponse();
+  }
   return {
-    id: requiredString(item.id, "measurement channel id"),
-    channelId: requiredString(item.channel_id, "measurement channel identifier"),
-    deviceId: requiredString(item.device_id, "measurement channel device id"),
-    controllerUnitId: requiredNumber(item.controller_unit_id, "controller unit id"),
-    channelNumber: requiredNumber(item.channel_number, "measurement channel number"),
-    logicalSensorNumber: requiredNumber(
-      item.logical_sensor_number,
-      "logical sensor number",
-    ),
-    displayName: requiredString(item.display_name, "measurement channel display name"),
-    physicalSensorCount: requiredNumber(
-      item.physical_sensor_count,
-      "physical sensor count",
-    ),
-    physicalSensors: requiredArray(item.physical_sensors, "physical sensors").map(
-      parsePhysicalSensor,
-    ),
-    metricType: requiredString(item.metric_type, "measurement channel metric"),
-    unit: requiredString(item.unit, "measurement channel unit"),
-    status: requiredString(item.status, "measurement channel status"),
-    createdAt: requiredString(item.created_at, "measurement channel created at"),
-    updatedAt: requiredString(item.updated_at, "measurement channel updated at"),
+    id,
+    channelId,
+    sourceChannelId,
+    deviceId,
+    controllerUnitId,
+    channelNumber,
+    logicalSensorNumber,
+    displayName,
+    physicalSensorCount,
+    physicalSensors: readArray(record?.physical_sensors).map(parsePhysicalSensor),
+    metricType,
+    unit,
+    status,
   };
 }
 
 function parsePhysicalSensor(value: unknown): PhysicalSensor {
-  const item = requiredRecord(value, "physical sensor");
+  const record = asRecord(value);
+  const id = readString(record?.id);
+  const sensorPosition = record?.sensor_position;
+  const inventoryNumber = readString(record?.inventory_number);
+  const calibrationStatus = record?.calibration_status;
+  const status = readString(record?.status);
+  if (
+    !id ||
+    (sensorPosition !== "A" && sensorPosition !== "B") ||
+    !inventoryNumber ||
+    (calibrationStatus !== "untracked" && calibrationStatus !== "current" && calibrationStatus !== "due" && calibrationStatus !== "expired") ||
+    !status
+  ) {
+    throw invalidResponse();
+  }
   return {
-    id: requiredString(item.id, "physical sensor id"),
-    sensorPosition: requiredString(item.sensor_position, "physical sensor position"),
-    inventoryNumber: requiredString(item.inventory_number, "physical sensor inventory number"),
-    serialNumber: optionalString(item.serial_number),
-    calibrationStatus: requiredString(item.calibration_status, "physical sensor calibration status"),
-    status: requiredString(item.status, "physical sensor status"),
-    createdAt: requiredString(item.created_at, "physical sensor created at"),
-    updatedAt: requiredString(item.updated_at, "physical sensor updated at"),
+    id,
+    sensorPosition,
+    inventoryNumber,
+    serialNumber: readOptionalString(record?.serial_number),
+    calibrationStatus,
+    status,
   };
 }
 
-function requiredRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Invalid ${label} response.`);
+function compareChambers(left: ClimateChamber, right: ClimateChamber): number {
+  return left.displayOrder - right.displayOrder || left.code.localeCompare(right.code, "uk-UA", { numeric: true });
+}
+
+function invalidResponse(): Error {
+  return new Error("Сервер повернув некоректний каталог кліматичних камер.");
+}
+
+function normalizeBaseUrl(value: string): string {
+  const parsed = new URL(value);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("NEXOLAB API URL must use HTTP or HTTPS.");
   }
-  return value as Record<string, unknown>;
+  parsed.hash = "";
+  parsed.search = "";
+  return parsed.toString().replace(/\/$/, "");
 }
 
-function requiredArray(value: unknown, label: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`Invalid ${label} response.`);
-  return value;
-}
-
-function requiredString(value: unknown, label: string): string {
-  if (typeof value !== "string" || !value.trim()) throw new Error(`Invalid ${label}.`);
-  return value;
-}
-
-function optionalString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value : null;
-}
-
-function requiredNumber(value: unknown, label: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`Invalid ${label}.`);
-  return value;
-}
-
-function apiErrorMessage(payload: unknown, fallback: string): string {
-  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
-    const detail = (payload as Record<string, unknown>).detail;
-    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
-      const message = (detail as Record<string, unknown>).message;
-      if (typeof message === "string" && message.trim()) return message;
-    }
+async function readJson(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
   }
-  return fallback;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readArray(value: unknown): unknown[] {
+  if (!Array.isArray(value)) throw invalidResponse();
+  return value;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readOptionalString(value: unknown): string | null {
+  return value === null || value === undefined ? null : readString(value);
+}
+
+function readPositiveInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : null;
 }
