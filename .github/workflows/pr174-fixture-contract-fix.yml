@@ -1,0 +1,155 @@
+name: PR 174 fixture contract fix
+
+on:
+  push:
+    branches:
+      - feat/climate-chamber-measurement-catalog
+    paths:
+      - .github/workflows/pr174-fixture-contract-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/climate-chamber-measurement-catalog
+          fetch-depth: 0
+
+      - name: Align browser fixtures with climate catalog contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one occurrence, found {count}: {old!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          refrigeration = Path("e2e/refrigeration-layout.production.e2e.ts")
+          replace_once(
+              refrigeration,
+              '''const climateChamberId = "kk2";
+          const climateChamberName = "Кліматична камера №2 · KK2";
+          const channelIds = {
+            power: "KK2-DIXELL-101-CH1",
+            temperatureOne: "KK2-DIXELL-101-CH3",
+            temperatureTwo: "KK2-DIXELL-101-CH2",
+          } as const;''',
+              '''const climateChamberCode = "KK2";
+          const climateChamberName = "Кліматична камера №2 · KK2";
+          const channelIds = {
+            power: "101-01",
+            temperatureOne: "101-03",
+            temperatureTwo: "101-02",
+          } as const;''',
+          )
+          replace_once(
+              refrigeration,
+              '''type EquipmentListPayload = {
+            items: EquipmentPayload[];
+          };''',
+              '''type EquipmentListPayload = {
+            items: EquipmentPayload[];
+          };
+
+          type ClimateChamberListPayload = {
+            items: Array<{ id: string; code: string }>;
+          };''',
+          )
+          replace_once(
+              refrigeration,
+              '''  await selector.selectOption(climateChamberId);''',
+              '''  await selector.selectOption({ label: climateChamberName });''',
+          )
+          replace_once(
+              refrigeration,
+              '''async function createEquipmentViaApi(
+            request: APIRequestContext,
+            options: { code: string; name: string; serialNumber: string; totalSensors?: number },
+          ): Promise<EquipmentPayload> {
+            const response = await request.post(`${apiBaseUrl}/api/v1/equipment`, {''',
+              '''async function resolveClimateChamberId(request: APIRequestContext): Promise<string> {
+            const response = await request.get(`${apiBaseUrl}/api/v1/climate-chambers`);
+            expect(response.status()).toBe(200);
+            const payload = (await response.json()) as ClimateChamberListPayload;
+            const chamber = payload.items.find((item) => item.code === climateChamberCode);
+            expect(chamber).toBeDefined();
+            return chamber?.id ?? "";
+          }
+
+          async function createEquipmentViaApi(
+            request: APIRequestContext,
+            options: { code: string; name: string; serialNumber: string; totalSensors?: number },
+          ): Promise<EquipmentPayload> {
+            const climateChamberId = await resolveClimateChamberId(request);
+            const response = await request.post(`${apiBaseUrl}/api/v1/equipment`, {''',
+          )
+          replace_once(
+              refrigeration,
+              '''  await expect(page.getByText(`Камера ${climateChamberId}`, { exact: true }).first()).toBeVisible();''',
+              '''  await expect(page.getByText("Кліматична камера №2", { exact: true }).first()).toBeVisible();''',
+          )
+          replace_once(
+              refrigeration,
+              '''    expect(equipmentAfterSave.node_id).toBe(climateChamberId);''',
+              '''    expect(equipmentAfterSave.node_id).toBe(equipment.node_id);''',
+          )
+          replace_once(
+              refrigeration,
+              '''          climateChamberId,''',
+              '''          climateChamberCode,''',
+          )
+
+          security = Path("e2e/security-rbac.production.e2e.ts")
+          replace_once(
+              security,
+              '''  await expect(page.getByText(`Камера ${climateChamberId}`, { exact: true }).first()).toBeVisible();''',
+              '''  await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();''',
+          )
+
+          nodes = Path("e2e/nodes.production.e2e.ts")
+          text = nodes.read_text(encoding="utf-8")
+          text = text.replace('"edge-01"', '"acceptance-edge-01"')
+          text = text.replace('"edge-02"', '"acceptance-edge-02"')
+          nodes.write_text(text, encoding="utf-8")
+          replace_once(
+              nodes,
+              '''    expect(((await viewerList.json()) as NodeResponse[]).map((node) => node.node_id).sort()).toEqual([
+                "acceptance-edge-01",
+                "acceptance-edge-02",
+              ]);''',
+              '''    expect(((await viewerList.json()) as NodeResponse[]).map((node) => node.node_id).sort()).toEqual([
+                "acceptance-edge-01",
+                "acceptance-edge-02",
+                "edge-01",
+              ]);''',
+          )
+          replace_once(
+              nodes,
+              '''    expect((await foreignList.json()) as NodeResponse[]).toEqual([]);''',
+              '''    expect(((await foreignList.json()) as NodeResponse[]).map((node) => node.node_id)).toEqual([
+                "edge-01",
+              ]);''',
+          )
+          PY
+
+      - name: Format changed fixtures
+        run: npx prettier --write e2e/refrigeration-layout.production.e2e.ts e2e/security-rbac.production.e2e.ts e2e/nodes.production.e2e.ts
+
+      - name: Commit fixture fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/refrigeration-layout.production.e2e.ts e2e/security-rbac.production.e2e.ts e2e/nodes.production.e2e.ts
+          git diff --cached --check
+          git commit -m "test: align climate catalog acceptance fixtures"
+          git push origin HEAD:feat/climate-chamber-measurement-catalog
