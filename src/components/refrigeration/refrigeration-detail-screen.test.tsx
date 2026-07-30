@@ -7,7 +7,9 @@ import { getRefrigerationEquipment } from "@/data/refrigeration";
 import { RefrigerationDetailScreen } from "./refrigeration-detail-screen";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -36,30 +38,49 @@ describe("RefrigerationDetailScreen", () => {
 
     expect(screen.getByText("Паспорт, lifecycle, фото та bindings")).toBeInTheDocument();
     expect(screen.queryByText("Поточний стан")).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Датчики в реальному часі" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Фото обладнання", { selector: "h2" })).not.toBeInTheDocument();
-    if (equipment.nodeId) {
-      expect(screen.getByText(`Камера ${equipment.nodeId}`)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Датчики в реальному часі" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Фото обладнання", { selector: "h2" }),
+    ).not.toBeInTheDocument();
+    if (equipment.climateChamberId) {
+      expect(
+        screen.getAllByText("Кліматична камера", { exact: true }).length,
+      ).toBeGreaterThan(0);
     }
-    expect(screen.getByText(/48 bindings/)).toBeInTheDocument();
+    expect(screen.queryByText(/48 bindings/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Редагувати схему та датчики" }),
+    ).toBeInTheDocument();
   });
 
   it("filters only the markers on the central image by side and shelf", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
     await waitForLayout();
 
-    expect(screen.getByRole("button", { name: "Вибрати датчик 01F на схемі" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Вибрати датчик 01F на схемі" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
-    expect(screen.queryByRole("button", { name: "Вибрати датчик 01F на схемі" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Вибрати датчик 01F на схемі" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" }),
+    ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Фільтр за полицею"), {
-      target: { value: "2" },
-    });
-    expect(screen.getByRole("button", { name: "Вибрати датчик 07R на схемі" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Вибрати датчик 01R на схемі" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Полиця 2" }));
+    expect(
+      screen.getByRole("button", { name: "Вибрати датчик 07R на схемі" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Вибрати датчик 01R на схемі" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps marker selection in the central canvas without a duplicated sensor list", async () => {
@@ -70,6 +91,8 @@ describe("RefrigerationDetailScreen", () => {
     fireEvent.click(marker);
 
     expect(marker).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByRole("button", { name: "Вибрати датчик 08F зі списку" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Вибрати датчик 08F зі списку" }),
+    ).not.toBeInTheDocument();
   });
 });
