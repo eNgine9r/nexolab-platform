@@ -46,6 +46,9 @@ def register_models() -> None:
     assert _broker_models.CentralNodeBrokerCommand.__tablename__ == (
         "central_node_broker_commands"
     )
+    assert _climate_catalog_models.MeasurementBus.__tablename__ == (
+        "measurement_buses"
+    )
     assert _climate_catalog_models.ClimateChamber.__tablename__ == (
         "climate_chambers"
     )
