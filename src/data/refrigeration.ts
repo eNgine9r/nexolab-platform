@@ -42,7 +42,10 @@ export interface RefrigerationEquipment {
   laboratory: string | null;
   zone: string | null;
   climateChamberId: string | null;
+  /** @deprecated Compatibility alias for climateChamberId in legacy UI components. */
   nodeId: string | null;
+  /** Physical telemetry source, currently edge-01 for both KK1 and KK2. */
+  transportNodeId: string | null;
   type: string;
   manufacturer: string;
   model: string;
@@ -113,7 +116,8 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     laboratory: "Лабораторія 1",
     zone: "Зона A",
     climateChamberId: "kk2",
-    nodeId: "edge-lab-01",
+    nodeId: "kk2",
+    transportNodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
     model: "Premium 1250",
@@ -142,7 +146,8 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     laboratory: "Лабораторія 1",
     zone: "Зона B",
     climateChamberId: "kk2",
-    nodeId: "edge-lab-01",
+    nodeId: "kk2",
+    transportNodeId: "edge-lab-01",
     type: "Холодильна вітрина",
     manufacturer: "ColdStream",
     model: "Compact 900",
@@ -171,7 +176,8 @@ export const refrigerationEquipment: RefrigerationEquipment[] = [
     laboratory: "Лабораторія 2",
     zone: "Північна стіна",
     climateChamberId: "kk1",
-    nodeId: "edge-lab-02",
+    nodeId: "kk1",
+    transportNodeId: "edge-lab-02",
     type: "Холодильна камера",
     manufacturer: "NEXOTHERM",
     model: "CR-12",
