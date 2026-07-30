@@ -53,7 +53,10 @@ def create_sensor_configuration_router(
     security_repository: SecurityRepository | None = None,
     default_organization_id: str = DEFAULT_ORGANIZATION_ID,
 ) -> APIRouter:
-    router = APIRouter(prefix="/api/v1/equipment", tags=["refrigeration-sensor-configuration"])
+    router = APIRouter(
+        prefix="/api/v1/equipment",
+        tags=["refrigeration-sensor-configuration"],
+    )
     read_access = _access_dependency(
         security_dependencies,
         Permission.READ_DASHBOARD,
@@ -65,23 +68,19 @@ def create_sensor_configuration_router(
         default_organization_id,
     )
 
-    @router.get(
-        "/options/nodes/{node_id}/channels",
-        response_model=AvailableSensorListResponse,
-    )
     def list_climate_chamber_channels(
-        node_id: str,
+        chamber_id: str,
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> AvailableSensorListResponse:
         try:
-            normalized_node_id, channels = repository.list_climate_chamber_channels(
-                node_id,
+            node_id, channels = repository.list_climate_chamber_channels(
+                chamber_id,
                 organization_id=authorized.principal.organization_id,
             )
         except EquipmentLifecycleRepositoryError as error:
             raise _repository_http_error(error) from error
         return AvailableSensorListResponse(
-            node_id=normalized_node_id,
+            node_id=node_id,
             items=[
                 AvailableSensorResponse(
                     channel_id=item.channel_id,
@@ -91,12 +90,30 @@ def create_sensor_configuration_router(
                     quality=item.quality,
                     captured_at=item.captured_at,
                     is_bound=item.binding is not None,
-                    bound_equipment_id=item.binding.equipment_id if item.binding else None,
-                    bound_slot_key=item.binding.slot_key if item.binding else None,
+                    bound_equipment_id=(
+                        item.binding.equipment_id if item.binding else None
+                    ),
+                    bound_slot_key=(
+                        item.binding.slot_key if item.binding else None
+                    ),
                 )
                 for item in channels
             ],
         )
+
+    router.add_api_route(
+        "/options/climate-chambers/{chamber_id}/channels",
+        list_climate_chamber_channels,
+        methods=["GET"],
+        response_model=AvailableSensorListResponse,
+    )
+    router.add_api_route(
+        "/options/nodes/{chamber_id}/channels",
+        list_climate_chamber_channels,
+        methods=["GET"],
+        response_model=AvailableSensorListResponse,
+        include_in_schema=False,
+    )
 
     @router.put(
         "/{equipment_id}/sensor-configuration",
@@ -232,9 +249,7 @@ def _repository_http_error(error: Exception) -> HTTPException:
             expected_version=error.expected_version,
             actual_version=error.actual_version,
         )
-    if isinstance(error, EquipmentNotFoundError):
-        return _api_http_error(404, error.code, str(error))
-    if isinstance(error, ClimateChamberNotFoundError):
+    if isinstance(error, (EquipmentNotFoundError, ClimateChamberNotFoundError)):
         return _api_http_error(404, error.code, str(error))
     if isinstance(error, SensorChannelNotFoundError):
         return _api_http_error(422, error.code, str(error))
@@ -247,7 +262,11 @@ def _repository_http_error(error: Exception) -> HTTPException:
         ),
     ):
         return _api_http_error(409, error.code, str(error))
-    return _api_http_error(500, "sensor_configuration_repository_error", str(error))
+    return _api_http_error(
+        500,
+        "sensor_configuration_repository_error",
+        str(error),
+    )
 
 
 def _api_http_error(
