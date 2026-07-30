@@ -25,6 +25,19 @@ class CatalogStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class MeasurementBusDefinition:
+    bus_key: str
+    node_id: str
+    display_name: str
+    protocol: str
+    port: str
+    baudrate: int
+    data_bits: int
+    parity: str
+    stop_bits: int
+
+
+@dataclass(frozen=True, slots=True)
 class EnergyMeterDefinition:
     unit_id: int
     designation: str
@@ -33,9 +46,9 @@ class EnergyMeterDefinition:
 @dataclass(frozen=True, slots=True)
 class ClimateChamberDefinition:
     code: ClimateChamberCode
-    node_id: str
     name: str
     display_order: int
+    bus_key: str
     controller_start: int
     controller_end: int
     logical_sensor_start: int
@@ -58,29 +71,51 @@ class ClimateChamberDefinition:
 @dataclass(frozen=True, slots=True)
 class TemperatureChannelDefinition:
     chamber_code: ClimateChamberCode
-    node_id: str
+    bus_key: str
     controller_unit_id: int
     channel_number: int
     channel_id: str
+    source_channel_id: str
     display_name: str
     logical_sensor_number: int
     physical_sensor_count: int
 
     @property
     def physical_sensor_inventory_numbers(self) -> tuple[str, ...]:
+        if self.physical_sensor_count == 1:
+            return (str(self.logical_sensor_number),)
         positions = PHYSICAL_SENSOR_POSITIONS[: self.physical_sensor_count]
         return tuple(f"{self.logical_sensor_number}-{position}" for position in positions)
 
 
 CHANNELS_PER_DIXELL: Final = 6
 PHYSICAL_SENSOR_POSITIONS: Final = ("A", "B")
+DEFAULT_EDGE_NODE_ID: Final = "edge-01"
+DEFAULT_RS485_BUS_KEY: Final = "rs485-main-01"
+
+MEASUREMENT_BUSES: Final[tuple[MeasurementBusDefinition, ...]] = (
+    MeasurementBusDefinition(
+        bus_key=DEFAULT_RS485_BUS_KEY,
+        node_id=DEFAULT_EDGE_NODE_ID,
+        display_name="Основна RS-485 шина",
+        protocol="modbus_rtu",
+        port=(
+            "/dev/serial/by-id/"
+            "usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0"
+        ),
+        baudrate=9600,
+        data_bits=8,
+        parity="N",
+        stop_bits=1,
+    ),
+)
 
 CLIMATE_CHAMBERS: Final[tuple[ClimateChamberDefinition, ...]] = (
     ClimateChamberDefinition(
         code=ClimateChamberCode.KK1,
-        node_id="kk1",
         name="Кліматична камера №1",
         display_order=1,
+        bus_key=DEFAULT_RS485_BUS_KEY,
         controller_start=126,
         controller_end=138,
         logical_sensor_start=197,
@@ -94,9 +129,9 @@ CLIMATE_CHAMBERS: Final[tuple[ClimateChamberDefinition, ...]] = (
     ),
     ClimateChamberDefinition(
         code=ClimateChamberCode.KK2,
-        node_id="kk2",
         name="Кліматична камера №2",
         display_order=2,
+        bus_key=DEFAULT_RS485_BUS_KEY,
         controller_start=101,
         controller_end=114,
         logical_sensor_start=471,
@@ -105,8 +140,8 @@ CLIMATE_CHAMBERS: Final[tuple[ClimateChamberDefinition, ...]] = (
     ),
 )
 
+BUS_BY_KEY: Final = {item.bus_key: item for item in MEASUREMENT_BUSES}
 CHAMBER_BY_CODE: Final = {item.code.value: item for item in CLIMATE_CHAMBERS}
-CHAMBER_BY_NODE_ID: Final = {item.node_id: item for item in CLIMATE_CHAMBERS}
 
 
 def chamber_definition(value: str | ClimateChamberCode) -> ClimateChamberDefinition:
@@ -132,6 +167,13 @@ def logical_sensor_number(
     )
 
 
+def temperature_source_channel_id(controller_unit_id: int, channel_number: int) -> str:
+    if controller_unit_id < 1:
+        raise ClimateCatalogError("controller unit id must be positive")
+    _validate_channel(channel_number)
+    return f"{controller_unit_id:03d}-{channel_number:02d}"
+
+
 def temperature_channel_id(
     chamber: str | ClimateChamberCode,
     controller_unit_id: int,
@@ -139,8 +181,7 @@ def temperature_channel_id(
 ) -> str:
     definition = chamber_definition(chamber)
     _validate_controller(definition, controller_unit_id)
-    _validate_channel(channel_number)
-    return f"{definition.code.value}-DIXELL-{controller_unit_id}-CH{channel_number}"
+    return temperature_source_channel_id(controller_unit_id, channel_number)
 
 
 def temperature_channel_display_name(controller_unit_id: int, channel_number: int) -> str:
@@ -156,16 +197,17 @@ def iter_temperature_channels(
     definition = chamber_definition(chamber)
     for controller_unit_id in range(definition.controller_start, definition.controller_end + 1):
         for channel_number in range(1, CHANNELS_PER_DIXELL + 1):
+            source_channel_id = temperature_source_channel_id(
+                controller_unit_id,
+                channel_number,
+            )
             yield TemperatureChannelDefinition(
                 chamber_code=definition.code,
-                node_id=definition.node_id,
+                bus_key=definition.bus_key,
                 controller_unit_id=controller_unit_id,
                 channel_number=channel_number,
-                channel_id=temperature_channel_id(
-                    definition.code,
-                    controller_unit_id,
-                    channel_number,
-                ),
+                channel_id=source_channel_id,
+                source_channel_id=source_channel_id,
                 display_name=temperature_channel_display_name(
                     controller_unit_id,
                     channel_number,
