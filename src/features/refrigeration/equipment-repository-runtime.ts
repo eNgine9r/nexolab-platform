@@ -25,7 +25,7 @@ export type RefrigerationEquipmentRuntime = {
   mode: "demo" | "live";
   repository: RefrigerationEquipmentRepository | null;
   lifecycleRepository: EquipmentLifecycleRepository | null;
-  climateCatalogRepository: ClimateCatalogRepository | null;
+  climateCatalogRepository?: ClimateCatalogRepository | null;
   sessionClient: HttpSecuritySessionClient | null;
   organizationId: string | null;
   error: string | null;
