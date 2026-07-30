@@ -50,9 +50,7 @@ describe("RefrigerationDetailScreen", () => {
       ).toBeGreaterThan(0);
     }
     expect(screen.queryByText(/48 bindings/)).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Редагувати схему та датчики" }),
-    ).toBeInTheDocument();
+    expect(document.querySelectorAll("#layout-editor")).toHaveLength(1);
   });
 
   it("filters only the markers on the central image by side and shelf", async () => {
