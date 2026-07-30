@@ -11,7 +11,7 @@ export type RefrigerationEquipmentCreateInput = {
   location: string;
   laboratory: string;
   zone: string;
-  nodeId: string;
+  climateChamberId: string;
   type: string;
   manufacturer: string;
   model: string;
@@ -74,7 +74,8 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
       ...normalized,
       laboratory: normalized.laboratory || null,
       zone: normalized.zone || null,
-      nodeId: normalized.nodeId || null,
+      climateChamberId: normalized.climateChamberId || null,
+      nodeId: null,
       status: "offline",
       averageTemperatureC: 0,
       minTemperatureC: 0,
@@ -113,7 +114,7 @@ export class InMemoryRefrigerationEquipmentRepository implements RefrigerationEq
       ...normalized,
       laboratory: normalized.laboratory || null,
       zone: normalized.zone || null,
-      nodeId: normalized.nodeId || null,
+      climateChamberId: normalized.climateChamberId || null,
       status: normalized.lifecycleStatus === "retired" ? "offline" : current.status,
       onlineSensors: normalized.lifecycleStatus === "retired" ? 0 : current.onlineSensors,
       activeAlarms: normalized.lifecycleStatus === "retired" ? 0 : current.activeAlarms,
@@ -230,7 +231,7 @@ function normalizeInput(input: RefrigerationEquipmentCreateInput): Refrigeration
     location: input.location.trim(),
     laboratory: input.laboratory.trim(),
     zone: input.zone.trim(),
-    nodeId: input.nodeId.trim(),
+    climateChamberId: input.climateChamberId.trim(),
     type: input.type.trim(),
     manufacturer: input.manufacturer.trim(),
     model: input.model.trim(),
@@ -251,7 +252,7 @@ function toApiPayload(input: RefrigerationEquipmentCreateInput) {
     location: normalized.location,
     laboratory: normalized.laboratory || null,
     zone: normalized.zone || null,
-    node_id: normalized.nodeId || null,
+    climate_chamber_id: normalized.climateChamberId || null,
     equipment_type: normalized.type,
     manufacturer: normalized.manufacturer,
     model: normalized.model,
@@ -360,6 +361,7 @@ export function parseEquipment(value: unknown): RefrigerationEquipment {
     location,
     laboratory: readOptionalString(record.laboratory),
     zone: readOptionalString(record.zone),
+    climateChamberId: readOptionalString(record.climate_chamber_id),
     nodeId: readOptionalString(record.node_id),
     type,
     manufacturer,
