@@ -10,11 +10,11 @@ ClimateChamberStatus = Literal["active", "inactive"]
 
 
 class ClimateChamberResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: str
     code: str
     node_id: str
+    bus_id: str
+    bus_key: str
     name: str
     display_order: int
     status: ClimateChamberStatus
@@ -79,6 +79,7 @@ class PhysicalSensorResponse(BaseModel):
 class MeasurementChannelResponse(BaseModel):
     id: str
     channel_id: str
+    source_channel_id: str
     device_id: str
     controller_unit_id: int
     channel_number: int
