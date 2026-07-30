@@ -386,7 +386,7 @@ export function RefrigerationDetailScreen({
               sensorConfigurationRepository={runtime.sensorConfigurationRepository}
               onEquipmentChange={setEquipmentRecord}
               onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
-              canManageEquipment={canManageEquipment && !retired}
+              forceReadOnly={retired}
             />
           </div>
         </main>
