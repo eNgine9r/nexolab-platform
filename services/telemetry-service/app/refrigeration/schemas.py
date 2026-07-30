@@ -17,6 +17,7 @@ class RefrigerationEquipmentCreate(BaseModel):
     location: Annotated[str, Field(min_length=1, max_length=255)]
     laboratory: Annotated[str | None, Field(max_length=128)] = None
     zone: Annotated[str | None, Field(max_length=128)] = None
+    climate_chamber_id: Annotated[str | None, Field(max_length=36)] = None
     node_id: Annotated[str | None, Field(max_length=64)] = None
     equipment_type: Annotated[str, Field(min_length=1, max_length=128)] = "Холодильна вітрина"
     manufacturer: Annotated[str, Field(min_length=1, max_length=128)]
@@ -45,7 +46,7 @@ class RefrigerationEquipmentCreate(BaseModel):
             raise ValueError("value must not be blank")
         return normalized
 
-    @field_validator("laboratory", "zone", "node_id")
+    @field_validator("laboratory", "zone", "climate_chamber_id", "node_id")
     @classmethod
     def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -57,7 +58,11 @@ class RefrigerationEquipmentCreate(BaseModel):
     def validate_location_hierarchy(self) -> "RefrigerationEquipmentCreate":
         if self.zone is not None and self.laboratory is None:
             raise ValueError("laboratory is required when zone is selected")
-        if self.lifecycle_status != "retired" and self.node_id is None:
+        if (
+            self.lifecycle_status != "retired"
+            and self.climate_chamber_id is None
+            and self.node_id is None
+        ):
             raise ValueError("climate chamber is required for active equipment")
         return self
 
@@ -75,6 +80,7 @@ class RefrigerationEquipmentResponse(BaseModel):
     location: str
     laboratory: str | None
     zone: str | None
+    climate_chamber_id: str | None
     node_id: str | None
     equipment_type: str
     manufacturer: str
