@@ -5,7 +5,9 @@ import { HttpClimateCatalogRepository } from "./climate-catalog-repository";
 const chamber = (code: "KK1" | "KK2", order: number) => ({
   id: `chamber-${code.toLowerCase()}`,
   code,
-  node_id: code.toLowerCase(),
+  node_id: "edge-01",
+  bus_id: "bus-rs485-main-01",
+  bus_key: "rs485-main-01",
   name: `Кліматична камера №${order}`,
   display_order: order,
   status: "active",
@@ -16,8 +18,9 @@ const chamber = (code: "KK1" | "KK2", order: number) => ({
 
 const channel = (code: "KK1" | "KK2", controller: number, input: number, sensor: number) => ({
   id: `${code}-${sensor}`,
-  channel_id: `${code}-DIXELL-${controller}-CH${input}`,
-  device_id: `${code}-DIXELL-${controller}`,
+  channel_id: `${controller}-${String(input).padStart(2, "0")}`,
+  source_channel_id: `${controller}-${String(input).padStart(2, "0")}`,
+  device_id: `DIXELL-${controller}`,
   controller_unit_id: controller,
   channel_number: input,
   logical_sensor_number: sensor,
@@ -26,14 +29,14 @@ const channel = (code: "KK1" | "KK2", controller: number, input: number, sensor:
   physical_sensors: (code === "KK1" ? ["A"] : ["A", "B"]).map((position) => ({
     id: `${code}-${sensor}-${position}`,
     sensor_position: position,
-    inventory_number: `${sensor}-${position}`,
+    inventory_number: code === "KK1" ? `${sensor}` : `${sensor}-${position}`,
     serial_number: null,
     calibration_status: "untracked",
     status: "active",
     created_at: "2026-07-30T08:00:00Z",
     updated_at: "2026-07-30T08:00:00Z",
   })),
-  metric_type: "temperature",
+  metric_type: "temperature.probe",
   unit: "degC",
   status: "active",
   created_at: "2026-07-30T08:00:00Z",
@@ -48,7 +51,7 @@ function response(payload: unknown): Response {
 }
 
 describe("HttpClimateCatalogRepository", () => {
-  it("parses chambers in server order and uses the versioned endpoint", async () => {
+  it("parses logical chambers sharing one physical edge node and RS485 bus", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       response({ items: [chamber("KK1", 1), chamber("KK2", 2)] }),
     );
@@ -60,7 +63,9 @@ describe("HttpClimateCatalogRepository", () => {
     const items = await repository.listChambers();
 
     expect(items.map((item) => item.code)).toEqual(["KK1", "KK2"]);
-    expect(items.map((item) => item.nodeId)).toEqual(["kk1", "kk2"]);
+    expect(items.map((item) => item.id)).toEqual(["chamber-kk1", "chamber-kk2"]);
+    expect(items.map((item) => item.nodeId)).toEqual(["edge-01", "edge-01"]);
+    expect(items.map((item) => item.busKey)).toEqual(["rs485-main-01", "rs485-main-01"]);
     expect(fetchImpl).toHaveBeenCalledWith(
       "http://nexolab.test/api/v1/climate-chambers",
       expect.objectContaining({ headers: { Accept: "application/json" } }),
@@ -74,16 +79,16 @@ describe("HttpClimateCatalogRepository", () => {
         temperatureControllers: [
           {
             id: "kk2-controller-101",
-            business_key: "KK2-DIXELL-101",
+            business_key: "DIXELL-101",
             device_type: "temperature_controller",
             manufacturer: "Dixell",
-            model: "Dixell temperature controller",
+            model: "XJP60D",
             unit_id: 101,
             display_name: "Dixell №101",
             designation: null,
             connection_status: "unknown",
             status: "active",
-            measured_parameters: [{ metric: "temperature", unit: "degC" }],
+            measured_parameters: [{ metric: "temperature.probe", unit: "degC" }],
             created_at: "2026-07-30T08:00:00Z",
             updated_at: "2026-07-30T08:00:00Z",
           },
@@ -101,9 +106,15 @@ describe("HttpClimateCatalogRepository", () => {
 
     const catalog = await repository.getEquipment("chamber-kk2");
 
+    expect(catalog.climateChamber).toMatchObject({
+      id: "chamber-kk2",
+      nodeId: "edge-01",
+      busKey: "rs485-main-01",
+    });
     expect(catalog.temperatureControllers[0]?.unitId).toBe(101);
     expect(catalog.temperatureChannels[0]).toMatchObject({
-      channelId: "KK2-DIXELL-101-CH1",
+      channelId: "101-01",
+      sourceChannelId: "101-01",
       logicalSensorNumber: 471,
       physicalSensorCount: 2,
     });
