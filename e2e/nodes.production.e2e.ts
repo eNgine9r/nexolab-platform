@@ -13,8 +13,9 @@ const managerBToken = required("NEXOLAB_NODES_MANAGER_B_TOKEN");
 const engineerAToken = required("NEXOLAB_NODES_ENGINEER_A_TOKEN");
 const viewerAToken = required("NEXOLAB_NODES_VIEWER_A_TOKEN");
 const catalogNodeId = "edge-01";
-const primaryNodeId = "acceptance-edge-01";
-const secondaryNodeId = "acceptance-edge-02";
+const fixtureRunId = randomUUID().slice(0, 8);
+const primaryNodeId = `acceptance-edge-01-${fixtureRunId}`;
+const secondaryNodeId = `acceptance-edge-02-${fixtureRunId}`;
 
 const composeArguments = [
   "--project-name",
@@ -476,9 +477,7 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
 
     const foreignList = await managerB.get("/api/v1/nodes");
     expect(foreignList.status()).toBe(200);
-    expect(((await foreignList.json()) as NodeResponse[]).map((node) => node.node_id)).toEqual([
-      catalogNodeId,
-    ]);
+    expect((await foreignList.json()) as NodeResponse[]).toEqual([]);
     expect((await managerB.get(`/api/v1/nodes/${primaryNodeId}`)).status()).toBe(404);
     expect(
       (await managerB.get(`/api/v1/nodes/${primaryNodeId}/operational-state`)).status(),
