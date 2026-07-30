@@ -8,6 +8,10 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 import {
+  HttpClimateCatalogRepository,
+  type ClimateCatalogRepository,
+} from "./climate-catalog-repository";
+import {
   HttpEquipmentLifecycleRepository,
   type EquipmentLifecycleRepository,
 } from "./equipment-lifecycle-repository";
@@ -21,6 +25,7 @@ export type RefrigerationEquipmentRuntime = {
   mode: "demo" | "live";
   repository: RefrigerationEquipmentRepository | null;
   lifecycleRepository: EquipmentLifecycleRepository | null;
+  climateCatalogRepository: ClimateCatalogRepository | null;
   sessionClient: HttpSecuritySessionClient | null;
   organizationId: string | null;
   error: string | null;
@@ -46,6 +51,7 @@ export function createRefrigerationEquipmentRuntime(
         mode: "demo",
         repository: demoRepository,
         lifecycleRepository: null,
+        climateCatalogRepository: null,
         sessionClient: null,
         organizationId: null,
         error: null,
@@ -68,6 +74,10 @@ export function createRefrigerationEquipmentRuntime(
         apiBaseUrl: config.apiBaseUrl,
         fetchImpl: authenticatedFetch,
       }),
+      climateCatalogRepository: new HttpClimateCatalogRepository({
+        apiBaseUrl: config.apiBaseUrl,
+        fetchImpl: authenticatedFetch,
+      }),
       sessionClient: new HttpSecuritySessionClient({
         apiBaseUrl: config.apiBaseUrl,
         fetchImpl: authenticatedFetch,
@@ -80,6 +90,7 @@ export function createRefrigerationEquipmentRuntime(
       mode: input.mode === "live" ? "live" : "demo",
       repository: null,
       lifecycleRepository: null,
+      climateCatalogRepository: null,
       sessionClient: null,
       organizationId: null,
       error: error instanceof Error ? error.message : "Не вдалося налаштувати каталог обладнання.",
