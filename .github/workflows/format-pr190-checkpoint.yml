@@ -1,0 +1,50 @@
+name: Format PR 190 checkpoint
+
+on:
+  push:
+    branches:
+      - docs/183-architecture-reconciliation
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: format-pr190-checkpoint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format final checkpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/183-architecture-reconciliation
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format checkpoint and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm exec prettier -- --write .project/LAST_CHECKPOINT.json
+          git rm .github/workflows/format-pr190-checkpoint.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .project/LAST_CHECKPOINT.json
+          git commit -m "chore: format final PR #190 checkpoint"
+          git push origin HEAD:docs/183-architecture-reconciliation
