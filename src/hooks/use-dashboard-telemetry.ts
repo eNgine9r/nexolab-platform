@@ -18,6 +18,7 @@ import {
   type DashboardTelemetryView,
 } from "@/lib/telemetry/dashboard-state";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type {
   TelemetryAdapter,
   TelemetryConnectionState,
@@ -42,6 +43,7 @@ export type DashboardHistoryStatus = "idle" | "loading" | "ready" | "error";
 export interface DashboardTelemetryOptions {
   enabled?: boolean;
   organizationId?: string | null;
+  temperatureChannelIds?: readonly string[] | null;
 }
 
 export interface DashboardTelemetryModel {
@@ -82,10 +84,32 @@ function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string |
   });
 }
 
+function filterTemperatureScope(
+  view: DashboardTelemetryView,
+  allowedChannels: ReadonlySet<string> | null,
+): DashboardTelemetryView {
+  if (allowedChannels === null) return view;
+  const visible = (sample: TelemetrySample) =>
+    !isTemperatureProbeSample(sample) || allowedChannels.has(sample.channel_id);
+  const samples = view.samples.filter(visible);
+  const freshSamples = view.freshSamples.filter(visible);
+  const lastCapturedAt = samples[0]?.captured_at ?? null;
+  const ageMs = lastCapturedAt ? Math.max(0, Date.now() - Date.parse(lastCapturedAt)) : null;
+  return { ...view, samples, freshSamples, lastCapturedAt, ageMs };
+}
+
 export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): DashboardTelemetryModel {
   const enabled = options.enabled ?? true;
   const selectedOrganizationId = options.organizationId?.trim() || null;
   const scopeKey = enabled ? (selectedOrganizationId ?? DEFAULT_SCOPE) : null;
+  const temperatureChannelKey =
+    options.temperatureChannelIds === null || options.temperatureChannelIds === undefined
+      ? null
+      : [...new Set(options.temperatureChannelIds)].sort().join(",");
+  const allowedTemperatureChannels = useMemo(
+    () => (temperatureChannelKey === null ? null : new Set(temperatureChannelKey ? temperatureChannelKey.split(",") : [])),
+    [temperatureChannelKey],
+  );
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
@@ -260,15 +284,19 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     ) {
       return null;
     }
-    return deriveDashboardTelemetry(store, {
-      now: clock,
-      staleAfterMs: STALE_AFTER_MS,
-      hasLoadedSnapshot,
-      connectionState,
-      error,
-    });
+    return filterTemperatureScope(
+      deriveDashboardTelemetry(store, {
+        now: clock,
+        staleAfterMs: STALE_AFTER_MS,
+        hasLoadedSnapshot,
+        connectionState,
+        error,
+      }),
+      allowedTemperatureChannels,
+    );
   }, [
     activeScopeKey,
+    allowedTemperatureChannels,
     clock,
     connectionState,
     enabled,
@@ -279,7 +307,13 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     store,
   ]);
 
-  const visibleHistory = activeHistoryKey === historyKey ? historySamples : [];
+  const visibleHistory =
+    activeHistoryKey === historyKey
+      ? historySamples.filter(
+          (sample) =>
+            allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id),
+        )
+      : [];
   const visibleHistoryStatus = activeHistoryKey === historyKey ? historyStatus : "loading";
   const visibleHistoryWindow = activeHistoryKey === historyKey ? historyWindow : null;
   const visibleHistoryError = activeHistoryKey === historyKey ? historyError : null;
