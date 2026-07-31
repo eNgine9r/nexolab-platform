@@ -18,6 +18,9 @@ import {
   updateConfiguredSensor,
 } from "@/features/refrigeration/sensor-configuration";
 
+const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
+const MAX_SENSOR_SLOT_CAPACITY = 48;
+
 export function SensorPlacementManager({
   equipmentId,
   totalSlots,
@@ -37,6 +40,8 @@ export function SensorPlacementManager({
   onConfigurationChange: (configuration: StagedSensorConfiguration[]) => void;
   onSelect: (sensorId: string) => void;
 }) {
+  const effectiveTotalSlots = sensorSlotCapacity(totalSlots);
+  const recoveredZeroCapacity = totalSlots <= 0;
   const unused = useMemo(
     () => unusedClimateChamberChannels(channels, configuration),
     [channels, configuration],
@@ -68,7 +73,12 @@ export function SensorPlacementManager({
     if (!channel) return;
     setError(null);
     try {
-      const next = addChannelToConfiguration(configuration, channel, totalSlots, equipmentId);
+      const next = addChannelToConfiguration(
+        configuration,
+        channel,
+        effectiveTotalSlots,
+        equipmentId,
+      );
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
@@ -127,7 +137,7 @@ export function SensorPlacementManager({
           <div className="flex items-center gap-2">
             <p className="text-xs font-semibold text-white">Датчики кліматичної камери</p>
             <span className="rounded-full border border-cyan-300/15 bg-cyan-400/[0.07] px-2 py-1 text-[9px] text-cyan-200">
-              {configuration.length}/{totalSlots}
+              {configuration.length}/{effectiveTotalSlots}
             </span>
           </div>
           <p className="mt-1 text-[10px] leading-4 text-slate-500">
@@ -144,7 +154,7 @@ export function SensorPlacementManager({
             <select
               aria-label="Доступний датчик кліматичної камери"
               value={effectiveSelectedChannelId}
-              disabled={assignable.length === 0 || configuration.length >= totalSlots}
+              disabled={assignable.length === 0 || configuration.length >= effectiveTotalSlots}
               onChange={(event) => setSelectedChannelId(event.target.value)}
               className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -166,7 +176,7 @@ export function SensorPlacementManager({
           <RefrigerationIconButton
             label="Додати вибраний датчик на підкладку"
             onClick={add}
-            disabled={!effectiveSelectedChannelId || configuration.length >= totalSlots}
+            disabled={!effectiveSelectedChannelId || configuration.length >= effectiveTotalSlots}
             tone="success"
             size="lg"
           >
@@ -174,6 +184,14 @@ export function SensorPlacementManager({
           </RefrigerationIconButton>
         </div>
       </div>
+
+      {recoveredZeroCapacity ? (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-100">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          У паспорті обладнання місткість датчиків була задана як 0. Для робочої схеми
+          автоматично застосовано стандартну місткість 48 слотів.
+        </p>
+      ) : null}
 
       {channels.length === 0 ? (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-200">
@@ -183,7 +201,9 @@ export function SensorPlacementManager({
         </p>
       ) : null}
 
-      {channels.length > 0 && assignable.length === 0 && configuration.length < totalSlots ? (
+      {channels.length > 0 &&
+      assignable.length === 0 &&
+      configuration.length < effectiveTotalSlots ? (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-slate-400/15 bg-slate-500/[0.06] px-3 py-2 text-[10px] text-slate-300">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           Усі нерозміщені канали вже мають активну прив’язку до іншого обладнання. Вони показані
@@ -307,6 +327,11 @@ export function SensorPlacementManager({
       ) : null}
     </section>
   );
+}
+
+export function sensorSlotCapacity(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
+  return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
 }
 
 function channelOptionLabel(channel: AvailableSensor, conflict: string | null): string {
