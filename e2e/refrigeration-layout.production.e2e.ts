@@ -507,15 +507,18 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
       }
     });
 
-    await pageA.getByRole("button", { name: "Відкрити паспорт обладнання" }).click();
-    await expect(pageA.getByRole("dialog", { name: "Паспорт обладнання" })).toBeVisible();
+    await pageA.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+    const lifecycleDialog = pageA.getByRole("dialog", {
+      name: "Версії та публікація схеми",
+    });
+    await expect(lifecycleDialog).toBeVisible();
 
-    await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
+    await lifecycleDialog.getByLabel("Вибрати production-фото обладнання").setInputFiles({
       name: "too-large.png",
       mimeType: "image/png",
       buffer: oversizedImage,
     });
-    await expect(pageA.getByText(imageLimitMessage, { exact: true })).toBeVisible();
+    await expect(lifecycleDialog.getByText(imageLimitMessage, { exact: true })).toBeVisible();
     expect(imageUploadWrites).toBe(0);
     expect((await readDraft(operatorA.request, equipment.id)).version).toBe(2);
     const noImagesResponse = await operatorA.request.get(
@@ -534,7 +537,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
         response.request().method() === "PUT" &&
         new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/layout/draft`,
     );
-    await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
+    await lifecycleDialog.getByLabel("Вибрати production-фото обладнання").setInputFiles({
       name: "showcase-acceptance.png",
       mimeType: "image/png",
       buffer: equipmentPhoto,
@@ -543,8 +546,8 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect((await attachResponsePromise).status()).toBe(200);
     expect(imageUploadWrites).toBe(1);
 
-    await pageA.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
-    await expect(pageA.getByRole("dialog", { name: "Паспорт обладнання" })).toHaveCount(0);
+    await lifecycleDialog.getByRole("button", { name: "Закрити версії схеми" }).click();
+    await expect(lifecycleDialog).toHaveCount(0);
     await expect(editor(pageA).getByText("Чернетка v3", { exact: true })).toBeVisible();
     const image = pageA.locator(`img[alt="Фото обладнання ${equipment.id}"]`).first();
     await expect(image).toBeVisible();
@@ -559,21 +562,17 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(signedResponse.headers()["content-type"]).toContain("image/png");
 
     await pageA.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
-    await expect(
-      pageA.getByRole("dialog", { name: "Версії та публікація схеми" }),
-    ).toBeVisible();
+    await expect(lifecycleDialog).toBeVisible();
     const publishResponsePromise = pageA.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
         new URL(response.url()).pathname === `/api/v1/equipment/${equipment.id}/layout/publish`,
     );
-    await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
+    await lifecycleDialog.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
     expect((await publishResponsePromise).status()).toBe(201);
-    await expect(pageA.getByText("Ревізія r1", { exact: true })).toBeVisible();
-    await pageA.getByRole("button", { name: "Закрити версії схеми" }).click();
-    await expect(
-      pageA.getByRole("dialog", { name: "Версії та публікація схеми" }),
-    ).toHaveCount(0);
+    await expect(lifecycleDialog.getByText("Ревізія r1", { exact: true })).toBeVisible();
+    await lifecycleDialog.getByRole("button", { name: "Закрити версії схеми" }).click();
+    await expect(lifecycleDialog).toHaveCount(0);
     await expect(editor(pageA).getByText("Чернетка v4", { exact: true })).toBeVisible();
 
     const finalDraft = await readDraft(operatorA.request, equipment.id);
