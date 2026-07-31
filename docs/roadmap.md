@@ -43,7 +43,7 @@ The retained 2026-07-23 evidence covers only:
 
 ### Issue #186 — GitHub source-of-truth reconciliation
 
-Outcome completed in the feature branch:
+Outcome completed in PR #206:
 
 - every open Pull Request classified;
 - obsolete/non-mergeable PRs closed with a recorded successor or owning Issue;
@@ -102,9 +102,10 @@ Maintenance stays separate from the primary product/data-integrity Work Package.
 
 ## 6. Pull Request source of truth
 
-### Only open PR
+### Open PRs
 
-- #192 — valid draft formatting inventory. Keep draft until rebased or recreated from the post-#186 `main`, project state is updated, the inventory is refreshed if materially stale and standard CI is green.
+- #206 — active, non-draft source-of-truth reconciliation PR for Issue #186. Merge only after green CI and resolved review threads.
+- #192 — the only other open PR and a valid draft formatting inventory. Keep draft until rebased or recreated from the post-#186 `main`, project state is updated, the inventory is refreshed if materially stale and standard CI is green.
 
 ### Closed as superseded during #186
 
