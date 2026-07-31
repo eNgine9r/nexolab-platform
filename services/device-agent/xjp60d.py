@@ -51,7 +51,7 @@ class XJP60DReading:
 class _Snapshot:
     captured_monotonic: float
     registers: tuple[int, ...] | None
-    error: BaseException | None
+    error: Exception | None
 
 
 def signed_int16(value: int) -> int:
@@ -79,7 +79,10 @@ def decode_reading(
     if status == "probe_error":
         value = None
         quality = "sensor_error"
-        alarm = "probe_error"
+        # The telemetry contract reserves alarm for threshold states only.
+        # Probe presence/fault information remains available through quality
+        # and raw_status without producing schema-invalid dead letters.
+        alarm = None
     else:
         value = signed_int16(raw_value) * scale
         quality = "valid"
@@ -170,7 +173,7 @@ class XJP60DReader:
                     f"XJP60D unit {unit_id} returned {len(registers)} registers; "
                     f"expected {PROBE_BLOCK_COUNT}"
                 )
-        except BaseException as error:
+        except Exception as error:
             self._snapshots[unit_id] = _Snapshot(now, None, error)
             raise
 
