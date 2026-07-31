@@ -507,6 +507,9 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
       }
     });
 
+    await pageA.getByRole("button", { name: "Відкрити паспорт обладнання" }).click();
+    await expect(pageA.getByRole("dialog", { name: "Паспорт обладнання" })).toBeVisible();
+
     await pageA.getByLabel("Вибрати production-фото обладнання").setInputFiles({
       name: "too-large.png",
       mimeType: "image/png",
@@ -540,6 +543,8 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect((await attachResponsePromise).status()).toBe(200);
     expect(imageUploadWrites).toBe(1);
 
+    await pageA.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
+    await expect(pageA.getByRole("dialog", { name: "Паспорт обладнання" })).toHaveCount(0);
     await expect(editor(pageA).getByText("Чернетка v3", { exact: true })).toBeVisible();
     const image = pageA.locator(`img[alt="Фото обладнання ${equipment.id}"]`).first();
     await expect(image).toBeVisible();
@@ -553,6 +558,10 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(signedResponse.status()).toBe(200);
     expect(signedResponse.headers()["content-type"]).toContain("image/png");
 
+    await pageA.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+    await expect(
+      pageA.getByRole("dialog", { name: "Версії та публікація схеми" }),
+    ).toBeVisible();
     const publishResponsePromise = pageA.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
@@ -561,6 +570,10 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     await pageA.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
     expect((await publishResponsePromise).status()).toBe(201);
     await expect(pageA.getByText("Ревізія r1", { exact: true })).toBeVisible();
+    await pageA.getByRole("button", { name: "Закрити версії схеми" }).click();
+    await expect(
+      pageA.getByRole("dialog", { name: "Версії та публікація схеми" }),
+    ).toHaveCount(0);
     await expect(editor(pageA).getByText("Чернетка v4", { exact: true })).toBeVisible();
 
     const finalDraft = await readDraft(operatorA.request, equipment.id);
