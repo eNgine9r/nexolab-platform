@@ -24,12 +24,16 @@ function compareChannels(left: string, right: string): number {
   return leftUnit - rightUnit || leftInput - rightInput || left.localeCompare(right);
 }
 
+function displayUnit(unit: string): string {
+  return unit.trim().toLowerCase() === "degc" ? "°C" : unit;
+}
+
 function formatValue(sample: TelemetrySample): string {
   if (sample.quality !== "valid" || sample.value === null) return "—";
   return `${new Intl.NumberFormat("uk-UA", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
-  }).format(sample.value)} ${sample.unit}`;
+  }).format(sample.value)} ${displayUnit(sample.unit)}`;
 }
 
 function channelColor(channelId: string): string {
