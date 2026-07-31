@@ -8,8 +8,10 @@ from modbus_rtu import (
     ModbusRTUClient,
     append_crc,
     build_read_holding_register_request,
+    build_read_holding_registers_request,
     crc16,
     parse_read_holding_register_response,
+    parse_read_holding_registers_response,
 )
 
 
@@ -54,14 +56,39 @@ class ModbusRTUTests(unittest.TestCase):
             bytes.fromhex("6a0301040001ccec"),
         )
 
+    def test_builds_bounded_block_request(self) -> None:
+        expected = append_crc(bytes.fromhex("6a030100000c"))
+        self.assertEqual(
+            build_read_holding_registers_request(106, 256, 12),
+            expected,
+        )
+        with self.assertRaisesRegex(ValueError, "1..125"):
+            build_read_holding_registers_request(106, 256, 126)
+
     def test_parses_normal_response(self) -> None:
         frame = append_crc(bytes.fromhex("6a03020104"))
         self.assertEqual(parse_read_holding_register_response(frame, 106), 260)
+
+    def test_parses_block_response(self) -> None:
+        registers = (100, 0, 200, 1, 300, 2)
+        payload = bytes((106, 0x03, len(registers) * 2)) + b"".join(
+            value.to_bytes(2, byteorder="big") for value in registers
+        )
+        frame = append_crc(payload)
+        self.assertEqual(
+            parse_read_holding_registers_response(frame, 106, len(registers)),
+            registers,
+        )
 
     def test_rejects_crc_mismatch(self) -> None:
         frame = bytes.fromhex("6a030201049d00")
         with self.assertRaises(ModbusProtocolError):
             parse_read_holding_register_response(frame, 106)
+
+    def test_rejects_unexpected_block_size(self) -> None:
+        frame = append_crc(bytes.fromhex("6a030400010002"))
+        with self.assertRaisesRegex(ModbusProtocolError, "frame length"):
+            parse_read_holding_registers_response(frame, 106, 3)
 
     def test_raises_modbus_exception(self) -> None:
         frame = append_crc(bytes((106, 0x83, 0x03)))
@@ -82,6 +109,25 @@ class ModbusRTUTests(unittest.TestCase):
         self.assertEqual(fake.writes, [bytes.fromhex("6a0301040001ccec")])
         client.close()
         self.assertTrue(fake.closed)
+
+    def test_client_reads_probe_block_in_one_fc03_transaction(self) -> None:
+        registers = tuple(range(12))
+        payload = bytes((106, 0x03, 24)) + b"".join(
+            value.to_bytes(2, byteorder="big") for value in registers
+        )
+        fake = FakeSerial(append_crc(payload))
+        client = ModbusRTUClient(
+            "/dev/rs485",
+            timeout=0.1,
+            retries=0,
+            serial_factory=lambda **kwargs: fake,
+        )
+
+        self.assertEqual(client.read_holding_registers(106, 256, 12), registers)
+        self.assertEqual(
+            fake.writes,
+            [build_read_holding_registers_request(106, 256, 12)],
+        )
 
 
 if __name__ == "__main__":
