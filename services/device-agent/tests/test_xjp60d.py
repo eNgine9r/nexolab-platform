@@ -41,11 +41,12 @@ class XJP60DTests(unittest.TestCase):
         self.assertEqual(reading.quality, "valid")
         self.assertEqual(reading.alarm, "high")
 
-    def test_discards_probe_error_value(self) -> None:
+    def test_discards_probe_error_value_without_invalid_alarm(self) -> None:
         reading = decode_reading(101, 6, 471, 0x1103)
         self.assertIsNone(reading.value)
         self.assertEqual(reading.quality, "sensor_error")
-        self.assertEqual(reading.alarm, "probe_error")
+        self.assertIsNone(reading.alarm)
+        self.assertEqual(reading.raw_status, 0x1103)
 
     def test_decodes_negative_signed_temperature(self) -> None:
         self.assertEqual(signed_int16(0xFF9C), -100)
@@ -76,6 +77,7 @@ class XJP60DTests(unittest.TestCase):
         self.assertEqual(readings[0].value, 10.0)
         self.assertIsNone(readings[1].value)
         self.assertEqual(readings[1].quality, "sensor_error")
+        self.assertIsNone(readings[1].alarm)
         self.assertEqual(readings[2].alarm, "high")
         self.assertEqual(readings[3].value, -10.0)
         self.assertEqual(readings[4].alarm, "low")
