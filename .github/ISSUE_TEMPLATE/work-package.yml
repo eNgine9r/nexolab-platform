@@ -1,0 +1,86 @@
+name: Work Package
+description: Create a scoped, vertical and offline-safe NEXOLAB task
+title: "[WP] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for one complete operator/system outcome. One Issue should map to one branch and one focused Pull Request.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and verified current behavior
+      description: Separate observed facts from assumptions and unverified hardware states.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Operator or system outcome
+      description: Describe the vertical result across UI, API, data, edge and operations where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Include all required layers for the outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: State what the task must not expand into.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies, hardware and decisions
+      description: Link prerequisite Issues, ADRs, devices, credentials or environments.
+  - type: textarea
+    id: directories
+    attributes:
+      label: Permitted directories
+      description: Changes outside these paths require a documented dependency reason.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use an objectively verifiable checklist.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification and evidence
+      description: Define targeted checks, full checks, offline tests and real-hardware evidence where applicable.
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Mandatory constraints
+      options:
+        - label: Core runtime remains independent of internet and paid services.
+          required: true
+        - label: No Modbus write path will be added or executed.
+          required: true
+        - label: Missing real-hardware evidence will be reported as unverified.
+          required: true
+        - label: No secrets, site data or production telemetry will be committed.
+          required: true
+        - label: Project state and checkpoint files will be updated before completion.
+          required: true

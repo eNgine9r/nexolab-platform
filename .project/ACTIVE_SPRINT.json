@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "project": "NEXOLAB",
+  "profile": "LOCAL_LAN",
+  "sprint": {
+    "id": "PROCESS-ADOPTION-1",
+    "title": "Development standard adoption and offline architecture reconciliation",
+    "goal": "Make repository-backed state, vertical Work Packages, offline constraints and resumable execution the default workflow.",
+    "status": "in_progress",
+    "started_at": "2026-07-31"
+  },
+  "execution_policy": {
+    "autonomous": true,
+    "continue_after_task": true,
+    "continue_after_soft_failure": true,
+    "skip_blocked_tasks": true,
+    "stop_on_hard_blocker": true,
+    "max_parallel_implementation_tasks": 1
+  },
+  "tasks": [
+    {
+      "id": "NEXOLAB-182",
+      "issue": 182,
+      "title": "Adopt AI Development Operating Standard and autonomous offline-first Sprint workflow",
+      "status": "review",
+      "priority": 1,
+      "depends_on": [],
+      "scope": [
+        "PROJECT_PROFILE.yaml",
+        "AGENTS.md",
+        "docs/AI_DEVELOPMENT_OPERATING_STANDARD.md",
+        ".project/**",
+        "scripts/ai-*.ps1",
+        "scripts/verify-project.ps1",
+        "docs/templates/**"
+      ],
+      "verification": [
+        "PowerShell parser check for added scripts",
+        "JSON parse check for .project/ACTIVE_SPRINT.json",
+        "documentation and hardware-safety review"
+      ]
+    },
+    {
+      "id": "NEXOLAB-183",
+      "issue": 183,
+      "title": "Reconcile architecture, roadmap, offline dependencies and current state",
+      "status": "ready",
+      "priority": 2,
+      "depends_on": ["NEXOLAB-182"],
+      "scope": [
+        ".project/**",
+        "docs/**",
+        "GitHub Issues and Pull Requests",
+        "runtime and dependency configuration"
+      ],
+      "verification": [
+        "repository and GitHub cross-check",
+        "offline dependency classification",
+        "no Modbus writes",
+        "documentation-only diff"
+      ]
+    }
+  ]
+}
