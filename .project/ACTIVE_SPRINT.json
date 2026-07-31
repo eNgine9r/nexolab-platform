@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "PROCESS-ADOPTION-1",
-    "title": "Development standard adoption and offline architecture reconciliation",
-    "goal": "Make repository-backed state, vertical Work Packages, offline constraints and resumable execution the default workflow.",
+    "id": "BASELINE-RECONCILIATION-1",
+    "title": "Verified architecture, offline readiness and roadmap baseline",
+    "goal": "Make current code, runtime boundaries, acceptance evidence and the next vertical Work Packages consistent across the repository and GitHub.",
     "status": "in_progress",
     "started_at": "2026-07-31"
   },
@@ -22,43 +22,90 @@
       "id": "NEXOLAB-182",
       "issue": 182,
       "title": "Adopt AI Development Operating Standard and autonomous offline-first Sprint workflow",
-      "status": "review",
+      "status": "done",
       "priority": 1,
       "depends_on": [],
-      "scope": [
-        "PROJECT_PROFILE.yaml",
-        "AGENTS.md",
-        "docs/AI_DEVELOPMENT_OPERATING_STANDARD.md",
-        ".project/**",
-        "scripts/ai-*.ps1",
-        "scripts/verify-project.ps1",
-        "docs/templates/**"
-      ],
-      "verification": [
-        "PowerShell parser check for added scripts",
-        "JSON parse check for .project/ACTIVE_SPRINT.json",
-        "documentation and hardware-safety review"
-      ]
+      "pull_request": 184,
+      "merge_sha": "8371ee59e76e64963405706be79fc4a909f9fac9"
     },
     {
       "id": "NEXOLAB-183",
       "issue": 183,
       "title": "Reconcile architecture, roadmap, offline dependencies and current state",
-      "status": "ready",
+      "status": "review",
       "priority": 2,
-      "depends_on": ["NEXOLAB-182"],
+      "depends_on": [
+        "NEXOLAB-182"
+      ],
+      "branch": "docs/183-architecture-reconciliation",
       "scope": [
         ".project/**",
-        "docs/**",
-        "GitHub Issues and Pull Requests",
-        "runtime and dependency configuration"
+        "docs/architecture.md",
+        "docs/offline-readiness.md",
+        "docs/roadmap.md",
+        "GitHub Issues and Pull Requests"
       ],
       "verification": [
         "repository and GitHub cross-check",
         "offline dependency classification",
-        "no Modbus writes",
-        "documentation-only diff"
+        "implementation versus acceptance boundary",
+        "JSON parse validation",
+        "documentation-only diff",
+        "no Modbus writes or production cutover"
       ]
+    },
+    {
+      "id": "NEXOLAB-186",
+      "issue": 186,
+      "title": "Reconcile stale milestone trackers and superseded pull requests",
+      "status": "ready",
+      "priority": 3,
+      "depends_on": [
+        "NEXOLAB-183"
+      ]
+    },
+    {
+      "id": "NEXOLAB-187",
+      "issue": 187,
+      "title": "Build a verified offline installation and update bundle",
+      "status": "ready",
+      "priority": 4,
+      "depends_on": [
+        "NEXOLAB-183",
+        "NEXOLAB-186"
+      ]
+    },
+    {
+      "id": "NEXOLAB-188",
+      "issue": 188,
+      "title": "Define and prove offline operator authentication",
+      "status": "ready",
+      "priority": 5,
+      "depends_on": [
+        "NEXOLAB-183",
+        "NEXOLAB-186"
+      ]
+    },
+    {
+      "id": "NEXOLAB-189",
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "status": "blocked",
+      "priority": 6,
+      "depends_on": [
+        "NEXOLAB-187",
+        "NEXOLAB-188"
+      ],
+      "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
+    },
+    {
+      "id": "NEXOLAB-185",
+      "issue": 185,
+      "title": "Establish a controlled Prettier baseline without broad unrelated rewrites",
+      "status": "ready",
+      "priority": 50,
+      "depends_on": [],
+      "track": "separate-maintenance"
     }
   ]
 }
