@@ -94,7 +94,6 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
         laboratory: "Security acceptance · Лабораторія 1",
         zone: "КК2",
         node_id: climateChamberId,
-        climate_chamber_id: climateChamberId,
         equipment_type: "Холодильна вітрина",
         manufacturer: "ColdStream",
         model: "Premium 1250",
@@ -105,14 +104,9 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
       },
     });
     expect(response.status()).toBe(201);
-    const equipment = (await response.json()) as {
-      id: string;
-      node_id: string;
-      climate_chamber_id: string;
-    };
+    const equipment = (await response.json()) as { id: string; node_id: string };
     expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(equipment.node_id).toBe(climateChamberId);
-    expect(equipment.climate_chamber_id).toBe(climateChamberId);
     equipmentId = equipment.id;
     equipmentRoute = `/refrigeration/${equipmentId}`;
 
@@ -156,7 +150,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
         page.getByText("Authorization bearer token is required", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }),
       ).toHaveCount(0);
     } finally {
       await context.close();
@@ -170,7 +164,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expectAccessRole(page, "viewer");
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }),
       ).toBeHidden();
 
       const draftResponse = await context.request.get(
@@ -202,7 +196,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await openEquipment(page);
       await expectAccessRole(page, "operator");
       await expect(
-        page.getByRole("button", { name: "Редагувати схему та датчики" }).first(),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }).first(),
       ).toBeVisible();
 
       await page.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
