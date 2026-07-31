@@ -4,7 +4,7 @@
   "sprint": "BASELINE-RECONCILIATION-1",
   "task": "NEXOLAB-186",
   "issue": 186,
-  "pull_request": null,
+  "pull_request": 206,
   "branch": "chore/186-source-of-truth-reconciliation",
   "status": "review",
   "timestamp": "2026-08-01T01:20:00+03:00",
@@ -52,5 +52,5 @@
     "real-hardware validation",
     "production/site deployment"
   ],
-  "next_action": "Open a focused PR for Issue #186, require standard green CI and resolve review findings. After squash merge, mark #186 done and start Issue #198 from current main as the next primary Work Package."
+  "next_action": "Require PR #206 standard CI to pass and resolve review findings. After squash merge, mark #186 done and start Issue #198 from current main as the next primary Work Package."
 }
