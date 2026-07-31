@@ -57,24 +57,34 @@
       "id": "NEXOLAB-186",
       "issue": 186,
       "title": "Reconcile stale milestone trackers and superseded pull requests",
-      "status": "ready",
+      "status": "queued",
       "priority": 3,
-      "depends_on": ["NEXOLAB-183"]
+      "depends_on": ["NEXOLAB-183"],
+      "activation": "Set in_progress only after PR #190 is merged and NEXOLAB-183 is marked done."
+    },
+    {
+      "id": "NEXOLAB-198",
+      "issue": 198,
+      "title": "Close the MQTT-to-PostgreSQL telemetry durability gap",
+      "status": "queued",
+      "priority": 4,
+      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"],
+      "activation": "Issue #186 must classify and sequence this high-priority data-integrity Work Package."
     },
     {
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
-      "status": "ready",
-      "priority": 4,
+      "status": "queued",
+      "priority": 5,
       "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
     },
     {
       "id": "NEXOLAB-188",
       "issue": 188,
       "title": "Define and prove offline operator authentication",
-      "status": "ready",
-      "priority": 5,
+      "status": "queued",
+      "priority": 6,
       "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
     },
     {
@@ -82,18 +92,20 @@
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked",
-      "priority": 6,
-      "depends_on": ["NEXOLAB-187", "NEXOLAB-188"],
+      "priority": 7,
+      "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
       "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
     },
     {
       "id": "NEXOLAB-185",
       "issue": 185,
       "title": "Establish a controlled Prettier baseline without broad unrelated rewrites",
-      "status": "ready",
+      "status": "in_progress",
       "priority": 50,
       "depends_on": [],
-      "track": "separate-maintenance"
+      "track": "separate-maintenance",
+      "active_child_issue": 191,
+      "pull_request": 192
     }
   ]
 }
