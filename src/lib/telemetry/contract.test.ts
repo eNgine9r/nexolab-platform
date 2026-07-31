@@ -76,7 +76,19 @@ describe("telemetry contract parsers", () => {
     });
     expect(parseTelemetryLiveMessage({ type: "error", detail: "resume limit" })).toEqual({
       kind: "error",
+      code: "websocket_error",
       detail: "resume limit",
+    });
+    expect(
+      parseTelemetryLiveMessage({
+        type: "error",
+        code: "organization_membership_not_found",
+        detail: "Organization membership not found",
+      }),
+    ).toEqual({
+      kind: "error",
+      code: "organization_membership_not_found",
+      detail: "Organization membership not found",
     });
   });
 
