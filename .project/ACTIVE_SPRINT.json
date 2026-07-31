@@ -46,9 +46,7 @@
       "title": "Reconcile architecture, roadmap, offline dependencies and current state",
       "status": "ready",
       "priority": 2,
-      "depends_on": [
-        "NEXOLAB-182"
-      ],
+      "depends_on": ["NEXOLAB-182"],
       "scope": [
         ".project/**",
         "docs/**",
