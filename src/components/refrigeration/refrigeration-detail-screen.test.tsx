@@ -43,7 +43,7 @@ describe("RefrigerationDetailScreen", () => {
       screen.queryByRole("dialog", { name: "Паспорт обладнання" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Відкрити паспорт обладнання" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Інформація про доступ" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Інформація про доступ")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Відкрити версії та публікацію схеми" }),
     ).toBeInTheDocument();
@@ -66,9 +66,7 @@ describe("RefrigerationDetailScreen", () => {
       screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Фільтри розміщення датчиків" }),
-    );
+    fireEvent.click(screen.getByLabelText("Фільтри розміщення датчиків"));
     const filterMenu = screen.getByText("Відображення датчиків").parentElement?.parentElement;
     if (!filterMenu) throw new Error("Filter menu is missing");
 
