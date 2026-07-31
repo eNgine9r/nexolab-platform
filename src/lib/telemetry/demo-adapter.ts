@@ -101,7 +101,7 @@ export class DemoTelemetryAdapter implements TelemetryAdapter {
     return {
       close: () => {
         closed = true;
-        handlers.onStateChange?.("disconnected");
+        handlers.onStateChange?.("idle");
       },
     };
   }
