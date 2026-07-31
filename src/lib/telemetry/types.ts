@@ -68,7 +68,16 @@ export interface TelemetryRuntimeConfig {
   websocketUrl: string | null;
 }
 
-export type TelemetryConnectionState = "connecting" | "connected" | "reconnecting" | "disconnected";
+export type TelemetryConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "offline"
+  | "unauthorized"
+  | "forbidden"
+  | "configuration_error"
+  | "disconnected";
 
 export interface TelemetryLiveHandlers {
   onSample: (sample: TelemetrySample) => void;
