@@ -201,7 +201,6 @@ export function configurationsEqual(
 export function unusedClimateChamberChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
-  _equipmentId: string,
 ): AvailableSensor[] {
   const used = new Set(configuration.map((sensor) => sensor.id));
   return channels.filter((channel) => !used.has(channel.channelId));
@@ -211,7 +210,6 @@ export function selectableReplacementChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
   sensorId: string,
-  _equipmentId: string,
 ): AvailableSensor[] {
   const usedByOther = new Set(
     configuration.filter((sensor) => sensor.id !== sensorId).map((sensor) => sensor.id),
