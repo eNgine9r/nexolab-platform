@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
@@ -31,29 +31,31 @@ async function waitForLayout() {
 }
 
 describe("RefrigerationDetailScreen", () => {
-  it("uses one expanded workspace without duplicated passport or live-sensor sidebars", async () => {
+  it("keeps passport and lifecycle controls out of the primary canvas flow", async () => {
     const equipment = referenceEquipment();
     render(<RefrigerationDetailScreen equipment={equipment} />);
     await waitForLayout();
 
-    expect(screen.getByText("Паспорт, lifecycle, фото та bindings")).toBeInTheDocument();
-    expect(screen.queryByText("Поточний стан")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Датчики в реальному часі" }),
+      screen.queryByText("Паспорт, lifecycle, фото та bindings"),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Фото обладнання", { selector: "h2" }),
+      screen.queryByRole("dialog", { name: "Паспорт обладнання" }),
     ).not.toBeInTheDocument();
-    if (equipment.climateChamberId) {
-      expect(
-        screen.getAllByText("Кліматична камера", { exact: true }).length,
-      ).toBeGreaterThan(0);
-    }
-    expect(screen.queryByText(/48 bindings/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Відкрити паспорт обладнання" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Інформація про доступ" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Відкрити версії та публікацію схеми" }),
+    ).toBeInTheDocument();
     expect(document.querySelectorAll("#layout-editor")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Відкрити паспорт обладнання" }));
+    expect(
+      screen.getByRole("dialog", { name: "Паспорт обладнання" }),
+    ).toBeInTheDocument();
   });
 
-  it("filters only the markers on the central image by side and shelf", async () => {
+  it("filters markers from the compact canvas toolbar", async () => {
     render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
     await waitForLayout();
 
@@ -64,7 +66,13 @@ describe("RefrigerationDetailScreen", () => {
       screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Задній фронт" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Фільтри розміщення датчиків" }),
+    );
+    const filterMenu = screen.getByText("Відображення датчиків").parentElement?.parentElement;
+    if (!filterMenu) throw new Error("Filter menu is missing");
+
+    fireEvent.click(within(filterMenu).getByRole("button", { name: "Задній фронт" }));
     expect(
       screen.queryByRole("button", { name: "Вибрати датчик 01F на схемі" }),
     ).not.toBeInTheDocument();
@@ -72,13 +80,34 @@ describe("RefrigerationDetailScreen", () => {
       screen.getByRole("button", { name: "Вибрати датчик 01R на схемі" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Полиця 2" }));
+    fireEvent.click(within(filterMenu).getByRole("button", { name: "2" }));
     expect(
       screen.getByRole("button", { name: "Вибрати датчик 07R на схемі" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Вибрати датчик 01R на схемі" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("uses scroll-free contour fit by default and keeps manual zoom available", async () => {
+    render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+    await waitForLayout();
+
+    const workspace = screen.getByTestId("equipment-image-workspace");
+    const viewport = screen.getByTestId("equipment-image-viewport");
+    const stage = screen.getByTestId("equipment-image-stage");
+    const fitButton = screen.getByRole("button", {
+      name: "Заповнити контур без прокручування",
+    });
+
+    expect(workspace).toHaveAttribute("data-fit-contour", "true");
+    expect(stage).toHaveAttribute("data-fit-contour", "true");
+    expect(viewport.className).toContain("overflow-hidden");
+    expect(fitButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(fitButton);
+    expect(workspace).toHaveAttribute("data-fit-contour", "false");
+    expect(viewport.className).toContain("overflow-auto");
   });
 
   it("keeps marker selection in the central canvas without a duplicated sensor list", async () => {
