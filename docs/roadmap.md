@@ -7,19 +7,19 @@ This roadmap is derived from current code, configuration, GitHub Issues, Pull Re
 
 ## 1. Verified milestone boundary
 
-| Boundary | Repository implementation | Operational/hardware acceptance |
-| --- | --- | --- |
-| Development operating standard | Complete in PR #184 | Process is active; compliance is evaluated per Work Package |
-| Read-only RS-485 acquisition | Production drivers exist for the narrow 34-series scope | Smoke and soak evidence exists for XJP60D `106-03`, `106-04` and LE-01MP `200–203`; broader register/hardware scope remains open |
-| Single edge continuity | SQLite outbox, local MQTT, QoS 1, health and restart logic exist | MQTT outage/reconnect/drain and Device Agent restart are evidenced for the narrow scope; power-loss/site-duration evidence is not complete |
-| Central telemetry platform | MQTT ingestion, PostgreSQL, REST, WebSocket, retention, metrics and local MinIO exist | Actual-host backup/restore/rollback and full outage evidence are incomplete |
-| Live dashboard | Typed live clients and explicit states exist; no silent demo fallback is allowed | Current site/browser state depends on environment; PR #175 identifies an active defect |
-| Laboratory sessions | Domain, persistence, API, UI, attribution, audit and recovery harness exist | Issue #82 is closed, but parent tracker #74 is stale and must be reconciled |
-| Refrigeration and climate catalog | Equipment lifecycle, KK1/KK2 catalog, layouts, sensor binding and image workflows exist | PR #175 remains a draft, non-mergeable correction for live connection and KK2 availability |
-| Alerts, reports and nodes | Substantial code and browser acceptance tooling exist | Not equivalent to full offline/site recovery acceptance |
-| Production security | JWT/RBAC/audit foundations exist; Supabase is optional | Secure offline operator authentication is not yet accepted |
-| Offline installation/update | Local runtime topology exists | Clean disconnected installation/update bundle is missing |
-| Backup/restore/rollback | Runbooks and focused scripts exist | One consolidated current-host acceptance package is missing |
+| Boundary                          | Repository implementation                                                               | Operational/hardware acceptance                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Development operating standard    | Complete in PR #184                                                                     | Process is active; compliance is evaluated per Work Package                                                                                |
+| Read-only RS-485 acquisition      | Production drivers exist for the narrow 34-series scope                                 | Smoke and soak evidence exists for XJP60D `106-03`, `106-04` and LE-01MP `200–203`; broader register/hardware scope remains open           |
+| Single edge continuity            | SQLite outbox, local MQTT, QoS 1, health and restart logic exist                        | MQTT outage/reconnect/drain and Device Agent restart are evidenced for the narrow scope; power-loss/site-duration evidence is not complete |
+| Central telemetry platform        | MQTT ingestion, PostgreSQL, REST, WebSocket, retention, metrics and local MinIO exist   | Actual-host backup/restore/rollback and full outage evidence are incomplete                                                                |
+| Live dashboard                    | Typed live clients and explicit states exist; no silent demo fallback is allowed        | Current site/browser state depends on environment; PR #175 identifies an active defect                                                     |
+| Laboratory sessions               | Domain, persistence, API, UI, attribution, audit and recovery harness exist             | Issue #82 is closed, but parent tracker #74 is stale and must be reconciled                                                                |
+| Refrigeration and climate catalog | Equipment lifecycle, KK1/KK2 catalog, layouts, sensor binding and image workflows exist | PR #175 remains a draft, non-mergeable correction for live connection and KK2 availability                                                 |
+| Alerts, reports and nodes         | Substantial code and browser acceptance tooling exist                                   | Not equivalent to full offline/site recovery acceptance                                                                                    |
+| Production security               | JWT/RBAC/audit foundations exist; Supabase is optional                                  | Secure offline operator authentication is not yet accepted                                                                                 |
+| Offline installation/update       | Local runtime topology exists                                                           | Clean disconnected installation/update bundle is missing                                                                                   |
+| Backup/restore/rollback           | Runbooks and focused scripts exist                                                      | One consolidated current-host acceptance package is missing                                                                                |
 
 ## 2. Current Work Package
 
@@ -88,17 +88,17 @@ It must not be mixed with product, architecture, offline or recovery Work Packag
 
 ## 4. Open Pull Request classification at baseline
 
-| PR | Baseline classification | Required next action |
-| --- | --- | --- |
-| #175 | Current defect intent, draft, non-mergeable | #186 must rebase/recreate or close with a replacement Issue |
-| #53 | Very old M3 branch, non-mergeable, scope largely present in later `main` | Candidate for superseded closure after unique-diff review |
+| PR   | Baseline classification                                                              | Required next action                                                                 |
+| ---- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| #175 | Current defect intent, draft, non-mergeable                                          | #186 must rebase/recreate or close with a replacement Issue                          |
+| #53  | Very old M3 branch, non-mergeable, scope largely present in later `main`             | Candidate for superseded closure after unique-diff review                            |
 | #109 | Old Tailscale acceptance branch, draft, non-mergeable, requires actual-host evidence | Extract still-needed evidence scope into current Work Package or close as superseded |
-| #111 | Old auth/RBAC branch, draft, non-mergeable, overlaps later security code | Compare unique work with `main`; use #188 for remaining offline-auth outcome |
-| #159 | Dependabot production dependency group | Handle independently after compatibility/security review |
-| #160 | Dependabot development dependency group with major upgrades | Do not merge as one blind group; split/review compatibility |
-| #1 | GitHub Action dependency update | Maintenance-only review |
-| #2 | GitHub Action dependency update | Maintenance-only review |
-| #184 | Merged | Squash commit `8371ee59e76e64963405706be79fc4a909f9fac9` |
+| #111 | Old auth/RBAC branch, draft, non-mergeable, overlaps later security code             | Compare unique work with `main`; use #188 for remaining offline-auth outcome         |
+| #159 | Dependabot production dependency group                                               | Handle independently after compatibility/security review                             |
+| #160 | Dependabot development dependency group with major upgrades                          | Do not merge as one blind group; split/review compatibility                          |
+| #1   | GitHub Action dependency update                                                      | Maintenance-only review                                                              |
+| #2   | GitHub Action dependency update                                                      | Maintenance-only review                                                              |
+| #184 | Merged                                                                               | Squash commit `8371ee59e76e64963405706be79fc4a909f9fac9`                             |
 
 ## 5. Stale or ambiguous Issue boundaries
 

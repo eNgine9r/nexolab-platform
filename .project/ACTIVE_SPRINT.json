@@ -35,9 +35,7 @@
       "title": "Reconcile architecture, roadmap, offline dependencies and current state",
       "status": "review",
       "priority": 2,
-      "depends_on": [
-        "NEXOLAB-182"
-      ],
+      "depends_on": ["NEXOLAB-182"],
       "branch": "docs/183-architecture-reconciliation",
       "scope": [
         ".project/**",
@@ -61,9 +59,7 @@
       "title": "Reconcile stale milestone trackers and superseded pull requests",
       "status": "ready",
       "priority": 3,
-      "depends_on": [
-        "NEXOLAB-183"
-      ]
+      "depends_on": ["NEXOLAB-183"]
     },
     {
       "id": "NEXOLAB-187",
@@ -71,10 +67,7 @@
       "title": "Build a verified offline installation and update bundle",
       "status": "ready",
       "priority": 4,
-      "depends_on": [
-        "NEXOLAB-183",
-        "NEXOLAB-186"
-      ]
+      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
     },
     {
       "id": "NEXOLAB-188",
@@ -82,10 +75,7 @@
       "title": "Define and prove offline operator authentication",
       "status": "ready",
       "priority": 5,
-      "depends_on": [
-        "NEXOLAB-183",
-        "NEXOLAB-186"
-      ]
+      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
     },
     {
       "id": "NEXOLAB-189",
@@ -93,10 +83,7 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked",
       "priority": 6,
-      "depends_on": [
-        "NEXOLAB-187",
-        "NEXOLAB-188"
-      ],
+      "depends_on": ["NEXOLAB-187", "NEXOLAB-188"],
       "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
     },
     {
