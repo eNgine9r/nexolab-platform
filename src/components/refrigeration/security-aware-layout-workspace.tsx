@@ -81,6 +81,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
   const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
+  const layoutRepository = runtime.repository;
   const [session, setSession] = useState<SecuritySession | null>(null);
   const [membership, setMembership] = useState<SecurityMembership | null>(null);
   const [securityState, setSecurityState] = useState<"loading" | "ready" | "error">(
@@ -162,7 +163,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   }, [runtime]);
 
   const liveRuntimeUnavailable =
-    runtime.mode === "live" && (!runtime.sessionClient || !runtime.repository);
+    runtime.mode === "live" && (!runtime.sessionClient || !layoutRepository);
   if (liveRuntimeUnavailable) {
     return (
       <div
@@ -182,7 +183,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
       </div>
     );
   }
-  if (securityState === "error" || !runtime.repository) {
+  if (securityState === "error" || !layoutRepository) {
     return (
       <div
         className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
@@ -302,7 +303,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           mode={effectiveMode}
           onModeChange={effectiveModeChange}
           onSelect={onSelect}
-          repository={runtime.repository}
+          repository={layoutRepository}
           lifecycleRepository={effectiveLifecycleRepository}
           channels={effectiveChannels}
           bindings={bindings}
@@ -321,7 +322,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           mode={effectiveMode}
           onModeChange={effectiveModeChange}
           onSelect={onSelect}
-          repository={runtime.repository}
+          repository={layoutRepository}
           canEditDraft={capabilities.canEdit}
           canPublish={capabilities.canPublish}
           canRestore={capabilities.canRestore}
@@ -363,7 +364,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
                 key={`layout-lifecycle-${equipment.id}-${workspaceEpoch}`}
                 equipment={equipment}
                 mode={effectiveMode}
-                repository={runtime.repository}
+                repository={layoutRepository}
                 actorId={runtime.actorId}
                 canEditDraft={capabilities.canEdit}
                 canPublish={capabilities.canPublish}
