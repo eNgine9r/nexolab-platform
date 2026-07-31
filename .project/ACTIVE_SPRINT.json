@@ -52,10 +52,10 @@
       "id": "NEXOLAB-198",
       "issue": 198,
       "title": "Close the MQTT-to-PostgreSQL telemetry durability gap",
-      "status": "queued",
+      "status": "ready",
       "priority": 4,
       "depends_on": ["NEXOLAB-186"],
-      "activation": "After Issue #186 is merged and marked done, start as the next primary data-integrity Work Package."
+      "activation": "The Sprint Runner will skip this task until NEXOLAB-186 is done; after the #206 merge transition it becomes the next executable Work Package."
     },
     {
       "id": "NEXOLAB-199",
