@@ -38,8 +38,8 @@ export function SensorPlacementManager({
   onSelect: (sensorId: string) => void;
 }) {
   const unused = useMemo(
-    () => unusedClimateChamberChannels(channels, configuration, equipmentId),
-    [channels, configuration, equipmentId],
+    () => unusedClimateChamberChannels(channels, configuration),
+    [channels, configuration],
   );
   const assignable = useMemo(
     () => unused.filter((channel) => channelPlacementConflict(channel, equipmentId) === null),
@@ -56,9 +56,9 @@ export function SensorPlacementManager({
   const replacementChannels = useMemo(
     () =>
       selectedSensor
-        ? selectableReplacementChannels(channels, configuration, selectedSensor.id, equipmentId)
+        ? selectableReplacementChannels(channels, configuration, selectedSensor.id)
         : [],
-    [channels, configuration, equipmentId, selectedSensor],
+    [channels, configuration, selectedSensor],
   );
 
   const add = () => {
