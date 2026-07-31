@@ -7,6 +7,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 
 const CONTROL_URL = "/api/device-agent/xjp60d";
 const STORAGE_PREFIX = "nexolab.xjp60d.active-points";
+const DEFAULT_ACTIVE_POINTS = ["106-03", "106-04"] as const;
 
 export type Xjp60dDiscoveryPoint = {
   channel_id: string;
@@ -57,22 +58,35 @@ function storageKey(organizationId: string | null): string {
   return `${STORAGE_PREFIX}.${organizationId ?? "default"}`;
 }
 
+function safeDefaultPoints(): string[] {
+  return [...DEFAULT_ACTIVE_POINTS];
+}
+
 function readCachedPoints(organizationId: string | null): string[] {
   try {
     const value = window.localStorage.getItem(storageKey(organizationId));
-    if (!value) return [];
+    if (!value) return safeDefaultPoints();
     const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string" && /^\d{1,3}-0[1-6]$/.test(item))
-      : [];
+    if (!Array.isArray(parsed)) return safeDefaultPoints();
+    const points = parsed.filter(
+      (item): item is string =>
+        typeof item === "string" && /^\d{1,3}-0[1-6]$/.test(item),
+    );
+    return points.length > 0 ? points : safeDefaultPoints();
   } catch {
-    return [];
+    return safeDefaultPoints();
   }
 }
 
-function writeCachedPoints(organizationId: string | null, points: readonly string[]): void {
+function writeCachedPoints(
+  organizationId: string | null,
+  points: readonly string[],
+): void {
   try {
-    window.localStorage.setItem(storageKey(organizationId), JSON.stringify(points));
+    window.localStorage.setItem(
+      storageKey(organizationId),
+      JSON.stringify(points),
+    );
   } catch {
     // Runtime configuration remains authoritative; cache is only for first paint.
   }
@@ -92,7 +106,9 @@ async function readError(response: Response): Promise<string> {
 }
 
 function normalizeConfiguration(value: unknown): Xjp60dConfiguration {
-  if (!value || typeof value !== "object") throw new Error("Некоректна відповідь Device Agent.");
+  if (!value || typeof value !== "object") {
+    throw new Error("Некоректна відповідь Device Agent.");
+  }
   const record = value as Partial<Xjp60dConfiguration>;
   if (
     typeof record.node_id !== "string" ||
@@ -104,18 +120,25 @@ function normalizeConfiguration(value: unknown): Xjp60dConfiguration {
   return {
     node_id: record.node_id,
     active_points: record.active_points.filter(
-      (item): item is string => typeof item === "string" && /^\d{1,3}-0[1-6]$/.test(item),
+      (item): item is string =>
+        typeof item === "string" && /^\d{1,3}-0[1-6]$/.test(item),
     ),
     discovery_units: record.discovery_units.filter(
-      (item): item is number => Number.isInteger(item) && item >= 1 && item <= 247,
+      (item): item is number =>
+        Number.isInteger(item) && item >= 1 && item <= 247,
     ),
     last_discovery: record.last_discovery ?? null,
   };
 }
 
-export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagement {
-  const [configuration, setConfiguration] = useState<Xjp60dConfiguration | null>(null);
-  const [cachedPoints, setCachedPoints] = useState<string[]>([]);
+export function useXjp60dSensorManagement(
+  options: Options,
+): Xjp60dSensorManagement {
+  const [configuration, setConfiguration] =
+    useState<Xjp60dConfiguration | null>(null);
+  const [cachedPoints, setCachedPoints] = useState<string[]>(() =>
+    options.enabled ? safeDefaultPoints() : [],
+  );
   const [isLoading, setIsLoading] = useState(options.enabled);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -157,7 +180,13 @@ export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagem
       setCachedPoints(next.active_points);
       writeCachedPoints(options.organizationId, next.active_points);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Не вдалося отримати список датчиків.");
+      // Keep the last persisted bounded set. A temporary control-plane outage
+      // must not expose every historical temperature channel on the dashboard.
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Не вдалося отримати список датчиків.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +213,11 @@ export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagem
       writeCachedPoints(options.organizationId, next.active_points);
       return next.last_discovery;
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Не вдалося виконати пошук датчиків.");
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Не вдалося виконати пошук датчиків.",
+      );
       return null;
     } finally {
       setIsDiscovering(false);
@@ -200,7 +233,10 @@ export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagem
         const response = await authenticatedFetch(CONTROL_URL, {
           method: "PUT",
           cache: "no-store",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ points: [...new Set(points)].sort() }),
         });
         if (!response.ok) throw new Error(await readError(response));
@@ -210,7 +246,11 @@ export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagem
         writeCachedPoints(options.organizationId, next.active_points);
         return true;
       } catch (nextError) {
-        setError(nextError instanceof Error ? nextError.message : "Не вдалося зберегти список датчиків.");
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Не вдалося зберегти список датчиків.",
+        );
         return false;
       } finally {
         setIsSaving(false);
