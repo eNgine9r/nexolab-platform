@@ -128,6 +128,13 @@ async function openEquipment(page: Page) {
   await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
 }
 
+async function expectAccessRole(page: Page, role: string) {
+  const accessDisclosure = page.getByLabel("Інформація про доступ");
+  await accessDisclosure.click();
+  await expect(page.getByText(role, { exact: true })).toBeVisible();
+  await accessDisclosure.click();
+}
+
 test("enforces authenticated organization roles and immutable audit attribution", async ({
   browser,
 }) => {
@@ -143,7 +150,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
         page.getByText("Authorization bearer token is required", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Редагувати схему" }),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }),
       ).toHaveCount(0);
     } finally {
       await context.close();
@@ -155,9 +162,9 @@ test("enforces authenticated organization roles and immutable audit attribution"
     const page = await context.newPage();
     try {
       await openEquipment(page);
-      await expect(page.getByText("viewer", { exact: true })).toBeVisible();
+      await expectAccessRole(page, "viewer");
       await expect(
-        page.getByRole("button", { name: "Редагувати схему" }),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }),
       ).toBeHidden();
 
       const draftResponse = await context.request.get(
@@ -187,13 +194,20 @@ test("enforces authenticated organization roles and immutable audit attribution"
     const page = await context.newPage();
     try {
       await openEquipment(page);
-      await expect(page.getByText("operator", { exact: true })).toBeVisible();
+      await expectAccessRole(page, "operator");
       await expect(
-        page.getByRole("button", { name: "Редагувати схему" }).first(),
+        page.getByRole("button", { name: /^Редагувати схему(?: та датчики)?$/ }).first(),
       ).toBeVisible();
+
+      await page.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+      const lifecycleDialog = page.getByRole("dialog", {
+        name: "Версії та публікація схеми",
+      });
+      await expect(lifecycleDialog).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Опублікувати поточну чернетку" }),
+        lifecycleDialog.getByRole("button", { name: "Опублікувати поточну чернетку" }),
       ).toBeHidden();
+      await lifecycleDialog.getByRole("button", { name: "Закрити версії схеми" }).click();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
@@ -220,7 +234,7 @@ test("enforces authenticated organization roles and immutable audit attribution"
     const page = await context.newPage();
     try {
       await openEquipment(page);
-      await expect(page.getByText("engineer", { exact: true })).toBeVisible();
+      await expectAccessRole(page, "engineer");
 
       const imageUploadPromise = page.waitForResponse(
         (response) =>
@@ -273,15 +287,20 @@ test("enforces authenticated organization roles and immutable audit attribution"
       await expect(
         page.locator("#layout-editor").getByText("Чернетка v3", { exact: true }),
       ).toBeVisible();
+      await page.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+      const lifecycleDialog = page.getByRole("dialog", {
+        name: "Версії та публікація схеми",
+      });
+      await expect(lifecycleDialog).toBeVisible();
       const publishPromise = page.waitForResponse(
         (response) =>
           response.request().method() === "POST" &&
           new URL(response.url()).pathname ===
             `/api/v1/equipment/${equipmentId}/layout/publish`,
       );
-      await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
+      await lifecycleDialog.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       expect((await publishPromise).status()).toBe(201);
-      await expect(page.getByText("Ревізія r1", { exact: true })).toBeVisible();
+      await expect(lifecycleDialog.getByText("Ревізія r1", { exact: true })).toBeVisible();
 
       const historyResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/history`,

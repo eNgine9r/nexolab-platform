@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
-import { ArrowLeft, AlertTriangle, ChevronDown, RadioTower } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  FileText,
+  RadioTower,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -71,6 +79,7 @@ export function RefrigerationDetailScreen({
   const [channelError, setChannelError] = useState<string | null>(null);
   const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [passportOpen, setPassportOpen] = useState(false);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
@@ -84,6 +93,20 @@ export function RefrigerationDetailScreen({
     setBindings([]);
     setChannels([]);
   }, [initialEquipment]);
+
+  useEffect(() => {
+    if (!passportOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPassportOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [passportOpen]);
 
   useEffect(() => {
     const catalog = runtime.climateCatalogRepository;
@@ -143,7 +166,7 @@ export function RefrigerationDetailScreen({
       setChannels([]);
       setChannelError(
         runtime.mode === "live" && !chamberId
-          ? "Для обладнання не вибрано кліматичну камеру. Відредагуйте паспорт перед роботою з датчиками."
+          ? "Для обладнання не вибрано кліматичну камеру."
           : null,
       );
       return;
@@ -224,6 +247,17 @@ export function RefrigerationDetailScreen({
   const visibleChamberLabel =
     chamberLabel ?? (equipment.climateChamberId ? "Кліматична камера" : "Камеру не вибрано");
 
+  const filterMenu = (
+    <LayoutFilterMenu
+      side={side}
+      shelf={shelf}
+      visibleCount={visibleSensors.length}
+      totalCount={equipment.sensors.length}
+      onSideChange={setSide}
+      onShelfChange={setShelf}
+    />
+  );
+
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
@@ -236,143 +270,76 @@ export function RefrigerationDetailScreen({
         <Topbar title={equipment.name} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[2100px]">
-            <header className="mb-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-4">
-              <div className="flex items-start gap-3">
-                <Link
-                  href="/refrigeration"
-                  aria-label="Назад до обладнання"
-                  title="Назад"
-                  className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 hover:text-white"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-xl font-semibold text-white">{equipment.name}</h1>
-                    <span
-                      className={clsx(
-                        "rounded-full border px-2.5 py-1 text-[10px]",
-                        equipmentStatusTone[equipment.status],
-                      )}
-                    >
-                      {equipmentStatusLabel[equipment.status]}
+            <header className="mb-2 flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-3">
+              <Link
+                href="/refrigeration"
+                aria-label="Назад до обладнання"
+                title="Назад"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h1 className="truncate text-base font-semibold text-white sm:text-lg">
+                    {equipment.name}
+                  </h1>
+                  <span
+                    className={clsx(
+                      "rounded-full border px-2 py-0.5 text-[9px]",
+                      equipmentStatusTone[equipment.status],
+                    )}
+                  >
+                    {equipmentStatusLabel[equipment.status]}
+                  </span>
+                  {equipment.climateChamberId ? (
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] text-cyan-200">
+                      <RadioTower className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{visibleChamberLabel}</span>
                     </span>
-                    {equipment.climateChamberId ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] text-cyan-200">
-                        <RadioTower className="h-3 w-3" />
-                        {visibleChamberLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 truncate text-xs text-slate-500">
-                    {equipment.location} · {equipment.model} · {equipment.serialNumber}
-                  </p>
+                  ) : null}
                 </div>
               </div>
+
+              <button
+                type="button"
+                aria-label="Відкрити паспорт обладнання"
+                title="Паспорт обладнання"
+                onClick={() => setPassportOpen(true)}
+                className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-400/10"
+              >
+                <FileText className="h-4 w-4" />
+                <span
+                  aria-hidden="true"
+                  className={clsx(
+                    "absolute right-1.5 bottom-1.5 h-2 w-2 rounded-full border border-[#091a31]",
+                    equipment.lifecycleStatus === "active"
+                      ? "bg-emerald-400"
+                      : equipment.lifecycleStatus === "maintenance"
+                        ? "bg-amber-400"
+                        : "bg-slate-400",
+                  )}
+                />
+              </button>
             </header>
 
-            <details className="group mb-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 px-4 py-3 transition hover:border-cyan-300/15 [&::-webkit-details-marker]:hidden">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-white">
-                      Паспорт, lifecycle, фото та bindings
-                    </span>
-                    <span
-                      className={`rounded-full border px-2 py-1 text-[9px] ${lifecycleTone[equipment.lifecycleStatus]}`}
-                    >
-                      {lifecycleLabel[equipment.lifecycleStatus]}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-[10px] text-slate-500">
-                    Паспорт v{equipment.version} · {equipment.laboratory ?? "Лабораторію не задано"}
-                    {equipment.zone ? ` · ${equipment.zone}` : ""} · {visibleChamberLabel}
-                  </p>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="pt-3">
-                <EquipmentLifecyclePanel
-                  equipment={equipment}
-                  repository={runtime.equipmentRepository}
-                  lifecycleRepository={runtime.lifecycleRepository}
-                  climateCatalogRepository={runtime.climateCatalogRepository}
-                  canManage={canManageEquipment}
-                  onEquipmentChange={setEquipmentRecord}
-                  onBindingsChanged={() => setBindingEpoch((current) => current + 1)}
-                />
-              </div>
-            </details>
-
             {retired ? (
-              <div className="mb-3 flex items-start gap-2 rounded-2xl border border-slate-400/15 bg-slate-400/[0.06] p-3 text-xs text-slate-300">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                Обладнання виведено з експлуатації. Схема, фото, історія та sensor bindings
-                залишаються доступними лише для перегляду й аудиту.
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-400/15 bg-slate-400/[0.06] px-3 py-2 text-[10px] text-slate-300">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Лише перегляд: обладнання виведено з експлуатації.
               </div>
             ) : null}
 
             {channelError ? (
               <div
                 role="alert"
-                className="mb-3 flex items-start gap-2 rounded-2xl border border-rose-400/20 bg-rose-400/[0.07] p-3 text-xs text-rose-200"
+                className="mb-2 flex items-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.07] px-3 py-2 text-[10px] text-rose-200"
               >
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <AlertTriangle className="h-4 w-4 shrink-0" />
                 {channelError}
               </div>
             ) : null}
-
-            <section className="mb-3 flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-[#08182e]/90 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {sideOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setSide(option.value)}
-                    aria-pressed={side === option.value}
-                    className={clsx(
-                      "rounded-xl border px-3 py-2 text-[11px] transition",
-                      side === option.value
-                        ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
-                        : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShelf("all")}
-                  aria-pressed={shelf === "all"}
-                  className={clsx(
-                    "rounded-xl border px-3 py-2 text-[11px] transition",
-                    shelf === "all"
-                      ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
-                      : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
-                  )}
-                >
-                  Усі полиці
-                </button>
-                {shelves.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setShelf(item)}
-                    aria-pressed={shelf === item}
-                    className={clsx(
-                      "rounded-xl border px-3 py-2 text-[11px] transition",
-                      shelf === item
-                        ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
-                        : "border-white/10 bg-white/[0.025] text-slate-500 hover:text-slate-200",
-                    )}
-                  >
-                    Полиця {item}
-                  </button>
-                ))}
-              </div>
-            </section>
 
             <SecurityAwareRefrigerationLayoutWorkspace
               equipment={equipment}
@@ -387,11 +354,168 @@ export function RefrigerationDetailScreen({
               onEquipmentChange={setEquipmentRecord}
               onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
               forceReadOnly={retired}
+              toolbarTools={filterMenu}
             />
           </div>
         </main>
       </div>
+
+      {passportOpen ? (
+        <div
+          className="fixed inset-0 z-[90] flex justify-end bg-[#020817]/75 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPassportOpen(false);
+          }}
+        >
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="equipment-passport-title"
+            className="flex h-full w-full max-w-3xl flex-col border-l border-cyan-300/15 bg-[#07182f] shadow-2xl shadow-black/50"
+          >
+            <header className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-3">
+              <div className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-200">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 id="equipment-passport-title" className="truncate text-sm font-semibold text-white">
+                  Паспорт обладнання
+                </h2>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={clsx(
+                      "rounded-full border px-2 py-0.5 text-[8px]",
+                      lifecycleTone[equipment.lifecycleStatus],
+                    )}
+                  >
+                    {lifecycleLabel[equipment.lifecycleStatus]}
+                  </span>
+                  <span className="text-[9px] text-slate-500">v{equipment.version}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Закрити паспорт обладнання"
+                onClick={() => setPassportOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-xl border border-white/[0.08] text-slate-400 hover:border-cyan-300/20 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+              <EquipmentLifecyclePanel
+                equipment={equipment}
+                repository={runtime.equipmentRepository}
+                lifecycleRepository={runtime.lifecycleRepository}
+                climateCatalogRepository={runtime.climateCatalogRepository}
+                canManage={canManageEquipment}
+                onEquipmentChange={setEquipmentRecord}
+                onBindingsChanged={() => setBindingEpoch((current) => current + 1)}
+              />
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function LayoutFilterMenu({
+  side,
+  shelf,
+  visibleCount,
+  totalCount,
+  onSideChange,
+  onShelfChange,
+}: {
+  side: "all" | SensorSide;
+  shelf: number | "all";
+  visibleCount: number;
+  totalCount: number;
+  onSideChange: (value: "all" | SensorSide) => void;
+  onShelfChange: (value: number | "all") => void;
+}) {
+  return (
+    <details className="group relative">
+      <summary
+        aria-label="Фільтри розміщення датчиків"
+        title="Фільтри датчиків"
+        className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-100 [&::-webkit-details-marker]:hidden"
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+      </summary>
+      <div className="absolute top-11 right-0 z-[70] w-[min(92vw,420px)] rounded-2xl border border-cyan-300/15 bg-[#07182f]/98 p-3 shadow-2xl shadow-black/45 backdrop-blur-xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-[10px] font-semibold text-white">Відображення датчиків</span>
+          <span className="rounded-full border border-white/[0.07] px-2 py-0.5 text-[8px] text-slate-400">
+            {visibleCount}/{totalCount}
+          </span>
+        </div>
+
+        <FilterGroup label="Фронт">
+          {sideOptions.map((option) => (
+            <FilterButton
+              key={option.value}
+              active={side === option.value}
+              onClick={() => onSideChange(option.value)}
+            >
+              {option.label}
+            </FilterButton>
+          ))}
+        </FilterGroup>
+
+        <FilterGroup label="Полиця">
+          <FilterButton active={shelf === "all"} onClick={() => onShelfChange("all")}>
+            Усі
+          </FilterButton>
+          {shelves.map((item) => (
+            <FilterButton
+              key={item}
+              active={shelf === item}
+              onClick={() => onShelfChange(item)}
+            >
+              {item}
+            </FilterButton>
+          ))}
+        </FilterGroup>
+      </div>
+    </details>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-2 first:mt-0">
+      <p className="mb-1.5 text-[8px] tracking-[0.14em] text-slate-500 uppercase">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={clsx(
+        "rounded-lg border px-2.5 py-1.5 text-[9px] transition",
+        active
+          ? "border-cyan-300/25 bg-cyan-400/15 text-cyan-100"
+          : "border-white/[0.07] bg-white/[0.02] text-slate-500 hover:text-slate-200",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

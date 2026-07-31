@@ -162,7 +162,11 @@ export function CameraScopedLayoutEditor({
         draft.version,
         configurationPayload(configuration),
       );
-      const next = buildStagedSensorConfiguration(result.bindings, channels, result.draft.placements);
+      const next = buildStagedSensorConfiguration(
+        result.bindings,
+        channels,
+        result.draft.placements,
+      );
       setDraft(result.draft);
       setPersisted(next);
       setConfiguration(next);
@@ -170,15 +174,24 @@ export function CameraScopedLayoutEditor({
       onEquipmentChange(result.equipment);
       onDraftChange(result.draft);
       onModeChange("view");
-      setNotice(`Конфігурацію ${next.length} датчиків збережено однією транзакцією.`);
+      setNotice(`Конфігурацію ${next.length} датчиків збережено.`);
     } catch (cause) {
       const typed = cause as Error & { code?: string; actualVersion?: number };
-      if (typed.code === "equipment_version_conflict" || typed.code === "layout_version_conflict") {
+      if (
+        typed.code === "equipment_version_conflict" ||
+        typed.code === "layout_version_conflict"
+      ) {
         setError(
-          `Конфігурацію змінив інший оператор${typed.actualVersion ? ` · актуальна версія ${typed.actualVersion}` : ""}. Оновіть сторінку та повторіть дію.`,
+          `Конфігурацію змінив інший оператор${
+            typed.actualVersion ? ` · актуальна версія ${typed.actualVersion}` : ""
+          }. Оновіть сторінку та повторіть дію.`,
         );
       } else {
-        setError(cause instanceof Error ? cause.message : "Конфігурацію датчиків не збережено.");
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Конфігурацію датчиків не збережено.",
+        );
       }
     } finally {
       setState("ready");
@@ -186,7 +199,9 @@ export function CameraScopedLayoutEditor({
   };
 
   const cancel = () => {
-    setConfiguration(persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })));
+    setConfiguration(
+      persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })),
+    );
     setEditingSensorId(null);
     setError(null);
     setNotice(null);
@@ -199,8 +214,13 @@ export function CameraScopedLayoutEditor({
   };
 
   const applyMovement = (sensorId: string, point: NormalizedPoint) => {
-    const snapped = applySnap(point, snapMode, { gridDivisions: 40, slots: snapSlots });
-    updateConfiguration(moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y));
+    const snapped = applySnap(point, snapMode, {
+      gridDivisions: 40,
+      slots: snapSlots,
+    });
+    updateConfiguration(
+      moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y),
+    );
   };
 
   const markerKeyDown = (
@@ -214,7 +234,10 @@ export function CameraScopedLayoutEditor({
     const delta = arrowDelta(event.key, step);
     if (!delta) return;
     event.preventDefault();
-    applyMovement(sensorId, { x: sensor.x + delta.x, y: sensor.y + delta.y });
+    applyMovement(sensorId, {
+      x: sensor.x + delta.x,
+      y: sensor.y + delta.y,
+    });
   };
 
   const markerPointerDown = (
@@ -224,7 +247,11 @@ export function CameraScopedLayoutEditor({
     onSelect(sensorId);
     if (mode !== "edit") return;
     const sensor = configuration.find((candidate) => candidate.id === sensorId);
-    const point = pointFromPointer(event.clientX, event.clientY, stageRef.current);
+    const point = pointFromPointer(
+      event.clientX,
+      event.clientY,
+      stageRef.current,
+    );
     if (!sensor || !point) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -235,10 +262,16 @@ export function CameraScopedLayoutEditor({
     };
   };
 
-  const markerPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const markerPointerMove = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId || mode !== "edit") return;
-    const point = pointFromPointer(event.clientX, event.clientY, stageRef.current);
+    const point = pointFromPointer(
+      event.clientX,
+      event.clientY,
+      stageRef.current,
+    );
     if (!point) return;
     event.preventDefault();
     applyMovement(drag.sensorId, {
@@ -247,7 +280,9 @@ export function CameraScopedLayoutEditor({
     });
   };
 
-  const markerPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const markerPointerUp = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
@@ -260,33 +295,32 @@ export function CameraScopedLayoutEditor({
     return (
       <div className="rounded-2xl border border-cyan-400/15 bg-[#08182e]/90 p-6 text-sm text-cyan-200">
         <LoaderCircle className="mr-2 inline h-4 w-4 animate-spin" />
-        Завантаження camera-scoped конфігурації…
+        Завантаження схеми…
       </div>
     );
   }
 
   return (
-    <div id="layout-editor" className="space-y-3">
+    <div id="layout-editor">
       <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
-        <div className="mb-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-white">Фото та схема розміщення</h2>
-              <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-[9px] text-cyan-200">
-                Чернетка v{draft.version}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 className="text-xs font-semibold text-white sm:text-sm">
+              Фото та схема розміщення
+            </h2>
+            <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-0.5 text-[8px] text-cyan-200">
+              Чернетка v{draft.version}
+            </span>
+            {dirty ? (
+              <span
+                className="h-2 w-2 rounded-full bg-amber-400"
+                title="Незбережені зміни"
+                role="status"
+                aria-label="Незбережені зміни"
+              >
+                <span className="sr-only">Незбережені зміни</span>
               </span>
-              <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-[9px] text-blue-200">
-                Камера {equipment.nodeId}
-              </span>
-              {dirty ? (
-                <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[9px] text-amber-200">
-                  Незбережені зміни
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Склад, параметри й координати датчиків зберігаються однією дією.
-            </p>
+            ) : null}
           </div>
 
           {mode === "view" ? (
@@ -299,15 +333,15 @@ export function CameraScopedLayoutEditor({
               <Pencil className="h-4 w-4" />
             </RefrigerationIconButton>
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <label className="flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-2 text-slate-400">
                 <Grid3X3 className="h-3.5 w-3.5" />
                 <span className="sr-only">Режим прив’язки</span>
                 <select
                   aria-label="Режим прив’язки"
                   value={snapMode}
                   onChange={(event) => setSnapMode(event.target.value as SnapMode)}
-                  className="bg-transparent text-xs text-slate-300 outline-none"
+                  className="max-w-32 bg-transparent text-[10px] text-slate-300 outline-none"
                 >
                   <option value="none">Без прив’язки</option>
                   <option value="grid">Сітка 40 × 40</option>
@@ -327,7 +361,11 @@ export function CameraScopedLayoutEditor({
                   <Save className="h-4 w-4" />
                 )}
               </RefrigerationIconButton>
-              <RefrigerationIconButton label="Скасувати редагування" onClick={cancel} size="lg">
+              <RefrigerationIconButton
+                label="Скасувати редагування"
+                onClick={cancel}
+                size="lg"
+              >
                 <X className="h-4 w-4" />
               </RefrigerationIconButton>
             </div>
@@ -350,16 +388,17 @@ export function CameraScopedLayoutEditor({
         {error ? (
           <p
             role="alert"
-            className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
+            className="mb-2 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             {error}
           </p>
         ) : null}
+
         {notice ? (
           <p
             role="status"
-            className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
+            className="mb-2 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200"
           >
             <Check className="h-4 w-4" />
             {notice}
@@ -397,7 +436,10 @@ function pointFromPointer(
   if (!stage) return null;
   const rect = stage.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
-  return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  return {
+    x: (clientX - rect.left) / rect.width,
+    y: (clientY - rect.top) / rect.height,
+  };
 }
 
 function arrowDelta(key: string, step: number): NormalizedPoint | null {
