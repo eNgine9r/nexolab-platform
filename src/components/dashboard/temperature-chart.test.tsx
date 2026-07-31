@@ -18,7 +18,7 @@ function sample(
     value,
     unit: "degC",
     quality,
-    source: "dixell-xjp60d",
+    source: "dashboard-acceptance",
     equipment_id: `K${channelId.split("-")[0]}`,
     channel_id: channelId,
     alarm: null,
@@ -28,7 +28,7 @@ function sample(
 }
 
 describe("TemperatureChart live discovery", () => {
-  it("renders newly valid KK2 and KK1 channels without a frontend allowlist", () => {
+  it("renders newly valid KK2 and KK1 channels without a source allowlist", () => {
     const samples = [
       sample("106-03", 4.5),
       sample("110-06", 5.5),
@@ -51,6 +51,8 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("106-03")).toBeInTheDocument();
     expect(screen.getByText("110-06")).toBeInTheDocument();
     expect(screen.getByText("126-04")).toBeInTheDocument();
+    expect(screen.getByText("4,5 °C")).toBeInTheDocument();
+    expect(screen.getByText("6,5 °C")).toBeInTheDocument();
     expect(screen.queryByText("101-01")).not.toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Реальний графік історії температур XJP60D" }),
