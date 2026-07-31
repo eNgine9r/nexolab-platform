@@ -14,7 +14,7 @@ This checklist classifies dependencies and separates static architecture review 
 | FastAPI Telemetry Service    | Local mandatory                                  | Runs against local PostgreSQL, MQTT and optional local MinIO                   |
 | PostgreSQL 16                | Local mandatory                                  | Central source of truth; named volume; no standard host port exposure          |
 | Eclipse Mosquitto            | Local mandatory                                  | Local edge and central brokers; persistent data volumes                        |
-| Edge SQLite                  | Local mandatory                                  | Stores outbound telemetry while central/MQTT delivery is unavailable           |
+| Edge SQLite                  | Local mandatory                                  | Stores outbound telemetry until the configured MQTT broker acknowledges QoS 1  |
 | MinIO                        | Local mandatory when image workflows are enabled | Local private S3-compatible storage; can be disabled at service level          |
 | Serial/Modbus libraries      | Local mandatory on edge hardware                 | Read-only acquisition; no internet dependency                                  |
 | Docker/Compose               | Local packaging/runtime dependency               | Must be preinstalled or included in the site installation procedure            |
@@ -38,27 +38,28 @@ Status meanings:
 - **Partial** — some layers are implemented or evidenced, but the complete requirement is not accepted.
 - **Missing** — required artifact or evidence was not found.
 
-| Gate                                                               | Status                           | Evidence and boundary                                                                                  |
-| ------------------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Core data path has no cloud dependency                             | Static pass                      | Edge, MQTT, FastAPI, PostgreSQL, MinIO and dashboard have local configurations                         |
-| Browser assets work without remote fonts/CDN                       | Static pass                      | Root layout imports local CSS and system fonts; no mandatory CDN/font endpoint was found               |
-| Edge acquisition survives central/MQTT outage                      | Verified for narrow scope        | 2026-07-23 combined Modbus soak recorded SQLite queue growth, reconnect and drain                      |
-| Edge hardware remains read-only                                    | Static pass plus narrow evidence | Validated drivers use FC03; hardware override remains explicit; no write path was found                |
-| Central services start without internet after images exist locally | Static pass                      | Compose topology is local and loopback-bound                                                           |
-| Clean disconnected installation                                    | Missing                          | Default image acquisition uses GHCR/Docker Hub; no accepted local OCI bundle exists                    |
-| Disconnected update package                                        | Missing                          | No versioned offline update bundle and manifest have been accepted                                     |
-| Offline rollback preserving data                                   | Partial                          | Scripts/runbooks preserve named volumes; full disconnected update/rollback proof is missing            |
-| Secure local operator authentication                               | Partial                          | JWT validation exists; Supabase is optional; production offline login/identity authority is unresolved |
-| Local authorization/RBAC                                           | Partial                          | Backend/frontend contracts exist; complete disconnected operator acceptance is not established         |
-| PostgreSQL backup procedure                                        | Static pass                      | Logical backup runbook exists                                                                          |
-| PostgreSQL restore proof on current baseline                       | Missing in this audit            | Procedure exists, but no current verified artifact was inspected                                       |
-| MinIO backup/restore proof                                         | Missing                          | Named storage exists; complete object backup/restore evidence was not found                            |
-| MQTT persistence/recovery                                          | Partial                          | Edge MQTT outage is evidenced; full central broker/host recovery package is not                        |
-| Host restart/reboot                                                | Partial                          | Focused restart tooling exists; complete current central/edge evidence is not consolidated             |
-| Power-loss recovery                                                | Missing                          | No accepted controlled power-loss evidence was found                                                   |
-| Logs/health/diagnostics remain local                               | Static pass                      | Local health, readiness, metrics and Compose logs are available                                        |
-| Retention is bounded                                               | Static pass                      | Central retention policy and batch limits are configured                                               |
-| Production/site cutover                                            | Not performed                    | Explicitly outside Issue #183                                                                          |
+| Gate                                                               | Status                           | Evidence and boundary                                                                                                                          |
+| ------------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core data path has no cloud dependency                             | Static pass                      | Edge, MQTT, FastAPI, PostgreSQL, MinIO and dashboard have local configurations                                                                 |
+| Browser assets work without remote fonts/CDN                       | Static pass                      | Root layout imports local CSS and system fonts; no mandatory CDN/font endpoint was found                                                       |
+| Edge acquisition survives central/MQTT outage                      | Verified for narrow scope        | 2026-07-23 combined Modbus soak recorded SQLite queue growth, reconnect and drain to the MQTT boundary                                         |
+| End-to-end MQTT-to-PostgreSQL durability                           | Missing — Issue #198             | Edge rows are deleted after broker QoS 1 acknowledgement while central persistence is still in memory; service termination can lose telemetry |
+| Edge hardware remains read-only                                    | Static pass plus narrow evidence | Validated drivers use FC03; hardware override remains explicit; no write path was found                                                        |
+| Central services start without internet after images exist locally | Static pass                      | Compose topology is local and loopback-bound                                                                                                   |
+| Clean disconnected installation                                    | Missing                          | Default image acquisition uses GHCR/Docker Hub; no accepted local OCI bundle exists                                                            |
+| Disconnected update package                                        | Missing                          | No versioned offline update bundle and manifest have been accepted                                                                             |
+| Offline rollback preserving data                                   | Partial                          | Scripts/runbooks preserve named volumes; full disconnected update/rollback proof is missing                                                    |
+| Secure local operator authentication                               | Partial                          | JWT validation exists; Supabase is optional; production offline login/identity authority is unresolved                                         |
+| Local authorization/RBAC                                           | Partial                          | Backend/frontend contracts exist; complete disconnected operator acceptance is not established                                                 |
+| PostgreSQL backup procedure                                        | Static pass                      | Logical backup runbook exists                                                                                                                  |
+| PostgreSQL restore proof on current baseline                       | Missing in this audit            | Procedure exists, but no current verified artifact was inspected                                                                               |
+| MinIO backup/restore proof                                         | Missing                          | Named storage exists; complete object backup/restore evidence was not found                                                                    |
+| MQTT persistence/recovery                                          | Partial                          | Edge MQTT outage is evidenced; central durable staging/replay and full broker/host recovery are not                                             |
+| Host restart/reboot                                                | Partial                          | Focused restart tooling exists; complete current central/edge evidence is not consolidated                                                     |
+| Power-loss recovery                                                | Missing                          | No accepted controlled power-loss evidence was found                                                                                           |
+| Logs/health/diagnostics remain local                               | Static pass                      | Local health, readiness, metrics and Compose logs are available                                                                                |
+| Retention is bounded                                               | Static pass                      | Central retention policy and batch limits are configured                                                                                       |
+| Production/site cutover                                            | Not performed                    | Explicitly outside Issue #183                                                                                                                  |
 
 ## 3. Runtime external-call budget
 
@@ -77,7 +78,7 @@ Optional remote-access or cloud integrations must fail independently and show an
 
 ## 4. Offline installation gap
 
-The largest current gap is artifact delivery, not the local service topology.
+The largest installation gap is artifact delivery, not the local service topology.
 
 A complete bundle must include:
 
@@ -105,20 +106,25 @@ Current choices are:
 
 Issue #188 must select and prove a fail-closed local operator authentication profile.
 
-## 6. Recovery gap
+## 6. Durability and recovery gap
 
-Existing procedures are useful but do not form one current acceptance package. Required proof includes:
+The current MQTT-to-PostgreSQL handoff is not end-to-end durable. The Device Agent deletes edge SQLite records after broker QoS 1 acknowledgement, but the Telemetry Service persists through a bounded in-memory queue. A service termination during PostgreSQL outage can therefore discard an acknowledged event.
+
+Issue #198 must implement a local durable central staging/replay boundary before restart and outage acceptance can claim no silent telemetry loss.
+
+Existing recovery procedures are useful but do not form one current acceptance package. Required proof includes:
 
 - PostgreSQL backup and isolated restore;
 - MinIO object backup and restore;
 - central MQTT persistence;
+- durable central ingestion staging and replay;
 - edge SQLite outbox preservation;
 - service and host restart;
 - update rollback with named-volume identity preservation;
 - stale/offline/live UI transitions;
 - controlled power interruption where explicitly approved.
 
-Issue #189 owns the consolidated recovery evidence.
+Issue #189 owns the consolidated recovery evidence after #198 closes the durability gap.
 
 ## 7. Acceptance rules
 
@@ -129,6 +135,7 @@ Offline readiness is complete only when:
 3. a browser completes the main local workflows;
 4. edge simulator mode and the approved hardware mode do not require internet;
 5. authentication and authorization remain secure and usable locally;
-6. backup, restore, update and rollback are executed and evidenced;
-7. power loss or its explicitly approved equivalent is tested;
-8. optional online services can be removed without data loss or core failure.
+6. MQTT-to-PostgreSQL delivery remains recoverable across PostgreSQL outage and Telemetry Service restart;
+7. backup, restore, update and rollback are executed and evidenced;
+8. power loss or its explicitly approved equivalent is tested;
+9. optional online services can be removed without data loss or core failure.
