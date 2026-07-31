@@ -83,7 +83,8 @@ A Telemetry Service termination during PostgreSQL outage can therefore lose an a
 
 ### Open Pull Requests
 
-PR #192 is the only open PR. It is a valid draft formatting-inventory Work Package under #191/#185. It must remain draft until updated or recreated from the post-#186 `main` baseline with mandatory project-state/checkpoint changes and fresh green CI.
+- PR #206 is the active, non-draft source-of-truth reconciliation PR for Issue #186. Its final diff is limited to project state and roadmap files and must pass CI/review before squash merge.
+- PR #192 is the only other open PR. It is a valid draft formatting-inventory Work Package under #191/#185. It must remain draft until updated or recreated from the post-#186 `main` baseline with mandatory project-state/checkpoint changes and fresh green CI.
 
 ## Residual Work Packages created by Issue #186
 
@@ -99,8 +100,8 @@ PR #192 is the only open PR. It is a valid draft formatting-inventory Work Packa
 
 - NEXOLAB-182 / #182 — Done through PR #184.
 - NEXOLAB-183 / #183 — Done through PR #190.
-- NEXOLAB-186 / #186 — In review on `chore/186-source-of-truth-reconciliation`.
-- NEXOLAB-198 / #198 — Queued as the next primary data-integrity Work Package after #186 merges.
+- NEXOLAB-186 / #186 — In review in PR #206 on `chore/186-source-of-truth-reconciliation`.
+- NEXOLAB-198 / #198 — Ready as the next primary data-integrity Work Package; dependency #186 prevents execution before merge.
 - NEXOLAB-199 / #199 — Queued focused live-connection defect after #186.
 - NEXOLAB-187 / #187 — Queued offline installation/update bundle.
 - NEXOLAB-188 / #188 — Queued offline operator authentication.
@@ -125,4 +126,4 @@ PR #192 is the only open PR. It is a valid draft formatting-inventory Work Packa
 
 ## Next action
 
-Require PR for Issue #186 to pass changed-file formatting, ESLint, strict typecheck, Vitest and production build. After squash merge, mark #186 Done and start Issue #198 from current `main` as the next primary Work Package. Keep PR #192 and all maintenance/hardware work separate.
+Require PR #206 to pass changed-file formatting, ESLint, strict typecheck, Vitest, production build and review. After squash merge, mark #186 Done and start Issue #198 from current `main` as the next primary Work Package. Keep PR #192 and all maintenance/hardware work separate.
