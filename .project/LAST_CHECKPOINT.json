@@ -1,11 +1,49 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "PROCESS-ADOPTION-1",
-  "task": "NEXOLAB-182",
-  "issue": 182,
-  "status": "in_progress",
-  "timestamp": "2026-07-31T22:15:00+03:00",
-  "summary": "Offline-first workflow foundation is being introduced on a dedicated feature branch.",
-  "next_action": "Review and merge the operating-standard Pull Request, then execute NEXOLAB-183."
+  "sprint": "BASELINE-RECONCILIATION-1",
+  "task": "NEXOLAB-183",
+  "issue": 183,
+  "pull_request": 190,
+  "branch": "docs/183-architecture-reconciliation",
+  "status": "ready_to_merge",
+  "timestamp": "2026-08-01T00:45:00+03:00",
+  "baseline_main_sha": "8371ee59e76e64963405706be79fc4a909f9fac9",
+  "summary": "Verified the current architecture and corrected PR #190 review findings. Successor Work Packages are not executable before #183 is Done; Issue #198 owns the confirmed MQTT-to-PostgreSQL durability gap; and the baseline preserves merged PR #144 as verified fresh-volume central software recovery while keeping actual-host and physical recovery unverified.",
+  "files_changed": [
+    ".project/ACTIVE_SPRINT.json",
+    ".project/BLOCKERS.md",
+    ".project/CURRENT_STATE.md",
+    ".project/LAST_CHECKPOINT.json",
+    "docs/architecture.md",
+    "docs/offline-readiness.md",
+    "docs/roadmap.md"
+  ],
+  "checks_completed": [
+    "PR #184 mergeability and required CI reviewed before squash merge",
+    "current main, open Issues, open PRs and CI metadata cross-checked",
+    "frontend, Telemetry Service, Device Agent and Compose configuration statically reviewed",
+    "Device Agent SQLite deletion after MQTT QoS 1 acknowledgement verified in code",
+    "central MQTT consumer submission to an in-memory persistence queue verified in code",
+    "Issue #198 created for end-to-end telemetry durability",
+    "successor Sprint tasks changed from ready to queued",
+    "exact Prettier 3.9.6 output applied to all seven scoped files",
+    "temporary formatting workflow removed from the final diff",
+    "GitHub Actions CI run 30666953961: changed-file Prettier validation passed",
+    "GitHub Actions CI run 30666953961: ESLint passed",
+    "GitHub Actions CI run 30666953961: strict TypeScript typecheck passed",
+    "GitHub Actions CI run 30666953961: Vitest passed",
+    "GitHub Actions CI run 30666953961: Next.js production build passed",
+    "no Modbus write and no production cutover performed",
+    "PR #144 fresh-volume PostgreSQL, MinIO and Mosquitto software recovery boundary verified from merged workflow/runbook"
+  ],
+  "checks_pending": ["final review-thread resolution", "squash merge of PR #190"],
+  "checks_not_run": [
+    "clean-host disconnected installation",
+    "current backup/restore acceptance",
+    "power-loss acceptance",
+    "production/site deployment",
+    "real-hardware action"
+  ],
+  "next_action": "Verify the final state-only commit, resolve all PR #190 review threads, and squash-merge. Then execute Issue #186 in a new branch and classify Issue #198 before resuming product work."
 }
