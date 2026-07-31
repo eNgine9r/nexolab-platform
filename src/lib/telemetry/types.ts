@@ -68,13 +68,59 @@ export interface TelemetryRuntimeConfig {
   websocketUrl: string | null;
 }
 
-export type TelemetryConnectionState = "connecting" | "connected" | "reconnecting" | "disconnected";
+export type TelemetryConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "offline"
+  | "unauthorized"
+  | "forbidden"
+  | "configuration_error";
+
+export type TelemetryDiagnosticEvent =
+  | {
+      type: "connect_start";
+      url: string;
+      reconnectAttempt: number;
+      organizationId: string | null;
+    }
+  | {
+      type: "connected";
+      url: string;
+      reconnectAttempt: number;
+      organizationId: string | null;
+    }
+  | {
+      type: "message";
+      receivedAt: string;
+      messageKind: "authenticated" | "heartbeat" | "sample" | "error";
+    }
+  | {
+      type: "closed";
+      code: number;
+      reason: string;
+      state: TelemetryConnectionState;
+      lastMessageAt: string | null;
+    }
+  | {
+      type: "reconnect_scheduled";
+      reconnectAttempt: number;
+      delayMs: number;
+      lastMessageAt: string | null;
+    }
+  | {
+      type: "heartbeat_timeout";
+      timeoutMs: number;
+      lastMessageAt: string | null;
+    };
 
 export interface TelemetryLiveHandlers {
   onSample: (sample: TelemetrySample) => void;
   onStateChange?: (state: TelemetryConnectionState) => void;
   onError?: (error: Error) => void;
   onHeartbeat?: (serverTime: string) => void;
+  onDiagnostic?: (event: TelemetryDiagnosticEvent) => void;
 }
 
 export interface TelemetrySubscription {
