@@ -312,7 +312,14 @@ export function CameraScopedLayoutEditor({
               Чернетка v{draft.version}
             </span>
             {dirty ? (
-              <span className="h-2 w-2 rounded-full bg-amber-400" title="Незбережені зміни" />
+              <span
+                className="h-2 w-2 rounded-full bg-amber-400"
+                title="Незбережені зміни"
+                role="status"
+                aria-label="Незбережені зміни"
+              >
+                <span className="sr-only">Незбережені зміни</span>
+              </span>
             ) : null}
           </div>
 
