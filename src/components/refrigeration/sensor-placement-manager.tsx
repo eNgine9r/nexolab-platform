@@ -8,6 +8,8 @@ import type { SensorSide } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 import {
   addChannelToConfiguration,
+  channelPlacementConflict,
+  channelTelemetryLabel,
   removeConfiguredSensor,
   replaceConfiguredChannel,
   selectableReplacementChannels,
@@ -36,23 +38,27 @@ export function SensorPlacementManager({
   onSelect: (sensorId: string) => void;
 }) {
   const unused = useMemo(
-    () => unusedClimateChamberChannels(channels, configuration, equipmentId),
-    [channels, configuration, equipmentId],
+    () => unusedClimateChamberChannels(channels, configuration),
+    [channels, configuration],
+  );
+  const assignable = useMemo(
+    () => unused.filter((channel) => channelPlacementConflict(channel, equipmentId) === null),
+    [equipmentId, unused],
   );
   const [selectedChannelId, setSelectedChannelId] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const effectiveSelectedChannelId = unused.some(
+  const effectiveSelectedChannelId = assignable.some(
     (channel) => channel.channelId === selectedChannelId,
   )
     ? selectedChannelId
-    : (unused[0]?.channelId ?? "");
+    : (assignable[0]?.channelId ?? "");
   const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
   const replacementChannels = useMemo(
     () =>
       selectedSensor
-        ? selectableReplacementChannels(channels, configuration, selectedSensor.id, equipmentId)
+        ? selectableReplacementChannels(channels, configuration, selectedSensor.id)
         : [],
-    [channels, configuration, equipmentId, selectedSensor],
+    [channels, configuration, selectedSensor],
   );
 
   const add = () => {
@@ -62,7 +68,7 @@ export function SensorPlacementManager({
     if (!channel) return;
     setError(null);
     try {
-      const next = addChannelToConfiguration(configuration, channel, totalSlots);
+      const next = addChannelToConfiguration(configuration, channel, totalSlots, equipmentId);
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
@@ -77,7 +83,12 @@ export function SensorPlacementManager({
     if (!channel) return;
     setError(null);
     try {
-      const next = replaceConfiguredChannel(configuration, selectedSensor.id, channel);
+      const next = replaceConfiguredChannel(
+        configuration,
+        selectedSensor.id,
+        channel,
+        equipmentId,
+      );
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
@@ -120,12 +131,12 @@ export function SensorPlacementManager({
             </span>
           </div>
           <p className="mt-1 text-[10px] leading-4 text-slate-500">
-            Додавайте й налаштовуйте кілька каналів. Сервер буде змінено лише після загального
-            збереження схеми.
+            У списку залишаються всі конфігуровані канали камери: Live, Stale, Offline, без даних
+            і заплановані. Телеметрія не визначає доступність каналу для проєктування схеми.
           </p>
         </div>
 
-        <div className="flex min-w-0 items-end gap-2 xl:min-w-[420px]">
+        <div className="flex min-w-0 items-end gap-2 xl:min-w-[520px]">
           <label className="min-w-0 flex-1 space-y-1.5">
             <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
               Доступний датчик або прилад
@@ -133,19 +144,23 @@ export function SensorPlacementManager({
             <select
               aria-label="Доступний датчик кліматичної камери"
               value={effectiveSelectedChannelId}
-              disabled={unused.length === 0 || configuration.length >= totalSlots}
+              disabled={assignable.length === 0 || configuration.length >= totalSlots}
               onChange={(event) => setSelectedChannelId(event.target.value)}
               className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {unused.length === 0 ? <option value="">Немає доступних каналів</option> : null}
-              {unused.map((channel) => (
-                <option key={channel.channelId} value={channel.channelId}>
-                  {channel.channelId} · {channel.metric}
-                  {channel.latestValue === null
-                    ? " · немає даних"
-                    : ` · ${channel.latestValue} ${channel.unit}`}
-                </option>
-              ))}
+              {unused.length === 0 ? <option value="">Немає нерозміщених каналів</option> : null}
+              {unused.map((channel) => {
+                const conflict = channelPlacementConflict(channel, equipmentId);
+                return (
+                  <option
+                    key={channel.channelId}
+                    value={channel.channelId}
+                    disabled={conflict !== null}
+                  >
+                    {channelOptionLabel(channel, conflict)}
+                  </option>
+                );
+              })}
             </select>
           </label>
           <RefrigerationIconButton
@@ -160,11 +175,19 @@ export function SensorPlacementManager({
         </div>
       </div>
 
-      {unused.length === 0 && configuration.length === 0 ? (
+      {channels.length === 0 ? (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-200">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          У вибраній кліматичній камері ще немає доступних telemetry channels. Перевірте, що її
-          node активний і вже передав хоча б один пакет вимірювань.
+          Для вибраної кліматичної камери не знайдено конфігурованих каналів. Перевірте каталог
+          організації, прив’язку камери до RS-485 bus і виконання climate-catalog seed.
+        </p>
+      ) : null}
+
+      {channels.length > 0 && assignable.length === 0 && configuration.length < totalSlots ? (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-slate-400/15 bg-slate-500/[0.06] px-3 py-2 text-[10px] text-slate-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          Усі нерозміщені канали вже мають активну прив’язку до іншого обладнання. Вони показані
+          у списку для діагностики, але недоступні для подвійного розміщення.
         </p>
       ) : null}
 
@@ -189,7 +212,7 @@ export function SensorPlacementManager({
             </RefrigerationIconButton>
           </div>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_140px_120px_120px_auto]">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_140px_120px_120px_auto]">
             <EditorField label="Канал вимірювання">
               <select
                 aria-label="Замінити канал датчика"
@@ -197,11 +220,19 @@ export function SensorPlacementManager({
                 onChange={(event) => replace(event.target.value)}
                 className={inputClass}
               >
-                {replacementChannels.map((channel) => (
-                  <option key={channel.channelId} value={channel.channelId}>
-                    {channel.channelId} · {channel.metric}
-                  </option>
-                ))}
+                {replacementChannels.map((channel) => {
+                  const conflict = channelPlacementConflict(channel, equipmentId);
+                  const isCurrent = channel.channelId === selectedSensor.id;
+                  return (
+                    <option
+                      key={channel.channelId}
+                      value={channel.channelId}
+                      disabled={!isCurrent && conflict !== null}
+                    >
+                      {channelOptionLabel(channel, !isCurrent ? conflict : null)}
+                    </option>
+                  );
+                })}
               </select>
             </EditorField>
             <EditorField label="Підпис маркера">
@@ -276,6 +307,17 @@ export function SensorPlacementManager({
       ) : null}
     </section>
   );
+}
+
+function channelOptionLabel(channel: AvailableSensor, conflict: string | null): string {
+  const [controller, input] = channel.channelId.split("-", 2);
+  const topology = input ? ` · контролер ${controller} · вхід ${Number(input)}` : "";
+  const value =
+    channel.latestValue === null
+      ? "Немає значення"
+      : `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 2 }).format(channel.latestValue)} ${channel.unit}`;
+  const status = channelTelemetryLabel(channel);
+  return `${channel.channelId}${topology} · ${value} · ${status}${conflict ? ` · ${conflict}` : ""}`;
 }
 
 function EditorField({ label, children }: { label: string; children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-import type { SecurityCredentialProvider } from "@/features/security/security-session";
+import type { SecurityCredentialProvider, SecurityCredentialSnapshot } from "@/features/security/security-session";
 
 import { parseTelemetryLiveMessage } from "./contract";
 import { TelemetryClientError } from "./errors";
@@ -16,11 +16,21 @@ export interface TelemetryWebSocketClientOptions {
   credentials?: SecurityCredentialProvider;
   authenticationRequired?: boolean;
   reconnectDelaysMs?: readonly number[];
+  authenticationTimeoutMs?: number;
+  heartbeatTimeoutMs?: number;
   maxSeenEventIds?: number;
 }
 
 const DEFAULT_RECONNECT_DELAYS_MS = [500, 1_000, 2_000, 5_000, 10_000] as const;
+const DEFAULT_AUTHENTICATION_TIMEOUT_MS = 10_000;
+const DEFAULT_HEARTBEAT_TIMEOUT_MS = 45_000;
+const CLIENT_HEARTBEAT_TIMEOUT_CLOSE_CODE = 4000;
 const CLIENT_AUTH_FAILURE_CLOSE_CODE = 4001;
+const CLIENT_FORBIDDEN_CLOSE_CODE = 4003;
+const CLIENT_CONFIGURATION_CLOSE_CODE = 4004;
+const SERVER_UNAUTHORIZED_CLOSE_CODE = 4401;
+const SERVER_FORBIDDEN_CLOSE_CODE = 4403;
+const SERVER_CONFIGURATION_CLOSE_CODE = 4400;
 
 function buildUrl(baseUrl: string, filters: TelemetryFilters, after: string | null): string {
   const url = new URL(baseUrl);
@@ -35,8 +45,109 @@ function buildUrl(baseUrl: string, filters: TelemetryFilters, after: string | nu
   return url.toString();
 }
 
+function validateWebSocketUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch (error) {
+    throw new TelemetryClientError("configuration", "Telemetry WebSocket URL must be absolute", {
+      cause: error,
+    });
+  }
+  if (url.protocol !== "ws:" && url.protocol !== "wss:") {
+    throw new TelemetryClientError(
+      "configuration",
+      "Telemetry WebSocket URL must use ws: or wss:",
+    );
+  }
+  return url.toString();
+}
+
+function sanitizedUrl(value: string): string {
+  const url = new URL(value);
+  for (const key of ["access_token", "token", "authorization"]) {
+    url.searchParams.delete(key);
+  }
+  return url.toString();
+}
+
 function runtimeAuthenticationRequired(): boolean {
-  return process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER !== "disabled";
+  const provider = process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER?.trim();
+  return Boolean(provider && provider !== "disabled");
+}
+
+function serverErrorState(code: string, detail: string): TelemetryConnectionState | null {
+  const normalized = `${code} ${detail}`.toLowerCase();
+  if (
+    normalized.includes("organization_header_required") ||
+    normalized.includes("organization required") ||
+    normalized.includes("configuration")
+  ) {
+    return "configuration_error";
+  }
+  if (
+    normalized.includes("membership") ||
+    normalized.includes("permission") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("access denied")
+  ) {
+    return "forbidden";
+  }
+  if (
+    normalized.includes("token") ||
+    normalized.includes("authentication") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("session")
+  ) {
+    return "unauthorized";
+  }
+  return null;
+}
+
+function closeState(code: number, reason: string): TelemetryConnectionState | null {
+  if (code === SERVER_CONFIGURATION_CLOSE_CODE || code === CLIENT_CONFIGURATION_CLOSE_CODE) {
+    return "configuration_error";
+  }
+  if (code === SERVER_UNAUTHORIZED_CLOSE_CODE || code === CLIENT_AUTH_FAILURE_CLOSE_CODE) {
+    return "unauthorized";
+  }
+  if (code === SERVER_FORBIDDEN_CLOSE_CODE || code === CLIENT_FORBIDDEN_CLOSE_CODE) {
+    return "forbidden";
+  }
+  if (code === 1008) {
+    return serverErrorState("policy_violation", reason) ?? "forbidden";
+  }
+  return null;
+}
+
+function closeCodeFor(state: TelemetryConnectionState): number {
+  switch (state) {
+    case "unauthorized":
+      return CLIENT_AUTH_FAILURE_CLOSE_CODE;
+    case "forbidden":
+      return CLIENT_FORBIDDEN_CLOSE_CODE;
+    default:
+      return CLIENT_CONFIGURATION_CLOSE_CODE;
+  }
+}
+
+function credentialsError(snapshot: SecurityCredentialSnapshot): {
+  state: TelemetryConnectionState;
+  message: string;
+} | null {
+  if (!snapshot.accessToken) {
+    return {
+      state: "unauthorized",
+      message: "Telemetry WebSocket requires an authenticated user session",
+    };
+  }
+  if (!snapshot.organizationId) {
+    return {
+      state: "configuration_error",
+      message: "Telemetry WebSocket requires a selected organization",
+    };
+  }
+  return null;
 }
 
 export class TelemetryWebSocketClient {
@@ -44,27 +155,34 @@ export class TelemetryWebSocketClient {
   private readonly credentials: SecurityCredentialProvider | null;
   private readonly authenticationRequired: boolean;
   private readonly reconnectDelaysMs: readonly number[];
+  private readonly authenticationTimeoutMs: number;
+  private readonly heartbeatTimeoutMs: number;
   private readonly maxSeenEventIds: number;
+  private readonly websocketUrl: string;
 
-  constructor(
-    private readonly websocketUrl: string,
-    options: TelemetryWebSocketClientOptions = {},
-  ) {
+  constructor(websocketUrl: string, options: TelemetryWebSocketClientOptions = {}) {
+    this.websocketUrl = validateWebSocketUrl(websocketUrl);
     this.createSocket = options.createSocket ?? ((url) => new WebSocket(url));
     this.credentials = options.credentials ?? null;
     this.authenticationRequired = options.authenticationRequired ?? runtimeAuthenticationRequired();
     this.reconnectDelaysMs = options.reconnectDelaysMs ?? DEFAULT_RECONNECT_DELAYS_MS;
+    this.authenticationTimeoutMs =
+      options.authenticationTimeoutMs ?? DEFAULT_AUTHENTICATION_TIMEOUT_MS;
+    this.heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? DEFAULT_HEARTBEAT_TIMEOUT_MS;
     this.maxSeenEventIds = options.maxSeenEventIds ?? 10_000;
   }
 
   subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let authenticationTimer: ReturnType<typeof setTimeout> | null = null;
+    let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempt = 0;
     let closed = false;
-    let terminalFailure = false;
+    let terminalState: TelemetryConnectionState | null = null;
     let lastState: TelemetryConnectionState | null = null;
     let lastCommittedCapturedAt: string | null = null;
+    let lastMessageAt: string | null = null;
     const seenEventIds = new Set<string>();
     const seenOrder: string[] = [];
 
@@ -81,6 +199,32 @@ export class TelemetryWebSocketClient {
       );
     };
 
+    const clearReconnectTimer = () => {
+      if (reconnectTimer !== null) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    };
+
+    const clearAuthenticationTimer = () => {
+      if (authenticationTimer !== null) {
+        clearTimeout(authenticationTimer);
+        authenticationTimer = null;
+      }
+    };
+
+    const clearHeartbeatTimer = () => {
+      if (heartbeatTimer !== null) {
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    };
+
+    const clearConnectionTimers = () => {
+      clearAuthenticationTimer();
+      clearHeartbeatTimer();
+    };
+
     const remember = (eventId: string) => {
       seenEventIds.add(eventId);
       seenOrder.push(eventId);
@@ -92,33 +236,188 @@ export class TelemetryWebSocketClient {
       }
     };
 
+    const markMessage = (messageKind: "authenticated" | "heartbeat" | "sample" | "error") => {
+      lastMessageAt = new Date().toISOString();
+      handlers.onDiagnostic?.({
+        type: "message",
+        receivedAt: lastMessageAt,
+        messageKind,
+      });
+    };
+
+    const armHeartbeatTimeout = (nextSocket: WebSocket) => {
+      clearHeartbeatTimer();
+      if (this.heartbeatTimeoutMs <= 0 || closed || socket !== nextSocket) {
+        return;
+      }
+      heartbeatTimer = setTimeout(() => {
+        heartbeatTimer = null;
+        if (closed || terminalState || socket !== nextSocket) {
+          return;
+        }
+        handlers.onDiagnostic?.({
+          type: "heartbeat_timeout",
+          timeoutMs: this.heartbeatTimeoutMs,
+          lastMessageAt,
+        });
+        setState("reconnecting");
+        nextSocket.close(CLIENT_HEARTBEAT_TIMEOUT_CLOSE_CODE, "heartbeat timeout");
+      }, this.heartbeatTimeoutMs);
+    };
+
+    const markConnected = (
+      nextSocket: WebSocket,
+      organizationId: string | null,
+      attempt: number,
+    ) => {
+      if (closed || socket !== nextSocket) {
+        return;
+      }
+      clearReconnectTimer();
+      clearAuthenticationTimer();
+      reconnectAttempt = 0;
+      setState("connected");
+      handlers.onDiagnostic?.({
+        type: "connected",
+        url: sanitizedUrl(nextSocket.url || this.websocketUrl),
+        reconnectAttempt: attempt,
+        organizationId,
+      });
+      armHeartbeatTimeout(nextSocket);
+    };
+
+    const failTerminal = (
+      state: TelemetryConnectionState,
+      error: unknown,
+      message: string,
+      nextSocket?: WebSocket,
+    ) => {
+      terminalState = state;
+      clearReconnectTimer();
+      clearConnectionTimers();
+      setState(state);
+      reportError(error, message);
+      if (nextSocket && socket === nextSocket) {
+        nextSocket.close(closeCodeFor(state), message.slice(0, 120));
+      }
+    };
+
+    const scheduleReconnect = (connect: () => void) => {
+      if (closed || terminalState || reconnectTimer !== null) {
+        return;
+      }
+      if (reconnectAttempt >= this.reconnectDelaysMs.length) {
+        setState("offline");
+        reportError(
+          new TelemetryClientError("websocket", "Telemetry WebSocket reconnect limit reached"),
+          "Telemetry WebSocket reconnect limit reached",
+        );
+        return;
+      }
+      const delayMs = this.reconnectDelaysMs[reconnectAttempt];
+      reconnectAttempt += 1;
+      setState("reconnecting");
+      handlers.onDiagnostic?.({
+        type: "reconnect_scheduled",
+        reconnectAttempt,
+        delayMs,
+        lastMessageAt,
+      });
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delayMs);
+    };
+
     const connect = () => {
-      if (closed || terminalFailure) {
+      if (closed || terminalState) {
         return;
       }
 
-      setState(reconnectAttempt === 0 ? "connecting" : "reconnecting");
-      const nextSocket = this.createSocket(buildUrl(this.websocketUrl, filters, lastCommittedCapturedAt));
-      socket = nextSocket;
+      clearReconnectTimer();
+      clearConnectionTimers();
+      const attempt = reconnectAttempt;
+      setState(attempt === 0 ? "connecting" : "reconnecting");
 
-      nextSocket.addEventListener("open", () => {
-        if (!this.authenticationRequired || !this.credentials) {
-          reconnectAttempt = 0;
-          setState("connected");
-          return;
-        }
+      void Promise.resolve()
+        .then(async () => {
+          let credentials: SecurityCredentialSnapshot | null = null;
+          if (this.authenticationRequired) {
+            if (!this.credentials) {
+              failTerminal(
+                "configuration_error",
+                new TelemetryClientError(
+                  "configuration",
+                  "Telemetry WebSocket authentication is enabled without a credential provider",
+                ),
+                "Telemetry WebSocket credential provider is not configured",
+              );
+              return;
+            }
+            try {
+              credentials = await this.credentials();
+            } catch (error) {
+              failTerminal(
+                "unauthorized",
+                error,
+                "Telemetry WebSocket could not refresh the user session",
+              );
+              return;
+            }
+            const issue = credentialsError(credentials);
+            if (issue) {
+              failTerminal(issue.state, new TelemetryClientError("websocket", issue.message), issue.message);
+              return;
+            }
+          }
 
-        void Promise.resolve(this.credentials())
-          .then((snapshot) => {
+          if (closed || terminalState) {
+            return;
+          }
+
+          const url = buildUrl(this.websocketUrl, filters, lastCommittedCapturedAt);
+          handlers.onDiagnostic?.({
+            type: "connect_start",
+            url: sanitizedUrl(url),
+            reconnectAttempt: attempt,
+            organizationId: credentials?.organizationId ?? null,
+          });
+
+          let nextSocket: WebSocket;
+          try {
+            nextSocket = this.createSocket(url);
+          } catch (error) {
+            reportError(error, "Telemetry WebSocket transport could not be created");
+            scheduleReconnect(connect);
+            return;
+          }
+
+          const previousSocket = socket;
+          socket = nextSocket;
+          if (previousSocket && previousSocket !== nextSocket) {
+            previousSocket.close(1000, "superseded telemetry connection");
+          }
+
+          nextSocket.addEventListener("open", () => {
             if (closed || socket !== nextSocket) {
               return;
             }
-            if (!snapshot.accessToken || !snapshot.organizationId) {
-              throw new TelemetryClientError(
-                "websocket",
-                "Telemetry WebSocket requires an authenticated user and selected organization",
-              );
+            if (!this.authenticationRequired) {
+              markConnected(nextSocket, null, attempt);
+              return;
             }
+
+            const snapshot = credentials;
+            if (!snapshot?.accessToken || !snapshot.organizationId) {
+              failTerminal(
+                "configuration_error",
+                new TelemetryClientError("websocket", "Telemetry credentials disappeared before connect"),
+                "Telemetry WebSocket credentials are incomplete",
+                nextSocket,
+              );
+              return;
+            }
+
             nextSocket.send(
               JSON.stringify({
                 type: "authenticate",
@@ -126,94 +425,172 @@ export class TelemetryWebSocketClient {
                 organization_id: snapshot.organizationId,
               }),
             );
-          })
-          .catch((error: unknown) => {
-            terminalFailure = true;
-            reportError(error, "Telemetry WebSocket authentication failed");
-            nextSocket.close(CLIENT_AUTH_FAILURE_CLOSE_CODE, "telemetry authentication failed");
+            clearAuthenticationTimer();
+            authenticationTimer = setTimeout(() => {
+              authenticationTimer = null;
+              if (closed || terminalState || socket !== nextSocket) {
+                return;
+              }
+              failTerminal(
+                "unauthorized",
+                new TelemetryClientError(
+                  "websocket",
+                  "Telemetry WebSocket authentication acknowledgement timed out",
+                ),
+                "Telemetry WebSocket authentication timed out",
+                nextSocket,
+              );
+            }, this.authenticationTimeoutMs);
           });
-      });
 
-      nextSocket.addEventListener("message", (event) => {
-        try {
-          const message = parseTelemetryLiveMessage(JSON.parse(String(event.data)) as unknown);
-          if (message.kind === "authenticated") {
-            reconnectAttempt = 0;
-            setState("connected");
+          nextSocket.addEventListener("message", (event) => {
+            if (closed || socket !== nextSocket) {
+              return;
+            }
+            try {
+              const message = parseTelemetryLiveMessage(JSON.parse(String(event.data)) as unknown);
+              markMessage(message.kind);
+
+              if (message.kind === "authenticated") {
+                const expectedOrganizationId = credentials?.organizationId ?? null;
+                if (expectedOrganizationId && message.organizationId !== expectedOrganizationId) {
+                  failTerminal(
+                    "forbidden",
+                    new TelemetryClientError(
+                      "websocket",
+                      "Telemetry WebSocket organization acknowledgement does not match the selected organization",
+                    ),
+                    "Telemetry WebSocket organization scope mismatch",
+                    nextSocket,
+                  );
+                  return;
+                }
+                markConnected(nextSocket, message.organizationId, attempt);
+                return;
+              }
+
+              if (message.kind === "heartbeat") {
+                if (!this.authenticationRequired && lastState !== "connected") {
+                  markConnected(nextSocket, null, attempt);
+                } else {
+                  armHeartbeatTimeout(nextSocket);
+                }
+                handlers.onHeartbeat?.(message.serverTime);
+                return;
+              }
+
+              if (message.kind === "error") {
+                const state = serverErrorState(message.code, message.detail);
+                const error = new TelemetryClientError("websocket", message.detail);
+                if (state) {
+                  failTerminal(state, error, message.detail, nextSocket);
+                } else {
+                  handlers.onError?.(error);
+                  armHeartbeatTimeout(nextSocket);
+                }
+                return;
+              }
+
+              if (this.authenticationRequired && lastState !== "connected") {
+                markConnected(nextSocket, credentials?.organizationId ?? null, attempt);
+              } else {
+                armHeartbeatTimeout(nextSocket);
+              }
+              if (seenEventIds.has(message.sample.event_id)) {
+                return;
+              }
+
+              handlers.onSample(message.sample);
+              remember(message.sample.event_id);
+              lastCommittedCapturedAt = message.sample.captured_at;
+            } catch (error) {
+              reportError(error, "Invalid WebSocket telemetry message");
+            }
+          });
+
+          nextSocket.addEventListener("error", (event) => {
+            if (closed || socket !== nextSocket) {
+              return;
+            }
+            reportError(event, "Telemetry WebSocket transport error");
+          });
+
+          nextSocket.addEventListener("close", (event) => {
+            if (socket !== nextSocket) {
+              return;
+            }
+            socket = null;
+            clearConnectionTimers();
+
+            const closeEvent = event as CloseEvent;
+            if (closed) {
+              setState("idle");
+              return;
+            }
+            if (terminalState) {
+              handlers.onDiagnostic?.({
+                type: "closed",
+                code: closeEvent.code,
+                reason: closeEvent.reason,
+                state: terminalState,
+                lastMessageAt,
+              });
+              setState(terminalState);
+              return;
+            }
+
+            const failureState = closeState(closeEvent.code, closeEvent.reason);
+            if (failureState) {
+              terminalState = failureState;
+              setState(failureState);
+              handlers.onDiagnostic?.({
+                type: "closed",
+                code: closeEvent.code,
+                reason: closeEvent.reason,
+                state: failureState,
+                lastMessageAt,
+              });
+              handlers.onError?.(
+                new TelemetryClientError(
+                  "websocket",
+                  closeEvent.reason || "Telemetry WebSocket access was denied",
+                ),
+              );
+              return;
+            }
+
+            handlers.onDiagnostic?.({
+              type: "closed",
+              code: closeEvent.code,
+              reason: closeEvent.reason,
+              state: "reconnecting",
+              lastMessageAt,
+            });
+            scheduleReconnect(connect);
+          });
+        })
+        .catch((error: unknown) => {
+          if (closed || terminalState) {
             return;
           }
-          if (message.kind === "heartbeat") {
-            handlers.onHeartbeat?.(message.serverTime);
-            return;
-          }
-          if (message.kind === "error") {
-            handlers.onError?.(new TelemetryClientError("websocket", message.detail));
-            return;
-          }
-          if (seenEventIds.has(message.sample.event_id)) {
-            return;
-          }
-
-          handlers.onSample(message.sample);
-          remember(message.sample.event_id);
-          lastCommittedCapturedAt = message.sample.captured_at;
-        } catch (error) {
-          reportError(error, "Invalid WebSocket telemetry message");
-        }
-      });
-
-      nextSocket.addEventListener("error", (event) => {
-        reportError(event, "Telemetry WebSocket transport error");
-      });
-
-      nextSocket.addEventListener("close", (event) => {
-        if (socket === nextSocket) {
-          socket = null;
-        }
-        if (closed || terminalFailure) {
-          setState("disconnected");
-          return;
-        }
-
-        const closeEvent = event as CloseEvent;
-        if (closeEvent.code === 1008) {
-          setState("disconnected");
-          handlers.onError?.(
-            new TelemetryClientError(
-              "websocket",
-              closeEvent.reason || "Telemetry WebSocket access was denied",
-            ),
-          );
-          return;
-        }
-
-        if (reconnectAttempt >= this.reconnectDelaysMs.length) {
-          setState("disconnected");
-          handlers.onError?.(
-            new TelemetryClientError("websocket", "Telemetry WebSocket reconnect limit reached"),
-          );
-          return;
-        }
-
-        const delay = this.reconnectDelaysMs[reconnectAttempt];
-        reconnectAttempt += 1;
-        setState("reconnecting");
-        reconnectTimer = setTimeout(connect, delay);
-      });
+          reportError(error, "Telemetry WebSocket connection failed");
+          scheduleReconnect(connect);
+        });
     };
 
+    setState("idle");
     connect();
 
     return {
       close: () => {
         closed = true;
-        if (reconnectTimer !== null) {
-          clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-        socket?.close(1000, "dashboard subscription closed");
+        terminalState = null;
+        clearReconnectTimer();
+        clearConnectionTimers();
+        const currentSocket = socket;
         socket = null;
-        setState("disconnected");
+        currentSocket?.close(1000, "dashboard subscription closed");
+        setState("idle");
       },
     };
   }

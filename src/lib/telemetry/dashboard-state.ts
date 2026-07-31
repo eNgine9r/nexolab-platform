@@ -1,7 +1,21 @@
-import type { TelemetryAlarm, TelemetryConnectionState, TelemetryQuality, TelemetrySample } from "./types";
+import type {
+  TelemetryAlarm,
+  TelemetryConnectionState,
+  TelemetryQuality,
+  TelemetrySample,
+} from "./types";
 
 export type DashboardTelemetryStatus =
-  "demo" | "connecting" | "live" | "reconnecting" | "stale" | "offline" | "error";
+  | "demo"
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "stale"
+  | "offline"
+  | "unauthorized"
+  | "forbidden"
+  | "configuration_error"
+  | "error";
 
 export interface DashboardTelemetryStore {
   samples: Record<string, TelemetrySample>;
@@ -144,14 +158,20 @@ export function deriveDashboardTelemetry(
   const freshSamples = samples.filter((sample) => nowMs - capturedAtMs(sample) <= staleAfterMs);
 
   let status: DashboardTelemetryStatus;
-  if (options.error && samples.length === 0) {
+  if (options.connectionState === "unauthorized") {
+    status = "unauthorized";
+  } else if (options.connectionState === "forbidden") {
+    status = "forbidden";
+  } else if (options.connectionState === "configuration_error") {
+    status = "configuration_error";
+  } else if (options.error && samples.length === 0) {
     status = "error";
   } else if (!options.hasLoadedSnapshot && samples.length === 0) {
     status = "connecting";
   } else if (options.connectionState === "reconnecting") {
     status = freshSamples.length > 0 ? "reconnecting" : "stale";
-  } else if (options.connectionState === "disconnected") {
-    status = freshSamples.length > 0 ? "reconnecting" : "offline";
+  } else if (options.connectionState === "offline" || options.connectionState === "idle") {
+    status = "offline";
   } else if (freshSamples.length === 0) {
     status = samples.length > 0 ? "stale" : "offline";
   } else {
@@ -173,7 +193,12 @@ function isUsable(sample: TelemetrySample): sample is UsableTelemetrySample {
 }
 
 function normalizedMetric(metric: string): string {
-  return metric.trim().toLowerCase().replaceAll("-", "_").replaceAll(".", "_").replaceAll(" ", "_");
+  return metric
+    .trim()
+    .toLowerCase()
+    .replaceAll("-", "_")
+    .replaceAll(".", "_")
+    .replaceAll(" ", "_");
 }
 
 function isTemperatureMetric(metric: string): boolean {
@@ -248,6 +273,12 @@ function badgeForStatus(status: DashboardTelemetryStatus): {
       return { badge: "reconnect", badgeTone: "stale" };
     case "stale":
       return { badge: "stale", badgeTone: "stale" };
+    case "unauthorized":
+      return { badge: "auth", badgeTone: "error" };
+    case "forbidden":
+      return { badge: "forbidden", badgeTone: "error" };
+    case "configuration_error":
+      return { badge: "config", badgeTone: "error" };
     case "error":
       return { badge: "error", badgeTone: "error" };
     default:
@@ -263,7 +294,8 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const activeRecords = good.length;
   const alarmSamples = fresh.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
   const temperatures = good.filter(
-    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) =>
+      isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
   const averageTemperature =
     temperatures.length === 0
@@ -329,7 +361,9 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
       label: "Середня температура",
       value: averageTemperature === null ? "—" : `${formatNumber(averageTemperature, 1)} °C`,
       detail:
-        temperatures.length === 0 ? "106-03 / 106-04 недоступні" : `${temperatures.length}/2 каналів valid`,
+        temperatures.length === 0
+          ? "106-03 / 106-04 недоступні"
+          : `${temperatures.length}/2 каналів valid`,
       trend: "XJP60D production channels",
       tone: averageTemperature === null ? "red" : "blue",
       icon: "temperature",
@@ -340,6 +374,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
 
 export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
   return view.samples.filter(
-    (sample) => isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+    (sample) =>
+      isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
   );
 }

@@ -1,4 +1,14 @@
-import { AlertCircle, CheckCircle2, CircleDot, Clock3, RefreshCw, WifiOff } from "lucide-react";
+import {
+  AlertCircle,
+  Ban,
+  CheckCircle2,
+  CircleDot,
+  Clock3,
+  KeyRound,
+  RefreshCw,
+  Settings2,
+  WifiOff,
+} from "lucide-react";
 
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 
@@ -29,7 +39,7 @@ const statusCopy: Record<
   },
   connecting: {
     title: "Connecting",
-    detail: "Завантаження latest snapshot і WebSocket connection",
+    detail: "Завантаження latest snapshot і встановлення WebSocket-з’єднання",
     icon: RefreshCw,
     classes: "border-cyan-300/15 bg-cyan-400/[0.055] text-cyan-200",
   },
@@ -41,21 +51,39 @@ const statusCopy: Record<
   },
   reconnecting: {
     title: "Reconnecting",
-    detail: "Показано останні свіжі значення; канал відновлюється",
+    detail: "Показано останні значення; Live-канал автоматично відновлюється",
     icon: RefreshCw,
     classes: "border-amber-300/15 bg-amber-400/[0.055] text-amber-200",
   },
   stale: {
     title: "Stale",
-    detail: "Останні значення прострочені й не вважаються live",
+    detail: "Останні значення прострочені й не вважаються Live-телеметрією",
     icon: Clock3,
     classes: "border-amber-300/15 bg-amber-400/[0.055] text-amber-200",
   },
   offline: {
     title: "Offline",
-    detail: "Немає свіжої телеметрії від edge-01",
+    detail: "Backend тривалий час недоступний; останні значення збережено",
     icon: WifiOff,
     classes: "border-slate-300/15 bg-slate-400/[0.055] text-slate-300",
+  },
+  unauthorized: {
+    title: "Unauthorized",
+    detail: "Сесію завершено або access token недійсний. Потрібен повторний вхід",
+    icon: KeyRound,
+    classes: "border-rose-300/15 bg-rose-400/[0.055] text-rose-200",
+  },
+  forbidden: {
+    title: "Forbidden",
+    detail: "Користувач не має доступу до вибраної організації або Live-телеметрії",
+    icon: Ban,
+    classes: "border-rose-300/15 bg-rose-400/[0.055] text-rose-200",
+  },
+  configuration_error: {
+    title: "Configuration error",
+    detail: "Не визначено WebSocket endpoint, auth provider або активну організацію",
+    icon: Settings2,
+    classes: "border-violet-300/15 bg-violet-400/[0.055] text-violet-200",
   },
   error: {
     title: "Error",
@@ -100,7 +128,9 @@ export function TelemetryStatusBar({
 }: TelemetryStatusBarProps) {
   const copy = statusCopy[status];
   const Icon = copy.icon;
-  const canRetry = mode === "live" && (status === "offline" || status === "error");
+  const canRetry =
+    mode === "live" &&
+    (status === "offline" || status === "error" || status === "configuration_error");
 
   return (
     <section

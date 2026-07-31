@@ -14,7 +14,7 @@ export type ParsedTelemetryLiveMessage =
   | { kind: "sample"; sample: TelemetrySample }
   | { kind: "authenticated"; subject: string; organizationId: string }
   | { kind: "heartbeat"; serverTime: string }
-  | { kind: "error"; detail: string };
+  | { kind: "error"; code: string; detail: string };
 
 function fail(path: string, detail: string): never {
   throw new TelemetryClientError("contract", `Invalid telemetry response at ${path}: ${detail}`);
@@ -32,6 +32,13 @@ function asString(value: unknown, path: string): string {
     fail(path, "expected a non-empty string");
   }
   return value;
+}
+
+function asOptionalString(value: unknown, fallback: string, path: string): string {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  return asString(value, path);
 }
 
 function asNullableString(value: unknown, path: string): string | null {
@@ -168,6 +175,7 @@ export function parseTelemetryLiveMessage(value: unknown): ParsedTelemetryLiveMe
   if (record.type === "error") {
     return {
       kind: "error",
+      code: asOptionalString(record.code, "websocket_error", "live.code"),
       detail: asString(record.detail, "live.detail"),
     };
   }

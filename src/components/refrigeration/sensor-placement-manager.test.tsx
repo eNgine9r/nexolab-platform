@@ -8,43 +8,54 @@ import { SensorPlacementManager } from "./sensor-placement-manager";
 
 const channels: AvailableSensor[] = [
   {
-    channelId: "kk2-temperature-01",
+    channelId: "106-03",
     metric: "temperature",
     unit: "degC",
-    latestValue: 2.4,
+    latestValue: 24,
     quality: "valid",
+    capturedAt: new Date().toISOString(),
+    isBound: false,
+    boundEquipmentId: null,
+    boundSlotKey: null,
+  },
+  {
+    channelId: "106-04",
+    metric: "temperature",
+    unit: "degC",
+    latestValue: null,
+    quality: "no-data",
     capturedAt: "2026-07-29T12:00:00.000Z",
     isBound: false,
     boundEquipmentId: null,
     boundSlotKey: null,
   },
   {
-    channelId: "kk2-temperature-02",
+    channelId: "107-01",
     metric: "temperature",
     unit: "degC",
-    latestValue: 2.8,
-    quality: "valid",
+    latestValue: null,
+    quality: "no-data",
     capturedAt: "2026-07-29T12:00:00.000Z",
-    isBound: false,
-    boundEquipmentId: null,
-    boundSlotKey: null,
+    isBound: true,
+    boundEquipmentId: "showcase-other",
+    boundSlotKey: "front-02",
   },
 ];
 
 const configured: StagedSensorConfiguration = {
-  id: "kk2-temperature-01",
+  id: "106-03",
   slotKey: "front-01",
   label: "01F",
-  name: "temperature · kk2-temperature-01",
+  name: "temperature · 106-03",
   side: "front",
   shelf: 1,
   position: 1,
   x: 0.14,
   y: 0.21,
-  temperatureC: 2.4,
+  temperatureC: 24,
   status: "normal",
-  updatedAt: "2026-07-29T12:00:00.000Z",
-  trend: [2.4],
+  updatedAt: new Date().toISOString(),
+  trend: [24],
   metric: "temperature",
   unit: "degC",
 };
@@ -79,11 +90,11 @@ describe("SensorPlacementManager", () => {
     vi.restoreAllMocks();
   });
 
-  it("stages an unused climate-chamber channel without persisting it", () => {
+  it("shows live and no-data KK2 channels and stages an active channel", () => {
     const { onConfigurationChange, onEditingSensorIdChange, onSelect } = renderManager();
 
-    expect(screen.getByRole("option", { name: /kk2-temperature-01/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /kk2-temperature-02/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /106-03.*Live/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /106-04.*Немає даних/ })).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
@@ -92,18 +103,45 @@ describe("SensorPlacementManager", () => {
     expect(onConfigurationChange).toHaveBeenCalledTimes(1);
     expect(onConfigurationChange.mock.calls[0]?.[0]).toEqual([
       expect.objectContaining({
-        id: "kk2-temperature-01",
+        id: "106-03",
         slotKey: "front-01",
         side: "front",
         shelf: 1,
         position: 1,
       }),
     ]);
-    expect(onSelect).toHaveBeenCalledWith("kk2-temperature-01");
-    expect(onEditingSensorIdChange).toHaveBeenCalledWith("kk2-temperature-01");
+    expect(onSelect).toHaveBeenCalledWith("106-03");
+    expect(onEditingSensorIdChange).toHaveBeenCalledWith("106-03");
   });
 
-  it("hides used channels and stages replacement through the editor", () => {
+  it("allows a configured channel without telemetry to be placed", () => {
+    const { onConfigurationChange } = renderManager();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
+      { target: { value: "106-04" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
+    );
+
+    expect(onConfigurationChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "106-04",
+        temperatureC: null,
+        status: "no-data",
+      }),
+    ]);
+  });
+
+  it("keeps a foreign-bound channel visible but disables conflicting placement", () => {
+    renderManager();
+
+    const option = screen.getByRole("option", { name: /107-01.*уже розміщений/ });
+    expect(option).toBeDisabled();
+    expect(option).toHaveTextContent("showcase-other");
+  });
+
+  it("hides the current channel and stages replacement through the editor", () => {
     const { onConfigurationChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
@@ -112,18 +150,19 @@ describe("SensorPlacementManager", () => {
     const addSelector = screen.getByRole("combobox", {
       name: "Доступний датчик кліматичної камери",
     });
-    expect(addSelector).not.toHaveTextContent("kk2-temperature-01");
-    expect(addSelector).toHaveTextContent("kk2-temperature-02");
+    expect(addSelector).not.toHaveTextContent("106-03");
+    expect(addSelector).toHaveTextContent("106-04");
 
     fireEvent.change(screen.getByRole("combobox", { name: "Замінити канал датчика" }), {
-      target: { value: "kk2-temperature-02" },
+      target: { value: "106-04" },
     });
 
     expect(onConfigurationChange).toHaveBeenCalledWith([
       expect.objectContaining({
-        id: "kk2-temperature-02",
+        id: "106-04",
         slotKey: "front-01",
         label: "01F",
+        status: "no-data",
       }),
     ]);
   });
