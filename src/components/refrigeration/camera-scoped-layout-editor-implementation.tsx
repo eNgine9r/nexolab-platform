@@ -309,7 +309,7 @@ export function CameraScopedLayoutEditor({
               Фото та схема розміщення
             </h2>
             <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-0.5 text-[8px] text-cyan-200">
-              v{draft.version}
+              Чернетка v{draft.version}
             </span>
             {dirty ? (
               <span className="h-2 w-2 rounded-full bg-amber-400" title="Незбережені зміни" />
@@ -333,9 +333,7 @@ export function CameraScopedLayoutEditor({
                 <select
                   aria-label="Режим прив’язки"
                   value={snapMode}
-                  onChange={(event) =>
-                    setSnapMode(event.target.value as SnapMode)
-                  }
+                  onChange={(event) => setSnapMode(event.target.value as SnapMode)}
                   className="max-w-32 bg-transparent text-[10px] text-slate-300 outline-none"
                 >
                   <option value="none">Без прив’язки</option>
