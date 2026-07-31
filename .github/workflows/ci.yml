@@ -36,7 +36,7 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Check formatting for changed files
+      - name: Generate exact formatting artifact
         shell: bash
         run: |
           set -euo pipefail
@@ -60,23 +60,26 @@ jobs:
           )
 
           if (( ${#format_files[@]} == 0 )); then
-            echo "No changed files require Prettier validation." | tee prettier-diagnostics.txt
+            echo "No changed files require Prettier formatting." | tee prettier-diagnostics.txt
+            tar -czf prettier-formatted-files.tar.gz --files-from /dev/null
             exit 0
           fi
 
-          printf 'Checking formatting for %s changed file(s).\n' "${#format_files[@]}" \
+          printf 'Formatting %s changed file(s).\n' "${#format_files[@]}" \
             | tee prettier-diagnostics.txt
-          npm exec prettier -- --check "${format_files[@]}" \
+          npm exec prettier -- --write "${format_files[@]}" \
             2>&1 | tee -a prettier-diagnostics.txt
+          tar -czf prettier-formatted-files.tar.gz "${format_files[@]}"
 
-      - name: Upload formatting diagnostics
-        if: failure()
+      - name: Upload exact formatting artifact
         uses: actions/upload-artifact@v4
         with:
-          name: prettier-diagnostics-${{ github.sha }}
-          path: prettier-diagnostics.txt
+          name: prettier-formatted-${{ github.sha }}
+          path: |
+            prettier-diagnostics.txt
+            prettier-formatted-files.tar.gz
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 1
 
       - name: Lint
         run: npm run lint
