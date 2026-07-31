@@ -90,7 +90,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
-    runtime.config?.mode === "live" ? "connecting" : "disconnected",
+    runtime.config?.mode === "live" ? "connecting" : "idle",
   );
   const [hasLoadedSnapshot, setHasLoadedSnapshot] = useState(false);
   const [error, setError] = useState<Error | null>(runtime.error);
@@ -252,7 +252,12 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   }, [enabled, historyGeneration, historyKey, historyRange, runtime.config, selectedOrganizationId]);
 
   const view = useMemo(() => {
-    if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
+    if (
+      runtime.config?.mode !== "live" ||
+      !enabled ||
+      scopeKey === null ||
+      activeScopeKey !== scopeKey
+    ) {
       return null;
     }
     return deriveDashboardTelemetry(store, {
@@ -282,10 +287,10 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   if (!runtime.config) {
     return {
       mode: "live",
-      status: "error",
+      status: "configuration_error",
       view: null,
       kpis: buildLiveDashboardKpis({
-        status: "error",
+        status: "configuration_error",
         samples: [],
         freshSamples: [],
         lastCapturedAt: null,
