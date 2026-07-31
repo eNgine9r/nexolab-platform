@@ -193,3 +193,30 @@ def test_kk2_no_data_channel_can_be_placed_before_physical_installation(
     assert item["bound_equipment_id"] == created.json()["id"]
     assert item["latest_value"] is None
     assert item["quality"] == "no-data"
+
+
+def test_zero_sensor_capacity_is_normalized_before_configuration(
+    tmp_path: Path,
+) -> None:
+    api = build_client(tmp_path)
+    payload = equipment_payload("KK2")
+    payload["code"] = "CS-KK2-ZERO-CAPACITY"
+    payload["serial_number"] = "NX-KK2-ZERO-CAPACITY"
+    payload["total_sensors"] = 0
+
+    created = api.post("/api/v1/equipment", json=payload)
+
+    assert created.status_code == 201
+    assert created.json()["total_sensors"] == 48
+
+    configured = api.put(
+        f"/api/v1/equipment/{created.json()['id']}/sensor-configuration",
+        headers={
+            "If-Match": created.headers["etag"],
+            "X-Audit-Reason": "Recover legacy zero sensor slot capacity",
+        },
+        json=configuration("106-03"),
+    )
+
+    assert configured.status_code == 200
+    assert configured.json()["bindings"][0]["channel_id"] == "106-03"
