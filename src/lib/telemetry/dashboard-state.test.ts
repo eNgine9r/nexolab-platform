@@ -18,8 +18,8 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
     value: 4.2,
     unit: "degC",
     quality: "valid",
-    source: "modbus",
-    equipment_id: "xjp60d-106",
+    source: "dixell-xjp60d",
+    equipment_id: "K106",
     channel_id: "106-03",
     alarm: null,
     raw_value: 42,
@@ -33,13 +33,13 @@ const NOW = new Date("2026-07-23T18:00:10Z");
 describe("dashboard telemetry state", () => {
   it("deduplicates event ids and keeps the newest series sample", () => {
     const initial = createDashboardTelemetryStore();
-    const first = mergeDashboardTelemetry(initial, [sample(), sample({ event_id: "event-duplicate" })], {
+    const first = mergeDashboardTelemetry(initial, [sample(), sample({ event_id: "duplicate" })], {
       now: NOW,
     });
     const updated = mergeDashboardTelemetry(
       first,
       [
-        sample({ event_id: "event-old", captured_at: "2026-07-23T17:59:59Z", value: 1 }),
+        sample({ event_id: "old", captured_at: "2026-07-23T17:59:59Z", value: 1 }),
         sample({ event_id: "event-2", captured_at: "2026-07-23T18:00:05Z", value: 5.1 }),
         sample({ event_id: "event-2", captured_at: "2026-07-23T18:00:05Z", value: 9.9 }),
       ],
@@ -123,15 +123,15 @@ describe("dashboard telemetry state", () => {
     expect(view.samples).toHaveLength(1);
   });
 
-  it("renders quality errors and status-only samples without fake values", () => {
+  it("does not turn uninstalled probe inputs into active alarms", () => {
     const store = mergeDashboardTelemetry(
       createDashboardTelemetryStore(),
       [
-        sample({ quality: "sensor_error", value: null, alarm: "high" }),
+        sample({ quality: "sensor_error", value: null, alarm: null, raw_status: 0x1103 }),
         sample({
-          event_id: "status-only",
+          event_id: "communication-error",
           metric: "device_status",
-          channel_id: "106-status",
+          channel_id: "126-status",
           quality: "communication_error",
           value: null,
         }),
@@ -147,32 +147,41 @@ describe("dashboard telemetry state", () => {
     const kpis = buildLiveDashboardKpis(view);
 
     expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("—");
-    expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("2");
+    expect(kpis.find((item) => item.label === "Активних тривог")?.value).toBe("1");
   });
 
-  it("maps production temperature and power channels", () => {
+  it("maps every discovered XJP60D temperature and production power channel", () => {
     const store = mergeDashboardTelemetry(
       createDashboardTelemetryStore(),
       [
         sample(),
+        sample({ event_id: "temp-2", channel_id: "106-04", value: 5.2 }),
         sample({
-          event_id: "temp-2",
-          equipment_id: "xjp60d-106",
-          channel_id: "106-04",
-          value: 5.2,
+          event_id: "kk2-new",
+          equipment_id: "K110",
+          channel_id: "110-06",
+          value: 6.2,
+        }),
+        sample({
+          event_id: "kk1-sensor-200",
+          equipment_id: "K126",
+          channel_id: "126-04",
+          value: 7.2,
         }),
         sample({
           event_id: "power-200",
-          equipment_id: "le01mp-200",
-          channel_id: "200",
+          source: "f-and-f-le-01mp",
+          equipment_id: "LE01MP-200",
+          channel_id: "200-active-power",
           metric: "electrical.power.active",
           value: 1200,
           unit: "W",
         }),
         sample({
           event_id: "power-201",
-          equipment_id: "le01mp-201",
-          channel_id: "201",
+          source: "f-and-f-le-01mp",
+          equipment_id: "LE01MP-201",
+          channel_id: "201-active-power",
           metric: "electrical.power.active",
           value: 0.8,
           unit: "kW",
@@ -188,8 +197,11 @@ describe("dashboard telemetry state", () => {
     });
     const kpis = buildLiveDashboardKpis(view);
 
-    expect(selectProductionTemperatures(view)).toHaveLength(2);
+    expect(selectProductionTemperatures(view).map((item) => item.channel_id)).toEqual(
+      expect.arrayContaining(["106-03", "106-04", "110-06", "126-04"]),
+    );
+    expect(selectProductionTemperatures(view)).toHaveLength(4);
     expect(kpis.find((item) => item.label === "Поточне споживання")?.value).toBe("2,00 kW");
-    expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("4,7 °C");
+    expect(kpis.find((item) => item.label === "Середня температура")?.value).toBe("5,7 °C");
   });
 });

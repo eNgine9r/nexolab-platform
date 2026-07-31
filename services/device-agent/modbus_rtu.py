@@ -64,11 +64,19 @@ def append_crc(payload: bytes) -> bytes:
     return payload + bytes((checksum & 0xFF, checksum >> 8))
 
 
-def build_read_holding_register_request(unit_id: int, address: int) -> bytes:
+def build_read_holding_registers_request(
+    unit_id: int,
+    address: int,
+    count: int,
+) -> bytes:
     if not 1 <= unit_id <= 247:
         raise ValueError(f"Modbus unit_id must be 1..247, got {unit_id}")
     if not 0 <= address <= 0xFFFF:
         raise ValueError(f"Modbus address must be 0..65535, got {address}")
+    if not 1 <= count <= 125:
+        raise ValueError(f"Modbus register count must be 1..125, got {count}")
+    if address + count - 1 > 0xFFFF:
+        raise ValueError("Modbus register range exceeds address 65535")
     return append_crc(
         bytes(
             (
@@ -76,15 +84,27 @@ def build_read_holding_register_request(unit_id: int, address: int) -> bytes:
                 0x03,
                 address >> 8,
                 address & 0xFF,
-                0x00,
-                0x01,
+                count >> 8,
+                count & 0xFF,
             )
         )
     )
 
 
-def parse_read_holding_register_response(frame: bytes, unit_id: int) -> int:
-    if len(frame) not in {5, 7}:
+def build_read_holding_register_request(unit_id: int, address: int) -> bytes:
+    return build_read_holding_registers_request(unit_id, address, 1)
+
+
+def parse_read_holding_registers_response(
+    frame: bytes,
+    unit_id: int,
+    count: int,
+) -> tuple[int, ...]:
+    if not 1 <= count <= 125:
+        raise ValueError(f"Modbus register count must be 1..125, got {count}")
+    expected_byte_count = count * 2
+    expected_length = expected_byte_count + 5
+    if len(frame) not in {5, expected_length}:
         raise ModbusProtocolError(f"Unexpected Modbus frame length: {len(frame)}")
     if crc16(frame[:-2]) != int.from_bytes(frame[-2:], byteorder="little"):
         raise ModbusProtocolError("Modbus response CRC mismatch")
@@ -100,13 +120,23 @@ def parse_read_holding_register_response(frame: bytes, unit_id: int) -> int:
         raise ModbusExceptionResponse(unit_id, 0x03, frame[2])
     if function != 0x03:
         raise ModbusProtocolError(f"Unexpected Modbus function: 0x{function:02X}")
-    if len(frame) != 7 or frame[2] != 2:
-        raise ModbusProtocolError("Expected exactly one holding register in the response")
-    return int.from_bytes(frame[3:5], byteorder="big", signed=False)
+    if len(frame) != expected_length or frame[2] != expected_byte_count:
+        raise ModbusProtocolError(
+            f"Expected {expected_byte_count} register-data bytes, "
+            f"received {frame[2]}"
+        )
+    return tuple(
+        int.from_bytes(frame[offset : offset + 2], byteorder="big", signed=False)
+        for offset in range(3, 3 + expected_byte_count, 2)
+    )
+
+
+def parse_read_holding_register_response(frame: bytes, unit_id: int) -> int:
+    return parse_read_holding_registers_response(frame, unit_id, 1)[0]
 
 
 class ModbusRTUClient:
-    """Strict read-only Modbus RTU client for one-register FC03 requests."""
+    """Strict read-only Modbus RTU client for FC03 register reads."""
 
     def __init__(
         self,
@@ -179,20 +209,26 @@ class ModbusRTUClient:
                 )
         return bytes(chunks)
 
-    def _read_response(self, port: SerialPort) -> bytes:
+    def _read_response(self, port: SerialPort, expected_count: int) -> bytes:
         header = self._read_exact(port, 3)
         function = header[1]
         if function & 0x80:
             return header + self._read_exact(port, 2)
         byte_count = header[2]
-        if byte_count != 2:
+        expected_byte_count = expected_count * 2
+        if byte_count != expected_byte_count:
             raise ModbusProtocolError(
-                f"Expected byte_count=2 for one register, received {byte_count}"
+                f"Expected byte_count={expected_byte_count}, received {byte_count}"
             )
         return header + self._read_exact(port, byte_count + 2)
 
-    def read_holding_register(self, unit_id: int, address: int) -> int:
-        request = build_read_holding_register_request(unit_id, address)
+    def read_holding_registers(
+        self,
+        unit_id: int,
+        address: int,
+        count: int,
+    ) -> tuple[int, ...]:
+        request = build_read_holding_registers_request(unit_id, address, count)
         last_timeout: ModbusTimeoutError | None = None
 
         with self._lock:
@@ -207,10 +243,17 @@ class ModbusRTUClient:
                             f"Serial write incomplete: {written}/{len(request)} bytes"
                         )
                     port.flush()
-                    frame = self._read_response(port)
-                    return parse_read_holding_register_response(frame, unit_id)
+                    frame = self._read_response(port, count)
+                    return parse_read_holding_registers_response(
+                        frame,
+                        unit_id,
+                        count,
+                    )
                 except ModbusTimeoutError as exc:
                     last_timeout = exc
 
         assert last_timeout is not None
         raise last_timeout
+
+    def read_holding_register(self, unit_id: int, address: int) -> int:
+        return self.read_holding_registers(unit_id, address, 1)[0]
