@@ -31,6 +31,7 @@
     {
       "id": "NEXOLAB-183",
       "issue": 183,
+      "pull_request": 190,
       "title": "Reconcile architecture, roadmap, offline dependencies and current state",
       "status": "review",
       "priority": 2,
