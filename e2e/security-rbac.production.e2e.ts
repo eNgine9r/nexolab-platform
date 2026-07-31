@@ -94,6 +94,7 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
         laboratory: "Security acceptance · Лабораторія 1",
         zone: "КК2",
         node_id: climateChamberId,
+        climate_chamber_id: climateChamberId,
         equipment_type: "Холодильна вітрина",
         manufacturer: "ColdStream",
         model: "Premium 1250",
@@ -104,9 +105,14 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
       },
     });
     expect(response.status()).toBe(201);
-    const equipment = (await response.json()) as { id: string; node_id: string };
+    const equipment = (await response.json()) as {
+      id: string;
+      node_id: string;
+      climate_chamber_id: string;
+    };
     expect(equipment.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(equipment.node_id).toBe(climateChamberId);
+    expect(equipment.climate_chamber_id).toBe(climateChamberId);
     equipmentId = equipment.id;
     equipmentRoute = `/refrigeration/${equipmentId}`;
 
