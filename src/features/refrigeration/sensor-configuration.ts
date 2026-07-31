@@ -24,11 +24,9 @@ export function buildStagedSensorConfiguration(
     .filter((binding) => binding.unboundAt === null)
     .map((binding) => {
       const channel = channelById.get(binding.channelId);
-      const placement = placementById.get(binding.channelId) ?? defaultPlacement(
-        binding.side,
-        binding.shelf,
-        binding.position,
-      );
+      const placement =
+        placementById.get(binding.channelId) ??
+        defaultPlacement(binding.side, binding.shelf, binding.position);
       return {
         id: binding.channelId,
         slotKey: binding.slotKey,
@@ -42,9 +40,10 @@ export function buildStagedSensorConfiguration(
         temperatureC: channel?.latestValue ?? null,
         status: statusFromQuality(channel),
         updatedAt: channel?.capturedAt ?? binding.boundAt,
-        trend: channel?.latestValue === null || channel?.latestValue === undefined
-          ? []
-          : [channel.latestValue],
+        trend:
+          channel?.latestValue === null || channel?.latestValue === undefined
+            ? []
+            : [channel.latestValue],
         metric: channel?.metric ?? "temperature",
         unit: channel?.unit ?? "degC",
       };
@@ -56,8 +55,11 @@ export function addChannelToConfiguration(
   current: readonly StagedSensorConfiguration[],
   channel: AvailableSensor,
   totalSlots: number,
+  equipmentId?: string,
 ): StagedSensorConfiguration[] {
   if (current.some((sensor) => sensor.id === channel.channelId)) return [...current];
+  const conflict = channelPlacementConflict(channel, equipmentId);
+  if (conflict) throw new Error(conflict);
   const slot = firstAvailableSlot(current, totalSlots);
   if (!slot) throw new Error("Усі доступні позиції датчиків уже зайняті.");
   const placement = defaultPlacement(slot.side, slot.shelf, slot.position);
@@ -85,6 +87,7 @@ export function replaceConfiguredChannel(
   current: readonly StagedSensorConfiguration[],
   sensorId: string,
   channel: AvailableSensor,
+  equipmentId?: string,
 ): StagedSensorConfiguration[] {
   if (
     channel.channelId !== sensorId &&
@@ -92,6 +95,8 @@ export function replaceConfiguredChannel(
   ) {
     throw new Error("Цей датчик уже використовується на схемі.");
   }
+  const conflict = channelPlacementConflict(channel, equipmentId);
+  if (channel.channelId !== sensorId && conflict) throw new Error(conflict);
   return current
     .map((sensor) =>
       sensor.id === sensorId
@@ -196,30 +201,51 @@ export function configurationsEqual(
 export function unusedClimateChamberChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
-  equipmentId: string,
+  _equipmentId: string,
 ): AvailableSensor[] {
   const used = new Set(configuration.map((sensor) => sensor.id));
-  return channels.filter(
-    (channel) =>
-      !used.has(channel.channelId) &&
-      (!channel.isBound || channel.boundEquipmentId === equipmentId),
-  );
+  return channels.filter((channel) => !used.has(channel.channelId));
 }
 
 export function selectableReplacementChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
   sensorId: string,
-  equipmentId: string,
+  _equipmentId: string,
 ): AvailableSensor[] {
   const usedByOther = new Set(
     configuration.filter((sensor) => sensor.id !== sensorId).map((sensor) => sensor.id),
   );
-  return channels.filter(
-    (channel) =>
-      !usedByOther.has(channel.channelId) &&
-      (!channel.isBound || channel.boundEquipmentId === equipmentId),
-  );
+  return channels.filter((channel) => !usedByOther.has(channel.channelId));
+}
+
+export function channelPlacementConflict(
+  channel: AvailableSensor,
+  equipmentId?: string,
+): string | null {
+  if (!channel.isBound || channel.boundEquipmentId === equipmentId) return null;
+  const target = channel.boundEquipmentId ?? "іншому обладнанні";
+  const slot = channel.boundSlotKey ? ` · позиція ${channel.boundSlotKey}` : "";
+  return `Канал ${channel.channelId} уже розміщений на ${target}${slot}.`;
+}
+
+export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
+  if (channel.latestValue === null) {
+    const quality = channel.quality.toLowerCase();
+    if (quality.includes("sensor") || quality.includes("fault") || quality.includes("error")) {
+      return "Помилка датчика";
+    }
+    if (quality.includes("offline") || quality.includes("communication")) {
+      return "Offline";
+    }
+    if (quality.includes("planned")) {
+      return "Запланований";
+    }
+    return "Немає даних";
+  }
+  const capturedAt = Date.parse(channel.capturedAt);
+  if (!Number.isFinite(capturedAt) || now - capturedAt > 30_000) return "Stale";
+  return "Live";
 }
 
 function firstAvailableSlot(
