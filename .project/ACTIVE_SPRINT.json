@@ -45,6 +45,7 @@
       "status": "review",
       "priority": 3,
       "depends_on": ["NEXOLAB-183"],
+      "pull_request": 206,
       "branch": "chore/186-source-of-truth-reconciliation",
       "scope": [".project/**", "docs/roadmap.md", "GitHub Issues and Pull Requests"]
     },
