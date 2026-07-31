@@ -44,7 +44,7 @@ type SecurityAwareLayoutWorkspaceProps = {
   bindings?: readonly SensorBinding[];
   canManageEquipment?: boolean;
   toolbarTools?: ReactNode;
-  toolbarTargetId?: string;
+  toolbarTarget?: HTMLElement | null;
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
   onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
@@ -76,7 +76,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   bindings = [],
   canManageEquipment,
   toolbarTools,
-  toolbarTargetId,
+  toolbarTarget,
   onModeChange,
   onSelect,
   onEquipmentChange,
@@ -93,7 +93,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const [securityError, setSecurityError] = useState<string | null>(runtime.error);
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   const [lifecycleOpen, setLifecycleOpen] = useState(false);
-  const [toolbarTarget, setToolbarTarget] = useState<HTMLElement | null>(null);
 
   const effectiveLifecycleRepository =
     sensorConfigurationRepository ?? lifecycleRepository;
@@ -115,15 +114,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     onCapabilitiesChange?.(capabilities);
     if (!capabilities.canEdit && mode === "edit") onModeChange("view");
   }, [capabilities, mode, onCapabilitiesChange, onModeChange]);
-
-  useEffect(() => {
-    if (!toolbarTargetId) {
-      setToolbarTarget(null);
-      return;
-    }
-
-    setToolbarTarget(document.getElementById(toolbarTargetId));
-  }, [toolbarTargetId]);
 
   useEffect(() => {
     if (!lifecycleOpen) return;
@@ -306,11 +296,11 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         }
       `}</style>
 
-      {toolbarTargetId
-        ? toolbarTarget
+      {toolbarTarget === undefined
+        ? workspaceToolbar
+        : toolbarTarget
           ? createPortal(workspaceToolbar, toolbarTarget)
-          : null
-        : workspaceToolbar}
+          : null}
 
       {cameraScoped && effectiveLifecycleRepository ? (
         <CameraScopedLayoutEditor
