@@ -39,7 +39,7 @@ try {
         Invoke-Step "Frontend format check" { npm run format:check }
         Invoke-Step "Frontend lint" { npm run lint }
         Invoke-Step "Frontend typecheck" { npm run typecheck }
-        Invoke-Step "Frontend tests" { npm test -- --run }
+        Invoke-Step "Frontend tests" { npm test }
 
         if (-not $SkipBuild) {
             Invoke-Step "Frontend production build" { npm run build }
