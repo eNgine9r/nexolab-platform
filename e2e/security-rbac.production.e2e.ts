@@ -200,10 +200,14 @@ test("enforces authenticated organization roles and immutable audit attribution"
       ).toBeVisible();
 
       await page.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+      const lifecycleDialog = page.getByRole("dialog", {
+        name: "Версії та публікація схеми",
+      });
+      await expect(lifecycleDialog).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Опублікувати поточну чернетку" }),
+        lifecycleDialog.getByRole("button", { name: "Опублікувати поточну чернетку" }),
       ).toBeHidden();
-      await page.getByRole("button", { name: "Закрити версії схеми" }).click();
+      await lifecycleDialog.getByRole("button", { name: "Закрити версії схеми" }).click();
 
       const draftResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/draft`,
@@ -284,15 +288,19 @@ test("enforces authenticated organization roles and immutable audit attribution"
         page.locator("#layout-editor").getByText("Чернетка v3", { exact: true }),
       ).toBeVisible();
       await page.getByRole("button", { name: "Відкрити версії та публікацію схеми" }).click();
+      const lifecycleDialog = page.getByRole("dialog", {
+        name: "Версії та публікація схеми",
+      });
+      await expect(lifecycleDialog).toBeVisible();
       const publishPromise = page.waitForResponse(
         (response) =>
           response.request().method() === "POST" &&
           new URL(response.url()).pathname ===
             `/api/v1/equipment/${equipmentId}/layout/publish`,
       );
-      await page.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
+      await lifecycleDialog.getByRole("button", { name: "Опублікувати поточну чернетку" }).click();
       expect((await publishPromise).status()).toBe(201);
-      await expect(page.getByText("Ревізія r1", { exact: true })).toBeVisible();
+      await expect(lifecycleDialog.getByText("Ревізія r1", { exact: true })).toBeVisible();
 
       const historyResponse = await context.request.get(
         `${apiBaseUrl}/api/v1/equipment/${equipmentId}/layout/history`,
