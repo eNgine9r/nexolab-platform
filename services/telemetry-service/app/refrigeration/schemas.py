@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 EquipmentHealthStatus = Literal["normal", "warning", "alarm", "offline"]
 EquipmentLifecycleStatus = Literal["active", "maintenance", "retired"]
 SensorSide = Literal["front", "rear"]
+DEFAULT_SENSOR_SLOT_CAPACITY = 48
 
 
 class RefrigerationEquipmentCreate(BaseModel):
@@ -27,7 +28,7 @@ class RefrigerationEquipmentCreate(BaseModel):
     installed_at: date | None = None
     serviced_at: date | None = None
     lifecycle_status: EquipmentLifecycleStatus = "active"
-    total_sensors: Annotated[int, Field(ge=0, le=48)] = 0
+    total_sensors: Annotated[int, Field(ge=1, le=48)] = DEFAULT_SENSOR_SLOT_CAPACITY
 
     @field_validator(
         "code",
@@ -53,6 +54,13 @@ class RefrigerationEquipmentCreate(BaseModel):
             return None
         normalized = " ".join(value.split())
         return normalized or None
+
+    @field_validator("total_sensors", mode="before")
+    @classmethod
+    def normalize_sensor_slot_capacity(cls, value: object) -> object:
+        if value in (None, "", 0, "0"):
+            return DEFAULT_SENSOR_SLOT_CAPACITY
+        return value
 
     @model_validator(mode="after")
     def validate_location_hierarchy(self) -> "RefrigerationEquipmentCreate":
