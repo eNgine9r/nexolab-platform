@@ -69,7 +69,7 @@ describe("dashboard telemetry state", () => {
     expect(view.status).toBe("offline");
   });
 
-  it("distinguishes live, reconnecting, stale and offline", () => {
+  it("distinguishes live, reconnecting, stale and confirmed offline", () => {
     const store = mergeDashboardTelemetry(createDashboardTelemetryStore(), [sample()], { now: NOW });
 
     expect(
@@ -100,10 +100,27 @@ describe("dashboard telemetry state", () => {
       deriveDashboardTelemetry(store, {
         now: new Date("2026-07-23T18:01:00Z"),
         hasLoadedSnapshot: true,
-        connectionState: "disconnected",
+        connectionState: "offline",
         error: null,
       }).status,
     ).toBe("offline");
+  });
+
+  it.each([
+    ["unauthorized", "unauthorized"],
+    ["forbidden", "forbidden"],
+    ["configuration_error", "configuration_error"],
+  ] as const)("does not mask %s as offline", (connectionState, expected) => {
+    const store = mergeDashboardTelemetry(createDashboardTelemetryStore(), [sample()], { now: NOW });
+    const view = deriveDashboardTelemetry(store, {
+      now: NOW,
+      hasLoadedSnapshot: true,
+      connectionState,
+      error: new Error(expected),
+    });
+
+    expect(view.status).toBe(expected);
+    expect(view.samples).toHaveLength(1);
   });
 
   it("renders quality errors and status-only samples without fake values", () => {
