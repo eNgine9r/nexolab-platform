@@ -7,7 +7,7 @@
   "pull_request": 190,
   "branch": "docs/183-architecture-reconciliation",
   "status": "review",
-  "timestamp": "2026-08-01T00:28:33+03:00",
+  "timestamp": "2026-08-01T00:32:21+03:00",
   "baseline_main_sha": "8371ee59e76e64963405706be79fc4a909f9fac9",
   "summary": "Verified the current architecture and corrected PR #190 review findings. Successor Work Packages are no longer Ready before #183 is Done. The MQTT-to-PostgreSQL handoff is documented as non-durable after broker acknowledgement, and Issue #198 owns the local durable staging/replay correction.",
   "files_changed": [
@@ -27,6 +27,8 @@
     "central MQTT consumer submission to an in-memory persistence queue verified in code",
     "Issue #198 created for end-to-end telemetry durability",
     "successor Sprint tasks changed from ready to queued",
+    "exact Prettier 3.9.6 output applied to all seven scoped files",
+    "temporary formatting workflow removed from the final diff",
     "no Modbus write and no production cutover performed"
   ],
   "checks_pending": [
