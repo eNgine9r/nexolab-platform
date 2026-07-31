@@ -19,16 +19,14 @@ DEFAULT_SENSOR_SLOT_CAPACITY = 48
 
 def upgrade() -> None:
     op.execute(
-        sa.text(
-            """
-            UPDATE refrigeration_equipment
-            SET total_sensors = :capacity,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE total_sensors = 0
-              AND deleted_at IS NULL
-              AND lifecycle_status IN ('active', 'maintenance')
-            """
-        ).bindparams(capacity=DEFAULT_SENSOR_SLOT_CAPACITY)
+        """
+        UPDATE refrigeration_equipment
+        SET total_sensors = 48,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE total_sensors = 0
+          AND deleted_at IS NULL
+          AND lifecycle_status IN ('active', 'maintenance')
+        """
     )
     op.alter_column(
         "refrigeration_equipment",
