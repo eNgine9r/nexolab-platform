@@ -65,7 +65,6 @@ const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> =
   { value: "rear", label: "Задній фронт" },
 ];
 const shelves = [1, 2, 3, 4] as const;
-const REFRIGERATION_HEADER_TOOLBAR_ID = "refrigeration-detail-header-tools";
 
 export function RefrigerationDetailScreen({
   equipment: initialEquipment,
@@ -81,6 +80,7 @@ export function RefrigerationDetailScreen({
   const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
+  const [headerToolbarTarget, setHeaderToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
@@ -308,7 +308,7 @@ export function RefrigerationDetailScreen({
                 aria-label="Дії сторінки обладнання"
               >
                 <div
-                  id={REFRIGERATION_HEADER_TOOLBAR_ID}
+                  ref={setHeaderToolbarTarget}
                   className="flex w-[132px] shrink-0 items-center gap-1.5"
                 />
                 <button
@@ -365,7 +365,7 @@ export function RefrigerationDetailScreen({
               onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
               forceReadOnly={retired}
               toolbarTools={filterMenu}
-              toolbarTargetId={REFRIGERATION_HEADER_TOOLBAR_ID}
+              toolbarTarget={headerToolbarTarget}
             />
           </div>
         </main>
