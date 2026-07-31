@@ -1,0 +1,80 @@
+schema_version: 1
+project_name: NEXOLAB
+repository: eNgine9r/nexolab-platform
+profile: LOCAL_LAN
+
+product:
+  category: INDUSTRIAL_IOT_LAB_MONITORING
+  primary_language: uk
+  secondary_language: en
+  safety_critical_data: true
+
+roles:
+  product_owner: user
+  technical_lead: ChatGPT
+  implementation_agent: Codex
+  source_of_truth: GitHub_and_repository
+
+development:
+  internet_allowed: true
+  github_required: true
+  codex_optional: true
+  local_development_supported: true
+
+runtime:
+  internet_required: false
+  cloud_services_required: false
+  paid_services_allowed: false
+  paid_service_rule: optional_only_with_local_fallback
+  offline_core_required: true
+  local_network_required: true
+
+deployment:
+  model: local_lan
+  server_targets:
+    - controlled_local_host
+    - Raspberry_Pi_edge
+  client_target: local_web_browser
+  environments:
+    - development
+    - local_validation
+    - controlled_site
+  install_method: offline_package_or_local_container_bundle
+  update_method: signed_or_versioned_offline_package
+
+data:
+  location: local_PostgreSQL_and_edge_SQLite
+  cloud_sync: optional_only
+  backup_required: true
+  restore_test_required: true
+  retention_policy_required: true
+  secrets_in_repository: forbidden
+
+hardware:
+  protocols:
+    - Modbus_RTU_read_only
+    - MQTT_QoS_1
+  stable_device_paths_required: true
+  modbus_writes: forbidden
+  hardware_actions_require_explicit_scope: true
+
+quality:
+  branch_to_pr_required: true
+  direct_main_push: forbidden
+  targeted_tests_first: true
+  full_ci_before_merge: true
+  offline_readiness_required: true
+  real_hardware_evidence_required_for_hardware_acceptance: true
+  current_state_update_required: true
+  checkpoint_required_per_work_package: true
+
+risk:
+  hard_blockers:
+    - destructive_database_operation
+    - production_or_site_cutover
+    - hardware_write_operation
+    - secret_exposure
+    - missing_mandatory_device_or_credentials
+    - unresolved_product_architecture_choice
+    - inability_to_preserve_local_data
+    - exhausted_agent_usage_limit
