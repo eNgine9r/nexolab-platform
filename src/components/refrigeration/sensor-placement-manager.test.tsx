@@ -63,9 +63,11 @@ const configured: StagedSensorConfiguration = {
 function renderManager({
   configuration = [],
   editingSensorId = null,
+  totalSlots = 48,
 }: {
   configuration?: StagedSensorConfiguration[];
   editingSensorId?: string | null;
+  totalSlots?: number;
 } = {}) {
   const onConfigurationChange = vi.fn();
   const onEditingSensorIdChange = vi.fn();
@@ -73,7 +75,7 @@ function renderManager({
   render(
     <SensorPlacementManager
       equipmentId="showcase-kk2"
-      totalSlots={48}
+      totalSlots={totalSlots}
       channels={channels}
       configuration={configuration}
       editingSensorId={editingSensorId}
@@ -112,6 +114,28 @@ describe("SensorPlacementManager", () => {
     ]);
     expect(onSelect).toHaveBeenCalledWith("106-03");
     expect(onEditingSensorIdChange).toHaveBeenCalledWith("106-03");
+  });
+
+  it("recovers a legacy zero-capacity passport as a 48-slot layout", () => {
+    const { onConfigurationChange } = renderManager({ totalSlots: 0 });
+
+    expect(screen.getByText("0/48")).toBeInTheDocument();
+    expect(screen.getByText(/місткість датчиків була задана як 0/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
+    ).toBeEnabled();
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
+      { target: { value: "106-04" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
+    );
+
+    expect(onConfigurationChange).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "106-04", slotKey: "front-01" }),
+    ]);
   });
 
   it("allows a configured channel without telemetry to be placed", () => {
