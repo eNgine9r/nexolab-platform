@@ -4,6 +4,7 @@ param(
     [string]$Component = "All",
     [switch]$InstallDependencies,
     [switch]$SkipBuild,
+    [switch]$FullFormatCheck,
     [switch]$IncludeComposeValidation
 )
 
@@ -23,6 +24,49 @@ function Invoke-Step {
     }
 }
 
+function Get-ChangedPrettierFiles {
+    param([string]$BaseRef = "origin/main")
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        throw "git is not available in PATH."
+    }
+
+    & git rev-parse --verify $BaseRef *> $null
+    if ($LASTEXITCODE -ne 0) {
+        $BaseRef = "HEAD~1"
+    }
+
+    $changedFiles = @(& git diff --name-only --diff-filter=ACMRT "$BaseRef...HEAD")
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to determine files changed against $BaseRef."
+    }
+
+    $supportedExtensions = @(
+        ".cjs",
+        ".css",
+        ".html",
+        ".js",
+        ".json",
+        ".jsx",
+        ".md",
+        ".mdx",
+        ".mjs",
+        ".scss",
+        ".ts",
+        ".tsx",
+        ".yaml",
+        ".yml"
+    )
+
+    return @(
+        $changedFiles |
+            Where-Object {
+                (Test-Path $_ -PathType Leaf) -and
+                ($supportedExtensions -contains [System.IO.Path]::GetExtension($_).ToLowerInvariant())
+            }
+    )
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $repoRoot
 
@@ -36,7 +80,22 @@ try {
             Invoke-Step "Install frontend dependencies" { npm ci }
         }
 
-        Invoke-Step "Frontend format check" { npm run format:check }
+        if ($FullFormatCheck) {
+            Invoke-Step "Full repository format check" { npm run format:check }
+        }
+        else {
+            $formatFiles = @(Get-ChangedPrettierFiles)
+            if ($formatFiles.Count -gt 0) {
+                Invoke-Step "Format check for changed files" {
+                    & npm exec prettier -- --check @formatFiles
+                }
+            }
+            else {
+                Write-Host "`n==> Format check for changed files"
+                Write-Host "No Prettier-supported files changed against origin/main."
+            }
+        }
+
         Invoke-Step "Frontend lint" { npm run lint }
         Invoke-Step "Frontend typecheck" { npm run typecheck }
         Invoke-Step "Frontend tests" { npm test }
@@ -117,6 +176,9 @@ try {
 
     Write-Host "`nAll requested NEXOLAB verification steps passed."
     Write-Host "Note: software checks do not replace real hardware, offline, backup/restore or controlled-site acceptance evidence."
+    if (-not $FullFormatCheck) {
+        Write-Host "Formatting was checked only for files changed against origin/main. Use -FullFormatCheck for the repository-wide debt audit."
+    }
 }
 finally {
     Pop-Location
