@@ -1,9 +1,4 @@
-import type {
-  TelemetryAlarm,
-  TelemetryConnectionState,
-  TelemetryQuality,
-  TelemetrySample,
-} from "./types";
+import type { TelemetryConnectionState, TelemetrySample } from "./types";
 
 export type DashboardTelemetryStatus =
   | "demo"
@@ -57,272 +52,146 @@ export interface DashboardKpiValue {
   badgeTone: "demo" | "live" | "stale" | "offline" | "error";
 }
 
-type UsableTelemetrySample = TelemetrySample & {
-  quality: "valid";
-  value: number;
-};
-
-const DEFAULT_MAX_FUTURE_SKEW_MS = 30_000;
-const DEFAULT_MAX_SEEN_EVENT_IDS = 10_000;
-const DEFAULT_STALE_AFTER_MS = 30_000;
-const EXPECTED_RECORDS_PER_CYCLE = 34;
-const PRODUCTION_TEMPERATURE_CHANNELS = new Set(["106-03", "106-04"]);
-const PRODUCTION_ENERGY_UNITS = new Set(["200", "201", "202", "203"]);
+type ValidSample = TelemetrySample & { quality: "valid"; value: number };
+const ENERGY_UNITS = ["200", "201", "202", "203"];
 
 export function createDashboardTelemetryStore(): DashboardTelemetryStore {
-  return {
-    samples: {},
-    seenEventIds: [],
-    rejectedFutureSamples: 0,
-  };
+  return { samples: {}, seenEventIds: [], rejectedFutureSamples: 0 };
 }
 
 export function telemetrySeriesKey(sample: TelemetrySample): string {
   return [sample.node_id, sample.equipment_id, sample.channel_id, sample.metric].join(":");
 }
 
-function milliseconds(value: Date | number | undefined): number {
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-  return value ?? Date.now();
-}
-
-function capturedAtMs(sample: TelemetrySample): number {
-  return Date.parse(sample.captured_at);
-}
+const time = (value?: Date | number) => (value instanceof Date ? value.getTime() : (value ?? Date.now()));
+const captured = (sample: TelemetrySample) => Date.parse(sample.captured_at);
 
 export function mergeDashboardTelemetry(
   current: DashboardTelemetryStore,
   incoming: readonly TelemetrySample[],
   options: MergeTelemetryOptions = {},
 ): DashboardTelemetryStore {
-  const nowMs = milliseconds(options.now);
-  const maxFutureSkewMs = options.maxFutureSkewMs ?? DEFAULT_MAX_FUTURE_SKEW_MS;
-  const maxSeenEventIds = options.maxSeenEventIds ?? DEFAULT_MAX_SEEN_EVENT_IDS;
+  const now = time(options.now);
   const seen = new Set(current.seenEventIds);
-  const seenOrder = [...current.seenEventIds];
+  const order = [...current.seenEventIds];
   const samples = { ...current.samples };
-  let rejectedFutureSamples = current.rejectedFutureSamples;
+  let rejected = current.rejectedFutureSamples;
   let changed = false;
-
   for (const sample of incoming) {
-    if (seen.has(sample.event_id)) {
-      continue;
-    }
-
-    const sampleTime = capturedAtMs(sample);
-    if (!Number.isFinite(sampleTime) || sampleTime > nowMs + maxFutureSkewMs) {
-      rejectedFutureSamples += 1;
+    if (seen.has(sample.event_id)) continue;
+    const stamp = captured(sample);
+    if (!Number.isFinite(stamp) || stamp > now + (options.maxFutureSkewMs ?? 30_000)) {
+      rejected += 1;
       changed = true;
       continue;
     }
-
     seen.add(sample.event_id);
-    seenOrder.push(sample.event_id);
+    order.push(sample.event_id);
     changed = true;
-
     const key = telemetrySeriesKey(sample);
-    const previous = samples[key];
-    if (!previous || capturedAtMs(previous) <= sampleTime) {
-      samples[key] = sample;
-    }
+    if (!samples[key] || captured(samples[key]) <= stamp) samples[key] = sample;
   }
-
-  while (seenOrder.length > maxSeenEventIds) {
-    seenOrder.shift();
-  }
-
-  if (!changed) {
-    return current;
-  }
-
-  return {
-    samples,
-    seenEventIds: seenOrder,
-    rejectedFutureSamples,
-  };
+  while (order.length > (options.maxSeenEventIds ?? 10_000)) order.shift();
+  return changed ? { samples, seenEventIds: order, rejectedFutureSamples: rejected } : current;
 }
 
 export function deriveDashboardTelemetry(
   store: DashboardTelemetryStore,
   options: DeriveTelemetryOptions,
 ): DashboardTelemetryView {
-  const nowMs = milliseconds(options.now);
-  const staleAfterMs = options.staleAfterMs ?? DEFAULT_STALE_AFTER_MS;
-  const samples = Object.values(store.samples).sort(
-    (left, right) => capturedAtMs(right) - capturedAtMs(left),
+  const now = time(options.now);
+  const samples = Object.values(store.samples).sort((a, b) => captured(b) - captured(a));
+  const lastCapturedAt = samples[0]?.captured_at ?? null;
+  const ageMs = lastCapturedAt ? Math.max(0, now - Date.parse(lastCapturedAt)) : null;
+  const freshSamples = samples.filter(
+    (sample) => now - captured(sample) <= (options.staleAfterMs ?? 30_000),
   );
-  const latestTimestamp = samples[0]?.captured_at ?? null;
-  const ageMs = latestTimestamp === null ? null : Math.max(0, nowMs - Date.parse(latestTimestamp));
-  const freshSamples = samples.filter((sample) => nowMs - capturedAtMs(sample) <= staleAfterMs);
-
   let status: DashboardTelemetryStatus;
-  if (options.connectionState === "unauthorized") {
-    status = "unauthorized";
-  } else if (options.connectionState === "forbidden") {
-    status = "forbidden";
-  } else if (options.connectionState === "configuration_error") {
-    status = "configuration_error";
-  } else if (options.error && samples.length === 0) {
-    status = "error";
-  } else if (!options.hasLoadedSnapshot && samples.length === 0) {
-    status = "connecting";
-  } else if (options.connectionState === "reconnecting") {
-    status = freshSamples.length > 0 ? "reconnecting" : "stale";
-  } else if (options.connectionState === "offline" || options.connectionState === "idle") {
-    status = "offline";
-  } else if (freshSamples.length === 0) {
-    status = samples.length > 0 ? "stale" : "offline";
-  } else {
-    status = "live";
-  }
-
+  if (["unauthorized", "forbidden", "configuration_error"].includes(options.connectionState)) {
+    status = options.connectionState as DashboardTelemetryStatus;
+  } else if (options.error && samples.length === 0) status = "error";
+  else if (!options.hasLoadedSnapshot && samples.length === 0) status = "connecting";
+  else if (options.connectionState === "reconnecting") {
+    status = freshSamples.length ? "reconnecting" : "stale";
+  } else if (["offline", "idle"].includes(options.connectionState)) status = "offline";
+  else if (!freshSamples.length) status = samples.length ? "stale" : "offline";
+  else status = "live";
   return {
     status,
     samples,
     freshSamples,
-    lastCapturedAt: latestTimestamp,
+    lastCapturedAt,
     ageMs,
     rejectedFutureSamples: store.rejectedFutureSamples,
   };
 }
 
-function isUsable(sample: TelemetrySample): sample is UsableTelemetrySample {
-  return sample.quality === "valid" && sample.value !== null;
-}
-
-function normalizedMetric(metric: string): string {
-  return metric
-    .trim()
-    .toLowerCase()
-    .replaceAll("-", "_")
-    .replaceAll(".", "_")
-    .replaceAll(" ", "_");
-}
-
-function isTemperatureMetric(metric: string): boolean {
-  const normalized = normalizedMetric(metric);
-  return normalized === "temperature" || normalized.startsWith("temperature_");
-}
-
-function belongsToEnergyUnit(sample: TelemetrySample): boolean {
-  return [...PRODUCTION_ENERGY_UNITS].some(
+const valid = (sample: TelemetrySample): sample is ValidSample =>
+  sample.quality === "valid" && sample.value !== null;
+const metric = (value: string) =>
+  value.trim().toLowerCase().replaceAll("-", "_").replaceAll(".", "_").replaceAll(" ", "_");
+const temperature = (sample: TelemetrySample) =>
+  sample.source === "dixell-xjp60d" && metric(sample.metric).startsWith("temperature_");
+const energy = (sample: TelemetrySample) =>
+  ENERGY_UNITS.some(
     (unit) => sample.equipment_id.includes(unit) || sample.channel_id.includes(unit),
   );
-}
-
-function isActivePowerMetric(metric: string): boolean {
-  const normalized = normalizedMetric(metric);
-  return normalized === "active_power" || normalized === "electrical_power_active";
-}
-
-function powerInKw(sample: TelemetrySample): number | null {
-  if (!isUsable(sample) || !isActivePowerMetric(sample.metric)) {
+const power = (sample: TelemetrySample) => {
+  if (!valid(sample) || !["active_power", "electrical_power_active"].includes(metric(sample.metric))) {
     return null;
   }
-
-  const unit = sample.unit.trim().toLowerCase();
-  if (unit === "kw") {
-    return sample.value;
-  }
-  if (unit === "w") {
-    return sample.value / 1_000;
-  }
-  return null;
-}
-
-function formatNumber(value: number, digits: number): string {
-  return new Intl.NumberFormat("uk-UA", {
+  const unit = sample.unit.toLowerCase();
+  return unit === "kw" ? sample.value : unit === "w" ? sample.value / 1_000 : null;
+};
+const number = (value: number, digits: number) =>
+  new Intl.NumberFormat("uk-UA", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(value);
-}
 
-function qualityLabel(quality: TelemetryQuality): string {
-  switch (quality) {
-    case "valid":
-      return "valid";
-    case "sensor_error":
-      return "помилка датчика";
-    case "communication_error":
-      return "помилка зв’язку";
-    default:
-      return "невідома якість";
+function badge(status: DashboardTelemetryStatus) {
+  if (status === "live") return { badge: "live", badgeTone: "live" as const };
+  if (["reconnecting", "stale"].includes(status)) {
+    return { badge: status === "stale" ? "stale" : "reconnect", badgeTone: "stale" as const };
   }
-}
-
-function alarmLabel(alarm: TelemetryAlarm | null): string {
-  if (alarm === "high") {
-    return "верхня межа";
+  if (["unauthorized", "forbidden", "configuration_error", "error"].includes(status)) {
+    return { badge: "error", badgeTone: "error" as const };
   }
-  if (alarm === "low") {
-    return "нижня межа";
-  }
-  return "без тривоги";
-}
-
-function badgeForStatus(status: DashboardTelemetryStatus): {
-  badge: string;
-  badgeTone: DashboardKpiValue["badgeTone"];
-} {
-  switch (status) {
-    case "live":
-      return { badge: "live", badgeTone: "live" };
-    case "reconnecting":
-      return { badge: "reconnect", badgeTone: "stale" };
-    case "stale":
-      return { badge: "stale", badgeTone: "stale" };
-    case "unauthorized":
-      return { badge: "auth", badgeTone: "error" };
-    case "forbidden":
-      return { badge: "forbidden", badgeTone: "error" };
-    case "configuration_error":
-      return { badge: "config", badgeTone: "error" };
-    case "error":
-      return { badge: "error", badgeTone: "error" };
-    default:
-      return { badge: "offline", badgeTone: "offline" };
-  }
+  return { badge: "offline", badgeTone: "offline" as const };
 }
 
 export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardKpiValue[] {
-  const badge = badgeForStatus(view.status);
+  const mark = badge(view.status);
   const fresh = view.freshSamples;
-  const good = fresh.filter(isUsable);
-  const nodeCount = new Set(fresh.map((sample) => sample.node_id)).size;
-  const activeRecords = good.length;
-  const alarmSamples = fresh.filter((sample) => sample.alarm !== null || sample.quality !== "valid");
-  const temperatures = good.filter(
-    (sample) =>
-      isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
+  const good = fresh.filter(valid);
+  const nodes = new Set(fresh.map((sample) => sample.node_id)).size;
+  const alarms = fresh.filter(
+    (sample) => sample.alarm !== null || sample.quality === "communication_error",
   );
-  const averageTemperature =
-    temperatures.length === 0
-      ? null
-      : temperatures.reduce((sum, sample) => sum + sample.value, 0) / temperatures.length;
-  const powerSamples = good.filter(belongsToEnergyUnit);
-  const totalPower = powerSamples.reduce((sum, sample) => sum + (powerInKw(sample) ?? 0), 0);
-  const hasPower = powerSamples.some((sample) => powerInKw(sample) !== null);
-
+  const temperatures = good.filter(temperature);
+  const average = temperatures.length
+    ? temperatures.reduce((sum, sample) => sum + sample.value, 0) / temperatures.length
+    : null;
+  const powers = good.filter(energy).map(power).filter((value): value is number => value !== null);
+  const totalPower = powers.reduce((sum, value) => sum + value, 0);
   return [
     {
       label: "Вузлів онлайн",
-      value: `${nodeCount} / 1`,
-      detail: nodeCount === 1 ? "edge-01 передає дані" : "edge-01 недоступний",
+      value: `${nodes} / 1`,
+      detail: nodes ? "edge-01 передає дані" : "edge-01 недоступний",
       trend: "production scope M3",
-      tone: nodeCount === 1 ? "blue" : "red",
+      tone: nodes ? "blue" : "red",
       icon: "network",
-      ...badge,
+      ...mark,
     },
     {
-      label: "Свіжих записів",
-      value: `${activeRecords} / ${EXPECTED_RECORDS_PER_CYCLE}`,
-      detail: `${fresh.length} latest records`,
-      trend: "34 записи на повний цикл",
-      tone: activeRecords > 0 ? "green" : "red",
+      label: "Валідних вимірювань",
+      value: String(good.length),
+      detail: `${fresh.length} свіжих записів у поточному циклі`,
+      trend: "усі налаштовані канали",
+      tone: good.length ? "green" : "red",
       icon: "signal",
-      ...badge,
+      ...mark,
     },
     {
       label: "Активних сесій",
@@ -331,50 +200,40 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
       trend: "дані не симулюються",
       tone: "cyan",
       icon: "session",
-      ...badge,
+      ...mark,
     },
     {
       label: "Активних тривог",
-      value: String(alarmSamples.length),
-      detail:
-        alarmSamples.length === 0
-          ? "Без telemetry alarms"
-          : `${alarmSamples.filter((sample) => sample.alarm !== null).length} threshold alarms`,
-      trend:
-        alarmSamples[0] === undefined
-          ? "quality valid"
-          : `${qualityLabel(alarmSamples[0].quality)} · ${alarmLabel(alarmSamples[0].alarm)}`,
-      tone: alarmSamples.length === 0 ? "green" : "red",
+      value: String(alarms.length),
+      detail: alarms.length ? "Порогові або комунікаційні помилки" : "Без telemetry alarms",
+      trend: "відсутній probe не створює тривогу",
+      tone: alarms.length ? "red" : "green",
       icon: "alarm",
-      ...badge,
+      ...mark,
     },
     {
       label: "Поточне споживання",
-      value: hasPower ? `${formatNumber(totalPower, 2)} kW` : "—",
-      detail: hasPower ? "LE-01MP 200–203" : "Немає свіжої active power",
+      value: powers.length ? `${number(totalPower, 2)} kW` : "—",
+      detail: powers.length ? "LE-01MP 200–203" : "Немає свіжої active power",
       trend: "сума валідних лічильників",
-      tone: hasPower ? "amber" : "red",
+      tone: powers.length ? "amber" : "red",
       icon: "energy",
-      ...badge,
+      ...mark,
     },
     {
       label: "Середня температура",
-      value: averageTemperature === null ? "—" : `${formatNumber(averageTemperature, 1)} °C`,
-      detail:
-        temperatures.length === 0
-          ? "106-03 / 106-04 недоступні"
-          : `${temperatures.length}/2 каналів valid`,
-      trend: "XJP60D production channels",
-      tone: averageTemperature === null ? "red" : "blue",
+      value: average === null ? "—" : `${number(average, 1)} °C`,
+      detail: temperatures.length
+        ? `${temperatures.length} валідних каналів XJP60D`
+        : "Немає валідних каналів XJP60D",
+      trend: "усі виявлені входи КК1 і КК2",
+      tone: average === null ? "red" : "blue",
       icon: "temperature",
-      ...badge,
+      ...mark,
     },
   ];
 }
 
 export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
-  return view.samples.filter(
-    (sample) =>
-      isTemperatureMetric(sample.metric) && PRODUCTION_TEMPERATURE_CHANNELS.has(sample.channel_id),
-  );
+  return view.samples.filter(temperature);
 }
