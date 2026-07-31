@@ -66,16 +66,23 @@ jobs:
 
           printf 'Checking formatting for %s changed file(s).\n' "${#format_files[@]}" \
             | tee prettier-diagnostics.txt
-          npm exec prettier -- --check "${format_files[@]}" \
-            2>&1 | tee -a prettier-diagnostics.txt
+
+          if ! npm exec prettier -- --check "${format_files[@]}" \
+            2>&1 | tee -a prettier-diagnostics.txt; then
+            npm exec prettier -- --write "${format_files[@]}"
+            tar -czf prettier-formatted-files.tar.gz "${format_files[@]}"
+            exit 1
+          fi
 
       - name: Upload formatting diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: prettier-diagnostics-${{ github.sha }}
-          path: prettier-diagnostics.txt
-          if-no-files-found: error
+          name: prettier-remediation-${{ github.sha }}
+          path: |
+            prettier-diagnostics.txt
+            prettier-formatted-files.tar.gz
+          if-no-files-found: warn
           retention-days: 3
 
       - name: Lint
