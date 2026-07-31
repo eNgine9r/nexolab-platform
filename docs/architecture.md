@@ -247,18 +247,18 @@ The narrow edge MQTT outage/restart drill has evidence. A single current accepta
 
 ## 11. Implementation versus acceptance
 
-| Area                                                | Code/configuration present | Repository evidence                                               | Current boundary                                                                        |
-| --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Frontend live adapter and explicit states           | Yes                        | Unit/build/browser tooling exists                                 | Current CI must validate each change; actual site browser state is environment-specific |
+| Area                                                | Code/configuration present | Repository evidence                                               | Current boundary                                                                                        |
+| --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Frontend live adapter and explicit states           | Yes                        | Unit/build/browser tooling exists                                 | Current CI must validate each change; actual site browser state is environment-specific                 |
 | Telemetry ingestion, REST, WebSocket and PostgreSQL | Yes                        | Automated tests and operations tooling exist                      | Known MQTT-to-PostgreSQL durability gap is tracked in #198; controlled-host evidence remains incomplete |
-| Edge SQLite, MQTT and read-only Modbus drivers      | Yes                        | 2026-07-23 smoke and soak evidence for 34-series scope            | Accepted only for that narrow scope; broader hardware remains unverified                |
-| Laboratory sessions                                 | Yes                        | Issue #82 is closed and a real-hardware acceptance harness exists | Parent tracker #74 is stale and must be reconciled                                      |
-| Refrigeration/climate catalog                       | Yes                        | Merged implementation and automated acceptance claims exist       | Open PR #175 contains a current live/availability defect and is non-mergeable           |
-| Reports, alerts and node management                 | Yes                        | Code and browser acceptance tooling exist                         | Not a substitute for site recovery/offline acceptance                                   |
-| Production authentication                           | Partial                    | JWT/RBAC code and optional Supabase adapter exist                 | Secure offline operator login is not accepted                                           |
-| Offline installation                                | Partial                    | Local topology exists                                             | Clean disconnected installation bundle is missing                                       |
-| Backup/restore/rollback                             | Partial                    | Procedures and focused scripts exist                              | Full current-host acceptance package is missing                                         |
-| Power-loss recovery                                 | Partial                    | Restart handling exists                                           | Controlled power-loss evidence is missing                                               |
+| Edge SQLite, MQTT and read-only Modbus drivers      | Yes                        | 2026-07-23 smoke and soak evidence for 34-series scope            | Accepted only for that narrow scope; broader hardware remains unverified                                |
+| Laboratory sessions                                 | Yes                        | Issue #82 is closed and a real-hardware acceptance harness exists | Parent tracker #74 is stale and must be reconciled                                                      |
+| Refrigeration/climate catalog                       | Yes                        | Merged implementation and automated acceptance claims exist       | Open PR #175 contains a current live/availability defect and is non-mergeable                           |
+| Reports, alerts and node management                 | Yes                        | Code and browser acceptance tooling exist                         | Not a substitute for site recovery/offline acceptance                                                   |
+| Production authentication                           | Partial                    | JWT/RBAC code and optional Supabase adapter exist                 | Secure offline operator login is not accepted                                                           |
+| Offline installation                                | Partial                    | Local topology exists                                             | Clean disconnected installation bundle is missing                                                       |
+| Backup/restore/rollback                             | Partial                    | Procedures and focused scripts exist                              | Full current-host acceptance package is missing                                                         |
+| Power-loss recovery                                 | Partial                    | Restart handling exists                                           | Controlled power-loss evidence is missing                                                               |
 
 ## 12. Architectural decisions preserved
 

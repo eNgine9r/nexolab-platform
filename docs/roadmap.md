@@ -114,8 +114,8 @@ It must not be mixed with product, architecture, offline or recovery Work Packag
 | #1   | GitHub Action dependency update                                                      | Maintenance-only review                                                              |
 | #2   | GitHub Action dependency update                                                      | Maintenance-only review                                                              |
 | #184 | Merged                                                                               | Squash commit `8371ee59e76e64963405706be79fc4a909f9fac9`                             |
-| #190 | Active reconciliation PR                                                            | Resolve review threads, require final green CI, then squash-merge                    |
-| #192 | Formatting inventory, draft                                                        | Rebase/update after #190 merge; keep separate from product work                       |
+| #190 | Active reconciliation PR                                                             | Resolve review threads, require final green CI, then squash-merge                    |
+| #192 | Formatting inventory, draft                                                          | Rebase/update after #190 merge; keep separate from product work                      |
 
 ## 5. Stale or ambiguous Issue boundaries
 
