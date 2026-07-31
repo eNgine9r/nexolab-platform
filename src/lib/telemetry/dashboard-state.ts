@@ -1,3 +1,4 @@
+import { isTemperatureProbeSample, normalizeTelemetryMetric } from "./temperature-channel";
 import type { TelemetryConnectionState, TelemetrySample } from "./types";
 
 export type DashboardTelemetryStatus =
@@ -63,7 +64,8 @@ export function telemetrySeriesKey(sample: TelemetrySample): string {
   return [sample.node_id, sample.equipment_id, sample.channel_id, sample.metric].join(":");
 }
 
-const time = (value?: Date | number) => (value instanceof Date ? value.getTime() : (value ?? Date.now()));
+const time = (value?: Date | number) =>
+  value instanceof Date ? value.getTime() : (value ?? Date.now());
 const captured = (sample: TelemetrySample) => Date.parse(sample.captured_at);
 
 export function mergeDashboardTelemetry(
@@ -128,16 +130,17 @@ export function deriveDashboardTelemetry(
 
 const valid = (sample: TelemetrySample): sample is ValidSample =>
   sample.quality === "valid" && sample.value !== null;
-const metric = (value: string) =>
-  value.trim().toLowerCase().replaceAll("-", "_").replaceAll(".", "_").replaceAll(" ", "_");
-const temperature = (sample: TelemetrySample) =>
-  sample.source === "dixell-xjp60d" && metric(sample.metric).startsWith("temperature_");
 const energy = (sample: TelemetrySample) =>
   ENERGY_UNITS.some(
     (unit) => sample.equipment_id.includes(unit) || sample.channel_id.includes(unit),
   );
 const power = (sample: TelemetrySample) => {
-  if (!valid(sample) || !["active_power", "electrical_power_active"].includes(metric(sample.metric))) {
+  if (
+    !valid(sample) ||
+    !["active_power", "electrical_power_active"].includes(
+      normalizeTelemetryMetric(sample.metric),
+    )
+  ) {
     return null;
   }
   const unit = sample.unit.toLowerCase();
@@ -152,7 +155,10 @@ const number = (value: number, digits: number) =>
 function badge(status: DashboardTelemetryStatus) {
   if (status === "live") return { badge: "live", badgeTone: "live" as const };
   if (["reconnecting", "stale"].includes(status)) {
-    return { badge: status === "stale" ? "stale" : "reconnect", badgeTone: "stale" as const };
+    return {
+      badge: status === "stale" ? "stale" : "reconnect",
+      badgeTone: "stale" as const,
+    };
   }
   if (["unauthorized", "forbidden", "configuration_error", "error"].includes(status)) {
     return { badge: "error", badgeTone: "error" as const };
@@ -168,11 +174,14 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const alarms = fresh.filter(
     (sample) => sample.alarm !== null || sample.quality === "communication_error",
   );
-  const temperatures = good.filter(temperature);
+  const temperatures = good.filter(isTemperatureProbeSample);
   const average = temperatures.length
     ? temperatures.reduce((sum, sample) => sum + sample.value, 0) / temperatures.length
     : null;
-  const powers = good.filter(energy).map(power).filter((value): value is number => value !== null);
+  const powers = good
+    .filter(energy)
+    .map(power)
+    .filter((value): value is number => value !== null);
   const totalPower = powers.reduce((sum, value) => sum + value, 0);
   return [
     {
@@ -235,5 +244,5 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
 }
 
 export function selectProductionTemperatures(view: DashboardTelemetryView): TelemetrySample[] {
-  return view.samples.filter(temperature);
+  return view.samples.filter(isTemperatureProbeSample);
 }
