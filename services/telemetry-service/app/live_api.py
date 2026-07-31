@@ -20,6 +20,10 @@ ALLOWED_QUALITIES = {
 }
 ALLOWED_ALARMS = {"low", "high"}
 
+WEBSOCKET_CONFIGURATION_ERROR = 4400
+WEBSOCKET_UNAUTHORIZED = 4401
+WEBSOCKET_FORBIDDEN = 4403
+
 
 def _sample_payload(sample: TelemetrySample) -> dict[str, Any]:
     payload = dict(sample.raw_payload)
@@ -60,6 +64,28 @@ def _http_error(error: HTTPException) -> tuple[str, str]:
     return "websocket_access_denied", str(error.detail)
 
 
+def _authentication_close_code(error: HTTPException) -> int:
+    return WEBSOCKET_UNAUTHORIZED if error.status_code == 401 else WEBSOCKET_FORBIDDEN
+
+
+async def _send_error_and_close(
+    websocket: WebSocket,
+    *,
+    code: str,
+    detail: str,
+    close_code: int,
+    reason: str,
+) -> None:
+    await websocket.send_json(
+        {
+            "type": "error",
+            "code": code,
+            "detail": detail,
+        }
+    )
+    await websocket.close(code=close_code, reason=reason)
+
+
 async def _authenticate_websocket(
     websocket: WebSocket,
     security_dependencies: SecurityDependencies | None,
@@ -75,60 +101,55 @@ async def _authenticate_websocket(
             timeout=timeout_seconds,
         )
     except TimeoutError:
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": "websocket_authentication_timeout",
-                "detail": "Telemetry authentication message was not received in time",
-            }
+        await _send_error_and_close(
+            websocket,
+            code="websocket_authentication_timeout",
+            detail="Telemetry authentication message was not received in time",
+            close_code=WEBSOCKET_UNAUTHORIZED,
+            reason="authentication timeout",
         )
-        await websocket.close(code=1008, reason="authentication timeout")
         return False
     except WebSocketDisconnect:
         return False
     except Exception:
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": "invalid_websocket_authentication",
-                "detail": "Telemetry authentication payload must be valid JSON",
-            }
+        await _send_error_and_close(
+            websocket,
+            code="invalid_websocket_authentication",
+            detail="Telemetry authentication payload must be valid JSON",
+            close_code=WEBSOCKET_CONFIGURATION_ERROR,
+            reason="invalid authentication payload",
         )
-        await websocket.close(code=1008, reason="invalid authentication payload")
         return False
 
     if not isinstance(payload, dict) or payload.get("type") != "authenticate":
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": "invalid_websocket_authentication",
-                "detail": "The first WebSocket message must authenticate the session",
-            }
+        await _send_error_and_close(
+            websocket,
+            code="invalid_websocket_authentication",
+            detail="The first WebSocket message must authenticate the session",
+            close_code=WEBSOCKET_CONFIGURATION_ERROR,
+            reason="authentication message required",
         )
-        await websocket.close(code=1008, reason="authentication required")
         return False
 
     access_token = payload.get("access_token")
     organization_id = payload.get("organization_id")
     if not isinstance(access_token, str) or not access_token.strip():
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": "missing_bearer_token",
-                "detail": "A non-empty access token is required",
-            }
+        await _send_error_and_close(
+            websocket,
+            code="missing_bearer_token",
+            detail="A non-empty access token is required",
+            close_code=WEBSOCKET_UNAUTHORIZED,
+            reason="authentication required",
         )
-        await websocket.close(code=1008, reason="authentication required")
         return False
     if not isinstance(organization_id, str) or not organization_id.strip():
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": "organization_header_required",
-                "detail": "A selected organization is required",
-            }
+        await _send_error_and_close(
+            websocket,
+            code="organization_header_required",
+            detail="A selected organization is required",
+            close_code=WEBSOCKET_CONFIGURATION_ERROR,
+            reason="organization required",
         )
-        await websocket.close(code=1008, reason="organization required")
         return False
 
     try:
@@ -139,14 +160,13 @@ async def _authenticate_websocket(
         )
     except HTTPException as error:
         code, message = _http_error(error)
-        await websocket.send_json(
-            {
-                "type": "error",
-                "code": code,
-                "detail": message,
-            }
+        await _send_error_and_close(
+            websocket,
+            code=code,
+            detail=message,
+            close_code=_authentication_close_code(error),
+            reason="unauthorized" if error.status_code == 401 else "forbidden",
         )
-        await websocket.close(code=1008, reason="access denied")
         return False
 
     await websocket.send_json(
@@ -187,23 +207,34 @@ def create_live_router(
             return
 
         if quality is not None and quality not in ALLOWED_QUALITIES:
-            await websocket.send_json(
-                {"type": "error", "detail": "unsupported quality filter"}
+            await _send_error_and_close(
+                websocket,
+                code="unsupported_quality_filter",
+                detail="unsupported quality filter",
+                close_code=WEBSOCKET_CONFIGURATION_ERROR,
+                reason="invalid quality filter",
             )
-            await websocket.close(code=1008, reason="invalid quality filter")
             return
         if alarm is not None and alarm not in ALLOWED_ALARMS:
-            await websocket.send_json(
-                {"type": "error", "detail": "unsupported alarm filter"}
+            await _send_error_and_close(
+                websocket,
+                code="unsupported_alarm_filter",
+                detail="unsupported alarm filter",
+                close_code=WEBSOCKET_CONFIGURATION_ERROR,
+                reason="invalid alarm filter",
             )
-            await websocket.close(code=1008, reason="invalid alarm filter")
             return
 
         try:
             after = _parse_after(params.get("after"))
         except ValueError as exc:
-            await websocket.send_json({"type": "error", "detail": str(exc)})
-            await websocket.close(code=1008, reason="invalid resume timestamp")
+            await _send_error_and_close(
+                websocket,
+                code="invalid_resume_timestamp",
+                detail=str(exc),
+                close_code=WEBSOCKET_CONFIGURATION_ERROR,
+                reason="invalid resume timestamp",
+            )
             return
 
         filters = LiveTelemetryFilter(
@@ -242,13 +273,17 @@ def create_live_router(
                     await send(
                         {
                             "type": "error",
+                            "code": "resume_limit_exceeded",
                             "detail": (
                                 "resume result exceeds limit; reconnect with a "
                                 "newer after timestamp"
                             ),
                         }
                     )
-                    await websocket.close(code=1008, reason="resume limit exceeded")
+                    await websocket.close(
+                        code=WEBSOCKET_CONFIGURATION_ERROR,
+                        reason="resume limit exceeded",
+                    )
                     return
 
                 for sample in reversed(replay_rows):
