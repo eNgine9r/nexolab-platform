@@ -36,10 +36,7 @@
     "GitHub Actions CI run 30666953961: Next.js production build passed",
     "no Modbus write and no production cutover performed"
   ],
-  "checks_pending": [
-    "final review-thread resolution",
-    "squash merge of PR #190"
-  ],
+  "checks_pending": ["final review-thread resolution", "squash merge of PR #190"],
   "checks_not_run": [
     "clean-host disconnected installation",
     "current backup/restore acceptance",
