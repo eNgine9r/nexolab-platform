@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `8371ee59e76e64963405706be79fc4a909f9fac9`  
-Status confidence: high for repository/code/configuration boundaries; partial for environment-specific operational acceptance.
+Verified baseline: `main` at `01f2a5fcfc929127d4a7b3d9c068944cd65d8636`  
+Status confidence: high for repository and GitHub boundaries; partial for environment-specific operational and hardware acceptance.
 
 ## Profile
 
@@ -17,7 +17,7 @@ Status confidence: high for repository/code/configuration boundaries; partial fo
 - Local object storage: MinIO when image workflows are enabled
 - Optional online layers: Supabase Auth, external OIDC/JWKS, Tailscale, registries and CI
 
-## Verified architecture
+## Verified architecture and evidence boundary
 
 The current local data path is:
 
@@ -35,86 +35,95 @@ PostgreSQL + local MinIO
 Next.js dashboard
 ```
 
-The frontend is no longer fixture-only. It contains live REST/WebSocket integrations and feature workflows for telemetry, sessions, alerts, reports, nodes, security and refrigeration. `docs/architecture.md` has been replaced with the verified current boundary.
+Implemented and repository-backed:
 
-## Confirmed telemetry durability boundary
+- live Next.js REST/WebSocket workflows;
+- FastAPI ingestion, PostgreSQL, sessions, alerts, reports, nodes and refrigeration domains;
+- local Mosquitto, PostgreSQL and MinIO Compose topology;
+- read-only XJP60D and LE-01MP Device Agent drivers;
+- edge SQLite outbox and MQTT QoS 1 delivery to the broker boundary;
+- encrypted fresh-volume central software disaster recovery from merged PR #144.
 
-The Device Agent removes an edge SQLite row after the configured MQTT broker returns a QoS 1 acknowledgement. The central consumer then submits the payload to a bounded in-memory persistence queue before PostgreSQL commit.
-
-Therefore, the current pipeline does not provide end-to-end durability after broker acknowledgement. A Telemetry Service termination during a PostgreSQL outage can lose an acknowledged payload that is no longer present at the edge. Issue #198 owns the durable local staging/replay correction. Until it is implemented and evidenced, operators must avoid restarting the Telemetry Service during PostgreSQL outages.
-
-## Implementation and acceptance boundary
-
-### Repository-backed implementation
-
-- Next.js live dashboard with explicit demo/live and stale/offline/error states.
-- FastAPI ingestion, PostgreSQL persistence, REST, WebSocket, retention and metrics.
-- Sessions, attribution, audit, alerts, reports, nodes, refrigeration equipment and KK1/KK2 catalog code.
-- Local Mosquitto, PostgreSQL and MinIO Compose topology.
-- Device Agent with simulator and read-only Modbus modes.
-- Edge SQLite outbox and MQTT QoS 1 delivery to the broker boundary.
-- Backup, restore, cutover and rollback procedures/tooling.
-- Encrypted fresh-volume software disaster-recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security, including REST, WebSocket, MQTT TLS and Chromium verification.
-
-### Software recovery evidence available
-
-Merged PR #144 verifies recovery of the complete central software state into fresh volumes without mutating source volumes. It checks PostgreSQL protected counts/hashes and Alembic head, MinIO object count/bytes/metadata/SHA-256/private access, Mosquitto policy state, REST, WebSocket, MQTT TLS and Chromium flows. It does not prove the actual central host, scheduler, off-host copy, physical disks, production DNS/TLS or production RPO/RTO.
-
-### Real hardware evidence available
-
-A controlled 2026-07-23 hardware smoke and soak covers:
+Actual hardware evidence remains limited to the 2026-07-23 pilot scope:
 
 - XJP60D `106-03` and `106-04`;
 - LE-01MP units `200–203`;
 - 34 records per complete cycle;
-- edge MQTT interruption;
-- SQLite queue growth, reconnect and drain;
-- Device Agent restart;
-- rollback to simulator;
+- edge MQTT outage, SQLite queue growth, reconnect and drain;
+- Device Agent restart and rollback to simulator;
 - no established Modbus write, CRC or serial failure.
 
-This evidence is limited to that scope and does not close the central durability gap.
+## Confirmed data-integrity gap
 
-### Not yet accepted as complete
+The Device Agent removes an edge SQLite row after the configured MQTT broker returns a QoS 1 acknowledgement. The central consumer then submits the payload to a bounded in-memory persistence queue before PostgreSQL commit.
+
+A Telemetry Service termination during PostgreSQL outage can therefore lose an acknowledged payload that is no longer present at the edge. Issue #198 is the highest-priority next Work Package and owns durable local central staging/replay.
+
+## GitHub source of truth
+
+### Completed reconciliation
+
+- PR #184 merged the operating standard as `8371ee59e76e64963405706be79fc4a909f9fac9`.
+- PR #190 merged Issue #183 as `01f2a5fcfc929127d4a7b3d9c068944cd65d8636`.
+- M4 tracker #74 now matches closed child #82 and is closed with a scoped completion boundary.
+- Refrigeration foundation Issue #94 is closed because current `main` contains and surpasses its image-backed editor outcome.
+- Historical M1 Issues #11–#15 and tracker #18 are closed as superseded, not falsely completed.
+- Issue #16 remains completed as the evidence standard.
+- Issue #17 remains open as the versioned-profile consolidation gate.
+
+### Closed superseded Pull Requests
+
+- #53 — obsolete fixture-era central deployment/client branch;
+- #109 — stale Tailscale branch; optional outcome remains in blocked Issue #108;
+- #111 — obsolete parallel auth/RBAC branch; offline identity remains #188;
+- #175 — mixed stale defect branch; focused WebSocket outcome is #199;
+- #159 — grouped production dependencies; focused maintenance owner is #203;
+- #160 — grouped major toolchain migrations; owner is #204;
+- #1 and #2 — independent action v7 bot branches; combined compatibility owner is #205.
+
+### Open Pull Requests
+
+- PR #206 is the active, non-draft source-of-truth reconciliation PR for Issue #186. Its final diff is limited to project state and roadmap files and must pass CI/review before squash merge.
+- PR #192 is the only other open PR. It is a valid draft formatting-inventory Work Package under #191/#185. It must remain draft until updated or recreated from the post-#186 `main` baseline with mandatory project-state/checkpoint changes and fresh green CI.
+
+## Residual Work Packages created by Issue #186
+
+- #199 — live telemetry WebSocket lifecycle and operator states;
+- #200 — physical RS-485 topology and safe polling envelope;
+- #201 — LE-01MP cumulative energy, scale and rollover;
+- #202 — extended XJP60D semantics and firmware portability;
+- #203 — staged production dependency updates;
+- #204 — separated major frontend toolchain migrations;
+- #205 — GitHub Actions v7 compatibility and least-privilege proof.
+
+## Current Work Package status
+
+- NEXOLAB-182 / #182 — Done through PR #184.
+- NEXOLAB-183 / #183 — Done through PR #190.
+- NEXOLAB-186 / #186 — In review in PR #206 on `chore/186-source-of-truth-reconciliation`.
+- NEXOLAB-198 / #198 — Ready as the next primary data-integrity Work Package; dependency #186 prevents execution before merge.
+- NEXOLAB-199 / #199 — Queued focused live-connection defect after #186.
+- NEXOLAB-187 / #187 — Queued offline installation/update bundle.
+- NEXOLAB-188 / #188 — Queued offline operator authentication.
+- NEXOLAB-189 / #189 — Blocked for final controlled-host/Raspberry Pi evidence and depends on #198/#187/#188.
+- NEXOLAB-200–202 — Blocked on controlled read-only hardware evidence.
+- NEXOLAB-17 — Blocked on #200–#202.
+- NEXOLAB-185/#191/PR #192 — Separate maintenance track, draft pending post-#186 rebase/update.
+- NEXOLAB-203–205 — Queued maintenance work, not mixed into product/data-integrity PRs.
+
+## Not yet accepted as complete
 
 - end-to-end durable MQTT-to-PostgreSQL handoff across PostgreSQL outage and Telemetry Service restart;
-- clean disconnected installation from a local bundle;
-- disconnected update and rollback package;
-- secure production operator login without Supabase/external identity dependency;
-- actual-host scheduling and execution of the verified central software recovery gate;
-- encrypted off-host copies, key custody, physical disk failure and measured production RPO/RTO;
-- current controlled central-host and edge restart, rollback and power-loss package;
-- approved power-loss recovery;
-- all historical XJP60D channels/register semantics and cumulative energy;
-- production/site cutover for any unverified environment.
-
-## GitHub state
-
-- PR #184 was squash-merged into `main` as `8371ee59e76e64963405706be79fc4a909f9fac9`.
-- Issue #183 is the active reconciliation Work Package in PR #190.
-- Issue #198 records the confirmed MQTT-to-PostgreSQL durability gap discovered during PR #190 review.
-- Issue #185 remains a separate formatting-only track; child Issue #191 is represented by draft PR #192.
-- Issues #186–#189 define the next source-of-truth, offline installation, authentication and recovery outcomes.
-- PR #175 is a current defect branch but is draft and non-mergeable.
-- PRs #53, #109 and #111 are old non-mergeable branches requiring supersession/unique-diff review.
-- Tracking Issue #74 is stale because child Issue #82 is closed while still shown active.
-- Legacy M1 Issues #11–#18 mix already implemented narrow scope with residual hardware gaps.
-
-## Current Sprint outcome
-
-Publish a verified architecture, offline-readiness and roadmap baseline before resuming product work.
-
-### Work Package status
-
-- NEXOLAB-182 / Issue #182 — Done through PR #184.
-- NEXOLAB-183 / Issue #183 — In review on `docs/183-architecture-reconciliation`.
-- NEXOLAB-186 / Issue #186 — Queued; activate only after PR #190 merges and #183 is marked Done.
-- NEXOLAB-198 / Issue #198 — Queued for classification and sequencing by #186; high-priority data-integrity risk.
-- NEXOLAB-187 / Issue #187 — Queued after source-of-truth cleanup.
-- NEXOLAB-188 / Issue #188 — Queued after source-of-truth cleanup.
-- NEXOLAB-189 / Issue #189 — Blocked for final evidence on controlled hosts and depends on the durability correction.
-- NEXOLAB-185 / Issue #185 — Separate maintenance track in progress through #191 / PR #192.
+- clean disconnected installation/update bundle;
+- secure fully local production operator login;
+- actual-host backup scheduling, encrypted off-host copies and measured production RPO/RTO;
+- edge/central power-loss recovery;
+- full RS-485 topology and firmware portability;
+- LE-01MP cumulative energy;
+- XJP60D setpoint/input/output and extended alarm semantics;
+- optional Tailscale actual-host/operator-workstation acceptance;
+- production/site cutover.
 
 ## Next action
 
-Resolve PR #190 review findings and require final CI to pass. After squash merge, execute Issue #186 in a new branch, mark #183 Done, and classify Issue #198 before resuming PR #175 or starting another product feature.
+Require PR #206 to pass changed-file formatting, ESLint, strict typecheck, Vitest, production build and review. After squash merge, mark #186 Done and start Issue #198 from current `main` as the next primary Work Package. Keep PR #192 and all maintenance/hardware work separate.
