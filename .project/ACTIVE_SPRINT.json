@@ -4,8 +4,8 @@
   "profile": "LOCAL_LAN",
   "sprint": {
     "id": "BASELINE-RECONCILIATION-1",
-    "title": "Verified architecture, offline readiness and roadmap baseline",
-    "goal": "Make current code, runtime boundaries, acceptance evidence and the next vertical Work Packages consistent across the repository and GitHub.",
+    "title": "Verified source-of-truth and risk sequencing",
+    "goal": "Keep GitHub, repository state, data-integrity risks, offline readiness and residual hardware evidence aligned before new product development.",
     "status": "in_progress",
     "started_at": "2026-07-31"
   },
@@ -31,36 +31,22 @@
     {
       "id": "NEXOLAB-183",
       "issue": 183,
-      "pull_request": 190,
       "title": "Reconcile architecture, roadmap, offline dependencies and current state",
-      "status": "review",
+      "status": "done",
       "priority": 2,
       "depends_on": ["NEXOLAB-182"],
-      "branch": "docs/183-architecture-reconciliation",
-      "scope": [
-        ".project/**",
-        "docs/architecture.md",
-        "docs/offline-readiness.md",
-        "docs/roadmap.md",
-        "GitHub Issues and Pull Requests"
-      ],
-      "verification": [
-        "repository and GitHub cross-check",
-        "offline dependency classification",
-        "implementation versus acceptance boundary",
-        "JSON parse validation",
-        "documentation-only diff",
-        "no Modbus writes or production cutover"
-      ]
+      "pull_request": 190,
+      "merge_sha": "01f2a5fcfc929127d4a7b3d9c068944cd65d8636"
     },
     {
       "id": "NEXOLAB-186",
       "issue": 186,
       "title": "Reconcile stale milestone trackers and superseded pull requests",
-      "status": "queued",
+      "status": "review",
       "priority": 3,
       "depends_on": ["NEXOLAB-183"],
-      "activation": "Set in_progress only after PR #190 is merged and NEXOLAB-183 is marked done."
+      "branch": "chore/186-source-of-truth-reconciliation",
+      "scope": [".project/**", "docs/roadmap.md", "GitHub Issues and Pull Requests"]
     },
     {
       "id": "NEXOLAB-198",
@@ -68,44 +54,116 @@
       "title": "Close the MQTT-to-PostgreSQL telemetry durability gap",
       "status": "queued",
       "priority": 4,
-      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"],
-      "activation": "Issue #186 must classify and sequence this high-priority data-integrity Work Package."
+      "depends_on": ["NEXOLAB-186"],
+      "activation": "After Issue #186 is merged and marked done, start as the next primary data-integrity Work Package."
+    },
+    {
+      "id": "NEXOLAB-199",
+      "issue": 199,
+      "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
+      "status": "queued",
+      "priority": 5,
+      "depends_on": ["NEXOLAB-186"],
+      "activation": "Start from current main after the higher-priority durability boundary is scheduled or completed; PR #175 is reference-only."
     },
     {
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
       "status": "queued",
-      "priority": 5,
-      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
+      "priority": 6,
+      "depends_on": ["NEXOLAB-186"]
     },
     {
       "id": "NEXOLAB-188",
       "issue": 188,
       "title": "Define and prove offline operator authentication",
       "status": "queued",
-      "priority": 6,
-      "depends_on": ["NEXOLAB-183", "NEXOLAB-186"]
+      "priority": 7,
+      "depends_on": ["NEXOLAB-186"]
     },
     {
       "id": "NEXOLAB-189",
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked",
-      "priority": 7,
+      "priority": 8,
       "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
       "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
+    },
+    {
+      "id": "NEXOLAB-200",
+      "issue": 200,
+      "title": "Verify the physical RS-485 topology and portable polling envelope",
+      "status": "blocked",
+      "priority": 20,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires controlled access to the actual RS-485 buses and read-only hardware evidence."
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy, scale and rollover",
+      "status": "blocked",
+      "priority": 21,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires meter display/load correlation and approved read-only hardware evidence."
+    },
+    {
+      "id": "NEXOLAB-202",
+      "issue": 202,
+      "title": "Validate extended XJP60D semantics and firmware portability",
+      "status": "blocked",
+      "priority": 22,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires representative KK1/KK2 controller access and read-only physical evidence."
+    },
+    {
+      "id": "NEXOLAB-17",
+      "issue": 17,
+      "title": "Consolidate versioned device profiles and register-map documentation",
+      "status": "blocked",
+      "priority": 23,
+      "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
     },
     {
       "id": "NEXOLAB-185",
       "issue": 185,
       "title": "Establish a controlled Prettier baseline without broad unrelated rewrites",
-      "status": "in_progress",
+      "status": "queued",
       "priority": 50,
-      "depends_on": [],
+      "depends_on": ["NEXOLAB-186"],
       "track": "separate-maintenance",
       "active_child_issue": 191,
-      "pull_request": 192
+      "pull_request": 192,
+      "activation": "Keep PR #192 draft until rebased or recreated from the post-#186 main baseline."
+    },
+    {
+      "id": "NEXOLAB-203",
+      "issue": 203,
+      "title": "Review and stage production dependency updates",
+      "status": "queued",
+      "priority": 51,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
+    },
+    {
+      "id": "NEXOLAB-204",
+      "issue": 204,
+      "title": "Plan and execute major frontend toolchain migrations separately",
+      "status": "queued",
+      "priority": 52,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
+    },
+    {
+      "id": "NEXOLAB-205",
+      "issue": 205,
+      "title": "Upgrade GitHub Actions runtime dependencies with workflow compatibility proof",
+      "status": "queued",
+      "priority": 53,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
     }
   ]
 }
