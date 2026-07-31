@@ -3,11 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AlertTriangle, ChevronRight, LoaderCircle, LogIn, RotateCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  LoaderCircle,
+  LogIn,
+  RotateCcw,
+  Settings2,
+} from "lucide-react";
 
 import { hasPermission } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
+import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
 
 import { AlarmsPanel } from "./alarms-panel";
 import { CamerasPanel } from "./cameras-panel";
@@ -16,6 +24,7 @@ import { LabMap } from "./lab-map";
 import { LiveInventoryPanel } from "./live-inventory-panel";
 import { NodesPanel } from "./nodes-panel";
 import { Panel } from "./panel";
+import { SensorManagementDialog } from "./sensor-management-dialog";
 import { SessionsPanel } from "./sessions-panel";
 import { Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
@@ -98,12 +107,20 @@ function SecurityGate({
 export function DashboardShell() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Огляд");
   const security = useDashboardSecurity();
   const securityReady = security.mode === "demo" || security.state === "ready";
+  const organizationId = security.membership?.organizationId ?? null;
+  const sensorManagement = useXjp60dSensorManagement({
+    enabled: security.mode === "live" && securityReady,
+    organizationId,
+  });
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
-    organizationId: security.membership?.organizationId ?? null,
+    organizationId,
+    temperatureChannelIds:
+      security.mode === "live" ? sensorManagement.activeChannelIds : null,
   });
 
   if (
@@ -129,6 +146,13 @@ export function DashboardShell() {
       security.session &&
       security.membership &&
       hasPermission(security.session, security.membership.organizationId, "sessions.manage"),
+    );
+  const canManageSensors =
+    security.mode === "demo" ||
+    Boolean(
+      security.session &&
+      security.membership &&
+      hasPermission(security.session, security.membership.organizationId, "equipment.manage"),
     );
 
   return (
@@ -199,6 +223,19 @@ export function DashboardShell() {
               </Panel>
               <Panel
                 title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
+                action={
+                  telemetry.mode === "live" ? (
+                    <button
+                      type="button"
+                      onClick={() => setSensorDialogOpen(true)}
+                      aria-label="Керувати температурними датчиками"
+                      title="Керувати температурними датчиками"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </button>
+                  ) : undefined
+                }
                 className="xl:col-span-6"
               >
                 <TemperatureChart
@@ -249,6 +286,17 @@ export function DashboardShell() {
           </div>
         </main>
       </div>
+
+      <SensorManagementDialog
+        open={sensorDialogOpen}
+        canManage={canManageSensors}
+        management={sensorManagement}
+        onClose={() => setSensorDialogOpen(false)}
+        onSaved={() => {
+          telemetry.retry();
+          telemetry.retryHistory();
+        }}
+      />
     </div>
   );
 }
