@@ -154,14 +154,21 @@ export function useXjp60dSensorManagement(
   );
 
   useEffect(() => {
-    if (!options.enabled) {
-      setConfiguration(null);
-      setCachedPoints([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-    setCachedPoints(readCachedPoints(options.organizationId));
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      if (!options.enabled) {
+        setConfiguration(null);
+        setCachedPoints([]);
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+      setCachedPoints(readCachedPoints(options.organizationId));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [options.enabled, options.organizationId]);
 
   const refresh = useCallback(async () => {
@@ -193,8 +200,15 @@ export function useXjp60dSensorManagement(
   }, [authenticatedFetch, options.enabled, options.organizationId]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!options.enabled) return;
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) void refresh();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [options.enabled, refresh]);
 
   const discover = useCallback(async () => {
     if (!options.enabled) return null;
