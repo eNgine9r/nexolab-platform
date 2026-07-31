@@ -26,6 +26,7 @@ class SpoolRecord:
     record_id: int
     work_type: str
     event_id: str | None
+    delivery_key: str | None
     payload: bytes
     topic: str | None
     received_at: datetime
@@ -67,7 +68,7 @@ def _parse_datetime(value: str) -> datetime:
 
 
 class DurableIngestionSpool:
-    """SQLite WAL spool that owns telemetry until PostgreSQL persistence succeeds."""
+    """SQLite WAL spool that owns ingestion work until persistence succeeds."""
 
     def __init__(
         self,
@@ -119,6 +120,7 @@ class DurableIngestionSpool:
                     work_type TEXT NOT NULL
                         CHECK(work_type IN ('telemetry', 'dead_letter')),
                     event_id TEXT,
+                    delivery_key TEXT,
                     payload BLOB NOT NULL,
                     topic TEXT,
                     received_at TEXT NOT NULL,
@@ -153,6 +155,13 @@ class DurableIngestionSpool:
             )
             self._connection.execute(
                 """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_ingestion_spool_delivery_key
+                ON ingestion_spool(delivery_key)
+                WHERE delivery_key IS NOT NULL
+                """
+            )
+            self._connection.execute(
+                """
                 CREATE INDEX IF NOT EXISTS ix_ingestion_spool_pending_order
                 ON ingestion_spool(status, id)
                 """
@@ -165,6 +174,7 @@ class DurableIngestionSpool:
         payload: bytes,
         topic: str | None,
         received_at: datetime,
+        delivery_key: str | None = None,
     ) -> SpoolAppendResult:
         normalized_event_id = event_id.strip()
         if not normalized_event_id:
@@ -172,6 +182,7 @@ class DurableIngestionSpool:
         return self._append(
             work_type="telemetry",
             event_id=normalized_event_id,
+            delivery_key=self._normalize_delivery_key(delivery_key),
             payload=payload,
             topic=topic,
             received_at=received_at,
@@ -191,28 +202,39 @@ class DurableIngestionSpool:
         reason_detail: str,
         topic: str | None,
         received_at: datetime,
+        delivery_key: str | None = None,
     ) -> SpoolAppendResult:
         if payload_size < len(payload):
             raise ValueError("payload_size cannot be smaller than retained payload")
-        if not reason_code.strip():
+        normalized_reason = reason_code.strip()
+        if not normalized_reason:
             raise ValueError("reason_code is required")
         return self._append(
             work_type="dead_letter",
             event_id=None,
+            delivery_key=self._normalize_delivery_key(delivery_key),
             payload=payload,
             topic=topic,
             received_at=received_at,
             payload_size=payload_size,
             payload_truncated=payload_truncated,
-            reason_code=reason_code,
+            reason_code=normalized_reason,
             reason_detail=reason_detail,
         )
+
+    @staticmethod
+    def _normalize_delivery_key(value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
 
     def _append(
         self,
         *,
         work_type: str,
         event_id: str | None,
+        delivery_key: str | None,
         payload: bytes,
         topic: str | None,
         received_at: datetime,
@@ -227,17 +249,16 @@ class DurableIngestionSpool:
         with self._lock:
             try:
                 self._connection.execute("BEGIN IMMEDIATE")
-                if event_id is not None:
-                    existing = self._connection.execute(
-                        "SELECT id FROM ingestion_spool WHERE event_id = ?",
-                        (event_id,),
-                    ).fetchone()
-                    if existing is not None:
-                        self._connection.commit()
-                        return SpoolAppendResult(
-                            record_id=int(existing["id"]),
-                            duplicate=True,
-                        )
+                existing = self._find_existing(
+                    event_id=event_id,
+                    delivery_key=delivery_key,
+                )
+                if existing is not None:
+                    self._connection.commit()
+                    return SpoolAppendResult(
+                        record_id=int(existing["id"]),
+                        duplicate=True,
+                    )
 
                 stats = self._connection.execute(
                     """
@@ -262,6 +283,7 @@ class DurableIngestionSpool:
                     INSERT INTO ingestion_spool(
                         work_type,
                         event_id,
+                        delivery_key,
                         payload,
                         topic,
                         received_at,
@@ -270,11 +292,12 @@ class DurableIngestionSpool:
                         reason_code,
                         reason_detail,
                         created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         work_type,
                         event_id,
+                        delivery_key,
                         sqlite3.Binary(payload),
                         topic,
                         normalized_received_at,
@@ -291,11 +314,44 @@ class DurableIngestionSpool:
             except DurableSpoolCapacityError:
                 self._connection.rollback()
                 raise
+            except sqlite3.IntegrityError:
+                self._connection.rollback()
+                existing = self._find_existing(
+                    event_id=event_id,
+                    delivery_key=delivery_key,
+                )
+                if existing is not None:
+                    return SpoolAppendResult(
+                        record_id=int(existing["id"]),
+                        duplicate=True,
+                    )
+                raise DurableSpoolError("ingestion spool uniqueness conflict")
             except sqlite3.Error as exc:
                 self._connection.rollback()
                 raise DurableSpoolError(
                     f"failed to append ingestion work: {exc}"
                 ) from exc
+
+    def _find_existing(
+        self,
+        *,
+        event_id: str | None,
+        delivery_key: str | None,
+    ) -> sqlite3.Row | None:
+        clauses: list[str] = []
+        values: list[str] = []
+        if event_id is not None:
+            clauses.append("event_id = ?")
+            values.append(event_id)
+        if delivery_key is not None:
+            clauses.append("delivery_key = ?")
+            values.append(delivery_key)
+        if not clauses:
+            return None
+        return self._connection.execute(
+            "SELECT id FROM ingestion_spool WHERE " + " OR ".join(clauses) + " LIMIT 1",
+            tuple(values),
+        ).fetchone()
 
     def oldest_pending(self) -> SpoolRecord | None:
         with self._lock:
@@ -318,9 +374,10 @@ class DurableIngestionSpool:
         return SpoolRecord(
             record_id=int(row["id"]),
             work_type=str(row["work_type"]),
-            event_id=(
-                str(row["event_id"])
-                if row["event_id"] is not None
+            event_id=(str(row["event_id"]) if row["event_id"] is not None else None),
+            delivery_key=(
+                str(row["delivery_key"])
+                if row["delivery_key"] is not None
                 else None
             ),
             payload=bytes(row["payload"]),
