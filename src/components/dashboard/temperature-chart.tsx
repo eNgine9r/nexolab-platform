@@ -237,7 +237,7 @@ function LiveTemperatureGrid({
             Production telemetry
           </p>
           <p className="mt-1 text-[11px] text-slate-400">
-            Автоматичне виявлення входів КК1 і КК2
+            Опитуються лише обрані оператором канали КК1 і КК2
           </p>
         </div>
         <span className="rounded-full border border-white/[0.07] px-3 py-1.5 text-[9px] text-slate-300">
@@ -245,34 +245,44 @@ function LiveTemperatureGrid({
         </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {visible.map((sample) => {
-          const problem = sample.quality !== "valid" || sample.alarm !== null;
-          return (
-            <article
-              key={`${sample.node_id}:${sample.channel_id}`}
-              className={`rounded-2xl border p-4 ${
-                problem
-                  ? "border-red-300/15 bg-red-400/[0.045]"
-                  : "border-cyan-300/10 bg-[#071a35]/70"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {problem ? (
-                  <AlertTriangle className="h-4 w-4 text-red-300" />
-                ) : (
-                  <Thermometer className="h-4 w-4 text-cyan-300" />
-                )}
-                <div>
-                  <p className="text-[10px] font-semibold text-white">{sample.channel_id}</p>
-                  <p className="text-[9px] text-slate-500">{sample.quality}</p>
+      {visible.length === 0 ? (
+        <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
+          <div>
+            <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
+            <p className="mt-2 text-[10px] text-slate-400">Немає активних температурних каналів.</p>
+            <p className="mt-1 text-[9px] text-slate-600">Відкрийте керування датчиками у заголовку панелі.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((sample) => {
+            const problem = sample.quality !== "valid" || sample.alarm !== null;
+            return (
+              <article
+                key={`${sample.node_id}:${sample.channel_id}`}
+                className={`rounded-2xl border p-4 ${
+                  problem
+                    ? "border-red-300/15 bg-red-400/[0.045]"
+                    : "border-cyan-300/10 bg-[#071a35]/70"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {problem ? (
+                    <AlertTriangle className="h-4 w-4 text-red-300" />
+                  ) : (
+                    <Thermometer className="h-4 w-4 text-cyan-300" />
+                  )}
+                  <div>
+                    <p className="text-[10px] font-semibold text-white">{sample.channel_id}</p>
+                    <p className="text-[9px] text-slate-500">{sample.quality}</p>
+                  </div>
                 </div>
-              </div>
-              <p className="mt-4 text-3xl font-semibold text-white">{formatValue(sample)}</p>
-            </article>
-          );
-        })}
-      </div>
+                <p className="mt-4 text-3xl font-semibold text-white">{formatValue(sample)}</p>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       <HistoryChart
         samples={[...historySamples, ...samples]}
