@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,6 +18,14 @@ import type {
 
 type DisplayPoint = Omit<Xjp60dDiscoveryPoint, "quality"> & {
   quality: Xjp60dDiscoveryPoint["quality"] | "unknown";
+};
+
+type SensorManagementDialogProps = {
+  open: boolean;
+  canManage: boolean;
+  management: Xjp60dSensorManagement;
+  onClose: () => void;
+  onSaved: () => void;
 };
 
 function compareChannels(left: string, right: string): number {
@@ -40,30 +48,22 @@ function formatTemperature(point: DisplayPoint): string {
   }).format(point.value)} °C`;
 }
 
-export function SensorManagementDialog({
-  open,
+export function SensorManagementDialog(
+  props: SensorManagementDialogProps,
+) {
+  if (!props.open) return null;
+  return <SensorManagementDialogContent {...props} />;
+}
+
+function SensorManagementDialogContent({
   canManage,
   management,
   onClose,
   onSaved,
-}: {
-  open: boolean;
-  canManage: boolean;
-  management: Xjp60dSensorManagement;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [selected, setSelected] = useState<string[]>([]);
-  const activeChannelIds = management.activeChannelIds;
-  const refresh = management.refresh;
-
-  useEffect(() => {
-    if (open) void refresh();
-  }, [open, refresh]);
-
-  useEffect(() => {
-    if (open) setSelected(activeChannelIds);
-  }, [activeChannelIds, open]);
+}: SensorManagementDialogProps) {
+  const [selected, setSelected] = useState<string[]>(() => [
+    ...management.activeChannelIds,
+  ]);
 
   const points = useMemo(() => {
     const map = new Map<string, DisplayPoint>();
@@ -74,7 +74,7 @@ export function SensorManagementDialog({
     ]) {
       map.set(point.channel_id, point);
     }
-    for (const channelId of activeChannelIds) {
+    for (const channelId of management.activeChannelIds) {
       if (map.has(channelId)) continue;
       const [unitId, channel] = channelId.split("-").map(Number);
       map.set(channelId, {
@@ -91,9 +91,7 @@ export function SensorManagementDialog({
     return [...map.values()].sort((left, right) =>
       compareChannels(left.channel_id, right.channel_id),
     );
-  }, [activeChannelIds, management.configuration?.last_discovery]);
-
-  if (!open) return null;
+  }, [management.activeChannelIds, management.configuration?.last_discovery]);
 
   const discovery = management.configuration?.last_discovery;
   const toggle = (channelId: string) => {
