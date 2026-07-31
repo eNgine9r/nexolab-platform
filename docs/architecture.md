@@ -94,9 +94,11 @@ Repository rules and code preserve these invariants:
 - PostgreSQL is not published to the host by the standard central Compose profile;
 - MQTT, PostgreSQL, API and WebSocket failures remain separately diagnosable.
 
-### Central outage limitation
+### Central outage and durability limitation
 
-The edge SQLite outbox survives central or MQTT outages. Inside the Telemetry Service, the active persistence work and subsequent items use a bounded in-memory queue while PostgreSQL is unavailable. Terminating the Telemetry Service during that outage can abandon central in-memory work that has not yet reached PostgreSQL. This does not remove the edge event source, but recovery and duplicate-free replay must be proven as an operational drill.
+The edge SQLite outbox guarantees local persistence only until the configured MQTT broker acknowledges the QoS 1 publish. After that acknowledgement, the Device Agent deletes the edge row. The central MQTT consumer then submits the payload to a bounded in-memory persistence queue, and PostgreSQL durability occurs later.
+
+Consequently, if PostgreSQL is unavailable and the Telemetry Service terminates after broker delivery but before database commit, the acknowledged payload can be lost: it is no longer present in the edge SQLite outbox and the central queue is not durable. The current contract is at-least-once delivery to the MQTT boundary, not end-to-end durability in PostgreSQL. Operators must avoid terminating the Telemetry Service during a PostgreSQL outage. Issue #198 owns the durable central staging/replay correction; Issue #189 must include the resulting restart and recovery evidence.
 
 ## 4. Device Agent and hardware boundary
 
@@ -241,14 +243,14 @@ The repository contains runbooks and scripts for:
 - edge-to-central rollback;
 - preservation of named volumes.
 
-The narrow edge MQTT outage/restart drill has evidence. A single current acceptance package covering PostgreSQL, MinIO, MQTT, edge SQLite, host reboot, version rollback and power interruption has not been verified in this reconciliation. Issue #189 owns that evidence.
+The narrow edge MQTT outage/restart drill has evidence. A single current acceptance package covering PostgreSQL, MinIO, MQTT, edge SQLite, host reboot, version rollback and power interruption has not been verified in this reconciliation. The current MQTT-to-PostgreSQL handoff also has a confirmed non-durable loss window until Issue #198 is implemented. Issue #189 owns the consolidated recovery evidence after that durability boundary is corrected.
 
 ## 11. Implementation versus acceptance
 
 | Area                                                | Code/configuration present | Repository evidence                                               | Current boundary                                                                        |
 | --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Frontend live adapter and explicit states           | Yes                        | Unit/build/browser tooling exists                                 | Current CI must validate each change; actual site browser state is environment-specific |
-| Telemetry ingestion, REST, WebSocket and PostgreSQL | Yes                        | Automated tests and operations tooling exist                      | Current controlled-host persistence/outage evidence remains environment-specific        |
+| Telemetry ingestion, REST, WebSocket and PostgreSQL | Yes                        | Automated tests and operations tooling exist                      | Known MQTT-to-PostgreSQL durability gap is tracked in #198; controlled-host evidence remains incomplete |
 | Edge SQLite, MQTT and read-only Modbus drivers      | Yes                        | 2026-07-23 smoke and soak evidence for 34-series scope            | Accepted only for that narrow scope; broader hardware remains unverified                |
 | Laboratory sessions                                 | Yes                        | Issue #82 is closed and a real-hardware acceptance harness exists | Parent tracker #74 is stale and must be reconciled                                      |
 | Refrigeration/climate catalog                       | Yes                        | Merged implementation and automated acceptance claims exist       | Open PR #175 contains a current live/availability defect and is non-mergeable           |
