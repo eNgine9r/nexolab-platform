@@ -19,10 +19,22 @@ function isXjpTemperature(sample: TelemetrySample): boolean {
   return sample.source === "dixell-xjp60d" && (metric === "temperature" || metric.startsWith("temperature_"));
 }
 
+function compareChannelIds(left: string, right: string): number {
+  const [leftUnit = 0, leftChannel = 0] = left.split("-").map(Number);
+  const [rightUnit = 0, rightChannel = 0] = right.split("-").map(Number);
+  return leftUnit - rightUnit || leftChannel - rightChannel || left.localeCompare(right);
+}
+
 function channelOrder(left: TelemetrySample, right: TelemetrySample): number {
-  const [leftUnit = 0, leftChannel = 0] = left.channel_id.split("-").map(Number);
-  const [rightUnit = 0, rightChannel = 0] = right.channel_id.split("-").map(Number);
-  return leftUnit - rightUnit || leftChannel - rightChannel;
+  return compareChannelIds(left.channel_id, right.channel_id);
+}
+
+function channelColor(channelId: string): string {
+  const hue = [...channelId].reduce(
+    (current, character) => (current * 31 + character.charCodeAt(0)) % 360,
+    0,
+  );
+  return `hsl(${hue} 78% 60%)`;
 }
 
 function formatValue(sample: TelemetrySample): string {
@@ -46,6 +58,46 @@ function statusLabel(sample: TelemetrySample): string {
   return "Live · валідне значення";
 }
 
+type ChartSeries = {
+  channelId: string;
+  path: string;
+  points: Array<{ eventId: string; x: number; y: number }>;
+};
+
+function buildChart(samples: readonly TelemetrySample[]): ChartSeries[] {
+  const valid = samples
+    .filter(isXjpTemperature)
+    .filter(
+      (sample): sample is TelemetrySample & { value: number } =>
+        sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value),
+    )
+    .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at));
+  if (valid.length === 0) return [];
+  const from = Math.min(...valid.map((sample) => Date.parse(sample.captured_at)));
+  const to = Math.max(...valid.map((sample) => Date.parse(sample.captured_at)));
+  const minimum = Math.min(...valid.map((sample) => sample.value));
+  const maximum = Math.max(...valid.map((sample) => sample.value));
+  const timeSpan = Math.max(1, to - from);
+  const valueSpan = Math.max(1, maximum - minimum);
+  const channels = [...new Set(valid.map((sample) => sample.channel_id))].sort(compareChannelIds);
+  return channels.map((channelId) => {
+    const points = valid
+      .filter((sample) => sample.channel_id === channelId)
+      .map((sample) => ({
+        eventId: sample.event_id,
+        x: 32 + ((Date.parse(sample.captured_at) - from) / timeSpan) * 568,
+        y: 20 + (1 - (sample.value - minimum) / valueSpan) * 135,
+      }));
+    return {
+      channelId,
+      points,
+      path: points
+        .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+        .join(" "),
+    };
+  });
+}
+
 function HistorySummary({
   samples,
   range,
@@ -61,15 +113,7 @@ function HistorySummary({
   onRangeChange: (range: DashboardHistoryRange) => void;
   onRetry: () => void;
 }) {
-  const channels = useMemo(
-    () =>
-      [...new Set(samples.filter(isXjpTemperature).map((sample) => sample.channel_id))].sort((left, right) => {
-        const [leftUnit = 0, leftChannel = 0] = left.split("-").map(Number);
-        const [rightUnit = 0, rightChannel = 0] = right.split("-").map(Number);
-        return leftUnit - rightUnit || leftChannel - rightChannel;
-      }),
-    [samples],
-  );
+  const series = useMemo(() => buildChart(samples), [samples]);
 
   return (
     <section className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3">
@@ -77,7 +121,7 @@ function HistorySummary({
         <div>
           <p className="text-[10px] font-medium text-slate-200">PostgreSQL history</p>
           <p className="mt-0.5 text-[9px] text-slate-500">
-            {samples.length} записів · {channels.length} каналів XJP60D
+            {samples.length} записів · {series.length} каналів XJP60D
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-black/10 p-1">
@@ -104,14 +148,57 @@ function HistorySummary({
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
+      ) : series.length === 0 ? (
+        <p className="mt-4 text-[10px] text-slate-500">Немає валідної температурної історії.</p>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {channels.map((channel) => (
-            <span key={channel} className="rounded-full border border-white/[0.06] px-2 py-1 text-[8px] text-slate-400">
-              {channel}
-            </span>
-          ))}
-        </div>
+        <>
+          <svg
+            viewBox="0 0 630 180"
+            className="mt-3 h-[190px] w-full"
+            role="img"
+            aria-label="Реальний графік історії температур XJP60D"
+          >
+            {[20, 47, 74, 101, 128, 155].map((y) => (
+              <line key={y} x1="32" y1={y} x2="600" y2={y} stroke="rgba(148,163,184,.1)" />
+            ))}
+            {series.map((item) => (
+              <g key={item.channelId}>
+                <path
+                  d={item.path}
+                  fill="none"
+                  stroke={channelColor(item.channelId)}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {item.points.map((point) => (
+                  <circle
+                    key={point.eventId}
+                    cx={point.x}
+                    cy={point.y}
+                    r="2"
+                    fill="#071a35"
+                    stroke={channelColor(item.channelId)}
+                  />
+                ))}
+              </g>
+            ))}
+          </svg>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {series.map((item) => (
+              <span
+                key={item.channelId}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] px-2 py-1 text-[8px] text-slate-400"
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: channelColor(item.channelId) }}
+                />
+                {item.channelId} · {item.points.length}
+              </span>
+            ))}
+          </div>
+        </>
       )}
     </section>
   );
@@ -153,7 +240,6 @@ function LiveTemperatures({
           {status} · {liveCount} valid
         </span>
       </div>
-
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.04] p-5 text-sm text-amber-100">
           Немає валідних підключених датчиків. Зареєстровані входи продовжують опитуватися.
@@ -194,7 +280,6 @@ function LiveTemperatures({
           })}
         </div>
       )}
-
       <HistorySummary
         samples={[...historySamples, ...samples]}
         range={historyRange}
