@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, History, LoaderCircle, ShieldCheck, X } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -43,6 +44,7 @@ type SecurityAwareLayoutWorkspaceProps = {
   bindings?: readonly SensorBinding[];
   canManageEquipment?: boolean;
   toolbarTools?: ReactNode;
+  toolbarTarget?: HTMLElement | null;
   onModeChange: (mode: LayoutEditorMode) => void;
   onSelect: (sensorId: string) => void;
   onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
@@ -74,6 +76,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   bindings = [],
   canManageEquipment,
   toolbarTools,
+  toolbarTarget,
   onModeChange,
   onSelect,
   onEquipmentChange,
@@ -204,6 +207,72 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     setWorkspaceEpoch((current) => current + 1);
     onConfigurationSaved?.();
   };
+  const workspaceToolbar = (
+    <div
+      className="flex items-center justify-end gap-1.5"
+      aria-label="Інструменти робочої області"
+    >
+      {toolbarTools}
+
+      <details className="group relative">
+        <summary
+          aria-label="Інформація про доступ"
+          title="Доступ оператора"
+          className={clsx(
+            compactToolClass,
+            externallyReadOnly
+              ? "border-slate-300/15 text-slate-400"
+              : "border-emerald-300/15 text-emerald-300",
+          )}
+        >
+          <ShieldCheck className="h-4 w-4" />
+        </summary>
+        <div className="absolute top-12 right-0 z-[70] w-[min(88vw,360px)] rounded-2xl border border-emerald-300/15 bg-[#07182f]/98 p-3 shadow-2xl shadow-black/45 backdrop-blur-xl">
+          {runtime.mode === "demo" ? (
+            <p className="text-[10px] text-emerald-100">Demo-доступ · повні можливості</p>
+          ) : session && membership ? (
+            <>
+              <p className="truncate text-[10px] font-semibold text-white">
+                {session.identity.displayName ??
+                  session.identity.email ??
+                  session.identity.subject}
+              </p>
+              <p className="mt-1 truncate text-[9px] text-emerald-200/70">
+                {membership.organizationName}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {membership.roles.map((role) => (
+                  <span
+                    key={role}
+                    className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-0.5 text-[8px] text-emerald-200"
+                  >
+                    {role}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-[10px] text-slate-400">Контекст доступу недоступний.</p>
+          )}
+          {externallyReadOnly ? (
+            <p className="mt-2 border-t border-white/[0.06] pt-2 text-[9px] text-slate-400">
+              Робоча область доступна лише для перегляду.
+            </p>
+          ) : null}
+        </div>
+      </details>
+
+      <button
+        type="button"
+        aria-label="Відкрити версії та публікацію схеми"
+        title="Версії схеми"
+        onClick={() => setLifecycleOpen(true)}
+        className={compactToolClass}
+      >
+        <History className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
   return (
     <div
@@ -227,70 +296,11 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         }
       `}</style>
 
-      <div
-        className="flex items-center justify-end gap-1.5"
-        aria-label="Інструменти робочої області"
-      >
-        {toolbarTools}
-
-        <details className="group relative">
-          <summary
-            aria-label="Інформація про доступ"
-            title="Доступ оператора"
-            className={clsx(
-              compactToolClass,
-              externallyReadOnly
-                ? "border-slate-300/15 text-slate-400"
-                : "border-emerald-300/15 text-emerald-300",
-            )}
-          >
-            <ShieldCheck className="h-4 w-4" />
-          </summary>
-          <div className="absolute top-11 right-0 z-[70] w-[min(88vw,360px)] rounded-2xl border border-emerald-300/15 bg-[#07182f]/98 p-3 shadow-2xl shadow-black/45 backdrop-blur-xl">
-            {runtime.mode === "demo" ? (
-              <p className="text-[10px] text-emerald-100">Demo-доступ · повні можливості</p>
-            ) : session && membership ? (
-              <>
-                <p className="truncate text-[10px] font-semibold text-white">
-                  {session.identity.displayName ??
-                    session.identity.email ??
-                    session.identity.subject}
-                </p>
-                <p className="mt-1 truncate text-[9px] text-emerald-200/70">
-                  {membership.organizationName}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {membership.roles.map((role) => (
-                    <span
-                      key={role}
-                      className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2 py-0.5 text-[8px] text-emerald-200"
-                    >
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-[10px] text-slate-400">Контекст доступу недоступний.</p>
-            )}
-            {externallyReadOnly ? (
-              <p className="mt-2 border-t border-white/[0.06] pt-2 text-[9px] text-slate-400">
-                Робоча область доступна лише для перегляду.
-              </p>
-            ) : null}
-          </div>
-        </details>
-
-        <button
-          type="button"
-          aria-label="Відкрити версії та публікацію схеми"
-          title="Версії схеми"
-          onClick={() => setLifecycleOpen(true)}
-          className={compactToolClass}
-        >
-          <History className="h-4 w-4" />
-        </button>
-      </div>
+      {toolbarTarget === undefined
+        ? workspaceToolbar
+        : toolbarTarget
+          ? createPortal(workspaceToolbar, toolbarTarget)
+          : null}
 
       {cameraScoped && effectiveLifecycleRepository ? (
         <CameraScopedLayoutEditor
@@ -378,4 +388,4 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 }
 
 const compactToolClass =
-  "grid h-9 w-9 cursor-pointer list-none place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-100 [&::-webkit-details-marker]:hidden";
+  "grid h-10 w-10 shrink-0 cursor-pointer list-none place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-100 [&::-webkit-details-marker]:hidden";

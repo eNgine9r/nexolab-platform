@@ -80,6 +80,7 @@ export function RefrigerationDetailScreen({
   const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
+  const [headerToolbarTarget, setHeaderToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
@@ -270,7 +271,7 @@ export function RefrigerationDetailScreen({
         <Topbar title={equipment.name} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[2100px]">
-            <header className="mb-2 flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-3">
+            <header className="mb-2 flex flex-wrap items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-3">
               <Link
                 href="/refrigeration"
                 aria-label="Назад до обладнання"
@@ -302,26 +303,35 @@ export function RefrigerationDetailScreen({
                 </div>
               </div>
 
-              <button
-                type="button"
-                aria-label="Відкрити паспорт обладнання"
-                title="Паспорт обладнання"
-                onClick={() => setPassportOpen(true)}
-                className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-400/10"
+              <div
+                className="ml-auto flex shrink-0 items-center gap-1.5"
+                aria-label="Дії сторінки обладнання"
               >
-                <FileText className="h-4 w-4" />
-                <span
-                  aria-hidden="true"
-                  className={clsx(
-                    "absolute right-1.5 bottom-1.5 h-2 w-2 rounded-full border border-[#091a31]",
-                    equipment.lifecycleStatus === "active"
-                      ? "bg-emerald-400"
-                      : equipment.lifecycleStatus === "maintenance"
-                        ? "bg-amber-400"
-                        : "bg-slate-400",
-                  )}
+                <div
+                  ref={setHeaderToolbarTarget}
+                  className="flex w-[132px] shrink-0 items-center gap-1.5"
                 />
-              </button>
+                <button
+                  type="button"
+                  aria-label="Відкрити паспорт обладнання"
+                  title="Паспорт обладнання"
+                  onClick={() => setPassportOpen(true)}
+                  className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-400/10"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span
+                    aria-hidden="true"
+                    className={clsx(
+                      "absolute right-1.5 bottom-1.5 h-2 w-2 rounded-full border border-[#091a31]",
+                      equipment.lifecycleStatus === "active"
+                        ? "bg-emerald-400"
+                        : equipment.lifecycleStatus === "maintenance"
+                          ? "bg-amber-400"
+                          : "bg-slate-400",
+                    )}
+                  />
+                </button>
+              </div>
             </header>
 
             {retired ? (
@@ -355,6 +365,7 @@ export function RefrigerationDetailScreen({
               onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
               forceReadOnly={retired}
               toolbarTools={filterMenu}
+              toolbarTarget={headerToolbarTarget}
             />
           </div>
         </main>
@@ -441,11 +452,11 @@ function LayoutFilterMenu({
       <summary
         aria-label="Фільтри розміщення датчиків"
         title="Фільтри датчиків"
-        className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-100 [&::-webkit-details-marker]:hidden"
+        className="grid h-10 w-10 shrink-0 cursor-pointer list-none place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-100 [&::-webkit-details-marker]:hidden"
       >
         <SlidersHorizontal className="h-4 w-4" />
       </summary>
-      <div className="absolute top-11 right-0 z-[70] w-[min(92vw,420px)] rounded-2xl border border-cyan-300/15 bg-[#07182f]/98 p-3 shadow-2xl shadow-black/45 backdrop-blur-xl">
+      <div className="absolute top-12 right-0 z-[70] w-[min(92vw,420px)] rounded-2xl border border-cyan-300/15 bg-[#07182f]/98 p-3 shadow-2xl shadow-black/45 backdrop-blur-xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="text-[10px] font-semibold text-white">Відображення датчиків</span>
           <span className="rounded-full border border-white/[0.07] px-2 py-0.5 text-[8px] text-slate-400">
