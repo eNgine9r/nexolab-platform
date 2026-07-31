@@ -1,0 +1,136 @@
+name: Remediate PR 190 disaster recovery boundary
+
+on:
+  push:
+    branches:
+      - docs/183-architecture-reconciliation
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: remediate-pr190-dr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  remediate:
+    name: Preserve verified software recovery evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/183-architecture-reconciliation
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Reconcile recovery evidence and format scoped files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          def replace_exact(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Expected text not found in {path}: {old[:120]!r}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace_exact(
+              "docs/offline-readiness.md",
+              "| PostgreSQL restore proof on current baseline                       | Missing in this audit            | Procedure exists, but no current verified artifact was inspected                                                                              |\n| MinIO backup/restore proof                                         | Missing                          | Named storage exists; complete object backup/restore evidence was not found                                                                   |\n| MQTT persistence/recovery                                          | Partial                          | Edge MQTT outage is evidenced; central durable staging/replay and full broker/host recovery are not                                           |",
+              "| Central PostgreSQL fresh-volume restore software proof             | Verified software gate           | Merged PR #144 restores a custom dump into a fresh volume and verifies Alembic head, protected counts and hashes                               |\n| MinIO fresh-volume backup/restore software proof                    | Verified software gate           | PR #144 restores the private bucket and verifies object count, bytes, metadata, SHA-256 and private access                                     |\n| MQTT persistence/recovery                                          | Partial                          | PR #144 verifies Mosquitto persistence/Dynamic Security restore; #198 ingestion durability and actual-host recovery remain open                |",
+          )
+          replace_exact(
+              "docs/offline-readiness.md",
+              "Existing recovery procedures are useful but do not form one current acceptance package. Required proof includes:\n\n- PostgreSQL backup and isolated restore;\n- MinIO object backup and restore;\n- central MQTT persistence;\n- durable central ingestion staging and replay;\n- edge SQLite outbox preservation;\n- service and host restart;\n- update rollback with named-volume identity preservation;\n- stale/offline/live UI transitions;\n- controlled power interruption where explicitly approved.\n\nIssue #189 owns the consolidated recovery evidence after #198 closes the durability gap.",
+              "Merged PR #144 provides a repeatable encrypted software recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security. The drill restores into fresh volumes and verifies protected database state, MinIO object bytes/metadata/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows. It explicitly does not prove the actual central host, scheduler, off-host storage, physical disks or production RPO/RTO.\n\nRemaining proof includes:\n\n- durable central ingestion staging and replay from Issue #198;\n- execution and scheduling on the controlled central host;\n- encrypted off-host copy and key custody;\n- edge SQLite outbox preservation across host/power events;\n- service and host restart on the real deployment;\n- update rollback with named-volume identity preservation;\n- stale/offline/live UI transitions;\n- physical disk loss and controlled power interruption where explicitly approved.\n\nIssue #189 owns this consolidated operational and hardware evidence after #198 closes the durability gap.",
+          )
+
+          replace_exact(
+              "docs/architecture.md",
+              "The narrow edge MQTT outage/restart drill has evidence. A single current acceptance package covering PostgreSQL, MinIO, MQTT, edge SQLite, host reboot, version rollback and power interruption has not been verified in this reconciliation. The current MQTT-to-PostgreSQL handoff also has a confirmed non-durable loss window until Issue #198 is implemented. Issue #189 owns the consolidated recovery evidence after that durability boundary is corrected.",
+              "Merged PR #144 provides an encrypted fresh-volume software recovery gate for the complete central state: PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security. It verifies protected database hashes/counts, MinIO object count/bytes/metadata/SHA-256/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows without mutating source volumes.\n\nThat software gate does not prove actual-host scheduling, off-host encrypted copies, hardware-backed key custody, physical disk failure, production DNS/TLS restoration, measured production RPO/RTO, edge SQLite recovery or power loss. The current MQTT-to-PostgreSQL handoff also has a confirmed non-durable loss window until Issue #198 is implemented. Issue #189 owns the remaining consolidated operational and hardware evidence after that durability boundary is corrected.",
+          )
+          replace_exact(
+              "docs/architecture.md",
+              "| Backup/restore/rollback                             | Partial                    | Procedures and focused scripts exist                              | Full current-host acceptance package is missing                                                         |",
+              "| Backup/restore/rollback                             | Partial                    | PR #144 verifies encrypted fresh-volume central-state software recovery | Actual-host scheduling, off-host copies, edge/power recovery and production RPO/RTO remain unverified |",
+          )
+
+          replace_exact(
+              ".project/CURRENT_STATE.md",
+              "- Backup, restore, cutover and rollback procedures/tooling.\n\n### Real evidence available\n\nA controlled 2026-07-23 hardware smoke and soak covers:",
+              "- Backup, restore, cutover and rollback procedures/tooling.\n- Encrypted fresh-volume software disaster-recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security, including REST, WebSocket, MQTT TLS and Chromium verification.\n\n### Software recovery evidence available\n\nMerged PR #144 verifies recovery of the complete central software state into fresh volumes without mutating source volumes. It checks PostgreSQL protected counts/hashes and Alembic head, MinIO object count/bytes/metadata/SHA-256/private access, Mosquitto policy state, REST, WebSocket, MQTT TLS and Chromium flows. It does not prove the actual central host, scheduler, off-host copy, physical disks, production DNS/TLS or production RPO/RTO.\n\n### Real hardware evidence available\n\nA controlled 2026-07-23 hardware smoke and soak covers:",
+          )
+          replace_exact(
+              ".project/CURRENT_STATE.md",
+              "- consolidated PostgreSQL, MinIO, MQTT and edge backup/restore evidence;\n- current controlled central-host restart and rollback package;",
+              "- actual-host scheduling and execution of the verified central software recovery gate;\n- encrypted off-host copies, key custody, physical disk failure and measured production RPO/RTO;\n- current controlled central-host and edge restart, rollback and power-loss package;",
+          )
+
+          replace_exact(
+              "docs/roadmap.md",
+              "| Backup/restore/rollback           | Runbooks and focused scripts exist                                                      | One consolidated current-host acceptance package is missing                                                                                |",
+              "| Backup/restore/rollback           | PR #144 verifies encrypted fresh-volume recovery of PostgreSQL, MinIO and Mosquitto      | Actual-host scheduling, off-host copy, edge/power recovery and production RPO/RTO remain missing                                             |",
+          )
+          replace_exact(
+              "docs/roadmap.md",
+              "Outcome: one evidence package covering PostgreSQL, MinIO, MQTT, edge SQLite, host restart, update rollback and approved power interruption.",
+              "Outcome: extend the verified PR #144 central software recovery gate with durable ingestion from #198, actual-host scheduling, off-host copies, edge SQLite, host restart, update rollback, physical-disk and approved power-interruption evidence.",
+          )
+
+          checkpoint_path = Path(".project/LAST_CHECKPOINT.json")
+          checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+          checkpoint["timestamp"] = "2026-08-01T00:45:00+03:00"
+          checkpoint["summary"] = (
+              "Verified the current architecture and corrected PR #190 review findings. "
+              "Successor Work Packages are not executable before #183 is Done; Issue #198 owns the confirmed MQTT-to-PostgreSQL durability gap; "
+              "and the baseline preserves merged PR #144 as verified fresh-volume central software recovery while keeping actual-host and physical recovery unverified."
+          )
+          completed = checkpoint.setdefault("checks_completed", [])
+          item = "PR #144 fresh-volume PostgreSQL, MinIO and Mosquitto software recovery boundary verified from merged workflow/runbook"
+          if item not in completed:
+              completed.append(item)
+          checkpoint_path.write_text(
+              json.dumps(checkpoint, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          npm exec prettier -- --write \
+            .project/CURRENT_STATE.md \
+            .project/LAST_CHECKPOINT.json \
+            docs/architecture.md \
+            docs/offline-readiness.md \
+            docs/roadmap.md
+
+          git rm .github/workflows/remediate-pr190-dr-boundary.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .project/CURRENT_STATE.md \
+            .project/LAST_CHECKPOINT.json \
+            docs/architecture.md \
+            docs/offline-readiness.md \
+            docs/roadmap.md
+          git commit -m "docs: preserve verified software recovery boundary"
+          git push origin HEAD:docs/183-architecture-reconciliation
