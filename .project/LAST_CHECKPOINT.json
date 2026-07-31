@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "project": "NEXOLAB",
+  "sprint": "PROCESS-ADOPTION-1",
+  "task": "NEXOLAB-182",
+  "issue": 182,
+  "status": "in_progress",
+  "timestamp": "2026-07-31T22:15:00+03:00",
+  "summary": "Offline-first workflow foundation is being introduced on a dedicated feature branch.",
+  "next_action": "Review and merge the operating-standard Pull Request, then execute NEXOLAB-183."
+}
