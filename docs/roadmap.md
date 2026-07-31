@@ -19,7 +19,7 @@ This roadmap is derived from current code, configuration, GitHub Issues, Pull Re
 | Alerts, reports and nodes         | Substantial code and browser acceptance tooling exist                                   | Not equivalent to full offline/site recovery acceptance                                                                                    |
 | Production security               | JWT/RBAC/audit foundations exist; Supabase is optional                                  | Secure offline operator authentication is not yet accepted                                                                                 |
 | Offline installation/update       | Local runtime topology exists                                                           | Clean disconnected installation/update bundle is missing                                                                                   |
-| Backup/restore/rollback           | Runbooks and focused scripts exist                                                      | One consolidated current-host acceptance package is missing                                                                                |
+| Backup/restore/rollback           | PR #144 verifies encrypted fresh-volume recovery of PostgreSQL, MinIO and Mosquitto     | Actual-host scheduling, off-host copy, edge/power recovery and production RPO/RTO remain missing                                           |
 
 ## 2. Current Work Package
 
@@ -93,7 +93,7 @@ Outcome: select and prove a fail-closed local login, token, RBAC and recovery li
 
 **Status:** Final acceptance blocked on controlled central/Raspberry Pi access and dependent on #198 durability correction.
 
-Outcome: one evidence package covering PostgreSQL, MinIO, MQTT, edge SQLite, host restart, update rollback and approved power interruption.
+Outcome: extend the verified PR #144 central software recovery gate with durable ingestion from #198, actual-host scheduling, off-host copies, edge SQLite, host restart, update rollback, physical-disk and approved power-interruption evidence.
 
 ### 7. Issue #185 — controlled formatting baseline
 

@@ -52,9 +52,9 @@ Status meanings:
 | Secure local operator authentication                               | Partial                          | JWT validation exists; Supabase is optional; production offline login/identity authority is unresolved                                        |
 | Local authorization/RBAC                                           | Partial                          | Backend/frontend contracts exist; complete disconnected operator acceptance is not established                                                |
 | PostgreSQL backup procedure                                        | Static pass                      | Logical backup runbook exists                                                                                                                 |
-| PostgreSQL restore proof on current baseline                       | Missing in this audit            | Procedure exists, but no current verified artifact was inspected                                                                              |
-| MinIO backup/restore proof                                         | Missing                          | Named storage exists; complete object backup/restore evidence was not found                                                                   |
-| MQTT persistence/recovery                                          | Partial                          | Edge MQTT outage is evidenced; central durable staging/replay and full broker/host recovery are not                                           |
+| Central PostgreSQL fresh-volume restore software proof             | Verified software gate           | Merged PR #144 restores a custom dump into a fresh volume and verifies Alembic head, protected counts and hashes                              |
+| MinIO fresh-volume backup/restore software proof                   | Verified software gate           | PR #144 restores the private bucket and verifies object count, bytes, metadata, SHA-256 and private access                                    |
+| MQTT persistence/recovery                                          | Partial                          | PR #144 verifies Mosquitto persistence/Dynamic Security restore; #198 ingestion durability and actual-host recovery remain open               |
 | Host restart/reboot                                                | Partial                          | Focused restart tooling exists; complete current central/edge evidence is not consolidated                                                    |
 | Power-loss recovery                                                | Missing                          | No accepted controlled power-loss evidence was found                                                                                          |
 | Logs/health/diagnostics remain local                               | Static pass                      | Local health, readiness, metrics and Compose logs are available                                                                               |
@@ -112,19 +112,20 @@ The current MQTT-to-PostgreSQL handoff is not end-to-end durable. The Device Age
 
 Issue #198 must implement a local durable central staging/replay boundary before restart and outage acceptance can claim no silent telemetry loss.
 
-Existing recovery procedures are useful but do not form one current acceptance package. Required proof includes:
+Merged PR #144 provides a repeatable encrypted software recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security. The drill restores into fresh volumes and verifies protected database state, MinIO object bytes/metadata/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows. It explicitly does not prove the actual central host, scheduler, off-host storage, physical disks or production RPO/RTO.
 
-- PostgreSQL backup and isolated restore;
-- MinIO object backup and restore;
-- central MQTT persistence;
-- durable central ingestion staging and replay;
-- edge SQLite outbox preservation;
-- service and host restart;
+Remaining proof includes:
+
+- durable central ingestion staging and replay from Issue #198;
+- execution and scheduling on the controlled central host;
+- encrypted off-host copy and key custody;
+- edge SQLite outbox preservation across host/power events;
+- service and host restart on the real deployment;
 - update rollback with named-volume identity preservation;
 - stale/offline/live UI transitions;
-- controlled power interruption where explicitly approved.
+- physical disk loss and controlled power interruption where explicitly approved.
 
-Issue #189 owns the consolidated recovery evidence after #198 closes the durability gap.
+Issue #189 owns this consolidated operational and hardware evidence after #198 closes the durability gap.
 
 ## 7. Acceptance rules
 

@@ -54,8 +54,13 @@ Therefore, the current pipeline does not provide end-to-end durability after bro
 - Device Agent with simulator and read-only Modbus modes.
 - Edge SQLite outbox and MQTT QoS 1 delivery to the broker boundary.
 - Backup, restore, cutover and rollback procedures/tooling.
+- Encrypted fresh-volume software disaster-recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security, including REST, WebSocket, MQTT TLS and Chromium verification.
 
-### Real evidence available
+### Software recovery evidence available
+
+Merged PR #144 verifies recovery of the complete central software state into fresh volumes without mutating source volumes. It checks PostgreSQL protected counts/hashes and Alembic head, MinIO object count/bytes/metadata/SHA-256/private access, Mosquitto policy state, REST, WebSocket, MQTT TLS and Chromium flows. It does not prove the actual central host, scheduler, off-host copy, physical disks, production DNS/TLS or production RPO/RTO.
+
+### Real hardware evidence available
 
 A controlled 2026-07-23 hardware smoke and soak covers:
 
@@ -76,8 +81,9 @@ This evidence is limited to that scope and does not close the central durability
 - clean disconnected installation from a local bundle;
 - disconnected update and rollback package;
 - secure production operator login without Supabase/external identity dependency;
-- consolidated PostgreSQL, MinIO, MQTT and edge backup/restore evidence;
-- current controlled central-host restart and rollback package;
+- actual-host scheduling and execution of the verified central software recovery gate;
+- encrypted off-host copies, key custody, physical disk failure and measured production RPO/RTO;
+- current controlled central-host and edge restart, rollback and power-loss package;
 - approved power-loss recovery;
 - all historical XJP60D channels/register semantics and cumulative energy;
 - production/site cutover for any unverified environment.
