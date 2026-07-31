@@ -270,6 +270,8 @@ export function RefrigerationImageCanvas({
         </button>
       </div>
 
+      {image ? <span className="sr-only">{image.fileName}</span> : null}
+
       <div
         data-testid="equipment-image-viewport"
         className={clsx(
