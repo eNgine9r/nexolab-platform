@@ -20,10 +20,18 @@ import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 const STORAGE_KEY = "nexolab.selectedOrganizationId";
 
-export type DashboardSecurityState = "demo" | "loading" | "ready" | "unauthenticated" | "forbidden" | "error";
+export type DashboardSecurityState =
+  | "demo"
+  | "loading"
+  | "ready"
+  | "unauthenticated"
+  | "forbidden"
+  | "error";
 
 export type DashboardSecurityErrorCode =
-  SecuritySessionErrorCode | "INVALID_CONFIGURATION" | "ORGANIZATION_NOT_AVAILABLE";
+  | SecuritySessionErrorCode
+  | "INVALID_CONFIGURATION"
+  | "ORGANIZATION_NOT_AVAILABLE";
 
 export type DashboardSecurityModel = {
   mode: "demo" | "live";
@@ -39,7 +47,12 @@ export type DashboardSecurityModel = {
 };
 
 type Runtime =
-  | { mode: "demo"; apiBaseUrl: null; configuredOrganizationId: null; error: null }
+  | {
+      mode: "demo";
+      apiBaseUrl: null;
+      configuredOrganizationId: null;
+      error: null;
+    }
   | {
       mode: "live";
       apiBaseUrl: string | null;
@@ -51,20 +64,31 @@ function loadRuntime(): Runtime {
   try {
     const config = getTelemetryRuntimeConfig();
     if (config.mode === "demo") {
-      return { mode: "demo", apiBaseUrl: null, configuredOrganizationId: null, error: null };
+      return {
+        mode: "demo",
+        apiBaseUrl: null,
+        configuredOrganizationId: null,
+        error: null,
+      };
     }
     return {
       mode: "live",
       apiBaseUrl: config.apiBaseUrl,
-      configuredOrganizationId: process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null,
-      error: config.apiBaseUrl ? null : "NEXOLAB API URL is required for authenticated dashboard mode.",
+      configuredOrganizationId:
+        process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null,
+      error: config.apiBaseUrl
+        ? null
+        : "NEXOLAB API URL is required for authenticated dashboard mode.",
     };
   } catch (error) {
     return {
       mode: "live",
       apiBaseUrl: null,
       configuredOrganizationId: null,
-      error: error instanceof Error ? error.message : "Invalid dashboard security configuration.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Invalid dashboard security configuration.",
     };
   }
 }
@@ -93,8 +117,14 @@ function clearPersistedOrganizationId(): void {
   }
 }
 
-function requestedOrganizationId(configuredOrganizationId: string | null): string | null {
-  return storedOrganizationId() ?? getSecurityCredentials().organizationId ?? configuredOrganizationId;
+function requestedOrganizationId(
+  configuredOrganizationId: string | null,
+): string | null {
+  return (
+    storedOrganizationId() ??
+    getSecurityCredentials().organizationId ??
+    configuredOrganizationId
+  );
 }
 
 function chooseMembership(
@@ -103,7 +133,11 @@ function chooseMembership(
 ): SecurityMembership | null {
   const requested = requestedOrganizationId(configuredOrganizationId);
   if (requested) {
-    return session.memberships.find((item) => item.organizationId === requested) ?? null;
+    return (
+      session.memberships.find(
+        (item) => item.organizationId === requested,
+      ) ?? null
+    );
   }
   return session.memberships[0] ?? null;
 }
@@ -111,15 +145,22 @@ function chooseMembership(
 export function useDashboardSecurity(): DashboardSecurityModel {
   const [runtime] = useState<Runtime>(loadRuntime);
   const [state, setState] = useState<DashboardSecurityState>(() =>
-    runtime.mode === "demo" ? "demo" : runtime.error ? "error" : "loading",
+    runtime.mode === "demo"
+      ? "demo"
+      : runtime.error
+        ? "error"
+        : "loading",
   );
   const [session, setSession] = useState<SecuritySession | null>(null);
-  const [membership, setMembership] = useState<SecurityMembership | null>(null);
+  const [membership, setMembership] =
+    useState<SecurityMembership | null>(null);
   const [error, setError] = useState<string | null>(runtime.error);
-  const [errorCode, setErrorCode] = useState<DashboardSecurityErrorCode | null>(() =>
-    runtime.error ? "INVALID_CONFIGURATION" : null,
-  );
-  const [diagnostics, setDiagnostics] = useState<SecuritySessionDiagnostics | null>(null);
+  const [errorCode, setErrorCode] =
+    useState<DashboardSecurityErrorCode | null>(() =>
+      runtime.error ? "INVALID_CONFIGURATION" : null,
+    );
+  const [diagnostics, setDiagnostics] =
+    useState<SecuritySessionDiagnostics | null>(null);
   const [generation, setGeneration] = useState(0);
 
   const clearFailure = useCallback(() => {
@@ -150,7 +191,10 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       runtime.apiBaseUrl,
       runtime.configuredOrganizationId,
     );
-    const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentialProvider);
+    const authenticatedFetch = createAuthenticatedFetch(
+      fetch.bind(globalThis),
+      credentialProvider,
+    );
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: runtime.apiBaseUrl,
       fetchImpl: authenticatedFetch,
@@ -174,11 +218,16 @@ export function useDashboardSecurity(): DashboardSecurityModel {
         return;
       }
 
-      const selected = chooseMembership(result.value, runtime.configuredOrganizationId);
+      const selected = chooseMembership(
+        result.value,
+        runtime.configuredOrganizationId,
+      );
       if (!selected) {
         setSession(result.value);
         setMembership(null);
-        setError("Вибрана організація відсутня у перевіреній сесії користувача.");
+        setError(
+          "Вибрана організація відсутня у перевіреній сесії користувача.",
+        );
         setErrorCode("ORGANIZATION_NOT_AVAILABLE");
         setDiagnostics(null);
         setState("forbidden");
@@ -206,9 +255,13 @@ export function useDashboardSecurity(): DashboardSecurityModel {
   const selectOrganization = useCallback(
     (organizationId: string) => {
       if (!session) return;
-      const selected = session.memberships.find((item) => item.organizationId === organizationId);
+      const selected = session.memberships.find(
+        (item) => item.organizationId === organizationId,
+      );
       if (!selected) {
-        setError("Вибрана організація відсутня у перевіреній сесії користувача.");
+        setError(
+          "Вибрана організація відсутня у перевіреній сесії користувача.",
+        );
         setErrorCode("ORGANIZATION_NOT_AVAILABLE");
         setDiagnostics(null);
         setState("forbidden");
