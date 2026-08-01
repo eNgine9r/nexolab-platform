@@ -168,6 +168,10 @@ def test_alertmanager_inhibition_is_limited_to_explicit_pairs() -> None:
     }
     assert pairs == {
         ("NexolabIngestionQueuePressureCritical", "NexolabIngestionQueuePressureWarning"),
+        (
+            "NexolabIngestionSpoolUtilizationCritical",
+            "NexolabIngestionSpoolUtilizationWarning",
+        ),
         ("NexolabIngestionLagCritical", "NexolabIngestionLagWarning"),
         ("NexolabPersistenceFailuresSustained", "NexolabPersistenceFailures"),
         ("NexolabDeadLetterBurst", "NexolabDeadLetterGrowth"),
