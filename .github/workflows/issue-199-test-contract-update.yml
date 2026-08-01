@@ -20,6 +20,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: fix/199-websocket-lifecycle
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - name: Update legacy WebSocket lifecycle assertions
         run: |
           python - <<'PY'
@@ -29,21 +34,21 @@ jobs:
           text = path.read_text()
 
           old_disabled = '''    expect(credentials).not.toHaveBeenCalled();
-              expect(sockets[0].send).not.toHaveBeenCalled();
-              expect(states.at(-1)).toBe("connected");'''
+    expect(sockets[0].send).not.toHaveBeenCalled();
+    expect(states.at(-1)).toBe("connected");'''
           new_disabled = '''    expect(credentials).not.toHaveBeenCalled();
-              expect(sockets[0].send).not.toHaveBeenCalled();
-              expect(states.at(-1)).toBe("connecting");
+    expect(sockets[0].send).not.toHaveBeenCalled();
+    expect(states.at(-1)).toBe("connecting");
 
-              sockets[0].message({ type: "heartbeat", server_time: "2026-08-01T12:00:01Z" });
-              expect(states.at(-1)).toBe("connected");'''
+    sockets[0].message({ type: "heartbeat", server_time: "2026-08-01T12:00:01Z" });
+    expect(states.at(-1)).toBe("connected");'''
 
           old_reconnect = '''    sockets[1].open();
-              expect(states.at(-1)).toBe("connected");'''
+    expect(states.at(-1)).toBe("connected");'''
           new_reconnect = '''    sockets[1].open();
-              expect(states.at(-1)).toBe("reconnecting");
-              sockets[1].message({ type: "heartbeat", server_time: "2026-08-01T12:00:02Z" });
-              expect(states.at(-1)).toBe("connected");'''
+    expect(states.at(-1)).toBe("reconnecting");
+    sockets[1].message({ type: "heartbeat", server_time: "2026-08-01T12:00:02Z" });
+    expect(states.at(-1)).toBe("connected");'''
 
           if text.count(old_disabled) != 1:
               raise SystemExit("disabled-auth assertion block not found exactly once")
