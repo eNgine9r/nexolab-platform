@@ -242,7 +242,6 @@ def test_durable_ingestion_spool_alert_contract_is_actionable() -> None:
     assert set(recording) == {
         "nexolab:ingestion_spool_record_utilization_ratio",
         "nexolab:ingestion_spool_byte_utilization_ratio",
-        "nexolab:ingestion_spool_utilization_ratio",
     }
     assert set(alerts) == {
         "NexolabIngestionSpoolUnavailable",

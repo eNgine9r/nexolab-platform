@@ -8,9 +8,6 @@ groups:
       - record: nexolab:ingestion_spool_byte_utilization_ratio
         expr: clamp_max(nexolab_telemetry_spool_payload_bytes / clamp_min(nexolab_telemetry_spool_max_bytes, 1), 1)
 
-      - record: nexolab:ingestion_spool_utilization_ratio
-        expr: max(nexolab:ingestion_spool_record_utilization_ratio, nexolab:ingestion_spool_byte_utilization_ratio)
-
   - name: nexolab-ingestion-spool-alerts
     interval: 5s
     rules:
@@ -27,7 +24,7 @@ groups:
           runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
 
       - alert: NexolabIngestionSpoolUtilizationWarning
-        expr: nexolab:ingestion_spool_utilization_ratio > 0.70
+        expr: nexolab:ingestion_spool_record_utilization_ratio > 0.70 or nexolab:ingestion_spool_byte_utilization_ratio > 0.70
         for: 5m
         labels:
           severity: warning
@@ -39,7 +36,7 @@ groups:
           runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
 
       - alert: NexolabIngestionSpoolUtilizationCritical
-        expr: nexolab:ingestion_spool_utilization_ratio > 0.90
+        expr: nexolab:ingestion_spool_record_utilization_ratio > 0.90 or nexolab:ingestion_spool_byte_utilization_ratio > 0.90
         for: 2m
         labels:
           severity: critical
