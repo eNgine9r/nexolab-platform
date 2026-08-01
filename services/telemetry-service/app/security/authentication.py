@@ -24,6 +24,8 @@ class VerifiedIdentityClaims:
     subject: str
     email: str | None = None
     display_name: str | None = None
+    session_id: str | None = None
+    token_type: str | None = None
 
     def __post_init__(self) -> None:
         if not self.provider.strip():
@@ -108,6 +110,8 @@ class JwtAuthenticator:
             subject=subject,
             email=email,
             display_name=display_name,
+            session_id=_optional_string(payload, "sid"),
+            token_type=_optional_string(payload, "typ"),
         )
 
 
