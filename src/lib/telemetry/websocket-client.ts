@@ -58,10 +58,7 @@ function validateWebSocketUrl(value: string): string {
     });
   }
   if (url.protocol !== "ws:" && url.protocol !== "wss:") {
-    throw new TelemetryClientError(
-      "configuration",
-      "Telemetry WebSocket URL must use ws: or wss:",
-    );
+    throw new TelemetryClientError("configuration", "Telemetry WebSocket URL must use ws: or wss:");
   }
   return url.toString();
 }
@@ -164,8 +161,7 @@ export class TelemetryWebSocketClient {
     this.authenticationRequired = options.authenticationRequired ?? runtimeAuthenticationRequired();
     this.reconnectDelaysMs = options.reconnectDelaysMs ?? DEFAULT_RECONNECT_DELAYS_MS;
     this.connectionTimeoutMs = options.connectionTimeoutMs ?? DEFAULT_CONNECTION_TIMEOUT_MS;
-    this.authenticationTimeoutMs =
-      options.authenticationTimeoutMs ?? DEFAULT_AUTHENTICATION_TIMEOUT_MS;
+    this.authenticationTimeoutMs = options.authenticationTimeoutMs ?? DEFAULT_AUTHENTICATION_TIMEOUT_MS;
     this.heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? DEFAULT_HEARTBEAT_TIMEOUT_MS;
     this.maxSeenEventIds = options.maxSeenEventIds ?? 10_000;
   }
@@ -193,9 +189,7 @@ export class TelemetryWebSocketClient {
 
     const reportError = (error: unknown, message: string) => {
       handlers.onError?.(
-        error instanceof Error
-          ? error
-          : new TelemetryClientError("websocket", message, { cause: error }),
+        error instanceof Error ? error : new TelemetryClientError("websocket", message, { cause: error }),
       );
     };
 
@@ -254,11 +248,7 @@ export class TelemetryWebSocketClient {
       }, this.heartbeatTimeoutMs);
     };
 
-    const markConnected = (
-      nextSocket: WebSocket,
-      organizationId: string | null,
-      attempt: number,
-    ) => {
+    const markConnected = (nextSocket: WebSocket, organizationId: string | null, attempt: number) => {
       if (closed || socket !== nextSocket) return;
       clearReconnectTimer();
       clearConnectionTimer();
@@ -340,11 +330,7 @@ export class TelemetryWebSocketClient {
             try {
               credentials = await this.credentials();
             } catch (error) {
-              failTerminal(
-                "unauthorized",
-                error,
-                "Telemetry WebSocket could not refresh the user session",
-              );
+              failTerminal("unauthorized", error, "Telemetry WebSocket could not refresh the user session");
               return;
             }
             const issue = credentialsError(credentials);
@@ -386,10 +372,7 @@ export class TelemetryWebSocketClient {
                 new TelemetryClientError("websocket", "Telemetry WebSocket connection timed out"),
                 "Telemetry WebSocket connection timed out",
               );
-              nextSocket.close(
-                CLIENT_CONNECTION_TIMEOUT_CLOSE_CODE,
-                "telemetry connection timeout",
-              );
+              nextSocket.close(CLIENT_CONNECTION_TIMEOUT_CLOSE_CODE, "telemetry connection timeout");
             }, this.connectionTimeoutMs);
           }
 
