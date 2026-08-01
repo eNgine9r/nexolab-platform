@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents merging Issue #199 or activating the next independent software Work Package.
+No hard blocker prevents starting Issue #187, the next independent software Work Package.
 
 Stop before:
 
@@ -15,24 +15,28 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Verified Work Package
+## Resolved Work Package
 
 ### N-009 — Live WebSocket lifecycle
 
-**Status:** GREEN and ready to merge — Issue #199 / PR #214.
+**Status:** Resolved by Issue #199 / PR #214, merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
 
-Verified software boundary:
+Final head `921fba3f1af382f471b614ab5d2cc71952fad0db` passed CI run `30704859884` and Authenticated Dashboard Acceptance run `30704859869`. Stale snapshots remain visible without Live presentation, reconnect is bounded and timer-safe, and terminal auth/configuration states remain distinct.
 
-- bounded socket-open, authentication and heartbeat timeouts;
-- one bounded reconnect loop without duplicate timers;
-- browser-valid private client close codes;
-- live state only after authenticated acknowledgement, heartbeat or sample evidence;
-- fresh credentials on reconnect;
-- terminal unauthorized, forbidden and configuration states;
-- preserved resume cursor and event deduplication;
-- stale snapshots remain visible but never receive live presentation.
+## Next Ready Work Package
 
-CI run `30704096637` and Authenticated Dashboard Acceptance run `30704096614` passed on verified code head `5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568`.
+### N-010 — Offline installation and update bundle
+
+**Status:** Ready — Issue #187.
+
+The Work Package must:
+
+- build a checksummed local OCI/application bundle;
+- prove installation and update on a clean disconnected host;
+- preserve named volumes and local laboratory data;
+- document rollback compatibility;
+- keep offline operator authentication in separate Issue #188;
+- avoid production/site deployment without explicit approval.
 
 ## Resolved operator-access Work Package
 
@@ -72,7 +76,6 @@ Software thresholds and alerts exist. Validate them against actual-host capacity
 
 ## Other open soft blockers
 
-- **N-010 / #187 — Offline installation:** next software Work Package after PR #214; build and prove a checksummed local OCI bundle on a clean disconnected host.
 - **N-011 / #188 — Offline authentication:** prove fail-closed local operator identity and RBAC.
 - **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
 - **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
