@@ -8,17 +8,28 @@ PREFIX = "nexolab_telemetry_"
 
 COUNTERS = {
     "received_total": "MQTT payloads received by the ingestion service.",
-    "accepted_total": "Valid payloads accepted into the persistence queue.",
+    "accepted_total": "Valid payloads accepted into the persistence pipeline.",
     "persisted_total": "Unique telemetry events committed to PostgreSQL.",
     "duplicate_total": "Duplicate telemetry events ignored by event_id.",
     "rejected_total": "Payloads rejected by size, decoding, JSON, or schema validation.",
-    "queue_dropped_total": "Persistence work dropped because of queue or shutdown limits.",
-    "dead_letter_queued_total": "Rejected payloads queued for dead-letter persistence.",
+    "queue_dropped_total": "Legacy in-memory persistence work dropped by queue or shutdown limits.",
+    "dead_letter_queued_total": "Rejected payloads accepted for dead-letter persistence.",
     "dead_letter_persisted_total": "Rejected payloads committed to the dead-letter table.",
-    "dead_letter_dropped_total": "Rejected payloads that could not enter the bounded queue.",
+    "dead_letter_dropped_total": "Rejected payloads that could not enter the legacy queue.",
     "persistence_failure_total": "Failed PostgreSQL persistence attempts.",
     "database_retry_total": "Persistence retries scheduled after database failures.",
+    "post_persist_retry_total": "Retries after committed telemetry downstream processing failures.",
     "database_recovery_total": "Observed database outage-to-ready transitions.",
+    "spool_staged_total": "New records committed to the durable local ingestion spool.",
+    "spool_duplicate_total": "MQTT deliveries deduplicated by event or delivery key in the spool.",
+    "spool_recovered_total": "Pending durable records discovered when ingestion started.",
+    "spool_replayed_total": "Durable records persisted after restart or a prior retry.",
+    "spool_terminal_total": "Invalid durable records quarantined as terminal.",
+    "spool_capacity_failure_total": "Durable staging attempts rejected by configured capacity.",
+    "spool_error_total": "Durable spool I/O, integrity, or lifecycle failures.",
+    "mqtt_manual_ack_total": "QoS messages manually acknowledged after durable staging.",
+    "mqtt_ack_failure_total": "Manual MQTT acknowledgement calls that failed.",
+    "mqtt_stage_retry_total": "MQTT messages kept unacknowledged while durable staging retried.",
     "retention_runs_total": "Completed retention cleanup runs.",
     "retention_failure_total": "Failed retention cleanup runs.",
     "retention_deleted_telemetry_total": "Telemetry rows deleted by retention.",
@@ -38,8 +49,15 @@ COUNTERS = {
 GAUGES = {
     "mqtt_connected": "Whether the MQTT subscription is active after SUBACK.",
     "database_ready": "Whether PostgreSQL is currently reachable.",
-    "queue_size": "Persistence queue items including the active retry item.",
-    "queue_capacity": "Configured maximum persistence queue capacity.",
+    "spool_ready": "Whether the durable local ingestion spool is writable and readable.",
+    "queue_size": "Legacy persistence queue items including the active retry item.",
+    "queue_capacity": "Configured maximum legacy persistence queue capacity.",
+    "spool_pending_records": "Durable records waiting for PostgreSQL persistence.",
+    "spool_terminal_records": "Durable records quarantined for operator review.",
+    "spool_payload_bytes": "Retained payload bytes in pending and terminal spool records.",
+    "spool_oldest_pending_age_seconds": "Age of the oldest pending durable record.",
+    "spool_max_records": "Configured durable spool record capacity.",
+    "spool_max_bytes": "Configured durable spool payload-byte capacity.",
     "websocket_clients": "Currently connected WebSocket clients.",
     "ingestion_lag_seconds": "Lag from event capture to successful persistence.",
 }
@@ -80,9 +98,10 @@ def _render_build_info(lines: list[str], service_version: object) -> None:
     lines.append(f"# TYPE {name} gauge")
     lines.append(f'{name}{{version="{escaped}"}} 1')
 
-    # Compatibility alias introduced with the initial observability branch.
     legacy_name = f"{PREFIX}service_info"
-    lines.append(f"# HELP {legacy_name} Static service information for compatibility.")
+    lines.append(
+        f"# HELP {legacy_name} Static service information for compatibility."
+    )
     lines.append(f"# TYPE {legacy_name} gauge")
     lines.append(f'{legacy_name}{{version="{escaped}"}} 1')
 
@@ -96,9 +115,14 @@ def render_prometheus(snapshot: dict[str, Any]) -> str:
     )
     _render_build_info(lines, service_version)
 
-    queue_capacity = _positive_integer(resolved.get("queue_capacity"))
-    if queue_capacity is not None:
-        resolved["queue_capacity"] = queue_capacity
+    for capacity_field in (
+        "queue_capacity",
+        "spool_max_records",
+        "spool_max_bytes",
+    ):
+        capacity = _positive_integer(resolved.get(capacity_field))
+        if capacity is not None:
+            resolved[capacity_field] = capacity
 
     for field, help_text in COUNTERS.items():
         name = f"{PREFIX}{field}"
