@@ -1,0 +1,416 @@
+name: Offline Bundle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/offline-bundle.yml"
+      - "infrastructure/compose/**"
+      - "infrastructure/offline/**"
+      - "scripts/build-offline-bundle.sh"
+      - "scripts/generate-offline-bundle-manifest.py"
+      - "scripts/install-offline-bundle.sh"
+      - "scripts/offline-bundle-smoke.sh"
+      - "scripts/verify-offline-bundle.py"
+      - "docs/operations/offline-installation.md"
+      - "services/device-agent/**"
+      - "services/telemetry-service/**"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "public/**"
+      - "src/**"
+  workflow_dispatch:
+
+concurrency:
+  group: offline-bundle-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI_ROOT: .ci/offline-bundle
+  CENTRAL_ENV: .ci/offline-bundle/central.env
+  EDGE_ENV: .ci/offline-bundle/edge.env
+
+jobs:
+  disconnected-acceptance:
+    name: Build, load and prove disconnected runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare isolated validation configuration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$CI_ROOT" "$CI_ROOT/evidence" "$CI_ROOT/clean-host"
+          cat > "$CENTRAL_ENV" <<'EOF'
+          COMPOSE_PROJECT_NAME=nexolab-offline-central-ci
+          CENTRAL_RESOURCE_PREFIX=nexolab-offline-central-ci
+          CENTRAL_BIND_ADDRESS=127.0.0.1
+          CENTRAL_API_PORT=8082
+          CENTRAL_MQTT_PORT=1884
+          CENTRAL_OBJECT_STORAGE_PORT=9000
+          CENTRAL_OBJECT_STORAGE_CONSOLE_PORT=9001
+          DASHBOARD_BIND_ADDRESS=127.0.0.1
+          DASHBOARD_PORT=3000
+          POSTGRES_DB=nexolab
+          POSTGRES_USER=nexolab
+          POSTGRES_PASSWORD=ci-postgres-offline-password-0123456789
+          MINIO_ROOT_USER=nexolab-ci-storage
+          MINIO_ROOT_PASSWORD=ci-minio-offline-password-0123456789
+          OBJECT_STORAGE_BUCKET=nexolab-equipment-images
+          OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=http://127.0.0.1:9000
+          MQTT_TOPIC=nexolab/telemetry
+          MQTT_CLIENT_ID=nexolab-offline-ci-ingestion
+          CORS_ALLOWED_ORIGINS=http://127.0.0.1:3000
+          CORS_ALLOW_CREDENTIALS=false
+          AUTH_MODE=disabled
+          AUTH_DEFAULT_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001
+          AUTH_JWT_PUBLIC_KEY=
+          AUTH_JWT_JWKS_URL=
+          EOF
+          cat > "$EDGE_ENV" <<'EOF'
+          COMPOSE_PROJECT_NAME=nexolab-offline-edge-ci
+          NEXOLAB_NODE_ID=edge-offline-ci
+          DEVICE_MODE=simulator
+          MQTT_TOPIC=nexolab/telemetry
+          SAMPLE_INTERVAL_SECONDS=1
+          LOG_LEVEL=INFO
+          DEVICE_AGENT_IMAGE=offline-placeholder
+          EOF
+
+      - name: Validate scripts and offline Compose contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n \
+            scripts/build-offline-bundle.sh \
+            scripts/install-offline-bundle.sh \
+            scripts/offline-bundle-smoke.sh
+          python -m py_compile \
+            scripts/generate-offline-bundle-manifest.py \
+            scripts/verify-offline-bundle.py
+
+          export OFFLINE_DASHBOARD_IMAGE=nexolab/dashboard:contract
+          export OFFLINE_TELEMETRY_IMAGE=nexolab/telemetry-service:contract
+          export OFFLINE_DEVICE_AGENT_IMAGE=nexolab/device-agent:contract
+          export OFFLINE_MQTT_IMAGE=eclipse-mosquitto:2.0.22
+          export OFFLINE_POSTGRES_IMAGE=postgres:16-alpine
+          export OFFLINE_MINIO_IMAGE=minio/minio:RELEASE.2025-09-07T16-13-09Z
+          export OFFLINE_MINIO_CLIENT_IMAGE=minio/mc:RELEASE.2025-08-13T08-35-41Z
+
+          docker compose \
+            --env-file "$CENTRAL_ENV" \
+            -f infrastructure/compose/compose.central.yaml \
+            -f infrastructure/offline/compose.central.offline.yaml \
+            config --format json > "$CI_ROOT/evidence/central-compose.json"
+          docker compose \
+            --env-file "$EDGE_ENV" \
+            -f infrastructure/compose/compose.edge.yaml \
+            -f infrastructure/offline/compose.edge.offline.yaml \
+            config --format json > "$CI_ROOT/evidence/edge-compose.json"
+
+          python - "$CI_ROOT/evidence/central-compose.json" "$CI_ROOT/evidence/edge-compose.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          for path in map(Path, sys.argv[1:]):
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              for name, service in payload["services"].items():
+                  if service.get("build") is not None:
+                      raise SystemExit(f"Offline service still has a build contract: {path}:{name}")
+                  if service.get("pull_policy") != "never":
+                      raise SystemExit(f"Offline service does not use pull_policy=never: {path}:{name}")
+          PY
+
+          ! grep -R --line-number --fixed-strings "docker compose down -v" \
+            scripts/install-offline-bundle.sh \
+            scripts/offline-bundle-smoke.sh \
+            docs/operations/offline-installation.md
+
+      - name: Build linux amd64 bundle on connected builder
+        id: bundle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          version="ci-${GITHUB_SHA:0:12}"
+          ./scripts/build-offline-bundle.sh \
+            --version "$version" \
+            --platform linux/amd64 \
+            --dashboard-origin http://127.0.0.1:3000 \
+            --api-base-url http://127.0.0.1:8082 \
+            --websocket-url ws://127.0.0.1:8082/api/v1/telemetry/live \
+            --output "$PWD/dist/offline"
+          archive="$PWD/dist/offline/nexolab-offline-${version}-amd64.tar.gz"
+          test -f "$archive"
+          test -f "${archive}.sha256"
+          (
+            cd "$(dirname "$archive")"
+            sha256sum --check "$(basename "${archive}.sha256")"
+          )
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Simulate a clean transferred host and remove runtime images
+        id: clean_host
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="${{ steps.bundle.outputs.archive }}"
+          version="${{ steps.bundle.outputs.version }}"
+          staging="$PWD/dist/offline/nexolab-offline-${version}-amd64"
+          rm -rf "$staging" "$CI_ROOT/clean-host"/*
+          tar --extract --gzip --file "$archive" --directory "$CI_ROOT/clean-host"
+          bundle_root="$PWD/$CI_ROOT/clean-host/nexolab-offline-${version}-amd64"
+          test -d "$bundle_root"
+          python "$bundle_root/scripts/verify-offline-bundle.py" "$bundle_root"
+
+          mapfile -t runtime_images < <(
+            python - "$bundle_root/manifest.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          for image in manifest["images"]:
+              print(image["reference"])
+          PY
+          )
+          docker image rm --force "${runtime_images[@]}"
+          for image in "${runtime_images[@]}"; do
+            if docker image inspect "$image" >/dev/null 2>&1; then
+              echo "Runtime image remained before docker load: $image" >&2
+              exit 1
+            fi
+          done
+          echo "bundle_root=$bundle_root" >> "$GITHUB_OUTPUT"
+
+      - name: Block container egress for disconnected runtime proof
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo iptables -N NEXOLAB_OFFLINE 2>/dev/null || true
+          sudo iptables -F NEXOLAB_OFFLINE
+          sudo iptables -C DOCKER-USER -j NEXOLAB_OFFLINE 2>/dev/null \
+            || sudo iptables -I DOCKER-USER 1 -j NEXOLAB_OFFLINE
+          sudo iptables -A NEXOLAB_OFFLINE -d 10.0.0.0/8 -j RETURN
+          sudo iptables -A NEXOLAB_OFFLINE -d 172.16.0.0/12 -j RETURN
+          sudo iptables -A NEXOLAB_OFFLINE -d 192.168.0.0/16 -j RETURN
+          sudo iptables -A NEXOLAB_OFFLINE -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+          sudo iptables -A NEXOLAB_OFFLINE -j REJECT
+          sudo iptables-save > "$CI_ROOT/evidence/iptables-disconnected.rules"
+
+      - name: Load archive and start disconnected stack with pull disabled
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          bash "$bundle_root/scripts/install-offline-bundle.sh" \
+            --central-env "$PWD/$CENTRAL_ENV" \
+            --edge-env "$PWD/$EDGE_ENV"
+
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+          dashboard_id="$("${central[@]}" ps -q dashboard)"
+          network="$(docker inspect "$dashboard_id" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
+          docker run --rm --pull never --network "$network" "$OFFLINE_DASHBOARD_IMAGE" \
+            node -e "fetch('https://example.com').then(()=>process.exit(1)).catch(()=>process.exit(0))"
+
+      - name: Seed persistent markers and capture volume identities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+          edge=(docker compose --env-file "$PWD/$EDGE_ENV" \
+            -f "$bundle_root/deploy/compose/compose.edge.yaml" \
+            -f "$bundle_root/deploy/offline/compose.edge.offline.yaml")
+
+          snapshot_volumes() {
+            for service in mqtt postgres minio telemetry-service; do
+              container="$("${central[@]}" ps -q "$service")"
+              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
+            done
+            for service in mqtt device-agent; do
+              container="$("${edge[@]}" ps -q "$service")"
+              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
+            done
+          }
+          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-before.txt"
+          test "$(wc -l < "$CI_ROOT/evidence/volumes-before.txt")" -eq 6
+
+          "${central[@]}" exec -T postgres sh -ec '
+            psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<SQL
+          CREATE TABLE IF NOT EXISTS offline_bundle_drill (
+            marker text PRIMARY KEY,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+          INSERT INTO offline_bundle_drill(marker) VALUES ('"'"'offline-bundle-v1'"'"')
+            ON CONFLICT (marker) DO NOTHING;
+          SQL
+          '
+          "${central[@]}" exec -T mqtt \
+            mosquitto_pub -h 127.0.0.1 -t nexolab/offline-bundle/drill -m offline-bundle-v1 -r
+          printf 'offline-bundle-v1' | "${central[@]}" run --rm -T --no-deps \
+            --entrypoint /bin/sh minio-init -ec '
+              cat > /tmp/offline-bundle-marker
+              mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              mc cp /tmp/offline-bundle-marker "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt"
+            '
+          "${edge[@]}" exec -T device-agent /usr/bin/python3 -c \
+            'from pathlib import Path; Path("/var/lib/nexolab/offline-bundle.marker").write_text("offline-bundle-v1", encoding="utf-8")'
+
+      - name: Prove update and rollback preserve local volumes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+
+          original_dashboard="$OFFLINE_DASHBOARD_IMAGE"
+          original_telemetry="$OFFLINE_TELEMETRY_IMAGE"
+          original_device_agent="$OFFLINE_DEVICE_AGENT_IMAGE"
+          docker tag "$original_dashboard" "${original_dashboard}-update"
+          docker tag "$original_telemetry" "${original_telemetry}-update"
+          docker tag "$original_device_agent" "${original_device_agent}-update"
+
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+          edge=(docker compose --env-file "$PWD/$EDGE_ENV" \
+            -f "$bundle_root/deploy/compose/compose.edge.yaml" \
+            -f "$bundle_root/deploy/offline/compose.edge.offline.yaml")
+
+          snapshot_volumes() {
+            for service in mqtt postgres minio telemetry-service; do
+              container="$("${central[@]}" ps -q "$service")"
+              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
+            done
+            for service in mqtt device-agent; do
+              container="$("${edge[@]}" ps -q "$service")"
+              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
+            done
+          }
+
+          verify_markers() {
+            test "$("${central[@]}" exec -T postgres sh -ec \
+              'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT marker FROM offline_bundle_drill WHERE marker='"'"'offline-bundle-v1'"'"';"' \
+              | tr -d '\r')" = offline-bundle-v1
+            test "$("${central[@]}" exec -T mqtt \
+              mosquitto_sub -h 127.0.0.1 -t nexolab/offline-bundle/drill -C 1 -W 5 \
+              | tr -d '\r')" = offline-bundle-v1
+            test "$("${central[@]}" run --rm -T --no-deps --entrypoint /bin/sh minio-init -ec '
+              mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+              mc cat "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt"
+            ' | tr -d '\r')" = offline-bundle-v1
+            test "$("${edge[@]}" exec -T device-agent /usr/bin/python3 -c \
+              'from pathlib import Path; print(Path("/var/lib/nexolab/offline-bundle.marker").read_text(encoding="utf-8"), end="")' \
+              | tr -d '\r')" = offline-bundle-v1
+          }
+
+          export OFFLINE_DASHBOARD_IMAGE="${original_dashboard}-update"
+          export OFFLINE_TELEMETRY_IMAGE="${original_telemetry}-update"
+          export OFFLINE_DEVICE_AGENT_IMAGE="${original_device_agent}-update"
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+          "${central[@]}" up -d --no-build --pull never --force-recreate --wait
+          "${edge[@]}" up -d --no-build --pull never --force-recreate --wait
+          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-after-update.txt"
+          cmp "$CI_ROOT/evidence/volumes-before.txt" "$CI_ROOT/evidence/volumes-after-update.txt"
+          verify_markers
+          bash "$bundle_root/scripts/offline-bundle-smoke.sh" \
+            --central-env "$PWD/$CENTRAL_ENV" --edge-env "$PWD/$EDGE_ENV"
+
+          export OFFLINE_DASHBOARD_IMAGE="$original_dashboard"
+          export OFFLINE_TELEMETRY_IMAGE="$original_telemetry"
+          export OFFLINE_DEVICE_AGENT_IMAGE="$original_device_agent"
+          "${central[@]}" up -d --no-build --pull never --force-recreate --wait
+          "${edge[@]}" up -d --no-build --pull never --force-recreate --wait
+          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-after-rollback.txt"
+          cmp "$CI_ROOT/evidence/volumes-before.txt" "$CI_ROOT/evidence/volumes-after-rollback.txt"
+          verify_markers
+          bash "$bundle_root/scripts/offline-bundle-smoke.sh" \
+            --central-env "$PWD/$CENTRAL_ENV" --edge-env "$PWD/$EDGE_ENV"
+
+      - name: Capture final disconnected evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          if [[ -n "$bundle_root" && -d "$bundle_root" ]]; then
+            eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+              "$bundle_root" --emit-shell-env 2>/dev/null)"
+            export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+            docker compose --env-file "$PWD/$CENTRAL_ENV" \
+              -f "$bundle_root/deploy/compose/compose.central.yaml" \
+              -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
+              ps --format json > "$CI_ROOT/evidence/central-final-ps.json"
+            docker compose --env-file "$PWD/$EDGE_ENV" \
+              -f "$bundle_root/deploy/compose/compose.edge.yaml" \
+              -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" \
+              ps --format json > "$CI_ROOT/evidence/edge-final-ps.json"
+            cp "$bundle_root/manifest.json" "$CI_ROOT/evidence/manifest.json"
+            cp "$bundle_root/SHA256SUMS" "$CI_ROOT/evidence/SHA256SUMS"
+          fi
+          docker image ls --digests > "$CI_ROOT/evidence/docker-images.txt"
+          docker volume ls > "$CI_ROOT/evidence/docker-volumes.txt"
+
+      - name: Stop validation containers without deleting volumes
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          if [[ -n "$bundle_root" && -d "$bundle_root" ]]; then
+            eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+              "$bundle_root" --emit-shell-env 2>/dev/null)"
+            export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+            docker compose --env-file "$PWD/$EDGE_ENV" \
+              -f "$bundle_root/deploy/compose/compose.edge.yaml" \
+              -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" down --remove-orphans
+            docker compose --env-file "$PWD/$CENTRAL_ENV" \
+              -f "$bundle_root/deploy/compose/compose.central.yaml" \
+              -f "$bundle_root/deploy/offline/compose.central.offline.yaml" down --remove-orphans
+          fi
+
+      - name: Upload offline bundle and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexolab-offline-amd64-${{ github.sha }}
+          path: |
+            dist/offline/*.tar.gz
+            dist/offline/*.tar.gz.sha256
+            .ci/offline-bundle/evidence
+          if-no-files-found: warn
+          retention-days: 3
