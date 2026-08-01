@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents completion of Issue #198.
+No hard blocker prevents starting the next software Work Package.
 
 Stop before:
 
@@ -15,13 +15,23 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Active Work Package
+## Resolved Work Package
 
 ### N-008 — MQTT-to-PostgreSQL durability
 
-**Status:** Final review — Issue #198 / PR #207.
+**Status:** Resolved by Issue #198 / PR #207.
 
-The branch is updated from `main`. All 19 workflows passed on implementation head `8e80b31b73b16d291747bfa5d6a5d54c0bd4d170`, including general CI, Telemetry Service, Capacity, Observability, Supply Chain, disaster recovery, broker/fleet and browser suites. Required checks must remain green on the final state-update head before merge.
+PR #207 merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5` after all 19 final-head workflows passed. Software evidence covers durable staging before acknowledgement, PostgreSQL outage plus service restart replay, capacity/no-loss behavior, named volumes, observability and supply-chain verification.
+
+## Next Ready Work Package
+
+### N-009 — Live WebSocket lifecycle
+
+**Status:** Ready — Issue #199.
+
+Start from current `main` in a dedicated feature branch. Stabilize live telemetry connection lifecycle and operator-visible states without mixing unrelated catalog, formatting or dependency changes. Historical PR #175 is reference-only.
+
+## Open operational and hardware risks
 
 ### N-022 — Actual-host spool recovery
 
@@ -43,24 +53,12 @@ Do not roll back to a pre-ADR-0008 image while pending or terminal spool records
 
 Software thresholds and alerts exist. Validate 70%/90% utilization and 15-minute backlog thresholds against actual-host capacity and throughput evidence. Never auto-delete pending or terminal records.
 
-## Resolved security blocker
-
-Issue #208 / PR #209 merged as `ee950e632702135231f1f4349e87529b39d16181`.
-
-- Wrong Device Agent scan target was ruled out.
-- Sequential CycloneDX/SPDX contamination was ruled out.
-- Repeated production-equivalent scans did not reproduce `pyasn1`.
-- No unused dependency or vulnerability waiver was added.
-- Five stale `libexpat1` exceptions were removed.
-- Strict vulnerability and stale-exception policies remain enabled.
-
 ## Other open soft blockers
 
-- **N-009 / #199 — Live WebSocket lifecycle:** queued after #198 merges.
 - **N-010 / #187 — Offline installation:** build and prove a checksummed local OCI bundle on a clean disconnected host.
 - **N-011 / #188 — Offline authentication:** prove fail-closed local operator identity and RBAC.
 - **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
-- **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from durability work.
+- **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked; read-only evidence required.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked; display/load correlation required.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked; representative KK1/KK2 evidence required.

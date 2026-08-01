@@ -52,38 +52,24 @@
       "id": "NEXOLAB-198",
       "issue": 198,
       "title": "Close the MQTT-to-PostgreSQL telemetry durability gap",
-      "status": "review",
+      "status": "done",
       "priority": 4,
       "depends_on": ["NEXOLAB-186"],
-      "branch": "feat/198-durable-central-ingestion",
       "pull_request": 207,
-      "started_at": "2026-08-01",
-      "scope": [
-        "services/telemetry-service/**",
-        "infrastructure/compose/**",
-        "infrastructure/observability/**",
-        "docs/architecture.md",
-        "docs/adr/**",
-        "docs/operations/**",
-        "scripts/run_capacity_acceptance.py",
-        "tests/test_observability_policy.py",
-        ".project/**"
-      ],
+      "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
       "verification": {
-        "main_updated_head": "8e80b31b73b16d291747bfa5d6a5d54c0bd4d170",
-        "main_parent": "ee950e632702135231f1f4349e87529b39d16181",
+        "final_head": "0bbb7a2e0e50c8cab3371c8f80266772304f96c1",
         "result": "green",
         "workflow_count": 19,
-        "general_ci_run": 30696201793,
-        "telemetry_service_run": 30696201789,
-        "capacity_release_gate_run": 30696201784,
-        "observability_run": 30696201802,
-        "container_supply_chain_run": 30696201799,
-        "disaster_recovery_browser_run": 30696201783,
-        "disaster_recovery_tls_run": 30696201774,
+        "general_ci_run": 30696463171,
+        "telemetry_service_run": 30696463209,
+        "capacity_release_gate_run": 30696463199,
+        "observability_run": 30696463210,
+        "container_supply_chain_run": 30696463203,
+        "disaster_recovery_browser_run": 30696463198,
+        "disaster_recovery_tls_run": 30696463172,
         "review_threads": 0
-      },
-      "next_action": "Rerun required checks on the final state-update head, mark PR #207 ready and squash-merge only while GREEN."
+      }
     },
     {
       "id": "NEXOLAB-208",
@@ -107,10 +93,10 @@
       "id": "NEXOLAB-199",
       "issue": 199,
       "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
-      "status": "queued",
+      "status": "ready",
       "priority": 6,
       "depends_on": ["NEXOLAB-198"],
-      "activation": "Start from current main after the durability Work Package is merged; PR #175 is reference-only."
+      "activation": "Start from main at or after 5851955ea9a38a9068bbab1eb0c9701722c028c5; PR #175 is reference-only."
     },
     {
       "id": "NEXOLAB-187",

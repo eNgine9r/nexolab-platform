@@ -5,12 +5,12 @@
   "task": "NEXOLAB-198",
   "issue": 198,
   "pull_request": 207,
-  "branch": "feat/198-durable-central-ingestion",
-  "status": "review",
-  "timestamp": "2026-08-01T13:04:00+03:00",
-  "baseline_main_sha": "ee950e632702135231f1f4349e87529b39d16181",
-  "verified_implementation_head": "8e80b31b73b16d291747bfa5d6a5d54c0bd4d170",
-  "summary": "Updated the durable central-ingestion branch from main after PR #209, preserved the verified implementation byte-for-byte, resolved project-state conflicts, and obtained green results from all 19 triggered workflows on the integrated implementation head.",
+  "status": "done",
+  "timestamp": "2026-08-01T13:08:00+03:00",
+  "baseline_main_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
+  "verified_final_head": "0bbb7a2e0e50c8cab3371c8f80266772304f96c1",
+  "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
+  "summary": "Completed and merged durable central telemetry ingestion: MQTT QoS 1 acknowledgement follows local SQLite WAL commit, pending records survive service restart, replay to PostgreSQL is FIFO and idempotent, and all 19 final-head workflows passed.",
   "scope_completed": [
     "implemented a local SQLite WAL ingestion spool with synchronous FULL",
     "moved MQTT QoS 1 acknowledgement after successful durable local staging",
@@ -23,49 +23,54 @@
     "added Prometheus recording and alert rules plus Alertmanager inhibition contract",
     "updated capacity acceptance for durable backlog, service restart and final drain",
     "documented architecture, ADR 0008 and rollback-safe operations",
-    "inherited merged Issue #208 supply-chain hardening from main",
-    "resolved main-update conflicts only in project source-of-truth files"
+    "updated the branch from main after Issue #208 without changing verified durability blobs",
+    "squash-merged PR #207 after final GREEN verification"
   ],
   "checks_actually_run": [
-    "general CI 30696201793 passed formatting, ESLint, strict TypeScript, Vitest and production build",
-    "Telemetry Service 30696201789 passed the complete Python, PostgreSQL, MQTT, REST, WebSocket, object-storage, outage-recovery, migration and container suite",
-    "Capacity Release Gate 30696201784 passed policy, release-candidate outage, durable backlog, service/database recovery, replay, drain, evidence hashing and no-loss invariants",
-    "Observability 30696201802 passed policy, promtool, Alertmanager, Compose, production-like recovery and Chromium dashboard acceptance",
-    "Container Supply Chain 30696201799 passed all image builds, OCI labels, CycloneDX, SPDX, strict Trivy policy, manifests, secret checks and aggregate evidence",
-    "Disaster Recovery Browser 30696201783 passed",
-    "Disaster Recovery TLS Fleet 30696201774 passed",
-    "Device Agent Fleet 30696201787 passed",
-    "MQTT TLS Fleet 30696201815 passed",
-    "MQTT Broker Security 30696201788 passed",
-    "Broker Control 30696201801 passed",
-    "Security Browser 30696201772 passed",
-    "Authenticated Dashboard 30696201767 passed",
-    "Alerts Browser 30696201816 passed",
-    "Nodes Browser 30696201785 passed",
-    "Refrigeration Browser 30696201762 passed",
-    "Test Sessions Browser 30696201773 passed",
-    "Reports Browser 30696201822 passed",
-    "Rendered Reports Browser 30696201770 passed",
-    "branch comparison against main reported behind_by=0 and PR mergeability true"
+    "general CI 30696463171 passed formatting, ESLint, strict TypeScript, Vitest and production build",
+    "Telemetry Service 30696463209 passed Python, PostgreSQL, MQTT, REST, WebSocket, object storage, outage recovery, migration and container checks",
+    "Capacity Release Gate 30696463199 passed outage, durable backlog, service/database recovery, replay, final drain and no-loss invariants",
+    "Observability 30696463210 passed policy, promtool, Alertmanager, Compose, production-like recovery and Chromium dashboard acceptance",
+    "Container Supply Chain 30696463203 passed all image builds, OCI labels, CycloneDX, SPDX, strict Trivy policy, manifests, secret checks and aggregate evidence",
+    "Disaster Recovery Browser 30696463198 passed",
+    "Disaster Recovery TLS Fleet 30696463172 passed",
+    "Device Agent Fleet 30696463202 passed",
+    "MQTT TLS Fleet 30696463177 passed",
+    "MQTT Broker Security 30696463169 passed",
+    "Broker Control 30696463195 passed",
+    "Security Browser 30696463200 passed",
+    "Authenticated Dashboard 30696463186 passed",
+    "Alerts Browser 30696463190 passed",
+    "Nodes Browser 30696463205 passed",
+    "Refrigeration Browser 30696463192 passed",
+    "Test Sessions Browser 30696463180 passed",
+    "Reports Browser 30696463187 passed",
+    "Rendered Reports Browser 30696463196 passed",
+    "PR #207 was mergeable, behind_by=0, with zero review threads and zero submitted reviews"
   ],
-  "checks_pending": [
-    "required checks on the final source-of-truth update head",
-    "final review-thread and mergeability check",
-    "ready transition and guarded squash merge"
+  "runtime_and_offline_evidence": [
+    "core durability uses local SQLite, PostgreSQL, MQTT and named local volumes only",
+    "no mandatory internet, paid service or cloud queue was introduced",
+    "PostgreSQL outage plus Telemetry Service restart replay was proven in CI",
+    "capacity recovery and final zero backlog were proven in the release gate",
+    "rollback documentation preserves the spool volume and prohibits docker compose down -v"
   ],
-  "checks_not_run": [
-    "actual Raspberry Pi deployment",
-    "actual central-host power interruption",
-    "physical disk-full or disk-loss recovery",
-    "production registry publication",
-    "production/site cutover",
-    "Modbus or other hardware writes"
-  ],
+  "hardware_evidence": {
+    "status": "unchanged",
+    "software_verified": true,
+    "hardware_verified": false,
+    "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
+  },
   "open_risks": [
     "actual-host recovery, disk-full and power-loss evidence remains owned by Issue #189",
     "node health/status persistence is outside the Issue #198 durability claim",
     "rollback to a pre-ADR-0008 image is unsafe while pending or terminal spool rows exist",
     "spool thresholds require later actual-host capacity validation"
   ],
-  "next_action": "Verify all required checks on the final state-update head, confirm zero review findings, mark PR #207 ready and squash-merge only while GREEN."
+  "next_ready_work_package": {
+    "id": "NEXOLAB-199",
+    "issue": 199,
+    "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
+    "instruction": "Start from current main in a dedicated feature branch and focused Pull Request; use PR #175 only as historical reference."
+  }
 }
