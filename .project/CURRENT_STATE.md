@@ -2,8 +2,8 @@
 
 Updated: 2026-08-01  
 Verified baseline: `main` at `bd286690f94bdf06adf3fc630bdee69c5019ebce`  
-Active implementation: Issue #208 / draft PR #209  
-Related review: Issue #198 / draft PR #207  
+Active review: Issue #208 / PR #209  
+Related review: Issue #198 / PR #207  
 Status confidence: high for repository and software-CI boundaries; partial for actual-host recovery and hardware acceptance.
 
 ## Profile
@@ -20,7 +20,7 @@ Status confidence: high for repository and software-CI boundaries; partial for a
 - PR #184 merged the AI Development Operating Standard.
 - PR #190 merged the verified architecture and offline boundary.
 - PR #206 merged Issue #186 as `bd286690f94bdf06adf3fc630bdee69c5019ebce`.
-- stale Pull Requests and trackers have focused successor Issues.
+- Stale Pull Requests and trackers have focused successor Issues.
 
 ## Issue #198 / PR #207 status
 
@@ -46,36 +46,50 @@ Latest #198-specific gates are green:
 - Backend Integration — run `30690434125`;
 - Offline Disaster Recovery — run `30690434116`.
 
-PR #207 is not merged because its aggregate Container Supply Chain run exposed an independent Device Agent evidence anomaly. The telemetry-service image, SBOM, Trivy result and immutable manifest were green.
+PR #207 remains unmerged until Issue #208 / PR #209 is integrated into `main` and its aggregate Container Supply Chain gate is rerun.
 
-## Issue #208 / PR #209
+## Issue #208 / PR #209 verified outcome
 
-The original supply-chain run reported `pyasn1 0.6.2` / CVE-2026-33230 for Device Agent.
+The initial supply-chain run associated with PR #207 reported `pyasn1 0.6.2` / CVE-2026-33230 for Device Agent.
 
-Focused diagnostics proved:
+Focused diagnostics and repeated production-equivalent runs proved:
 
 - Device Agent requirements contain only `paho-mqtt==2.1.0` and `pyserial==3.5`;
-- `pyasn1` is not importable from the runtime;
-- exported final rootfs contains no `pyasn1` file, dpkg stanza or nested archive;
-- a plain exact Trivy scan is clean;
-- current GHA-cached and `pull: true` Buildx images are byte-identical and both Trivy-clean.
+- `pyasn1` is not importable and is absent from Python package metadata, exported runtime rootfs and Debian package metadata;
+- the workflow scans the exact locally built Device Agent image with matching OCI revision and digest;
+- CycloneDX and SPDX invocations disable vulnerability scanning and cannot contaminate the later JSON vulnerability report;
+- repeated JSON scans using the shared Trivy cache did not reproduce `pyasn1`;
+- the only reproducible blocker was strict stale-exception enforcement for five obsolete `libexpat1` decisions.
 
-The finding is therefore classified as stale/transient image or scan provenance, not an application dependency.
+The historical `pyasn1` result is classified as a non-reproducible scanner/advisory-state event. Wrong image target and sequential SBOM contamination are ruled out. No runtime dependency or waiver was added.
 
-PR #209 now implements the narrow remediation:
+PR #209 now:
 
-- exact-commit evidence builds use `pull: true`;
-- multi-platform publish builds use `pull: true`;
-- only Device Agent moves to `supply-chain-v2-device-agent` cache scope;
-- unrelated image cache scopes remain unchanged;
-- a regression test enforces the provenance contract;
-- the temporary diagnostic workflow is removed;
-- no dependency, runtime or hardware code changes are included.
+- uses `pull: true` for exact-commit evidence and multi-platform publish builds;
+- moves only Device Agent to `supply-chain-v2-device-agent` cache scope;
+- preserves unrelated image cache scopes;
+- retains strict HIGH/CRITICAL and stale-exception enforcement;
+- emits target, class/type, package path, layer digest and data source for policy findings;
+- removes five stale `libexpat1` exceptions while preserving active decisions;
+- includes regression tests for Buildx and Trivy provenance;
+- contains no temporary diagnostic workflow.
+
+Final-head verification for `0e6ecc08b1caea4a313e4f39ab4029a3500d1f91` is green:
+
+- general CI — run `30695154014`;
+- Container Supply Chain — run `30695154012`;
+- image inventory and exception policy — green;
+- Device Agent, Telemetry Service and MQTT security image builds — green;
+- CycloneDX and SPDX SBOM generation — green;
+- strict Trivy policy for all images — green;
+- digest-bound manifests and aggregate release manifest — green;
+- secret/private-key evidence checks — green;
+- review threads and submitted reviews — none.
 
 ## Open Pull Requests
 
-- #209 — active focused security-maintenance PR for #208.
-- #207 — durable central-ingestion PR, review-blocked until the aggregate supply-chain gate reruns from updated `main`.
+- #209 — security-maintenance PR for #208; final checks green and ready for final review transition.
+- #207 — durable central-ingestion PR, waiting for #209 integration and final aggregate rerun.
 - #192 — separate draft formatting inventory; not mixed into either active Work Package.
 
 ## Evidence boundary
@@ -90,4 +104,4 @@ Not claimed by #208:
 
 ## Next action
 
-Require PR #209 to pass changed-file formatting, policy regression tests, Device Agent checks and the complete Container Supply Chain workflow. Resolve all review findings and squash-merge. Then update PR #207 from `main`, rerun its final aggregate Gate, update the #198 checkpoint and merge only when all required checks are green.
+Mark PR #209 ready, perform final head/mergeability review and squash-merge only while all required checks remain green. Then update PR #207 from `main`, rerun its final aggregate Gate, refresh the Issue #198 checkpoint and merge only after all required checks pass.
