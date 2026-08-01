@@ -70,12 +70,20 @@
         ".project/**"
       ],
       "verification": {
-        "pre_main_update_head": "830925404b20ac8cbcd47d3bbc319f9dd7d98678",
-        "targeted_gates": "green",
-        "main_merge_parent": "ee950e632702135231f1f4349e87529b39d16181",
-        "final_gate": "pending"
+        "main_updated_head": "8e80b31b73b16d291747bfa5d6a5d54c0bd4d170",
+        "main_parent": "ee950e632702135231f1f4349e87529b39d16181",
+        "result": "green",
+        "workflow_count": 19,
+        "general_ci_run": 30696201793,
+        "telemetry_service_run": 30696201789,
+        "capacity_release_gate_run": 30696201784,
+        "observability_run": 30696201802,
+        "container_supply_chain_run": 30696201799,
+        "disaster_recovery_browser_run": 30696201783,
+        "disaster_recovery_tls_run": 30696201774,
+        "review_threads": 0
       },
-      "next_action": "Run all required checks on the main-updated branch, resolve review findings, mark PR #207 ready and squash-merge only while GREEN."
+      "next_action": "Rerun required checks on the final state-update head, mark PR #207 ready and squash-merge only while GREEN."
     },
     {
       "id": "NEXOLAB-208",
