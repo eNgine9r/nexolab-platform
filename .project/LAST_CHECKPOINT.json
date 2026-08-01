@@ -5,14 +5,14 @@
   "task": "NEXOLAB-199",
   "issue": 199,
   "pull_request": 214,
-  "status": "in_review",
-  "timestamp": "2026-08-01T17:20:00+03:00",
+  "status": "ready_to_merge",
+  "timestamp": "2026-08-01T17:35:00+03:00",
   "baseline_main_sha": "764c0be96652144920964f7806af493a7a0a7b1e",
   "branch": "fix/199-websocket-lifecycle",
-  "implementation_head_before_state": "84ca8e9e1176746db8a2d1aa9f0a2d1b73bc0d1c",
-  "summary": "Implemented a bounded, evidence-based live telemetry WebSocket lifecycle so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
+  "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
+  "summary": "Verified a bounded, evidence-based live telemetry WebSocket lifecycle so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
   "scope_completed": [
-    "created Issue #199 feature branch and focused draft PR #214 from current main",
+    "created Issue #199 feature branch and focused PR #214 from current main",
     "verified current main before using historical PR #175 as reference only",
     "added a separate bounded WebSocket connection-open timeout",
     "kept all client-originated close codes in the browser-valid private range 4000-4999",
@@ -29,44 +29,39 @@
     "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "checks_actually_run": [
-    "changed-file Prettier passed on candidate 94b5d53d7323e21f22f39162f9235a9296192c42",
-    "ESLint passed on candidate 94b5d53d7323e21f22f39162f9235a9296192c42",
-    "strict TypeScript passed on candidate 94b5d53d7323e21f22f39162f9235a9296192c42",
-    "new WebSocket lifecycle suite passed 5 of 5 tests",
-    "new dashboard lifecycle suite passed 3 of 3 tests",
-    "full Vitest candidate passed 174 of 176 tests; the only two failures were legacy open-event assertions and are now corrected",
-    "Authenticated Dashboard Acceptance passed on an intermediate implementation head"
+    "CI run 30704096637 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
+    "Authenticated Dashboard Acceptance run 30704096614 passed authenticated REST, history and WebSocket dashboard behavior",
+    "dedicated WebSocket lifecycle suite passed 5 tests",
+    "dedicated dashboard lifecycle suite passed 3 tests",
+    "final product diff before state-only verification contained no temporary workflow"
   ],
   "runtime_and_offline_evidence": [
     "the change adds no internet, cloud, paid-service or external API runtime dependency",
     "stale telemetry remains visible but does not receive live status or live KPI badges",
     "authentication and organization failures remain fail-closed",
     "credentials are not placed in the WebSocket URL or diagnostics",
-    "resume cursor and event deduplication behavior are retained"
+    "resume cursor and event deduplication behavior are retained",
+    "controlled browser acceptance verifies authenticated WebSocket dashboard behavior"
   ],
   "hardware_evidence": {
     "status": "unchanged",
-    "software_verified": false,
+    "software_verified": true,
     "hardware_verified": false,
-    "note": "Final software verification is pending final-head CI. No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
+    "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
   "checks_pending": [
-    "final-head changed-file Prettier",
-    "final-head ESLint",
-    "final-head strict TypeScript",
-    "final-head full Vitest",
-    "final-head production build",
-    "final-head Authenticated Dashboard Acceptance",
-    "final PR diff and review-thread guard"
+    "final state-only head CI guard",
+    "final PR diff, mergeability, review-thread and submitted-review guard",
+    "guarded squash merge"
   ],
   "open_risks": [
     "actual affected-PC and central-host network configuration remains unverified under Issue #210 operational evidence",
-    "browser acceptance against an operator-started LOCAL_LAN stack remains separate from controlled CI acceptance",
+    "operator-started LOCAL_LAN browser verification remains separate from controlled CI acceptance",
     "hardware and power-loss acceptance remain separate Work Packages"
   ],
   "next_ready_work_package": {
     "issue": 187,
     "title": "Build a verified offline installation and update bundle",
-    "instruction": "Activate only after Issue #199 is GREEN and merged; keep offline authentication in separate Issue #188."
+    "instruction": "Activate after Issue #199 is merged; keep offline authentication in separate Issue #188."
   }
 }
