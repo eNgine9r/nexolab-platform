@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents merging Issue #187 or activating the next independent software Work Package.
+No hard blocker prevents starting Issue #188, the next independent software Work Package.
 
 Stop before:
 
@@ -15,11 +15,13 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Verified Work Package
+## Resolved Work Package
 
 ### N-010 — Offline installation and update bundle
 
-**Status:** GREEN and ready to merge — Issue #187 / PR #215.
+**Status:** Resolved by Issue #187 / PR #215, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
+
+Final head `5dafd5b3014af69fa34b2524e00cb59cf7d5acb7` passed CI run `30709170478`, Telemetry Service run `30709170479` and Offline Bundle run `30709170491`.
 
 Verified software boundary on `linux/amd64`:
 
@@ -27,7 +29,7 @@ Verified software boundary on `linux/amd64`:
 - archive and file SHA-256 verification;
 - CycloneDX and SPDX SBOMs;
 - exact source-commit provenance;
-- clean-host image removal and archive-only `docker load`;
+- clean-host image-reference removal and archive-only `docker load`;
 - blocked container egress;
 - Compose startup with `--no-build --pull never`;
 - dashboard, REST, WebSocket, MQTT, PostgreSQL, MinIO and edge simulator smoke checks;
@@ -35,23 +37,30 @@ Verified software boundary on `linux/amd64`:
 - six required persistent-data volume identities unchanged;
 - PostgreSQL, retained MQTT, MinIO object and edge-volume markers preserved.
 
-Offline Bundle run `30708470343`, CI run `30708470342` and Telemetry Service run `30708470344` passed on verified code head `f21d9effe079e07ad3d8d163f029f26d06292556`.
-
 ### N-032 — ARM64 and operator-host offline evidence
 
 **Status:** Soft blocker for actual-host acceptance; software work may continue.
 
-The bundle contract supports `linux/arm64`, but this Work Package has not executed the complete archive/load/start/update/rollback drill on an actual Raspberry Pi 5 or operator-owned disconnected host. Do not claim ARM64, physical-media or Raspberry Pi acceptance until that evidence exists.
+The bundle contract supports `linux/arm64`, but the complete archive/load/start/update/rollback drill has not run on an actual Raspberry Pi 5 or operator-owned disconnected host. Do not claim ARM64, physical-media or Raspberry Pi acceptance until that evidence exists.
 
 ## Next Ready Work Package
 
 ### N-011 — Offline operator authentication
 
-**Status:** Queued for activation after PR #215 — Issue #188.
+**Status:** Ready — Issue #188.
 
-The Work Package must define and prove fail-closed local operator identity, session management and RBAC without making the core runtime depend on a cloud identity provider. It must remain separate from the installation bundle and must not introduce authentication bypasses or bundled secrets.
+The Work Package must define and prove fail-closed local operator identity, session management and RBAC without making the core runtime depend on a cloud identity provider.
 
-## Resolved Work Packages
+Mandatory boundaries:
+
+- no authentication bypass;
+- no bundled passwords, private signing keys or user tokens;
+- no mandatory remote JWKS or cloud session dependency;
+- preserve organization scope, RBAC and immutable audit attribution;
+- distinguish local validation mode from production-ready authenticated mode;
+- keep secrets in external local configuration or an approved local secret store.
+
+## Other resolved Work Packages
 
 ### N-009 — Live WebSocket lifecycle
 
