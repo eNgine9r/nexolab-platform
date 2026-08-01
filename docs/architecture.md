@@ -265,15 +265,15 @@ Software CI for Issue #198 verifies the corrected process-restart path but does 
 
 ## 13. Implementation versus acceptance
 
-| Area | Code/configuration | Software evidence | Remaining boundary |
-| --- | --- | --- | --- |
-| Frontend live states | Present | Unit/build/browser workflows | Site-specific browser/network evidence |
-| Durable telemetry ingestion | Present in Issue #198 | Spool, duplicate, MQTT ACK, PostgreSQL outage/restart and container checks | Actual-host capacity, rollback, power/disk loss |
-| Edge read-only acquisition | Present | Narrow 2026-07-23 hardware evidence | Full physical topology and device semantics |
-| Sessions/reports/alerts/nodes | Present | Automated and browser workflows | Site recovery/offline acceptance |
-| Production authentication | Partial | JWT/RBAC and optional adapters | Secure offline operator identity (#188) |
-| Offline installation | Partial | Local topology | Clean disconnected bundle (#187) |
-| Backup/restore | Partial | PR #144 software gate | Spool/edge/actual-host/power evidence (#189) |
+| Area                          | Code/configuration    | Software evidence                                                          | Remaining boundary                              |
+| ----------------------------- | --------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
+| Frontend live states          | Present               | Unit/build/browser workflows                                               | Site-specific browser/network evidence          |
+| Durable telemetry ingestion   | Present in Issue #198 | Spool, duplicate, MQTT ACK, PostgreSQL outage/restart and container checks | Actual-host capacity, rollback, power/disk loss |
+| Edge read-only acquisition    | Present               | Narrow 2026-07-23 hardware evidence                                        | Full physical topology and device semantics     |
+| Sessions/reports/alerts/nodes | Present               | Automated and browser workflows                                            | Site recovery/offline acceptance                |
+| Production authentication     | Partial               | JWT/RBAC and optional adapters                                             | Secure offline operator identity (#188)         |
+| Offline installation          | Partial               | Local topology                                                             | Clean disconnected bundle (#187)                |
+| Backup/restore                | Partial               | PR #144 software gate                                                      | Spool/edge/actual-host/power evidence (#189)    |
 
 ## 14. Architectural decisions preserved
 

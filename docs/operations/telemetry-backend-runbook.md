@@ -47,22 +47,22 @@ The exact volume name may be prefixed by `COMPOSE_PROJECT_NAME` or `CENTRAL_RESO
 
 ## Default durable spool limits
 
-| Setting | Default | Meaning |
-| --- | ---: | --- |
-| `INGESTION_SPOOL_MAX_RECORDS` | 500000 | Pending plus terminal records retained locally |
-| `INGESTION_SPOOL_MAX_BYTES` | 4294967296 | Retained payload bytes, approximately 4 GiB |
-| `INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS` | 5 | SQLite lock wait |
-| `INGESTION_SPOOL_POLL_INTERVAL_SECONDS` | 0.1 | Idle FIFO worker poll interval |
+| Setting                                 |    Default | Meaning                                        |
+| --------------------------------------- | ---------: | ---------------------------------------------- |
+| `INGESTION_SPOOL_MAX_RECORDS`           |     500000 | Pending plus terminal records retained locally |
+| `INGESTION_SPOOL_MAX_BYTES`             | 4294967296 | Retained payload bytes, approximately 4 GiB    |
+| `INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS`  |          5 | SQLite lock wait                               |
+| `INGESTION_SPOOL_POLL_INTERVAL_SECONDS` |        0.1 | Idle FIFO worker poll interval                 |
 
 Terminal records remain in capacity accounting until a separate approved operator workflow handles them. NEXOLAB does not silently delete terminal or pending evidence.
 
 ## Default PostgreSQL retention policy
 
-| Data class | Default retention | Action |
-| --- | ---: | --- |
-| Normalized telemetry | 365 days | Delete rows in bounded batches |
-| Original raw JSON payload | 30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
-| Dead-letter payload | 30 days | Delete rows in bounded batches |
+| Data class                | Default retention | Action                                                          |
+| ------------------------- | ----------------: | --------------------------------------------------------------- |
+| Normalized telemetry      |          365 days | Delete rows in bounded batches                                  |
+| Original raw JSON payload |           30 days | Replace raw JSON with `{}` and set `raw_payload_retained=false` |
+| Dead-letter payload       |           30 days | Delete rows in bounded batches                                  |
 
 Each scheduled cleanup processes at most `RETENTION_BATCH_SIZE` rows per data class. The default interval is one hour.
 
