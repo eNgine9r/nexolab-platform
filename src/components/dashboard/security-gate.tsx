@@ -36,17 +36,17 @@ function Diagnostics({ diagnostics, errorCode }: Pick<SecurityGateProps, "diagno
     <dl className="mt-5 grid gap-2 rounded-2xl border border-white/[0.07] bg-black/10 p-4 text-xs text-slate-400">
       <div className="grid gap-1 sm:grid-cols-[112px_1fr]">
         <dt className="text-slate-500">Код</dt>
-        <dd className="break-all font-mono text-slate-300">{errorCode ?? "UNKNOWN"}</dd>
+        <dd className="font-mono break-all text-slate-300">{errorCode ?? "UNKNOWN"}</dd>
       </div>
       <div className="grid gap-1 sm:grid-cols-[112px_1fr]">
         <dt className="text-slate-500">Dashboard origin</dt>
-        <dd className="break-all font-mono text-slate-300">
+        <dd className="font-mono break-all text-slate-300">
           {diagnostics.browserOrigin ?? "server-side / unavailable"}
         </dd>
       </div>
       <div className="grid gap-1 sm:grid-cols-[112px_1fr]">
         <dt className="text-slate-500">Session API</dt>
-        <dd className="break-all font-mono text-slate-300">
+        <dd className="font-mono break-all text-slate-300">
           {diagnostics.apiOrigin}
           {diagnostics.endpointPath}
         </dd>
@@ -61,13 +61,7 @@ function Diagnostics({ diagnostics, errorCode }: Pick<SecurityGateProps, "diagno
   );
 }
 
-export function SecurityGate({
-  state,
-  error,
-  errorCode,
-  diagnostics,
-  onRetry,
-}: SecurityGateProps) {
+export function SecurityGate({ state, error, errorCode, diagnostics, onRetry }: SecurityGateProps) {
   const loading = state === "loading";
   const unauthenticated = state === "unauthenticated";
 
