@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `764c0be96652144920964f7806af493a7a0a7b1e`  
-Active Work Package: Issue #199 / PR #214 — ready to merge  
+Verified product baseline: `main` at `8bcf67131ce6900b3513e840661d3cf82934c7eb`  
+Next Ready Work Package: Issue #187  
 Status confidence: high for repository, software-CI and controlled browser boundaries; partial for actual-host and hardware acceptance.
 
 ## Profile
@@ -21,44 +21,52 @@ Status confidence: high for repository, software-CI and controlled browser bound
 - PR #206 reconciled stale Pull Requests, trackers and successor Issues.
 - PR #209 hardened Device Agent supply-chain evidence.
 - PR #207 completed durable central telemetry ingestion.
-- PR #213 restored actionable dashboard security bootstrap diagnostics; product merge `729139a20b2bd5464aca2291dc4002f514896eee`, post-merge state baseline `764c0be96652144920964f7806af493a7a0a7b1e`.
+- PR #213 restored actionable dashboard security bootstrap diagnostics.
+- PR #214 stabilized the live telemetry WebSocket lifecycle and merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
 
-## Issue #199 verified outcome
+## Issue #199 completed outcome
 
-Issue #199 is implemented in branch `fix/199-websocket-lifecycle` through PR #214.
+The dashboard now treats a WebSocket transport connection as Live only after valid application-level evidence.
 
-Implemented behavior:
+Completed behavior:
 
-- a bounded 15-second WebSocket connection-open timeout;
-- browser-safe private client close codes `4000`–`4004`, including `4002` for connection timeout;
-- a transport `open` event no longer proves that telemetry is live;
-- `connected` is reached only after authenticated acknowledgement, heartbeat or a valid sample;
-- reconnect backoff resets only after valid live evidence;
-- connection, authentication, heartbeat and reconnect timers are cleaned centrally;
-- credentials are resolved again for every reconnect attempt;
-- terminal unauthorized, forbidden and configuration failures remain distinct;
-- resume cursor and event-id deduplication remain intact;
+- bounded 15-second WebSocket connection-open timeout;
+- browser-safe private client close codes `4000`–`4004`;
+- `connected` only after authenticated acknowledgement, heartbeat or a valid sample;
+- reconnect backoff reset only after valid live evidence;
+- centralized cleanup of connection, authentication, heartbeat and reconnect timers;
+- fresh credential resolution for every reconnect attempt;
+- distinct unauthorized, forbidden and configuration terminal states;
+- preserved resume cursor and event-id deduplication;
 - stale snapshots remain visible but receive stale/offline rather than live presentation.
 
-## Verification
+## Final verification
 
-Verified code-and-test head: `5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568`.
+Final PR head `921fba3f1af382f471b614ab5d2cc71952fad0db` passed:
 
-- CI run `30704096637` passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build.
-- Authenticated Dashboard Acceptance run `30704096614` passed authenticated REST/history and WebSocket dashboard behavior.
-- The dedicated WebSocket lifecycle suite passed 5 tests.
-- The dedicated dashboard lifecycle suite passed 3 tests.
-- Legacy assertions now require heartbeat evidence rather than transport-open evidence.
-- Final product diff contains eight scoped runtime/test/state files and no temporary workflow.
+- CI run `30704859884`: changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build;
+- Authenticated Dashboard Acceptance run `30704859869`: authenticated REST/history and WebSocket dashboard behavior;
+- dedicated WebSocket lifecycle suite: 5 tests;
+- dedicated dashboard lifecycle suite: 3 tests;
+- final changed-file count: 8 scoped files;
+- review threads: 0;
+- submitted reviews: 0.
 
 ## Open Pull Requests
 
-- #214 — GREEN and ready for final review/merge.
 - #192 — separate draft formatting inventory; not mixed into product work.
 
 ## Next Ready Work Package
 
-After PR #214 is merged, activate Issue #187 — build and prove a verified offline installation and update bundle. Issue #188 remains the following offline-authentication Work Package.
+Issue #187 — build and prove a verified offline installation and update bundle.
+
+Required boundary:
+
+- produce a checksummed local OCI/application bundle;
+- prove installation and update on a clean disconnected host;
+- preserve persistent volumes and local laboratory data;
+- keep offline operator authentication in separate Issue #188;
+- do not perform production/site cutover without explicit approval.
 
 ## Remaining unverified areas
 
