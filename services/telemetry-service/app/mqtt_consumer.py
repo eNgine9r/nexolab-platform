@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
+from threading import Event
 from typing import Any
 
 from app.config import Settings
@@ -45,6 +47,8 @@ class MqttConsumer:
         self._settings = settings
         self._ingestor = ingestor
         self._state = state
+        self._stop = Event()
+        self._manual_ack = ingestor.durable_enabled
         self._node_stream_ingestor = node_stream_ingestor
         if self._node_stream_ingestor is None and settings.mqtt_node_registry_enforced:
             self._node_stream_ingestor = NodeStreamIngestor(
@@ -59,7 +63,9 @@ class MqttConsumer:
         self._client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id=settings.mqtt_client_id,
+            clean_session=not self._manual_ack,
             protocol=mqtt.MQTTv311,
+            manual_ack=self._manual_ack,
         )
         if settings.mqtt_username is not None:
             if settings.mqtt_password_file is None:  # validated by Settings
@@ -77,6 +83,7 @@ class MqttConsumer:
         self._client.on_message = self._on_message
 
     def start(self) -> None:
+        self._stop.clear()
         self._state.set_mqtt_connected(False)
         if self._node_stream_ingestor is not None:
             self._node_stream_ingestor.start()
@@ -88,6 +95,7 @@ class MqttConsumer:
         self._client.loop_start()
 
     def stop(self) -> None:
+        self._stop.set()
         try:
             self._client.disconnect()
         finally:
@@ -158,25 +166,101 @@ class MqttConsumer:
             LOGGER.warning(message)
 
     def _on_message(self, client: Any, userdata: Any, message: Any) -> None:
-        del client, userdata
+        del userdata
         if not self._settings.mqtt_node_registry_enforced:
-            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            self._ingest_telemetry_message(client, message)
             return
+
         try:
             parsed = parse_node_topic(message.topic)
         except ValueError:
-            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            self._ingest_telemetry_message(client, message)
             return
+
         if parsed.stream is NodeTopicStream.TELEMETRY:
-            self._ingestor.submit_payload(message.payload, topic=message.topic)
+            self._ingest_telemetry_message(client, message)
             return
+
         if (
             parsed.stream in {NodeTopicStream.HEALTH, NodeTopicStream.STATUS}
             and self._node_stream_ingestor is not None
         ):
-            self._node_stream_ingestor.submit_payload(
+            submitted = self._node_stream_ingestor.submit_payload(
+                message.payload,
+                topic=message.topic,
+            )
+            if submitted:
+                self._ack_message(client, message)
+            else:
+                self._state.set_mqtt_error(
+                    f"node stream message {message.mid} was not accepted"
+                )
+            return
+
+        LOGGER.warning("No dispatcher configured for MQTT topic %s", message.topic)
+
+    def _ingest_telemetry_message(self, client: Any, message: Any) -> None:
+        if not self._manual_ack:
+            self._ingestor.submit_payload(
                 message.payload,
                 topic=message.topic,
             )
             return
-        LOGGER.warning("No dispatcher configured for MQTT topic %s", message.topic)
+
+        delivery_key = self._delivery_key(message)
+        retry_delay = self._settings.database_retry_initial_seconds
+        is_retry = False
+        while not self._stop.is_set():
+            result = self._ingestor.stage_mqtt_payload(
+                message.payload,
+                topic=message.topic,
+                delivery_key=delivery_key,
+                is_retry=is_retry,
+            )
+            if result.staged:
+                self._ack_message(client, message)
+                return
+
+            self._state.increment("mqtt_stage_retry_total")
+            self._state.set_mqtt_error(
+                result.error or "MQTT payload was not durably staged"
+            )
+            LOGGER.error(
+                "MQTT message %s remains unacknowledged; retrying durable "
+                "staging in %.2fs",
+                message.mid,
+                retry_delay,
+            )
+            if self._stop.wait(retry_delay):
+                return
+            retry_delay = min(
+                retry_delay * 2,
+                self._settings.database_retry_max_seconds,
+            )
+            is_retry = True
+
+    def _ack_message(self, client: Any, message: Any) -> None:
+        if not self._manual_ack or int(message.qos) == 0:
+            return
+        result = client.ack(message.mid, message.qos)
+        if result == self._mqtt.MQTT_ERR_SUCCESS:
+            self._state.increment("mqtt_manual_ack_total")
+            self._state.set_mqtt_error(None)
+            return
+        self._state.increment("mqtt_ack_failure_total")
+        self._state.set_mqtt_error(
+            f"manual MQTT acknowledgement failed for {message.mid}: {result}"
+        )
+        LOGGER.error(
+            "Manual MQTT acknowledgement failed for mid=%s qos=%s result=%s",
+            message.mid,
+            message.qos,
+            result,
+        )
+
+    def _delivery_key(self, message: Any) -> str:
+        digest = hashlib.sha256(message.payload).hexdigest()
+        return (
+            f"{self._settings.mqtt_client_id}:"
+            f"{message.topic}:{message.mid}:{message.qos}:{digest}"
+        )
