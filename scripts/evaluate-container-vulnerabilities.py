@@ -17,11 +17,16 @@ class PolicyFailure(ValueError):
 @dataclass(frozen=True)
 class Finding:
     target: str
+    result_class: str
+    result_type: str
     vulnerability: str
     package: str
+    package_path: str
     installed_version: str
     fixed_version: str
     severity: str
+    layer_digest: str
+    data_source: str
 
     @property
     def key(self) -> tuple[str, str]:
@@ -70,6 +75,13 @@ def load_exceptions(
     return selected
 
 
+def _mapping_label(value: object, *keys: str) -> str:
+    if not isinstance(value, dict):
+        return ""
+    parts = [str(value.get(key) or "").strip() for key in keys]
+    return "/".join(part for part in parts if part)
+
+
 def parse_findings(report: dict[str, Any]) -> list[Finding]:
     schema_version = report.get("SchemaVersion")
     if not isinstance(schema_version, int) or schema_version < 2:
@@ -85,6 +97,8 @@ def parse_findings(report: dict[str, Any]) -> list[Finding]:
         target = result.get("Target")
         if not isinstance(target, str) or not target.strip():
             raise PolicyFailure(f"Results[{result_index}].Target is required")
+        result_class = str(result.get("Class") or "")
+        result_type = str(result.get("Type") or "")
         vulnerabilities = result.get("Vulnerabilities") or []
         if not isinstance(vulnerabilities, list):
             raise PolicyFailure(
@@ -112,14 +126,21 @@ def parse_findings(report: dict[str, Any]) -> list[Finding]:
                 "CRITICAL",
             }:
                 raise PolicyFailure(f"{label}.Severity is unsupported")
+            layer_digest = _mapping_label(item.get("Layer"), "Digest", "DiffID")
+            data_source = _mapping_label(item.get("DataSource"), "ID", "Name")
             findings.append(
                 Finding(
                     target=target.strip(),
+                    result_class=result_class,
+                    result_type=result_type,
                     vulnerability=vulnerability.strip(),
                     package=package.strip(),
+                    package_path=str(item.get("PkgPath") or ""),
                     installed_version=str(item.get("InstalledVersion") or ""),
                     fixed_version=str(item.get("FixedVersion") or ""),
                     severity=normalized_severity,
+                    layer_digest=layer_digest,
+                    data_source=data_source,
                 )
             )
     return findings
@@ -158,9 +179,15 @@ def evaluate(
 def format_finding(finding: Finding) -> str:
     fix = finding.fixed_version or "no fixed version"
     installed = finding.installed_version or "unknown"
+    package_path = finding.package_path or "<none>"
+    layer = finding.layer_digest or "<none>"
+    data_source = finding.data_source or "<none>"
     return (
         f"{finding.severity} {finding.vulnerability} package={finding.package} "
-        f"installed={installed} fixed={fix} target={finding.target}"
+        f"installed={installed} fixed={fix} target={finding.target} "
+        f"result_class={finding.result_class or '<none>'} "
+        f"result_type={finding.result_type or '<none>'} "
+        f"package_path={package_path} layer={layer} data_source={data_source}"
     )
 
 
