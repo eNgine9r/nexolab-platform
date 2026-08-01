@@ -29,8 +29,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         repository, database = _repository()
         try:
-            if args.command == "bootstrap-admin":
+            if args.command in {"bootstrap-admin", "create-account"}:
                 password = _read_password(Path(args.password_file))
+                roles = (
+                    {Role.ADMINISTRATOR}
+                    if args.command == "bootstrap-admin"
+                    else {Role(value) for value in args.role}
+                )
                 account = repository.bootstrap_account(
                     username=args.username,
                     password_hash=hash_password(password),
@@ -39,11 +44,12 @@ def main(argv: list[str] | None = None) -> int:
                     organization_id=args.organization_id,
                     organization_slug=args.organization_slug,
                     organization_name=args.organization_name,
-                    roles={Role.ADMINISTRATOR},
+                    roles=roles,
                 )
+                role_text = ",".join(sorted(role.value for role in roles))
                 print(
-                    f"created local administrator {account.username!r} "
-                    f"with subject {account.subject}"
+                    f"created local account {account.username!r} "
+                    f"with subject {account.subject} and roles {role_text}"
                 )
                 return 0
             if args.command == "reset-password":
@@ -80,16 +86,20 @@ def _parser() -> argparse.ArgumentParser:
     keys.add_argument("--public-key-file", required=True)
 
     bootstrap = subcommands.add_parser("bootstrap-admin", help="create the first local administrator")
-    bootstrap.add_argument("--username", required=True)
-    bootstrap.add_argument("--password-file", required=True)
-    bootstrap.add_argument("--email")
-    bootstrap.add_argument("--display-name")
-    bootstrap.add_argument(
-        "--organization-id",
-        default="00000000-0000-0000-0000-000000000001",
+    _add_account_arguments(bootstrap)
+
+    create_account = subcommands.add_parser(
+        "create-account",
+        help="create an additional local account with explicit server roles",
     )
-    bootstrap.add_argument("--organization-slug", default="nexolab-lab")
-    bootstrap.add_argument("--organization-name", default="NEXOLAB Laboratory")
+    _add_account_arguments(create_account)
+    create_account.add_argument(
+        "--role",
+        action="append",
+        required=True,
+        choices=[role.value for role in Role],
+        help="server-side role; repeat to assign multiple roles",
+    )
 
     reset = subcommands.add_parser("reset-password", help="replace a password and revoke all sessions")
     reset.add_argument("--username", required=True)
@@ -98,6 +108,19 @@ def _parser() -> argparse.ArgumentParser:
     revoke = subcommands.add_parser("revoke-sessions", help="revoke every refresh session for an account")
     revoke.add_argument("--username", required=True)
     return parser
+
+
+def _add_account_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--username", required=True)
+    parser.add_argument("--password-file", required=True)
+    parser.add_argument("--email")
+    parser.add_argument("--display-name")
+    parser.add_argument(
+        "--organization-id",
+        default="00000000-0000-0000-0000-000000000001",
+    )
+    parser.add_argument("--organization-slug", default="nexolab-lab")
+    parser.add_argument("--organization-name", default="NEXOLAB Laboratory")
 
 
 def _repository() -> tuple[LocalAuthRepository, Database]:
