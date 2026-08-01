@@ -15,6 +15,10 @@ class DurableSpoolCapacityError(DurableSpoolError):
     """The configured record or byte capacity would be exceeded."""
 
 
+class DurableSpoolConflictError(DurableSpoolError):
+    """A deduplication key was reused for a different payload."""
+
+
 @dataclass(frozen=True, slots=True)
 class SpoolAppendResult:
     record_id: int
@@ -103,6 +107,7 @@ class DurableIngestionSpool:
             self._connection.execute("PRAGMA journal_mode = WAL")
             self._connection.execute("PRAGMA synchronous = FULL")
             self._connection.execute("PRAGMA foreign_keys = ON")
+            self._connection.execute("PRAGMA wal_autocheckpoint = 1000")
             self._create_schema()
         except (OSError, sqlite3.Error) as exc:
             raise DurableSpoolError(
@@ -146,6 +151,16 @@ class DurableIngestionSpool:
                 )
                 """
             )
+            columns = {
+                str(row["name"])
+                for row in self._connection.execute(
+                    "PRAGMA table_info(ingestion_spool)"
+                ).fetchall()
+            }
+            if "delivery_key" not in columns:
+                self._connection.execute(
+                    "ALTER TABLE ingestion_spool ADD COLUMN delivery_key TEXT"
+                )
             self._connection.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS uq_ingestion_spool_event_id
@@ -254,6 +269,7 @@ class DurableIngestionSpool:
                     delivery_key=delivery_key,
                 )
                 if existing is not None:
+                    self._assert_duplicate_payload(existing, payload)
                     self._connection.commit()
                     return SpoolAppendResult(
                         record_id=int(existing["id"]),
@@ -311,7 +327,7 @@ class DurableIngestionSpool:
                 record_id = int(cursor.lastrowid)
                 self._connection.commit()
                 return SpoolAppendResult(record_id=record_id, duplicate=False)
-            except DurableSpoolCapacityError:
+            except (DurableSpoolCapacityError, DurableSpoolConflictError):
                 self._connection.rollback()
                 raise
             except sqlite3.IntegrityError:
@@ -321,6 +337,7 @@ class DurableIngestionSpool:
                     delivery_key=delivery_key,
                 )
                 if existing is not None:
+                    self._assert_duplicate_payload(existing, payload)
                     return SpoolAppendResult(
                         record_id=int(existing["id"]),
                         duplicate=True,
@@ -349,9 +366,18 @@ class DurableIngestionSpool:
         if not clauses:
             return None
         return self._connection.execute(
-            "SELECT id FROM ingestion_spool WHERE " + " OR ".join(clauses) + " LIMIT 1",
+            "SELECT id, payload FROM ingestion_spool WHERE "
+            + " OR ".join(clauses)
+            + " LIMIT 1",
             tuple(values),
         ).fetchone()
+
+    @staticmethod
+    def _assert_duplicate_payload(row: sqlite3.Row, payload: bytes) -> None:
+        if bytes(row["payload"]) != payload:
+            raise DurableSpoolConflictError(
+                "ingestion deduplication key was reused for a different payload"
+            )
 
     def oldest_pending(self) -> SpoolRecord | None:
         with self._lock:
@@ -374,7 +400,9 @@ class DurableIngestionSpool:
         return SpoolRecord(
             record_id=int(row["id"]),
             work_type=str(row["work_type"]),
-            event_id=(str(row["event_id"]) if row["event_id"] is not None else None),
+            event_id=(
+                str(row["event_id"]) if row["event_id"] is not None else None
+            ),
             delivery_key=(
                 str(row["delivery_key"])
                 if row["delivery_key"] is not None
@@ -424,7 +452,11 @@ class DurableIngestionSpool:
                             last_attempt_at = ?
                         WHERE id = ? AND status = 'pending'
                         """,
-                        (error[:4096], datetime.now(UTC).isoformat(), record_id),
+                        (
+                            error[:4096],
+                            datetime.now(UTC).isoformat(),
+                            record_id,
+                        ),
                     )
             except sqlite3.Error as exc:
                 raise DurableSpoolError(
@@ -488,6 +520,7 @@ class DurableIngestionSpool:
     def close(self) -> None:
         with self._lock:
             try:
+                self._connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                 self._connection.close()
             except sqlite3.Error as exc:
                 raise DurableSpoolError(
