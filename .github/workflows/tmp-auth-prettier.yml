@@ -10,7 +10,7 @@ on:
       - playwright.local-auth.config.ts
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: feat/188-offline-operator-auth
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -27,11 +27,16 @@ jobs:
         env:
           HUSKY: "0"
       - run: npm exec prettier -- --write e2e/local-auth.production.e2e.ts playwright.local-auth.config.ts
-      - uses: actions/upload-artifact@v4
-        with:
-          name: auth-prettier-output-${{ github.sha }}
-          path: |
-            e2e/local-auth.production.e2e.ts
-            playwright.local-auth.config.ts
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit exact formatter result
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if git diff --quiet -- e2e/local-auth.production.e2e.ts playwright.local-auth.config.ts; then
+            echo "Exact Prettier output already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/local-auth.production.e2e.ts playwright.local-auth.config.ts
+          git commit -m "style(auth): apply exact prettier output"
+          git push origin HEAD:feat/188-offline-operator-auth
