@@ -61,9 +61,12 @@
       "scope": [
         "services/telemetry-service/**",
         "infrastructure/compose/**",
+        "infrastructure/observability/**",
         "docs/architecture.md",
         "docs/adr/**",
         "docs/operations/**",
+        "scripts/validate-observability.py",
+        "tests/test_observability_policy.py",
         ".project/**",
         ".github/workflows/**"
       ]
@@ -136,6 +139,16 @@
       "status": "blocked",
       "priority": 23,
       "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
+    },
+    {
+      "id": "NEXOLAB-208",
+      "issue": 208,
+      "title": "Upgrade Device Agent pyasn1 to remediate CVE-2026-33230",
+      "status": "queued",
+      "priority": 40,
+      "depends_on": ["NEXOLAB-198"],
+      "track": "security-maintenance",
+      "activation": "Implement in a separate feature branch and PR; do not mix the Device Agent dependency update into PR #207."
     },
     {
       "id": "NEXOLAB-185",
