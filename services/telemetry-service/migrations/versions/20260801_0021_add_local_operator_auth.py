@@ -1,7 +1,7 @@
 """add local operator accounts and refresh sessions
 
 Revision ID: 20260801_0021
-Revises: 20260730_0020
+Revises: 20260731_0021
 Create Date: 2026-08-01 20:35:00
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision = "20260801_0021"
-down_revision = "20260730_0020"
+down_revision = "20260731_0021"
 branch_labels = None
 depends_on = None
 
