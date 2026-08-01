@@ -12,6 +12,7 @@ on:
       - "scripts/install-offline-bundle.sh"
       - "scripts/offline-bundle-smoke.sh"
       - "scripts/verify-offline-bundle.py"
+      - "scripts/verify-offline-volume-preservation.sh"
       - "docs/operations/offline-installation.md"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
@@ -42,8 +43,10 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout exact commit
+      - name: Checkout exact source commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -101,7 +104,8 @@ jobs:
           bash -n \
             scripts/build-offline-bundle.sh \
             scripts/install-offline-bundle.sh \
-            scripts/offline-bundle-smoke.sh
+            scripts/offline-bundle-smoke.sh \
+            scripts/verify-offline-volume-preservation.sh
           python -m py_compile \
             scripts/generate-offline-bundle-manifest.py \
             scripts/verify-offline-bundle.py
@@ -142,14 +146,15 @@ jobs:
           ! grep -R --line-number --fixed-strings "docker compose down -v" \
             scripts/install-offline-bundle.sh \
             scripts/offline-bundle-smoke.sh \
-            docs/operations/offline-installation.md
+            scripts/verify-offline-volume-preservation.sh
 
       - name: Build linux amd64 bundle on connected builder
         id: bundle
         shell: bash
         run: |
           set -Eeuo pipefail
-          version="ci-${GITHUB_SHA:0:12}"
+          source_sha="$(git rev-parse HEAD)"
+          version="ci-${source_sha:0:12}"
           ./scripts/build-offline-bundle.sh \
             --version "$version" \
             --platform linux/amd64 \
@@ -164,10 +169,11 @@ jobs:
             cd "$(dirname "$archive")"
             sha256sum --check "$(basename "${archive}.sha256")"
           )
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
-      - name: Simulate a clean transferred host and remove runtime images
+      - name: Simulate clean transferred host and remove runtime images
         id: clean_host
         shell: bash
         run: |
@@ -186,11 +192,13 @@ jobs:
           import json
           import sys
           from pathlib import Path
+
           manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
           for image in manifest["images"]:
               print(image["reference"])
           PY
           )
+          test "${#runtime_images[@]}" -eq 7
           docker image rm --force "${runtime_images[@]}"
           for image in "${runtime_images[@]}"; do
             if docker image inspect "$image" >/dev/null 2>&1; then
@@ -237,127 +245,15 @@ jobs:
           docker run --rm --pull never --network "$network" "$OFFLINE_DASHBOARD_IMAGE" \
             node -e "fetch('https://example.com').then(()=>process.exit(1)).catch(()=>process.exit(0))"
 
-      - name: Seed persistent markers and capture volume identities
+      - name: Prove update and rollback preserve persistent data
         shell: bash
         run: |
           set -Eeuo pipefail
-          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
-          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
-            "$bundle_root" --check-loaded-images --emit-shell-env)"
-          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
-          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
-            -f "$bundle_root/deploy/compose/compose.central.yaml" \
-            -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
-          edge=(docker compose --env-file "$PWD/$EDGE_ENV" \
-            -f "$bundle_root/deploy/compose/compose.edge.yaml" \
-            -f "$bundle_root/deploy/offline/compose.edge.offline.yaml")
-
-          snapshot_volumes() {
-            for service in mqtt postgres minio telemetry-service; do
-              container="$("${central[@]}" ps -q "$service")"
-              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
-            done
-            for service in mqtt device-agent; do
-              container="$("${edge[@]}" ps -q "$service")"
-              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
-            done
-          }
-          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-before.txt"
-          test "$(wc -l < "$CI_ROOT/evidence/volumes-before.txt")" -eq 6
-
-          "${central[@]}" exec -T postgres sh -ec '
-            psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<SQL
-          CREATE TABLE IF NOT EXISTS offline_bundle_drill (
-            marker text PRIMARY KEY,
-            created_at timestamptz NOT NULL DEFAULT now()
-          );
-          INSERT INTO offline_bundle_drill(marker) VALUES ('"'"'offline-bundle-v1'"'"')
-            ON CONFLICT (marker) DO NOTHING;
-          SQL
-          '
-          "${central[@]}" exec -T mqtt \
-            mosquitto_pub -h 127.0.0.1 -t nexolab/offline-bundle/drill -m offline-bundle-v1 -r
-          printf 'offline-bundle-v1' | "${central[@]}" run --rm -T --no-deps \
-            --entrypoint /bin/sh minio-init -ec '
-              cat > /tmp/offline-bundle-marker
-              mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-              mc cp /tmp/offline-bundle-marker "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt"
-            '
-          "${edge[@]}" exec -T device-agent /usr/bin/python3 -c \
-            'from pathlib import Path; Path("/var/lib/nexolab/offline-bundle.marker").write_text("offline-bundle-v1", encoding="utf-8")'
-
-      - name: Prove update and rollback preserve local volumes
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
-          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
-            "$bundle_root" --check-loaded-images --emit-shell-env)"
-
-          original_dashboard="$OFFLINE_DASHBOARD_IMAGE"
-          original_telemetry="$OFFLINE_TELEMETRY_IMAGE"
-          original_device_agent="$OFFLINE_DEVICE_AGENT_IMAGE"
-          docker tag "$original_dashboard" "${original_dashboard}-update"
-          docker tag "$original_telemetry" "${original_telemetry}-update"
-          docker tag "$original_device_agent" "${original_device_agent}-update"
-
-          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
-            -f "$bundle_root/deploy/compose/compose.central.yaml" \
-            -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
-          edge=(docker compose --env-file "$PWD/$EDGE_ENV" \
-            -f "$bundle_root/deploy/compose/compose.edge.yaml" \
-            -f "$bundle_root/deploy/offline/compose.edge.offline.yaml")
-
-          snapshot_volumes() {
-            for service in mqtt postgres minio telemetry-service; do
-              container="$("${central[@]}" ps -q "$service")"
-              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
-            done
-            for service in mqtt device-agent; do
-              container="$("${edge[@]}" ps -q "$service")"
-              docker inspect "$container" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}'
-            done
-          }
-
-          verify_markers() {
-            test "$("${central[@]}" exec -T postgres sh -ec \
-              'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT marker FROM offline_bundle_drill WHERE marker='"'"'offline-bundle-v1'"'"';"' \
-              | tr -d '\r')" = offline-bundle-v1
-            test "$("${central[@]}" exec -T mqtt \
-              mosquitto_sub -h 127.0.0.1 -t nexolab/offline-bundle/drill -C 1 -W 5 \
-              | tr -d '\r')" = offline-bundle-v1
-            test "$("${central[@]}" run --rm -T --no-deps --entrypoint /bin/sh minio-init -ec '
-              mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-              mc cat "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt"
-            ' | tr -d '\r')" = offline-bundle-v1
-            test "$("${edge[@]}" exec -T device-agent /usr/bin/python3 -c \
-              'from pathlib import Path; print(Path("/var/lib/nexolab/offline-bundle.marker").read_text(encoding="utf-8"), end="")' \
-              | tr -d '\r')" = offline-bundle-v1
-          }
-
-          export OFFLINE_DASHBOARD_IMAGE="${original_dashboard}-update"
-          export OFFLINE_TELEMETRY_IMAGE="${original_telemetry}-update"
-          export OFFLINE_DEVICE_AGENT_IMAGE="${original_device_agent}-update"
-          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
-          "${central[@]}" up -d --no-build --pull never --force-recreate --wait
-          "${edge[@]}" up -d --no-build --pull never --force-recreate --wait
-          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-after-update.txt"
-          cmp "$CI_ROOT/evidence/volumes-before.txt" "$CI_ROOT/evidence/volumes-after-update.txt"
-          verify_markers
-          bash "$bundle_root/scripts/offline-bundle-smoke.sh" \
-            --central-env "$PWD/$CENTRAL_ENV" --edge-env "$PWD/$EDGE_ENV"
-
-          export OFFLINE_DASHBOARD_IMAGE="$original_dashboard"
-          export OFFLINE_TELEMETRY_IMAGE="$original_telemetry"
-          export OFFLINE_DEVICE_AGENT_IMAGE="$original_device_agent"
-          "${central[@]}" up -d --no-build --pull never --force-recreate --wait
-          "${edge[@]}" up -d --no-build --pull never --force-recreate --wait
-          snapshot_volumes | sed '/^$/d' | sort -u > "$CI_ROOT/evidence/volumes-after-rollback.txt"
-          cmp "$CI_ROOT/evidence/volumes-before.txt" "$CI_ROOT/evidence/volumes-after-rollback.txt"
-          verify_markers
-          bash "$bundle_root/scripts/offline-bundle-smoke.sh" \
-            --central-env "$PWD/$CENTRAL_ENV" --edge-env "$PWD/$EDGE_ENV"
+          bash scripts/verify-offline-volume-preservation.sh \
+            --bundle-root "${{ steps.clean_host.outputs.bundle_root }}" \
+            --central-env "$PWD/$CENTRAL_ENV" \
+            --edge-env "$PWD/$EDGE_ENV" \
+            --evidence-dir "$PWD/$CI_ROOT/evidence"
 
       - name: Capture final disconnected evidence
         if: always()
@@ -381,6 +277,7 @@ jobs:
             cp "$bundle_root/manifest.json" "$CI_ROOT/evidence/manifest.json"
             cp "$bundle_root/SHA256SUMS" "$CI_ROOT/evidence/SHA256SUMS"
           fi
+          git rev-parse HEAD > "$CI_ROOT/evidence/source-head.txt"
           docker image ls --digests > "$CI_ROOT/evidence/docker-images.txt"
           docker volume ls > "$CI_ROOT/evidence/docker-volumes.txt"
 
@@ -407,7 +304,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexolab-offline-amd64-${{ github.sha }}
+          name: nexolab-offline-amd64-${{ steps.bundle.outputs.source_sha || github.sha }}
           path: |
             dist/offline/*.tar.gz
             dist/offline/*.tar.gz.sha256
