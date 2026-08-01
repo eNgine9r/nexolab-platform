@@ -6,10 +6,11 @@
   "issue": 199,
   "pull_request": 214,
   "status": "ready_to_merge",
-  "timestamp": "2026-08-01T17:35:00+03:00",
+  "timestamp": "2026-08-01T17:45:00+03:00",
   "baseline_main_sha": "764c0be96652144920964f7806af493a7a0a7b1e",
   "branch": "fix/199-websocket-lifecycle",
   "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
+  "final_guard_head": "da0e8577b5e28c69571b836d9265ffc56c8df4af",
   "summary": "Verified a bounded, evidence-based live telemetry WebSocket lifecycle so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
   "scope_completed": [
     "created Issue #199 feature branch and focused PR #214 from current main",
@@ -29,11 +30,16 @@
     "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "checks_actually_run": [
-    "CI run 30704096637 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
-    "Authenticated Dashboard Acceptance run 30704096614 passed authenticated REST, history and WebSocket dashboard behavior",
+    "CI run 30704096637 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build on verified code head",
+    "Authenticated Dashboard Acceptance run 30704096614 passed authenticated REST, history and WebSocket dashboard behavior on verified code head",
+    "final state-only CI guard run 30704360855 passed",
+    "final state-only Authenticated Dashboard Acceptance guard run 30704360852 passed",
     "dedicated WebSocket lifecycle suite passed 5 tests",
     "dedicated dashboard lifecycle suite passed 3 tests",
-    "final product diff before state-only verification contained no temporary workflow"
+    "final changed-file list: 8 scoped files",
+    "PR review threads: zero",
+    "PR submitted reviews: zero",
+    "PR mergeable: true"
   ],
   "runtime_and_offline_evidence": [
     "the change adds no internet, cloud, paid-service or external API runtime dependency",
@@ -50,9 +56,8 @@
     "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
   "checks_pending": [
-    "final state-only head CI guard",
-    "final PR diff, mergeability, review-thread and submitted-review guard",
-    "guarded squash merge"
+    "guarded squash merge",
+    "post-merge source-of-truth update"
   ],
   "open_risks": [
     "actual affected-PC and central-host network configuration remains unverified under Issue #210 operational evidence",
