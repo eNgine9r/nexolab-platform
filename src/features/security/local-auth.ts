@@ -41,17 +41,26 @@ export function createLocalCredentialProvider(
     const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) {
       clearLocalAuthStorage();
-      const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+      const snapshot = {
+        accessToken: null,
+        organizationId: resolvedOrganizationId,
+      };
       setSecurityCredentials(snapshot);
       return snapshot;
     }
 
-    const refreshed = await requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/refresh`, {
-      refresh_token: refreshToken,
-    });
+    const refreshed = await requestTokenPair(
+      `${normalizedBaseUrl}/api/v1/auth/local/refresh`,
+      {
+        refresh_token: refreshToken,
+      },
+    );
     if (!refreshed.ok) {
       clearLocalAuthStorage();
-      const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+      const snapshot = {
+        accessToken: null,
+        organizationId: resolvedOrganizationId,
+      };
       setSecurityCredentials(snapshot);
       return snapshot;
     }
@@ -71,10 +80,13 @@ export async function signInWithLocalPassword(
   password: string,
 ): Promise<LocalAuthResult> {
   const normalizedBaseUrl = normalizeBaseUrl(apiBaseUrl);
-  const result = await requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/login`, {
-    username: username.trim(),
-    password,
-  });
+  const result = await requestTokenPair(
+    `${normalizedBaseUrl}/api/v1/auth/local/login`,
+    {
+      username: username.trim(),
+      password,
+    },
+  );
   if (!result.ok) {
     clearLocalAuthStorage();
     return { ok: false, message: result.message };
@@ -90,7 +102,9 @@ export async function signInWithLocalPassword(
 
 export async function signOutLocal(apiBaseUrl: string): Promise<void> {
   const refreshToken =
-    typeof window === "undefined" ? null : window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    typeof window === "undefined"
+      ? null
+      : window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   try {
     if (refreshToken) {
       await fetch(`${normalizeBaseUrl(apiBaseUrl)}/api/v1/auth/local/logout`, {
@@ -119,7 +133,9 @@ export function clearLocalAuthStorage(): void {
 async function requestTokenPair(
   url: string,
   payload: Record<string, string>,
-): Promise<{ ok: true; value: LocalTokenPayload } | { ok: false; message: string }> {
+): Promise<
+  { ok: true; value: LocalTokenPayload } | { ok: false; message: string }
+> {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -134,13 +150,19 @@ async function requestTokenPair(
     if (!response.ok) {
       return {
         ok: false,
-        message: readErrorMessage(body) ?? "Локальну сесію оператора не створено.",
+        message:
+          readErrorMessage(body) ??
+          "Локальну сесію оператора не створено.",
       };
     }
     const tokenPair = parseTokenPair(body);
     return tokenPair
       ? { ok: true, value: tokenPair }
-      : { ok: false, message: "Відповідь локального сервера автентифікації недійсна." };
+      : {
+          ok: false,
+          message:
+            "Відповідь локального сервера автентифікації недійсна.",
+        };
   } catch {
     return {
       ok: false,
@@ -172,7 +194,9 @@ function parseTokenPair(value: unknown): LocalTokenPayload | null {
   const refreshToken = readString(record.refresh_token);
   const expiresIn = readPositiveInteger(record.expires_in);
   const refreshExpiresIn = readPositiveInteger(record.refresh_expires_in);
-  if (!accessToken || !refreshToken || !expiresIn || !refreshExpiresIn) return null;
+  if (!accessToken || !refreshToken || !expiresIn || !refreshExpiresIn) {
+    return null;
+  }
   return {
     access_token: accessToken,
     refresh_token: refreshToken,
@@ -218,5 +242,7 @@ function readString(value: unknown): string | null {
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : null;
 }
