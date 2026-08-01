@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents starting Issue #187, the next independent software Work Package.
+No hard blocker prevents merging Issue #187 or activating the next independent software Work Package.
 
 Stop before:
 
@@ -15,46 +15,55 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Resolved Work Package
-
-### N-009 — Live WebSocket lifecycle
-
-**Status:** Resolved by Issue #199 / PR #214, merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
-
-Final head `921fba3f1af382f471b614ab5d2cc71952fad0db` passed CI run `30704859884` and Authenticated Dashboard Acceptance run `30704859869`. Stale snapshots remain visible without Live presentation, reconnect is bounded and timer-safe, and terminal auth/configuration states remain distinct.
-
-## Next Ready Work Package
+## Verified Work Package
 
 ### N-010 — Offline installation and update bundle
 
-**Status:** Ready — Issue #187.
+**Status:** GREEN and ready to merge — Issue #187 / PR #215.
 
-The Work Package must:
+Verified software boundary on `linux/amd64`:
 
-- build a checksummed local OCI/application bundle;
-- prove installation and update on a clean disconnected host;
-- preserve named volumes and local laboratory data;
-- document rollback compatibility;
-- keep offline operator authentication in separate Issue #188;
-- avoid production/site deployment without explicit approval.
+- seven-image versioned bundle;
+- archive and file SHA-256 verification;
+- CycloneDX and SPDX SBOMs;
+- exact source-commit provenance;
+- clean-host image removal and archive-only `docker load`;
+- blocked container egress;
+- Compose startup with `--no-build --pull never`;
+- dashboard, REST, WebSocket, MQTT, PostgreSQL, MinIO and edge simulator smoke checks;
+- update and rollback container recreation;
+- six required persistent-data volume identities unchanged;
+- PostgreSQL, retained MQTT, MinIO object and edge-volume markers preserved.
 
-## Resolved operator-access Work Package
+Offline Bundle run `30708470343`, CI run `30708470342` and Telemetry Service run `30708470344` passed on verified code head `f21d9effe079e07ad3d8d163f029f26d06292556`.
 
-### N-030 — Dashboard security bootstrap
-
-**Software status:** Resolved by Issue #210 / PR #213, merged as `729139a20b2bd5464aca2291dc4002f514896eee`.
-
-### N-031 — Affected-PC session bootstrap configuration
+### N-032 — ARM64 and operator-host offline evidence
 
 **Status:** Soft blocker for actual-host acceptance; software work may continue.
 
-The exact cause of the original screenshot remains unverified until the operator runs `docs/operations/dashboard-security-bootstrap.md` against the affected PC and central host. Do not infer whether the cause is API availability, loopback/LAN addressing, CORS, mixed content or another browser transport failure until those checks are returned.
+The bundle contract supports `linux/arm64`, but this Work Package has not executed the complete archive/load/start/update/rollback drill on an actual Raspberry Pi 5 or operator-owned disconnected host. Do not claim ARM64, physical-media or Raspberry Pi acceptance until that evidence exists.
 
-## Resolved data-integrity Work Package
+## Next Ready Work Package
+
+### N-011 — Offline operator authentication
+
+**Status:** Queued for activation after PR #215 — Issue #188.
+
+The Work Package must define and prove fail-closed local operator identity, session management and RBAC without making the core runtime depend on a cloud identity provider. It must remain separate from the installation bundle and must not introduce authentication bypasses or bundled secrets.
+
+## Resolved Work Packages
+
+### N-009 — Live WebSocket lifecycle
+
+Resolved by Issue #199 / PR #214, merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
+
+### N-030 — Dashboard security bootstrap
+
+Resolved by Issue #210 / PR #213, merged as `729139a20b2bd5464aca2291dc4002f514896eee`.
 
 ### N-008 — MQTT-to-PostgreSQL durability
 
-**Status:** Resolved by Issue #198 / PR #207, merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5`.
+Resolved by Issue #198 / PR #207, merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5`.
 
 ## Open operational and hardware risks
 
@@ -68,7 +77,7 @@ Current node health/status persistence is not claimed to have the same process-r
 
 ### N-024 — Rollback compatibility
 
-Do not roll back to a pre-ADR-0008 image while pending or terminal spool records exist. Preserve named volumes and never use `docker compose down -v` during update or rollback.
+Do not roll back to a pre-ADR-0008 image while pending or terminal spool records exist. Preserve named volumes and never use the volume-removal flag during update or rollback.
 
 ### N-025 — Spool capacity policy
 
@@ -76,7 +85,7 @@ Software thresholds and alerts exist. Validate them against actual-host capacity
 
 ## Other open soft blockers
 
-- **N-011 / #188 — Offline authentication:** prove fail-closed local operator identity and RBAC.
+- **N-031 / Issue #210 evidence — Affected-PC session bootstrap:** actual host/network cause remains unverified.
 - **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
 - **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked; read-only evidence required.
@@ -88,4 +97,4 @@ Software thresholds and alerts exist. Validate them against actual-host capacity
 - **N-020 / #204 — Major frontend toolchain:** queued maintenance.
 - **N-021 / #205 — GitHub Actions runtime dependencies:** queued maintenance.
 
-Missing actual-host or hardware evidence remains unverified. A green software or scanner result does not authorize image publication, hardware write or site deployment.
+Missing actual-host or hardware evidence remains unverified. A green software, disconnected-container or scanner result does not authorize image publication, hardware write or site deployment.
