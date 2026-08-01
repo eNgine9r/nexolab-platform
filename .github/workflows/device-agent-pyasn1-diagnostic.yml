@@ -19,7 +19,7 @@ jobs:
   inspect-runtime-image:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'fix/208-device-agent-pyasn1-cve'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -48,36 +48,31 @@ jobs:
           python - <<'PY'
           from __future__ import annotations
 
-          import io
           import re
           import tarfile
+          import zipfile
+          from io import BytesIO
 
           archive_path = "/tmp/device-agent-rootfs.tar"
           with tarfile.open(archive_path, "r") as archive:
               names = archive.getnames()
-              candidates = [
-                  name
-                  for name in names
-                  if "pyasn1" in name.lower()
-                  or "python3-pyasn1" in name.lower()
-              ]
+              candidates = [name for name in names if "pyasn1" in name.lower()]
               print("=== PYASN1 PATHS ===")
-              if candidates:
-                  for name in sorted(candidates)[:500]:
-                      print(name)
-              else:
+              for name in sorted(candidates)[:500]:
+                  print(name)
+              if not candidates:
                   print("<none>")
 
-              status_candidates = [
-                  name
-                  for name in names
-                  if name.rstrip("/") in {"var/lib/dpkg/status", "var/lib/dpkg/status-old"}
-              ]
               print("=== DPKG STATUS STANZAS ===")
               found_stanza = False
-              for name in status_candidates:
-                  member = archive.getmember(name)
-                  extracted = archive.extractfile(member)
+              for name in names:
+                  normalized = name.rstrip("/")
+                  if not (
+                      normalized in {"var/lib/dpkg/status", "var/lib/dpkg/status-old"}
+                      or normalized.startswith("var/lib/dpkg/status.d/")
+                  ):
+                      continue
+                  extracted = archive.extractfile(archive.getmember(name))
                   if extracted is None:
                       continue
                   text = extracted.read().decode("utf-8", errors="replace")
@@ -89,25 +84,79 @@ jobs:
               if not found_stanza:
                   print("<none>")
 
-              metadata_candidates = [
-                  name
-                  for name in names
-                  if name.lower().endswith(("/metadata", "/pkg-info"))
-                  and "pyasn1" in name.lower()
-              ]
-              print("=== PYTHON PACKAGE METADATA ===")
-              if not metadata_candidates:
-                  print("<none>")
-              for name in metadata_candidates:
-                  member = archive.getmember(name)
-                  extracted = archive.extractfile(member)
+              print("=== NESTED ARCHIVE MATCHES ===")
+              nested_found = False
+              for name in names:
+                  if not name.lower().endswith((".zip", ".whl", ".egg")):
+                      continue
+                  extracted = archive.extractfile(archive.getmember(name))
                   if extracted is None:
                       continue
-                  text = extracted.read().decode("utf-8", errors="replace")
-                  print(f"--- {name} ---")
-                  for line in text.splitlines():
-                      if line.startswith(("Name:", "Version:", "Requires-Dist:")):
-                          print(line)
+                  payload = extracted.read()
+                  try:
+                      with zipfile.ZipFile(BytesIO(payload)) as nested:
+                          matches = [
+                              member
+                              for member in nested.namelist()
+                              if "pyasn1" in member.lower()
+                          ]
+                  except zipfile.BadZipFile:
+                      continue
+                  if matches:
+                      nested_found = True
+                      print(f"--- {name} ---")
+                      for match in matches[:200]:
+                          print(match)
+              if not nested_found:
+                  print("<none>")
+          PY
+
+      - name: Generate exact Trivy JSON
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: nexolab-device-agent:pyasn1-diagnostic
+          format: json
+          output: /tmp/device-agent.trivy.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: "0"
+
+      - name: Print Trivy pyasn1 evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("/tmp/device-agent.trivy.json").read_text(encoding="utf-8")
+          )
+          matches = []
+          for result in report.get("Results") or []:
+              for vulnerability in result.get("Vulnerabilities") or []:
+                  if "pyasn1" not in str(vulnerability.get("PkgName", "")).lower():
+                      continue
+                  matches.append(
+                      {
+                          "Target": result.get("Target"),
+                          "Class": result.get("Class"),
+                          "Type": result.get("Type"),
+                          "PkgName": vulnerability.get("PkgName"),
+                          "PkgPath": vulnerability.get("PkgPath"),
+                          "InstalledVersion": vulnerability.get("InstalledVersion"),
+                          "FixedVersion": vulnerability.get("FixedVersion"),
+                          "VulnerabilityID": vulnerability.get("VulnerabilityID"),
+                          "Severity": vulnerability.get("Severity"),
+                          "Layer": vulnerability.get("Layer"),
+                          "DataSource": vulnerability.get("DataSource"),
+                      }
+                  )
+          print(json.dumps(matches, indent=2, sort_keys=True))
+          if not matches:
+              print("Trivy reported no pyasn1 vulnerability for this exact image.")
           PY
 
       - name: Inspect image ancestry
