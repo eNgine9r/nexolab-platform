@@ -18,12 +18,12 @@ services:
   telemetry-migrate:
     image: ${OFFLINE_TELEMETRY_IMAGE:?OFFLINE_TELEMETRY_IMAGE is required}
     pull_policy: never
-    build: null
+    build: !reset null
 
   telemetry-service:
     image: ${OFFLINE_TELEMETRY_IMAGE:?OFFLINE_TELEMETRY_IMAGE is required}
     pull_policy: never
-    build: null
+    build: !reset null
 
   dashboard:
     image: ${OFFLINE_DASHBOARD_IMAGE:?OFFLINE_DASHBOARD_IMAGE is required}
