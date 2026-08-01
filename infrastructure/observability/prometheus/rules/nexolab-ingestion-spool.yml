@@ -1,0 +1,105 @@
+groups:
+  - name: nexolab-ingestion-spool-recording
+    interval: 5s
+    rules:
+      - record: nexolab:ingestion_spool_record_utilization_ratio
+        expr: clamp_max((nexolab_telemetry_spool_pending_records + nexolab_telemetry_spool_terminal_records) / clamp_min(nexolab_telemetry_spool_max_records, 1), 1)
+
+      - record: nexolab:ingestion_spool_byte_utilization_ratio
+        expr: clamp_max(nexolab_telemetry_spool_payload_bytes / clamp_min(nexolab_telemetry_spool_max_bytes, 1), 1)
+
+  - name: nexolab-ingestion-spool-alerts
+    interval: 5s
+    rules:
+      - alert: NexolabIngestionSpoolUnavailable
+        expr: nexolab_telemetry_spool_ready == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB durable ingestion spool is unavailable
+          description: The Telemetry Service cannot confirm that its local durable staging boundary is ready.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+      - alert: NexolabIngestionSpoolUtilizationWarning
+        expr: nexolab:ingestion_spool_record_utilization_ratio > 0.70 or nexolab:ingestion_spool_byte_utilization_ratio > 0.70
+        for: 5m
+        labels:
+          severity: warning
+          service: telemetry-service
+          slo: capacity
+        annotations:
+          summary: NEXOLAB ingestion spool utilization is elevated
+          description: Durable spool record or payload-byte utilization has exceeded 70% for five minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+      - alert: NexolabIngestionSpoolUtilizationCritical
+        expr: nexolab:ingestion_spool_record_utilization_ratio > 0.90 or nexolab:ingestion_spool_byte_utilization_ratio > 0.90
+        for: 2m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: capacity
+        annotations:
+          summary: NEXOLAB ingestion spool is near capacity
+          description: Durable spool record or payload-byte utilization has exceeded 90% for two minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+      - alert: NexolabIngestionSpoolBacklogAged
+        expr: nexolab_telemetry_spool_oldest_pending_age_seconds > 900
+        for: 5m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB durable ingestion backlog is aging
+          description: The oldest locally retained telemetry item has remained pending for more than fifteen minutes.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
+
+      - alert: NexolabIngestionSpoolTerminalRecords
+        expr: nexolab_telemetry_spool_terminal_records > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB ingestion spool contains terminal records
+          description: At least one durable record requires operator review and remains in capacity accounting.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#poison-or-invalid-mqtt-payload
+
+      - alert: NexolabIngestionSpoolCapacityFailures
+        expr: increase(nexolab_telemetry_spool_capacity_failure_total[5m]) > 0
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB durable staging reached configured capacity
+          description: At least one MQTT delivery could not be staged because the local spool record or byte limit was reached.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+      - alert: NexolabIngestionSpoolErrors
+        expr: increase(nexolab_telemetry_spool_error_total[5m]) > 0
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB durable ingestion spool reported an error
+          description: The local SQLite staging boundary reported an I/O, integrity or lifecycle failure.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+      - alert: NexolabMqttManualAckFailures
+        expr: increase(nexolab_telemetry_mqtt_ack_failure_total[5m]) > 0
+        labels:
+          severity: critical
+          service: telemetry-service
+          slo: durability
+        annotations:
+          summary: NEXOLAB manual MQTT acknowledgement failed
+          description: A QoS message was durably staged but the explicit broker acknowledgement call failed.
+          runbook_url: /docs/operations/telemetry-backend-runbook.md#delivery-and-acknowledgement-contract

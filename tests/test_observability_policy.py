@@ -77,6 +77,7 @@ def test_acceptance_resources_are_namespaced_by_compose_project() -> None:
         f"{central_prefix}-mqtt-data",
         f"{central_prefix}-postgres-data",
         f"{central_prefix}-object-storage-data",
+        f"{central_prefix}-telemetry-ingestion-data",
     }
 
     observability_prefix = (
@@ -167,6 +168,10 @@ def test_alertmanager_inhibition_is_limited_to_explicit_pairs() -> None:
     }
     assert pairs == {
         ("NexolabIngestionQueuePressureCritical", "NexolabIngestionQueuePressureWarning"),
+        (
+            "NexolabIngestionSpoolUtilizationCritical",
+            "NexolabIngestionSpoolUtilizationWarning",
+        ),
         ("NexolabIngestionLagCritical", "NexolabIngestionLagWarning"),
         ("NexolabPersistenceFailuresSustained", "NexolabPersistenceFailures"),
         ("NexolabDeadLetterBurst", "NexolabDeadLetterGrowth"),
@@ -216,3 +221,54 @@ def test_dashboard_rejects_missing_recovery_query(tmp_path: Path) -> None:
 
     with pytest.raises(validator.PolicyError, match="dashboard queries are missing"):
         validator.validate_dashboard(path)
+
+
+def test_durable_ingestion_spool_alert_contract_is_actionable() -> None:
+    source = (
+        ROOT
+        / "infrastructure/observability/prometheus/rules/nexolab-ingestion-spool.yml"
+    )
+    payload = yaml.safe_load(source.read_text(encoding="utf-8"))
+    groups = {group["name"]: group for group in payload["groups"]}
+    recording = {
+        rule["record"]: rule
+        for rule in groups["nexolab-ingestion-spool-recording"]["rules"]
+    }
+    alerts = {
+        rule["alert"]: rule
+        for rule in groups["nexolab-ingestion-spool-alerts"]["rules"]
+    }
+
+    assert set(recording) == {
+        "nexolab:ingestion_spool_record_utilization_ratio",
+        "nexolab:ingestion_spool_byte_utilization_ratio",
+    }
+    assert set(alerts) == {
+        "NexolabIngestionSpoolUnavailable",
+        "NexolabIngestionSpoolUtilizationWarning",
+        "NexolabIngestionSpoolUtilizationCritical",
+        "NexolabIngestionSpoolBacklogAged",
+        "NexolabIngestionSpoolTerminalRecords",
+        "NexolabIngestionSpoolCapacityFailures",
+        "NexolabIngestionSpoolErrors",
+        "NexolabMqttManualAckFailures",
+    }
+    for alert in alerts.values():
+        assert alert["labels"]["service"] == "telemetry-service"
+        assert alert["labels"]["severity"] in {"warning", "critical"}
+        assert alert["annotations"]["runbook_url"].startswith(
+            "/docs/operations/telemetry-backend-runbook.md#"
+        )
+
+    assert alerts["NexolabIngestionSpoolUnavailable"]["expr"] == (
+        "nexolab_telemetry_spool_ready == 0"
+    )
+    assert alerts["NexolabIngestionSpoolTerminalRecords"]["expr"] == (
+        "nexolab_telemetry_spool_terminal_records > 0"
+    )
+    assert "spool_capacity_failure_total" in alerts[
+        "NexolabIngestionSpoolCapacityFailures"
+    ]["expr"]
+    assert "mqtt_ack_failure_total" in alerts[
+        "NexolabMqttManualAckFailures"
+    ]["expr"]

@@ -1,9 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `bd286690f94bdf06adf3fc630bdee69c5019ebce`  
-Active review: Issue #208 / PR #209  
-Related review: Issue #198 / PR #207  
+Verified baseline: `main` at `ee950e632702135231f1f4349e87529b39d16181`  
+Active review: Issue #198 / PR #207  
 Status confidence: high for repository and software-CI boundaries; partial for actual-host recovery and hardware acceptance.
 
 ## Profile
@@ -15,93 +14,83 @@ Status confidence: high for repository and software-CI boundaries; partial for a
 - Device transport: read-only Modbus RTU and MQTT QoS 1
 - No Modbus write, hardware write or production/site cutover is authorized.
 
-## Completed source-of-truth baseline
+## Completed source-of-truth and security baseline
 
 - PR #184 merged the AI Development Operating Standard.
 - PR #190 merged the verified architecture and offline boundary.
-- PR #206 merged Issue #186 as `bd286690f94bdf06adf3fc630bdee69c5019ebce`.
-- Stale Pull Requests and trackers have focused successor Issues.
+- PR #206 reconciled stale Pull Requests, trackers and successor Issues.
+- PR #209 merged Issue #208 as `ee950e632702135231f1f4349e87529b39d16181`.
+- The historical Device Agent `pyasn1` result was not reproducible in the runtime, rootfs, exact-image target or production-equivalent Trivy sequence.
+- Wrong scan target and sequential CycloneDX/SPDX contamination were ruled out.
+- Strict HIGH/CRITICAL and stale-exception enforcement remains enabled; five obsolete Expat exceptions were removed.
 
-## Issue #198 / PR #207 status
+## Issue #198 / PR #207 implementation
 
-The durable MQTT-to-PostgreSQL implementation is in review.
+The durability Work Package is in final review on a branch updated from `main`.
 
-Verified targeted outcomes include:
+Implemented operator outcome:
 
-- local SQLite WAL spool with `synchronous=FULL`;
-- manual MQTT QoS acknowledgement only after local durable commit;
-- persistent MQTT session;
-- FIFO replay and `event_id` idempotency;
-- capacity, terminal, replay and acknowledgement metrics;
-- backend/central named volumes;
-- PostgreSQL outage plus Telemetry Service restart recovery;
-- updated capacity, observability and recovery acceptance.
+- MQTT telemetry is validated and committed to a local SQLite WAL spool before QoS 1 acknowledgement;
+- SQLite uses `synchronous=FULL`;
+- pending records survive Telemetry Service/container restart;
+- replay is FIFO with PostgreSQL `event_id` idempotency;
+- invalid telemetry is durably staged as dead-letter evidence before acknowledgement;
+- capacity, disk, integrity and acknowledgement failures remain visible and do not silently drop records;
+- backend and central Compose profiles use dedicated named spool volumes;
+- Prometheus metrics and alerts cover readiness, pending depth/bytes, age, capacity, terminal records, I/O and ACK failures;
+- rollback guidance preserves the spool volume and prohibits `docker compose down -v`.
 
-Latest #198-specific gates are green:
+## Final verification on main-updated head
 
-- Core Software Capacity — run `30690434122`;
-- Telemetry Service — run `30690434121`;
-- general CI — run `30690434123`;
-- Observability — run `30690434103`;
-- Backend Integration — run `30690434125`;
-- Offline Disaster Recovery — run `30690434116`.
+Head `8e80b31b73b16d291747bfa5d6a5d54c0bd4d170` is `behind_by=0` and mergeable.
 
-PR #207 remains unmerged until Issue #208 / PR #209 is integrated into `main` and its aggregate Container Supply Chain gate is rerun.
+All 19 triggered workflows passed:
 
-## Issue #208 / PR #209 verified outcome
+- general CI — `30696201793`;
+- Telemetry Service — `30696201789`;
+- Capacity Release Gate — `30696201784`;
+- Observability — `30696201802`;
+- Container Supply Chain — `30696201799`;
+- Disaster Recovery Browser — `30696201783`;
+- Disaster Recovery TLS Fleet — `30696201774`;
+- Device Agent Fleet — `30696201787`;
+- MQTT TLS Fleet — `30696201815`;
+- MQTT Broker Security — `30696201788`;
+- Broker Control — `30696201801`;
+- Security Browser — `30696201772`;
+- Authenticated Dashboard — `30696201767`;
+- Alerts Browser — `30696201816`;
+- Nodes Browser — `30696201785`;
+- Refrigeration Browser — `30696201762`;
+- Test Sessions Browser — `30696201773`;
+- Reports Browser — `30696201822`;
+- Rendered Reports Browser — `30696201770`.
 
-The initial supply-chain run associated with PR #207 reported `pyasn1 0.6.2` / CVE-2026-33230 for Device Agent.
-
-Focused diagnostics and repeated production-equivalent runs proved:
-
-- Device Agent requirements contain only `paho-mqtt==2.1.0` and `pyserial==3.5`;
-- `pyasn1` is not importable and is absent from Python package metadata, exported runtime rootfs and Debian package metadata;
-- the workflow scans the exact locally built Device Agent image with matching OCI revision and digest;
-- CycloneDX and SPDX invocations disable vulnerability scanning and cannot contaminate the later JSON vulnerability report;
-- repeated JSON scans using the shared Trivy cache did not reproduce `pyasn1`;
-- the only reproducible blocker was strict stale-exception enforcement for five obsolete `libexpat1` decisions.
-
-The historical `pyasn1` result is classified as a non-reproducible scanner/advisory-state event. Wrong image target and sequential SBOM contamination are ruled out. No runtime dependency or waiver was added.
-
-PR #209 now:
-
-- uses `pull: true` for exact-commit evidence and multi-platform publish builds;
-- moves only Device Agent to `supply-chain-v2-device-agent` cache scope;
-- preserves unrelated image cache scopes;
-- retains strict HIGH/CRITICAL and stale-exception enforcement;
-- emits target, class/type, package path, layer digest and data source for policy findings;
-- removes five stale `libexpat1` exceptions while preserving active decisions;
-- includes regression tests for Buildx and Trivy provenance;
-- contains no temporary diagnostic workflow.
-
-Final-head verification for `0e6ecc08b1caea4a313e4f39ab4029a3500d1f91` is green:
-
-- general CI — run `30695154014`;
-- Container Supply Chain — run `30695154012`;
-- image inventory and exception policy — green;
-- Device Agent, Telemetry Service and MQTT security image builds — green;
-- CycloneDX and SPDX SBOM generation — green;
-- strict Trivy policy for all images — green;
-- digest-bound manifests and aggregate release manifest — green;
-- secret/private-key evidence checks — green;
-- review threads and submitted reviews — none.
-
-## Open Pull Requests
-
-- #209 — security-maintenance PR for #208; final checks green and ready for final review transition.
-- #207 — durable central-ingestion PR, waiting for #209 integration and final aggregate rerun.
-- #192 — separate draft formatting inventory; not mixed into either active Work Package.
+The Capacity Gate proved outage readiness degradation, durable backlog, Telemetry Service/database recovery, replay, final drain and no-loss invariants. Telemetry Service passed the complete Python/PostgreSQL/MQTT/REST/WebSocket/object-storage suite, explicit PostgreSQL outage recovery, offline migration validation and container build. Observability passed policy, `promtool`, Alertmanager, production-like stack and Chromium dashboard acceptance. Supply Chain passed all three images, SBOMs, strict Trivy policy, manifests and aggregate evidence.
 
 ## Evidence boundary
 
-Not claimed by #208:
+Software verified:
 
-- changes to Device Agent runtime packages;
-- new Raspberry Pi or Modbus hardware evidence;
-- production image publication;
+- local spool reopen, FIFO, deduplication, conflict, terminal and capacity behavior;
+- manual MQTT acknowledgement boundary;
+- PostgreSQL outage plus Telemetry Service restart replay;
+- Compose named-volume topology;
+- capacity, observability and recovery acceptance in GitHub CI.
+
+Still unverified:
+
+- actual Raspberry Pi or central-host power interruption;
+- physical disk-full and disk-loss recovery;
 - production/site deployment;
-- actual-host power-loss, rollback or disk-loss recovery.
+- Modbus or other hardware writes;
+- full hardware acceptance beyond previously recorded read-only evidence.
+
+## Open Pull Requests
+
+- #207 — durable central ingestion; all implementation-head workflows green, final state-head rerun pending.
+- #192 — separate draft formatting inventory; not mixed into #207.
 
 ## Next action
 
-Mark PR #209 ready, perform final head/mergeability review and squash-merge only while all required checks remain green. Then update PR #207 from `main`, rerun its final aggregate Gate, refresh the Issue #198 checkpoint and merge only after all required checks pass.
+Complete required checks on the final state-update head. If every required check remains green and review findings remain empty, mark PR #207 ready and perform a guarded squash merge. Then activate the next independent Ready Work Package.

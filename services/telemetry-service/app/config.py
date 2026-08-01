@@ -50,17 +50,58 @@ class Settings(BaseSettings):
     broker_control_admin_username: str | None = None
     broker_control_admin_client_id: str = "nexolab-broker-control-worker"
     broker_control_admin_password_file: str | None = None
-    broker_control_poll_interval_seconds: float = Field(default=1.0, ge=0.05, le=300.0)
-    broker_control_max_commands_per_run: int = Field(default=25, ge=1, le=1000)
+    broker_control_poll_interval_seconds: float = Field(
+        default=1.0,
+        ge=0.05,
+        le=300.0,
+    )
+    broker_control_max_commands_per_run: int = Field(
+        default=25,
+        ge=1,
+        le=1000,
+    )
     broker_control_max_attempts: int = Field(default=8, ge=1, le=100)
-    broker_control_retry_initial_seconds: float = Field(default=1.0, ge=0.05, le=3600.0)
-    broker_control_retry_max_seconds: float = Field(default=300.0, ge=0.05, le=86_400.0)
-    broker_control_command_timeout_seconds: float = Field(default=15.0, ge=0.1, le=300.0)
-    broker_control_stale_lock_seconds: float = Field(default=60.0, ge=1.0, le=86_400.0)
+    broker_control_retry_initial_seconds: float = Field(
+        default=1.0,
+        ge=0.05,
+        le=3600.0,
+    )
+    broker_control_retry_max_seconds: float = Field(
+        default=300.0,
+        ge=0.05,
+        le=86_400.0,
+    )
+    broker_control_command_timeout_seconds: float = Field(
+        default=15.0,
+        ge=0.1,
+        le=300.0,
+    )
+    broker_control_stale_lock_seconds: float = Field(
+        default=60.0,
+        ge=1.0,
+        le=86_400.0,
+    )
 
     ingestion_queue_maxsize: int = Field(default=10_000, ge=1)
     ingestion_payload_max_bytes: int = Field(default=262_144, ge=1024)
     dead_letter_payload_max_bytes: int = Field(default=65_536, ge=256)
+    ingestion_spool_enabled: bool = True
+    ingestion_spool_path: str = "data/telemetry-ingestion/spool.db"
+    ingestion_spool_max_records: int = Field(default=500_000, ge=1)
+    ingestion_spool_max_bytes: int = Field(
+        default=4 * 1024 * 1024 * 1024,
+        ge=1024 * 1024,
+    )
+    ingestion_spool_busy_timeout_seconds: float = Field(
+        default=5.0,
+        ge=0.1,
+        le=300.0,
+    )
+    ingestion_spool_poll_interval_seconds: float = Field(
+        default=0.1,
+        ge=0.01,
+        le=10.0,
+    )
     api_max_page_size: int = Field(default=1000, ge=1, le=1000)
     history_max_range_days: int = Field(default=31, ge=1, le=366)
 
@@ -77,10 +118,16 @@ class Settings(BaseSettings):
         ge=1024,
         le=50 * 1024 * 1024,
     )
-    equipment_image_signed_url_seconds: int = Field(default=900, ge=60, le=86_400)
+    equipment_image_signed_url_seconds: int = Field(
+        default=900,
+        ge=60,
+        le=86_400,
+    )
 
     auth_mode: Literal["disabled", "jwt"] = "disabled"
-    auth_default_organization_id: str = "00000000-0000-0000-0000-000000000001"
+    auth_default_organization_id: str = (
+        "00000000-0000-0000-0000-000000000001"
+    )
     auth_jwt_public_key: str | None = None
     auth_jwt_jwks_url: str | None = None
     auth_jwt_algorithm: str = "RS256"
@@ -92,9 +139,21 @@ class Settings(BaseSettings):
     cors_allow_credentials: bool = False
 
     websocket_client_queue_maxsize: int = Field(default=256, ge=1, le=10_000)
-    websocket_heartbeat_seconds: float = Field(default=20.0, ge=1.0, le=300.0)
-    websocket_send_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
-    websocket_auth_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
+    websocket_heartbeat_seconds: float = Field(
+        default=20.0,
+        ge=1.0,
+        le=300.0,
+    )
+    websocket_send_timeout_seconds: float = Field(
+        default=5.0,
+        ge=0.1,
+        le=60.0,
+    )
+    websocket_auth_timeout_seconds: float = Field(
+        default=5.0,
+        ge=0.1,
+        le=60.0,
+    )
     websocket_resume_limit: int = Field(default=1000, ge=1, le=10_000)
 
     retention_enabled: bool = True
@@ -144,24 +203,49 @@ class Settings(BaseSettings):
                 "MQTT_TLS_CERT_FILE and MQTT_TLS_KEY_FILE must be configured together"
             )
 
-        if self.broker_control_retry_max_seconds < self.broker_control_retry_initial_seconds:
+        if self.database_retry_max_seconds < self.database_retry_initial_seconds:
             raise ValueError(
-                "BROKER_CONTROL_RETRY_MAX_SECONDS must be greater than or equal to "
-                "BROKER_CONTROL_RETRY_INITIAL_SECONDS"
+                "DATABASE_RETRY_MAX_SECONDS must be greater than or equal to "
+                "DATABASE_RETRY_INITIAL_SECONDS"
             )
-        if self.broker_control_stale_lock_seconds <= self.broker_control_command_timeout_seconds:
+        if not self.ingestion_spool_path.strip():
+            raise ValueError("INGESTION_SPOOL_PATH must not be empty")
+        if (
+            self.broker_control_retry_max_seconds
+            < self.broker_control_retry_initial_seconds
+        ):
+            raise ValueError(
+                "BROKER_CONTROL_RETRY_MAX_SECONDS must be greater than or equal "
+                "to BROKER_CONTROL_RETRY_INITIAL_SECONDS"
+            )
+        if (
+            self.broker_control_stale_lock_seconds
+            <= self.broker_control_command_timeout_seconds
+        ):
             raise ValueError(
                 "BROKER_CONTROL_STALE_LOCK_SECONDS must be greater than "
                 "BROKER_CONTROL_COMMAND_TIMEOUT_SECONDS"
             )
         if self.broker_control_enabled:
             required = {
-                "BROKER_CONTROL_ENCRYPTION_KEY_FILE": self.broker_control_encryption_key_file,
-                "BROKER_CONTROL_ENCRYPTION_KEY_ID": self.broker_control_encryption_key_id,
-                "BROKER_CONTROL_ADMIN_EXECUTABLE": self.broker_control_admin_executable,
-                "BROKER_CONTROL_ADMIN_USERNAME": self.broker_control_admin_username,
-                "BROKER_CONTROL_ADMIN_CLIENT_ID": self.broker_control_admin_client_id,
-                "BROKER_CONTROL_ADMIN_PASSWORD_FILE": self.broker_control_admin_password_file,
+                "BROKER_CONTROL_ENCRYPTION_KEY_FILE": (
+                    self.broker_control_encryption_key_file
+                ),
+                "BROKER_CONTROL_ENCRYPTION_KEY_ID": (
+                    self.broker_control_encryption_key_id
+                ),
+                "BROKER_CONTROL_ADMIN_EXECUTABLE": (
+                    self.broker_control_admin_executable
+                ),
+                "BROKER_CONTROL_ADMIN_USERNAME": (
+                    self.broker_control_admin_username
+                ),
+                "BROKER_CONTROL_ADMIN_CLIENT_ID": (
+                    self.broker_control_admin_client_id
+                ),
+                "BROKER_CONTROL_ADMIN_PASSWORD_FILE": (
+                    self.broker_control_admin_password_file
+                ),
             }
             missing = [
                 name

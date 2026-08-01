@@ -10,6 +10,7 @@ from typing import Any
 class RuntimeSnapshot:
     mqtt_connected: bool = False
     database_ready: bool = False
+    spool_ready: bool = False
     received_total: int = 0
     accepted_total: int = 0
     persisted_total: int = 0
@@ -26,6 +27,22 @@ class RuntimeSnapshot:
     database_retry_total: int = 0
     post_persist_retry_total: int = 0
     database_recovery_total: int = 0
+    spool_staged_total: int = 0
+    spool_duplicate_total: int = 0
+    spool_recovered_total: int = 0
+    spool_replayed_total: int = 0
+    spool_terminal_total: int = 0
+    spool_capacity_failure_total: int = 0
+    spool_error_total: int = 0
+    mqtt_manual_ack_total: int = 0
+    mqtt_ack_failure_total: int = 0
+    mqtt_stage_retry_total: int = 0
+    spool_pending_records: int = 0
+    spool_terminal_records: int = 0
+    spool_payload_bytes: int = 0
+    spool_oldest_pending_age_seconds: float | None = None
+    spool_max_records: int | None = None
+    spool_max_bytes: int | None = None
     retention_runs_total: int = 0
     retention_failure_total: int = 0
     retention_deleted_telemetry_total: int = 0
@@ -110,6 +127,33 @@ class RuntimeState:
         with self._lock:
             self._snapshot.queue_capacity = value
 
+    def set_spool_ready(self, value: bool) -> None:
+        with self._lock:
+            self._snapshot.spool_ready = value
+
+    def set_spool_capacity(self, *, max_records: int, max_bytes: int) -> None:
+        if max_records < 1 or max_bytes < 1:
+            raise ValueError("spool capacity must be positive")
+        with self._lock:
+            self._snapshot.spool_max_records = max_records
+            self._snapshot.spool_max_bytes = max_bytes
+
+    def set_spool_stats(
+        self,
+        *,
+        pending_records: int,
+        terminal_records: int,
+        payload_bytes: int,
+        oldest_pending_age_seconds: float | None,
+    ) -> None:
+        with self._lock:
+            self._snapshot.spool_pending_records = pending_records
+            self._snapshot.spool_terminal_records = terminal_records
+            self._snapshot.spool_payload_bytes = payload_bytes
+            self._snapshot.spool_oldest_pending_age_seconds = (
+                oldest_pending_age_seconds
+            )
+
     def set_websocket_clients(self, value: int) -> None:
         with self._lock:
             self._snapshot.websocket_clients = value
@@ -145,7 +189,9 @@ class RuntimeState:
             self._snapshot.database_ready = True
             if self._snapshot.database_outage_since is not None:
                 self._snapshot.database_recovery_total += 1
-                self._snapshot.last_database_recovery_at = datetime.now(UTC).isoformat()
+                self._snapshot.last_database_recovery_at = (
+                    datetime.now(UTC).isoformat()
+                )
             self._snapshot.database_outage_since = None
             self._snapshot.database_error = None
             self._refresh_last_error()
@@ -160,8 +206,12 @@ class RuntimeState:
         with self._lock:
             self._snapshot.retention_runs_total += 1
             self._snapshot.retention_deleted_telemetry_total += telemetry_deleted
-            self._snapshot.retention_redacted_raw_payload_total += raw_payloads_redacted
-            self._snapshot.retention_deleted_dead_letter_total += dead_letters_deleted
+            self._snapshot.retention_redacted_raw_payload_total += (
+                raw_payloads_redacted
+            )
+            self._snapshot.retention_deleted_dead_letter_total += (
+                dead_letters_deleted
+            )
 
     def set_error(self, message: str | None) -> None:
         with self._lock:

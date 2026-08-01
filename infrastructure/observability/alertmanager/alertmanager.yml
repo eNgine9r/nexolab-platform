@@ -44,3 +44,8 @@ inhibit_rules:
     target_matchers:
       - alertname="NexolabVerifiedBackupStaleWarning"
     equal: [service]
+  - source_matchers:
+      - alertname="NexolabIngestionSpoolUtilizationCritical"
+    target_matchers:
+      - alertname="NexolabIngestionSpoolUtilizationWarning"
+    equal: [service]

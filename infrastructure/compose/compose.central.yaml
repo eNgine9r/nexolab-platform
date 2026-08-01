@@ -23,6 +23,12 @@ x-telemetry-environment: &telemetry-environment
   INGESTION_QUEUE_MAXSIZE: ${INGESTION_QUEUE_MAXSIZE:-10000}
   INGESTION_PAYLOAD_MAX_BYTES: ${INGESTION_PAYLOAD_MAX_BYTES:-262144}
   DEAD_LETTER_PAYLOAD_MAX_BYTES: ${DEAD_LETTER_PAYLOAD_MAX_BYTES:-65536}
+  INGESTION_SPOOL_ENABLED: ${INGESTION_SPOOL_ENABLED:-true}
+  INGESTION_SPOOL_PATH: /app/data/telemetry-ingestion/spool.db
+  INGESTION_SPOOL_MAX_RECORDS: ${INGESTION_SPOOL_MAX_RECORDS:-500000}
+  INGESTION_SPOOL_MAX_BYTES: ${INGESTION_SPOOL_MAX_BYTES:-4294967296}
+  INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS: ${INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS:-5}
+  INGESTION_SPOOL_POLL_INTERVAL_SECONDS: ${INGESTION_SPOOL_POLL_INTERVAL_SECONDS:-0.1}
   API_MAX_PAGE_SIZE: ${API_MAX_PAGE_SIZE:-1000}
   HISTORY_MAX_RANGE_DAYS: ${HISTORY_MAX_RANGE_DAYS:-31}
   OBJECT_STORAGE_BACKEND: s3
@@ -160,6 +166,8 @@ services:
     environment: *telemetry-environment
     ports:
       - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_API_PORT:-8082}:8082"
+    volumes:
+      - central-telemetry-ingestion-data:/app/data/telemetry-ingestion
     depends_on:
       mqtt:
         condition: service_healthy
@@ -192,6 +200,8 @@ volumes:
     name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-postgres-data
   central-object-storage-data:
     name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-object-storage-data
+  central-telemetry-ingestion-data:
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-telemetry-ingestion-data
 
 networks:
   central:

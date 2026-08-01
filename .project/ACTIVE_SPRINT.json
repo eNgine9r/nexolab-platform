@@ -57,35 +57,51 @@
       "depends_on": ["NEXOLAB-186"],
       "branch": "feat/198-durable-central-ingestion",
       "pull_request": 207,
-      "blocker": "Targeted durability, capacity, observability and recovery gates are green. Update from main and rerun aggregate Container Supply Chain after Issue #208 merges."
+      "started_at": "2026-08-01",
+      "scope": [
+        "services/telemetry-service/**",
+        "infrastructure/compose/**",
+        "infrastructure/observability/**",
+        "docs/architecture.md",
+        "docs/adr/**",
+        "docs/operations/**",
+        "scripts/run_capacity_acceptance.py",
+        "tests/test_observability_policy.py",
+        ".project/**"
+      ],
+      "verification": {
+        "main_updated_head": "8e80b31b73b16d291747bfa5d6a5d54c0bd4d170",
+        "main_parent": "ee950e632702135231f1f4349e87529b39d16181",
+        "result": "green",
+        "workflow_count": 19,
+        "general_ci_run": 30696201793,
+        "telemetry_service_run": 30696201789,
+        "capacity_release_gate_run": 30696201784,
+        "observability_run": 30696201802,
+        "container_supply_chain_run": 30696201799,
+        "disaster_recovery_browser_run": 30696201783,
+        "disaster_recovery_tls_run": 30696201774,
+        "review_threads": 0
+      },
+      "next_action": "Rerun required checks on the final state-update head, mark PR #207 ready and squash-merge only while GREEN."
     },
     {
       "id": "NEXOLAB-208",
       "issue": 208,
       "title": "Harden Device Agent supply-chain evidence",
-      "status": "review",
+      "status": "done",
       "priority": 5,
       "depends_on": ["NEXOLAB-186"],
-      "branch": "fix/208-device-agent-pyasn1-cve",
       "pull_request": 209,
-      "started_at": "2026-08-01",
-      "track": "security-maintenance",
-      "scope": [
-        ".github/workflows/container-supply-chain.yml",
-        "scripts/evaluate-container-vulnerabilities.py",
-        "security/vulnerability-exceptions.json",
-        "tests/test_container_supply_chain_policy.py",
-        "tests/test_container_vulnerability_policy.py",
-        ".project/**"
-      ],
+      "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
       "verification": {
-        "head_sha": "0e6ecc08b1caea4a313e4f39ab4029a3500d1f91",
-        "general_ci_run": 30695154014,
-        "container_supply_chain_run": 30695154012,
+        "head_sha": "b3f85edee688baa244fd40de17b8f0b65e6d686b",
+        "general_ci_run": 30695457310,
+        "container_supply_chain_run": 30695457322,
         "result": "green",
         "review_threads": 0
       },
-      "next_action": "Mark PR #209 ready and squash-merge only while required checks remain green."
+      "track": "security-maintenance"
     },
     {
       "id": "NEXOLAB-199",
