@@ -57,13 +57,13 @@
       "depends_on": ["NEXOLAB-186"],
       "branch": "feat/198-durable-central-ingestion",
       "pull_request": 207,
-      "blocker": "Targeted durability, capacity, observability and recovery gates are green. Aggregate Container Supply Chain must rerun after Issue #208 merges."
+      "blocker": "Targeted durability, capacity, observability and recovery gates are green. Update from main and rerun aggregate Container Supply Chain after Issue #208 merges."
     },
     {
       "id": "NEXOLAB-208",
       "issue": 208,
-      "title": "Eliminate stale Device Agent supply-chain provenance",
-      "status": "in_progress",
+      "title": "Harden Device Agent supply-chain evidence",
+      "status": "review",
       "priority": 5,
       "depends_on": ["NEXOLAB-186"],
       "branch": "fix/208-device-agent-pyasn1-cve",
@@ -72,9 +72,20 @@
       "track": "security-maintenance",
       "scope": [
         ".github/workflows/container-supply-chain.yml",
+        "scripts/evaluate-container-vulnerabilities.py",
+        "security/vulnerability-exceptions.json",
         "tests/test_container_supply_chain_policy.py",
+        "tests/test_container_vulnerability_policy.py",
         ".project/**"
-      ]
+      ],
+      "verification": {
+        "head_sha": "0e6ecc08b1caea4a313e4f39ab4029a3500d1f91",
+        "general_ci_run": 30695154014,
+        "container_supply_chain_run": 30695154012,
+        "result": "green",
+        "review_threads": 0
+      },
+      "next_action": "Mark PR #209 ready and squash-merge only while required checks remain green."
     },
     {
       "id": "NEXOLAB-199",
