@@ -1,0 +1,60 @@
+name: Device Agent pyasn1 diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/device-agent/**"
+      - ".github/workflows/device-agent-pyasn1-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-agent-pyasn1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect-runtime-image:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'fix/208-device-agent-pyasn1-cve'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Device Agent image
+        run: docker build --progress=plain -t nexolab-device-agent:pyasn1-diagnostic services/device-agent
+
+      - name: Print imported pyasn1 version and location
+        run: |
+          docker run --rm nexolab-device-agent:pyasn1-diagnostic \
+            -c 'import importlib.metadata, pyasn1, sys; print("version=" + importlib.metadata.version("pyasn1")); print("module=" + pyasn1.__file__); print("sys_path=" + repr(sys.path))'
+
+      - name: Enumerate pyasn1 files and package metadata
+        run: |
+          set -euo pipefail
+          container_id="$(docker create nexolab-device-agent:pyasn1-diagnostic)"
+          trap 'docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
+          docker export "$container_id" -o /tmp/device-agent-rootfs.tar
+          echo "=== PYASN1 FILES ==="
+          tar -tf /tmp/device-agent-rootfs.tar \
+            | grep -Ei '(^|/)(pyasn1|pyasn1-[^/]+\.(dist-info|egg-info))(/|$)' \
+            | sort \
+            | head -n 400
+          echo "=== METADATA ==="
+          metadata_path="$(
+            tar -tf /tmp/device-agent-rootfs.tar \
+              | grep -E 'pyasn1-[^/]+\.dist-info/METADATA$' \
+              | head -n 1
+          )"
+          test -n "$metadata_path"
+          tar -xOf /tmp/device-agent-rootfs.tar "$metadata_path" \
+            | grep -E '^(Name|Version|Requires-Dist):'
+
+      - name: Inspect image ancestry
+        run: |
+          docker image inspect nexolab-device-agent:pyasn1-diagnostic \
+            --format '{{json .Config.Env}}'
+          docker history --no-trunc nexolab-device-agent:pyasn1-diagnostic
