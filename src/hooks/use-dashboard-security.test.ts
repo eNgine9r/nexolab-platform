@@ -67,7 +67,10 @@ describe("useDashboardSecurity", () => {
       accessToken: "access-token",
       organizationId: null,
     });
-    vi.stubGlobal("fetch", vi.fn(async () => sessionResponse()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => sessionResponse()),
+    );
   });
 
   afterEach(() => {

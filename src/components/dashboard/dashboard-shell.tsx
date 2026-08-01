@@ -48,8 +48,7 @@ export function DashboardShell() {
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
     organizationId,
-    temperatureChannelIds:
-      security.mode === "live" ? sensorManagement.activeChannelIds : null,
+    temperatureChannelIds: security.mode === "live" ? sensorManagement.activeChannelIds : null,
   });
 
   if (
@@ -122,9 +121,7 @@ export function DashboardShell() {
                 <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">Control center</p>
                 <h1 className="mt-1 text-xl font-semibold text-white">Огляд лабораторії</h1>
               </div>
-              <span
-                className={`rounded-full border px-3 py-1.5 text-[9px] capitalize ${mobileStatusTone}`}
-              >
+              <span className={`rounded-full border px-3 py-1.5 text-[9px] capitalize ${mobileStatusTone}`}>
                 ● {telemetry.status}
               </span>
             </div>
@@ -161,9 +158,7 @@ export function DashboardShell() {
                 )}
               </Panel>
               <Panel
-                title={
-                  telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"
-                }
+                title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
                 action={
                   telemetry.mode === "live" ? (
                     <button
