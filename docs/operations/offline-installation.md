@@ -32,7 +32,7 @@ The bundle contains images, Compose definitions, environment templates, SBOMs, p
 - production telemetry;
 - Modbus device configuration.
 
-Never use `docker compose down -v`. Named volumes are the persistent data boundary and must survive install, update and rollback.
+Never add the volume-removal flag (`-v`) to `docker compose down`. Named volumes are the persistent data boundary and must survive install, update and rollback.
 
 ## 1. Build on a connected controlled host
 
