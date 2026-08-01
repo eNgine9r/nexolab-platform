@@ -7,9 +7,9 @@
   "pull_request": 207,
   "branch": "feat/198-durable-central-ingestion",
   "status": "in_progress",
-  "timestamp": "2026-08-01T10:00:00+03:00",
+  "timestamp": "2026-08-01T10:38:00+03:00",
   "baseline_main_sha": "bd286690f94bdf06adf3fc630bdee69c5019ebce",
-  "summary": "Implemented the software boundary for durable MQTT-to-PostgreSQL ingestion: payloads are committed to a local SQLite WAL spool before manual QoS acknowledgement, then replayed to PostgreSQL in FIFO order with event_id idempotency, capacity visibility and named-volume persistence.",
+  "summary": "Implemented the software boundary for durable MQTT-to-PostgreSQL ingestion: payloads are committed to a local SQLite WAL spool before manual QoS acknowledgement, then replayed to PostgreSQL in FIFO order with event_id idempotency, capacity visibility, named-volume persistence and local observability alerts.",
   "architecture_decision": "docs/adr/0008-durable-central-ingestion-spool.md",
   "files_changed": [
     ".project/ACTIVE_SPRINT.json",
@@ -21,6 +21,8 @@
     "docs/operations/telemetry-backend-runbook.md",
     "infrastructure/compose/compose.backend.yaml",
     "infrastructure/compose/compose.central.yaml",
+    "infrastructure/observability/alertmanager/alertmanager.yml",
+    "infrastructure/observability/prometheus/rules/nexolab-ingestion-spool.yml",
     "services/telemetry-service/Dockerfile",
     "services/telemetry-service/app/application.py",
     "services/telemetry-service/app/config.py",
@@ -32,7 +34,8 @@
     "services/telemetry-service/tests/test_durable_database_outage.py",
     "services/telemetry-service/tests/test_durable_ingestion.py",
     "services/telemetry-service/tests/test_durable_spool.py",
-    "services/telemetry-service/tests/test_mqtt_manual_ack.py"
+    "services/telemetry-service/tests/test_mqtt_manual_ack.py",
+    "tests/test_observability_policy.py"
   ],
   "scope_completed": [
     "SQLite WAL and synchronous FULL local ingestion spool",
@@ -45,30 +48,31 @@
     "dedicated backend and central named Compose volumes",
     "container directory ownership for the non-root runtime user",
     "unit, process-restart, duplicate-delivery, manual-ACK and PostgreSQL-outage tests",
+    "Prometheus spool utilization, backlog, terminal, capacity, I/O and MQTT acknowledgement alerts",
+    "Alertmanager critical-to-warning inhibition for spool utilization",
+    "central named-volume observability acceptance",
     "ADR, architecture and operations documentation",
-    "project source-of-truth transition from completed #186 to active #198"
+    "project source-of-truth transition from completed #186 to active #198",
+    "independent Device Agent pyasn1 CVE separated into Issue #208"
   ],
   "checks_completed": [
     "local Python compile and targeted SQLite spool smoke checks",
     "local simulated process-restart replay with a failing then recovered database",
-    "GitHub Actions CI run 30689203321: changed-file formatting passed",
-    "GitHub Actions CI run 30689203321: ESLint passed",
-    "GitHub Actions CI run 30689203321: strict TypeScript typecheck passed",
-    "GitHub Actions CI run 30689203321: Vitest passed",
-    "GitHub Actions CI run 30689203321: Next.js production build passed",
-    "superseded Telemetry Service run 30689203367: compile passed",
-    "superseded Telemetry Service run 30689203367: Compose/recovery contract validation passed",
-    "superseded Telemetry Service run 30689203367: PostgreSQL migrations passed",
-    "superseded Telemetry Service run 30689203367: Python telemetry test suite passed",
-    "superseded Telemetry Service run 30689203367: PostgreSQL outage/restart tests passed",
-    "superseded Telemetry Service run 30689203367: offline migration SQL passed",
-    "Prettier 3.9.6 canonical formatting applied to the three reported documentation files",
-    "temporary formatter workflow restored exactly to the main branch CI definition"
+    "GitHub Actions CI run 30689203321: changed-file formatting, ESLint, strict TypeScript typecheck, Vitest and Next.js production build passed",
+    "superseded Telemetry Service run 30689203367: compile, Compose/recovery contracts, PostgreSQL migrations, Python tests, outage/restart tests and offline migration SQL passed",
+    "Prettier 3.9.6 canonical formatting applied to changed Markdown, JSON and YAML files",
+    "temporary formatter workflows restored exactly to the main branch CI definition",
+    "observability repository validator passed after the durable named-volume update",
+    "observability policy tests passed after adding the spool alert and inhibition contracts",
+    "promtool finding corrected by replacing invalid two-argument max() with explicit record-or-byte threshold expressions",
+    "Device Agent supply-chain CVE classified outside PR #207 and recorded as security Issue #208"
   ],
   "checks_pending": [
     "latest-head changed-file formatting and general CI",
     "latest-head Telemetry Service full test and container build",
+    "latest-head Observability promtool, Alertmanager, Compose and Chromium acceptance",
     "latest-head Compose and disaster-recovery workflows",
+    "Container Supply Chain classification against required-check policy",
     "Pull Request review and unresolved-thread inspection",
     "runtime metrics/readiness inspection in the built container",
     "draft-to-ready transition and mergeability verification"
@@ -86,7 +90,8 @@
     "node health/status streams are outside the Issue #198 durable measurement boundary",
     "strict FIFO can create observable head-of-line blocking",
     "pre-ADR-0008 rollback is unsafe while pending or terminal spool records exist",
-    "actual-host capacity thresholds require operational evidence"
+    "actual-host capacity thresholds require operational evidence",
+    "Device Agent image contains independent pyasn1 CVE-2026-33230 until Issue #208 is completed"
   ],
-  "next_action": "Use the repository-authored commit after canonical formatting to run the full PR #207 workflow set. Inspect failures and review findings, then merge only after all required checks are green."
+  "next_action": "Run the full standard PR #207 workflow set from this repository-authored head, inspect any final failures and review findings, then update exact final run IDs and merge only after required checks are green."
 }
