@@ -1,0 +1,51 @@
+name: Issue 210 Prettier Formatter
+
+on:
+  push:
+    branches:
+      - fix/210-dashboard-security-bootstrap
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format scoped files
+        run: |
+          npx prettier --write \
+            src/components/dashboard/dashboard-shell.tsx \
+            src/components/dashboard/security-gate.tsx \
+            src/features/security/security-session.ts \
+            src/hooks/use-dashboard-security.test.ts \
+            src/hooks/use-dashboard-security.ts
+
+      - name: Package formatted files
+        run: |
+          tar -czf issue-210-prettier.tar.gz \
+            src/components/dashboard/dashboard-shell.tsx \
+            src/components/dashboard/security-gate.tsx \
+            src/features/security/security-session.ts \
+            src/hooks/use-dashboard-security.test.ts \
+            src/hooks/use-dashboard-security.ts
+
+      - name: Upload formatted artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-210-prettier-${{ github.sha }}
+          path: issue-210-prettier.tar.gz
+          if-no-files-found: error
+          retention-days: 3
