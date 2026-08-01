@@ -6,8 +6,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
 const organizationId = requiredEnvironment("NEXOLAB_LOCAL_AUTH_ORGANIZATION_ID");
 const password = requiredEnvironment("NEXOLAB_LOCAL_AUTH_PASSWORD");
-const evidenceDirectory =
-  process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
 
 const accounts = {
   viewer: requiredEnvironment("NEXOLAB_LOCAL_AUTH_VIEWER_USERNAME"),
@@ -30,10 +29,7 @@ function apiHeaders(accessToken: string): Record<string, string> {
   };
 }
 
-async function loginThroughBrowser(
-  browser: Browser,
-  role: RoleName,
-): Promise<BrowserLogin> {
+async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<BrowserLogin> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/login", { waitUntil: "networkidle" });
@@ -45,12 +41,8 @@ async function loginThroughBrowser(
 
   const storage = await page.evaluate(() => ({
     accessToken: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
-    refreshPresent: Boolean(
-      window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
-    ),
-    localTokenKeys: Object.keys(window.localStorage).filter((key) =>
-      key.startsWith("nexolab.local-auth."),
-    ),
+    refreshPresent: Boolean(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")),
+    localTokenKeys: Object.keys(window.localStorage).filter((key) => key.startsWith("nexolab.local-auth.")),
   }));
   expect(storage.accessToken).toBeTruthy();
   expect(storage.refreshPresent).toBe(true);
@@ -68,10 +60,9 @@ test("authenticates local viewer, operator and administrator without an external
     await test.step(`verify ${role} browser login and server session`, async () => {
       const { page, accessToken } = await loginThroughBrowser(browser, role);
       try {
-        const sessionResponse = await page.request.get(
-          `${apiBaseUrl}/api/v1/auth/session`,
-          { headers: apiHeaders(accessToken) },
-        );
+        const sessionResponse = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+          headers: apiHeaders(accessToken),
+        });
         expect(sessionResponse.status()).toBe(200);
         const session = (await sessionResponse.json()) as {
           identity: { provider: string; subject: string };
@@ -86,10 +77,9 @@ test("authenticates local viewer, operator and administrator without an external
         expect(session.memberships[0]?.organization_id).toBe(organizationId);
         expect(session.memberships[0]?.roles).toContain(role);
 
-        const auditResponse = await page.request.get(
-          `${apiBaseUrl}/api/v1/audit/events`,
-          { headers: apiHeaders(accessToken) },
-        );
+        const auditResponse = await page.request.get(`${apiBaseUrl}/api/v1/audit/events`, {
+          headers: apiHeaders(accessToken),
+        });
         if (role === "administrator") {
           expect(auditResponse.status()).toBe(200);
           expect(session.memberships[0]?.permissions).toContain("audit.read");
@@ -149,35 +139,31 @@ test("rotates refresh tokens and rejects the previous access token after browser
       window.sessionStorage.getItem("nexolab.local-auth.access-token"),
     );
     expect(currentAccessToken).toBeTruthy();
-    const activeResponse = await page.request.get(
-      `${apiBaseUrl}/api/v1/auth/session`,
-      { headers: apiHeaders(currentAccessToken as string) },
-    );
+    const activeResponse = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(currentAccessToken as string),
+    });
     expect(activeResponse.status()).toBe(200);
 
     await page.getByLabel("Вийти з NEXOLAB").click();
     await expect
-      .poll(async () =>
-        await page.evaluate(() => ({
-          access: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
-          refresh: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
-        })),
+      .poll(
+        async () =>
+          await page.evaluate(() => ({
+            access: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
+            refresh: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
+          })),
       )
       .toEqual({ access: null, refresh: null });
 
-    const revokedCurrentResponse = await page.request.get(
-      `${apiBaseUrl}/api/v1/auth/session`,
-      { headers: apiHeaders(currentAccessToken as string) },
-    );
+    const revokedCurrentResponse = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(currentAccessToken as string),
+    });
     expect(revokedCurrentResponse.status()).toBe(401);
-    expect((await revokedCurrentResponse.json()).detail.code).toBe(
-      "local_session_invalid",
-    );
+    expect((await revokedCurrentResponse.json()).detail.code).toBe("local_session_invalid");
 
-    const preRefreshResponse = await page.request.get(
-      `${apiBaseUrl}/api/v1/auth/session`,
-      { headers: apiHeaders(accessToken) },
-    );
+    const preRefreshResponse = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(accessToken),
+    });
     expect(preRefreshResponse.status()).toBe(401);
   } finally {
     await page.context().close();

@@ -2,10 +2,8 @@ import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
-const evidenceDirectory =
-  process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
-const webUrl =
-  process.env.NEXOLAB_LOCAL_AUTH_WEB_URL ?? "http://127.0.0.1:13011";
+const evidenceDirectory = process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
+const webUrl = process.env.NEXOLAB_LOCAL_AUTH_WEB_URL ?? "http://127.0.0.1:13011";
 const webPort = new URL(webUrl).port || "13011";
 
 export default defineConfig({
