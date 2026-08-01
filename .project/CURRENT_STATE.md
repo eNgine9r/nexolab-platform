@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `6635892cc14c44f90e6357646496ffe782335e83`  
-Active Work Package: Issue #187 / PR #215 — GREEN and ready to merge  
+Verified product baseline: `main` merge `4c980781ff1beb0afb89f1779c82750a06e8eb7e`  
+Next Ready Work Package: Issue #188  
 Status confidence: high for repository, linux/amd64 software-CI and disconnected container-runtime boundaries; partial for ARM64 actual-host, Raspberry Pi and hardware acceptance.
 
 ## Profile
@@ -23,84 +23,93 @@ Status confidence: high for repository, linux/amd64 software-CI and disconnected
 - PR #207 completed durable central telemetry ingestion.
 - PR #213 restored actionable dashboard security bootstrap diagnostics.
 - PR #214 stabilized the live telemetry WebSocket lifecycle.
+- PR #215 added and proved the offline installation/update bundle, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
 
-## Issue #187 verified outcome
+## Issue #187 completed outcome
 
-Issue #187 is implemented in branch `feat/187-offline-install-bundle` through PR #215.
+NEXOLAB now has a versioned offline bundle for the complete core runtime:
 
-Implemented bundle contract:
+- dashboard;
+- telemetry service and migrations;
+- Device Agent;
+- Mosquitto;
+- PostgreSQL;
+- MinIO;
+- MinIO Client.
 
-- separate `linux/amd64` and `linux/arm64` target manifests;
-- seven runtime images: dashboard, telemetry service, Device Agent, Mosquitto, PostgreSQL, MinIO and MinIO Client;
+The bundle includes:
+
+- target platform and exact source-commit manifest;
 - versioned Docker image archive;
-- manifest with source commit, platform, image references, image IDs and sizes;
-- SHA-256 checksums for the archive and all bundle files;
+- archive and per-file SHA-256 checksums;
+- image IDs and sizes;
+- provenance;
 - CycloneDX and SPDX SBOMs;
-- provenance record;
-- external environment files and secrets;
-- offline Compose overlays with `pull_policy: never` and no inherited build contracts;
-- disconnected installer and runtime smoke scripts;
-- update and rollback volume-preservation verification;
-- operator runbook for build, transfer, install, evidence, update and rollback.
+- offline central and edge Compose overlays;
+- external environment templates;
+- integrity verifier;
+- disconnected installer;
+- runtime smoke checks;
+- update/rollback volume-preservation drill;
+- operator runbook.
 
-## Disconnected runtime verification
+## Final verification
 
-Verified code/runtime head: `f21d9effe079e07ad3d8d163f029f26d06292556`.
+Final PR head `5dafd5b3014af69fa34b2524e00cb59cf7d5acb7` passed:
 
-Offline Bundle run `30708470343` passed:
+- CI run `30709170478`;
+- Telemetry Service run `30709170479`;
+- Offline Bundle run `30709170491`.
 
-- exact PR-head checkout and provenance;
-- linux/amd64 bundle build;
-- seven-image inventory;
-- archive and file checksum verification;
-- CycloneDX and SPDX SBOM generation;
-- removal of all seven local runtime image references;
-- extraction into a clean validation directory;
-- `docker load` from the transferred archive;
+The final Offline Bundle gate proved:
+
+- linux/amd64 seven-image build;
+- exact source provenance;
+- checksum, manifest and SBOM verification;
+- deletion of all seven local runtime image references;
+- clean validation-directory extraction;
+- archive-only `docker load`;
 - blocked container egress;
 - central and edge simulator startup with `--no-build --pull never`;
-- dashboard HTTP readiness;
-- telemetry REST readiness;
-- WebSocket application-level evidence;
-- MQTT, PostgreSQL and MinIO readiness;
-- edge simulator health;
-- update recreation against alternate image tags;
-- rollback recreation against original image tags;
-- preservation of six required destination-bound persistent-data volumes;
-- preservation of PostgreSQL, retained MQTT, MinIO object and edge-volume markers.
+- dashboard, REST, WebSocket, MQTT, PostgreSQL, MinIO and edge health;
+- update and rollback container recreation;
+- unchanged identities for six required persistent-data volumes;
+- preserved PostgreSQL, retained MQTT, MinIO object and edge-volume markers.
 
-Artifact evidence:
+Final artifact:
 
-- artifact ID: `8821187814`;
-- artifact size: `558407971` bytes;
-- artifact digest: `sha256:d7400b9edc7fafeb99bae5795427c5b64041e534668d82891b0adfc9d87bbee9`.
-
-Additional GREEN checks on the same verified code head:
-
-- CI run `30708470342`;
-- Telemetry Service run `30708470344`.
+- artifact ID: `8821407762`;
+- size: `558421492` bytes;
+- digest: `sha256:39d8ae8912e813de5419f004d9a2c1e301baf498932cbc312c5d299092013c14`.
 
 ## Runtime and security boundary
 
-- Runtime startup made no registry pull and no local image build.
-- Container egress was blocked after bundle creation.
-- No npm, PyPI, Docker Hub, GHCR, external API or paid service was required after archive transfer.
-- `.env` files and secrets are external to the bundle.
+- Runtime startup required no registry, npm, PyPI, external API or paid service after archive transfer.
+- Environment files and secrets remain external to the bundle.
 - No persistent volume was deleted.
-- The validation profile uses `AUTH_MODE=disabled` only for isolated LOCAL_LAN proof; offline fail-closed operator authentication remains Issue #188.
+- The isolated validation profile used `AUTH_MODE=disabled`; this does not complete offline operator authentication.
+- No production/site deployment, Modbus write or hardware action was performed.
 
 ## Open Pull Requests
 
-- #215 — GREEN and ready for final review/merge.
 - #192 — separate draft formatting inventory; not mixed into product work.
 
 ## Next Ready Work Package
 
-After PR #215 is merged, activate Issue #188 — define and prove fail-closed offline operator authentication and RBAC without a mandatory cloud identity service.
+Issue #188 — define and prove fail-closed offline operator authentication and RBAC without a mandatory cloud identity service.
+
+Required boundary:
+
+- local identity must work while the LAN is disconnected from the internet;
+- authentication and authorization must remain fail-closed;
+- no private signing key or user password may be bundled in images or source;
+- existing JWT/RBAC/audit contracts must be preserved or versioned explicitly;
+- cloud identity may remain optional and isolated;
+- no authentication bypass may be presented as production behavior.
 
 ## Remaining unverified areas
 
-- `linux/arm64` bundle execution on an actual Raspberry Pi 5;
+- linux/arm64 bundle execution on an actual Raspberry Pi 5;
 - physical transfer and install on an operator-owned disconnected host;
 - actual Raspberry Pi or central-host power interruption;
 - physical disk-full and disk-loss recovery;
