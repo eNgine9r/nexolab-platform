@@ -90,20 +90,48 @@
       "track": "security-maintenance"
     },
     {
+      "id": "NEXOLAB-210",
+      "issue": 210,
+      "title": "Restore LOCAL_LAN dashboard security bootstrap and actionable session diagnostics",
+      "status": "in_progress",
+      "priority": 6,
+      "depends_on": ["NEXOLAB-198"],
+      "branch": "fix/210-dashboard-security-bootstrap",
+      "pull_request": 213,
+      "started_at": "2026-08-01",
+      "scope": [
+        "src/features/security/**",
+        "src/hooks/use-dashboard-security.ts",
+        "src/hooks/use-dashboard-security.test.ts",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "src/components/dashboard/security-gate.tsx",
+        "src/components/dashboard/security-gate.test.tsx",
+        "docs/operations/dashboard-security-bootstrap.md",
+        ".project/**"
+      ],
+      "verification": {
+        "implementation_head": "6397d14ef106be637659d05619fe1b9a1a973fbb",
+        "general_ci_run": 30699101280,
+        "result": "green",
+        "actual_host_root_cause": "unverified"
+      },
+      "next_action": "Complete runbook and project-state checks, rerun final CI/browser acceptance, then merge only if green."
+    },
+    {
       "id": "NEXOLAB-199",
       "issue": 199,
       "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
       "status": "ready",
-      "priority": 6,
-      "depends_on": ["NEXOLAB-198"],
-      "activation": "Start from main at or after 5851955ea9a38a9068bbab1eb0c9701722c028c5; PR #175 is reference-only."
+      "priority": 7,
+      "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
+      "activation": "Start from post-#210 main after dashboard security bootstrap is restored; PR #175 is reference-only."
     },
     {
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
       "status": "queued",
-      "priority": 7,
+      "priority": 8,
       "depends_on": ["NEXOLAB-198"]
     },
     {
@@ -111,7 +139,7 @@
       "issue": 188,
       "title": "Define and prove offline operator authentication",
       "status": "queued",
-      "priority": 8,
+      "priority": 9,
       "depends_on": ["NEXOLAB-198"]
     },
     {
@@ -119,7 +147,7 @@
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked",
-      "priority": 9,
+      "priority": 10,
       "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
       "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
     },
