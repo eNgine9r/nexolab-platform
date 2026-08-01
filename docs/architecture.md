@@ -1,23 +1,22 @@
 # NEXOLAB verified architecture baseline
 
-**Baseline date:** 2026-07-31  
-**Verified `main`:** `8371ee59e76e64963405706be79fc4a909f9fac9`  
+**Baseline date:** 2026-08-01  
+**Verified `main`:** `bd286690f94bdf06adf3fc630bdee69c5019ebce`  
 **Project profile:** `LOCAL_LAN`
 
-This document replaces the earlier fixture-only frontend description. It records the architecture that is present in code and runtime configuration. A component is marked operationally accepted only where repository evidence exists; code, documentation and a closed Issue are not substitutes for real-host or real-device evidence.
+This document records the repository-backed NEXOLAB architecture. Implementation, software acceptance, actual-host acceptance and real-hardware acceptance are separate evidence levels.
 
 ## 1. System boundary
 
 ```text
 Local operator browser
-        │
-        │ HTTP / WebSocket on the trusted LAN
+        │ HTTP / WebSocket on trusted LAN
         ▼
 Next.js dashboard
-        │
         │ typed REST and WebSocket contracts
         ▼
 FastAPI Telemetry Service
+        ├── local SQLite durable ingestion spool
         ├── PostgreSQL 16
         ├── local S3-compatible object storage (MinIO)
         └── central Eclipse Mosquitto
@@ -37,237 +36,251 @@ FastAPI Telemetry Service
        XJP60D and LE-01MP devices
 ```
 
-The browser, dashboard, API, MQTT, PostgreSQL, object storage and edge acquisition path can be hosted entirely inside the local network. Internet connectivity is not part of the core data path.
+The core data path can run entirely inside the local network. Internet connectivity and paid cloud services are not runtime requirements.
 
-## 2. Frontend
+## 2. Frontend boundary
 
-### Verified implementation
+The frontend uses Next.js App Router, React, TypeScript and local CSS/Tailwind assets. It provides explicit demo and live modes, typed REST/WebSocket clients and feature modules for telemetry, sessions, alerts, reports, nodes, security and refrigeration.
 
-- Next.js 16 App Router, React 19, TypeScript and Tailwind CSS.
-- Explicit `demo` and `live` modes.
-- Typed REST and WebSocket clients with runtime payload validation.
-- Feature modules for telemetry, sessions, alerts, reports, nodes, security and refrigeration workflows.
-- Explicit live connection states; stale or unavailable data must not be relabeled as live.
-- Demo data is isolated and must not silently replace a failed live path.
-- Root layout uses local CSS and system fonts; no remote font loader is configured.
-- No mandatory CDN, analytics SDK or external browser telemetry was found in the inspected frontend configuration.
+Rules preserved:
 
-### Runtime boundary
+- stale or unavailable telemetry is not relabeled as live;
+- demo data does not silently replace a failed live path;
+- no mandatory CDN, remote font, analytics SDK or browser telemetry owns the local runtime;
+- Tailscale and Supabase remain optional layers;
+- secure fully local operator authentication remains Issue #188.
 
-The dashboard requires only a reachable local API/WebSocket origin in live mode. Its example configuration points to local addresses. Browser access through Tailscale or another tunnel is an optional remote-access layer, not a core runtime dependency.
+## 3. Central telemetry ingestion
 
-### Authentication boundary
+### 3.1 Durable acknowledgement boundary
 
-The frontend contains:
+ADR 0008 defines the telemetry measurement contract:
 
-- an optional Supabase Auth adapter;
-- an acceptance-only credential provider;
-- a generic bearer-token integration with the backend.
+```text
+MQTT QoS 1 delivery
+        ↓
+payload validation or dead-letter classification
+        ↓
+SQLite WAL spool transaction (`synchronous=FULL`)
+        ↓
+manual MQTT acknowledgement
+        ↓
+FIFO PostgreSQL persistence
+        ↓
+`event_id` insert or idempotent duplicate result
+        ↓
+delete local spool record
+```
 
-When Supabase variables are absent, no Supabase client is created. This keeps Supabase optional, but a secure production operator login that is fully local and offline has not yet been accepted. `AUTH_MODE=disabled` is not a production security solution. The remaining decision and acceptance work is tracked in Issue #188.
+The local spool closes the previous loss window between broker acknowledgement and PostgreSQL commit.
 
-## 3. Telemetry Service
+When durable staging succeeds, the MQTT callback may acknowledge the QoS message even while PostgreSQL is unavailable because the payload is recoverable from local storage. When staging fails because of disk, capacity or integrity problems, the service leaves the message unacknowledged and retries with bounded backoff.
 
-### Verified implementation
+### 3.2 Storage and restart semantics
 
-The FastAPI service owns the central application and telemetry boundary:
+The spool uses:
 
-- MQTT ingestion;
-- schema and payload validation;
-- PostgreSQL persistence through SQLAlchemy and Alembic;
+- SQLite WAL;
+- `synchronous=FULL`;
+- a dedicated named Compose volume;
+- strict local FIFO by spool record ID;
+- unique telemetry `event_id` values;
+- MQTT delivery-key deduplication with payload equality checks;
+- pending, retry and terminal states;
+- record and payload-byte capacity limits.
+
+Pending records survive process and container recreation. PostgreSQL `event_id` idempotency makes replay safe if the PostgreSQL write succeeded but deleting the spool record did not.
+
+Normal shutdown stops MQTT intake before the worker exits. Pending rows remain durable. Operational procedures must never use `docker compose down -v`.
+
+### 3.3 Ordering boundary
+
+The spool preserves local arrival order. MQTT reconnects, multiple edge publishers and network timing can produce bounded inter-node reordering before staging. Event time and node sequence fields remain the semantic ordering sources.
+
+A failed oldest record blocks later records to preserve strict FIFO. Queue depth and oldest-pending-age metrics expose this condition.
+
+### 3.4 Invalid payloads
+
+Invalid UTF-8, JSON, object shape, size and schema payloads are committed as durable dead-letter work before MQTT acknowledgement. PostgreSQL outage or service restart therefore does not silently discard rejected input.
+
+### 3.5 Scope exclusion
+
+Issue #198 and ADR 0008 cover the telemetry measurement stream handled by `TelemetryIngestor`. Node health/status streams retain their existing persistence worker. Equivalent process-restart durability for those streams is not claimed by this Work Package.
+
+## 4. Central application boundary
+
+The FastAPI service owns:
+
+- telemetry and dead-letter ingestion;
+- PostgreSQL persistence through SQLAlchemy/Alembic;
 - latest/history REST APIs;
 - bounded WebSocket fan-out;
 - sessions, stages, bindings, limits and audit records;
 - refrigeration equipment, climate catalog and layout data;
 - alert, report and node-management APIs;
-- local S3-compatible object storage integration;
+- local MinIO integration;
 - retention, health, readiness and metrics.
 
-### Data invariants
-
-Repository rules and code preserve these invariants:
+Data invariants:
 
 - repeated telemetry `event_id` values are deduplicated;
-- the newest `captured_at` wins when selecting latest state;
-- migrations complete before application readiness;
-- stale values are represented explicitly;
-- PostgreSQL is not published to the host by the standard central Compose profile;
-- MQTT, PostgreSQL, API and WebSocket failures remain separately diagnosable.
+- newest `captured_at` wins for latest state;
+- migrations complete before readiness;
+- PostgreSQL is internal in the standard central profile;
+- MQTT, local spool, PostgreSQL, API and WebSocket failures remain independently diagnosable.
 
-### Central outage and durability limitation
+Readiness remains strict: PostgreSQL and the MQTT subscription must be ready. During PostgreSQL outage the service may safely stage telemetry while readiness returns `503`.
 
-The edge SQLite outbox guarantees local persistence only until the configured MQTT broker acknowledges the QoS 1 publish. After that acknowledgement, the Device Agent deletes the edge row. The central MQTT consumer then submits the payload to a bounded in-memory persistence queue, and PostgreSQL durability occurs later.
+## 5. Metrics and failure visibility
 
-Consequently, if PostgreSQL is unavailable and the Telemetry Service terminates after broker delivery but before database commit, the acknowledged payload can be lost: it is no longer present in the edge SQLite outbox and the central queue is not durable. The current contract is at-least-once delivery to the MQTT boundary, not end-to-end durability in PostgreSQL. Operators must avoid terminating the Telemetry Service during a PostgreSQL outage. Issue #198 owns the durable central staging/replay correction; Issue #189 must include the resulting restart and recovery evidence.
+The runtime exposes:
 
-## 4. Device Agent and hardware boundary
+- spool readiness;
+- pending and terminal records;
+- retained payload bytes;
+- oldest pending age;
+- configured record/byte capacities;
+- staged, recovered and replayed totals;
+- capacity and spool-error totals;
+- MQTT manual acknowledgements and acknowledgement failures;
+- staging retries;
+- PostgreSQL retries, outage timestamps and recovery totals.
 
-### Verified implementation
+Capacity or disk failure does not trigger destructive cleanup. The message remains unacknowledged and the incident is visible through metrics/logs.
 
-The Device Agent supports:
+## 6. Device Agent and hardware boundary
 
-- `simulator`, `xjp60d`, `le01mp` and combined `modbus` modes;
-- sequential read-only polling through one serial client;
-- SQLite `outbound_queue` persistence with unique `event_id`;
-- MQTT QoS 1 publication and retry;
-- node health/status streams;
-- HTTP health/readiness;
-- mounted MQTT credentials and optional local TLS;
-- stable stream sequence allocation.
+The Device Agent supports simulator, XJP60D, LE-01MP and combined read-only Modbus modes. It persists outbound telemetry in edge SQLite, publishes through MQTT QoS 1 and exposes health/readiness.
 
-### Hardware safety
+Hardware constraints:
 
-Production hardware mode is opt-in through `compose.hardware.yaml`.
-
-The hardware contract requires:
-
-- a host path under `/dev/serial/by-id/...`;
-- no parallel Modbus master on the same bus;
-- FC03 read operations only for the validated drivers;
-- one 16-bit register per request;
+- production serial paths use `/dev/serial/by-id/...`;
+- no parallel Modbus master on one RTU bus;
+- validated drivers use FC03 reads only;
 - no Modbus write functions;
-- no automatic promotion of newly discovered devices into continuous polling.
+- no newly discovered endpoint enters continuous polling without explicit configuration/evidence.
 
-### Verified narrow hardware scope
-
-Repository evidence dated 2026-07-23 records a controlled smoke and soak for:
+Retained real-hardware evidence dated 2026-07-23 covers only:
 
 - XJP60D `106-03` and `106-04`;
-- LE-01MP units `200`, `201`, `202`, `203`;
+- LE-01MP `200–203`;
 - 34 records per complete cycle;
-- MQTT interruption, edge SQLite queue growth, reconnect and drain;
-- Device Agent restart;
-- rollback to simulator;
-- no established CRC, serial or Modbus errors;
-- no Modbus writes.
+- edge MQTT interruption, queue growth, reconnect and drain;
+- Device Agent restart and simulator rollback;
+- no established Modbus write, CRC or serial failure.
 
-This evidence does not prove every XJP60D channel, cumulative-energy register, all future buses, long-duration site operation or power-loss recovery. LE-01MP register `7` remains excluded pending scale and rollover validation.
+Broader topology, cumulative energy and extended XJP60D semantics remain Issues #200–#202.
 
-## 5. MQTT and PostgreSQL
+## 7. MQTT and PostgreSQL
 
 ### Edge MQTT
 
-The edge profile runs a local Mosquitto broker bound to loopback. The Device Agent publishes locally, allowing acquisition and queuing to continue while the central system is unavailable. Edge-to-central bridging is a separate, reversible operation.
+The edge profile runs a local Mosquitto broker. Device acquisition and edge queuing continue while the central system is unavailable. Edge-to-central bridging is reversible and independently diagnosable.
 
 ### Central MQTT
 
-The central profile runs Mosquitto with persistent storage. Authentication and TLS profiles exist, but their actual deployment state must be evidenced per environment. Remote access is not required for the local data path.
+The central profile runs Mosquitto with persistent storage. The durable Telemetry Service consumer uses a persistent MQTT v3 session and manual QoS acknowledgements for the telemetry stream.
+
+Authentication and TLS profiles exist, but each actual environment requires evidence. Remote access is not part of the local runtime requirement.
 
 ### PostgreSQL
 
-PostgreSQL 16 is the central source of truth for normalized telemetry and application domains. The standard central profile:
+PostgreSQL remains the normalized telemetry and application source of truth. Standard central Compose:
 
 - uses a named volume;
-- does not publish the database port to the host;
-- gates the API on database health and migrations;
-- runs an idempotent climate-catalog seed after migration.
+- does not expose PostgreSQL to the host;
+- gates startup on database health and migrations;
+- seeds the climate catalog idempotently.
 
-## 6. Local object storage
+The local spool is not a query database and does not replace PostgreSQL. It owns only work awaiting central persistence or operator review.
 
-The Telemetry Service can disable object storage or use S3-compatible storage. The standard central profile uses local MinIO with:
+## 8. Local object storage
 
-- a named volume;
-- a private bucket;
-- loopback host binding by default;
-- locally generated signed URLs.
+The Telemetry Service can disable object storage or use local S3-compatible MinIO. The standard central profile provides a private named-volume bucket and loopback host exposure. External S3 is optional and may not own the only copy of evidence.
 
-External S3 services are not required. Remote signed-URL delivery through Tailscale or another trusted proxy is optional.
+## 9. Local infrastructure and persistent volumes
 
-## 7. Local infrastructure and network exposure
+Central persistent state includes:
 
-The inspected central Compose profile contains local Mosquitto, PostgreSQL, MinIO, migration and Telemetry Service containers. Default host exposure is limited to loopback for MQTT, API and MinIO; PostgreSQL remains internal.
+- Mosquitto data;
+- PostgreSQL data;
+- MinIO objects;
+- Telemetry Service ingestion spool.
 
-The inspected edge profile contains local Mosquitto, Device Agent, MQTT persistence and edge SQLite persistence. Hardware access is absent until the explicit override is applied.
+Edge persistent state includes MQTT persistence and the Device Agent SQLite outbox.
 
-Named volumes are part of the rollback contract. Operational procedures must not use `docker compose down -v`.
+All update, rollback, backup and restore procedures must preserve named volumes unless a separately approved destructive operation is explicitly scoped.
 
-## 8. Internet and cloud classification
+## 10. Internet and cloud classification
 
-### Local and mandatory at runtime
+### Local mandatory runtime
 
-- local browser;
-- Next.js dashboard runtime;
+- local browser and dashboard;
 - FastAPI Telemetry Service;
+- local SQLite ingestion spool;
 - PostgreSQL;
 - Mosquitto;
 - edge SQLite;
-- serial/Modbus libraries;
-- MinIO when image-backed workflows are enabled;
-- Docker/Compose or an equivalent packaged local runtime.
+- read-only serial/Modbus libraries;
+- MinIO when image workflows are enabled.
 
 ### Optional online
 
-- GitHub and GitHub Actions;
-- GHCR/Docker Hub during connected installation;
+- GitHub/GitHub Actions;
+- connected container registries;
 - Supabase Auth;
 - external OIDC/JWKS;
-- Tailscale remote access;
+- Tailscale;
 - external S3-compatible storage.
 
-Optional services must have an explicit disabled/offline state and may not own the only copy of laboratory data.
+### Prohibited core dependencies
 
-### Development-only network access
-
-- npm and PyPI dependency installation;
-- upstream container registries;
-- security advisory and dependency metadata;
-- CI artifact publication.
-
-### Prohibited for core runtime
-
-- mandatory CDN assets or remote fonts;
-- mandatory cloud authentication;
+- mandatory CDN or remote fonts;
+- mandatory cloud identity/database/message broker;
 - hidden external telemetry;
-- online license checks;
-- required paid APIs or storage;
-- a cloud-only database or message broker.
+- online licence checks;
+- required paid APIs or storage.
 
-## 9. Installation, update and rollback boundary
+## 11. Installation, update and rollback boundary
 
-The runtime topology is local, but the current installation path is not yet independently offline-complete:
+The runtime topology is local, but a clean checksummed disconnected OCI bundle is still Issue #187.
 
-- Compose files reference images from GHCR and Docker Hub by default;
-- source builds require npm/PyPI dependencies unless already cached;
-- no versioned, checksummed OCI image bundle has been accepted on a clean disconnected host.
+Images that predate ADR 0008 must not be used while the ingestion spool contains pending or terminal records. Rollback must preserve the spool volume and use a compatible image until records are drained or an explicit recovery/migration procedure is approved.
 
-Issue #187 owns the offline bundle, disconnected installation, update and rollback proof.
+## 12. Backup and recovery boundary
 
-## 10. Backup and recovery boundary
+Merged PR #144 verifies encrypted fresh-volume software recovery for PostgreSQL, MinIO and Mosquitto. The ingestion spool becomes an additional central persistent resource.
 
-The repository contains runbooks and scripts for:
+Issue #189 must extend recovery evidence to include:
 
-- PostgreSQL logical backup;
-- isolated restore drills;
-- service restart;
-- MQTT and PostgreSQL outage diagnosis;
-- edge-to-central rollback;
-- preservation of named volumes.
+- ingestion spool backup and replay;
+- actual-host scheduling and off-host copies;
+- update rollback with pending work;
+- edge SQLite recovery;
+- controlled host/power interruption;
+- physical disk loss;
+- measured production RPO/RTO.
 
-Merged PR #144 provides an encrypted fresh-volume software recovery gate for the complete central state: PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security. It verifies protected database hashes/counts, MinIO object count/bytes/metadata/SHA-256/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows without mutating source volumes.
+Software CI for Issue #198 verifies the corrected process-restart path but does not prove actual-host power-loss or disk-loss recovery.
 
-That software gate does not prove actual-host scheduling, off-host encrypted copies, hardware-backed key custody, physical disk failure, production DNS/TLS restoration, measured production RPO/RTO, edge SQLite recovery or power loss. The current MQTT-to-PostgreSQL handoff also has a confirmed non-durable loss window until Issue #198 is implemented. Issue #189 owns the remaining consolidated operational and hardware evidence after that durability boundary is corrected.
+## 13. Implementation versus acceptance
 
-## 11. Implementation versus acceptance
+| Area | Code/configuration | Software evidence | Remaining boundary |
+| --- | --- | --- | --- |
+| Frontend live states | Present | Unit/build/browser workflows | Site-specific browser/network evidence |
+| Durable telemetry ingestion | Present in Issue #198 | Spool, duplicate, MQTT ACK, PostgreSQL outage/restart and container checks | Actual-host capacity, rollback, power/disk loss |
+| Edge read-only acquisition | Present | Narrow 2026-07-23 hardware evidence | Full physical topology and device semantics |
+| Sessions/reports/alerts/nodes | Present | Automated and browser workflows | Site recovery/offline acceptance |
+| Production authentication | Partial | JWT/RBAC and optional adapters | Secure offline operator identity (#188) |
+| Offline installation | Partial | Local topology | Clean disconnected bundle (#187) |
+| Backup/restore | Partial | PR #144 software gate | Spool/edge/actual-host/power evidence (#189) |
 
-| Area                                                | Code/configuration present | Repository evidence                                                     | Current boundary                                                                                        |
-| --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Frontend live adapter and explicit states           | Yes                        | Unit/build/browser tooling exists                                       | Current CI must validate each change; actual site browser state is environment-specific                 |
-| Telemetry ingestion, REST, WebSocket and PostgreSQL | Yes                        | Automated tests and operations tooling exist                            | Known MQTT-to-PostgreSQL durability gap is tracked in #198; controlled-host evidence remains incomplete |
-| Edge SQLite, MQTT and read-only Modbus drivers      | Yes                        | 2026-07-23 smoke and soak evidence for 34-series scope                  | Accepted only for that narrow scope; broader hardware remains unverified                                |
-| Laboratory sessions                                 | Yes                        | Issue #82 is closed and a real-hardware acceptance harness exists       | Parent tracker #74 is stale and must be reconciled                                                      |
-| Refrigeration/climate catalog                       | Yes                        | Merged implementation and automated acceptance claims exist             | Open PR #175 contains a current live/availability defect and is non-mergeable                           |
-| Reports, alerts and node management                 | Yes                        | Code and browser acceptance tooling exist                               | Not a substitute for site recovery/offline acceptance                                                   |
-| Production authentication                           | Partial                    | JWT/RBAC code and optional Supabase adapter exist                       | Secure offline operator login is not accepted                                                           |
-| Offline installation                                | Partial                    | Local topology exists                                                   | Clean disconnected installation bundle is missing                                                       |
-| Backup/restore/rollback                             | Partial                    | PR #144 verifies encrypted fresh-volume central-state software recovery | Actual-host scheduling, off-host copies, edge/power recovery and production RPO/RTO remain unverified   |
-| Power-loss recovery                                 | Partial                    | Restart handling exists                                                 | Controlled power-loss evidence is missing                                                               |
-
-## 12. Architectural decisions preserved
+## 14. Architectural decisions preserved
 
 - Offline-first edge acquisition.
-- Local PostgreSQL, local MQTT and edge SQLite are first-class.
+- Local PostgreSQL, MQTT and SQLite are first-class.
+- MQTT acknowledgement never outruns the accepted local durability boundary.
 - Modbus is read-only.
-- One Issue maps to one branch and one focused Pull Request.
-- Cloud functionality is optional and isolated.
+- Cloud functions are optional and isolated.
 - Persistent data survives container recreation and rollback.
 - Hardware and operational acceptance require actual evidence.
