@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createAuthenticatedFetch,
+  getSecurityCredentials,
   hasPermission,
   HttpSecuritySessionClient,
-  getSecurityCredentials,
   setSecurityCredentials,
 } from "./security-session";
 
@@ -28,7 +28,13 @@ const sessionPayload = {
   ],
 };
 
+const browserLocation = {
+  origin: "http://dashboard.example.test",
+  protocol: "http:",
+};
+
 afterEach(() => {
+  vi.useRealTimers();
   setSecurityCredentials({ accessToken: null, organizationId: null });
 });
 
@@ -57,6 +63,7 @@ describe("security session client", () => {
   it("parses memberships and evaluates explicit permissions", async () => {
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
+      browserLocation,
       fetchImpl: vi.fn(
         async () =>
           new Response(JSON.stringify(sessionPayload), {
@@ -77,6 +84,7 @@ describe("security session client", () => {
   it("maps HTTP 401 to an authentication-required result", async () => {
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: "https://api.example.test",
+      browserLocation,
       fetchImpl: vi.fn(
         async () =>
           new Response(
@@ -95,6 +103,129 @@ describe("security session client", () => {
       error: {
         code: "AUTHENTICATION_REQUIRED",
         message: "Bearer token is required",
+        diagnostics: {
+          apiOrigin: "https://api.example.test",
+          browserOrigin: "http://dashboard.example.test",
+          endpointPath: "/api/v1/auth/session",
+          timeoutMs: 8_000,
+          httpStatus: 401,
+        },
+      },
+    });
+  });
+
+  it("maps HTTP 403 to an access-denied result", async () => {
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "https://api.example.test",
+      browserLocation,
+      fetchImpl: vi.fn(async () => new Response(null, { status: 403 })) as unknown as typeof fetch,
+    });
+
+    const result = await client.getSession();
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "ACCESS_DENIED",
+        diagnostics: { httpStatus: 403 },
+      },
+    });
+  });
+
+  it("does not classify a server error as an authorization denial", async () => {
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "https://api.example.test",
+      browserLocation,
+      fetchImpl: vi.fn(async () => new Response(null, { status: 503 })) as unknown as typeof fetch,
+    });
+
+    const result = await client.getSession();
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "SESSION_API_ERROR",
+        diagnostics: { httpStatus: 503 },
+      },
+    });
+  });
+
+  it("rejects mixed content before issuing a browser request", async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "http://api.example.test",
+      browserLocation: {
+        origin: "https://dashboard.example.test",
+        protocol: "https:",
+      },
+      fetchImpl,
+    });
+
+    const result = await client.getSession();
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "SESSION_MIXED_CONTENT",
+        diagnostics: {
+          apiOrigin: "http://api.example.test",
+          browserOrigin: "https://dashboard.example.test",
+        },
+      },
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("returns a bounded timeout result and aborts the request", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) =>
+        await new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        }),
+    ) as unknown as typeof fetch;
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "https://api.example.test",
+      browserLocation,
+      fetchImpl,
+      requestTimeoutMs: 1_000,
+    });
+
+    const resultPromise = client.getSession();
+    await vi.advanceTimersByTimeAsync(1_000);
+    const result = await resultPromise;
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "SESSION_REQUEST_TIMEOUT",
+        diagnostics: { timeoutMs: 1_000 },
+      },
+    });
+  });
+
+  it("reports a generic browser transport failure without claiming a single cause", async () => {
+    const client = new HttpSecuritySessionClient({
+      apiBaseUrl: "http://192.168.1.50:8082",
+      browserLocation,
+      fetchImpl: vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }) as unknown as typeof fetch,
+    });
+
+    const result = await client.getSession();
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED",
+        diagnostics: {
+          apiOrigin: "http://192.168.1.50:8082",
+          browserOrigin: "http://dashboard.example.test",
+          httpStatus: null,
+        },
       },
     });
   });
