@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents completing Issue #199 or continuing the next independent software Work Package after merge.
+No hard blocker prevents merging Issue #199 or activating the next independent software Work Package.
 
 Stop before:
 
@@ -15,13 +15,13 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Active Work Package
+## Verified Work Package
 
 ### N-009 — Live WebSocket lifecycle
 
-**Status:** In review — Issue #199 / draft PR #214.
+**Status:** GREEN and ready to merge — Issue #199 / PR #214.
 
-Implemented software boundary:
+Verified software boundary:
 
 - bounded socket-open, authentication and heartbeat timeouts;
 - one bounded reconnect loop without duplicate timers;
@@ -32,7 +32,7 @@ Implemented software boundary:
 - preserved resume cursor and event deduplication;
 - stale snapshots remain visible but never receive live presentation.
 
-No hard blocker exists. Final full Vitest, production build and final-head Authenticated Dashboard Acceptance must be GREEN before merge.
+CI run `30704096637` and Authenticated Dashboard Acceptance run `30704096614` passed on verified code head `5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568`.
 
 ## Resolved operator-access Work Package
 
@@ -72,7 +72,7 @@ Software thresholds and alerts exist. Validate them against actual-host capacity
 
 ## Other open soft blockers
 
-- **N-010 / #187 — Offline installation:** queued next after Issue #199; build and prove a checksummed local OCI bundle on a clean disconnected host.
+- **N-010 / #187 — Offline installation:** next software Work Package after PR #214; build and prove a checksummed local OCI bundle on a clean disconnected host.
 - **N-011 / #188 — Offline authentication:** prove fail-closed local operator identity and RBAC.
 - **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
 - **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
