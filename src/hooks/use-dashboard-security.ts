@@ -9,6 +9,8 @@ import {
   setSecurityCredentials,
   type SecurityMembership,
   type SecuritySession,
+  type SecuritySessionDiagnostics,
+  type SecuritySessionErrorCode,
 } from "@/features/security/security-session";
 import {
   createRuntimeCredentialProvider,
@@ -20,12 +22,19 @@ const STORAGE_KEY = "nexolab.selectedOrganizationId";
 
 export type DashboardSecurityState = "demo" | "loading" | "ready" | "unauthenticated" | "forbidden" | "error";
 
+export type DashboardSecurityErrorCode =
+  | SecuritySessionErrorCode
+  | "INVALID_CONFIGURATION"
+  | "ORGANIZATION_NOT_AVAILABLE";
+
 export type DashboardSecurityModel = {
   mode: "demo" | "live";
   state: DashboardSecurityState;
   session: SecuritySession | null;
   membership: SecurityMembership | null;
   error: string | null;
+  errorCode: DashboardSecurityErrorCode | null;
+  diagnostics: SecuritySessionDiagnostics | null;
   selectOrganization: (organizationId: string) => void;
   retry: () => void;
   signOut: () => Promise<void>;
@@ -109,19 +118,31 @@ export function useDashboardSecurity(): DashboardSecurityModel {
   const [session, setSession] = useState<SecuritySession | null>(null);
   const [membership, setMembership] = useState<SecurityMembership | null>(null);
   const [error, setError] = useState<string | null>(runtime.error);
+  const [errorCode, setErrorCode] = useState<DashboardSecurityErrorCode | null>(() =>
+    runtime.error ? "INVALID_CONFIGURATION" : null,
+  );
+  const [diagnostics, setDiagnostics] = useState<SecuritySessionDiagnostics | null>(null);
   const [generation, setGeneration] = useState(0);
+
+  const clearFailure = useCallback(() => {
+    setError(null);
+    setErrorCode(null);
+    setDiagnostics(null);
+  }, []);
 
   const retry = useCallback(() => {
     if (runtime.mode === "demo") return;
     if (!runtime.apiBaseUrl) {
       setState("error");
       setError(runtime.error ?? "Authenticated dashboard API is unavailable.");
+      setErrorCode("INVALID_CONFIGURATION");
+      setDiagnostics(null);
       return;
     }
     setState("loading");
-    setError(null);
+    clearFailure();
     setGeneration((value) => value + 1);
-  }, [runtime]);
+  }, [clearFailure, runtime]);
 
   useEffect(() => {
     if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;
@@ -140,6 +161,8 @@ export function useDashboardSecurity(): DashboardSecurityModel {
         setSession(null);
         setMembership(null);
         setError(result.error.message);
+        setErrorCode(result.error.code);
+        setDiagnostics(result.error.diagnostics);
         setState(
           result.error.code === "AUTHENTICATION_REQUIRED"
             ? "unauthenticated"
@@ -155,6 +178,8 @@ export function useDashboardSecurity(): DashboardSecurityModel {
         setSession(result.value);
         setMembership(null);
         setError("Вибрана організація відсутня у перевіреній сесії користувача.");
+        setErrorCode("ORGANIZATION_NOT_AVAILABLE");
+        setDiagnostics(null);
         setState("forbidden");
         return;
       }
@@ -168,14 +193,14 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       persistOrganizationId(selected.organizationId);
       setSession(result.value);
       setMembership(selected);
-      setError(null);
+      clearFailure();
       setState("ready");
     });
 
     return () => {
       cancelled = true;
     };
-  }, [generation, runtime]);
+  }, [clearFailure, generation, runtime]);
 
   const selectOrganization = useCallback(
     (organizationId: string) => {
@@ -183,6 +208,8 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       const selected = session.memberships.find((item) => item.organizationId === organizationId);
       if (!selected) {
         setError("Вибрана організація відсутня у перевіреній сесії користувача.");
+        setErrorCode("ORGANIZATION_NOT_AVAILABLE");
+        setDiagnostics(null);
         setState("forbidden");
         return;
       }
@@ -193,10 +220,10 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       });
       persistOrganizationId(selected.organizationId);
       setMembership(selected);
-      setError(null);
+      clearFailure();
       setState("ready");
     },
-    [session],
+    [clearFailure, session],
   );
 
   const signOut = useCallback(async () => {
@@ -205,9 +232,9 @@ export function useDashboardSecurity(): DashboardSecurityModel {
     setSecurityCredentials({ accessToken: null, organizationId: null });
     setSession(null);
     setMembership(null);
-    setError(null);
+    clearFailure();
     setState(runtime.mode === "demo" ? "demo" : "unauthenticated");
-  }, [runtime.mode]);
+  }, [clearFailure, runtime.mode]);
 
   return useMemo(
     () => ({
@@ -216,10 +243,23 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       session,
       membership,
       error,
+      errorCode,
+      diagnostics,
       selectOrganization,
       retry,
       signOut,
     }),
-    [error, membership, retry, runtime.mode, selectOrganization, session, signOut, state],
+    [
+      diagnostics,
+      error,
+      errorCode,
+      membership,
+      retry,
+      runtime.mode,
+      selectOrganization,
+      session,
+      signOut,
+      state,
+    ],
   );
 }
