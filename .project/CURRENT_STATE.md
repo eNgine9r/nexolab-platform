@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `729139a20b2bd5464aca2291dc4002f514896eee`  
-Next Ready Work Package: Issue #199  
-Status confidence: high for repository and software-CI boundaries; partial for the affected PC, actual-host recovery and hardware acceptance.
+Verified baseline: `main` at `764c0be96652144920964f7806af493a7a0a7b1e`  
+Active Work Package: Issue #199 / PR #214  
+Status confidence: high for repository and software-CI boundaries; partial for actual-host and hardware acceptance.
 
 ## Profile
 
@@ -19,68 +19,58 @@ Status confidence: high for repository and software-CI boundaries; partial for t
 - PR #184 merged the AI Development Operating Standard.
 - PR #190 merged the verified architecture and offline boundary.
 - PR #206 reconciled stale Pull Requests, trackers and successor Issues.
-- PR #209 hardened Device Agent supply-chain evidence and merged as `ee950e632702135231f1f4349e87529b39d16181`.
-- PR #207 completed durable central telemetry ingestion and merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5`.
-- PR #213 restored actionable dashboard security bootstrap diagnostics and merged as `729139a20b2bd5464aca2291dc4002f514896eee`.
+- PR #209 hardened Device Agent supply-chain evidence.
+- PR #207 completed durable central telemetry ingestion.
+- PR #213 restored actionable dashboard security bootstrap diagnostics; product merge `729139a20b2bd5464aca2291dc4002f514896eee`, post-merge state baseline `764c0be96652144920964f7806af493a7a0a7b1e`.
 
-## Issue #210 completed outcome
+## Issue #199 active outcome
 
-The dashboard security bootstrap remains fail-closed but no longer presents every browser transport or configuration failure as an authorization denial.
+Issue #199 is implemented in branch `fix/199-websocket-lifecycle` through draft PR #214.
 
 Implemented behavior:
 
-- HTTP 401 remains `AUTHENTICATION_REQUIRED`;
-- HTTP 403 remains `ACCESS_DENIED`;
-- other API failures use `SESSION_API_ERROR`;
-- invalid contracts use `INVALID_RESPONSE`;
-- bounded requests use `SESSION_REQUEST_TIMEOUT`;
-- HTTPS-to-HTTP configuration uses `SESSION_MIXED_CONTENT`;
-- generic browser fetch failure uses `SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED` without claiming one unproven cause;
-- safe diagnostics contain API origin, browser origin, endpoint path, timeout and optional HTTP status only;
-- retry clears stale diagnostics and issues a fresh request;
-- no token, cookie, password or private key is rendered;
-- no demo fallback, wildcard CORS or authentication bypass was introduced.
+- a bounded 15-second WebSocket connection-open timeout;
+- browser-safe private client close codes `4000`–`4004`, including `4002` for connection timeout;
+- a transport `open` event no longer proves that telemetry is live;
+- `connected` is reached only after authenticated acknowledgement, heartbeat or a valid sample;
+- reconnect backoff resets only after valid live evidence;
+- connection, authentication, heartbeat and reconnect timers are cleaned centrally;
+- credentials are resolved again for every reconnect attempt;
+- terminal unauthorized, forbidden and configuration failures remain distinct;
+- resume cursor and event-id deduplication remain intact;
+- stale snapshots remain visible but receive stale/offline rather than live presentation.
 
-## Final verification
+## Verification in progress
 
-Final PR head `a4318330bdce12a0b32e48cf2efb2f705fe8767a` passed all nine triggered workflows:
+Clean implementation/test candidate before project-state commits: `84ca8e9e1176746db8a2d1aa9f0a2d1b73bc0d1c`.
 
-- CI — `30699767308`;
-- Security Browser Acceptance — `30699767347`;
-- Authenticated Dashboard Acceptance — `30699767325`;
-- Telemetry Service — `30699767351`;
-- Test Sessions Browser Acceptance — `30699767312`;
-- Reports Browser Acceptance — `30699767326`;
-- Rendered Reports Browser Acceptance — `30699767342`;
-- Alerts Browser Acceptance — `30699767319`;
-- Nodes Browser Acceptance — `30699767314`.
+Evidence already obtained:
 
-CI covered changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build. Controlled browser acceptance covered JWT, RBAC, immutable audit, authenticated REST/history and WebSocket dashboard behavior.
+- changed-file Prettier passed;
+- ESLint passed;
+- strict TypeScript passed;
+- the new five-test WebSocket lifecycle suite passed;
+- the new three-test dashboard lifecycle suite passed;
+- the preceding full Vitest run passed 174 of 176 tests; the only failures were two legacy assertions that still treated `open` as live evidence;
+- those two assertions are now updated to require heartbeat evidence;
+- intermediate Authenticated Dashboard Acceptance passed on the implementation branch;
+- all temporary formatter and test-update workflows were removed from the final product diff.
 
-## Actual-host evidence boundary
-
-The exact original affected-PC cause remains unverified. It may still require correction of:
-
-- API service availability;
-- loopback versus central-host LAN address;
-- central API bind address or firewall route;
-- exact `CORS_ALLOWED_ORIGINS` value;
-- HTTP/HTTPS and WS/WSS scheme compatibility;
-- frontend rebuild or restart after `NEXT_PUBLIC_*` changes.
-
-Use `docs/operations/dashboard-security-bootstrap.md` and return only safe outputs for `/health/ready`, `/api/v1/auth/session`, the CORS response header and endpoint origins. Do not provide tokens, passwords, cookies or private keys.
+Final-head full Vitest, production build and browser acceptance remain pending and must be GREEN before merge.
 
 ## Open Pull Requests
 
+- #214 — active draft WebSocket lifecycle correction.
 - #192 — separate draft formatting inventory; not mixed into product work.
 
-## Next Ready Work Package
+## Next sequencing
 
-Issue #199 — stabilize live telemetry WebSocket lifecycle and operator states. Start from current `main` in a dedicated feature branch. Historical PR #175 is reference-only and must not be merged or rebased wholesale.
+After PR #214 is GREEN and merged, the next independent software Work Package is Issue #187 — build and prove a verified offline installation and update bundle. Issue #188 remains the following offline-authentication Work Package.
 
 ## Remaining unverified areas
 
 - affected-PC and central-host configuration evidence for the original Security Gate incident;
+- final browser/API acceptance for PR #214 on its final head;
 - actual Raspberry Pi or central-host power interruption;
 - physical disk-full and disk-loss recovery;
 - production/site deployment;
