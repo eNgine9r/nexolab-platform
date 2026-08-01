@@ -22,6 +22,7 @@ IMAGE_ENV = {
     "minio-client": "OFFLINE_MINIO_CLIENT_IMAGE",
 }
 REQUIRED_IMAGES = set(IMAGE_ENV)
+AUTH_PROVIDERS = {"disabled", "local", "acceptance", "supabase"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_ID_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 SECRET_PATTERNS = (
@@ -57,6 +58,26 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
     require(manifest.get("runtime_network_required") is False, "Bundle requires runtime network")
     require(manifest.get("paid_runtime_service_required") is False, "Bundle requires paid runtime")
     require(manifest.get("secrets_included") is False, "Manifest claims bundled secrets")
+
+    dashboard = manifest.get("dashboard")
+    require(isinstance(dashboard, dict), "Missing dashboard configuration")
+    auth_provider = dashboard.get("auth_provider")
+    require(auth_provider in AUTH_PROVIDERS, "Unsupported dashboard auth provider")
+
+    local_auth = manifest.get("local_auth")
+    require(isinstance(local_auth, dict), "Missing local_auth contract")
+    require(local_auth.get("supported") is True, "Bundle does not support local authentication")
+    require(local_auth.get("secrets_packaged") is False, "Local auth secrets must not be packaged")
+    require(
+        local_auth.get("selected") is (auth_provider == "local"),
+        "Local auth selection does not match dashboard provider",
+    )
+    overlay_relative = str(local_auth.get("compose_overlay", ""))
+    require(overlay_relative, "Missing local auth Compose overlay path")
+    require(
+        (bundle_root / overlay_relative).is_file(),
+        f"Missing local auth Compose overlay: {overlay_relative}",
+    )
 
     archive = manifest.get("images_archive")
     require(isinstance(archive, dict), "Missing images_archive")
@@ -100,6 +121,7 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.is_file(), f"Missing bundle file: {relative}")
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
+    require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
 
     policy = manifest.get("persistent_data_policy")
     require(isinstance(policy, dict), "Missing persistent data policy")
@@ -178,6 +200,7 @@ def main() -> int:
                     "status": "verified",
                     "bundle_version": manifest["bundle_version"],
                     "platform": manifest["platform"],
+                    "auth_provider": manifest["dashboard"]["auth_provider"],
                     "images": len(images),
                 },
                 sort_keys=True,
