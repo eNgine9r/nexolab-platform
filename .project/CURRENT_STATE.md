@@ -40,16 +40,33 @@ Implemented operator outcome:
 - Prometheus metrics and alerts cover readiness, pending depth/bytes, age, capacity, terminal records, I/O and ACK failures;
 - rollback guidance preserves the spool volume and prohibits `docker compose down -v`.
 
-Targeted gates already passed before the `main` update:
+## Final verification on main-updated head
 
-- Core Software Capacity — `30690434122`;
-- Telemetry Service — `30690434121`;
-- general CI — `30690434123`;
-- Observability — `30690434103`;
-- Backend Integration — `30690434125`;
-- Offline Disaster Recovery — `30690434116`.
+Head `8e80b31b73b16d291747bfa5d6a5d54c0bd4d170` is `behind_by=0` and mergeable.
 
-The branch now inherits PR #209 supply-chain hardening from `main`. All required workflows must rerun on the updated head before PR #207 can leave draft or merge.
+All 19 triggered workflows passed:
+
+- general CI — `30696201793`;
+- Telemetry Service — `30696201789`;
+- Capacity Release Gate — `30696201784`;
+- Observability — `30696201802`;
+- Container Supply Chain — `30696201799`;
+- Disaster Recovery Browser — `30696201783`;
+- Disaster Recovery TLS Fleet — `30696201774`;
+- Device Agent Fleet — `30696201787`;
+- MQTT TLS Fleet — `30696201815`;
+- MQTT Broker Security — `30696201788`;
+- Broker Control — `30696201801`;
+- Security Browser — `30696201772`;
+- Authenticated Dashboard — `30696201767`;
+- Alerts Browser — `30696201816`;
+- Nodes Browser — `30696201785`;
+- Refrigeration Browser — `30696201762`;
+- Test Sessions Browser — `30696201773`;
+- Reports Browser — `30696201822`;
+- Rendered Reports Browser — `30696201770`.
+
+The Capacity Gate proved outage readiness degradation, durable backlog, Telemetry Service/database recovery, replay, final drain and no-loss invariants. Telemetry Service passed the complete Python/PostgreSQL/MQTT/REST/WebSocket/object-storage suite, explicit PostgreSQL outage recovery, offline migration validation and container build. Observability passed policy, `promtool`, Alertmanager, production-like stack and Chromium dashboard acceptance. Supply Chain passed all three images, SBOMs, strict Trivy policy, manifests and aggregate evidence.
 
 ## Evidence boundary
 
@@ -71,9 +88,9 @@ Still unverified:
 
 ## Open Pull Requests
 
-- #207 — durable central ingestion; updated from `main`, final checks pending.
+- #207 — durable central ingestion; all implementation-head workflows green, final state-head rerun pending.
 - #192 — separate draft formatting inventory; not mixed into #207.
 
 ## Next action
 
-Run all required workflows on the main-updated #207 head. If every required check is green and review findings remain empty, update the checkpoint, mark PR #207 ready and perform a guarded squash merge. Then activate the next independent Ready Work Package.
+Complete required checks on the final state-update head. If every required check remains green and review findings remain empty, mark PR #207 ready and perform a guarded squash merge. Then activate the next independent Ready Work Package.
