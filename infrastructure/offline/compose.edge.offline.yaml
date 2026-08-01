@@ -1,0 +1,8 @@
+services:
+  mqtt:
+    image: ${OFFLINE_MQTT_IMAGE:?OFFLINE_MQTT_IMAGE is required}
+    pull_policy: never
+
+  device-agent:
+    image: ${OFFLINE_DEVICE_AGENT_IMAGE:?OFFLINE_DEVICE_AGENT_IMAGE is required}
+    pull_policy: never

@@ -140,10 +140,30 @@
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
-      "status": "ready",
+      "status": "ready_to_merge",
       "priority": 8,
       "depends_on": ["NEXOLAB-198"],
-      "activation": "Start from current main in a dedicated feature branch; preserve existing persistent volumes and prove installation/update on a disconnected clean host."
+      "pull_request": 215,
+      "branch": "feat/187-offline-install-bundle",
+      "verified_code_head": "f21d9effe079e07ad3d8d163f029f26d06292556",
+      "verification": {
+        "result": "green",
+        "general_ci_run": 30708470342,
+        "telemetry_service_run": 30708470344,
+        "offline_bundle_run": 30708470343,
+        "platform": "linux/amd64",
+        "runtime_images": 7,
+        "persistent_data_volumes": 6,
+        "disconnected_startup": "passed",
+        "pull_policy_never": "passed",
+        "update_recreation": "passed",
+        "rollback_recreation": "passed",
+        "artifact_id": 8821187814,
+        "artifact_sha256": "d7400b9edc7fafeb99bae5795427c5b64041e534668d82891b0adfc9d87bbee9",
+        "artifact_size_bytes": 558407971,
+        "arm64_actual_host": "unverified",
+        "hardware": "unverified"
+      }
     },
     {
       "id": "NEXOLAB-188",

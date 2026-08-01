@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified product baseline: `main` at `8bcf67131ce6900b3513e840661d3cf82934c7eb`  
-Next Ready Work Package: Issue #187  
-Status confidence: high for repository, software-CI and controlled browser boundaries; partial for actual-host and hardware acceptance.
+Verified baseline: `main` at `6635892cc14c44f90e6357646496ffe782335e83`  
+Active Work Package: Issue #187 / PR #215 — GREEN and ready to merge  
+Status confidence: high for repository, linux/amd64 software-CI and disconnected container-runtime boundaries; partial for ARM64 actual-host, Raspberry Pi and hardware acceptance.
 
 ## Profile
 
@@ -22,56 +22,86 @@ Status confidence: high for repository, software-CI and controlled browser bound
 - PR #209 hardened Device Agent supply-chain evidence.
 - PR #207 completed durable central telemetry ingestion.
 - PR #213 restored actionable dashboard security bootstrap diagnostics.
-- PR #214 stabilized the live telemetry WebSocket lifecycle and merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
+- PR #214 stabilized the live telemetry WebSocket lifecycle.
 
-## Issue #199 completed outcome
+## Issue #187 verified outcome
 
-The dashboard now treats a WebSocket transport connection as Live only after valid application-level evidence.
+Issue #187 is implemented in branch `feat/187-offline-install-bundle` through PR #215.
 
-Completed behavior:
+Implemented bundle contract:
 
-- bounded 15-second WebSocket connection-open timeout;
-- browser-safe private client close codes `4000`–`4004`;
-- `connected` only after authenticated acknowledgement, heartbeat or a valid sample;
-- reconnect backoff reset only after valid live evidence;
-- centralized cleanup of connection, authentication, heartbeat and reconnect timers;
-- fresh credential resolution for every reconnect attempt;
-- distinct unauthorized, forbidden and configuration terminal states;
-- preserved resume cursor and event-id deduplication;
-- stale snapshots remain visible but receive stale/offline rather than live presentation.
+- separate `linux/amd64` and `linux/arm64` target manifests;
+- seven runtime images: dashboard, telemetry service, Device Agent, Mosquitto, PostgreSQL, MinIO and MinIO Client;
+- versioned Docker image archive;
+- manifest with source commit, platform, image references, image IDs and sizes;
+- SHA-256 checksums for the archive and all bundle files;
+- CycloneDX and SPDX SBOMs;
+- provenance record;
+- external environment files and secrets;
+- offline Compose overlays with `pull_policy: never` and no inherited build contracts;
+- disconnected installer and runtime smoke scripts;
+- update and rollback volume-preservation verification;
+- operator runbook for build, transfer, install, evidence, update and rollback.
 
-## Final verification
+## Disconnected runtime verification
 
-Final PR head `921fba3f1af382f471b614ab5d2cc71952fad0db` passed:
+Verified code/runtime head: `f21d9effe079e07ad3d8d163f029f26d06292556`.
 
-- CI run `30704859884`: changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build;
-- Authenticated Dashboard Acceptance run `30704859869`: authenticated REST/history and WebSocket dashboard behavior;
-- dedicated WebSocket lifecycle suite: 5 tests;
-- dedicated dashboard lifecycle suite: 3 tests;
-- final changed-file count: 8 scoped files;
-- review threads: 0;
-- submitted reviews: 0.
+Offline Bundle run `30708470343` passed:
+
+- exact PR-head checkout and provenance;
+- linux/amd64 bundle build;
+- seven-image inventory;
+- archive and file checksum verification;
+- CycloneDX and SPDX SBOM generation;
+- removal of all seven local runtime image references;
+- extraction into a clean validation directory;
+- `docker load` from the transferred archive;
+- blocked container egress;
+- central and edge simulator startup with `--no-build --pull never`;
+- dashboard HTTP readiness;
+- telemetry REST readiness;
+- WebSocket application-level evidence;
+- MQTT, PostgreSQL and MinIO readiness;
+- edge simulator health;
+- update recreation against alternate image tags;
+- rollback recreation against original image tags;
+- preservation of six required destination-bound persistent-data volumes;
+- preservation of PostgreSQL, retained MQTT, MinIO object and edge-volume markers.
+
+Artifact evidence:
+
+- artifact ID: `8821187814`;
+- artifact size: `558407971` bytes;
+- artifact digest: `sha256:d7400b9edc7fafeb99bae5795427c5b64041e534668d82891b0adfc9d87bbee9`.
+
+Additional GREEN checks on the same verified code head:
+
+- CI run `30708470342`;
+- Telemetry Service run `30708470344`.
+
+## Runtime and security boundary
+
+- Runtime startup made no registry pull and no local image build.
+- Container egress was blocked after bundle creation.
+- No npm, PyPI, Docker Hub, GHCR, external API or paid service was required after archive transfer.
+- `.env` files and secrets are external to the bundle.
+- No persistent volume was deleted.
+- The validation profile uses `AUTH_MODE=disabled` only for isolated LOCAL_LAN proof; offline fail-closed operator authentication remains Issue #188.
 
 ## Open Pull Requests
 
+- #215 — GREEN and ready for final review/merge.
 - #192 — separate draft formatting inventory; not mixed into product work.
 
 ## Next Ready Work Package
 
-Issue #187 — build and prove a verified offline installation and update bundle.
-
-Required boundary:
-
-- produce a checksummed local OCI/application bundle;
-- prove installation and update on a clean disconnected host;
-- preserve persistent volumes and local laboratory data;
-- keep offline operator authentication in separate Issue #188;
-- do not perform production/site cutover without explicit approval.
+After PR #215 is merged, activate Issue #188 — define and prove fail-closed offline operator authentication and RBAC without a mandatory cloud identity service.
 
 ## Remaining unverified areas
 
-- affected-PC and central-host configuration evidence for the original Security Gate incident;
-- operator-started LOCAL_LAN browser verification outside controlled CI;
+- `linux/arm64` bundle execution on an actual Raspberry Pi 5;
+- physical transfer and install on an operator-owned disconnected host;
 - actual Raspberry Pi or central-host power interruption;
 - physical disk-full and disk-loss recovery;
 - production/site deployment;
