@@ -34,7 +34,7 @@ Do not copy access tokens, cookies, passwords, private keys or production teleme
 Stable bootstrap codes:
 
 | Code                                        | Meaning                                                                                           |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `AUTHENTICATION_REQUIRED`                   | API returned HTTP 401                                                                             |
 | `ACCESS_DENIED`                             | API returned HTTP 403                                                                             |
 | `SESSION_API_ERROR`                         | API returned another non-success HTTP status                                                      |
