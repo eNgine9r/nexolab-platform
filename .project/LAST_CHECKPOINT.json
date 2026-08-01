@@ -6,45 +6,63 @@
   "issue": 208,
   "pull_request": 209,
   "branch": "fix/208-device-agent-pyasn1-cve",
-  "status": "in_progress",
-  "timestamp": "2026-08-01T11:15:00+03:00",
+  "status": "review",
+  "timestamp": "2026-08-01T12:55:00+03:00",
   "baseline_main_sha": "bd286690f94bdf06adf3fc630bdee69c5019ebce",
-  "summary": "Classified a non-reproducible Device Agent pyasn1 vulnerability result as stale/transient supply-chain provenance and implemented a focused fresh-base plus versioned-cache policy without adding an unused runtime dependency or vulnerability waiver.",
+  "verified_implementation_head": "0e6ecc08b1caea4a313e4f39ab4029a3500d1f91",
+  "summary": "Ruled out wrong-image and sequential-SBOM contamination for the historical Device Agent pyasn1 result, preserved strict vulnerability policy with expanded provenance output, removed five stale Expat exceptions, and obtained green general CI plus a complete green Container Supply Chain matrix.",
   "files_changed": [
     ".github/workflows/container-supply-chain.yml",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/CURRENT_STATE.md",
     ".project/LAST_CHECKPOINT.json",
-    "tests/test_container_supply_chain_policy.py"
+    "scripts/evaluate-container-vulnerabilities.py",
+    "security/vulnerability-exceptions.json",
+    "tests/test_container_supply_chain_policy.py",
+    "tests/test_container_vulnerability_policy.py"
   ],
   "scope_completed": [
     "proved Device Agent requirements install only paho-mqtt and pyserial",
-    "proved pyasn1 is not importable and is absent from Python package metadata",
-    "proved exported runtime rootfs contains no pyasn1 file, dpkg stanza or nested archive",
-    "proved a plain exact Trivy image scan contains no pyasn1 finding",
-    "proved current cached Buildx and pull-enabled Buildx images are byte-identical and Trivy-clean",
+    "proved pyasn1 is not importable and is absent from Python package metadata, final rootfs and Debian package metadata",
+    "proved the production workflow scans the exact Device Agent image with matching OCI revision and digest",
+    "proved CycloneDX and SPDX invocations disable vulnerability scanning and cannot contaminate the later JSON vulnerability report",
+    "proved repeated production-equivalent JSON scans using the same Trivy cache do not reproduce pyasn1",
+    "classified the historical pyasn1 result as non-reproducible scanner or advisory database state rather than an application dependency",
     "added pull=true to exact-commit evidence and multi-platform publish builds",
-    "assigned only Device Agent to the fresh supply-chain-v2-device-agent cache scope",
+    "assigned only Device Agent to the supply-chain-v2-device-agent cache scope",
     "preserved existing cache scopes for telemetry-service and MQTT security images",
-    "added a workflow provenance regression test",
-    "removed the temporary diagnostic workflow from the final branch tree",
-    "did not add pyasn1, dependency upgrades, exceptions or waivers"
+    "expanded policy output with target, result class, result type, package path, layer digest and data source",
+    "removed five stale libexpat1 exceptions while preserving every active decision",
+    "added Buildx and Trivy provenance regression tests",
+    "removed the temporary diagnostic workflow",
+    "did not add pyasn1, a waiver, a policy relaxation, runtime changes or hardware actions"
+  ],
+  "checks_actually_run": [
+    "general CI run 30695154014: Prettier, ESLint, strict TypeScript, Vitest and production build passed",
+    "Container Supply Chain run 30695154012: inventory and exception validation passed",
+    "Device Agent exact image build, OCI labels, CycloneDX, SPDX, JSON Trivy policy, digest manifest, secret scan and evidence upload passed",
+    "Telemetry Service exact image build and complete evidence chain passed",
+    "MQTT dynamic-security exact image build and complete evidence chain passed",
+    "aggregate release manifest and aggregate secret scan passed",
+    "PR #209 review threads: zero",
+    "PR #209 submitted reviews: zero",
+    "final changed-file list contains exactly nine scoped files and no diagnostic workflow"
   ],
   "diagnostic_evidence": [
     "run 30690821831 identified that pyasn1 import fails in the final Device Agent image",
-    "run 30690899627 proved no pyasn1 runtime/rootfs/package-metadata evidence and a clean exact Trivy scan",
+    "run 30690899627 proved no pyasn1 runtime, rootfs or package-metadata evidence and a clean exact Trivy scan",
     "run 30690966825 confirmed the exact Trivy action reports no pyasn1 vulnerability for the current image",
-    "run 30691031544 proved cached and pull-enabled Buildx images share digest sha256:b2af8df8af0cd45e91ca178ac2b8922421a60b93ab9207ab82cc052d6dc39fc6 and are both Trivy-clean"
+    "run 30691031544 proved cached and pull-enabled Buildx images share digest sha256:b2af8df8af0cd45e91ca178ac2b8922421a60b93ab9207ab82cc052d6dc39fc6 and are both Trivy-clean",
+    "runs 30691445062 and 30691614712 confirmed the exact target and scan sequence; neither reproduced pyasn1 and both stopped only on the same five stale Expat exceptions",
+    "commit 474297d44efe12c70b948c4a2870a41ad29606bf removed the stale Expat decisions"
   ],
   "checks_pending": [
-    "changed-file Prettier validation",
-    "workflow policy regression tests",
-    "general repository CI",
-    "Device Agent compile, unit and integration checks",
-    "full Container Supply Chain matrix, SBOM, Trivy and aggregate manifest",
-    "review-thread inspection and mergeability",
-    "draft-to-ready transition and squash merge"
+    "rerun required checks on the final documentation and checkpoint head",
+    "mark PR #209 ready for review",
+    "confirm final head, mergeability and zero review findings",
+    "squash merge PR #209",
+    "update PR #207 from main and rerun its final aggregate Gate"
   ],
   "checks_not_run": [
     "production registry publication because pull_request runs never publish",
@@ -53,9 +71,9 @@
     "production/site cutover"
   ],
   "open_risks": [
-    "fresh-cache policy must be proven by the full supply-chain matrix before merge",
-    "PR #207 must be updated from main and rerun after #209 merges",
-    "future base-image changes still require vulnerability scanning and immutable evidence"
+    "Trivy advisory data can change independently of code, so strict stale-exception removal remains mandatory",
+    "PR #207 must update from main and rerun after #209 merges",
+    "future base-image changes still require fresh vulnerability scanning and immutable evidence"
   ],
-  "next_action": "Require PR #209 to pass all repository and Container Supply Chain checks, resolve review findings and merge. Then update PR #207 from main and rerun its aggregate final Gate."
+  "next_action": "Wait for required checks on the final state-update head, mark PR #209 ready and squash-merge only if green. Then update PR #207 from main and rerun its aggregate final Gate."
 }
