@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents software completion of Issue #198.
+No hard blocker prevents completion of Issue #198.
 
 Stop before:
 
@@ -19,9 +19,9 @@ Stop before:
 
 ### N-008 — MQTT-to-PostgreSQL durability
 
-**Status:** Review — Issue #198 / PR #207.
+**Status:** Final review — Issue #198 / PR #207.
 
-The branch is updated from `main` after PR #209. Targeted durability, capacity, observability, backend-integration and recovery gates passed on the pre-update head. All required checks must pass again on the updated head before ready transition and merge.
+The branch is updated from `main`. All 19 workflows passed on implementation head `8e80b31b73b16d291747bfa5d6a5d54c0bd4d170`, including general CI, Telemetry Service, Capacity, Observability, Supply Chain, disaster recovery, broker/fleet and browser suites. Required checks must remain green on the final state-update head before merge.
 
 ### N-022 — Actual-host spool recovery
 
