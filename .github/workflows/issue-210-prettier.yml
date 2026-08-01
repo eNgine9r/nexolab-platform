@@ -1,6 +1,9 @@
 name: Issue 210 Prettier Formatter
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - fix/210-dashboard-security-bootstrap
