@@ -27,31 +27,88 @@ jobs:
       - name: Build Device Agent image
         run: docker build --progress=plain -t nexolab-device-agent:pyasn1-diagnostic services/device-agent
 
-      - name: Print imported pyasn1 version and location
+      - name: Inspect Python import boundary
         run: |
+          set -euo pipefail
           docker run --rm nexolab-device-agent:pyasn1-diagnostic \
-            -c 'import importlib.metadata, pyasn1, sys; print("version=" + importlib.metadata.version("pyasn1")); print("module=" + pyasn1.__file__); print("sys_path=" + repr(sys.path))'
+            -c 'import sys; print("sys_path=" + repr(sys.path)); import importlib.util; print("pyasn1_spec=" + repr(importlib.util.find_spec("pyasn1")))'
+          if docker run --rm nexolab-device-agent:pyasn1-diagnostic \
+            -c 'import importlib.metadata; print(importlib.metadata.version("pyasn1"))'; then
+            echo "pyasn1 is visible to Python package metadata"
+          else
+            echo "pyasn1 is not visible to the Device Agent Python runtime"
+          fi
 
-      - name: Enumerate pyasn1 files and package metadata
+      - name: Enumerate root filesystem package evidence
         run: |
           set -euo pipefail
           container_id="$(docker create nexolab-device-agent:pyasn1-diagnostic)"
           trap 'docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
           docker export "$container_id" -o /tmp/device-agent-rootfs.tar
-          echo "=== PYASN1 FILES ==="
-          tar -tf /tmp/device-agent-rootfs.tar \
-            | grep -Ei '(^|/)(pyasn1|pyasn1-[^/]+\.(dist-info|egg-info))(/|$)' \
-            | sort \
-            | head -n 400
-          echo "=== METADATA ==="
-          metadata_path="$(
-            tar -tf /tmp/device-agent-rootfs.tar \
-              | grep -E 'pyasn1-[^/]+\.dist-info/METADATA$' \
-              | head -n 1
-          )"
-          test -n "$metadata_path"
-          tar -xOf /tmp/device-agent-rootfs.tar "$metadata_path" \
-            | grep -E '^(Name|Version|Requires-Dist):'
+          python - <<'PY'
+          from __future__ import annotations
+
+          import io
+          import re
+          import tarfile
+
+          archive_path = "/tmp/device-agent-rootfs.tar"
+          with tarfile.open(archive_path, "r") as archive:
+              names = archive.getnames()
+              candidates = [
+                  name
+                  for name in names
+                  if "pyasn1" in name.lower()
+                  or "python3-pyasn1" in name.lower()
+              ]
+              print("=== PYASN1 PATHS ===")
+              if candidates:
+                  for name in sorted(candidates)[:500]:
+                      print(name)
+              else:
+                  print("<none>")
+
+              status_candidates = [
+                  name
+                  for name in names
+                  if name.rstrip("/") in {"var/lib/dpkg/status", "var/lib/dpkg/status-old"}
+              ]
+              print("=== DPKG STATUS STANZAS ===")
+              found_stanza = False
+              for name in status_candidates:
+                  member = archive.getmember(name)
+                  extracted = archive.extractfile(member)
+                  if extracted is None:
+                      continue
+                  text = extracted.read().decode("utf-8", errors="replace")
+                  for stanza in re.split(r"\n\s*\n", text):
+                      if "pyasn1" in stanza.lower():
+                          found_stanza = True
+                          print(f"--- {name} ---")
+                          print(stanza.strip())
+              if not found_stanza:
+                  print("<none>")
+
+              metadata_candidates = [
+                  name
+                  for name in names
+                  if name.lower().endswith(("/metadata", "/pkg-info"))
+                  and "pyasn1" in name.lower()
+              ]
+              print("=== PYTHON PACKAGE METADATA ===")
+              if not metadata_candidates:
+                  print("<none>")
+              for name in metadata_candidates:
+                  member = archive.getmember(name)
+                  extracted = archive.extractfile(member)
+                  if extracted is None:
+                      continue
+                  text = extracted.read().decode("utf-8", errors="replace")
+                  print(f"--- {name} ---")
+                  for line in text.splitlines():
+                      if line.startswith(("Name:", "Version:", "Requires-Dist:")):
+                          print(line)
+          PY
 
       - name: Inspect image ancestry
         run: |
