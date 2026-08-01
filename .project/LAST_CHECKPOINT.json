@@ -61,7 +61,9 @@
     "superseded Telemetry Service run 30689203367: PostgreSQL migrations passed",
     "superseded Telemetry Service run 30689203367: Python telemetry test suite passed",
     "superseded Telemetry Service run 30689203367: PostgreSQL outage/restart tests passed",
-    "superseded Telemetry Service run 30689203367: offline migration SQL passed"
+    "superseded Telemetry Service run 30689203367: offline migration SQL passed",
+    "Prettier 3.9.6 canonical formatting applied to the three reported documentation files",
+    "temporary formatter workflow restored exactly to the main branch CI definition"
   ],
   "checks_pending": [
     "latest-head changed-file formatting and general CI",
@@ -86,5 +88,5 @@
     "pre-ADR-0008 rollback is unsafe while pending or terminal spool records exist",
     "actual-host capacity thresholds require operational evidence"
   ],
-  "next_action": "Wait for the latest PR #207 workflow set, inspect failures and review findings, fix them on the feature branch, then record exact final run IDs and merge only after all required checks are green."
+  "next_action": "Use the repository-authored commit after canonical formatting to run the full PR #207 workflow set. Inspect failures and review findings, then merge only after all required checks are green."
 }
