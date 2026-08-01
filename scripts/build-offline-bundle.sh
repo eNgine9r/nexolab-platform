@@ -4,7 +4,8 @@ set -Eeuo pipefail
 usage() {
   cat <<'EOF'
 Usage: build-offline-bundle.sh --version VERSION --platform linux/amd64|linux/arm64 \
-  --dashboard-origin URL --api-base-url URL --websocket-url URL [--output DIR]
+  --dashboard-origin URL --api-base-url URL --websocket-url URL \
+  [--auth-provider disabled|local|acceptance|supabase] [--output DIR]
 
 Builds a versioned NEXOLAB offline bundle. This command is intentionally run on a
 connected build host; the resulting archive is self-contained for disconnected
@@ -17,6 +18,7 @@ PLATFORM=""
 DASHBOARD_ORIGIN=""
 API_BASE_URL=""
 WEBSOCKET_URL=""
+AUTH_PROVIDER="disabled"
 OUTPUT_DIR="${PWD}/dist/offline"
 TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.69.3}"
 
@@ -27,6 +29,7 @@ while (($#)); do
     --dashboard-origin) DASHBOARD_ORIGIN="${2:?}"; shift 2 ;;
     --api-base-url) API_BASE_URL="${2:?}"; shift 2 ;;
     --websocket-url) WEBSOCKET_URL="${2:?}"; shift 2 ;;
+    --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
     --output) OUTPUT_DIR="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -45,6 +48,10 @@ done
 [[ "$DASHBOARD_ORIGIN" =~ ^https?:// ]] || { echo "Invalid --dashboard-origin" >&2; exit 2; }
 [[ "$API_BASE_URL" =~ ^https?:// ]] || { echo "Invalid --api-base-url" >&2; exit 2; }
 [[ "$WEBSOCKET_URL" =~ ^wss?:// ]] || { echo "Invalid --websocket-url" >&2; exit 2; }
+[[ "$AUTH_PROVIDER" =~ ^(disabled|local|acceptance|supabase)$ ]] || {
+  echo "--auth-provider must be disabled, local, acceptance or supabase" >&2
+  exit 2
+}
 [[ "$VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid bundle version" >&2; exit 2; }
 
 git diff --quiet -- . ':!dist' || {
@@ -90,7 +97,7 @@ build_image "$DASHBOARD_IMAGE" infrastructure/offline/Dockerfile.dashboard . \
   --build-arg "NEXT_PUBLIC_NEXOLAB_DATA_MODE=live" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_API_BASE_URL=${API_BASE_URL}" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=${WEBSOCKET_URL}" \
-  --build-arg "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=disabled" \
+  --build-arg "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=${AUTH_PROVIDER}" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001"
 build_image "$TELEMETRY_IMAGE" services/telemetry-service/Dockerfile services/telemetry-service
 build_image "$DEVICE_AGENT_IMAGE" services/device-agent/Dockerfile services/device-agent
@@ -139,6 +146,7 @@ done
 
 cp infrastructure/compose/compose.central.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/compose.edge.yaml "$STAGING/deploy/compose/"
+cp infrastructure/compose/compose.local-auth.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/mosquitto.central.conf "$STAGING/deploy/compose/"
 cp infrastructure/compose/mosquitto.conf "$STAGING/deploy/compose/"
 cp infrastructure/compose/.env.central.example "$STAGING/deploy/compose/env.central.example"
@@ -149,15 +157,16 @@ cp scripts/verify-offline-bundle.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
 cp docs/operations/offline-installation.md "$STAGING/docs/"
+cp docs/security/local-operator-authentication.md "$STAGING/docs/"
 chmod 0755 "$STAGING/scripts/"*.sh "$STAGING/scripts/"*.py
 
-python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" <<'PY'
+python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" "$AUTH_PROVIDER" <<'PY'
 import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-output, commit, version, platform, trivy_image = sys.argv[1:]
+output, commit, version, platform, trivy_image, auth_provider = sys.argv[1:]
 payload = {
     "schema_version": 1,
     "source_repository": "eNgine9r/nexolab-platform",
@@ -166,6 +175,7 @@ payload = {
     "platform": platform,
     "builder": "scripts/build-offline-bundle.sh",
     "sbom_generator": trivy_image,
+    "dashboard_auth_provider": auth_provider,
     "created_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
     "network_policy": "connected build; disconnected runtime",
     "secrets_included": False,
@@ -185,6 +195,7 @@ python3 scripts/generate-offline-bundle-manifest.py \
   --dashboard-origin "$DASHBOARD_ORIGIN" \
   --dashboard-api-base-url "$API_BASE_URL" \
   --dashboard-websocket-url "$WEBSOCKET_URL" \
+  --dashboard-auth-provider "$AUTH_PROVIDER" \
   "${MANIFEST_ARGS[@]}"
 
 (
