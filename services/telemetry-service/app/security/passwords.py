@@ -72,7 +72,7 @@ def dummy_password_hash() -> str:
     return (
         "scrypt$16384$8$1$"
         "MDAwMDAwMDAwMDAwMDAwMA$"
-        "kVgf-T0drqt6kJlEYruERPCf_Dog_pnyWHmfTq2iQ3AbuPfr9bm6mG8zlFOc-ienFdkH4xU93JJTrFZrj11GTA"
+        "OzdhBj9mAc34-iC1jOIDBcPT8kkC3KVXcBmji3UC1Dy_0hK0rYeiQ5AY--9v7iwpBSXFNo-YkiSm-V2Bhnd5_A"
     )
 
 
