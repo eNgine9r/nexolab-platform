@@ -1,8 +1,10 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `01f2a5fcfc929127d4a7b3d9c068944cd65d8636`  
-Status confidence: high for repository and GitHub boundaries; partial for environment-specific operational and hardware acceptance.
+Verified baseline: `main` at `bd286690f94bdf06adf3fc630bdee69c5019ebce`  
+Active branch: `feat/198-durable-central-ingestion`  
+Active Pull Request: #207  
+Status confidence: high for repository and software-CI boundaries; partial for actual-host recovery and hardware acceptance.
 
 ## Profile
 
@@ -11,119 +13,141 @@ Status confidence: high for repository and GitHub boundaries; partial for enviro
 - Runtime internet: not required
 - Mandatory paid runtime services: prohibited
 - Central data: local PostgreSQL
-- Edge continuity: local SQLite outbox until MQTT broker acknowledgement
+- Edge continuity: local SQLite outbox until MQTT acknowledgement
+- Central continuity under implementation: local SQLite ingestion spool until PostgreSQL commit
 - Device transport: read-only Modbus RTU and MQTT QoS 1
 - User interface: local Next.js web application
 - Local object storage: MinIO when image workflows are enabled
 - Optional online layers: Supabase Auth, external OIDC/JWKS, Tailscale, registries and CI
 
-## Verified architecture and evidence boundary
+## Verified source-of-truth baseline
 
-The current local data path is:
+Completed reconciliation:
+
+- PR #184 merged the AI Development Operating Standard.
+- PR #190 merged the verified architecture/offline baseline.
+- PR #206 merged Issue #186 as `bd286690f94bdf06adf3fc630bdee69c5019ebce`.
+- stale milestone trackers and superseded PRs are classified with focused successor Issues;
+- Issue #198 is the active primary data-integrity Work Package;
+- draft formatting PR #192 remains a separate maintenance track.
+
+## Active data-integrity Work Package
+
+Issue #198 / draft PR #207 corrects the previous MQTT-to-PostgreSQL loss window.
+
+Previous path:
 
 ```text
-XJP60D / LE-01MP
-        ↓ read-only Modbus RTU
-Device Agent + edge SQLite
-        ↓ local MQTT / MQTT QoS 1
-Central Mosquitto
-        ↓
-FastAPI Telemetry Service
-        ↓
-PostgreSQL + local MinIO
-        ↓ REST / WebSocket
-Next.js dashboard
+edge SQLite
+  → MQTT broker QoS 1 acknowledgement
+  → edge row deletion
+  → central in-memory queue
+  → PostgreSQL
 ```
 
-Implemented and repository-backed:
+A Telemetry Service termination during PostgreSQL outage could lose already acknowledged telemetry.
 
-- live Next.js REST/WebSocket workflows;
-- FastAPI ingestion, PostgreSQL, sessions, alerts, reports, nodes and refrigeration domains;
-- local Mosquitto, PostgreSQL and MinIO Compose topology;
-- read-only XJP60D and LE-01MP Device Agent drivers;
-- edge SQLite outbox and MQTT QoS 1 delivery to the broker boundary;
-- encrypted fresh-volume central software disaster recovery from merged PR #144.
+Selected path, recorded in ADR 0008:
 
-Actual hardware evidence remains limited to the 2026-07-23 pilot scope:
+```text
+MQTT QoS 1 delivery
+  → validate/classify
+  → local SQLite WAL spool (`synchronous=FULL`)
+  → manual MQTT acknowledgement
+  → FIFO PostgreSQL replay
+  → idempotent `event_id` result
+  → spool-row deletion
+```
+
+## Scope implemented in PR #207
+
+- local SQLite durable ingestion spool;
+- WAL/FULL durability settings;
+- strict FIFO pending order;
+- telemetry and dead-letter staging;
+- `event_id` and MQTT delivery-key deduplication;
+- payload-conflict detection;
+- record and byte capacity limits;
+- retry metadata and terminal quarantine;
+- process/container restart replay;
+- manual MQTT QoS acknowledgement after local durable commit;
+- persistent MQTT v3 consumer session in durable mode;
+- named spool volumes in backend and central Compose profiles;
+- writable non-root container directory;
+- spool/acknowledgement health and metrics;
+- unit, idempotency, manual-ACK and PostgreSQL-outage restart tests;
+- ADR, architecture and operations runbook updates.
+
+## Current verification evidence
+
+On the first PR #207 implementation head:
+
+- changed-file formatting — passed;
+- ESLint — passed;
+- strict TypeScript typecheck — passed;
+- Vitest — passed;
+- Next.js production build — passed;
+- Telemetry Service compile — passed;
+- central Compose/recovery contract validation — passed;
+- PostgreSQL migrations — passed;
+- Python telemetry test suite — passed;
+- PostgreSQL outage/restart tests — passed;
+- offline migration SQL — passed.
+
+That Telemetry Service run was superseded by later documentation/state commits while its container build was executing, so the final-head container build and full required workflows remain pending.
+
+Targeted local software smoke evidence also covers:
+
+- SQLite reopen and FIFO persistence;
+- duplicate key/payload conflict handling;
+- capacity and terminal records;
+- simulated process restart with pending telemetry;
+- replay after database recovery.
+
+## Explicit evidence boundary
+
+Not yet claimed:
+
+- final green CI on the latest PR #207 head;
+- actual central-host restart with the named spool volume;
+- rollback with pending spool records;
+- disk-full behavior on a real filesystem;
+- abrupt host power interruption;
+- physical disk-loss recovery;
+- long-duration capacity/throughput acceptance;
+- equivalent process-restart durability for node health/status streams;
+- any new Raspberry Pi or Modbus hardware acceptance.
+
+## Existing hardware evidence
+
+Retained 2026-07-23 evidence remains limited to:
 
 - XJP60D `106-03` and `106-04`;
-- LE-01MP units `200–203`;
-- 34 records per complete cycle;
-- edge MQTT outage, SQLite queue growth, reconnect and drain;
-- Device Agent restart and rollback to simulator;
+- LE-01MP `200–203`;
+- 34 records per complete polling cycle;
+- edge MQTT outage, SQLite growth, reconnect and drain;
+- Device Agent restart and simulator rollback;
 - no established Modbus write, CRC or serial failure.
 
-## Confirmed data-integrity gap
+## Open Pull Requests
 
-The Device Agent removes an edge SQLite row after the configured MQTT broker returns a QoS 1 acknowledgement. The central consumer then submits the payload to a bounded in-memory persistence queue before PostgreSQL commit.
+- #207 — active draft durable-ingestion Work Package for #198.
+- #192 — separate draft formatting inventory under #191/#185; it must not be mixed into #207.
 
-A Telemetry Service termination during PostgreSQL outage can therefore lose an acknowledged payload that is no longer present at the edge. Issue #198 is the highest-priority next Work Package and owns durable local central staging/replay.
+## Ordered next work
 
-## GitHub source of truth
+1. Finish final-head CI, review and merge for #198 / PR #207.
+2. Start #199 from the new `main`: live WebSocket lifecycle and operator states.
+3. Continue #187: verified offline installation/update bundle.
+4. Continue #188: secure offline operator authentication.
+5. Complete #189 only with controlled host/Raspberry Pi recovery evidence.
 
-### Completed reconciliation
+Maintenance and hardware tracks remain separate:
 
-- PR #184 merged the operating standard as `8371ee59e76e64963405706be79fc4a909f9fac9`.
-- PR #190 merged Issue #183 as `01f2a5fcfc929127d4a7b3d9c068944cd65d8636`.
-- M4 tracker #74 now matches closed child #82 and is closed with a scoped completion boundary.
-- Refrigeration foundation Issue #94 is closed because current `main` contains and surpasses its image-backed editor outcome.
-- Historical M1 Issues #11–#15 and tracker #18 are closed as superseded, not falsely completed.
-- Issue #16 remains completed as the evidence standard.
-- Issue #17 remains open as the versioned-profile consolidation gate.
-
-### Closed superseded Pull Requests
-
-- #53 — obsolete fixture-era central deployment/client branch;
-- #109 — stale Tailscale branch; optional outcome remains in blocked Issue #108;
-- #111 — obsolete parallel auth/RBAC branch; offline identity remains #188;
-- #175 — mixed stale defect branch; focused WebSocket outcome is #199;
-- #159 — grouped production dependencies; focused maintenance owner is #203;
-- #160 — grouped major toolchain migrations; owner is #204;
-- #1 and #2 — independent action v7 bot branches; combined compatibility owner is #205.
-
-### Open Pull Requests
-
-- PR #206 is the active, non-draft source-of-truth reconciliation PR for Issue #186. Its final diff is limited to project state and roadmap files and must pass CI/review before squash merge.
-- PR #192 is the only other open PR. It is a valid draft formatting-inventory Work Package under #191/#185. It must remain draft until updated or recreated from the post-#186 `main` baseline with mandatory project-state/checkpoint changes and fresh green CI.
-
-## Residual Work Packages created by Issue #186
-
-- #199 — live telemetry WebSocket lifecycle and operator states;
-- #200 — physical RS-485 topology and safe polling envelope;
-- #201 — LE-01MP cumulative energy, scale and rollover;
-- #202 — extended XJP60D semantics and firmware portability;
-- #203 — staged production dependency updates;
-- #204 — separated major frontend toolchain migrations;
-- #205 — GitHub Actions v7 compatibility and least-privilege proof.
-
-## Current Work Package status
-
-- NEXOLAB-182 / #182 — Done through PR #184.
-- NEXOLAB-183 / #183 — Done through PR #190.
-- NEXOLAB-186 / #186 — In review in PR #206 on `chore/186-source-of-truth-reconciliation`.
-- NEXOLAB-198 / #198 — Ready as the next primary data-integrity Work Package; dependency #186 prevents execution before merge.
-- NEXOLAB-199 / #199 — Queued focused live-connection defect after #186.
-- NEXOLAB-187 / #187 — Queued offline installation/update bundle.
-- NEXOLAB-188 / #188 — Queued offline operator authentication.
-- NEXOLAB-189 / #189 — Blocked for final controlled-host/Raspberry Pi evidence and depends on #198/#187/#188.
-- NEXOLAB-200–202 — Blocked on controlled read-only hardware evidence.
-- NEXOLAB-17 — Blocked on #200–#202.
-- NEXOLAB-185/#191/PR #192 — Separate maintenance track, draft pending post-#186 rebase/update.
-- NEXOLAB-203–205 — Queued maintenance work, not mixed into product/data-integrity PRs.
-
-## Not yet accepted as complete
-
-- end-to-end durable MQTT-to-PostgreSQL handoff across PostgreSQL outage and Telemetry Service restart;
-- clean disconnected installation/update bundle;
-- secure fully local production operator login;
-- actual-host backup scheduling, encrypted off-host copies and measured production RPO/RTO;
-- edge/central power-loss recovery;
-- full RS-485 topology and firmware portability;
-- LE-01MP cumulative energy;
-- XJP60D setpoint/input/output and extended alarm semantics;
-- optional Tailscale actual-host/operator-workstation acceptance;
-- production/site cutover.
+- #200–#202 and #17 — read-only hardware evidence/profile consolidation;
+- #185/#191/#192 — formatting baseline;
+- #203–#205 — focused dependency/toolchain/Actions maintenance.
 
 ## Next action
 
-Require PR #206 to pass changed-file formatting, ESLint, strict typecheck, Vitest, production build and review. After squash merge, mark #186 Done and start Issue #198 from current `main` as the next primary Work Package. Keep PR #192 and all maintenance/hardware work separate.
+Require all latest-head PR #207 workflows to complete successfully. Address any Python, Compose, container, review or recovery findings. Then update the checkpoint with exact run IDs, move the PR out of draft, verify mergeability and squash-merge only with all required checks green and review threads resolved.
