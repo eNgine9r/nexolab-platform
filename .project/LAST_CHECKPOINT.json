@@ -2,58 +2,43 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-198",
-  "issue": 198,
-  "pull_request": 207,
-  "status": "done",
-  "timestamp": "2026-08-01T13:08:00+03:00",
-  "baseline_main_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
-  "verified_final_head": "0bbb7a2e0e50c8cab3371c8f80266772304f96c1",
-  "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
-  "summary": "Completed and merged durable central telemetry ingestion: MQTT QoS 1 acknowledgement follows local SQLite WAL commit, pending records survive service restart, replay to PostgreSQL is FIFO and idempotent, and all 19 final-head workflows passed.",
+  "task": "NEXOLAB-210",
+  "issue": 210,
+  "pull_request": 213,
+  "branch": "fix/210-dashboard-security-bootstrap",
+  "status": "in_progress",
+  "timestamp": "2026-08-01T14:22:00+03:00",
+  "baseline_main_sha": "d42d163c40d8ceeee086af3d188661dfdd2b33a7",
+  "verified_implementation_head": "6397d14ef106be637659d05619fe1b9a1a973fbb",
+  "summary": "Corrected the dashboard security bootstrap contract so browser transport, timeout, mixed-content and API failures are not misrepresented as authorization denial, while preserving fail-closed JWT/RBAC behavior and adding safe LOCAL_LAN diagnostics.",
   "scope_completed": [
-    "implemented a local SQLite WAL ingestion spool with synchronous FULL",
-    "moved MQTT QoS 1 acknowledgement after successful durable local staging",
-    "enabled a persistent MQTT session in durable mode",
-    "implemented FIFO replay with PostgreSQL event_id idempotency",
-    "implemented durable dead-letter staging for invalid telemetry",
-    "implemented record and byte capacity with visible failure counters",
-    "added pending, bytes, age, replay, terminal, I/O, capacity and acknowledgement metrics",
-    "added dedicated backend and central named spool volumes",
-    "added Prometheus recording and alert rules plus Alertmanager inhibition contract",
-    "updated capacity acceptance for durable backlog, service restart and final drain",
-    "documented architecture, ADR 0008 and rollback-safe operations",
-    "updated the branch from main after Issue #208 without changing verified durability blobs",
-    "squash-merged PR #207 after final GREEN verification"
+    "created Issue #210 and draft PR #213 as a focused critical operator-access Work Package",
+    "verified that disabled authentication returns a local administrator session and the screenshot does not prove RBAC denial",
+    "verified that live dashboard security bootstrap calls the configured API session endpoint directly from the browser",
+    "added an eight-second bounded session request timeout with AbortController",
+    "added mixed-content detection before browser fetch",
+    "added stable codes for authentication required, access denied, API error, invalid response, timeout, mixed content and unreachable-or-origin-blocked browser failure",
+    "added safe diagnostics containing API origin, browser origin, endpoint path, timeout and optional HTTP status only",
+    "extracted a testable Security Gate component with distinct authorization and transport/configuration titles",
+    "made retry clear stale diagnostics and issue a fresh request",
+    "added client, hook and Security Gate regression tests",
+    "added the LOCAL_LAN dashboard security bootstrap diagnostics runbook",
+    "used a temporary branch-only formatter workflow and removed it before the final diff"
   ],
   "checks_actually_run": [
-    "general CI 30696463171 passed formatting, ESLint, strict TypeScript, Vitest and production build",
-    "Telemetry Service 30696463209 passed Python, PostgreSQL, MQTT, REST, WebSocket, object storage, outage recovery, migration and container checks",
-    "Capacity Release Gate 30696463199 passed outage, durable backlog, service/database recovery, replay, final drain and no-loss invariants",
-    "Observability 30696463210 passed policy, promtool, Alertmanager, Compose, production-like recovery and Chromium dashboard acceptance",
-    "Container Supply Chain 30696463203 passed all image builds, OCI labels, CycloneDX, SPDX, strict Trivy policy, manifests, secret checks and aggregate evidence",
-    "Disaster Recovery Browser 30696463198 passed",
-    "Disaster Recovery TLS Fleet 30696463172 passed",
-    "Device Agent Fleet 30696463202 passed",
-    "MQTT TLS Fleet 30696463177 passed",
-    "MQTT Broker Security 30696463169 passed",
-    "Broker Control 30696463195 passed",
-    "Security Browser 30696463200 passed",
-    "Authenticated Dashboard 30696463186 passed",
-    "Alerts Browser 30696463190 passed",
-    "Nodes Browser 30696463205 passed",
-    "Refrigeration Browser 30696463192 passed",
-    "Test Sessions Browser 30696463180 passed",
-    "Reports Browser 30696463187 passed",
-    "Rendered Reports Browser 30696463196 passed",
-    "PR #207 was mergeable, behind_by=0, with zero review threads and zero submitted reviews"
+    "general CI run 30699101280 on implementation head passed changed-file Prettier",
+    "general CI run 30699101280 passed ESLint",
+    "general CI run 30699101280 passed strict TypeScript",
+    "general CI run 30699101280 passed all Vitest suites including new security transport and retry tests",
+    "general CI run 30699101280 passed production build",
+    "temporary formatter run 30698683438 produced the repository-pinned exact Prettier artifact"
   ],
   "runtime_and_offline_evidence": [
-    "core durability uses local SQLite, PostgreSQL, MQTT and named local volumes only",
-    "no mandatory internet, paid service or cloud queue was introduced",
-    "PostgreSQL outage plus Telemetry Service restart replay was proven in CI",
-    "capacity recovery and final zero backlog were proven in the release gate",
-    "rollback documentation preserves the spool volume and prohibits docker compose down -v"
+    "the correction uses browser and application code only and adds no cloud, paid or internet runtime dependency",
+    "AUTH_MODE=disabled behavior is preserved rather than bypassed",
+    "HTTP 401 and 403 remain fail-closed and distinct",
+    "no demo fallback was added",
+    "safe diagnostics never include access tokens, cookies, passwords or private keys"
   ],
   "hardware_evidence": {
     "status": "unchanged",
@@ -61,16 +46,17 @@
     "hardware_verified": false,
     "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
-  "open_risks": [
-    "actual-host recovery, disk-full and power-loss evidence remains owned by Issue #189",
-    "node health/status persistence is outside the Issue #198 durability claim",
-    "rollback to a pre-ADR-0008 image is unsafe while pending or terminal spool rows exist",
-    "spool thresholds require later actual-host capacity validation"
+  "checks_pending": [
+    "final-head changed-file formatting, ESLint, strict typecheck, Vitest and production build",
+    "affected browser acceptance including authenticated dashboard and security suites",
+    "final PR diff and review-thread inspection",
+    "actual operator PC and central-host commands to identify the host-specific API/CORS/network cause"
   ],
-  "next_ready_work_package": {
-    "id": "NEXOLAB-199",
-    "issue": 199,
-    "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
-    "instruction": "Start from current main in a dedicated feature branch and focused Pull Request; use PR #175 only as historical reference."
-  }
+  "open_risks": [
+    "the affected PC may still require correcting API URL, central bind address, exact CORS origin or HTTP/HTTPS scheme",
+    "the host-specific root cause must remain unverified until operator evidence is returned",
+    "Issue #199 remains ready but starts only after #210 merges",
+    "offline authentication architecture remains owned by Issue #188"
+  ],
+  "next_action": "Wait for final-head CI and affected browser suites, fix only concrete findings, then mark PR #213 ready and merge only if all required checks are green. After merge, provide the operator commands from the runbook and continue with Issue #199."
 }
