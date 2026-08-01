@@ -5,14 +5,14 @@
   "task": "NEXOLAB-199",
   "issue": 199,
   "pull_request": 214,
-  "status": "ready_to_merge",
-  "timestamp": "2026-08-01T17:35:00+03:00",
-  "baseline_main_sha": "764c0be96652144920964f7806af493a7a0a7b1e",
-  "branch": "fix/199-websocket-lifecycle",
-  "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
-  "summary": "Verified a bounded, evidence-based live telemetry WebSocket lifecycle so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
+  "status": "done",
+  "timestamp": "2026-08-01T18:05:00+03:00",
+  "baseline_main_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
+  "verified_final_head": "921fba3f1af382f471b614ab5d2cc71952fad0db",
+  "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
+  "summary": "Completed and merged the live telemetry WebSocket lifecycle correction so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
   "scope_completed": [
-    "created Issue #199 feature branch and focused PR #214 from current main",
+    "created and completed Issue #199 through focused PR #214",
     "verified current main before using historical PR #175 as reference only",
     "added a separate bounded WebSocket connection-open timeout",
     "kept all client-originated close codes in the browser-valid private range 4000-4999",
@@ -25,18 +25,21 @@
     "added five focused WebSocket lifecycle tests",
     "added three dashboard stale/offline presentation tests",
     "updated two legacy assertions that incorrectly treated transport open as live",
-    "removed all temporary formatter and test-update workflows from the product diff",
-    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
+    "removed all temporary formatter and test-update workflows before final review",
+    "squash-merged PR #214 into main"
   ],
   "checks_actually_run": [
-    "CI run 30704096637 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
-    "Authenticated Dashboard Acceptance run 30704096614 passed authenticated REST, history and WebSocket dashboard behavior",
+    "CI run 30704859884 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
+    "Authenticated Dashboard Acceptance run 30704859869 passed authenticated REST, history and WebSocket dashboard behavior",
     "dedicated WebSocket lifecycle suite passed 5 tests",
     "dedicated dashboard lifecycle suite passed 3 tests",
-    "final product diff before state-only verification contained no temporary workflow"
+    "final changed-file list: 8 scoped files",
+    "PR review threads: zero",
+    "PR submitted reviews: zero",
+    "PR mergeable: true"
   ],
   "runtime_and_offline_evidence": [
-    "the change adds no internet, cloud, paid-service or external API runtime dependency",
+    "the correction adds no internet, cloud, paid-service or external API runtime dependency",
     "stale telemetry remains visible but does not receive live status or live KPI badges",
     "authentication and organization failures remain fail-closed",
     "credentials are not placed in the WebSocket URL or diagnostics",
@@ -50,18 +53,16 @@
     "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
   "checks_pending": [
-    "final state-only head CI guard",
-    "final PR diff, mergeability, review-thread and submitted-review guard",
-    "guarded squash merge"
+    "operator-started LOCAL_LAN verification remains separate from controlled CI acceptance"
   ],
   "open_risks": [
     "actual affected-PC and central-host network configuration remains unverified under Issue #210 operational evidence",
-    "operator-started LOCAL_LAN browser verification remains separate from controlled CI acceptance",
-    "hardware and power-loss acceptance remain separate Work Packages"
+    "actual-host recovery and power-loss acceptance remain separate Work Packages",
+    "offline operator authentication remains owned by Issue #188"
   ],
   "next_ready_work_package": {
     "issue": 187,
     "title": "Build a verified offline installation and update bundle",
-    "instruction": "Activate after Issue #199 is merged; keep offline authentication in separate Issue #188."
+    "instruction": "Start from current main in a dedicated feature branch; preserve persistent volumes and prove installation/update on a disconnected clean host."
   }
 }
