@@ -23,9 +23,7 @@ const STORAGE_KEY = "nexolab.selectedOrganizationId";
 export type DashboardSecurityState = "demo" | "loading" | "ready" | "unauthenticated" | "forbidden" | "error";
 
 export type DashboardSecurityErrorCode =
-  | SecuritySessionErrorCode
-  | "INVALID_CONFIGURATION"
-  | "ORGANIZATION_NOT_AVAILABLE";
+  SecuritySessionErrorCode | "INVALID_CONFIGURATION" | "ORGANIZATION_NOT_AVAILABLE";
 
 export type DashboardSecurityModel = {
   mode: "demo" | "live";
