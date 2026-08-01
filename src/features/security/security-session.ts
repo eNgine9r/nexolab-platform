@@ -204,9 +204,7 @@ export class HttpSecuritySessionClient {
   }
 
   private isMixedContentRequest(): boolean {
-    return (
-      this.browserLocation?.protocol === "https:" && new URL(this.apiBaseUrl).protocol === "http:"
-    );
+    return this.browserLocation?.protocol === "https:" && new URL(this.apiBaseUrl).protocol === "http:";
   }
 }
 
