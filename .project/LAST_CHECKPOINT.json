@@ -7,10 +7,10 @@
   "pull_request": 207,
   "branch": "feat/198-durable-central-ingestion",
   "status": "review",
-  "timestamp": "2026-08-01T12:58:00+03:00",
+  "timestamp": "2026-08-01T13:04:00+03:00",
   "baseline_main_sha": "ee950e632702135231f1f4349e87529b39d16181",
-  "pre_main_update_head": "830925404b20ac8cbcd47d3bbc319f9dd7d98678",
-  "summary": "Prepared a conflict-resolved update of the durable central-ingestion branch from main after PR #209. Exact verified durability blobs are preserved, supply-chain hardening is inherited from main, and final required checks must rerun on the updated head.",
+  "verified_implementation_head": "8e80b31b73b16d291747bfa5d6a5d54c0bd4d170",
+  "summary": "Updated the durable central-ingestion branch from main after PR #209, preserved the verified implementation byte-for-byte, resolved project-state conflicts, and obtained green results from all 19 triggered workflows on the integrated implementation head.",
   "scope_completed": [
     "implemented a local SQLite WAL ingestion spool with synchronous FULL",
     "moved MQTT QoS 1 acknowledgement after successful durable local staging",
@@ -23,20 +23,33 @@
     "added Prometheus recording and alert rules plus Alertmanager inhibition contract",
     "updated capacity acceptance for durable backlog, service restart and final drain",
     "documented architecture, ADR 0008 and rollback-safe operations",
-    "inherited merged Issue #208 supply-chain hardening from main"
+    "inherited merged Issue #208 supply-chain hardening from main",
+    "resolved main-update conflicts only in project source-of-truth files"
   ],
-  "checks_actually_run_before_main_update": [
-    "Core Software Capacity run 30690434122 passed outage, durable backlog, service/database recovery, drain and no-loss invariants",
-    "Telemetry Service run 30690434121 passed the full Python, PostgreSQL, MQTT, REST, WebSocket, migration and container suite",
-    "general CI run 30690434123 passed formatting, ESLint, strict TypeScript, Vitest and production build",
-    "Observability run 30690434103 passed policy, promtool, Alertmanager, Compose and browser acceptance",
-    "Backend Integration run 30690434125 passed",
-    "Offline Disaster Recovery run 30690434116 passed",
-    "Issue #208 / PR #209 final general CI 30695457310 and Container Supply Chain 30695457322 passed before merge ee950e632702135231f1f4349e87529b39d16181"
+  "checks_actually_run": [
+    "general CI 30696201793 passed formatting, ESLint, strict TypeScript, Vitest and production build",
+    "Telemetry Service 30696201789 passed the complete Python, PostgreSQL, MQTT, REST, WebSocket, object-storage, outage-recovery, migration and container suite",
+    "Capacity Release Gate 30696201784 passed policy, release-candidate outage, durable backlog, service/database recovery, replay, drain, evidence hashing and no-loss invariants",
+    "Observability 30696201802 passed policy, promtool, Alertmanager, Compose, production-like recovery and Chromium dashboard acceptance",
+    "Container Supply Chain 30696201799 passed all image builds, OCI labels, CycloneDX, SPDX, strict Trivy policy, manifests, secret checks and aggregate evidence",
+    "Disaster Recovery Browser 30696201783 passed",
+    "Disaster Recovery TLS Fleet 30696201774 passed",
+    "Device Agent Fleet 30696201787 passed",
+    "MQTT TLS Fleet 30696201815 passed",
+    "MQTT Broker Security 30696201788 passed",
+    "Broker Control 30696201801 passed",
+    "Security Browser 30696201772 passed",
+    "Authenticated Dashboard 30696201767 passed",
+    "Alerts Browser 30696201816 passed",
+    "Nodes Browser 30696201785 passed",
+    "Refrigeration Browser 30696201762 passed",
+    "Test Sessions Browser 30696201773 passed",
+    "Reports Browser 30696201822 passed",
+    "Rendered Reports Browser 30696201770 passed",
+    "branch comparison against main reported behind_by=0 and PR mergeability true"
   ],
   "checks_pending": [
-    "all pull-request workflows on the main-updated head",
-    "complete Container Supply Chain aggregate evidence",
+    "required checks on the final source-of-truth update head",
     "final review-thread and mergeability check",
     "ready transition and guarded squash merge"
   ],
@@ -54,5 +67,5 @@
     "rollback to a pre-ADR-0008 image is unsafe while pending or terminal spool rows exist",
     "spool thresholds require later actual-host capacity validation"
   ],
-  "next_action": "Create the two-parent merge commit with main ee950e632702135231f1f4349e87529b39d16181, run every required check, resolve findings and merge PR #207 only while GREEN."
+  "next_action": "Verify all required checks on the final state-update head, confirm zero review findings, mark PR #207 ready and squash-merge only while GREEN."
 }
