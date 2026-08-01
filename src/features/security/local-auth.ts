@@ -49,12 +49,9 @@ export function createLocalCredentialProvider(
       return snapshot;
     }
 
-    const refreshed = await requestTokenPair(
-      `${normalizedBaseUrl}/api/v1/auth/local/refresh`,
-      {
-        refresh_token: refreshToken,
-      },
-    );
+    const refreshed = await requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/refresh`, {
+      refresh_token: refreshToken,
+    });
     if (!refreshed.ok) {
       clearLocalAuthStorage();
       const snapshot = {
@@ -80,13 +77,10 @@ export async function signInWithLocalPassword(
   password: string,
 ): Promise<LocalAuthResult> {
   const normalizedBaseUrl = normalizeBaseUrl(apiBaseUrl);
-  const result = await requestTokenPair(
-    `${normalizedBaseUrl}/api/v1/auth/local/login`,
-    {
-      username: username.trim(),
-      password,
-    },
-  );
+  const result = await requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/login`, {
+    username: username.trim(),
+    password,
+  });
   if (!result.ok) {
     clearLocalAuthStorage();
     return { ok: false, message: result.message };
@@ -102,9 +96,7 @@ export async function signInWithLocalPassword(
 
 export async function signOutLocal(apiBaseUrl: string): Promise<void> {
   const refreshToken =
-    typeof window === "undefined"
-      ? null
-      : window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    typeof window === "undefined" ? null : window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   try {
     if (refreshToken) {
       await fetch(`${normalizeBaseUrl(apiBaseUrl)}/api/v1/auth/local/logout`, {
@@ -133,9 +125,7 @@ export function clearLocalAuthStorage(): void {
 async function requestTokenPair(
   url: string,
   payload: Record<string, string>,
-): Promise<
-  { ok: true; value: LocalTokenPayload } | { ok: false; message: string }
-> {
+): Promise<{ ok: true; value: LocalTokenPayload } | { ok: false; message: string }> {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -150,9 +140,7 @@ async function requestTokenPair(
     if (!response.ok) {
       return {
         ok: false,
-        message:
-          readErrorMessage(body) ??
-          "Локальну сесію оператора не створено.",
+        message: readErrorMessage(body) ?? "Локальну сесію оператора не створено.",
       };
     }
     const tokenPair = parseTokenPair(body);
@@ -160,8 +148,7 @@ async function requestTokenPair(
       ? { ok: true, value: tokenPair }
       : {
           ok: false,
-          message:
-            "Відповідь локального сервера автентифікації недійсна.",
+          message: "Відповідь локального сервера автентифікації недійсна.",
         };
   } catch {
     return {
@@ -175,10 +162,7 @@ function storeTokenPair(payload: LocalTokenPayload): void {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, payload.access_token);
   window.sessionStorage.setItem(REFRESH_TOKEN_KEY, payload.refresh_token);
-  window.sessionStorage.setItem(
-    ACCESS_EXPIRES_AT_KEY,
-    String(Date.now() + payload.expires_in * 1_000),
-  );
+  window.sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(Date.now() + payload.expires_in * 1_000));
 }
 
 function readExpiresAt(): number {
@@ -242,7 +226,5 @@ function readString(value: unknown): string | null {
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }

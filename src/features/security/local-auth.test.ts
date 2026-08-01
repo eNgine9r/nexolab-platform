@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  createLocalCredentialProvider,
-  signInWithLocalPassword,
-  signOutLocal,
-} from "./local-auth";
+import { createLocalCredentialProvider, signInWithLocalPassword, signOutLocal } from "./local-auth";
 import { getSecurityCredentials, setSecurityCredentials } from "./security-session";
 
 const API_BASE_URL = "http://127.0.0.1:8082";
@@ -73,10 +69,10 @@ describe("local browser authentication", () => {
       .fn()
       .mockResolvedValueOnce(tokenResponse("access-1", "refresh-1", 1))
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ detail: { message: "session expired" } }),
-          { status: 401, headers: { "Content-Type": "application/json" } },
-        ),
+        new Response(JSON.stringify({ detail: { message: "session expired" } }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
       );
     vi.stubGlobal("fetch", fetchMock);
 
