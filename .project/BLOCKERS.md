@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents starting the next software Work Package.
+No hard blocker prevents software completion of Issue #210.
 
 Stop before:
 
@@ -15,6 +15,31 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
+## Active operator-access blocker
+
+### N-030 — Dashboard security bootstrap
+
+**Status:** In progress — Issue #210 / PR #213.
+
+The affected browser stopped at `NEXOLAB Security Gate`. Repository evidence proves that `AUTH_MODE=disabled` returns a valid local administrator session, so the screenshot alone does not prove an RBAC denial. The previous frontend collapsed API unavailability, CORS/origin rejection, mixed content and timeout into one generic error and incorrectly displayed the same denial title used for HTTP 403.
+
+Software remediation in PR #213 now:
+
+- preserves fail-closed behavior;
+- keeps HTTP 401 and 403 distinct;
+- classifies timeout, mixed content, HTTP API failure and generic browser transport/origin failure;
+- exposes only safe API/browser origin diagnostics;
+- retries with a fresh request;
+- provides an operator runbook.
+
+**Required actual-host action:** run the documented PC/central-host checks for `/health/ready`, `/api/v1/auth/session`, exact CORS origin and loopback/LAN addressing. Until that evidence is supplied, the host-specific cause remains unverified.
+
+### N-009 — Live WebSocket lifecycle
+
+**Status:** Ready — Issue #199, sequenced after #210.
+
+Do not start #199 until dashboard security bootstrap is merged and the operator can distinguish session bootstrap failure from WebSocket lifecycle failure. Historical PR #175 remains reference-only.
+
 ## Resolved Work Package
 
 ### N-008 — MQTT-to-PostgreSQL durability
@@ -22,14 +47,6 @@ Stop before:
 **Status:** Resolved by Issue #198 / PR #207.
 
 PR #207 merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5` after all 19 final-head workflows passed. Software evidence covers durable staging before acknowledgement, PostgreSQL outage plus service restart replay, capacity/no-loss behavior, named volumes, observability and supply-chain verification.
-
-## Next Ready Work Package
-
-### N-009 — Live WebSocket lifecycle
-
-**Status:** Ready — Issue #199.
-
-Start from current `main` in a dedicated feature branch. Stabilize live telemetry connection lifecycle and operator-visible states without mixing unrelated catalog, formatting or dependency changes. Historical PR #175 is reference-only.
 
 ## Open operational and hardware risks
 
@@ -40,8 +57,6 @@ Start from current `main` in a dedicated feature branch. Stabilize live telemetr
 Required evidence includes container recreation, rollback with pending rows, disk-full response, backup/restore and controlled power interruption on supported hosts.
 
 ### N-023 — Node health/status durability
-
-**Status:** Explicitly outside Issue #198.
 
 Current node health/status persistence is not claimed to have the same process-restart durability as telemetry measurements. Create a separate focused Issue only if operational evidence requires it.
 

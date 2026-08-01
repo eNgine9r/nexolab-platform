@@ -50,6 +50,13 @@ const sessionPayload = {
   ],
 };
 
+function sessionResponse(): Response {
+  return new Response(JSON.stringify(sessionPayload), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 describe("useDashboardSecurity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,13 +69,7 @@ describe("useDashboardSecurity", () => {
     });
     vi.stubGlobal(
       "fetch",
-      vi.fn(
-        async () =>
-          new Response(JSON.stringify(sessionPayload), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-      ),
+      vi.fn(async () => sessionResponse()),
     );
   });
 
@@ -84,6 +85,8 @@ describe("useDashboardSecurity", () => {
       expect(result.current.state).toBe("ready");
     });
     expect(result.current.membership?.organizationId).toBe("org-2");
+    expect(result.current.errorCode).toBeNull();
+    expect(result.current.diagnostics).toBeNull();
     expect(getSecurityCredentials()).toEqual({
       accessToken: "access-token",
       organizationId: "org-2",
@@ -99,6 +102,7 @@ describe("useDashboardSecurity", () => {
       result.current.selectOrganization("foreign-org");
     });
     expect(result.current.state).toBe("forbidden");
+    expect(result.current.errorCode).toBe("ORGANIZATION_NOT_AVAILABLE");
     expect(result.current.error).toContain("відсутня");
   });
 
@@ -115,7 +119,40 @@ describe("useDashboardSecurity", () => {
       expect(result.current.state).toBe("forbidden");
     });
     expect(result.current.membership).toBeNull();
+    expect(result.current.errorCode).toBe("ORGANIZATION_NOT_AVAILABLE");
     expect(result.current.error).toContain("відсутня");
+  });
+
+  it("retries with a fresh request after a browser transport failure", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(sessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useDashboardSecurity());
+
+    await waitFor(() => {
+      expect(result.current.state).toBe("error");
+    });
+    expect(result.current.errorCode).toBe("SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED");
+    expect(result.current.diagnostics).toMatchObject({
+      apiOrigin: "https://api.example.test",
+      browserOrigin: window.location.origin,
+      endpointPath: "/api/v1/auth/session",
+    });
+
+    act(() => {
+      result.current.retry();
+    });
+
+    expect(result.current.state).toBe("loading");
+    expect(result.current.errorCode).toBeNull();
+    expect(result.current.diagnostics).toBeNull();
+    await waitFor(() => {
+      expect(result.current.state).toBe("ready");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("clears credentials and persisted organization on logout", async () => {
@@ -129,6 +166,7 @@ describe("useDashboardSecurity", () => {
 
     expect(authState.signOut).toHaveBeenCalledOnce();
     expect(result.current.state).toBe("unauthenticated");
+    expect(result.current.errorCode).toBeNull();
     expect(window.localStorage.getItem("nexolab.selectedOrganizationId")).toBeNull();
     expect(getSecurityCredentials()).toEqual({
       accessToken: null,
