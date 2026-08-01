@@ -1,78 +1,93 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: wp198-capacity-contract-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  update-durable-capacity-contract:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/198-durable-central-ingestion'
+  quality:
+    name: Quality and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout feature branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: feat/198-durable-central-ingestion
           fetch-depth: 0
 
-      - name: Replace legacy queue outage assertions
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Check formatting for changed files
+        shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
 
-          path = Path('scripts/run_capacity_acceptance.py')
-          text = path.read_text(encoding='utf-8')
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          fi
 
-          old_outage = '''    def outage_visible() -> bool:\n        status, payload = http_json(metrics_url, 3)\n        ready, _ = http_json(f"{api}/health/ready", 3)\n        return status == 200 and not payload.get("database_ready") and int(payload.get("queue_size", 0)) > 0 and ready == 503\n\n    detection = wait_for("database outage readiness", outage_visible, 30)\n'''
-          new_outage = '''    def outage_visible() -> bool:\n        status, payload = http_json(metrics_url, 3)\n        ready, _ = http_json(f"{api}/health/ready", 3)\n        return (\n            status == 200\n            and not payload.get("database_ready")\n            and bool(payload.get("spool_ready"))\n            and int(payload.get("spool_pending_records", 0)) > 0\n            and ready == 503\n        )\n\n    detection = wait_for("database outage readiness", outage_visible, 30)\n    outage_snapshot, _ = metrics(api)\n'''
-          if old_outage not in text:
-              raise SystemExit('legacy outage predicate anchor not found')
-          text = text.replace(old_outage, new_outage, 1)
+          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+            base_sha="$(git rev-parse "${head_sha}^")"
+          fi
 
-          old_delta = '''        for key in (\n            "accepted_total", "persisted_total", "duplicate_total", "rejected_total",\n            "queue_dropped_total", "dead_letter_persisted_total", "persistence_failure_total",\n            "database_retry_total", "database_recovery_total",\n        )\n'''
-          new_delta = '''        for key in (\n            "accepted_total", "persisted_total", "duplicate_total", "rejected_total",\n            "queue_dropped_total", "dead_letter_persisted_total", "persistence_failure_total",\n            "database_retry_total", "database_recovery_total", "spool_replayed_total",\n            "spool_capacity_failure_total", "spool_error_total", "mqtt_ack_failure_total",\n        )\n'''
-          if old_delta not in text:
-              raise SystemExit('recovery delta anchor not found')
-          text = text.replace(old_delta, new_delta, 1)
+          mapfile -d '' format_files < <(
+            git diff --name-only --diff-filter=ACMRT -z "$base_sha" "$head_sha" -- \
+              '*.cjs' '*.css' '*.html' '*.js' '*.json' '*.jsx' '*.md' '*.mdx' \
+              '*.mjs' '*.scss' '*.ts' '*.tsx' '*.yaml' '*.yml'
+          )
 
-          old_assertions = '''    if not 0 < recovery_delta["database_retry_total"] <= 50:\n        raise GateError("database retry behavior is missing or uncontrolled")\n    if total_recovery > recovery["max_recovery_seconds"]:\n        raise GateError("database recovery threshold exceeded")\n    failure = {\n'''
-          new_assertions = '''    if not 0 < recovery_delta["database_retry_total"] <= 50:\n        raise GateError("database retry behavior is missing or uncontrolled")\n    if recovery_delta["spool_replayed_total"] <= 0:\n        raise GateError("durable spool replay was not observed after database recovery")\n    for key in (\n        "spool_capacity_failure_total",\n        "spool_error_total",\n        "mqtt_ack_failure_total",\n    ):\n        if recovery_delta[key]:\n            raise GateError(f"durable recovery counter must remain zero: {key}")\n    if not bool(recovery_after.get("spool_ready")):\n        raise GateError("durable spool is not ready after database recovery")\n    if int(recovery_after.get("spool_pending_records", 0)):\n        raise GateError("durable spool did not drain after database recovery")\n    if int(recovery_after.get("spool_terminal_records", 0)):\n        raise GateError("durable spool contains terminal records after recovery")\n    if total_recovery > recovery["max_recovery_seconds"]:\n        raise GateError("database recovery threshold exceeded")\n    failure = {\n'''
-          if old_assertions not in text:
-              raise SystemExit('recovery assertions anchor not found')
-          text = text.replace(old_assertions, new_assertions, 1)
+          if (( ${#format_files[@]} == 0 )); then
+            echo "No changed files require Prettier validation." | tee prettier-diagnostics.txt
+            exit 0
+          fi
 
-          old_failure = '''        "events_during_outage": recovery["events_during_outage"],\n        "live_events_after_restart": recovery["live_events_after_restart"],\n        "metrics_delta": recovery_delta,\n'''
-          new_failure = '''        "events_during_outage": recovery["events_during_outage"],\n        "live_events_after_restart": recovery["live_events_after_restart"],\n        "outage_spool": {\n            "ready": bool(outage_snapshot.get("spool_ready")),\n            "pending_records": int(outage_snapshot.get("spool_pending_records", 0)),\n            "payload_bytes": int(outage_snapshot.get("spool_payload_bytes", 0)),\n            "oldest_pending_age_seconds": outage_snapshot.get(\n                "spool_oldest_pending_age_seconds"\n            ),\n        },\n        "recovered_spool": {\n            "ready": bool(recovery_after.get("spool_ready")),\n            "pending_records": int(recovery_after.get("spool_pending_records", 0)),\n            "terminal_records": int(recovery_after.get("spool_terminal_records", 0)),\n            "payload_bytes": int(recovery_after.get("spool_payload_bytes", 0)),\n        },\n        "metrics_delta": recovery_delta,\n'''
-          if old_failure not in text:
-              raise SystemExit('failure evidence anchor not found')
-          text = text.replace(old_failure, new_failure, 1)
+          printf 'Checking formatting for %s changed file(s).\n' "${#format_files[@]}" \
+            | tee prettier-diagnostics.txt
+          npm exec prettier -- --check "${format_files[@]}" \
+            2>&1 | tee -a prettier-diagnostics.txt
 
-          old_final = '''    if database["dead_letters"] or int(final.get("queue_size", 0)) or int(final.get("queue_dropped_total", 0)) or int(final.get("dead_letter_persisted_total", 0)):\n        raise GateError("final no-loss invariants failed")\n'''
-          new_final = '''    if (\n        database["dead_letters"]\n        or int(final.get("queue_size", 0))\n        or int(final.get("queue_dropped_total", 0))\n        or int(final.get("dead_letter_persisted_total", 0))\n        or not bool(final.get("spool_ready"))\n        or int(final.get("spool_pending_records", 0))\n        or int(final.get("spool_terminal_records", 0))\n        or int(final.get("spool_capacity_failure_total", 0))\n        or int(final.get("spool_error_total", 0))\n        or int(final.get("mqtt_ack_failure_total", 0))\n    ):\n        raise GateError("final no-loss invariants failed")\n'''
-          if old_final not in text:
-              raise SystemExit('final no-loss anchor not found')
-          path.write_text(text.replace(old_final, new_final, 1), encoding='utf-8')
-          PY
+      - name: Upload formatting diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-diagnostics-${{ github.sha }}
+          path: prettier-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 3
 
-      - name: Restore standard CI
-        run: git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+      - name: Lint
+        run: npm run lint
 
-      - name: Commit durable capacity assertions
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/ci.yml scripts/run_capacity_acceptance.py
-          git commit -m "test(capacity): assert durable spool recovery"
-          git push origin HEAD:feat/198-durable-central-ingestion
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build

@@ -770,9 +770,16 @@ def main() -> int:
     def outage_visible() -> bool:
         status, payload = http_json(metrics_url, 3)
         ready, _ = http_json(f"{api}/health/ready", 3)
-        return status == 200 and not payload.get("database_ready") and int(payload.get("queue_size", 0)) > 0 and ready == 503
+        return (
+            status == 200
+            and not payload.get("database_ready")
+            and bool(payload.get("spool_ready"))
+            and int(payload.get("spool_pending_records", 0)) > 0
+            and ready == 503
+        )
 
     detection = wait_for("database outage readiness", outage_visible, 30)
+    outage_snapshot, _ = metrics(api)
     time.sleep(recovery["outage_seconds"])
     restart_started = time.monotonic()
     runtime.run("start", recovery["dependency"], timeout=30)
@@ -796,7 +803,8 @@ def main() -> int:
         for key in (
             "accepted_total", "persisted_total", "duplicate_total", "rejected_total",
             "queue_dropped_total", "dead_letter_persisted_total", "persistence_failure_total",
-            "database_retry_total", "database_recovery_total",
+            "database_retry_total", "database_recovery_total", "spool_replayed_total",
+            "spool_capacity_failure_total", "spool_error_total", "mqtt_ack_failure_total",
         )
     }
     expected_recovery = recovery["events_during_outage"] + recovery["live_events_after_restart"]
@@ -807,6 +815,21 @@ def main() -> int:
             raise GateError(f"recovery counter must remain zero: {key}")
     if not 0 < recovery_delta["database_retry_total"] <= 50:
         raise GateError("database retry behavior is missing or uncontrolled")
+    if recovery_delta["spool_replayed_total"] <= 0:
+        raise GateError("durable spool replay was not observed after database recovery")
+    for key in (
+        "spool_capacity_failure_total",
+        "spool_error_total",
+        "mqtt_ack_failure_total",
+    ):
+        if recovery_delta[key]:
+            raise GateError(f"durable recovery counter must remain zero: {key}")
+    if not bool(recovery_after.get("spool_ready")):
+        raise GateError("durable spool is not ready after database recovery")
+    if int(recovery_after.get("spool_pending_records", 0)):
+        raise GateError("durable spool did not drain after database recovery")
+    if int(recovery_after.get("spool_terminal_records", 0)):
+        raise GateError("durable spool contains terminal records after recovery")
     if total_recovery > recovery["max_recovery_seconds"]:
         raise GateError("database recovery threshold exceeded")
     failure = {
@@ -819,6 +842,20 @@ def main() -> int:
         "total_recovery_seconds": total_recovery,
         "events_during_outage": recovery["events_during_outage"],
         "live_events_after_restart": recovery["live_events_after_restart"],
+        "outage_spool": {
+            "ready": bool(outage_snapshot.get("spool_ready")),
+            "pending_records": int(outage_snapshot.get("spool_pending_records", 0)),
+            "payload_bytes": int(outage_snapshot.get("spool_payload_bytes", 0)),
+            "oldest_pending_age_seconds": outage_snapshot.get(
+                "spool_oldest_pending_age_seconds"
+            ),
+        },
+        "recovered_spool": {
+            "ready": bool(recovery_after.get("spool_ready")),
+            "pending_records": int(recovery_after.get("spool_pending_records", 0)),
+            "terminal_records": int(recovery_after.get("spool_terminal_records", 0)),
+            "payload_bytes": int(recovery_after.get("spool_payload_bytes", 0)),
+        },
         "metrics_delta": recovery_delta,
         "sampling": recovery_sampling,
         "recovered": True,
@@ -844,7 +881,18 @@ SELECT json_build_object(
     expected_unique = steady["expected_events"] + replay["events"] + ws["events"] + expected_recovery
     if database["capacity_rows"] != expected_unique or database["rows"] != database["unique_event_ids"]:
         raise GateError("final PostgreSQL count or uniqueness mismatch")
-    if database["dead_letters"] or int(final.get("queue_size", 0)) or int(final.get("queue_dropped_total", 0)) or int(final.get("dead_letter_persisted_total", 0)):
+    if (
+        database["dead_letters"]
+        or int(final.get("queue_size", 0))
+        or int(final.get("queue_dropped_total", 0))
+        or int(final.get("dead_letter_persisted_total", 0))
+        or not bool(final.get("spool_ready"))
+        or int(final.get("spool_pending_records", 0))
+        or int(final.get("spool_terminal_records", 0))
+        or int(final.get("spool_capacity_failure_total", 0))
+        or int(final.get("spool_error_total", 0))
+        or int(final.get("mqtt_ack_failure_total", 0))
+    ):
         raise GateError("final no-loss invariants failed")
     write_json(evidence / "database-summary.json", database)
     write_json(evidence / "resource-observations.json", collect_resources(runtime))
