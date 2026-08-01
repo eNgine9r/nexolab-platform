@@ -1,0 +1,23 @@
+services:
+  telemetry-service:
+    environment:
+      AUTH_MODE: jwt
+      AUTH_LOCAL_ENABLED: "true"
+      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab_local_auth_private_key
+      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/nexolab_local_auth_public_key
+      AUTH_LOCAL_ISSUER: ${AUTH_LOCAL_ISSUER:-urn:nexolab:local}
+      AUTH_LOCAL_AUDIENCE: ${AUTH_LOCAL_AUDIENCE:-nexolab-api}
+      AUTH_LOCAL_PROVIDER: nexolab-local
+      AUTH_LOCAL_ACCESS_TOKEN_SECONDS: ${AUTH_LOCAL_ACCESS_TOKEN_SECONDS:-300}
+      AUTH_LOCAL_REFRESH_TOKEN_SECONDS: ${AUTH_LOCAL_REFRESH_TOKEN_SECONDS:-43200}
+      AUTH_LOCAL_MAX_FAILED_ATTEMPTS: ${AUTH_LOCAL_MAX_FAILED_ATTEMPTS:-5}
+      AUTH_LOCAL_LOCKOUT_SECONDS: ${AUTH_LOCAL_LOCKOUT_SECONDS:-300}
+    secrets:
+      - nexolab_local_auth_private_key
+      - nexolab_local_auth_public_key
+
+secrets:
+  nexolab_local_auth_private_key:
+    file: ${AUTH_LOCAL_PRIVATE_KEY_HOST_FILE:?AUTH_LOCAL_PRIVATE_KEY_HOST_FILE is required}
+  nexolab_local_auth_public_key:
+    file: ${AUTH_LOCAL_PUBLIC_KEY_HOST_FILE:?AUTH_LOCAL_PUBLIC_KEY_HOST_FILE is required}
