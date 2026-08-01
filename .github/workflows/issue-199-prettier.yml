@@ -1,0 +1,33 @@
+name: Issue 199 Prettier Formatter
+
+on:
+  push:
+    branches:
+      - fix/199-websocket-lifecycle
+    paths:
+      - .github/workflows/issue-199-prettier.yml
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Format WebSocket client
+        run: npx prettier --write src/lib/telemetry/websocket-client.ts
+      - name: Upload formatted client
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-199-prettier-${{ github.sha }}
+          path: src/lib/telemetry/websocket-client.ts
+          retention-days: 3
