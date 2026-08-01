@@ -43,14 +43,34 @@ export type SecuritySession = {
   memberships: SecurityMembership[];
 };
 
+export type SecuritySessionErrorCode =
+  | "AUTHENTICATION_REQUIRED"
+  | "ACCESS_DENIED"
+  | "INVALID_RESPONSE"
+  | "SESSION_API_ERROR"
+  | "SESSION_REQUEST_TIMEOUT"
+  | "SESSION_MIXED_CONTENT"
+  | "SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED";
+
+export type SecuritySessionDiagnostics = {
+  apiOrigin: string;
+  browserOrigin: string | null;
+  endpointPath: "/api/v1/auth/session";
+  timeoutMs: number;
+  httpStatus: number | null;
+};
+
+export type SecuritySessionFailure = {
+  code: SecuritySessionErrorCode;
+  message: string;
+  diagnostics: SecuritySessionDiagnostics;
+};
+
 export type SecuritySessionResult =
   | { ok: true; value: SecuritySession }
   | {
       ok: false;
-      error: {
-        code: "AUTHENTICATION_REQUIRED" | "ACCESS_DENIED" | "INVALID_RESPONSE" | "REQUEST_FAILED";
-        message: string;
-      };
+      error: SecuritySessionFailure;
     };
 
 export type SecurityCredentialSnapshot = {
@@ -61,62 +81,132 @@ export type SecurityCredentialSnapshot = {
 export type SecurityCredentialProvider = () =>
   SecurityCredentialSnapshot | Promise<SecurityCredentialSnapshot>;
 
+type BrowserLocationSnapshot = {
+  origin: string;
+  protocol: string;
+};
+
 export type HttpSecuritySessionClientOptions = {
   apiBaseUrl: string;
   fetchImpl?: typeof fetch;
+  requestTimeoutMs?: number;
+  browserLocation?: BrowserLocationSnapshot | null;
 };
+
+const SESSION_ENDPOINT_PATH = "/api/v1/auth/session" as const;
+const DEFAULT_SESSION_TIMEOUT_MS = 8_000;
 
 export class HttpSecuritySessionClient {
   private readonly apiBaseUrl: string;
+  private readonly apiOrigin: string;
+  private readonly browserLocation: BrowserLocationSnapshot | null;
   private readonly fetchImpl: typeof fetch;
+  private readonly requestTimeoutMs: number;
 
   constructor(options: HttpSecuritySessionClientOptions) {
     this.apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl);
+    this.apiOrigin = new URL(this.apiBaseUrl).origin;
     this.fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
+    this.requestTimeoutMs = normalizeTimeout(options.requestTimeoutMs);
+    this.browserLocation =
+      options.browserLocation === undefined ? readBrowserLocation() : options.browserLocation;
   }
 
   async getSession(): Promise<SecuritySessionResult> {
+    if (this.isMixedContentRequest()) {
+      return this.failure(
+        "SESSION_MIXED_CONTENT",
+        "Захищена HTTPS-сторінка не може звертатися до HTTP API NEXOLAB. Використайте HTTPS API або відкрийте dashboard через HTTP у контрольованій локальній мережі.",
+      );
+    }
+
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), this.requestTimeoutMs);
+
     try {
-      const response = await this.fetchImpl(`${this.apiBaseUrl}/api/v1/auth/session`, {
+      const response = await this.fetchImpl(`${this.apiBaseUrl}${SESSION_ENDPOINT_PATH}`, {
         method: "GET",
         credentials: "same-origin",
         headers: { Accept: "application/json" },
+        signal: controller.signal,
       });
       const payload = await readJson(response);
       if (!response.ok) {
         const message = readErrorMessage(payload);
-        return {
-          ok: false,
-          error: {
-            code: response.status === 401 ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED",
-            message:
-              message ??
-              (response.status === 401
-                ? "Потрібна автентифікація оператора."
-                : "Поточний користувач не має доступу до вибраної організації."),
-          },
-        };
+        if (response.status === 401) {
+          return this.failure(
+            "AUTHENTICATION_REQUIRED",
+            message ?? "Потрібна автентифікація оператора.",
+            response.status,
+          );
+        }
+        if (response.status === 403) {
+          return this.failure(
+            "ACCESS_DENIED",
+            message ?? "Поточний користувач не має доступу до вибраної організації.",
+            response.status,
+          );
+        }
+        return this.failure(
+          "SESSION_API_ERROR",
+          message ?? `API захищеної сесії повернув HTTP ${response.status}.`,
+          response.status,
+        );
       }
 
       const session = parseSecuritySession(payload);
       return session
         ? { ok: true, value: session }
-        : {
-            ok: false,
-            error: {
-              code: "INVALID_RESPONSE",
-              message: "Відповідь сервера автентифікації не відповідає контракту.",
-            },
-          };
-    } catch {
-      return {
-        ok: false,
-        error: {
-          code: "REQUEST_FAILED",
-          message: "Не вдалося отримати захищену сесію NEXOLAB.",
-        },
-      };
+        : this.failure(
+            "INVALID_RESPONSE",
+            "Відповідь сервера автентифікації не відповідає контракту.",
+            response.status,
+          );
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) {
+        return this.failure(
+          "SESSION_REQUEST_TIMEOUT",
+          `API NEXOLAB не відповів протягом ${formatTimeout(this.requestTimeoutMs)}. Перевірте стан Telemetry Service та мережевий маршрут до central host.`,
+        );
+      }
+      return this.failure(
+        "SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED",
+        "API NEXOLAB недоступний з цього браузера або поточний browser origin не дозволений CORS. Перевірте адресу central host, порт 8082 і CORS_ALLOWED_ORIGINS.",
+      );
+    } finally {
+      globalThis.clearTimeout(timeoutId);
     }
+  }
+
+  private diagnostics(httpStatus: number | null = null): SecuritySessionDiagnostics {
+    return {
+      apiOrigin: this.apiOrigin,
+      browserOrigin: this.browserLocation?.origin ?? null,
+      endpointPath: SESSION_ENDPOINT_PATH,
+      timeoutMs: this.requestTimeoutMs,
+      httpStatus,
+    };
+  }
+
+  private failure(
+    code: SecuritySessionErrorCode,
+    message: string,
+    httpStatus: number | null = null,
+  ): SecuritySessionResult {
+    return {
+      ok: false,
+      error: {
+        code,
+        message,
+        diagnostics: this.diagnostics(httpStatus),
+      },
+    };
+  }
+
+  private isMixedContentRequest(): boolean {
+    return (
+      this.browserLocation?.protocol === "https:" && new URL(this.apiBaseUrl).protocol === "http:"
+    );
   }
 }
 
@@ -278,6 +368,30 @@ function normalizeBaseUrl(value: string): string {
   parsed.hash = "";
   parsed.search = "";
   return parsed.toString().replace(/\/$/, "");
+}
+
+function normalizeTimeout(value: number | undefined): number {
+  if (value === undefined) return DEFAULT_SESSION_TIMEOUT_MS;
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error("Security session request timeout must be a positive finite number.");
+  }
+  return Math.round(value);
+}
+
+function readBrowserLocation(): BrowserLocationSnapshot | null {
+  if (typeof window === "undefined") return null;
+  return {
+    origin: window.location.origin,
+    protocol: window.location.protocol,
+  };
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+function formatTimeout(timeoutMs: number): string {
+  return timeoutMs % 1_000 === 0 ? `${timeoutMs / 1_000} с` : `${timeoutMs} мс`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
