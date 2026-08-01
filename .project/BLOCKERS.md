@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker prevents software completion of Issue #210.
+No hard blocker prevents starting the next software Work Package, Issue #199.
 
 Stop before:
 
@@ -15,32 +15,41 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Active operator-access blocker
+## Resolved operator-access Work Package
 
 ### N-030 — Dashboard security bootstrap
 
-**Status:** In progress — Issue #210 / PR #213.
+**Software status:** Resolved by Issue #210 / PR #213, merged as `729139a20b2bd5464aca2291dc4002f514896eee`.
 
-The affected browser stopped at `NEXOLAB Security Gate`. Repository evidence proves that `AUTH_MODE=disabled` returns a valid local administrator session, so the screenshot alone does not prove an RBAC denial. The previous frontend collapsed API unavailability, CORS/origin rejection, mixed content and timeout into one generic error and incorrectly displayed the same denial title used for HTTP 403.
+The completed correction preserves fail-closed security while distinguishing HTTP 401, HTTP 403, API errors, invalid responses, timeout, mixed content and generic browser transport/origin failures. The Security Gate now exposes only safe endpoint/origin diagnostics and retry creates a fresh request.
 
-Software remediation in PR #213 now:
+Final head `a4318330bdce12a0b32e48cf2efb2f705fe8767a` passed all nine triggered workflows, including CI, Security Browser, Authenticated Dashboard and Telemetry Service acceptance.
 
-- preserves fail-closed behavior;
-- keeps HTTP 401 and 403 distinct;
-- classifies timeout, mixed content, HTTP API failure and generic browser transport/origin failure;
-- exposes only safe API/browser origin diagnostics;
-- retries with a fresh request;
-- provides an operator runbook.
+### N-031 — Affected-PC session bootstrap configuration
 
-**Required actual-host action:** run the documented PC/central-host checks for `/health/ready`, `/api/v1/auth/session`, exact CORS origin and loopback/LAN addressing. Until that evidence is supplied, the host-specific cause remains unverified.
+**Status:** Soft blocker for actual-host acceptance; software work may continue.
+
+The exact cause of the original screenshot remains unverified until the operator runs `docs/operations/dashboard-security-bootstrap.md` against the affected PC and central host. Evidence must cover:
+
+- dashboard origin;
+- API origin;
+- `/health/ready`;
+- `/api/v1/auth/session`;
+- `Access-Control-Allow-Origin`;
+- central bind address and API port;
+- frontend restart or rebuild after any `NEXT_PUBLIC_*` change.
+
+Do not infer whether the cause is API availability, loopback/LAN addressing, CORS, mixed content or another browser transport failure until those checks are returned.
+
+## Next Ready Work Package
 
 ### N-009 — Live WebSocket lifecycle
 
-**Status:** Ready — Issue #199, sequenced after #210.
+**Status:** Ready — Issue #199.
 
-Do not start #199 until dashboard security bootstrap is merged and the operator can distinguish session bootstrap failure from WebSocket lifecycle failure. Historical PR #175 remains reference-only.
+Start from current `main` in a dedicated branch. Historical PR #175 is reference-only. Keep security bootstrap, catalog behavior, dependency updates and formatting debt outside this Work Package.
 
-## Resolved Work Package
+## Resolved data-integrity Work Package
 
 ### N-008 — MQTT-to-PostgreSQL durability
 

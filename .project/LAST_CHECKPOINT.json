@@ -5,39 +5,45 @@
   "task": "NEXOLAB-210",
   "issue": 210,
   "pull_request": 213,
-  "branch": "fix/210-dashboard-security-bootstrap",
-  "status": "in_progress",
-  "timestamp": "2026-08-01T14:22:00+03:00",
-  "baseline_main_sha": "d42d163c40d8ceeee086af3d188661dfdd2b33a7",
-  "verified_implementation_head": "6397d14ef106be637659d05619fe1b9a1a973fbb",
-  "summary": "Corrected the dashboard security bootstrap contract so browser transport, timeout, mixed-content and API failures are not misrepresented as authorization denial, while preserving fail-closed JWT/RBAC behavior and adding safe LOCAL_LAN diagnostics.",
+  "status": "done",
+  "timestamp": "2026-08-01T15:45:00+03:00",
+  "baseline_main_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
+  "verified_final_head": "a4318330bdce12a0b32e48cf2efb2f705fe8767a",
+  "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
+  "summary": "Completed the dashboard security bootstrap correction so transport, timeout, mixed-content and API failures are not misrepresented as authorization denial, while preserving fail-closed JWT/RBAC behavior and adding safe LOCAL_LAN diagnostics.",
   "scope_completed": [
-    "created Issue #210 and draft PR #213 as a focused critical operator-access Work Package",
-    "verified that disabled authentication returns a local administrator session and the screenshot does not prove RBAC denial",
-    "verified that live dashboard security bootstrap calls the configured API session endpoint directly from the browser",
+    "created and completed Issue #210 through focused PR #213",
+    "verified that disabled authentication returns a local administrator session and the original screenshot did not prove RBAC denial",
     "added an eight-second bounded session request timeout with AbortController",
-    "added mixed-content detection before browser fetch",
-    "added stable codes for authentication required, access denied, API error, invalid response, timeout, mixed content and unreachable-or-origin-blocked browser failure",
-    "added safe diagnostics containing API origin, browser origin, endpoint path, timeout and optional HTTP status only",
+    "added pre-fetch mixed-content classification",
+    "added stable error codes for authentication required, access denied, API error, invalid response, timeout, mixed content and unreachable-or-origin-blocked browser failure",
+    "added safe API origin, browser origin, endpoint path, timeout and optional HTTP status diagnostics",
     "extracted a testable Security Gate component with distinct authorization and transport/configuration titles",
     "made retry clear stale diagnostics and issue a fresh request",
-    "added client, hook and Security Gate regression tests",
+    "added session client, hook and Security Gate regression tests",
     "added the LOCAL_LAN dashboard security bootstrap diagnostics runbook",
-    "used a temporary branch-only formatter workflow and removed it before the final diff"
+    "removed all temporary formatter workflows before final review",
+    "squash-merged PR #213 into main"
   ],
   "checks_actually_run": [
-    "general CI run 30699101280 on implementation head passed changed-file Prettier",
-    "general CI run 30699101280 passed ESLint",
-    "general CI run 30699101280 passed strict TypeScript",
-    "general CI run 30699101280 passed all Vitest suites including new security transport and retry tests",
-    "general CI run 30699101280 passed production build",
-    "temporary formatter run 30698683438 produced the repository-pinned exact Prettier artifact"
+    "CI run 30699767308 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
+    "Security Browser Acceptance run 30699767347 passed JWT, RBAC and immutable audit acceptance",
+    "Authenticated Dashboard Acceptance run 30699767325 passed authenticated REST, history and WebSocket dashboard acceptance",
+    "Telemetry Service run 30699767351 passed Python, PostgreSQL, MQTT, REST, WebSocket, object storage, outage recovery, migrations and container build",
+    "Test Sessions Browser Acceptance run 30699767312 passed",
+    "Reports Browser Acceptance run 30699767326 passed",
+    "Rendered Reports Browser Acceptance run 30699767342 passed",
+    "Alerts Browser Acceptance run 30699767319 passed",
+    "Nodes Browser Acceptance run 30699767314 passed",
+    "PR review threads: zero",
+    "PR submitted reviews: zero",
+    "final changed-file list: 12 scoped files"
   ],
   "runtime_and_offline_evidence": [
-    "the correction uses browser and application code only and adds no cloud, paid or internet runtime dependency",
+    "the correction adds no cloud, paid or internet runtime dependency",
     "AUTH_MODE=disabled behavior is preserved rather than bypassed",
-    "HTTP 401 and 403 remain fail-closed and distinct",
-    "no demo fallback was added",
+    "HTTP 401 and HTTP 403 remain fail-closed and distinct",
+    "no demo fallback or wildcard CORS was added",
     "safe diagnostics never include access tokens, cookies, passwords or private keys"
   ],
   "hardware_evidence": {
@@ -47,16 +53,17 @@
     "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
   "checks_pending": [
-    "final-head changed-file formatting, ESLint, strict typecheck, Vitest and production build",
-    "affected browser acceptance including authenticated dashboard and security suites",
-    "final PR diff and review-thread inspection",
-    "actual operator PC and central-host commands to identify the host-specific API/CORS/network cause"
+    "operator PC and central-host commands from docs/operations/dashboard-security-bootstrap.md to identify the host-specific API/CORS/network cause"
   ],
   "open_risks": [
     "the affected PC may still require correcting API URL, central bind address, exact CORS origin or HTTP/HTTPS scheme",
-    "the host-specific root cause must remain unverified until operator evidence is returned",
-    "Issue #199 remains ready but starts only after #210 merges",
-    "offline authentication architecture remains owned by Issue #188"
+    "the original host-specific root cause remains unverified until operator evidence is returned",
+    "offline authentication architecture remains owned by Issue #188",
+    "actual-host recovery and hardware acceptance remain separate"
   ],
-  "next_action": "Wait for final-head CI and affected browser suites, fix only concrete findings, then mark PR #213 ready and merge only if all required checks are green. After merge, provide the operator commands from the runbook and continue with Issue #199."
+  "next_ready_work_package": {
+    "issue": 199,
+    "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
+    "instruction": "Start from current main in a dedicated feature branch; use PR #175 only as reference."
+  }
 }

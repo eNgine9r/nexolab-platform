@@ -80,42 +80,35 @@
       "depends_on": ["NEXOLAB-186"],
       "pull_request": 209,
       "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
+      "track": "security-maintenance",
       "verification": {
         "head_sha": "b3f85edee688baa244fd40de17b8f0b65e6d686b",
         "general_ci_run": 30695457310,
         "container_supply_chain_run": 30695457322,
         "result": "green",
         "review_threads": 0
-      },
-      "track": "security-maintenance"
+      }
     },
     {
       "id": "NEXOLAB-210",
       "issue": 210,
       "title": "Restore LOCAL_LAN dashboard security bootstrap and actionable session diagnostics",
-      "status": "in_progress",
+      "status": "done",
       "priority": 6,
       "depends_on": ["NEXOLAB-198"],
-      "branch": "fix/210-dashboard-security-bootstrap",
       "pull_request": 213,
-      "started_at": "2026-08-01",
-      "scope": [
-        "src/features/security/**",
-        "src/hooks/use-dashboard-security.ts",
-        "src/hooks/use-dashboard-security.test.ts",
-        "src/components/dashboard/dashboard-shell.tsx",
-        "src/components/dashboard/security-gate.tsx",
-        "src/components/dashboard/security-gate.test.tsx",
-        "docs/operations/dashboard-security-bootstrap.md",
-        ".project/**"
-      ],
+      "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
       "verification": {
-        "implementation_head": "6397d14ef106be637659d05619fe1b9a1a973fbb",
-        "general_ci_run": 30699101280,
+        "final_head": "a4318330bdce12a0b32e48cf2efb2f705fe8767a",
         "result": "green",
-        "actual_host_root_cause": "unverified"
-      },
-      "next_action": "Complete runbook and project-state checks, rerun final CI/browser acceptance, then merge only if green."
+        "workflow_count": 9,
+        "general_ci_run": 30699767308,
+        "security_browser_run": 30699767347,
+        "authenticated_dashboard_run": 30699767325,
+        "telemetry_service_run": 30699767351,
+        "actual_host_root_cause": "unverified",
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-199",
@@ -124,7 +117,7 @@
       "status": "ready",
       "priority": 7,
       "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
-      "activation": "Start from post-#210 main after dashboard security bootstrap is restored; PR #175 is reference-only."
+      "activation": "Start from current main in a dedicated feature branch; PR #175 is reference-only and must not be merged wholesale."
     },
     {
       "id": "NEXOLAB-187",
