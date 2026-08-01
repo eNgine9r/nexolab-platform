@@ -164,7 +164,25 @@ chmod 0644 "$PUBLIC_KEY_FILE"
 
 cd "$ROOT_DIR"
 compose config --quiet
-compose up --detach --build
+compose build telemetry-service telemetry-migrate
+
+docker run --rm \
+  --user 0:0 \
+  --volume "$SECRET_DIR:/run/local-auth-secrets" \
+  --entrypoint /bin/sh \
+  "$TELEMETRY_SERVICE_IMAGE" \
+  -ec '
+    chown 10001:10001 \
+      /run/local-auth-secrets/private.pem \
+      /run/local-auth-secrets/public.pem \
+      /run/local-auth-secrets/operator-password
+    chmod 0400 \
+      /run/local-auth-secrets/private.pem \
+      /run/local-auth-secrets/operator-password
+    chmod 0444 /run/local-auth-secrets/public.pem
+  '
+
+compose up --detach --no-build
 STACK_STARTED=1
 
 ready=0
