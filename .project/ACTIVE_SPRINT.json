@@ -114,16 +114,16 @@
       "id": "NEXOLAB-199",
       "issue": 199,
       "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
-      "status": "ready_to_merge",
+      "status": "done",
       "priority": 7,
       "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
       "pull_request": 214,
-      "branch": "fix/199-websocket-lifecycle",
-      "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
+      "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
+      "verified_final_head": "921fba3f1af382f471b614ab5d2cc71952fad0db",
       "verification": {
         "result": "green",
-        "general_ci_run": 30704096637,
-        "authenticated_dashboard_run": 30704096614,
+        "general_ci_run": 30704859884,
+        "authenticated_dashboard_run": 30704859869,
         "formatting": "passed",
         "lint": "passed",
         "typecheck": "passed",
@@ -131,6 +131,8 @@
         "production_build": "passed",
         "websocket_lifecycle_tests": 5,
         "dashboard_lifecycle_tests": 3,
+        "review_threads": 0,
+        "submitted_reviews": 0,
         "hardware": "unverified"
       }
     },
@@ -138,9 +140,10 @@
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
-      "status": "queued",
+      "status": "ready",
       "priority": 8,
-      "depends_on": ["NEXOLAB-198"]
+      "depends_on": ["NEXOLAB-198"],
+      "activation": "Start from current main in a dedicated feature branch; preserve existing persistent volumes and prove installation/update on a disconnected clean host."
     },
     {
       "id": "NEXOLAB-188",
