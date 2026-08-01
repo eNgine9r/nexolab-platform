@@ -1,9 +1,10 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-01  
-Verified baseline: `main` at `5851955ea9a38a9068bbab1eb0c9701722c028c5`  
-Next Ready Work Package: Issue #199  
-Status confidence: high for repository and software-CI boundaries; partial for actual-host recovery and hardware acceptance.
+Verified baseline: `main` at `d42d163c40d8ceeee086af3d188661dfdd2b33a7`  
+Active Work Package: Issue #210 / PR #213  
+Next Ready after #210: Issue #199  
+Status confidence: high for repository and software-CI boundaries; partial for the affected PC, actual-host recovery and hardware acceptance.
 
 ## Profile
 
@@ -21,72 +22,70 @@ Status confidence: high for repository and software-CI boundaries; partial for a
 - PR #206 reconciled stale Pull Requests, trackers and successor Issues.
 - PR #209 hardened Device Agent supply-chain evidence and merged as `ee950e632702135231f1f4349e87529b39d16181`.
 - PR #207 completed durable central telemetry ingestion and merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5`.
+- Post-merge source-of-truth state is `d42d163c40d8ceeee086af3d188661dfdd2b33a7`.
 
-## Issue #198 completed outcome
+## Issue #210 / PR #213
 
-Telemetry accepted from MQTT is now committed to a local SQLite WAL spool before QoS 1 acknowledgement.
+The operator screenshot shows the live dashboard blocked at `NEXOLAB Security Gate` with a generic protected-session request failure.
 
-Implemented behavior:
+Verified repository behavior before correction:
 
-- SQLite WAL with `synchronous=FULL`;
-- manual MQTT acknowledgement only after durable staging;
-- persistent MQTT session in durable mode;
-- FIFO replay with PostgreSQL `event_id` idempotency;
-- durable dead-letter staging before acknowledgement;
-- record and byte capacity with visible capacity, I/O, integrity and ACK failures;
-- pending, bytes, age, replay, terminal and acknowledgement metrics;
-- dedicated named spool volumes for central and backend profiles;
-- Prometheus and Alertmanager coverage for spool health;
-- rollback-safe operations that preserve the spool volume.
+- `DashboardShell` labelled both real HTTP 403 and browser transport/configuration failures as `Доступ до dashboard відхилено`;
+- all thrown session `fetch` failures collapsed into one `REQUEST_FAILED` message;
+- `AUTH_MODE=disabled` already returns a valid local administrator session;
+- the browser calls `${NEXT_PUBLIC_NEXOLAB_API_BASE_URL}/api/v1/auth/session` directly;
+- a remote browser cannot use `127.0.0.1` to reach another central host;
+- the exact dashboard origin must be present in `CORS_ALLOWED_ORIGINS`.
 
-## Final verification
+Implemented software correction:
 
-Final PR head `0bbb7a2e0e50c8cab3371c8f80266772304f96c1` passed all 19 triggered workflows:
+- bounded eight-second session request timeout;
+- pre-fetch HTTPS-to-HTTP mixed-content classification;
+- distinct stable codes for 401, 403, HTTP API error, invalid response, timeout and generic unreachable/origin-blocked browser failure;
+- safe diagnostics containing only API origin, browser origin, endpoint path, timeout and optional HTTP status;
+- a separate testable Security Gate component;
+- transport/configuration failures no longer appear as authorization denial;
+- retry creates a fresh request and clears stale diagnostics;
+- targeted client, hook and UI tests;
+- LOCAL_LAN operator diagnostics runbook.
 
-- CI — `30696463171`;
-- Telemetry Service — `30696463209`;
-- Capacity Release Gate — `30696463199`;
-- Observability — `30696463210`;
-- Container Supply Chain — `30696463203`;
-- Disaster Recovery Browser — `30696463198`;
-- Disaster Recovery TLS Fleet — `30696463172`;
-- Device Agent Fleet — `30696463202`;
-- MQTT TLS Fleet — `30696463177`;
-- MQTT Broker Security — `30696463169`;
-- Broker Control — `30696463195`;
-- Security Browser — `30696463200`;
-- Authenticated Dashboard — `30696463186`;
-- Alerts Browser — `30696463190`;
-- Nodes Browser — `30696463205`;
-- Refrigeration Browser — `30696463192`;
-- Test Sessions Browser — `30696463180`;
-- Reports Browser — `30696463187`;
-- Rendered Reports Browser — `30696463196`.
+Implementation head `6397d14ef106be637659d05619fe1b9a1a973fbb` passed general CI run `30699101280`:
 
-The Capacity Gate proved outage readiness degradation, durable backlog, Telemetry Service/database recovery, replay, final zero backlog and no-loss invariants. Telemetry Service passed the complete Python/PostgreSQL/MQTT/REST/WebSocket/object-storage suite, explicit PostgreSQL outage recovery, offline migration validation and container build. Observability passed policy, `promtool`, Alertmanager, production-like recovery and Chromium acceptance. Supply Chain passed all three images, SBOMs, strict Trivy policy, manifests and aggregate evidence.
+- changed-file Prettier — passed;
+- ESLint — passed;
+- strict TypeScript — passed;
+- Vitest — passed;
+- production build — passed.
 
-## Evidence boundary
+The current branch includes runbook and project-state changes after that implementation head. Final-head CI and affected browser acceptance are required before merge.
 
-Software verified:
+## Actual-host evidence boundary
 
-- spool reopen, FIFO, deduplication, conflict, terminal and capacity behavior;
-- manual MQTT acknowledgement boundary;
-- PostgreSQL outage plus Telemetry Service restart replay;
-- Compose named-volume topology;
-- capacity, observability, security and recovery acceptance in CI.
+The exact cause on the affected PC is not yet established. It may be:
 
-Still unverified:
+- API service unavailable;
+- frontend configured with loopback while API is on another host;
+- central API bound only to loopback while the browser is remote;
+- missing exact browser origin in CORS;
+- HTTPS dashboard targeting HTTP API;
+- another browser/network transport failure.
 
+Use `docs/operations/dashboard-security-bootstrap.md` to collect `/health/ready`, `/api/v1/auth/session`, CORS and LAN-address evidence. Do not claim a specific root cause until those checks are run.
+
+## Open Pull Requests
+
+- #213 — active dashboard security bootstrap recovery.
+- #192 — separate draft formatting inventory; not mixed into #210.
+
+## Next Ready Work Package
+
+Issue #199 — stabilize live telemetry WebSocket lifecycle and operator states. Start only after #210 merges, from the post-#210 `main`; historical PR #175 is reference-only.
+
+## Remaining unverified areas
+
+- affected-PC and central-host configuration evidence for #210;
 - actual Raspberry Pi or central-host power interruption;
 - physical disk-full and disk-loss recovery;
 - production/site deployment;
 - Modbus or other hardware writes;
 - full hardware acceptance beyond previously recorded read-only evidence.
-
-## Open Pull Requests
-
-- #192 — separate draft formatting inventory; not mixed into completed durability work.
-
-## Next Ready Work Package
-
-Issue #199 — stabilize live telemetry WebSocket lifecycle and operator states. Start from current `main` in a dedicated feature branch and focused Pull Request; historical PR #175 is reference-only.
