@@ -6,8 +6,8 @@ usage() {
 Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge]
 
 Loads the verified image archive and starts NEXOLAB with Docker Compose
-`--pull never`. Existing named volumes are preserved. This script never invokes
-`docker compose down -v` and never writes secrets into the bundle.
+`--pull never`. Existing named volumes are preserved. This script never adds
+the volume-removal flag to Compose shutdown and never writes secrets into the bundle.
 EOF
 }
 
