@@ -16,6 +16,7 @@ from app.security.authorization import (
     Role,
     authorize,
 )
+from app.security.local_repository import LocalSessionInvalidError
 from app.security.repository import (
     IdentityNotProvisionedError,
     MembershipSummary,
@@ -36,20 +37,24 @@ class SecurityDependencies:
         self,
         repository: SecurityRepository,
         *,
-        mode: Literal["disabled", "jwt"],
+        mode: Literal["disabled", "jwt", "local"],
         authenticator: JwtAuthenticator | None,
         default_organization_id: str,
+        local_session_validator: Callable[[VerifiedIdentityClaims], None] | None = None,
     ) -> None:
-        if mode == "jwt" and authenticator is None:
-            raise ValueError("JWT authenticator is required in jwt mode")
+        if mode in {"jwt", "local"} and authenticator is None:
+            raise ValueError("JWT authenticator is required when authentication is enabled")
+        if mode == "local" and local_session_validator is None:
+            raise ValueError("local session validator is required in local mode")
         self._repository = repository
         self._mode = mode
         self._authenticator = authenticator
         self._default_organization_id = default_organization_id
+        self._local_session_validator = local_session_validator
 
     @property
     def authentication_required(self) -> bool:
-        return self._mode == "jwt"
+        return self._mode != "disabled"
 
     def current_session(
         self,
@@ -141,8 +146,18 @@ class SecurityDependencies:
     def _verify(self, authorization: str | None) -> VerifiedIdentityClaims:
         assert self._authenticator is not None
         try:
-            return self._authenticator.verify(authorization)
+            claims = self._authenticator.verify(authorization)
+            if self._mode == "local":
+                assert self._local_session_validator is not None
+                self._local_session_validator(claims)
+            return claims
         except AuthenticationError as error:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": error.code, "message": str(error)},
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+        except LocalSessionInvalidError as error:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": error.code, "message": str(error)},
