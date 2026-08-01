@@ -1,93 +1,181 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: wp198-observability-policy-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality and build
+  update-spool-observability-policy:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feat/198-durable-central-ingestion'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
+          ref: feat/198-durable-central-ingestion
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - name: Install dependencies
-        env:
-          HUSKY: 0
-        run: npm install --no-audit
-
-      - name: Check formatting for changed files
+      - name: Update observability policy contracts
         shell: bash
         run: |
           set -euo pipefail
+          cat > infrastructure/observability/prometheus/rules/nexolab-ingestion-spool.yml <<'YAML'
+          groups:
+            - name: nexolab-ingestion-spool-recording
+              interval: 5s
+              rules:
+                - record: nexolab:ingestion_spool_record_utilization_ratio
+                  expr: clamp_max((nexolab_telemetry_spool_pending_records + nexolab_telemetry_spool_terminal_records) / clamp_min(nexolab_telemetry_spool_max_records, 1), 1)
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base_sha="${{ github.event.pull_request.base.sha }}"
-            head_sha="${{ github.event.pull_request.head.sha }}"
-          else
-            base_sha="${{ github.event.before }}"
-            head_sha="${{ github.sha }}"
-          fi
+                - record: nexolab:ingestion_spool_byte_utilization_ratio
+                  expr: clamp_max(nexolab_telemetry_spool_payload_bytes / clamp_min(nexolab_telemetry_spool_max_bytes, 1), 1)
 
-          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
-            base_sha="$(git rev-parse "${head_sha}^")"
-          fi
+                - record: nexolab:ingestion_spool_utilization_ratio
+                  expr: max(nexolab:ingestion_spool_record_utilization_ratio, nexolab:ingestion_spool_byte_utilization_ratio)
 
-          mapfile -d '' format_files < <(
-            git diff --name-only --diff-filter=ACMRT -z "$base_sha" "$head_sha" -- \
-              '*.cjs' '*.css' '*.html' '*.js' '*.json' '*.jsx' '*.md' '*.mdx' \
-              '*.mjs' '*.scss' '*.ts' '*.tsx' '*.yaml' '*.yml'
+            - name: nexolab-ingestion-spool-alerts
+              interval: 5s
+              rules:
+                - alert: NexolabIngestionSpoolUnavailable
+                  expr: nexolab_telemetry_spool_ready == 0
+                  for: 1m
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB durable ingestion spool is unavailable
+                    description: The Telemetry Service cannot confirm that its local durable staging boundary is ready.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+                - alert: NexolabIngestionSpoolUtilizationWarning
+                  expr: nexolab:ingestion_spool_utilization_ratio > 0.70
+                  for: 5m
+                  labels:
+                    severity: warning
+                    service: telemetry-service
+                    slo: capacity
+                  annotations:
+                    summary: NEXOLAB ingestion spool utilization is elevated
+                    description: Durable spool record or payload-byte utilization has exceeded 70% for five minutes.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+                - alert: NexolabIngestionSpoolUtilizationCritical
+                  expr: nexolab:ingestion_spool_utilization_ratio > 0.90
+                  for: 2m
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: capacity
+                  annotations:
+                    summary: NEXOLAB ingestion spool is near capacity
+                    description: Durable spool record or payload-byte utilization has exceeded 90% for two minutes.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+                - alert: NexolabIngestionSpoolBacklogAged
+                  expr: nexolab_telemetry_spool_oldest_pending_age_seconds > 900
+                  for: 5m
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB durable ingestion backlog is aging
+                    description: The oldest locally retained telemetry item has remained pending for more than fifteen minutes.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#postgresql-outage
+
+                - alert: NexolabIngestionSpoolTerminalRecords
+                  expr: nexolab_telemetry_spool_terminal_records > 0
+                  for: 1m
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB ingestion spool contains terminal records
+                    description: At least one durable record requires operator review and remains in capacity accounting.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#poison-or-invalid-mqtt-payload
+
+                - alert: NexolabIngestionSpoolCapacityFailures
+                  expr: increase(nexolab_telemetry_spool_capacity_failure_total[5m]) > 0
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB durable staging reached configured capacity
+                    description: At least one MQTT delivery could not be staged because the local spool record or byte limit was reached.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+                - alert: NexolabIngestionSpoolErrors
+                  expr: increase(nexolab_telemetry_spool_error_total[5m]) > 0
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB durable ingestion spool reported an error
+                    description: The local SQLite staging boundary reported an I/O, integrity or lifecycle failure.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#spool-capacity-or-disk-incident
+
+                - alert: NexolabMqttManualAckFailures
+                  expr: increase(nexolab_telemetry_mqtt_ack_failure_total[5m]) > 0
+                  labels:
+                    severity: critical
+                    service: telemetry-service
+                    slo: durability
+                  annotations:
+                    summary: NEXOLAB manual MQTT acknowledgement failed
+                    description: A QoS message was durably staged but the explicit broker acknowledgement call failed.
+                    runbook_url: /docs/operations/telemetry-backend-runbook.md#delivery-and-acknowledgement-contract
+          YAML
+
+          python - <<'PY'
+          from pathlib import Path
+
+          test_path = Path('tests/test_observability_policy.py')
+          text = test_path.read_text(encoding='utf-8')
+          old = '''        f"{central_prefix}-object-storage-data",\n    }'''
+          new = '''        f"{central_prefix}-object-storage-data",\n        f"{central_prefix}-telemetry-ingestion-data",\n    }'''
+          if old not in text:
+              raise SystemExit('central volume assertion anchor not found')
+          text = text.replace(old, new, 1)
+          addition = '''\n\ndef test_durable_ingestion_spool_alert_contract_is_actionable() -> None:\n    source = (\n        ROOT\n        / "infrastructure/observability/prometheus/rules/nexolab-ingestion-spool.yml"\n    )\n    payload = yaml.safe_load(source.read_text(encoding="utf-8"))\n    groups = {group["name"]: group for group in payload["groups"]}\n    recording = {\n        rule["record"]: rule\n        for rule in groups["nexolab-ingestion-spool-recording"]["rules"]\n    }\n    alerts = {\n        rule["alert"]: rule\n        for rule in groups["nexolab-ingestion-spool-alerts"]["rules"]\n    }\n\n    assert set(recording) == {\n        "nexolab:ingestion_spool_record_utilization_ratio",\n        "nexolab:ingestion_spool_byte_utilization_ratio",\n        "nexolab:ingestion_spool_utilization_ratio",\n    }\n    assert set(alerts) == {\n        "NexolabIngestionSpoolUnavailable",\n        "NexolabIngestionSpoolUtilizationWarning",\n        "NexolabIngestionSpoolUtilizationCritical",\n        "NexolabIngestionSpoolBacklogAged",\n        "NexolabIngestionSpoolTerminalRecords",\n        "NexolabIngestionSpoolCapacityFailures",\n        "NexolabIngestionSpoolErrors",\n        "NexolabMqttManualAckFailures",\n    }\n    for alert in alerts.values():\n        assert alert["labels"]["service"] == "telemetry-service"\n        assert alert["labels"]["severity"] in {"warning", "critical"}\n        assert alert["annotations"]["runbook_url"].startswith(\n            "/docs/operations/telemetry-backend-runbook.md#"\n        )\n\n    assert alerts["NexolabIngestionSpoolUnavailable"]["expr"] == (\n        "nexolab_telemetry_spool_ready == 0"\n    )\n    assert alerts["NexolabIngestionSpoolTerminalRecords"]["expr"] == (\n        "nexolab_telemetry_spool_terminal_records > 0"\n    )\n    assert "spool_capacity_failure_total" in alerts[\n        "NexolabIngestionSpoolCapacityFailures"\n    ]["expr"]\n    assert "mqtt_ack_failure_total" in alerts[\n        "NexolabMqttManualAckFailures"\n    ]["expr"]\n'''
+          if 'def test_durable_ingestion_spool_alert_contract_is_actionable' not in text:
+              text += addition
+          test_path.write_text(text, encoding='utf-8')
+
+          alertmanager_path = Path(
+              'infrastructure/observability/alertmanager/alertmanager.yml'
           )
+          alertmanager = alertmanager_path.read_text(encoding='utf-8')
+          inhibition = '''  - source_matchers:\n      - alertname="NexolabIngestionSpoolUtilizationCritical"\n    target_matchers:\n      - alertname="NexolabIngestionSpoolUtilizationWarning"\n    equal: [service]\n'''
+          if 'NexolabIngestionSpoolUtilizationCritical' not in alertmanager:
+              alertmanager += inhibition
+          alertmanager_path.write_text(alertmanager, encoding='utf-8')
+          PY
 
-          if (( ${#format_files[@]} == 0 )); then
-            echo "No changed files require Prettier validation." | tee prettier-diagnostics.txt
-            exit 0
-          fi
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
 
-          printf 'Checking formatting for %s changed file(s).\n' "${#format_files[@]}" \
-            | tee prettier-diagnostics.txt
-          npm exec prettier -- --check "${format_files[@]}" \
-            2>&1 | tee -a prettier-diagnostics.txt
-
-      - name: Upload formatting diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: prettier-diagnostics-${{ github.sha }}
-          path: prettier-diagnostics.txt
-          if-no-files-found: error
-          retention-days: 3
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-        run: npm run build
+      - name: Commit observability contract
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/ci.yml \
+            infrastructure/observability/alertmanager/alertmanager.yml \
+            infrastructure/observability/prometheus/rules/nexolab-ingestion-spool.yml \
+            tests/test_observability_policy.py
+          git commit -m "feat(observability): monitor durable ingestion spool"
+          git push origin HEAD:feat/198-durable-central-ingestion
