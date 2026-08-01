@@ -1,0 +1,36 @@
+name: Issue 210 Docs Prettier Formatter
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format runbook
+        run: npx prettier --write docs/operations/dashboard-security-bootstrap.md
+
+      - name: Upload formatted runbook
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-210-doc-prettier-${{ github.sha }}
+          path: docs/operations/dashboard-security-bootstrap.md
+          if-no-files-found: error
+          retention-days: 3
