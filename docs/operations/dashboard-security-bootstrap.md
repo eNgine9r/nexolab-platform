@@ -33,16 +33,16 @@ Do not copy access tokens, cookies, passwords, private keys or production teleme
 
 Stable bootstrap codes:
 
-| Code | Meaning |
-| --- | --- |
-| `AUTHENTICATION_REQUIRED` | API returned HTTP 401 |
-| `ACCESS_DENIED` | API returned HTTP 403 |
-| `SESSION_API_ERROR` | API returned another non-success HTTP status |
-| `SESSION_REQUEST_TIMEOUT` | API did not finish within the bounded browser timeout |
-| `SESSION_MIXED_CONTENT` | HTTPS dashboard is configured to call an HTTP API |
+| Code                                        | Meaning                                                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `AUTHENTICATION_REQUIRED`                   | API returned HTTP 401                                                                             |
+| `ACCESS_DENIED`                             | API returned HTTP 403                                                                             |
+| `SESSION_API_ERROR`                         | API returned another non-success HTTP status                                                      |
+| `SESSION_REQUEST_TIMEOUT`                   | API did not finish within the bounded browser timeout                                             |
+| `SESSION_MIXED_CONTENT`                     | HTTPS dashboard is configured to call an HTTP API                                                 |
 | `SESSION_API_UNREACHABLE_OR_ORIGIN_BLOCKED` | Browser fetch failed; common causes are unreachable API, wrong host/port or CORS origin rejection |
-| `INVALID_RESPONSE` | API response does not match the security-session contract |
-| `INVALID_CONFIGURATION` | Live dashboard runtime configuration is incomplete or invalid |
+| `INVALID_RESPONSE`                          | API response does not match the security-session contract                                         |
+| `INVALID_CONFIGURATION`                     | Live dashboard runtime configuration is incomplete or invalid                                     |
 
 ## 2. Identify the addresses used by the browser
 
