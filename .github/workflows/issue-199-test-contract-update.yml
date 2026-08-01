@@ -1,0 +1,61 @@
+name: Issue 199 Test Contract Update
+
+on:
+  push:
+    branches:
+      - fix/199-websocket-lifecycle
+    paths:
+      - .github/workflows/issue-199-test-contract-update.yml
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  update-and-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/199-websocket-lifecycle
+      - name: Update legacy WebSocket lifecycle assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/lib/telemetry/websocket-client.test.ts")
+          text = path.read_text()
+
+          old_disabled = '''    expect(credentials).not.toHaveBeenCalled();
+              expect(sockets[0].send).not.toHaveBeenCalled();
+              expect(states.at(-1)).toBe("connected");'''
+          new_disabled = '''    expect(credentials).not.toHaveBeenCalled();
+              expect(sockets[0].send).not.toHaveBeenCalled();
+              expect(states.at(-1)).toBe("connecting");
+
+              sockets[0].message({ type: "heartbeat", server_time: "2026-08-01T12:00:01Z" });
+              expect(states.at(-1)).toBe("connected");'''
+
+          old_reconnect = '''    sockets[1].open();
+              expect(states.at(-1)).toBe("connected");'''
+          new_reconnect = '''    sockets[1].open();
+              expect(states.at(-1)).toBe("reconnecting");
+              sockets[1].message({ type: "heartbeat", server_time: "2026-08-01T12:00:02Z" });
+              expect(states.at(-1)).toBe("connected");'''
+
+          if text.count(old_disabled) != 1:
+              raise SystemExit("disabled-auth assertion block not found exactly once")
+          if text.count(old_reconnect) != 1:
+              raise SystemExit("reconnect assertion block not found exactly once")
+
+          path.write_text(text.replace(old_disabled, new_disabled).replace(old_reconnect, new_reconnect))
+          PY
+          npx prettier --write src/lib/telemetry/websocket-client.test.ts
+          git rm .github/workflows/issue-199-test-contract-update.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/telemetry/websocket-client.test.ts
+          git commit -m "test: align websocket assertions with live evidence"
+          git push origin HEAD:fix/199-websocket-lifecycle
