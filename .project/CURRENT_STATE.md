@@ -2,8 +2,8 @@
 
 Updated: 2026-08-01  
 Verified baseline: `main` at `764c0be96652144920964f7806af493a7a0a7b1e`  
-Active Work Package: Issue #199 / PR #214  
-Status confidence: high for repository and software-CI boundaries; partial for actual-host and hardware acceptance.
+Active Work Package: Issue #199 / PR #214 — ready to merge  
+Status confidence: high for repository, software-CI and controlled browser boundaries; partial for actual-host and hardware acceptance.
 
 ## Profile
 
@@ -23,9 +23,9 @@ Status confidence: high for repository and software-CI boundaries; partial for a
 - PR #207 completed durable central telemetry ingestion.
 - PR #213 restored actionable dashboard security bootstrap diagnostics; product merge `729139a20b2bd5464aca2291dc4002f514896eee`, post-merge state baseline `764c0be96652144920964f7806af493a7a0a7b1e`.
 
-## Issue #199 active outcome
+## Issue #199 verified outcome
 
-Issue #199 is implemented in branch `fix/199-websocket-lifecycle` through draft PR #214.
+Issue #199 is implemented in branch `fix/199-websocket-lifecycle` through PR #214.
 
 Implemented behavior:
 
@@ -40,37 +40,30 @@ Implemented behavior:
 - resume cursor and event-id deduplication remain intact;
 - stale snapshots remain visible but receive stale/offline rather than live presentation.
 
-## Verification in progress
+## Verification
 
-Clean implementation/test candidate before project-state commits: `84ca8e9e1176746db8a2d1aa9f0a2d1b73bc0d1c`.
+Verified code-and-test head: `5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568`.
 
-Evidence already obtained:
-
-- changed-file Prettier passed;
-- ESLint passed;
-- strict TypeScript passed;
-- the new five-test WebSocket lifecycle suite passed;
-- the new three-test dashboard lifecycle suite passed;
-- the preceding full Vitest run passed 174 of 176 tests; the only failures were two legacy assertions that still treated `open` as live evidence;
-- those two assertions are now updated to require heartbeat evidence;
-- intermediate Authenticated Dashboard Acceptance passed on the implementation branch;
-- all temporary formatter and test-update workflows were removed from the final product diff.
-
-Final-head full Vitest, production build and browser acceptance remain pending and must be GREEN before merge.
+- CI run `30704096637` passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build.
+- Authenticated Dashboard Acceptance run `30704096614` passed authenticated REST/history and WebSocket dashboard behavior.
+- The dedicated WebSocket lifecycle suite passed 5 tests.
+- The dedicated dashboard lifecycle suite passed 3 tests.
+- Legacy assertions now require heartbeat evidence rather than transport-open evidence.
+- Final product diff contains eight scoped runtime/test/state files and no temporary workflow.
 
 ## Open Pull Requests
 
-- #214 — active draft WebSocket lifecycle correction.
+- #214 — GREEN and ready for final review/merge.
 - #192 — separate draft formatting inventory; not mixed into product work.
 
-## Next sequencing
+## Next Ready Work Package
 
-After PR #214 is GREEN and merged, the next independent software Work Package is Issue #187 — build and prove a verified offline installation and update bundle. Issue #188 remains the following offline-authentication Work Package.
+After PR #214 is merged, activate Issue #187 — build and prove a verified offline installation and update bundle. Issue #188 remains the following offline-authentication Work Package.
 
 ## Remaining unverified areas
 
 - affected-PC and central-host configuration evidence for the original Security Gate incident;
-- final browser/API acceptance for PR #214 on its final head;
+- operator-started LOCAL_LAN browser verification outside controlled CI;
 - actual Raspberry Pi or central-host power interruption;
 - physical disk-full and disk-loss recovery;
 - production/site deployment;
