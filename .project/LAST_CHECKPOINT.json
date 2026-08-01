@@ -5,14 +5,14 @@
   "task": "NEXOLAB-187",
   "issue": 187,
   "pull_request": 215,
-  "status": "ready_to_merge",
-  "timestamp": "2026-08-01T18:56:00+03:00",
-  "baseline_main_sha": "6635892cc14c44f90e6357646496ffe782335e83",
-  "branch": "feat/187-offline-install-bundle",
-  "verified_code_head": "f21d9effe079e07ad3d8d163f029f26d06292556",
-  "summary": "Built and proved a versioned linux/amd64 offline installation and update bundle that starts the complete NEXOLAB core from a transferred Docker archive with container egress blocked and registry pulls disabled, then preserves all required local data through update and rollback recreation.",
+  "status": "done",
+  "timestamp": "2026-08-01T19:12:00+03:00",
+  "baseline_main_sha": "4c980781ff1beb0afb89f1779c82750a06e8eb7e",
+  "verified_final_head": "5dafd5b3014af69fa34b2524e00cb59cf7d5acb7",
+  "merge_sha": "4c980781ff1beb0afb89f1779c82750a06e8eb7e",
+  "summary": "Completed and merged the versioned NEXOLAB offline installation and update bundle, proving linux/amd64 archive-only startup with container egress blocked, registry pulls disabled, application smoke checks green, and all required persistent data preserved through update and rollback recreation.",
   "scope_completed": [
-    "created Issue #187 feature branch and focused draft PR #215 from current main",
+    "created and completed Issue #187 through focused PR #215",
     "added a multi-stage local dashboard container image",
     "added central and edge offline Compose overlays with pull_policy never",
     "reset inherited telemetry build contracts in the offline overlay",
@@ -26,12 +26,13 @@
     "added a disconnected installation, update and rollback operator runbook",
     "added the Offline Bundle GitHub Actions workflow",
     "removed temporary PR trigger and implementation checkpoint files",
-    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
+    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT",
+    "squash-merged PR #215 into main"
   ],
   "checks_actually_run": [
-    "Offline Bundle run 30708470343 passed on exact code head f21d9effe079e07ad3d8d163f029f26d06292556",
-    "CI run 30708470342 passed on the same code head",
-    "Telemetry Service run 30708470344 passed on the same code head",
+    "final CI run 30709170478 passed changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build",
+    "final Telemetry Service run 30709170479 passed",
+    "final Offline Bundle run 30709170491 passed on exact final head 5dafd5b3014af69fa34b2524e00cb59cf7d5acb7",
     "linux/amd64 bundle build completed with seven runtime images",
     "archive and all bundle file SHA-256 checks passed",
     "CycloneDX and SPDX SBOM generation passed for every image",
@@ -42,7 +43,11 @@
     "dashboard, REST readiness, WebSocket application evidence, MQTT, PostgreSQL, MinIO and edge health passed",
     "six required destination-bound persistent-data volumes were distinct and unchanged after update and rollback",
     "PostgreSQL, retained MQTT, MinIO object and edge-volume markers survived update and rollback",
-    "artifact 8821187814 was uploaded with digest d7400b9edc7fafeb99bae5795427c5b64041e534668d82891b0adfc9d87bbee9 and size 558407971 bytes"
+    "final artifact 8821407762 was uploaded with digest 39d8ae8912e813de5419f004d9a2c1e301baf498932cbc312c5d299092013c14 and size 558421492 bytes",
+    "final changed-file list: 15 scoped files",
+    "PR review threads: zero",
+    "PR submitted reviews: zero",
+    "PR mergeable: true"
   ],
   "runtime_and_offline_evidence": [
     "the runtime started after all seven image references were removed and reloaded from the transferred archive",
@@ -63,10 +68,8 @@
     "note": "No Raspberry Pi deployment, physical-media install, Modbus write, hardware action or production/site cutover was performed."
   },
   "checks_pending": [
-    "final state-only head CI guard",
-    "final PR diff, mergeability, review-thread and submitted-review guard",
-    "guarded squash merge",
-    "linux/arm64 execution on an actual Raspberry Pi 5 remains separate actual-host evidence"
+    "linux/arm64 execution on an actual Raspberry Pi 5 remains separate actual-host evidence",
+    "physical-media transfer and operator-owned disconnected-host installation remain separate actual-host evidence"
   ],
   "open_risks": [
     "offline operator authentication remains owned by Issue #188",
@@ -77,6 +80,6 @@
   "next_ready_work_package": {
     "issue": 188,
     "title": "Define and prove offline operator authentication",
-    "instruction": "Activate after PR #215 is merged; require fail-closed local identity and RBAC without a mandatory cloud runtime dependency."
+    "instruction": "Start from current main in a dedicated feature branch; require fail-closed local identity and RBAC without a mandatory cloud runtime dependency."
   }
 }
