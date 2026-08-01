@@ -4,7 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const evidenceDirectory =
   process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
-const webUrl = process.env.NEXOLAB_LOCAL_AUTH_WEB_URL ?? "http://127.0.0.1:13011";
+const webUrl =
+  process.env.NEXOLAB_LOCAL_AUTH_WEB_URL ?? "http://127.0.0.1:13011";
 const webPort = new URL(webUrl).port || "13011";
 
 export default defineConfig({
@@ -39,7 +40,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium-local-auth",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+      },
     },
   ],
   webServer: {
