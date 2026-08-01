@@ -30,7 +30,10 @@ function apiHeaders(accessToken: string): Record<string, string> {
   };
 }
 
-async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<BrowserLogin> {
+async function loginThroughBrowser(
+  browser: Browser,
+  role: RoleName,
+): Promise<BrowserLogin> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/login", { waitUntil: "networkidle" });
