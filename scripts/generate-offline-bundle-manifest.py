@@ -58,6 +58,11 @@ def main() -> int:
     parser.add_argument("--dashboard-api-base-url", required=True)
     parser.add_argument("--dashboard-websocket-url", required=True)
     parser.add_argument("--dashboard-origin", required=True)
+    parser.add_argument(
+        "--dashboard-auth-provider",
+        required=True,
+        choices=("disabled", "local", "acceptance", "supabase"),
+    )
     parser.add_argument("--image", action="append", type=parse_image, required=True)
     parser.add_argument("--output", default="manifest.json")
     args = parser.parse_args()
@@ -140,7 +145,14 @@ def main() -> int:
             "origin": args.dashboard_origin,
             "api_base_url": args.dashboard_api_base_url,
             "websocket_url": args.dashboard_websocket_url,
+            "auth_provider": args.dashboard_auth_provider,
             "configuration_phase": "image_build",
+        },
+        "local_auth": {
+            "supported": True,
+            "selected": args.dashboard_auth_provider == "local",
+            "secrets_packaged": False,
+            "compose_overlay": "deploy/compose/compose.local-auth.yaml",
         },
         "images_archive": {
             "path": archive.relative_to(bundle_root).as_posix(),
