@@ -52,7 +52,7 @@
       "id": "NEXOLAB-198",
       "issue": 198,
       "title": "Close the MQTT-to-PostgreSQL telemetry durability gap",
-      "status": "in_progress",
+      "status": "review",
       "priority": 4,
       "depends_on": ["NEXOLAB-186"],
       "branch": "feat/198-durable-central-ingestion",
@@ -65,28 +65,51 @@
         "docs/architecture.md",
         "docs/adr/**",
         "docs/operations/**",
-        "scripts/validate-observability.py",
         "scripts/run_capacity_acceptance.py",
         "tests/test_observability_policy.py",
-        ".project/**",
-        ".github/workflows/**"
-      ]
+        ".project/**"
+      ],
+      "verification": {
+        "pre_main_update_head": "830925404b20ac8cbcd47d3bbc319f9dd7d98678",
+        "targeted_gates": "green",
+        "main_merge_parent": "ee950e632702135231f1f4349e87529b39d16181",
+        "final_gate": "pending"
+      },
+      "next_action": "Run all required checks on the main-updated branch, resolve review findings, mark PR #207 ready and squash-merge only while GREEN."
+    },
+    {
+      "id": "NEXOLAB-208",
+      "issue": 208,
+      "title": "Harden Device Agent supply-chain evidence",
+      "status": "done",
+      "priority": 5,
+      "depends_on": ["NEXOLAB-186"],
+      "pull_request": 209,
+      "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
+      "verification": {
+        "head_sha": "b3f85edee688baa244fd40de17b8f0b65e6d686b",
+        "general_ci_run": 30695457310,
+        "container_supply_chain_run": 30695457322,
+        "result": "green",
+        "review_threads": 0
+      },
+      "track": "security-maintenance"
     },
     {
       "id": "NEXOLAB-199",
       "issue": 199,
       "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
       "status": "queued",
-      "priority": 5,
+      "priority": 6,
       "depends_on": ["NEXOLAB-198"],
-      "activation": "Start from current main after the higher-priority durability Work Package is merged; PR #175 is reference-only."
+      "activation": "Start from current main after the durability Work Package is merged; PR #175 is reference-only."
     },
     {
       "id": "NEXOLAB-187",
       "issue": 187,
       "title": "Build a verified offline installation and update bundle",
       "status": "queued",
-      "priority": 6,
+      "priority": 7,
       "depends_on": ["NEXOLAB-198"]
     },
     {
@@ -94,7 +117,7 @@
       "issue": 188,
       "title": "Define and prove offline operator authentication",
       "status": "queued",
-      "priority": 7,
+      "priority": 8,
       "depends_on": ["NEXOLAB-198"]
     },
     {
@@ -102,7 +125,7 @@
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked",
-      "priority": 8,
+      "priority": 9,
       "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
       "blocker": "Final evidence requires controlled central-host and Raspberry Pi access; software preparation may proceed independently."
     },
@@ -140,16 +163,6 @@
       "status": "blocked",
       "priority": 23,
       "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
-    },
-    {
-      "id": "NEXOLAB-208",
-      "issue": 208,
-      "title": "Upgrade Device Agent pyasn1 to remediate CVE-2026-33230",
-      "status": "queued",
-      "priority": 40,
-      "depends_on": ["NEXOLAB-198"],
-      "track": "security-maintenance",
-      "activation": "Implement in a separate feature branch and PR; do not mix the Device Agent dependency update into PR #207."
     },
     {
       "id": "NEXOLAB-185",

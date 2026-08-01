@@ -102,3 +102,28 @@ def test_empty_exception_registry_is_valid(tmp_path: Path) -> None:
         {"schema_version": 1, "exceptions": []},
     )
     MODULE.validate_exceptions(path, date(2026, 7, 28))
+
+
+def test_workflow_refreshes_base_and_versions_device_agent_cache() -> None:
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/container-supply-chain.yml"
+    ).read_text(encoding="utf-8")
+
+    assert workflow.count("pull: true") == 2
+    assert '"supply-chain-v2-device-agent"' in workflow
+    assert 'if image["id"] == "device-agent"' in workflow
+    assert (
+        workflow.count("cache-from: type=gha,scope=${{ matrix.cache_scope }}")
+        == 2
+    )
+    assert (
+        workflow.count(
+            "cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}"
+        )
+        == 2
+    )
+    assert (
+        "cache-from: type=gha,scope=supply-chain-${{ matrix.id }}"
+        not in workflow
+    )

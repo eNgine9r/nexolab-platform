@@ -95,6 +95,11 @@ jobs:
                       "dockerfile": image["dockerfile"],
                       "platform": "linux/amd64",
                       "platforms": image["platforms"],
+                      "cache_scope": (
+                          "supply-chain-v2-device-agent"
+                          if image["id"] == "device-agent"
+                          else f"supply-chain-{image['id']}"
+                      ),
                   }
               )
           matrix = json.dumps({"include": include}, separators=(",", ":"))
@@ -141,13 +146,14 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: true
           push: false
+          pull: true
           tags: ${{ env.LOCAL_IMAGE }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.title=${{ matrix.id }}
-          cache-from: type=gha,scope=supply-chain-${{ matrix.id }}
-          cache-to: type=gha,mode=max,scope=supply-chain-${{ matrix.id }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
       - name: Verify immutable OCI labels and capture image digest
         id: image
@@ -322,12 +328,13 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: ${{ join(matrix.platforms, ',') }}
           push: true
+          pull: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=supply-chain-${{ matrix.id }}
-          cache-to: type=gha,mode=max,scope=supply-chain-${{ matrix.id }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
       - name: Record published registry digest
         run: |

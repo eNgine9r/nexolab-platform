@@ -4,7 +4,7 @@ Updated: 2026-08-01
 
 ## Hard blockers
 
-No hard blocker currently prevents software completion of Issue #198.
+No hard blocker prevents software completion of Issue #198.
 
 Stop before:
 
@@ -12,45 +12,62 @@ Stop before:
 - production/site cutover without explicit approval;
 - Modbus or other unsafe hardware write;
 - secret exposure or unauthorized key rotation;
-- missing mandatory credentials or access for a required acceptance gate;
-- a materially different unresolved product architecture choice;
+- an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Resolved source-of-truth blockers
+## Active Work Package
 
-| ID    | Area                  | Result                                                                                      |
-| ----- | --------------------- | ------------------------------------------------------------------------------------------- |
-| N-001 | Architecture/roadmap  | PR #190 established the verified `LOCAL_LAN` architecture and offline/recovery boundaries   |
-| N-002 | GitHub reconciliation | PR #206 merged as `bd286690`; stale PRs and trackers now have focused successors            |
-| N-003 | Sprint sequencing     | Issue #198 is active in PR #207; formatting, dependency and hardware tracks remain separate |
+### N-008 — MQTT-to-PostgreSQL durability
 
-## Active Work Package risks
+**Status:** Review — Issue #198 / PR #207.
 
-| ID    | Area                          | Status                                          | Required action                                                                                                                                              |
-| ----- | ----------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| N-008 | MQTT-to-PostgreSQL durability | In progress — #198 / PR #207                    | Complete latest-head CI/review and prove the local spool, manual ACK, restart replay, capacity visibility and named-volume contract                          |
-| N-022 | Actual-host spool recovery    | Software prepared; host evidence pending — #189 | Prove container recreation, rollback with pending rows, disk-full response, backup/restore and controlled power interruption on the supported host           |
-| N-023 | Node health/status durability | Explicitly out of #198                          | Current node health/status worker is not claimed to have the same process-restart durability; create a focused Issue only if required by operations evidence |
-| N-024 | Rollback compatibility        | Open operational risk                           | Do not roll back to a pre-ADR-0008 image while pending or terminal spool records exist; preserve named volumes                                               |
-| N-025 | Spool capacity policy         | Software thresholds implemented                 | Validate 70%/90% utilization and 15-minute backlog thresholds against actual-host capacity/throughput evidence; never auto-delete terminal/pending records   |
+The branch is updated from `main` after PR #209. Targeted durability, capacity, observability, backend-integration and recovery gates passed on the pre-update head. All required checks must pass again on the updated head before ready transition and merge.
 
-## Other open soft blockers and risks
+### N-022 — Actual-host spool recovery
 
-| ID    | Area                          | Status                     | Required action                                                                                                                       |
-| ----- | ----------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| N-009 | Live WebSocket lifecycle      | Queued — #199              | Implement from post-#198 `main`; keep catalog behavior out of scope                                                                   |
-| N-010 | Offline installation          | Queued — #187              | Build and prove a checksummed local OCI installation/update bundle on a clean disconnected host                                       |
-| N-011 | Offline authentication        | Queued — #188              | Select and prove a fail-closed local operator identity and RBAC lifecycle                                                             |
-| N-012 | Recovery and power loss       | Blocked — #189             | Extend PR #144 with ingestion spool, actual-host scheduling, off-host copies, edge restart/rollback and approved power-loss evidence  |
-| N-013 | Formatting baseline           | Draft — #185/#191/PR #192  | Rebase or recreate from current `main`; never mix source formatting into #207                                                         |
-| N-014 | Physical RS-485 topology      | Hardware blocked — #200    | Inventory actual buses, stable adapter paths, Unit IDs, termination/biasing, latency and safe polling using read-only evidence        |
-| N-015 | LE-01MP cumulative energy     | Hardware blocked — #201    | Confirm register layout, scale, unit, rollover and display correlation                                                                |
-| N-016 | Extended XJP60D semantics     | Hardware blocked — #202    | Confirm portability, Unit ID reality, status distinctions, setpoint and I/O semantics without writes                                  |
-| N-017 | Versioned device profiles     | Blocked — #17              | Consolidate profiles only after #200–#202 evidence; schema must reject write operations                                               |
-| N-018 | Optional Tailscale acceptance | Blocked — #108             | Requires #188 decision plus controlled central host and operator workstation                                                          |
-| N-019 | Production dependency updates | Queued maintenance — #203  | Split framework/security and optional integration updates into focused compatibility PRs                                              |
-| N-020 | Major frontend toolchain      | Queued maintenance — #204  | Plan TypeScript/ESLint/jsdom/lint-staged/Playwright migrations separately                                                             |
-| N-021 | GitHub Actions v7             | Queued maintenance — #205  | Audit triggers, permissions, runtime and representative workflow compatibility before upgrade                                         |
-| N-026 | Device Agent `pyasn1` CVE     | Security Work Package #208 | Upgrade only the Device Agent dependency boundary to remediate CVE-2026-33230; do not mix this independent supply-chain fix into #207 |
+**Status:** Software prepared; host evidence pending under Issue #189.
 
-Soft blockers do not justify assumed completion. Missing actual-host or hardware evidence must remain explicitly unverified.
+Required evidence includes container recreation, rollback with pending rows, disk-full response, backup/restore and controlled power interruption on supported hosts.
+
+### N-023 — Node health/status durability
+
+**Status:** Explicitly outside Issue #198.
+
+Current node health/status persistence is not claimed to have the same process-restart durability as telemetry measurements. Create a separate focused Issue only if operational evidence requires it.
+
+### N-024 — Rollback compatibility
+
+Do not roll back to a pre-ADR-0008 image while pending or terminal spool records exist. Preserve named volumes and never use `docker compose down -v` during update or rollback.
+
+### N-025 — Spool capacity policy
+
+Software thresholds and alerts exist. Validate 70%/90% utilization and 15-minute backlog thresholds against actual-host capacity and throughput evidence. Never auto-delete pending or terminal records.
+
+## Resolved security blocker
+
+Issue #208 / PR #209 merged as `ee950e632702135231f1f4349e87529b39d16181`.
+
+- Wrong Device Agent scan target was ruled out.
+- Sequential CycloneDX/SPDX contamination was ruled out.
+- Repeated production-equivalent scans did not reproduce `pyasn1`.
+- No unused dependency or vulnerability waiver was added.
+- Five stale `libexpat1` exceptions were removed.
+- Strict vulnerability and stale-exception policies remain enabled.
+
+## Other open soft blockers
+
+- **N-009 / #199 — Live WebSocket lifecycle:** queued after #198 merges.
+- **N-010 / #187 — Offline installation:** build and prove a checksummed local OCI bundle on a clean disconnected host.
+- **N-011 / #188 — Offline authentication:** prove fail-closed local operator identity and RBAC.
+- **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
+- **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from durability work.
+- **N-014 / #200 — Physical RS-485 topology:** hardware blocked; read-only evidence required.
+- **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked; display/load correlation required.
+- **N-016 / #202 — Extended XJP60D semantics:** hardware blocked; representative KK1/KK2 evidence required.
+- **N-017 / #17 — Versioned device profiles:** blocked until #200–#202 evidence exists.
+- **N-018 / #108 — Optional Tailscale acceptance:** requires offline-auth decision and controlled hosts.
+- **N-019 / #203 — Production dependency updates:** queued maintenance.
+- **N-020 / #204 — Major frontend toolchain:** queued maintenance.
+- **N-021 / #205 — GitHub Actions runtime dependencies:** queued maintenance.
+
+Missing actual-host or hardware evidence remains unverified. A green software or scanner result does not authorize image publication, hardware write or site deployment.
