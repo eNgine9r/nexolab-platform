@@ -191,6 +191,9 @@ describe("TelemetryWebSocketClient", () => {
 
     expect(credentials).not.toHaveBeenCalled();
     expect(sockets[0].send).not.toHaveBeenCalled();
+    expect(states.at(-1)).toBe("connecting");
+
+    sockets[0].message({ type: "heartbeat", server_time: "2026-08-01T12:00:01Z" });
     expect(states.at(-1)).toBe("connected");
   });
 
@@ -316,6 +319,8 @@ describe("TelemetryWebSocketClient", () => {
     expect(sockets).toHaveLength(2);
 
     sockets[1].open();
+    expect(states.at(-1)).toBe("reconnecting");
+    sockets[1].message({ type: "heartbeat", server_time: "2026-08-01T12:00:02Z" });
     expect(states.at(-1)).toBe("connected");
   });
 

@@ -114,10 +114,25 @@
       "id": "NEXOLAB-199",
       "issue": 199,
       "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
-      "status": "ready",
+      "status": "ready_to_merge",
       "priority": 7,
       "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
-      "activation": "Start from current main in a dedicated feature branch; PR #175 is reference-only and must not be merged wholesale."
+      "pull_request": 214,
+      "branch": "fix/199-websocket-lifecycle",
+      "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
+      "verification": {
+        "result": "green",
+        "general_ci_run": 30704096637,
+        "authenticated_dashboard_run": 30704096614,
+        "formatting": "passed",
+        "lint": "passed",
+        "typecheck": "passed",
+        "full_vitest": "passed",
+        "production_build": "passed",
+        "websocket_lifecycle_tests": 5,
+        "dashboard_lifecycle_tests": 3,
+        "hardware": "unverified"
+      }
     },
     {
       "id": "NEXOLAB-187",

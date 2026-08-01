@@ -2,49 +2,46 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-210",
-  "issue": 210,
-  "pull_request": 213,
-  "status": "done",
-  "timestamp": "2026-08-01T15:45:00+03:00",
-  "baseline_main_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
-  "verified_final_head": "a4318330bdce12a0b32e48cf2efb2f705fe8767a",
-  "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
-  "summary": "Completed the dashboard security bootstrap correction so transport, timeout, mixed-content and API failures are not misrepresented as authorization denial, while preserving fail-closed JWT/RBAC behavior and adding safe LOCAL_LAN diagnostics.",
+  "task": "NEXOLAB-199",
+  "issue": 199,
+  "pull_request": 214,
+  "status": "ready_to_merge",
+  "timestamp": "2026-08-01T17:35:00+03:00",
+  "baseline_main_sha": "764c0be96652144920964f7806af493a7a0a7b1e",
+  "branch": "fix/199-websocket-lifecycle",
+  "verified_code_head": "5edad95e6fa76ab52a0dfdbcf74e8607b0bfe568",
+  "summary": "Verified a bounded, evidence-based live telemetry WebSocket lifecycle so transport open is not presented as live, reconnect remains bounded and timer-safe, terminal auth/configuration states remain distinct, and stale snapshots remain visible without live presentation.",
   "scope_completed": [
-    "created and completed Issue #210 through focused PR #213",
-    "verified that disabled authentication returns a local administrator session and the original screenshot did not prove RBAC denial",
-    "added an eight-second bounded session request timeout with AbortController",
-    "added pre-fetch mixed-content classification",
-    "added stable error codes for authentication required, access denied, API error, invalid response, timeout, mixed content and unreachable-or-origin-blocked browser failure",
-    "added safe API origin, browser origin, endpoint path, timeout and optional HTTP status diagnostics",
-    "extracted a testable Security Gate component with distinct authorization and transport/configuration titles",
-    "made retry clear stale diagnostics and issue a fresh request",
-    "added session client, hook and Security Gate regression tests",
-    "added the LOCAL_LAN dashboard security bootstrap diagnostics runbook",
-    "removed all temporary formatter workflows before final review",
-    "squash-merged PR #213 into main"
+    "created Issue #199 feature branch and focused PR #214 from current main",
+    "verified current main before using historical PR #175 as reference only",
+    "added a separate bounded WebSocket connection-open timeout",
+    "kept all client-originated close codes in the browser-valid private range 4000-4999",
+    "required authenticated acknowledgement, heartbeat or valid sample before connected state",
+    "reset reconnect backoff only after valid live evidence",
+    "centralized cleanup for connection, authentication, heartbeat and reconnect timers",
+    "preserved fresh credential resolution for every reconnect",
+    "preserved resume cursor and event-id deduplication",
+    "preserved distinct unauthorized, forbidden and configuration terminal states",
+    "added five focused WebSocket lifecycle tests",
+    "added three dashboard stale/offline presentation tests",
+    "updated two legacy assertions that incorrectly treated transport open as live",
+    "removed all temporary formatter and test-update workflows from the product diff",
+    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "checks_actually_run": [
-    "CI run 30699767308 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
-    "Security Browser Acceptance run 30699767347 passed JWT, RBAC and immutable audit acceptance",
-    "Authenticated Dashboard Acceptance run 30699767325 passed authenticated REST, history and WebSocket dashboard acceptance",
-    "Telemetry Service run 30699767351 passed Python, PostgreSQL, MQTT, REST, WebSocket, object storage, outage recovery, migrations and container build",
-    "Test Sessions Browser Acceptance run 30699767312 passed",
-    "Reports Browser Acceptance run 30699767326 passed",
-    "Rendered Reports Browser Acceptance run 30699767342 passed",
-    "Alerts Browser Acceptance run 30699767319 passed",
-    "Nodes Browser Acceptance run 30699767314 passed",
-    "PR review threads: zero",
-    "PR submitted reviews: zero",
-    "final changed-file list: 12 scoped files"
+    "CI run 30704096637 passed changed-file Prettier, ESLint, strict TypeScript, all Vitest suites and production build",
+    "Authenticated Dashboard Acceptance run 30704096614 passed authenticated REST, history and WebSocket dashboard behavior",
+    "dedicated WebSocket lifecycle suite passed 5 tests",
+    "dedicated dashboard lifecycle suite passed 3 tests",
+    "final product diff before state-only verification contained no temporary workflow"
   ],
   "runtime_and_offline_evidence": [
-    "the correction adds no cloud, paid or internet runtime dependency",
-    "AUTH_MODE=disabled behavior is preserved rather than bypassed",
-    "HTTP 401 and HTTP 403 remain fail-closed and distinct",
-    "no demo fallback or wildcard CORS was added",
-    "safe diagnostics never include access tokens, cookies, passwords or private keys"
+    "the change adds no internet, cloud, paid-service or external API runtime dependency",
+    "stale telemetry remains visible but does not receive live status or live KPI badges",
+    "authentication and organization failures remain fail-closed",
+    "credentials are not placed in the WebSocket URL or diagnostics",
+    "resume cursor and event deduplication behavior are retained",
+    "controlled browser acceptance verifies authenticated WebSocket dashboard behavior"
   ],
   "hardware_evidence": {
     "status": "unchanged",
@@ -53,17 +50,18 @@
     "note": "No Modbus write, hardware action, Raspberry Pi deployment or production/site cutover was performed."
   },
   "checks_pending": [
-    "operator PC and central-host commands from docs/operations/dashboard-security-bootstrap.md to identify the host-specific API/CORS/network cause"
+    "final state-only head CI guard",
+    "final PR diff, mergeability, review-thread and submitted-review guard",
+    "guarded squash merge"
   ],
   "open_risks": [
-    "the affected PC may still require correcting API URL, central bind address, exact CORS origin or HTTP/HTTPS scheme",
-    "the original host-specific root cause remains unverified until operator evidence is returned",
-    "offline authentication architecture remains owned by Issue #188",
-    "actual-host recovery and hardware acceptance remain separate"
+    "actual affected-PC and central-host network configuration remains unverified under Issue #210 operational evidence",
+    "operator-started LOCAL_LAN browser verification remains separate from controlled CI acceptance",
+    "hardware and power-loss acceptance remain separate Work Packages"
   ],
   "next_ready_work_package": {
-    "issue": 199,
-    "title": "Stabilize live telemetry WebSocket lifecycle and operator states",
-    "instruction": "Start from current main in a dedicated feature branch; use PR #175 only as reference."
+    "issue": 187,
+    "title": "Build a verified offline installation and update bundle",
+    "instruction": "Activate after Issue #199 is merged; keep offline authentication in separate Issue #188."
   }
 }
