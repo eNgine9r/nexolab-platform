@@ -1,11 +1,12 @@
 name: Issue 199 Prettier Formatter
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/199-websocket-lifecycle
+      - main
     paths:
       - .github/workflows/issue-199-prettier.yml
+      - src/lib/telemetry/websocket-client.ts
 
 permissions:
   contents: read
