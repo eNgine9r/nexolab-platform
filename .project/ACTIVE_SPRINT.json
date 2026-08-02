@@ -57,7 +57,11 @@
       "depends_on": ["NEXOLAB-186"],
       "pull_request": 207,
       "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
-      "verification": {"result": "green", "workflow_count": 19, "review_threads": 0}
+      "verification": {
+        "result": "green",
+        "workflow_count": 19,
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-208",
@@ -69,7 +73,10 @@
       "pull_request": 209,
       "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
       "track": "security-maintenance",
-      "verification": {"result": "green", "review_threads": 0}
+      "verification": {
+        "result": "green",
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-210",
@@ -80,7 +87,11 @@
       "depends_on": ["NEXOLAB-198"],
       "pull_request": 213,
       "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
-      "verification": {"result": "green", "actual_host_root_cause": "unverified", "review_threads": 0}
+      "verification": {
+        "result": "green",
+        "actual_host_root_cause": "unverified",
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-199",
@@ -91,7 +102,11 @@
       "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
       "pull_request": 214,
       "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
-      "verification": {"result": "green", "review_threads": 0, "hardware": "unverified"}
+      "verification": {
+        "result": "green",
+        "review_threads": 0,
+        "hardware": "unverified"
+      }
     },
     {
       "id": "NEXOLAB-187",
