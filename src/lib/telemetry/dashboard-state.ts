@@ -64,8 +64,7 @@ export function telemetrySeriesKey(sample: TelemetrySample): string {
   return [sample.node_id, sample.equipment_id, sample.channel_id, sample.metric].join(":");
 }
 
-const time = (value?: Date | number) =>
-  value instanceof Date ? value.getTime() : (value ?? Date.now());
+const time = (value?: Date | number) => (value instanceof Date ? value.getTime() : (value ?? Date.now()));
 const captured = (sample: TelemetrySample) => Date.parse(sample.captured_at);
 
 export function mergeDashboardTelemetry(
@@ -105,9 +104,7 @@ export function deriveDashboardTelemetry(
   const samples = Object.values(store.samples).sort((a, b) => captured(b) - captured(a));
   const lastCapturedAt = samples[0]?.captured_at ?? null;
   const ageMs = lastCapturedAt ? Math.max(0, now - Date.parse(lastCapturedAt)) : null;
-  const freshSamples = samples.filter(
-    (sample) => now - captured(sample) <= (options.staleAfterMs ?? 30_000),
-  );
+  const freshSamples = samples.filter((sample) => now - captured(sample) <= (options.staleAfterMs ?? 30_000));
   let status: DashboardTelemetryStatus;
   if (["unauthorized", "forbidden", "configuration_error"].includes(options.connectionState)) {
     status = options.connectionState as DashboardTelemetryStatus;
@@ -131,15 +128,11 @@ export function deriveDashboardTelemetry(
 const valid = (sample: TelemetrySample): sample is ValidSample =>
   sample.quality === "valid" && sample.value !== null;
 const energy = (sample: TelemetrySample) =>
-  ENERGY_UNITS.some(
-    (unit) => sample.equipment_id.includes(unit) || sample.channel_id.includes(unit),
-  );
+  ENERGY_UNITS.some((unit) => sample.equipment_id.includes(unit) || sample.channel_id.includes(unit));
 const power = (sample: TelemetrySample) => {
   if (
     !valid(sample) ||
-    !["active_power", "electrical_power_active"].includes(
-      normalizeTelemetryMetric(sample.metric),
-    )
+    !["active_power", "electrical_power_active"].includes(normalizeTelemetryMetric(sample.metric))
   ) {
     return null;
   }
@@ -171,9 +164,7 @@ export function buildLiveDashboardKpis(view: DashboardTelemetryView): DashboardK
   const fresh = view.freshSamples;
   const good = fresh.filter(valid);
   const nodes = new Set(fresh.map((sample) => sample.node_id)).size;
-  const alarms = fresh.filter(
-    (sample) => sample.alarm !== null || sample.quality === "communication_error",
-  );
+  const alarms = fresh.filter((sample) => sample.alarm !== null || sample.quality === "communication_error");
   const temperatures = good.filter(isTemperatureProbeSample);
   const average = temperatures.length
     ? temperatures.reduce((sum, sample) => sum + sample.value, 0) / temperatures.length

@@ -1,20 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  LoaderCircle,
-  RefreshCw,
-  Save,
-  Thermometer,
-  X,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, LoaderCircle, RefreshCw, Save, Thermometer, X } from "lucide-react";
 
-import type {
-  Xjp60dDiscoveryPoint,
-  Xjp60dSensorManagement,
-} from "@/hooks/use-xjp60d-sensor-management";
+import type { Xjp60dDiscoveryPoint, Xjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
 
 type DisplayPoint = Omit<Xjp60dDiscoveryPoint, "quality"> & {
   quality: Xjp60dDiscoveryPoint["quality"] | "unknown";
@@ -48,9 +37,7 @@ function formatTemperature(point: DisplayPoint): string {
   }).format(point.value)} °C`;
 }
 
-export function SensorManagementDialog(
-  props: SensorManagementDialogProps,
-) {
+export function SensorManagementDialog(props: SensorManagementDialogProps) {
   if (!props.open) return null;
   return <SensorManagementDialogContent {...props} />;
 }
@@ -61,17 +48,12 @@ function SensorManagementDialogContent({
   onClose,
   onSaved,
 }: SensorManagementDialogProps) {
-  const [selected, setSelected] = useState<string[]>(() => [
-    ...management.activeChannelIds,
-  ]);
+  const [selected, setSelected] = useState<string[]>(() => [...management.activeChannelIds]);
 
   const points = useMemo(() => {
     const map = new Map<string, DisplayPoint>();
     const discovery = management.configuration?.last_discovery;
-    for (const point of [
-      ...(discovery?.available_points ?? []),
-      ...(discovery?.unavailable_points ?? []),
-    ]) {
+    for (const point of [...(discovery?.available_points ?? []), ...(discovery?.unavailable_points ?? [])]) {
       map.set(point.channel_id, point);
     }
     for (const channelId of management.activeChannelIds) {
@@ -88,9 +70,7 @@ function SensorManagementDialogContent({
         raw_status: null,
       });
     }
-    return [...map.values()].sort((left, right) =>
-      compareChannels(left.channel_id, right.channel_id),
-    );
+    return [...map.values()].sort((left, right) => compareChannels(left.channel_id, right.channel_id));
   }, [management.activeChannelIds, management.configuration?.last_discovery]);
 
   const discovery = management.configuration?.last_discovery;
@@ -119,19 +99,13 @@ function SensorManagementDialogContent({
       <section className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-cyan-300/15 bg-[#081a34] shadow-2xl shadow-black/50">
         <header className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
           <div>
-            <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">
-              RS-485 commissioning
-            </p>
-            <h2
-              id="sensor-management-title"
-              className="mt-1 text-base font-semibold text-white"
-            >
+            <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">RS-485 commissioning</p>
+            <h2 id="sensor-management-title" className="mt-1 text-base font-semibold text-white">
               Керування температурними датчиками
             </h2>
             <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">
-              Безперервно опитуються і відображаються лише обрані канали. Повний
-              пошук запускається вручну та тимчасово призупиняє звичайний цикл
-              RS-485.
+              Безперервно опитуються і відображаються лише обрані канали. Повний пошук запускається вручну та
+              тимчасово призупиняє звичайний цикл RS-485.
             </p>
           </div>
           <button
@@ -154,8 +128,7 @@ function SensorManagementDialogContent({
             </span>
             {discovery ? (
               <span className="rounded-full border border-white/[0.07] px-2.5 py-1 text-slate-500">
-                {discovery.duration_ms} мс ·{" "}
-                {discovery.reachable_controller_count}/
+                {discovery.duration_ms} мс · {discovery.reachable_controller_count}/
                 {discovery.controller_count} контролерів
               </span>
             ) : null}
@@ -163,9 +136,7 @@ function SensorManagementDialogContent({
           <button
             type="button"
             onClick={() => void management.discover()}
-            disabled={
-              !canManage || management.isDiscovering || management.isSaving
-            }
+            disabled={!canManage || management.isDiscovering || management.isSaving}
             className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 py-2 text-[10px] font-medium text-cyan-100 hover:bg-cyan-400/[0.1] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {management.isDiscovering ? (
@@ -188,20 +159,15 @@ function SensorManagementDialogContent({
           {management.isLoading && points.length === 0 ? (
             <div className="grid min-h-48 place-items-center text-[10px] text-cyan-200">
               <span className="inline-flex items-center gap-2">
-                <LoaderCircle className="h-4 w-4 animate-spin" /> Завантаження
-                конфігурації…
+                <LoaderCircle className="h-4 w-4 animate-spin" /> Завантаження конфігурації…
               </span>
             </div>
           ) : points.length === 0 ? (
             <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-white/[0.08] text-center">
               <div>
                 <Thermometer className="mx-auto h-6 w-6 text-slate-600" />
-                <p className="mt-3 text-[11px] text-slate-300">
-                  Список ще не сформовано
-                </p>
-                <p className="mt-1 text-[9px] text-slate-500">
-                  Запустіть одноразове зчитування RS-485.
-                </p>
+                <p className="mt-3 text-[11px] text-slate-300">Список ще не сформовано</p>
+                <p className="mt-1 text-[9px] text-slate-500">Запустіть одноразове зчитування RS-485.</p>
               </div>
             </div>
           ) : (
@@ -218,9 +184,7 @@ function SensorManagementDialogContent({
                         ? "border-cyan-300/25 bg-cyan-400/[0.07]"
                         : "border-white/[0.06] bg-[#07162d]/70"
                     } ${
-                      disabled
-                        ? "cursor-not-allowed opacity-55"
-                        : "cursor-pointer hover:border-cyan-300/15"
+                      disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer hover:border-cyan-300/15"
                     }`}
                   >
                     <input
@@ -232,9 +196,7 @@ function SensorManagementDialogContent({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-semibold text-white">
-                          {point.channel_id}
-                        </p>
+                        <p className="text-[10px] font-semibold text-white">{point.channel_id}</p>
                         {point.quality === "valid" ? (
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
                         ) : (
@@ -242,13 +204,10 @@ function SensorManagementDialogContent({
                         )}
                       </div>
                       <p className="mt-1 text-[8px] text-slate-500">
-                        {chamberLabel(point.unit_id)} · вхід {point.channel} ·{" "}
-                        {point.quality}
+                        {chamberLabel(point.unit_id)} · вхід {point.channel} · {point.quality}
                       </p>
                     </div>
-                    <span className="text-[10px] font-medium text-slate-200">
-                      {formatTemperature(point)}
-                    </span>
+                    <span className="text-[10px] font-medium text-slate-200">{formatTemperature(point)}</span>
                   </label>
                 );
               })}
@@ -263,12 +222,7 @@ function SensorManagementDialogContent({
           <button
             type="button"
             onClick={() => void save()}
-            disabled={
-              !canManage ||
-              management.isSaving ||
-              management.isDiscovering ||
-              selected.length === 0
-            }
+            disabled={!canManage || management.isSaving || management.isDiscovering || selected.length === 0}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {management.isSaving ? (

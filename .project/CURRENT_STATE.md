@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified main baseline: `75fb9f2921053d39187bbf216057913be2c7fe43`  
-Active Work Package: Issue #194 / PR #226 — format E2E tests and root tooling configuration  
+Verified main baseline: `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`  
+Active Work Package: Issue #195 / PR #227 — format telemetry and dashboard frontend files  
 Status confidence: high for repository state, formatting-only semantic evidence, current Prettier inventory, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
@@ -27,8 +27,6 @@ Status confidence: high for repository state, formatting-only semantic evidence,
 - PR #216 — fail-closed offline operator authentication.
 - PR #223 — argument-safe disposable DR MinIO credential.
 - PR #224 — encrypted local-auth disaster-recovery extension.
-- PR #192 — exact 46-file historical Prettier inventory.
-- PR #225 — three documentation files formatted without semantic changes, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`.
 
 ## Issue #189 remaining boundary
 
@@ -45,52 +43,39 @@ These outcomes must not be inferred from container evidence.
 
 ## Formatting maintenance baseline
 
-Issue #191 established an exact Prettier `3.9.6` debt inventory of 46 files on `main` SHA `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`.
+Issue #191 established an exact Prettier `3.9.6` debt inventory of 46 files.
 
-Completed child Work Package:
+Completed child Work Packages:
 
-- Issue #193 — documentation: 3 files, merged through PR #225.
+- Issue #193 / PR #225 — 3 documentation files, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`;
+- Issue #194 / PR #226 — 6 E2E/root tooling files, merged as `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`.
 
-Remaining child Work Packages:
+## Issue #195 outcome
 
-- Issue #194 — E2E/root tooling: 6 files;
-- Issue #195 — telemetry/dashboard frontend: 10 files;
-- Issue #196 — refrigeration domain/repositories: 10 files;
-- Issue #197 — refrigeration UI: 17 files, depends on #196.
-
-## Issue #194 outcome
-
-PR #226 applies Prettier only to:
-
-- `e2e/nodes.production.e2e.ts`;
-- `e2e/observability.production.e2e.ts`;
-- `e2e/refrigeration-layout.production.e2e.ts`;
-- `e2e/security-rbac.production.e2e.ts`;
-- `eslint.config.mjs`;
-- `playwright.observability.config.ts`.
+PR #227 applies Prettier `3.9.6` only to the ten paths listed in Issue #195.
 
 Verified evidence:
 
-- Prettier version: `3.9.6`;
-- generation workflow: `30743441993`;
-- generation artifact: `8832069755`;
-- artifact digest: `sha256:0b3816f36eb2d2e01605e55f17d0f2be08b2f976cff02397b1d02d29651370e1`;
-- final allowlisted apply workflow: `30743671286`;
-- semantic comparison: identical TypeScript AST fingerprints and exact comment-token sequences before and after formatting;
-- ESLint flat configuration imported successfully;
-- Playwright observability configuration generated a non-empty test list without executing production/site E2E;
-- `git diff --check` passed;
-- the temporary generation/write workflow was removed before final review.
+- generation workflow: `30744141325`;
+- generation artifact: `8832300630`;
+- artifact digest: `sha256:9e5cae5c725074b5d62cd3d8190096fa1d0e4d2339eec544ef4d86f05544375e`;
+- canonical semantic apply workflow: `30747460492`;
+- source AST structure, non-TSX runtime AST, JSX text slots and exact comment tokens are identical before and after formatting;
+- targeted tests for `temperature-chart.test.tsx` and `temperature-channel.test.ts` passed;
+- patch review confirms wrapping and layout changes only;
+- clean feature history was reconstructed from baseline `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e` using the verified artifact;
+- final PR diff contains exactly the ten allowlisted source files before mandatory project-state updates;
+- the temporary generation/write workflow is absent from the final diff.
 
-Patch review confirms line wrapping, array/object layout and optional trailing-comma formatting only. No assertion, selector, timeout, URL, permission, environment variable, test value or configuration behavior changed.
+No endpoint, string, close code, timeout, state transition, assertion, public contract, dependency, runtime, deployment, hardware or Modbus behavior changed.
 
-No dependency, runtime, `.prettierignore`, production data, hardware or Modbus path changed. After these six files are merged, 37 paths remain in the recorded historical formatting backlog.
+After Issue #195, 27 paths remain in the historical formatting backlog.
 
 ## Open Pull Requests
 
-- #226 — formatting-only E2E/tooling Work Package; project-state finalization and exact-head CI are in progress.
+- #227 — formatting-only telemetry/dashboard Work Package; project-state finalization and exact-head CI are in progress.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
 ## Next Ready Work Package
 
-After PR #226 reaches final exact-head GREEN and is merged, start Issue #195: format only the ten inventoried telemetry/dashboard frontend files. Do not combine formatting groups or product changes. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
+After PR #227 reaches final exact-head GREEN and is merged, start Issue #196: format only the ten inventoried refrigeration domain/repository files. Issue #197 remains blocked until #196 is merged. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.

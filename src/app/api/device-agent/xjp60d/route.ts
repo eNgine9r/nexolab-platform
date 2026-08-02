@@ -76,9 +76,7 @@ async function authorize(request: NextRequest, permission: string): Promise<Next
   }
 
   const payload = (await response.json()) as SessionPayload;
-  const memberships = Array.isArray(payload.memberships)
-    ? (payload.memberships as SessionMembership[])
-    : [];
+  const memberships = Array.isArray(payload.memberships) ? (payload.memberships as SessionMembership[]) : [];
   const requestedOrganization = request.headers.get("x-organization-id")?.trim() || null;
   const membership = requestedOrganization
     ? memberships.find((item) => item.organization_id === requestedOrganization)

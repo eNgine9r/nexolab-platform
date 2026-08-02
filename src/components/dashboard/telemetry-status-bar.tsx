@@ -129,8 +129,7 @@ export function TelemetryStatusBar({
   const copy = statusCopy[status];
   const Icon = copy.icon;
   const canRetry =
-    mode === "live" &&
-    (status === "offline" || status === "error" || status === "configuration_error");
+    mode === "live" && (status === "offline" || status === "error" || status === "configuration_error");
 
   return (
     <section

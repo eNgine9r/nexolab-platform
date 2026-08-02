@@ -54,8 +54,6 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("4,5 °C")).toBeInTheDocument();
     expect(screen.getByText("6,5 °C")).toBeInTheDocument();
     expect(screen.queryByText("101-01")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: "Реальний графік історії температур XJP60D" }),
-    ).toBeVisible();
+    expect(screen.getByRole("img", { name: "Реальний графік історії температур XJP60D" })).toBeVisible();
   });
 });
