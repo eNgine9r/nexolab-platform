@@ -25,9 +25,7 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 describe("temperature channel classification", () => {
   it("accepts canonical controller inputs regardless of transport source", () => {
     expect(isTemperatureProbeSample(sample())).toBe(true);
-    expect(isTemperatureProbeSample(sample({ source: "dixell-xjp60d", channel_id: "110-06" }))).toBe(
-      true,
-    );
+    expect(isTemperatureProbeSample(sample({ source: "dixell-xjp60d", channel_id: "110-06" }))).toBe(true);
   });
 
   it("rejects non-temperature and non-controller channels", () => {
