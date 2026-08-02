@@ -1,0 +1,164 @@
+name: Issue 189 Runtime Key Permissions Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/issue-189-key-permissions-fix.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue-189-key-permissions-fix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Create non-root runtime key copies
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/run-disaster-recovery-acceptance.sh")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one match, found {count}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'SECRETS_DIR="$PRIVATE_DIR/secrets"\nRESTORE_LOCAL_AUTH_DIR="$PRIVATE_DIR/restore-local-auth"',
+              'SECRETS_DIR="$PRIVATE_DIR/secrets"\nSOURCE_LOCAL_AUTH_DIR="$PRIVATE_DIR/source-local-auth"\nRESTORE_LOCAL_AUTH_DIR="$PRIVATE_DIR/restore-local-auth"',
+          )
+          replace_once(
+              'mkdir -p "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"',
+              'mkdir -p "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"',
+          )
+          replace_once(
+              'chmod 0755 "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR"',
+              'chmod 0755 "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR"',
+          )
+          replace_once(
+              'export DR_SECRETS_DIR="$SECRETS_DIR"\nexport DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"',
+              'export DR_SECRETS_DIR="$SECRETS_DIR"\nexport DR_SOURCE_LOCAL_AUTH_DIR="$SOURCE_LOCAL_AUTH_DIR"\nexport DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"',
+          )
+          anchor = '''write_raw_key() {
+  local path=$1
+  python3 - "$path" <<'PY'
+from pathlib import Path
+import secrets
+import sys
+path = Path(sys.argv[1])
+path.write_bytes(secrets.token_bytes(32))
+path.chmod(0o600)
+PY
+}
+
+'''
+          helper = '''prepare_runtime_local_auth_dir() {
+  local private_source=$1
+  local public_source=$2
+  local target_dir=$3
+  install -m 0600 "$private_source" "$target_dir/private.pem"
+  install -m 0644 "$public_source" "$target_dir/public.pem"
+  docker run --rm \
+    --user 0:0 \
+    --volume "$target_dir:/run/local-auth" \
+    --entrypoint /bin/sh \
+    "$DR_TELEMETRY_IMAGE" \
+    -ec '
+      chown 10001:10001 /run/local-auth/private.pem /run/local-auth/public.pem
+      chmod 0400 /run/local-auth/private.pem
+      chmod 0444 /run/local-auth/public.pem
+    '
+}
+
+'''
+          replace_once(anchor, anchor + helper)
+          replace_once(
+              'compose build source-migrate source-mqtt\ncompose up -d --wait source-postgres source-minio source-mqtt',
+              'compose build source-migrate source-mqtt\nprepare_runtime_local_auth_dir \\\n  "$SECRETS_DIR/local-auth-private.pem" \\\n  "$SECRETS_DIR/local-auth-public.pem" \\\n  "$SOURCE_LOCAL_AUTH_DIR"\ncompose up -d --wait source-postgres source-minio source-mqtt',
+          )
+          replace_once(
+              '''install -m 0600 "$RESTORED_DIR/local-auth/private.pem" "$RESTORE_LOCAL_AUTH_DIR/private.pem"
+install -m 0644 "$RESTORED_DIR/local-auth/public.pem" "$RESTORE_LOCAL_AUTH_DIR/public.pem"
+openssl pkey -in "$RESTORE_LOCAL_AUTH_DIR/private.pem" -pubout -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-private-public.sha256"
+openssl pkey -pubin -in "$RESTORE_LOCAL_AUTH_DIR/public.pem" -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-public.sha256"
+cmp "$WORK_DIR/restored-private-public.sha256" "$WORK_DIR/restored-public.sha256"
+''',
+              '''openssl pkey -in "$RESTORED_DIR/local-auth/private.pem" -pubout -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-private-public.sha256"
+openssl pkey -pubin -in "$RESTORED_DIR/local-auth/public.pem" -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-public.sha256"
+cmp "$WORK_DIR/restored-private-public.sha256" "$WORK_DIR/restored-public.sha256"
+prepare_runtime_local_auth_dir \
+  "$RESTORED_DIR/local-auth/private.pem" \
+  "$RESTORED_DIR/local-auth/public.pem" \
+  "$RESTORE_LOCAL_AUTH_DIR"
+''',
+          )
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Patch source service mount
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("infrastructure/compose/compose.disaster-recovery-local-auth.yaml")
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+              "AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab/local-auth-private.pem": "AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem",
+              "AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/nexolab/local-auth-public.pem": "AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem",
+              "      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n    depends_on:": "      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n      - ${DR_SOURCE_LOCAL_AUTH_DIR:?DR_SOURCE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro\n    depends_on:",
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"overlay replacement expected one match, found {count}: {old}")
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Validate focused correction
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_SOURCE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-source-local-auth \
+          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              -f infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+              config --quiet
+          grep -Fq 'chmod 0400 /run/local-auth/private.pem' scripts/run-disaster-recovery-acceptance.sh
+          ! grep -Fq 'AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab/local-auth-private.pem' infrastructure/compose/compose.disaster-recovery-local-auth.yaml
+
+      - name: Commit runtime key correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+            scripts/run-disaster-recovery-acceptance.sh
+          git commit -m "fix(recovery): prepare non-root auth key copies"
+          git push origin HEAD:feat/189-recovery-acceptance
