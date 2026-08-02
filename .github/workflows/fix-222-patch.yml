@@ -1,0 +1,41 @@
+name: Fix 222 Patch
+
+on:
+  push:
+    branches:
+      - fix/222-dr-minio-secret-argument
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/222-dr-minio-secret-argument
+          fetch-depth: 0
+      - name: Prefix generated MinIO credential
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/run-disaster-recovery-browser.sh")
+          content = path.read_text(encoding="utf-8")
+          before = 'export DR_MINIO_ROOT_PASSWORD="$(random_secret)"'
+          after = 'export DR_MINIO_ROOT_PASSWORD="nxl_$(random_secret)"'
+          if before not in content:
+              raise SystemExit("Expected MinIO credential assignment was not found")
+          path.write_text(content.replace(before, after, 1), encoding="utf-8")
+          PY
+          bash -n scripts/run-disaster-recovery-browser.sh
+      - name: Commit scoped fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/run-disaster-recovery-browser.sh
+          git commit -m "fix(dr): keep generated MinIO secret argument-safe"
+          git push origin HEAD:fix/222-dr-minio-secret-argument
