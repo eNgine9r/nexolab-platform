@@ -82,6 +82,21 @@ prepare_runtime_local_auth_dir() {
     '
 }
 
+prepare_runtime_local_auth_tokens() {
+  local token_source=$1
+  local target_dir=$2
+  install -m 0600 "$token_source" "$target_dir/source-local-auth-tokens.json"
+  docker run --rm \
+    --user 0:0 \
+    --volume "$target_dir:/run/local-auth" \
+    --entrypoint /bin/sh \
+    "$DR_TELEMETRY_IMAGE" \
+    -ec '
+      chown 10001:10001 /run/local-auth/source-local-auth-tokens.json
+      chmod 0400 /run/local-auth/source-local-auth-tokens.json
+    '
+}
+
 export DR_POSTGRES_DB="nexolab"
 export DR_POSTGRES_USER="nexolab"
 export DR_POSTGRES_PASSWORD="$(random_secret)"
@@ -140,6 +155,15 @@ cleanup() {
     "$DR_SOURCE_OBJECT_STORAGE_VOLUME" "$DR_RESTORE_OBJECT_STORAGE_VOLUME" \
     "$DR_SOURCE_MQTT_VOLUME" "$DR_RESTORE_MQTT_VOLUME" \
     >/dev/null 2>&1 || true
+  if docker image inspect "$DR_TELEMETRY_IMAGE" >/dev/null 2>&1; then
+    docker run --rm \
+      --user 0:0 \
+      --volume "$PRIVATE_DIR:/run/dr-private" \
+      --entrypoint /bin/sh \
+      "$DR_TELEMETRY_IMAGE" \
+      -ec "chown -R $(id -u):$(id -g) /run/dr-private" \
+      >/dev/null 2>&1 || true
+  fi
   rm -rf "$PRIVATE_DIR"
   if [[ $status -ne 0 ]]; then
     echo "Disaster-recovery acceptance failed." >&2
@@ -237,6 +261,9 @@ if not payload.get("access_token") or not payload.get("refresh_token"):
 print(json.dumps(payload, sort_keys=True))
 PY
 chmod 0600 "$SECRETS_DIR/source-local-auth-tokens.json"
+prepare_runtime_local_auth_tokens \
+  "$SECRETS_DIR/source-local-auth-tokens.json" \
+  "$RESTORE_LOCAL_AUTH_DIR"
 
 mkdir -p "$WORK_DIR/seed-objects/equipment" "$WORK_DIR/seed-objects/reports/session-001"
 printf '%s\n' 'NEXOLAB equipment image recovery fixture' >"$WORK_DIR/seed-objects/equipment/fixture-a.bin"
