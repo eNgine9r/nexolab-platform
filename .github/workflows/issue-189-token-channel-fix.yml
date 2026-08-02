@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: issue-189-token-channel-fix-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   fix:
     if: github.actor != 'github-actions[bot]'
