@@ -4,10 +4,7 @@ import { useMemo } from "react";
 import { AlertTriangle, LoaderCircle, RotateCcw, Thermometer } from "lucide-react";
 
 import { chartSeries } from "@/data/dashboard";
-import type {
-  DashboardHistoryRange,
-  DashboardHistoryStatus,
-} from "@/hooks/use-dashboard-telemetry";
+import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -37,10 +34,7 @@ function formatValue(sample: TelemetrySample): string {
 }
 
 function channelColor(channelId: string): string {
-  const hue = [...channelId].reduce(
-    (value, character) => (value * 31 + character.charCodeAt(0)) % 360,
-    0,
-  );
+  const hue = [...channelId].reduce((value, character) => (value * 31 + character.charCodeAt(0)) % 360, 0);
   return `hsl(${hue} 78% 60%)`;
 }
 
@@ -71,9 +65,7 @@ function buildSeries(samples: readonly TelemetrySample[]): Series[] {
   const maximum = Math.max(...values);
   const timeSpan = Math.max(1, to - from);
   const valueSpan = Math.max(1, maximum - minimum);
-  const channelIds = [...new Set(accepted.map((sample) => sample.channel_id))].sort(
-    compareChannels,
-  );
+  const channelIds = [...new Set(accepted.map((sample) => sample.channel_id))].sort(compareChannels);
 
   return channelIds.map((channelId) => {
     const points = accepted
@@ -87,10 +79,7 @@ function buildSeries(samples: readonly TelemetrySample[]): Series[] {
       channelId,
       points,
       path: points
-        .map(
-          (point, index) =>
-            `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
-        )
+        .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
         .join(" "),
     };
   });
@@ -223,9 +212,7 @@ function LiveTemperatureGrid({
     .filter(isTemperatureProbeSample)
     .filter(
       (sample) =>
-        sample.quality === "valid" ||
-        sample.quality === "communication_error" ||
-        sample.alarm !== null,
+        sample.quality === "valid" || sample.quality === "communication_error" || sample.alarm !== null,
     )
     .sort((left, right) => compareChannels(left.channel_id, right.channel_id));
 
@@ -233,9 +220,7 @@ function LiveTemperatureGrid({
     <div className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">
-            Production telemetry
-          </p>
+          <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">Production telemetry</p>
           <p className="mt-1 text-[11px] text-slate-400">
             Опитуються лише обрані оператором канали КК1 і КК2
           </p>
@@ -250,7 +235,9 @@ function LiveTemperatureGrid({
           <div>
             <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
             <p className="mt-2 text-[10px] text-slate-400">Немає активних температурних каналів.</p>
-            <p className="mt-1 text-[9px] text-slate-600">Відкрийте керування датчиками у заголовку панелі.</p>
+            <p className="mt-1 text-[9px] text-slate-600">
+              Відкрийте керування датчиками у заголовку панелі.
+            </p>
           </div>
         </div>
       ) : (
@@ -261,9 +248,7 @@ function LiveTemperatureGrid({
               <article
                 key={`${sample.node_id}:${sample.channel_id}`}
                 className={`rounded-2xl border p-4 ${
-                  problem
-                    ? "border-red-300/15 bg-red-400/[0.045]"
-                    : "border-cyan-300/10 bg-[#071a35]/70"
+                  problem ? "border-red-300/15 bg-red-400/[0.045]" : "border-cyan-300/10 bg-[#071a35]/70"
                 }`}
               >
                 <div className="flex items-center gap-3">
