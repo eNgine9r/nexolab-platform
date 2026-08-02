@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified main baseline: `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`  
-Active Work Package: Issue #196 / PR #228 — format refrigeration domain and repository files  
+Verified main baseline: `402df05d516af08f1d001e3b80bcb174c33197e0`  
+Active Work Package: Issue #197 / PR #229 — format refrigeration UI component files  
 Status confidence: high for repository state, formatting-only semantic evidence, current Prettier inventory, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
@@ -49,35 +49,40 @@ Completed child Work Packages:
 
 - Issue #193 / PR #225 — 3 documentation files, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`;
 - Issue #194 / PR #226 — 6 E2E/root tooling files, merged as `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`;
-- Issue #195 / PR #227 — 10 telemetry/dashboard files, merged as `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`.
+- Issue #195 / PR #227 — 10 telemetry/dashboard files, merged as `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`;
+- Issue #196 / PR #228 — 10 refrigeration domain/repository files, merged as `402df05d516af08f1d001e3b80bcb174c33197e0`.
 
-## Issue #196 outcome
+## Issue #197 outcome
 
-PR #228 applies Prettier `3.9.6` only to the ten refrigeration domain/repository paths listed in Issue #196.
+PR #229 applies Prettier `3.9.6` only to the 17 refrigeration UI/component paths listed in Issue #197.
 
 Verified evidence:
 
-- generation workflow: `30748758550`;
-- generation artifact: `8833742334`;
-- artifact digest: `sha256:7b0a538fec903beb1e2440422a7abbcbcf7cea1a48103e74d894259e0690e56f`;
-- verified staging workflow: `30748882865`;
-- source AST, transpiled runtime AST and exact comment-token sequences are identical before and after formatting;
-- targeted tests passed for climate catalog repository, layout draft storage and sensor placement management;
-- patch review confirms line wrapping and layout changes only;
-- query paths, methods, request bodies, `If-Match`, audit headers, ETag/version handling, validation predicates, identifiers, error strings and assertions are unchanged;
-- clean commit `24eb015513f28780fcf1d1ee919ef1db41908e72` was created directly from baseline `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c` using the ten verified blob SHA values;
-- final source diff contains exactly the ten allowlisted files before mandatory project-state updates;
-- the temporary generation/write workflow is absent from the final branch history and diff.
+- initial fail-closed semantic workflow: `30749791642`;
+- diagnostic workflow: `30749858956`;
+- diagnostic artifact: `8834080073`;
+- diagnostic digest: `sha256:85967a8a6039585559511bccc86c1d053e2e51432ddff17faf1030693ae0f727`;
+- verified semantic workflow: `30749965825`;
+- verified artifact: `8834113947`;
+- verified artifact digest: `sha256:b79c4aa42a7a6bbeec9de6f0f45a228794ce46e8c6ac22c8610839c6731c822f`;
+- staging workflow: `30750064883`;
+- TSX structural AST, JSX text slots, direct `className` utility-token sets and exact comment sequences are identical before and after formatting;
+- four targeted catalog/detail/layout/sensor-placement UI test files passed;
+- patch review confirms reflow plus canonical Tailwind utility ordering only;
+- ARIA labels, visible strings, icons, coordinates, event handlers, conditions and assertions are unchanged;
+- clean commit `35fc2d51c5b6d1c794c81cc1488e97a73043e683` was created directly from baseline `402df05d516af08f1d001e3b80bcb174c33197e0` using the 17 verified blob SHA values;
+- final source diff contains exactly the 17 allowlisted files before mandatory project-state updates;
+- all temporary diagnostic/evidence/staging workflows are absent from the final branch history and diff.
 
-No schema, migration, dependency, UI, runtime, deployment, hardware or Modbus behavior changed.
+No product redesign, defect fix, refactor, dependency, runtime, deployment, hardware or Modbus behavior changed.
 
-After Issue #196, 17 paths remain in the historical formatting backlog, all assigned to Issue #197.
+After Issue #197, zero paths remain in the historical 46-file Prettier backlog.
 
 ## Open Pull Requests
 
-- #228 — formatting-only refrigeration domain/repository Work Package; project-state finalization and exact-head CI are in progress.
+- #229 — formatting-only refrigeration UI Work Package; project-state finalization and exact-head CI are in progress.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
 ## Next Ready Work Package
 
-After PR #228 reaches final exact-head GREEN and is merged, start Issue #197: format only the 17 inventoried refrigeration UI component files. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
+After PR #229 reaches final exact-head GREEN and is merged, execute a repository-wide locked Prettier zero-difference verification, update project state and close parent Issue #185. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
