@@ -4,9 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - ".github/workflows/issue-189-local-auth-recovery-patch.yml"
       - ".github/workflows/issue-189-local-auth-recovery-patch-pr.yml"
-      - ".project/ISSUE_189_PATCH_TRIGGER.md"
 
 permissions:
   contents: write
@@ -26,31 +24,139 @@ jobs:
           ref: feat/189-recovery-acceptance
           fetch-depth: 0
 
-      - name: Execute embedded focused patch
+      - name: Restore shared base Compose
+        run: git checkout origin/main -- infrastructure/compose/compose.disaster-recovery.yaml
+
+      - name: Create local-auth recovery overlay
+        run: |
+          cat > infrastructure/compose/compose.disaster-recovery-local-auth.yaml <<'YAML'
+          services:
+            source-migrate:
+              volumes:
+                - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+
+            source-auth-service:
+              image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+              restart: "no"
+              init: true
+              environment:
+                DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@source-postgres:5432/${DR_POSTGRES_DB:-nexolab}
+                MQTT_ENABLED: "false"
+                BROKER_CONTROL_ENABLED: "false"
+                OBJECT_STORAGE_BACKEND: disabled
+                RETENTION_ENABLED: "false"
+                AUTH_MODE: jwt
+                AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+                AUTH_LOCAL_ENABLED: "true"
+                AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab/local-auth-private.pem
+                AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/nexolab/local-auth-public.pem
+                AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth
+                AUTH_LOCAL_AUDIENCE: nexolab-api
+                AUTH_LOCAL_PROVIDER: nexolab-local
+                AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"
+                AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"
+              volumes:
+                - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+              depends_on:
+                source-postgres:
+                  condition: service_healthy
+              healthcheck:
+                test:
+                  - CMD
+                  - python
+                  - -c
+                  - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)
+                interval: 2s
+                timeout: 4s
+                retries: 30
+                start_period: 5s
+              networks: [dr]
+
+            restore-telemetry-service:
+              environment:
+                AUTH_MODE: jwt
+                AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+                AUTH_LOCAL_ENABLED: "true"
+                AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem
+                AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem
+                AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth
+                AUTH_LOCAL_AUDIENCE: nexolab-api
+                AUTH_LOCAL_PROVIDER: nexolab-local
+                AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"
+                AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"
+              volumes:
+                - ${DR_RESTORE_LOCAL_AUTH_DIR:?DR_RESTORE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro
+          YAML
+
+      - name: Patch canonical recovery scripts
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          workflow = Path(".github/workflows/issue-189-local-auth-recovery-patch.yml")
-          text = workflow.read_text(encoding="utf-8")
-          marker = "          python - <<'PY'\n"
-          start = text.index(marker) + len(marker)
-          end = text.index("\n          PY\n\n      - name: Validate patch syntax", start)
-          lines = text[start:end].splitlines()
-          script = "\n".join(
-              line[10:] if line.startswith("          ") else line for line in lines
-          ) + "\n"
-          compile(script, str(workflow), "exec")
-          exec(script, {"__name__": "__main__"})
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old[:72]!r}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          run = "scripts/run-disaster-recovery-acceptance.sh"
+          replace_once(
+              run,
+              'COMPOSE_FILE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"',
+              'BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"\nLOCAL_AUTH_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery-local-auth.yaml"',
+          )
+          replace_once(
+              run,
+              '  docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"',
+              '  docker compose \\\n    --project-name "$PROJECT_NAME" \\\n    -f "$BASE_COMPOSE" \\\n    -f "$LOCAL_AUTH_COMPOSE" \\\n    "$@"',
+          )
+          replace_once(
+              run,
+              '>"$WORK_DIR/source-local-auth-tokens.json" <<\'PY\'',
+              '>"$SECRETS_DIR/source-local-auth-tokens.json" <<\'PY\'',
+          )
+          replace_once(
+              run,
+              'chmod 0600 "$WORK_DIR/source-local-auth-tokens.json"',
+              'chmod 0600 "$SECRETS_DIR/source-local-auth-tokens.json"',
+          )
+          replace_once(
+              run,
+              '  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"',
+              '  "$PROJECT_NAME" "$BASE_COMPOSE" "$LOCAL_AUTH_COMPOSE" "$EVIDENCE_DIR"',
+          )
+
+          verify = "scripts/verify-restored-platform.sh"
+          replace_once(
+              verify,
+              '''if [[ $# -ne 3 ]]; then\n  echo "Usage: verify-restored-platform.sh <project-name> <compose-file> <evidence-dir>" >&2\n  exit 64\nfi\n\nPROJECT_NAME=$1\nCOMPOSE_FILE=$2\nEVIDENCE_DIR=$3\n''',
+              '''if [[ $# -ne 4 ]]; then\n  echo "Usage: verify-restored-platform.sh <project-name> <base-compose> <local-auth-compose> <evidence-dir>" >&2\n  exit 64\nfi\n\nPROJECT_NAME=$1\nBASE_COMPOSE=$2\nLOCAL_AUTH_COMPOSE=$3\nEVIDENCE_DIR=$4\n''',
+          )
+          replace_once(
+              verify,
+              'TOKEN_FILE="${DR_WORK_DIR:?DR_WORK_DIR is required}/source-local-auth-tokens.json"',
+              'TOKEN_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/source-local-auth-tokens.json"',
+          )
+          replace_once(
+              verify,
+              '  docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"',
+              '  docker compose \\\n    --project-name "$PROJECT_NAME" \\\n    -f "$BASE_COMPOSE" \\\n    -f "$LOCAL_AUTH_COMPOSE" \\\n    "$@"',
+          )
+          replace_once(
+              verify,
+              '''compose exec -T restore-telemetry-service python - \\
+  "$ORGANIZATION_ID" <"$TOKEN_FILE" <<'PY'\nfrom __future__ import annotations\n\nimport asyncio\nimport json\nimport sys\nimport websockets\n\norganization_id = sys.argv[1]\ntokens = json.load(sys.stdin)\n''',
+              '''compose exec -T restore-telemetry-service python - \\
+  "$ORGANIZATION_ID" <<'PY'\nfrom __future__ import annotations\n\nfrom pathlib import Path\nimport asyncio\nimport json\nimport sys\nimport websockets\n\norganization_id = sys.argv[1]\ntokens = json.loads(\n    Path("/run/secrets/nexolab/source-local-auth-tokens.json").read_text(\n        encoding="utf-8"\n    )\n)\n''',
+          )
           PY
 
-      - name: Validate focused implementation
+      - name: Validate base and overlay contracts
         run: |
-          python -m compileall -q scripts tests
           bash -n scripts/run-disaster-recovery-acceptance.sh
           bash -n scripts/verify-restored-platform.sh
-          python scripts/validate-disaster-recovery-assets.py
-          python -m json.tool security/disaster-recovery-assets.json >/dev/null
           DR_POSTGRES_PASSWORD=validation \
           DR_MINIO_ROOT_USER=validation \
           DR_MINIO_ROOT_PASSWORD=validation \
@@ -60,19 +166,28 @@ jobs:
           DR_WORK_DIR=/tmp/nexolab-dr-work \
             docker compose \
               -f infrastructure/compose/compose.disaster-recovery.yaml \
+              -f infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
               config --quiet
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              config --quiet
+          ! grep -q 'DR_RESTORE_LOCAL_AUTH_DIR' infrastructure/compose/compose.disaster-recovery.yaml
+          ! grep -q '<"$TOKEN_FILE" <<' scripts/verify-restored-platform.sh
 
-      - name: Commit focused implementation
+      - name: Commit isolated runtime correction
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            security/disaster-recovery-assets.json \
-            scripts/validate-disaster-recovery-assets.py \
-            tests/test_disaster_recovery_assets.py \
             infrastructure/compose/compose.disaster-recovery.yaml \
+            infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
             scripts/run-disaster-recovery-acceptance.sh \
-            scripts/verify-restored-platform.sh \
-            docs/operations/disaster-recovery.md
-          git commit -m "feat(recovery): preserve local authentication state"
+            scripts/verify-restored-platform.sh
+          git commit -m "fix(recovery): isolate local auth restore overlay"
           git push origin HEAD:feat/189-recovery-acceptance
