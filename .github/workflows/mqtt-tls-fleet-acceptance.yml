@@ -47,11 +47,14 @@ jobs:
     timeout-minutes: 50
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version: 22
           cache: npm
 
@@ -107,7 +110,7 @@ jobs:
 
       - name: Upload MQTT TLS preflight diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mqtt-tls-preflight-diagnostics
           path: /tmp/mqtt-tls-preflight.log
@@ -140,7 +143,7 @@ jobs:
 
       - name: Upload MQTT TLS fleet evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mqtt-tls-fleet-acceptance-evidence
           path: |

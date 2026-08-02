@@ -1,89 +1,133 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-230",
-  "issue": 230,
-  "parent_issue": 185,
-  "pull_request": 233,
+  "sprint": "CI-MAINTENANCE-1",
+  "task": "NEXOLAB-205",
+  "issue": 205,
+  "pull_request": 234,
   "status": "verified_pending_final_ci",
-  "timestamp": "2026-08-02T17:20:00+03:00",
-  "baseline_main_sha": "786f4568650f5a8bbb3efa5e22445d3f88b706b0",
-  "implementation_head_sha": "b978a1cdee95c6ab1f8e566b787e6ba7997ed8de",
-  "summary": "Restored the permanent repository-wide Prettier gate after all 46 historically inventoried paths were cleared through focused child Work Packages, proved zero differences on the initial PR head and recorded the closure evidence in durable project state.",
+  "timestamp": "2026-08-02T18:33:00+03:00",
+  "baseline_main_sha": "ab3c95809dc349a6b45c079ad4614758173a1e0e",
+  "implementation_head_sha": "7a072f4ff5d64c19d6a857f3838cac54c4be247c",
+  "summary": "Inventoried the permanent GitHub Actions workflows, upgraded supported action runtime majors in a controlled 26-workflow change, preserved trust boundaries and cache behavior, and completed a full implementation-head verification sweep.",
   "scope_completed": [
-    "created Issue #230 and focused branch chore/230-close-prettier-baseline from exact merged main",
-    "replaced the temporary changed-file-only CI formatting check with npm run format:check",
-    "preserved fail-closed set -euo pipefail behavior while retaining tee diagnostics",
-    "ran the repository-wide Prettier 3.9.6 check against the exact initial PR head",
-    "confirmed that all matched repository files use Prettier code style",
-    "ran ESLint, strict TypeScript typecheck, full Vitest and production build",
-    "updated the durable Prettier baseline document",
-    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT",
-    "kept source, dependencies, runtime, deployment, hardware and Modbus behavior out of scope"
+    "audited 26 permanent workflow files and their triggers, permissions, runner labels, checkout refs, fetch depth, credential persistence and setup-node cache behavior",
+    "verified that the affected workflow set contains no pull_request_target, workflow_run or self-hosted runner",
+    "upgraded actions/checkout from v4 to v6",
+    "upgraded actions/setup-node from v4 to v6",
+    "upgraded actions/setup-python from v5 to v7",
+    "upgraded actions/upload-artifact from v4 to v7 and download-artifact from v4 to v8",
+    "upgraded supported Docker action majors for QEMU, Buildx, login, metadata and build-push",
+    "set persist-credentials false on every permanent checkout step",
+    "disabled setup-node implicit package-manager caching while preserving existing explicit npm caches",
+    "preserved workflow triggers, permissions, refs, fetch depth, paths, conditions, runner labels and secrets references",
+    "kept product source, npm dependencies, Python dependencies, container dependencies, deployment, hardware and Modbus behavior out of scope",
+    "closed duplicate Issue #235 and PR #236 in favor of canonical Issue #205 and PR #234",
+    "created Issue #237 for the independently discovered leading-hyphen DR credential defect"
   ],
-  "files_changed": [
-    ".github/workflows/ci.yml",
-    "docs/maintenance/prettier-baseline.md",
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
-  ],
+  "files_changed": {
+    "permanent_workflows": 26,
+    "project_state_files": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ],
+    "product_source_files": 0,
+    "package_or_lock_files": 0
+  },
+  "action_runtime_matrix": {
+    "actions/checkout": "v4 -> v6",
+    "actions/setup-node": "v4 -> v6",
+    "actions/setup-python": "v5 -> v7",
+    "actions/upload-artifact": "v4 -> v7",
+    "actions/download-artifact": "v4 -> v8",
+    "docker/setup-qemu-action": "v3 -> v4",
+    "docker/setup-buildx-action": "v3 -> v4",
+    "docker/login-action": "v3 -> v4",
+    "docker/metadata-action": "v5 -> v6",
+    "docker/build-push-action": "v6 -> v7"
+  },
+  "security_review": {
+    "checkout_credentials_persisted": false,
+    "setup_node_implicit_package_manager_cache": false,
+    "pull_request_target_present": false,
+    "workflow_run_present": false,
+    "self_hosted_runner_present": false,
+    "permissions_broadened": false,
+    "secrets_changed": false,
+    "trusted_untrusted_boundaries_preserved": true
+  },
+  "evidence": {
+    "inventory_run": 30752317242,
+    "inventory_artifact_id": 8834828551,
+    "compatibility_run": 30752487637,
+    "compatibility_artifact_id": 8834884979,
+    "transformed_artifact_run": 30753198442,
+    "transformed_artifact_id": 8835111194,
+    "clean_implementation_commit": "ceafcb718071396c43b4e06cbc5d9ea1f12f8fbd",
+    "initial_equivalent_full_sweep_head": "617051a6c14195d13383872dd1c58cdac3417e2d",
+    "state_updated_implementation_head": "7a072f4ff5d64c19d6a857f3838cac54c4be247c",
+    "workflow_result": "26_of_26_green_after_targeted_reruns",
+    "ci_run": 30755039026,
+    "security_browser_run": 30755039048,
+    "refrigeration_browser_run": 30755039020,
+    "disaster_recovery_browser_run": 30755039018,
+    "offline_bundle_run": 30755039033,
+    "offline_auth_run": 30755039013,
+    "disaster_recovery_acceptance_run": 30755039014,
+    "disaster_recovery_success_artifact_id": 8835995987,
+    "disaster_recovery_success_artifact_digest": "sha256:286a7c7d0d80284fc20696220af21e60e7714c9a684e1f3318282351126c870d",
+    "previous_offline_bundle_artifact_id": 8835562629,
+    "previous_offline_bundle_artifact_digest": "sha256:ccff0304ac8d3b2fe3e0378add5896990e18409b92b1598f41949d8627dc3990"
+  },
   "checks_actually_run": [
-    "CI run 30751629252 completed successfully on initial head b978a1cdee95c6ab1f8e566b787e6ba7997ed8de",
-    "npm run format:check resolved to prettier --check . and reported All matched files use Prettier code style",
-    "ESLint completed with zero warnings allowed",
-    "strict TypeScript typecheck completed successfully",
-    "Vitest completed 39 test files and 181 tests successfully",
-    "Next.js 16.2.10 production build completed successfully",
-    "no production/site, database, persistent-volume, hardware or Modbus operation was executed"
+    "repository-wide formatting, ESLint, strict TypeScript, full Vitest and production build passed in CI run 30755039026",
+    "Security Browser Acceptance passed in run 30755039048",
+    "Refrigeration Browser Acceptance passed in run 30755039020",
+    "Disaster Recovery Browser passed in run 30755039018",
+    "Offline Bundle passed in run 30755039033",
+    "all remaining permanent workflows passed on the implementation head after targeted reruns",
+    "Offline Auth Acceptance migration and disconnected authentication passed on rerun 30755039013",
+    "Disaster Recovery Acceptance encrypted restore passed on rerun 30755039014",
+    "no production/site, persistent-volume destruction, hardware or Modbus operation was executed"
   ],
-  "formatting_evidence": {
-    "prettier_version": "3.9.6",
-    "initial_ci_run": 30751629252,
-    "repository_wide_command": "npm run format:check",
-    "resolved_command": "prettier --check .",
-    "zero_difference": true,
-    "pipefail_enabled": true,
-    "failure_diagnostics_retained": true,
-    "historical_inventory_files": 46,
-    "remaining_inventory_files": 0,
-    "new_prettierignore_entries": 0
-  },
-  "test_evidence": {
-    "lint": "green",
-    "typecheck": "green",
-    "test_files": 39,
-    "tests": 181,
-    "build": "green",
-    "pre_existing_warnings_recorded": true
-  },
   "runtime_and_offline_evidence": [
-    "no runtime source or dependency changed",
-    "the LOCAL_LAN offline-first boundary is unchanged",
-    "no CDN, remote font, telemetry service, cloud API or paid runtime dependency was introduced"
+    "LOCAL_LAN core runtime remains offline-capable",
+    "no mandatory cloud, CDN, remote font, telemetry API or paid runtime dependency was introduced",
+    "Offline Bundle built linux/amd64 images, removed local runtime images, loaded the transferred archive, started with pull disabled and preserved named-volume data through update and rollback",
+    "container supply-chain artifact upload, download and aggregate evidence flows completed with the upgraded artifact actions"
   ],
   "hardware_evidence": {
     "status": "not_applicable",
     "hardware_verified": false,
-    "note": "No Raspberry Pi, Modbus, physical device, deployment, production/site or data operation was performed."
+    "note": "No Raspberry Pi, Modbus, physical device, deployment, production/site or data operation was performed. ARM64 actual-host bundle execution remains unverified."
   },
+  "independent_defects": [
+    {
+      "issue": 237,
+      "title": "Make generated DR object-storage credentials argument-safe",
+      "status": "open_ready_after_205",
+      "evidence_run": 30755039014,
+      "reason": "A randomly generated disposable MinIO credential beginning with a hyphen was interpreted as a CLI flag on the first attempt; the rerun passed with a different value."
+    }
+  ],
   "checks_pending": [
-    "final exact-head repository-wide Prettier check after state updates",
-    "final exact-head lint, typecheck, full Vitest and production build",
-    "exact changed-path audit",
-    "review-thread and review-submission audit",
-    "squash merge PR #233",
-    "close Issue #230 and parent Issue #185"
+    "final exact-head 26-workflow sweep after BLOCKERS and LAST_CHECKPOINT update",
+    "final changed-path audit",
+    "review-thread and submitted-review audit",
+    "mark PR #234 ready for review",
+    "squash merge PR #234 with expected exact head",
+    "close Issue #205 and superseded Dependabot PRs #217 through #221"
   ],
   "open_risks": [
-    "pre-existing React test warnings remain outside the formatting closure scope",
+    "Issue #237 nondeterministic DR credential argument parsing remains open and must be fixed separately",
+    "pre-existing React test warnings remain outside this maintenance scope",
     "Issue #189 physical recovery evidence remains unverified",
     "actual Raspberry Pi 5 arm64 offline update and rollback remain unverified"
   ],
   "next_ready_work_package": {
-    "issue_candidates": [203, 204, 205],
-    "instruction": "After PR #233 reaches final exact-head GREEN and parent #185 is closed, select the next independent queued maintenance Work Package according to risk and dependency order."
+    "issue": 237,
+    "instruction": "After PR #234 merges and Issue #205 closes, fix the generated DR credential leading-hyphen defect with a deterministic regression test. Then continue with Issue #203 production dependency review."
   }
 }

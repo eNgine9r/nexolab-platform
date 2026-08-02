@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified main baseline: `786f4568650f5a8bbb3efa5e22445d3f88b706b0`  
-Active Work Package: Issue #230 / PR #233 — close the controlled Prettier baseline with a permanent repository-wide zero-difference gate  
-Status confidence: high for repository state, formatting baseline, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
+Verified main baseline: `ab3c95809dc349a6b45c079ad4614758173a1e0e`  
+Active Work Package: Issue #205 / PR #234 — upgrade GitHub Actions runtime dependencies with full compatibility evidence  
+Status confidence: high for repository state, formatting baseline, GitHub-hosted CI, linux/amd64 disconnected-container evidence and encrypted software recovery; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
 
@@ -14,7 +14,7 @@ Status confidence: high for repository state, formatting baseline, linux/amd64 C
 - Device transport: read-only Modbus RTU and MQTT QoS 1
 - No Modbus write, hardware write or production/site cutover is authorized.
 
-## Completed reliability baseline
+## Completed reliability and maintenance baseline
 
 - PR #184 — AI Development Operating Standard.
 - PR #190 — verified architecture and offline boundary.
@@ -27,6 +27,10 @@ Status confidence: high for repository state, formatting baseline, linux/amd64 C
 - PR #216 — fail-closed offline operator authentication.
 - PR #223 — argument-safe disposable DR MinIO credential.
 - PR #224 — encrypted local-auth disaster-recovery extension.
+- PR #225–#229 — controlled formatting of the exact 46-file historical inventory.
+- PR #233 — permanent repository-wide Prettier `3.9.6` zero-difference CI gate, merge `e1e0e2311d1818157e3326ae9ca67adbf24813d5`.
+
+Issues #185 and #230 are closed completed. The historical formatting backlog is zero.
 
 ## Issue #189 remaining boundary
 
@@ -41,51 +45,62 @@ The software-only recovery portion is verified and merged. Issue #189 remains op
 
 These outcomes must not be inferred from container evidence.
 
-## Controlled Prettier baseline
+## Issue #205 / PR #234 outcome in progress
 
-Issue #191 established an exact Prettier `3.9.6` historical debt inventory of 46 maintained files. The debt was cleared through focused formatting-only Work Packages:
+The Work Package upgrades all supported GitHub Actions runtime majors in one controlled branch rather than merging overlapping Dependabot PRs independently.
 
-- Issue #193 / PR #225 — 3 documentation files, merge `75fb9f2921053d39187bbf216057913be2c7fe43`;
-- Issue #194 / PR #226 — 6 E2E/root tooling files, merge `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`;
-- Issue #195 / PR #227 — 10 telemetry/dashboard files, merge `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`;
-- Issue #196 / PR #228 — 10 refrigeration domain/repository files, merge `402df05d516af08f1d001e3b80bcb174c33197e0`;
-- Issue #197 / PR #229 — 17 refrigeration UI files, merge `786f4568650f5a8bbb3efa5e22445d3f88b706b0`.
+Target matrix:
 
-All 46 inventoried paths are complete. No generated/vendor path or new `.prettierignore` exclusion was introduced.
+- `actions/checkout@v4` → `@v6`;
+- `actions/setup-node@v4` → `@v6`;
+- `actions/setup-python@v5` → `@v7`;
+- `actions/upload-artifact@v4` → `@v7`;
+- `actions/download-artifact@v4` → `@v8`;
+- Docker QEMU, Buildx and login actions `@v3` → `@v4`;
+- `docker/metadata-action@v5` → `@v6`;
+- `docker/build-push-action@v6` → `@v7`.
 
-## Issue #230 outcome in progress
+Compatibility and hardening decisions:
 
-PR #233 replaces the temporary changed-file-only formatting check with the permanent repository-wide gate:
+- all 36 permanent checkout steps explicitly set `persist-credentials: false`;
+- all 16 setup-node steps explicitly set `package-manager-cache: false` to preserve prior no-cache behavior unless a workflow already has an explicit npm cache input;
+- no `pull_request_target`, `workflow_run` or self-hosted runner was introduced;
+- workflow permissions, triggers, paths, conditions, secrets references, runner labels and action inputs remain otherwise unchanged;
+- the pinned Trivy action SHA remains unchanged;
+- no npm, Python or container dependency was upgraded.
 
-```text
-npm run format:check
-```
+Read-only and transformation evidence:
 
-The workflow runs the command behind `set -euo pipefail` and preserves failure diagnostics through `tee`, so a failed Prettier command cannot be masked.
+- inventory run `30752317242`, artifact `8834828551`;
+- input compatibility run `30752487637`, artifact `8834884979`;
+- verified transformed artifact run `30753198442`, artifact `8835111194`;
+- clean implementation commit `ceafcb718071396c43b4e06cbc5d9ea1f12f8fbd` is one parent from exact main `ab3c95809dc349a6b45c079ad4614758173a1e0e` and changes exactly 26 permanent workflow files;
+- all temporary inventory/apply/artifact workflows are absent from final branch history and diff.
 
-Initial exact-head evidence on `b978a1cdee95c6ab1f8e566b787e6ba7997ed8de`:
+Initial compatibility sweep on equivalent implementation head `617051a6c14195d13383872dd1c58cdac3417e2d`:
 
-- CI run `30751629252` — GREEN;
-- `prettier --check .` reported `All matched files use Prettier code style!`;
-- ESLint passed;
-- strict TypeScript typecheck passed;
-- Vitest passed 39 files and 181 tests;
-- Next.js production build passed.
+- 26 of 26 permanent workflows completed GREEN;
+- CI, all browser acceptance suites, telemetry, secure broker/fleet, RS-485, disaster recovery, observability, capacity, container supply-chain and Offline Bundle passed;
+- Container Supply Chain successfully uploaded per-image artifacts, downloaded and merged them with `download-artifact@v8`, then uploaded aggregate evidence;
+- Offline Bundle built the linux/amd64 archive, removed local runtime images, blocked container egress, loaded the archive, started with pull disabled and preserved named-volume data through update/rollback;
+- Offline Bundle run `30754351605`, artifact `8835562629`, digest `sha256:ccff0304ac8d3b2fe3e0378add5896990e18409b92b1598f41949d8627dc3990`.
 
-The final PR head must repeat the same repository-wide check after baseline and project-state updates. Parent Issue #185 remains open until PR #233 reaches exact-head GREEN and merges.
+The same 26-workflow sweep must repeat on the final state-updated head before merge.
 
 ## Open Pull Requests
 
-- #233 — final controlled Prettier baseline closure gate.
-- #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
+- #234 — controlled GitHub Actions runtime compatibility Work Package.
+- #217–#221 — Dependabot PRs superseded by #234; close only after #234 merges.
+
+Duplicate Issue #235 was closed because Issue #205 already owns the overlapping workflow scope.
 
 ## Open risks and blockers
 
-- Existing React test warnings about unwrapped `act(...)`, non-boolean DOM attributes and duplicate keys remain outside Issue #230; the suites still pass and no runtime source is changed here.
+- Existing React test warnings about unwrapped `act(...)`, non-boolean DOM attributes and duplicate keys remain outside Issue #205; suites are GREEN.
 - Issue #189 physical recovery evidence remains unverified.
 - Hardware Issues #200–#202 remain blocked pending controlled read-only physical evidence.
 - Complete `linux/arm64` offline archive/load/start/update/rollback execution on an actual Raspberry Pi 5 remains unverified.
 
 ## Next Ready Work Package
 
-After PR #233 reaches final exact-head GREEN and is merged, close Issue #230 and parent Issue #185, then select the next independent queued maintenance Work Package from Issues #203–#205. Hardware work remains blocked until physical access is available.
+After PR #234 reaches final exact-head GREEN and merges, close superseded Dependabot PRs #217–#221 and mark Issue #205 done. Then start Issue #203: review production dependency updates as a separate application-dependency Work Package. Issue #204 remains queued for major frontend migration planning.
