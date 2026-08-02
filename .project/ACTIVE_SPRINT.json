@@ -18,14 +18,101 @@
     "max_parallel_implementation_tasks": 1
   },
   "tasks": [
-    {"id":"NEXOLAB-182","issue":182,"title":"Adopt AI Development Operating Standard","status":"done","priority":1,"depends_on":[],"pull_request":184,"merge_sha":"8371ee59e76e64963405706be79fc4a909f9fac9"},
-    {"id":"NEXOLAB-183","issue":183,"title":"Reconcile architecture and offline boundary","status":"done","priority":2,"depends_on":["NEXOLAB-182"],"pull_request":190,"merge_sha":"01f2a5fcfc929127d4a7b3d9c068944cd65d8636"},
-    {"id":"NEXOLAB-186","issue":186,"title":"Reconcile stale trackers and Pull Requests","status":"done","priority":3,"depends_on":["NEXOLAB-183"],"pull_request":206,"merge_sha":"bd286690f94bdf06adf3fc630bdee69c5019ebce"},
-    {"id":"NEXOLAB-198","issue":198,"title":"Close MQTT-to-PostgreSQL durability gap","status":"done","priority":4,"depends_on":["NEXOLAB-186"],"pull_request":207,"merge_sha":"5851955ea9a38a9068bbab1eb0c9701722c028c5","verification":{"result":"green","workflow_count":19,"review_threads":0}},
-    {"id":"NEXOLAB-208","issue":208,"title":"Harden Device Agent supply-chain evidence","status":"done","priority":5,"depends_on":["NEXOLAB-186"],"pull_request":209,"merge_sha":"ee950e632702135231f1f4349e87529b39d16181","track":"security-maintenance","verification":{"result":"green","review_threads":0}},
-    {"id":"NEXOLAB-210","issue":210,"title":"Restore dashboard security bootstrap diagnostics","status":"done","priority":6,"depends_on":["NEXOLAB-198"],"pull_request":213,"merge_sha":"729139a20b2bd5464aca2291dc4002f514896eee","verification":{"result":"green","actual_host_root_cause":"unverified","review_threads":0}},
-    {"id":"NEXOLAB-199","issue":199,"title":"Stabilize live WebSocket lifecycle","status":"done","priority":7,"depends_on":["NEXOLAB-198","NEXOLAB-210"],"pull_request":214,"merge_sha":"8bcf67131ce6900b3513e840661d3cf82934c7eb","verification":{"result":"green","review_threads":0,"hardware":"unverified"}},
-    {"id":"NEXOLAB-187","issue":187,"title":"Build verified offline installation bundle","status":"done","priority":8,"depends_on":["NEXOLAB-198"],"pull_request":215,"merge_sha":"4c980781ff1beb0afb89f1779c82750a06e8eb7e","verification":{"result":"green","platform":"linux/amd64","runtime_images":7,"persistent_data_volumes":6,"artifact_id":8821407762,"review_threads":0,"arm64_actual_host":"unverified","hardware":"unverified"}},
+    {
+      "id": "NEXOLAB-182",
+      "issue": 182,
+      "title": "Adopt AI Development Operating Standard",
+      "status": "done",
+      "priority": 1,
+      "depends_on": [],
+      "pull_request": 184,
+      "merge_sha": "8371ee59e76e64963405706be79fc4a909f9fac9"
+    },
+    {
+      "id": "NEXOLAB-183",
+      "issue": 183,
+      "title": "Reconcile architecture and offline boundary",
+      "status": "done",
+      "priority": 2,
+      "depends_on": ["NEXOLAB-182"],
+      "pull_request": 190,
+      "merge_sha": "01f2a5fcfc929127d4a7b3d9c068944cd65d8636"
+    },
+    {
+      "id": "NEXOLAB-186",
+      "issue": 186,
+      "title": "Reconcile stale trackers and Pull Requests",
+      "status": "done",
+      "priority": 3,
+      "depends_on": ["NEXOLAB-183"],
+      "pull_request": 206,
+      "merge_sha": "bd286690f94bdf06adf3fc630bdee69c5019ebce"
+    },
+    {
+      "id": "NEXOLAB-198",
+      "issue": 198,
+      "title": "Close MQTT-to-PostgreSQL durability gap",
+      "status": "done",
+      "priority": 4,
+      "depends_on": ["NEXOLAB-186"],
+      "pull_request": 207,
+      "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
+      "verification": { "result": "green", "workflow_count": 19, "review_threads": 0 }
+    },
+    {
+      "id": "NEXOLAB-208",
+      "issue": 208,
+      "title": "Harden Device Agent supply-chain evidence",
+      "status": "done",
+      "priority": 5,
+      "depends_on": ["NEXOLAB-186"],
+      "pull_request": 209,
+      "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
+      "track": "security-maintenance",
+      "verification": { "result": "green", "review_threads": 0 }
+    },
+    {
+      "id": "NEXOLAB-210",
+      "issue": 210,
+      "title": "Restore dashboard security bootstrap diagnostics",
+      "status": "done",
+      "priority": 6,
+      "depends_on": ["NEXOLAB-198"],
+      "pull_request": 213,
+      "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
+      "verification": { "result": "green", "actual_host_root_cause": "unverified", "review_threads": 0 }
+    },
+    {
+      "id": "NEXOLAB-199",
+      "issue": 199,
+      "title": "Stabilize live WebSocket lifecycle",
+      "status": "done",
+      "priority": 7,
+      "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
+      "pull_request": 214,
+      "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
+      "verification": { "result": "green", "review_threads": 0, "hardware": "unverified" }
+    },
+    {
+      "id": "NEXOLAB-187",
+      "issue": 187,
+      "title": "Build verified offline installation bundle",
+      "status": "done",
+      "priority": 8,
+      "depends_on": ["NEXOLAB-198"],
+      "pull_request": 215,
+      "merge_sha": "4c980781ff1beb0afb89f1779c82750a06e8eb7e",
+      "verification": {
+        "result": "green",
+        "platform": "linux/amd64",
+        "runtime_images": 7,
+        "persistent_data_volumes": 6,
+        "artifact_id": 8821407762,
+        "review_threads": 0,
+        "arm64_actual_host": "unverified",
+        "hardware": "unverified"
+      }
+    },
     {
       "id": "NEXOLAB-188",
       "issue": 188,
@@ -67,13 +154,78 @@
       "activation": "After Issue #188 merges, start checksummed backup, isolated restore, central restart, rollback and browser recovery evidence.",
       "soft_blocker": "Host reboot, Raspberry Pi reboot, edge power interruption and physical power-loss evidence require controlled actual-host access."
     },
-    {"id":"NEXOLAB-200","issue":200,"title":"Verify physical RS-485 topology","status":"blocked","priority":20,"depends_on":["NEXOLAB-186"],"blocker":"Requires controlled read-only access to actual RS-485 buses."},
-    {"id":"NEXOLAB-201","issue":201,"title":"Validate LE-01MP cumulative energy","status":"blocked","priority":21,"depends_on":["NEXOLAB-186"],"blocker":"Requires meter display/load correlation and read-only hardware evidence."},
-    {"id":"NEXOLAB-202","issue":202,"title":"Validate extended XJP60D semantics","status":"blocked","priority":22,"depends_on":["NEXOLAB-186"],"blocker":"Requires representative KK1/KK2 controller evidence."},
-    {"id":"NEXOLAB-17","issue":17,"title":"Consolidate versioned device profiles","status":"blocked","priority":23,"depends_on":["NEXOLAB-200","NEXOLAB-201","NEXOLAB-202"]},
-    {"id":"NEXOLAB-185","issue":185,"title":"Establish controlled Prettier baseline","status":"queued","priority":50,"depends_on":["NEXOLAB-186"],"track":"separate-maintenance","active_child_issue":191,"pull_request":192},
-    {"id":"NEXOLAB-203","issue":203,"title":"Review production dependency updates","status":"queued","priority":51,"depends_on":["NEXOLAB-186"],"track":"maintenance"},
-    {"id":"NEXOLAB-204","issue":204,"title":"Plan major frontend toolchain migrations","status":"queued","priority":52,"depends_on":["NEXOLAB-186"],"track":"maintenance"},
-    {"id":"NEXOLAB-205","issue":205,"title":"Upgrade GitHub Actions runtime dependencies","status":"queued","priority":53,"depends_on":["NEXOLAB-186"],"track":"maintenance"}
+    {
+      "id": "NEXOLAB-200",
+      "issue": 200,
+      "title": "Verify physical RS-485 topology",
+      "status": "blocked",
+      "priority": 20,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires controlled read-only access to actual RS-485 buses."
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy",
+      "status": "blocked",
+      "priority": 21,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires meter display/load correlation and read-only hardware evidence."
+    },
+    {
+      "id": "NEXOLAB-202",
+      "issue": 202,
+      "title": "Validate extended XJP60D semantics",
+      "status": "blocked",
+      "priority": 22,
+      "depends_on": ["NEXOLAB-186"],
+      "blocker": "Requires representative KK1/KK2 controller evidence."
+    },
+    {
+      "id": "NEXOLAB-17",
+      "issue": 17,
+      "title": "Consolidate versioned device profiles",
+      "status": "blocked",
+      "priority": 23,
+      "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
+    },
+    {
+      "id": "NEXOLAB-185",
+      "issue": 185,
+      "title": "Establish controlled Prettier baseline",
+      "status": "queued",
+      "priority": 50,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "separate-maintenance",
+      "active_child_issue": 191,
+      "pull_request": 192
+    },
+    {
+      "id": "NEXOLAB-203",
+      "issue": 203,
+      "title": "Review production dependency updates",
+      "status": "queued",
+      "priority": 51,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
+    },
+    {
+      "id": "NEXOLAB-204",
+      "issue": 204,
+      "title": "Plan major frontend toolchain migrations",
+      "status": "queued",
+      "priority": 52,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
+    },
+    {
+      "id": "NEXOLAB-205",
+      "issue": 205,
+      "title": "Upgrade GitHub Actions runtime dependencies",
+      "status": "queued",
+      "priority": 53,
+      "depends_on": ["NEXOLAB-186"],
+      "track": "maintenance"
+    }
   ]
 }
