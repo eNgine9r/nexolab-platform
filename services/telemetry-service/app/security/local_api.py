@@ -56,7 +56,7 @@ def create_local_auth_router(service: LocalAuthService) -> APIRouter:
                     "code": error.code,
                     "message": "Обліковий запис тимчасово заблоковано після невдалих спроб входу.",
                 },
-                headers={"Retry-After": "300"},
+                headers={"Retry-After": str(error.retry_after_seconds)},
             ) from error
         except LocalAccountAccessError as error:
             raise HTTPException(
