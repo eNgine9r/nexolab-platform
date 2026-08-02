@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #197.
+No hard blocker prevents completing and merging Issue #230 / PR #233.
 
 Stop before:
 
@@ -52,43 +52,44 @@ Verified baseline:
 
 ### N-034 — Controlled formatting child sequence
 
-**Status:** Final child in progress.
+**Status:** All formatting children are merged.
 
 Completed:
 
 - Issue #193 / PR #225 — 3 documentation files;
 - Issue #194 / PR #226 — 6 E2E/root tooling files;
 - Issue #195 / PR #227 — 10 telemetry/dashboard files;
-- Issue #196 / PR #228 — 10 refrigeration domain/repository files, merged as `402df05d516af08f1d001e3b80bcb174c33197e0`.
+- Issue #196 / PR #228 — 10 refrigeration domain/repository files;
+- Issue #197 / PR #229 — 17 refrigeration UI files, merged as `786f4568650f5a8bbb3efa5e22445d3f88b706b0`.
 
-Issue #197 / PR #229 is formatting-only and pending final exact-head CI after project-state updates.
+Zero paths remain in the historical 46-file formatting inventory.
 
-Verified Issue #197 evidence:
+### N-035 — Final repository-wide Prettier gate
 
-- exact scope: 17 refrigeration UI/component paths;
-- initial fail-closed semantic workflow `30749791642` stopped before source commit;
-- diagnostic workflow `30749858956`, artifact `8834080073`, digest `sha256:85967a8a6039585559511bccc86c1d053e2e51432ddff17faf1030693ae0f727`;
-- verified semantic workflow `30749965825`, artifact `8834113947`, digest `sha256:b79c4aa42a7a6bbeec9de6f0f45a228794ce46e8c6ac22c8610839c6731c822f`;
-- staging workflow `30750064883` passed exact artifact hash and allowlist checks;
-- TSX structural AST, JSX text slots, direct `className` utility-token sets and exact comment sequences remained identical;
-- targeted catalog, detail, layout editor and sensor-placement tests passed;
-- all 17 patches were reviewed;
-- ARIA labels, visible text, icons, coordinates, handlers, conditions and assertions are unchanged;
-- clean commit `35fc2d51c5b6d1c794c81cc1488e97a73043e683` was created directly from merged `main` using only verified formatted blob SHA values;
-- final source diff contains exactly the 17 allowlisted files before mandatory state updates;
-- all temporary diagnostic/evidence/staging workflows are absent from final branch history and diff.
+**Status:** Verified on the initial PR #233 head; final exact-head CI pending after state updates.
 
-No product redesign, defect fix, refactor, dependency, runtime, deployment, hardware or Modbus change is included.
+Evidence:
 
-After #197, zero paths remain in the 46-file historical formatting inventory.
+- Issue #230 / PR #233;
+- initial head `b978a1cdee95c6ab1f8e566b787e6ba7997ed8de`;
+- CI run `30751629252`;
+- `npm run format:check` resolved to `prettier --check .`;
+- output: `All matched files use Prettier code style!`;
+- ESLint, strict TypeScript, 39 Vitest files / 181 tests and production build passed;
+- the workflow uses `set -euo pipefail` before piping diagnostics through `tee`;
+- no source formatting or runtime code change is included.
 
-## Next Ready Work Package
+Parent Issue #185 remains open until the updated final PR head repeats the repository-wide gate and PR #233 merges.
 
-### Parent Issue #185 — Final Prettier zero-difference verification
+## Existing test-output risks
 
-**Status:** Ready after PR #229 merge.
+The full suite remains GREEN but emits pre-existing warnings:
 
-Run locked repository-wide Prettier verification, prove zero remaining differences, update project state and close parent #185. Do not mix dependency, feature, refactor or deployment work into the closure gate.
+- React state updates not wrapped in `act(...)` in several tests;
+- non-boolean attributes reaching mocked DOM elements;
+- duplicate React keys in one temperature-chart test fixture.
+
+These warnings are outside Issue #230 because the Work Package only restores the formatting gate and updates durable state. They should be handled through a separate focused defect/test-quality Issue rather than mixed into PR #233.
 
 ## Open operational and hardware risks
 
@@ -121,3 +122,7 @@ The bundle contract supports `linux/arm64`, but complete archive/load/start/upda
 - **N-021 / #205 — GitHub Actions runtime dependencies:** queued maintenance.
 
 Missing actual-host or hardware evidence remains unverified. A green software, disconnected-container or scanner result does not authorize image publication, hardware write or site deployment.
+
+## Next Ready Work Package
+
+After PR #233 reaches final exact-head GREEN and merges, close Issue #230 and parent Issue #185. Then select the next independent queued maintenance Work Package from #203–#205.
