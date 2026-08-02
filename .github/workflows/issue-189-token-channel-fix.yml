@@ -1,0 +1,71 @@
+name: Issue 189 Token Channel Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/issue-189-token-channel-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Keep restored token proof off argv and available inside container
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: replacement precondition failed")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '>"$WORK_DIR/source-local-auth-tokens.json" <<\'PY\'',
+              '>"$SECRETS_DIR/source-local-auth-tokens.json" <<\'PY\'',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'chmod 0600 "$WORK_DIR/source-local-auth-tokens.json"',
+              'chmod 0600 "$SECRETS_DIR/source-local-auth-tokens.json"',
+          )
+          replace_once(
+              "scripts/verify-restored-platform.sh",
+              'TOKEN_FILE="${DR_WORK_DIR:?DR_WORK_DIR is required}/source-local-auth-tokens.json"',
+              'TOKEN_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/source-local-auth-tokens.json"',
+          )
+          replace_once(
+              "scripts/verify-restored-platform.sh",
+              '''compose exec -T restore-telemetry-service python - \\
+  "$ORGANIZATION_ID" <"$TOKEN_FILE" <<'PY'\nfrom __future__ import annotations\n\nimport asyncio\nimport json\nimport sys\nimport websockets\n\norganization_id = sys.argv[1]\ntokens = json.load(sys.stdin)\n''',
+              '''compose exec -T restore-telemetry-service python - \\
+  "$ORGANIZATION_ID" <<'PY'\nfrom __future__ import annotations\n\nfrom pathlib import Path\nimport asyncio\nimport json\nimport sys\nimport websockets\n\norganization_id = sys.argv[1]\ntokens = json.loads(\n    Path("/run/secrets/nexolab/source-local-auth-tokens.json").read_text(\n        encoding="utf-8"\n    )\n)\n''',
+          )
+          PY
+
+      - name: Validate scripts
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
+          ! grep -n 'source-local-auth-tokens.json.*argv\|<"$TOKEN_FILE" <<' scripts/verify-restored-platform.sh
+
+      - name: Commit correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/run-disaster-recovery-acceptance.sh scripts/verify-restored-platform.sh
+          git commit -m "fix(recovery): mount restored auth token evidence safely"
+          git push origin HEAD:feat/189-recovery-acceptance
