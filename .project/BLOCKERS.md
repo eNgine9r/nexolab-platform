@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #194.
+No hard blocker prevents completing and merging Issue #195.
 
 Stop before:
 
@@ -41,7 +41,7 @@ Do not claim these from container or CI evidence.
 
 ### N-033 — Historical Prettier debt inventory
 
-**Status:** Resolved by Issue #191 / PR #192, merged as `16f1c04616541e7d2391a13eb9eb6b8fb955567c`.
+**Status:** Resolved by Issue #191 / PR #192.
 
 Verified baseline:
 
@@ -57,68 +57,42 @@ Verified baseline:
 
 Completed:
 
-- Issue #193 / PR #225 — three Markdown files, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`.
+- Issue #193 / PR #225 — 3 documentation files;
+- Issue #194 / PR #226 — 6 E2E/root tooling files.
 
-Issue #194 / PR #226 is verified as formatting-only and pending final exact-head CI and merge.
+Issue #195 / PR #227 is formatting-only and pending final exact-head CI after project-state updates.
 
-Exact Issue #194 scope:
+Verified Issue #195 evidence:
 
-- `e2e/nodes.production.e2e.ts`;
-- `e2e/observability.production.e2e.ts`;
-- `e2e/refrigeration-layout.production.e2e.ts`;
-- `e2e/security-rbac.production.e2e.ts`;
-- `eslint.config.mjs`;
-- `playwright.observability.config.ts`.
+- exact scope: 10 telemetry/dashboard paths;
+- Prettier generation workflow `30744141325`;
+- artifact `8832300630`;
+- digest `sha256:9e5cae5c725074b5d62cd3d8190096fa1d0e4d2339eec544ef4d86f05544375e`;
+- canonical semantic apply workflow `30747460492` passed;
+- source AST structure remained identical;
+- non-TSX runtime AST remained identical;
+- JSX text token slots remained identical relative to non-text children;
+- exact comment-token sequences remained identical;
+- targeted telemetry/chart tests passed;
+- final clean source diff contains exactly the ten allowlisted files before mandatory state updates;
+- temporary generation/write workflow is absent from the final diff.
 
-Evidence:
+No behavior, endpoint, timeout, close code, state transition, assertion, dependency, deployment, hardware or Modbus change is included.
 
-- Prettier `3.9.6` generation workflow `30743441993` passed;
-- artifact `8832069755`;
-- digest `sha256:0b3816f36eb2d2e01605e55f17d0f2be08b2f976cff02397b1d02d29651370e1`;
-- allowlisted semantic apply workflow `30743671286` passed;
-- TypeScript AST fingerprints and exact comment-token sequences are identical before and after formatting;
-- ESLint flat config imported successfully;
-- Playwright observability config generated a non-empty test list without executing production/site E2E;
-- patch review shows line wrapping, collection layout and optional trailing-comma formatting only;
-- temporary generation/write workflow removed before final review.
+Remaining sequence after #195:
 
-Remaining sequence after #194:
-
-1. Issue #195 — ten telemetry/dashboard files;
-2. Issue #196 — ten refrigeration domain/repository files;
-3. Issue #197 — seventeen refrigeration UI files after #196.
+1. Issue #196 — 10 refrigeration domain/repository files;
+2. Issue #197 — 17 refrigeration UI files after #196.
 
 Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
 
 ## Next Ready Work Package
 
-### Issue #195 — Format telemetry and dashboard frontend files
+### Issue #196 — Format refrigeration domain and repository files
 
-**Status:** Ready after PR #226 merge.
+**Status:** Ready after PR #227 merge.
 
-Do not combine this group with other formatting, feature, reliability or hardware work.
-
-## Resolved Work Packages
-
-### N-011 — Offline operator authentication
-
-Resolved by Issue #188 / PR #216, merged as `94d111855e727fd0a74af0618c099b11123348cf`.
-
-### N-010 — Offline installation and update bundle
-
-Resolved by Issue #187 / PR #215, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
-
-### N-009 — Live WebSocket lifecycle
-
-Resolved by Issue #199 / PR #214, merged as `8bcf67131ce6900b3513e840661d3cf82934c7eb`.
-
-### N-030 — Dashboard security bootstrap
-
-Resolved by Issue #210 / PR #213, merged as `729139a20b2bd5464aca2291dc4002f514896eee`.
-
-### N-008 — MQTT-to-PostgreSQL durability
-
-Resolved by Issue #198 / PR #207, merged as `5851955ea9a38a9068bbab1eb0c9701722c028c5`.
+Do not combine this group with refrigeration UI, product fixes, schema changes, dependencies, deployment or hardware work.
 
 ## Open operational and hardware risks
 
