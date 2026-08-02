@@ -105,7 +105,7 @@ import websockets
 
 organization_id = sys.argv[1]
 tokens = json.loads(
-    Path("/run/secrets/nexolab/source-local-auth-tokens.json").read_text(
+    Path("/run/secrets/local-auth/source-local-auth-tokens.json").read_text(
         encoding="utf-8"
     )
 )
