@@ -14,6 +14,7 @@ on:
       - "package-lock.json"
       - "package.json"
       - "playwright.local-auth.config.ts"
+      - "scripts/run-local-auth-migration-acceptance.sh"
       - "scripts/run-offline-auth-acceptance.sh"
       - "services/telemetry-service/**"
       - "src/app/login/**"
@@ -52,6 +53,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          bash -n scripts/run-local-auth-migration-acceptance.sh
           bash -n scripts/run-offline-auth-acceptance.sh
           python -m compileall -q \
             services/telemetry-service/app/security \
@@ -65,9 +67,14 @@ jobs:
             docs/adr/0009-local-operator-authentication.md \
             docs/security/local-operator-authentication.md \
             infrastructure/compose/compose.local-auth.yaml \
+            scripts/run-local-auth-migration-acceptance.sh \
             scripts/run-offline-auth-acceptance.sh \
             services/telemetry-service/app/security \
             src/features/security/local-auth.ts
+
+      - name: Prove local-auth migration upgrade and downgrade
+        shell: bash
+        run: bash scripts/run-local-auth-migration-acceptance.sh
 
       - name: Run disconnected local authentication acceptance
         shell: bash
