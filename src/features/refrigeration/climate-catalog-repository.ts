@@ -88,12 +88,10 @@ export class HttpClimateCatalogRepository implements ClimateCatalogRepository {
     );
     if (!payload) throw invalidResponse();
     const chamber = parseChamber(payload.climateChamber ?? payload.climate_chamber);
-    const controllers = readArray(
-      payload.temperatureControllers ?? payload.temperature_controllers,
-    ).map(parseDevice);
-    const channels = readArray(payload.temperatureChannels ?? payload.temperature_channels).map(
-      parseChannel,
+    const controllers = readArray(payload.temperatureControllers ?? payload.temperature_controllers).map(
+      parseDevice,
     );
+    const channels = readArray(payload.temperatureChannels ?? payload.temperature_channels).map(parseChannel);
     const energyMeters = readArray(payload.energyMeters ?? payload.energy_meters).map(parseDevice);
     return {
       climateChamber: chamber,
@@ -303,8 +301,7 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
 
 function compareChambers(left: ClimateChamber, right: ClimateChamber): number {
   return (
-    left.displayOrder - right.displayOrder ||
-    left.code.localeCompare(right.code, "uk-UA", { numeric: true })
+    left.displayOrder - right.displayOrder || left.code.localeCompare(right.code, "uk-UA", { numeric: true })
   );
 }
 

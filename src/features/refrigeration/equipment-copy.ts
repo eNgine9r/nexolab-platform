@@ -40,9 +40,7 @@ function nextAvailableValue(
   existingValues: readonly string[],
   formatCandidate: (base: string, index: number) => string,
 ): string {
-  const normalized = new Set(
-    existingValues.map((value) => value.trim().toLocaleLowerCase("uk-UA")),
-  );
+  const normalized = new Set(existingValues.map((value) => value.trim().toLocaleLowerCase("uk-UA")));
   if (!normalized.has(base.toLocaleLowerCase("uk-UA"))) return base;
 
   let index = 2;

@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified main baseline: `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`  
-Active Work Package: Issue #195 / PR #227 — format telemetry and dashboard frontend files  
+Verified main baseline: `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`  
+Active Work Package: Issue #196 / PR #228 — format refrigeration domain and repository files  
 Status confidence: high for repository state, formatting-only semantic evidence, current Prettier inventory, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
@@ -48,34 +48,36 @@ Issue #191 established an exact Prettier `3.9.6` debt inventory of 46 files.
 Completed child Work Packages:
 
 - Issue #193 / PR #225 — 3 documentation files, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`;
-- Issue #194 / PR #226 — 6 E2E/root tooling files, merged as `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`.
+- Issue #194 / PR #226 — 6 E2E/root tooling files, merged as `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e`;
+- Issue #195 / PR #227 — 10 telemetry/dashboard files, merged as `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`.
 
-## Issue #195 outcome
+## Issue #196 outcome
 
-PR #227 applies Prettier `3.9.6` only to the ten paths listed in Issue #195.
+PR #228 applies Prettier `3.9.6` only to the ten refrigeration domain/repository paths listed in Issue #196.
 
 Verified evidence:
 
-- generation workflow: `30744141325`;
-- generation artifact: `8832300630`;
-- artifact digest: `sha256:9e5cae5c725074b5d62cd3d8190096fa1d0e4d2339eec544ef4d86f05544375e`;
-- canonical semantic apply workflow: `30747460492`;
-- source AST structure, non-TSX runtime AST, JSX text slots and exact comment tokens are identical before and after formatting;
-- targeted tests for `temperature-chart.test.tsx` and `temperature-channel.test.ts` passed;
-- patch review confirms wrapping and layout changes only;
-- clean feature history was reconstructed from baseline `cb8f4b21d24c00f1d6a501b69ed8af4db55f353e` using the verified artifact;
-- final PR diff contains exactly the ten allowlisted source files before mandatory project-state updates;
-- the temporary generation/write workflow is absent from the final diff.
+- generation workflow: `30748758550`;
+- generation artifact: `8833742334`;
+- artifact digest: `sha256:7b0a538fec903beb1e2440422a7abbcbcf7cea1a48103e74d894259e0690e56f`;
+- verified staging workflow: `30748882865`;
+- source AST, transpiled runtime AST and exact comment-token sequences are identical before and after formatting;
+- targeted tests passed for climate catalog repository, layout draft storage and sensor placement management;
+- patch review confirms line wrapping and layout changes only;
+- query paths, methods, request bodies, `If-Match`, audit headers, ETag/version handling, validation predicates, identifiers, error strings and assertions are unchanged;
+- clean commit `24eb015513f28780fcf1d1ee919ef1db41908e72` was created directly from baseline `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c` using the ten verified blob SHA values;
+- final source diff contains exactly the ten allowlisted files before mandatory project-state updates;
+- the temporary generation/write workflow is absent from the final branch history and diff.
 
-No endpoint, string, close code, timeout, state transition, assertion, public contract, dependency, runtime, deployment, hardware or Modbus behavior changed.
+No schema, migration, dependency, UI, runtime, deployment, hardware or Modbus behavior changed.
 
-After Issue #195, 27 paths remain in the historical formatting backlog.
+After Issue #196, 17 paths remain in the historical formatting backlog, all assigned to Issue #197.
 
 ## Open Pull Requests
 
-- #227 — formatting-only telemetry/dashboard Work Package; project-state finalization and exact-head CI are in progress.
+- #228 — formatting-only refrigeration domain/repository Work Package; project-state finalization and exact-head CI are in progress.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
 ## Next Ready Work Package
 
-After PR #227 reaches final exact-head GREEN and is merged, start Issue #196: format only the ten inventoried refrigeration domain/repository files. Issue #197 remains blocked until #196 is merged. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
+After PR #228 reaches final exact-head GREEN and is merged, start Issue #197: format only the 17 inventoried refrigeration UI component files. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.

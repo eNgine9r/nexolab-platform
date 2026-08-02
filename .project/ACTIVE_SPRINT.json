@@ -129,8 +129,8 @@
       "status": "in_progress",
       "track": "formatting-maintenance",
       "inventory_files": 46,
-      "remaining_inventory_files_after_195": 27,
-      "remaining_children_after_195": [196, 197]
+      "remaining_inventory_files_after_196": 17,
+      "remaining_children_after_196": [197]
     },
     {
       "id": "NEXOLAB-191",
@@ -174,39 +174,58 @@
       "id": "NEXOLAB-195",
       "issue": 195,
       "title": "Format telemetry and dashboard frontend files",
-      "status": "verified_pending_final_ci",
+      "status": "done",
       "pull_request": 227,
-      "implementation_head_sha": "9762ad2dad12330099b07b8f0907c6be22475b67",
+      "merge_sha": "c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c",
       "file_count": 10,
       "verification": {
+        "result": "green",
         "prettier_version": "3.9.6",
         "generation_workflow_run": 30744141325,
         "generation_artifact_id": 8832300630,
-        "generation_artifact_sha256": "9e5cae5c725074b5d62cd3d8190096fa1d0e4d2339eec544ef4d86f05544375e",
         "semantic_apply_workflow_run": 30747460492,
+        "final_ci_run": 30748194404,
+        "authenticated_dashboard_run": 30748194395,
+        "offline_bundle_run": 30748194394,
         "source_ast_equal": true,
         "runtime_ast_equal_for_non_tsx": true,
         "jsx_text_slots_equal": true,
         "comments_equal": true,
         "targeted_tests": "green",
         "clean_allowlisted_diff": true,
-        "temporary_workflow_removed": true,
-        "final_ci": "pending_after_state_update"
+        "temporary_workflow_removed": true
       }
     },
     {
       "id": "NEXOLAB-196",
       "issue": 196,
       "title": "Format refrigeration domain and repository files",
-      "status": "ready_after_195_merge",
+      "status": "verified_pending_final_ci",
       "track": "formatting-maintenance",
-      "file_count": 10
+      "pull_request": 228,
+      "implementation_head_sha": "24eb015513f28780fcf1d1ee919ef1db41908e72",
+      "file_count": 10,
+      "verification": {
+        "prettier_version": "3.9.6",
+        "generation_workflow_run": 30748758550,
+        "generation_artifact_id": 8833742334,
+        "generation_artifact_sha256": "7b0a538fec903beb1e2440422a7abbcbcf7cea1a48103e74d894259e0690e56f",
+        "verified_staging_workflow_run": 30748882865,
+        "source_ast_equal": true,
+        "runtime_ast_equal": true,
+        "comments_equal": true,
+        "targeted_tests": "green",
+        "contract_review": "green",
+        "clean_allowlisted_diff": true,
+        "temporary_workflow_removed": true,
+        "final_ci": "pending_after_state_update"
+      }
     },
     {
       "id": "NEXOLAB-197",
       "issue": 197,
       "title": "Format refrigeration UI component files",
-      "status": "blocked_by_196",
+      "status": "ready_after_196_merge",
       "track": "formatting-maintenance",
       "file_count": 17
     },

@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #195.
+No hard blocker prevents completing and merging Issue #196.
 
 Stop before:
 
@@ -58,41 +58,43 @@ Verified baseline:
 Completed:
 
 - Issue #193 / PR #225 — 3 documentation files;
-- Issue #194 / PR #226 — 6 E2E/root tooling files.
+- Issue #194 / PR #226 — 6 E2E/root tooling files;
+- Issue #195 / PR #227 — 10 telemetry/dashboard files, merged as `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`.
 
-Issue #195 / PR #227 is formatting-only and pending final exact-head CI after project-state updates.
+Issue #196 / PR #228 is formatting-only and pending final exact-head CI after project-state updates.
 
-Verified Issue #195 evidence:
+Verified Issue #196 evidence:
 
-- exact scope: 10 telemetry/dashboard paths;
-- Prettier generation workflow `30744141325`;
-- artifact `8832300630`;
-- digest `sha256:9e5cae5c725074b5d62cd3d8190096fa1d0e4d2339eec544ef4d86f05544375e`;
-- canonical semantic apply workflow `30747460492` passed;
-- source AST structure remained identical;
-- non-TSX runtime AST remained identical;
-- JSX text token slots remained identical relative to non-text children;
+- exact scope: 10 refrigeration domain/repository paths;
+- Prettier generation workflow `30748758550`;
+- artifact `8833742334`;
+- digest `sha256:7b0a538fec903beb1e2440422a7abbcbcf7cea1a48103e74d894259e0690e56f`;
+- verified staging workflow `30748882865` passed;
+- source AST remained identical;
+- transpiled runtime AST remained identical;
 - exact comment-token sequences remained identical;
-- targeted telemetry/chart tests passed;
-- final clean source diff contains exactly the ten allowlisted files before mandatory state updates;
-- temporary generation/write workflow is absent from the final diff.
+- targeted climate catalog repository, layout draft storage and sensor placement management tests passed;
+- all ten patches were reviewed;
+- REST paths and methods, request payloads, `If-Match`, `X-Audit-Reason`, ETag/version handling, validation predicates, identifiers, error strings and assertions are unchanged;
+- clean commit `24eb015513f28780fcf1d1ee919ef1db41908e72` was created directly from merged `main` using only verified formatted blob SHA values;
+- final source diff contains exactly the ten allowlisted files before mandatory state updates;
+- temporary generation/write workflow is absent from final branch history and diff.
 
-No behavior, endpoint, timeout, close code, state transition, assertion, dependency, deployment, hardware or Modbus change is included.
+No behavior, schema, migration, dependency, UI, deployment, hardware or Modbus change is included.
 
-Remaining sequence after #195:
+Remaining sequence after #196:
 
-1. Issue #196 — 10 refrigeration domain/repository files;
-2. Issue #197 — 17 refrigeration UI files after #196.
+1. Issue #197 — 17 refrigeration UI files.
 
 Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
 
 ## Next Ready Work Package
 
-### Issue #196 — Format refrigeration domain and repository files
+### Issue #197 — Format refrigeration UI component files
 
-**Status:** Ready after PR #227 merge.
+**Status:** Ready after PR #228 merge.
 
-Do not combine this group with refrigeration UI, product fixes, schema changes, dependencies, deployment or hardware work.
+Do not combine this group with product fixes, domain/repository changes, schema changes, dependencies, deployment or hardware work.
 
 ## Open operational and hardware risks
 

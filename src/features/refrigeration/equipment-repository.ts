@@ -312,8 +312,7 @@ function assertUniqueCode(
   if (
     items.some(
       (item) =>
-        item.id !== excludedId &&
-        item.code.toLocaleLowerCase("uk-UA") === code.toLocaleLowerCase("uk-UA"),
+        item.id !== excludedId && item.code.toLocaleLowerCase("uk-UA") === code.toLocaleLowerCase("uk-UA"),
     )
   ) {
     throw new RefrigerationEquipmentRepositoryError(
@@ -449,7 +448,9 @@ function normalizeBaseUrl(value: string): string {
 }
 
 function createClientId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `equipment-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return (
+    globalThis.crypto?.randomUUID?.() ?? `equipment-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -485,9 +486,7 @@ function readInteger(value: unknown): number | null {
 }
 
 function readStatus(value: unknown): EquipmentStatus | null {
-  return value === "normal" || value === "warning" || value === "alarm" || value === "offline"
-    ? value
-    : null;
+  return value === "normal" || value === "warning" || value === "alarm" || value === "offline" ? value : null;
 }
 
 function readLifecycleStatus(value: unknown): EquipmentLifecycleStatus | null {

@@ -41,9 +41,7 @@ export function buildStagedSensorConfiguration(
         status: statusFromQuality(channel),
         updatedAt: channel?.capturedAt ?? binding.boundAt,
         trend:
-          channel?.latestValue === null || channel?.latestValue === undefined
-            ? []
-            : [channel.latestValue],
+          channel?.latestValue === null || channel?.latestValue === undefined ? [] : [channel.latestValue],
         metric: channel?.metric ?? "temperature",
         unit: channel?.unit ?? "degC",
       };
@@ -89,10 +87,7 @@ export function replaceConfiguredChannel(
   channel: AvailableSensor,
   equipmentId?: string,
 ): StagedSensorConfiguration[] {
-  if (
-    channel.channelId !== sensorId &&
-    current.some((sensor) => sensor.id === channel.channelId)
-  ) {
+  if (channel.channelId !== sensorId && current.some((sensor) => sensor.id === channel.channelId)) {
     throw new Error("Цей датчик уже використовується на схемі.");
   }
   const conflict = channelPlacementConflict(channel, equipmentId);
@@ -187,13 +182,13 @@ export function configurationsEqual(
     const candidate = secondById.get(sensor.id);
     return Boolean(
       candidate &&
-        candidate.slotKey === sensor.slotKey &&
-        candidate.label === sensor.label &&
-        candidate.side === sensor.side &&
-        candidate.shelf === sensor.shelf &&
-        candidate.position === sensor.position &&
-        Math.abs(candidate.x - sensor.x) < 0.000001 &&
-        Math.abs(candidate.y - sensor.y) < 0.000001,
+      candidate.slotKey === sensor.slotKey &&
+      candidate.label === sensor.label &&
+      candidate.side === sensor.side &&
+      candidate.shelf === sensor.shelf &&
+      candidate.position === sensor.position &&
+      Math.abs(candidate.x - sensor.x) < 0.000001 &&
+      Math.abs(candidate.y - sensor.y) < 0.000001,
     );
   });
 }
@@ -217,10 +212,7 @@ export function selectableReplacementChannels(
   return channels.filter((channel) => !usedByOther.has(channel.channelId));
 }
 
-export function channelPlacementConflict(
-  channel: AvailableSensor,
-  equipmentId?: string,
-): string | null {
+export function channelPlacementConflict(channel: AvailableSensor, equipmentId?: string): string | null {
   if (!channel.isBound || channel.boundEquipmentId === equipmentId) return null;
   const target = channel.boundEquipmentId ?? "іншому обладнанні";
   const slot = channel.boundSlotKey ? ` · позиція ${channel.boundSlotKey}` : "";
@@ -300,10 +292,7 @@ function statusFromQuality(channel: AvailableSensor | undefined): SensorStatus {
   return "normal";
 }
 
-function compareStagedSensors(
-  first: StagedSensorConfiguration,
-  second: StagedSensorConfiguration,
-): number {
+function compareStagedSensors(first: StagedSensorConfiguration, second: StagedSensorConfiguration): number {
   return (
     first.side.localeCompare(second.side) ||
     first.shelf - second.shelf ||
