@@ -50,6 +50,13 @@ def write_payload(root: Path) -> Path:
     )
     (payload / "mqtt").mkdir(parents=True)
     (payload / "mqtt" / "mosquitto-data.tar").write_bytes(b"mqtt-volume-tar")
+    (payload / "local-auth").mkdir(parents=True)
+    private_key = payload / "local-auth" / "private.pem"
+    public_key = payload / "local-auth" / "public.pem"
+    private_key.write_bytes(b"local-auth-private-key-fixture")
+    public_key.write_bytes(b"local-auth-public-key-fixture")
+    private_key.chmod(0o600)
+    public_key.chmod(0o644)
     return payload
 
 
@@ -84,12 +91,16 @@ def test_create_verify_and_extract_round_trip(tmp_path: Path) -> None:
         "postgresql",
         "object-storage",
         "mqtt-dynamic-security",
+        "local-auth-private-key",
+        "local-auth-public-key",
     ]
     assert set(files) == {
         "postgresql/nexolab.dump",
         "object-storage/objects/equipment/image.bin",
         "object-storage/objects.json",
         "mqtt/mosquitto-data.tar",
+        "local-auth/private.pem",
+        "local-auth/public.pem",
     }
 
     restored = tmp_path / "restored"
@@ -234,6 +245,22 @@ def test_missing_required_asset_is_rejected(tmp_path: Path) -> None:
     key = write_key(tmp_path / "backup.key")
 
     with pytest.raises(MODULE.BundleFailure, match="required payload path is missing"):
+        MODULE.create_bundle(
+            payload_dir=payload,
+            key_file=key,
+            output=tmp_path / "backup.nxl",
+            policy_path=POLICY_PATH,
+            repository="eNgine9r/nexolab-platform",
+            commit="a" * 40,
+        )
+
+
+def test_missing_local_auth_key_is_rejected(tmp_path: Path) -> None:
+    payload = write_payload(tmp_path)
+    (payload / "local-auth" / "private.pem").unlink()
+    key = write_key(tmp_path / "backup.key")
+
+    with pytest.raises(MODULE.BundleFailure, match="local-auth/private.pem"):
         MODULE.create_bundle(
             payload_dir=payload,
             key_file=key,

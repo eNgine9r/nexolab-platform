@@ -63,6 +63,36 @@
         "disabled-clients",
         "credential-rotation"
       ]
+    },
+    {
+      "id": "local-auth-private-key",
+      "kind": "external_file",
+      "required": true,
+      "source_service": "telemetry-service",
+      "source_path": "/run/secrets/nexolab/local-auth-private.pem",
+      "consistency_boundary": "operator_secret_snapshot",
+      "backup_format": "pem",
+      "backup_path": "local-auth/private.pem",
+      "restore_order": 40,
+      "verification": [
+        "regular-file",
+        "mode-0600",
+        "rsa-private-key",
+        "matching-public-key",
+        "fail-closed-without-key"
+      ]
+    },
+    {
+      "id": "local-auth-public-key",
+      "kind": "external_file",
+      "required": true,
+      "source_service": "telemetry-service",
+      "source_path": "/run/secrets/nexolab/local-auth-public.pem",
+      "consistency_boundary": "operator_secret_snapshot",
+      "backup_format": "pem",
+      "backup_path": "local-auth/public.pem",
+      "restore_order": 50,
+      "verification": ["regular-file", "mode-0644", "rsa-public-key", "matching-private-key"]
     }
   ]
 }

@@ -2,13 +2,16 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"
+BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"
+LOCAL_AUTH_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery-local-auth.yaml"
 POLICY_FILE="$ROOT_DIR/security/disaster-recovery-assets.json"
 BUNDLE_TOOL="$ROOT_DIR/scripts/nexolab-backup-bundle.py"
 PROJECT_SUFFIX="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 PROJECT_NAME="nexolab-dr-${PROJECT_SUFFIX}"
 PRIVATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${PROJECT_NAME}.XXXXXX")"
 SECRETS_DIR="$PRIVATE_DIR/secrets"
+SOURCE_LOCAL_AUTH_DIR="$PRIVATE_DIR/source-local-auth"
+RESTORE_LOCAL_AUTH_DIR="$PRIVATE_DIR/restore-local-auth"
 WORK_DIR="$PRIVATE_DIR/work"
 PAYLOAD_DIR="$WORK_DIR/payload"
 RESTORED_DIR="$WORK_DIR/restored"
@@ -25,10 +28,10 @@ if [[ ! "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
   SOURCE_COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)"
 fi
 
-mkdir -p "$SECRETS_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"
+mkdir -p "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"
 rm -rf "$EVIDENCE_DIR"/*
 chmod 0700 "$PRIVATE_DIR" "$WORK_DIR"
-chmod 0755 "$SECRETS_DIR"
+chmod 0755 "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR"
 
 random_secret() {
   python3 - <<'PY'
@@ -61,6 +64,39 @@ path.chmod(0o600)
 PY
 }
 
+prepare_runtime_local_auth_dir() {
+  local private_source=$1
+  local public_source=$2
+  local target_dir=$3
+  install -m 0600 "$private_source" "$target_dir/private.pem"
+  install -m 0644 "$public_source" "$target_dir/public.pem"
+  docker run --rm \
+    --user 0:0 \
+    --volume "$target_dir:/run/local-auth" \
+    --entrypoint /bin/sh \
+    "$DR_TELEMETRY_IMAGE" \
+    -ec '
+      chown 10001:10001 /run/local-auth/private.pem /run/local-auth/public.pem
+      chmod 0400 /run/local-auth/private.pem
+      chmod 0444 /run/local-auth/public.pem
+    '
+}
+
+prepare_runtime_local_auth_tokens() {
+  local token_source=$1
+  local target_dir=$2
+  install -m 0600 "$token_source" "$target_dir/source-local-auth-tokens.json"
+  docker run --rm \
+    --user 0:0 \
+    --volume "$target_dir:/run/local-auth" \
+    --entrypoint /bin/sh \
+    "$DR_TELEMETRY_IMAGE" \
+    -ec '
+      chown 10001:10001 /run/local-auth/source-local-auth-tokens.json
+      chmod 0400 /run/local-auth/source-local-auth-tokens.json
+    '
+}
+
 export DR_POSTGRES_DB="nexolab"
 export DR_POSTGRES_USER="nexolab"
 export DR_POSTGRES_PASSWORD="$(random_secret)"
@@ -68,6 +104,9 @@ export DR_MINIO_ROOT_USER="nexolabdr"
 export DR_MINIO_ROOT_PASSWORD="$(random_secret)"
 export DR_MQTT_ADMIN_USERNAME="nexolab-dr-admin"
 export DR_SECRETS_DIR="$SECRETS_DIR"
+export DR_SOURCE_LOCAL_AUTH_DIR="$SOURCE_LOCAL_AUTH_DIR"
+export DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"
+export DR_LOCAL_AUTH_ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
 export DR_WORK_DIR="$WORK_DIR"
 export DR_NETWORK="${PROJECT_NAME}-network"
 export DR_SOURCE_POSTGRES_VOLUME="${PROJECT_NAME}-source-postgres"
@@ -84,11 +123,22 @@ write_secret "$SECRETS_DIR/ingestion-password"
 write_secret "$SECRETS_DIR/edge-01-old-password"
 write_secret "$SECRETS_DIR/edge-01-password"
 write_secret "$SECRETS_DIR/edge-02-password"
+write_secret "$SECRETS_DIR/local-auth-password"
 write_raw_key "$KEY_FILE"
 write_raw_key "$WRONG_KEY_FILE"
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 \
+  -out "$SECRETS_DIR/local-auth-private.pem" >/dev/null 2>&1
+openssl pkey -in "$SECRETS_DIR/local-auth-private.pem" -pubout \
+  -out "$SECRETS_DIR/local-auth-public.pem" >/dev/null 2>&1
+chmod 0600 "$SECRETS_DIR/local-auth-private.pem"
+chmod 0644 "$SECRETS_DIR/local-auth-public.pem"
 
 compose() {
-  docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"
+  docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$BASE_COMPOSE" \
+    -f "$LOCAL_AUTH_COMPOSE" \
+    "$@"
 }
 
 cleanup() {
@@ -97,13 +147,23 @@ cleanup() {
   compose ps --all >"$EVIDENCE_DIR/compose-ps.txt" 2>&1 || true
   compose logs --no-color \
     source-postgres restore-postgres source-minio restore-minio \
-    source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR/services.log" 2>&1 || true
+    source-mqtt restore-mqtt source-auth-service restore-telemetry-service \
+    >"$EVIDENCE_DIR/services.log" 2>&1 || true
   compose down --remove-orphans >/dev/null 2>&1 || true
   docker volume rm \
     "$DR_SOURCE_POSTGRES_VOLUME" "$DR_RESTORE_POSTGRES_VOLUME" \
     "$DR_SOURCE_OBJECT_STORAGE_VOLUME" "$DR_RESTORE_OBJECT_STORAGE_VOLUME" \
     "$DR_SOURCE_MQTT_VOLUME" "$DR_RESTORE_MQTT_VOLUME" \
     >/dev/null 2>&1 || true
+  if docker image inspect "$DR_TELEMETRY_IMAGE" >/dev/null 2>&1; then
+    docker run --rm \
+      --user 0:0 \
+      --volume "$PRIVATE_DIR:/run/dr-private" \
+      --entrypoint /bin/sh \
+      "$DR_TELEMETRY_IMAGE" \
+      -ec "chown -R $(id -u):$(id -g) /run/dr-private" \
+      >/dev/null 2>&1 || true
+  fi
   rm -rf "$PRIVATE_DIR"
   if [[ $status -ne 0 ]]; then
     echo "Disaster-recovery acceptance failed." >&2
@@ -113,7 +173,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-for command in docker python3 git sha256sum stat; do
+for command in docker python3 git openssl sha256sum stat; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command is missing: $command" >&2
     exit 1
@@ -125,6 +185,10 @@ python3 "$ROOT_DIR/scripts/validate-disaster-recovery-assets.py" --policy "$POLI
 compose config --quiet
 
 compose build source-migrate source-mqtt
+prepare_runtime_local_auth_dir \
+  "$SECRETS_DIR/local-auth-private.pem" \
+  "$SECRETS_DIR/local-auth-public.pem" \
+  "$SOURCE_LOCAL_AUTH_DIR"
 compose up -d --wait source-postgres source-minio source-mqtt
 compose run --rm source-migrate
 
@@ -162,6 +226,44 @@ INSERT INTO telemetry_samples (
     '{"sequence":1,"proof":"source"}'::json, true
   );
 SQL
+
+LOCAL_AUTH_USERNAME="recovery-administrator"
+compose run --rm source-migrate \
+  python -m app.security.local_cli create-account \
+  --username "$LOCAL_AUTH_USERNAME" \
+  --password-file /run/secrets/nexolab/local-auth-password \
+  --display-name "NEXOLAB Recovery Administrator" \
+  --organization-id "$DR_LOCAL_AUTH_ORGANIZATION_ID" \
+  --organization-slug nexolab-dr \
+  --organization-name "NEXOLAB DR" \
+  --role administrator
+compose up -d --wait source-auth-service
+compose exec -T source-auth-service python - \
+  "$LOCAL_AUTH_USERNAME" "$DR_LOCAL_AUTH_ORGANIZATION_ID" \
+  >"$SECRETS_DIR/source-local-auth-tokens.json" <<'PY'
+from pathlib import Path
+from urllib.request import Request, urlopen
+import json
+import sys
+
+username, organization_id = sys.argv[1:]
+password = Path("/run/secrets/nexolab/local-auth-password").read_text(encoding="utf-8").strip()
+request = Request(
+    "http://127.0.0.1:8082/api/v1/auth/local/login",
+    data=json.dumps({"username": username, "password": password}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urlopen(request, timeout=10) as response:
+    payload = json.load(response)
+if not payload.get("access_token") or not payload.get("refresh_token"):
+    raise SystemExit("source local-auth login did not return a token pair")
+print(json.dumps(payload, sort_keys=True))
+PY
+chmod 0600 "$SECRETS_DIR/source-local-auth-tokens.json"
+prepare_runtime_local_auth_tokens \
+  "$SECRETS_DIR/source-local-auth-tokens.json" \
+  "$RESTORE_LOCAL_AUTH_DIR"
 
 mkdir -p "$WORK_DIR/seed-objects/equipment" "$WORK_DIR/seed-objects/reports/session-001"
 printf '%s\n' 'NEXOLAB equipment image recovery fixture' >"$WORK_DIR/seed-objects/equipment/fixture-a.bin"
@@ -220,6 +322,32 @@ SELECT jsonb_build_object(
   'telemetry', COALESCE((
     SELECT jsonb_agg(jsonb_build_object('event_id', event_id, 'node_id', node_id, 'captured_at', captured_at, 'metric', metric, 'value', value, 'unit', unit, 'quality', quality, 'equipment_id', equipment_id, 'channel_id', channel_id, 'raw_payload', raw_payload) ORDER BY event_id)
     FROM telemetry_samples
+  ), '[]'::jsonb),
+  'local_accounts', COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+      'id', a.id, 'identity_id', a.identity_id, 'username', a.username,
+      'active', a.is_active, 'failed_login_count', a.failed_login_count,
+      'locked_until', a.locked_until, 'password_changed_at', a.password_changed_at
+    ) ORDER BY a.username)
+    FROM security_local_accounts a
+  ), '[]'::jsonb),
+  'local_memberships', COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+      'identity_id', m.identity_id, 'organization_id', m.organization_id,
+      'membership_active', m.is_active, 'role', r.role
+    ) ORDER BY m.identity_id, r.role)
+    FROM security_organization_memberships m
+    JOIN security_membership_roles r ON r.membership_id = m.id
+    JOIN security_identities i ON i.id = m.identity_id
+    WHERE i.provider = 'nexolab-local'
+  ), '[]'::jsonb),
+  'local_sessions', COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+      'id', s.id, 'account_id', s.account_id, 'created_at', s.created_at,
+      'last_refreshed_at', s.last_refreshed_at, 'expires_at', s.expires_at,
+      'revoked', s.revoked_at IS NOT NULL
+    ) ORDER BY s.id)
+    FROM security_local_sessions s
   ), '[]'::jsonb),
   'alembic_head', COALESCE((SELECT jsonb_agg(version_num ORDER BY version_num) FROM alembic_version), '[]'::jsonb)
 )::text;
@@ -300,6 +428,9 @@ compose stop source-mqtt
 compose run --rm volume-helper \
   "python /opt/nexolab/scripts/nexolab-volume-archive.py create --source /source-mqtt --output /work/payload/mqtt/mosquitto-data.tar && chown $(id -u):$(id -g) /work/payload/mqtt/mosquitto-data.tar && chmod 0600 /work/payload/mqtt/mosquitto-data.tar"
 test -s "$PAYLOAD_DIR/mqtt/mosquitto-data.tar"
+mkdir -p "$PAYLOAD_DIR/local-auth"
+install -m 0600 "$SECRETS_DIR/local-auth-private.pem" "$PAYLOAD_DIR/local-auth/private.pem"
+install -m 0644 "$SECRETS_DIR/local-auth-public.pem" "$PAYLOAD_DIR/local-auth/public.pem"
 compose start source-mqtt
 for _ in $(seq 1 60); do
   if compose exec -T source-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients >/dev/null 2>&1; then
@@ -345,6 +476,23 @@ RESTORE_STARTED="$(date +%s)"
 python3 "$BUNDLE_TOOL" --policy "$POLICY_FILE" extract \
   --bundle "$BUNDLE_FILE" --key-file "$KEY_FILE" --output-dir "$RESTORED_DIR" \
   >"$EVIDENCE_DIR/bundle-extract.json"
+
+if compose run --rm --no-deps restore-telemetry-service \
+  python -c 'from app.main import create_app; create_app()' \
+  >"$WORK_DIR/missing-local-auth-keys.log" 2>&1; then
+  echo "Restored Telemetry Service started without local-auth keys." >&2
+  exit 82
+fi
+grep -Eqi 'missing|invalid|required' "$WORK_DIR/missing-local-auth-keys.log"
+openssl pkey -in "$RESTORED_DIR/local-auth/private.pem" -pubout -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-private-public.sha256"
+openssl pkey -pubin -in "$RESTORED_DIR/local-auth/public.pem" -outform DER \
+  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-public.sha256"
+cmp "$WORK_DIR/restored-private-public.sha256" "$WORK_DIR/restored-public.sha256"
+prepare_runtime_local_auth_dir \
+  "$RESTORED_DIR/local-auth/private.pem" \
+  "$RESTORED_DIR/local-auth/public.pem" \
+  "$RESTORE_LOCAL_AUTH_DIR"
 
 compose up -d --wait restore-postgres restore-minio
 compose exec -T restore-postgres \
@@ -406,9 +554,11 @@ BUNDLE_SIZE="$(stat -c '%s' "$BUNDLE_FILE")"
 DATABASE_ROWS="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM telemetry_samples")"
 OBJECT_COUNT="$(find "$WORK_DIR/restore-objects" -type f | wc -l | tr -d ' ')"
 MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
+LOCAL_AUTH_ACCOUNT_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM security_local_accounts")"
+LOCAL_AUTH_ACTIVE_SESSION_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM security_local_sessions WHERE revoked_at IS NULL")"
 
 bash "$ROOT_DIR/scripts/verify-restored-platform.sh" \
-  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"
+  "$PROJECT_NAME" "$BASE_COMPOSE" "$LOCAL_AUTH_COMPOSE" "$EVIDENCE_DIR"
 
 grep -Fq 'Disabled: true' "$WORK_DIR/restore-mqtt-state.txt"
 cp "$BUNDLE_FILE" "$EVIDENCE_DIR/nexolab-backup.nxl"
@@ -418,6 +568,9 @@ printf '%s\n' \
   'source_volumes=unchanged_during_drill' \
   'restore_volumes=fresh' \
   'object_storage=private' \
+  'local_auth_missing_keys=failed_closed' \
+  'local_auth_keys=restored_from_encrypted_bundle' \
+  'local_auth_password=external_to_bundle' \
   >"$EVIDENCE_DIR/negative-and-safety-checks.txt"
 printf '%s\n' "$SOURCE_DATABASE_SHA" >"$EVIDENCE_DIR/database-state.sha256"
 printf '%s\n' "$SOURCE_OBJECTS_SHA" >"$EVIDENCE_DIR/object-manifest.sha256"
@@ -439,6 +592,13 @@ payload = {
     "database": {"telemetry_rows": int("$DATABASE_ROWS"), "state_sha256": "$SOURCE_DATABASE_SHA"},
     "object_storage": {"bucket": "$BUCKET", "object_count": int("$OBJECT_COUNT"), "manifest_sha256": "$SOURCE_OBJECTS_SHA", "private": True},
     "mqtt": {"client_count": int("$MQTT_CLIENT_COUNT"), "state_sha256": "$SOURCE_MQTT_SHA", "disabled_client_restored": True},
+    "local_auth": {
+        "account_count": int("$LOCAL_AUTH_ACCOUNT_COUNT"),
+        "active_session_count_before_application_verification": int("$LOCAL_AUTH_ACTIVE_SESSION_COUNT"),
+        "matching_signing_pair": True,
+        "missing_keys_failed_closed": True,
+        "password_bundled": False,
+    },
     "negative_tests": {"wrong_key": "rejected", "ciphertext_tamper": "rejected"},
     "source_volumes_mutated": False,
 }

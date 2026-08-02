@@ -1,0 +1,57 @@
+services:
+  source-migrate:
+    volumes:
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+
+  source-auth-service:
+    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+    restart: "no"
+    init: true
+    environment:
+      DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@source-postgres:5432/${DR_POSTGRES_DB:-nexolab}
+      MQTT_ENABLED: "false"
+      BROKER_CONTROL_ENABLED: "false"
+      OBJECT_STORAGE_BACKEND: disabled
+      RETENTION_ENABLED: "false"
+      AUTH_MODE: jwt
+      AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+      AUTH_LOCAL_ENABLED: "true"
+      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem
+      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem
+      AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth
+      AUTH_LOCAL_AUDIENCE: nexolab-api
+      AUTH_LOCAL_PROVIDER: nexolab-local
+      AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"
+      AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"
+    volumes:
+      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+      - ${DR_SOURCE_LOCAL_AUTH_DIR:?DR_SOURCE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro
+    depends_on:
+      source-postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)
+      interval: 2s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
+    networks: [dr]
+
+  restore-telemetry-service:
+    environment:
+      AUTH_MODE: jwt
+      AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
+      AUTH_LOCAL_ENABLED: "true"
+      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem
+      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem
+      AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth
+      AUTH_LOCAL_AUDIENCE: nexolab-api
+      AUTH_LOCAL_PROVIDER: nexolab-local
+      AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"
+      AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"
+    volumes:
+      - ${DR_RESTORE_LOCAL_AUTH_DIR:?DR_RESTORE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro

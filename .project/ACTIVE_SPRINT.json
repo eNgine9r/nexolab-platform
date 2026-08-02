@@ -57,7 +57,11 @@
       "depends_on": ["NEXOLAB-186"],
       "pull_request": 207,
       "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
-      "verification": { "result": "green", "workflow_count": 19, "review_threads": 0 }
+      "verification": {
+        "result": "green",
+        "workflow_count": 19,
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-208",
@@ -69,7 +73,10 @@
       "pull_request": 209,
       "merge_sha": "ee950e632702135231f1f4349e87529b39d16181",
       "track": "security-maintenance",
-      "verification": { "result": "green", "review_threads": 0 }
+      "verification": {
+        "result": "green",
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-210",
@@ -80,7 +87,11 @@
       "depends_on": ["NEXOLAB-198"],
       "pull_request": 213,
       "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee",
-      "verification": { "result": "green", "actual_host_root_cause": "unverified", "review_threads": 0 }
+      "verification": {
+        "result": "green",
+        "actual_host_root_cause": "unverified",
+        "review_threads": 0
+      }
     },
     {
       "id": "NEXOLAB-199",
@@ -91,7 +102,11 @@
       "depends_on": ["NEXOLAB-198", "NEXOLAB-210"],
       "pull_request": 214,
       "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
-      "verification": { "result": "green", "review_threads": 0, "hardware": "unverified" }
+      "verification": {
+        "result": "green",
+        "review_threads": 0,
+        "hardware": "unverified"
+      }
     },
     {
       "id": "NEXOLAB-187",
@@ -150,11 +165,44 @@
       "id": "NEXOLAB-189",
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
-      "status": "ready_software_only",
+      "status": "software_verified_hardware_blocked",
       "priority": 10,
       "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
-      "activation": "Start checksummed backup, isolated restore, central restart, rollback and browser recovery evidence.",
-      "soft_blocker": "Host reboot, Raspberry Pi reboot, edge power interruption and physical power-loss evidence require controlled actual-host access."
+      "pull_request": 224,
+      "verified_implementation_head": "9b85ab31d75659c024fc3f1b7191c21628a74728",
+      "verification": {
+        "result": "green_software_only",
+        "workflow_count": 5,
+        "general_ci_run": 30741446834,
+        "telemetry_service_run": 30741446799,
+        "disaster_recovery_domain_run": 30741446796,
+        "disaster_recovery_acceptance_run": 30741446794,
+        "offline_bundle_run": 30741446809,
+        "software_rpo_seconds": 0,
+        "backup_seconds": 4,
+        "restore_seconds": 15,
+        "postgres_state_restored": true,
+        "minio_private_objects_restored": 3,
+        "mqtt_identities_restored": 4,
+        "local_auth_account_restored": true,
+        "pre_backup_access_session_restored": true,
+        "pre_backup_refresh_session_restored": true,
+        "refresh_rotation_after_restore": true,
+        "logout_revocation_after_restore": true,
+        "new_password_login_after_restore": true,
+        "restored_websocket_authenticated": true,
+        "post_restore_exactly_once_rows": 1,
+        "dead_letter_rows": 0,
+        "source_volumes_mutated": false,
+        "disaster_recovery_artifact_id": 8831439044,
+        "disaster_recovery_artifact_sha256": "83430669994463232592e082da339b0c570f6d1baa6bfe6e3910b107ccbc90e8",
+        "offline_bundle_artifact_id": 8831520725,
+        "offline_bundle_artifact_sha256": "232f61b2c57a2c02fb48d2b183c5d227320627ce9fd683d0745bffa4501521dc",
+        "review_threads": 0,
+        "submitted_reviews": 0,
+        "hardware": "unverified"
+      },
+      "soft_blocker": "Central-host reboot, Raspberry Pi reboot, edge power interruption, physical power-loss and physical-media restore require controlled actual-host access."
     },
     {
       "id": "NEXOLAB-200",
@@ -195,12 +243,13 @@
       "id": "NEXOLAB-185",
       "issue": 185,
       "title": "Establish controlled Prettier baseline",
-      "status": "queued",
+      "status": "ready",
       "priority": 50,
       "depends_on": ["NEXOLAB-186"],
       "track": "separate-maintenance",
       "active_child_issue": 191,
-      "pull_request": 192
+      "pull_request": 192,
+      "activation": "Resume the existing focused formatting-baseline PR only after PR #224 is merged."
     },
     {
       "id": "NEXOLAB-203",
