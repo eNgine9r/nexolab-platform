@@ -121,78 +121,77 @@ async function recreateStack(request: APIRequestContext): Promise<void> {
   await waitForReady(request);
 }
 
-test(
-  "preserves local accounts, memberships and refresh sessions through update and rollback recreation",
-  async ({ request }) => {
-    test.setTimeout(420_000);
-    mkdirSync(evidenceDirectory, { recursive: true });
+test("preserves local accounts, memberships and refresh sessions through update and rollback recreation", async ({
+  request,
+}) => {
+  test.setTimeout(420_000);
+  mkdirSync(evidenceDirectory, { recursive: true });
 
-    const loginResponse = await request.post(`${apiBaseUrl}/api/v1/auth/local/login`, {
-      data: {
-        username: administratorUsername,
-        password,
+  const loginResponse = await request.post(`${apiBaseUrl}/api/v1/auth/local/login`, {
+    data: {
+      username: administratorUsername,
+      password,
+    },
+  });
+  expect(loginResponse.status()).toBe(200);
+  const tokens = (await loginResponse.json()) as TokenPair;
+  expect(tokens.access_token).toBeTruthy();
+  expect(tokens.refresh_token).toBeTruthy();
+
+  await assertAccessTokenActive(request, tokens.access_token);
+
+  const volumeBefore = postgresVolumeIdentity();
+  const stateBefore = postgresStateSnapshot();
+  expect(stateBefore).toContain("accounts_count=3");
+  expect(stateBefore).toContain("membership_roles_count=3");
+  expect(stateBefore).toMatch(/sessions_count=[1-9][0-9]*/);
+
+  await recreateStack(request);
+  const volumeAfterUpdate = postgresVolumeIdentity();
+  const stateAfterUpdate = postgresStateSnapshot();
+  expect(volumeAfterUpdate).toBe(volumeBefore);
+  expect(stateAfterUpdate).toBe(stateBefore);
+  await assertAccessTokenActive(request, tokens.access_token);
+
+  await recreateStack(request);
+  const volumeAfterRollback = postgresVolumeIdentity();
+  const stateAfterRollback = postgresStateSnapshot();
+  expect(volumeAfterRollback).toBe(volumeBefore);
+  expect(stateAfterRollback).toBe(stateBefore);
+  await assertAccessTokenActive(request, tokens.access_token);
+
+  const logoutResponse = await request.post(`${apiBaseUrl}/api/v1/auth/local/logout`, {
+    data: { refresh_token: tokens.refresh_token },
+  });
+  expect(logoutResponse.status()).toBe(204);
+
+  const revokedResponse = await request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+      "X-Organization-ID": organizationId,
+      Accept: "application/json",
+    },
+  });
+  expect(revokedResponse.status()).toBe(401);
+
+  writeFileSync(
+    path.join(evidenceDirectory, "local-auth-persistence-evidence.json"),
+    `${JSON.stringify(
+      {
+        postgres_volume_identity: volumeBefore,
+        before: stateBefore.split("\n"),
+        after_update_recreation: stateAfterUpdate.split("\n"),
+        after_rollback_recreation: stateAfterRollback.split("\n"),
+        access_session_survived_update: true,
+        access_session_survived_rollback: true,
+        post_logout_access_status: revokedResponse.status(),
       },
-    });
-    expect(loginResponse.status()).toBe(200);
-    const tokens = (await loginResponse.json()) as TokenPair;
-    expect(tokens.access_token).toBeTruthy();
-    expect(tokens.refresh_token).toBeTruthy();
-
-    await assertAccessTokenActive(request, tokens.access_token);
-
-    const volumeBefore = postgresVolumeIdentity();
-    const stateBefore = postgresStateSnapshot();
-    expect(stateBefore).toContain("accounts_count=3");
-    expect(stateBefore).toContain("membership_roles_count=3");
-    expect(stateBefore).toMatch(/sessions_count=[1-9][0-9]*/);
-
-    await recreateStack(request);
-    const volumeAfterUpdate = postgresVolumeIdentity();
-    const stateAfterUpdate = postgresStateSnapshot();
-    expect(volumeAfterUpdate).toBe(volumeBefore);
-    expect(stateAfterUpdate).toBe(stateBefore);
-    await assertAccessTokenActive(request, tokens.access_token);
-
-    await recreateStack(request);
-    const volumeAfterRollback = postgresVolumeIdentity();
-    const stateAfterRollback = postgresStateSnapshot();
-    expect(volumeAfterRollback).toBe(volumeBefore);
-    expect(stateAfterRollback).toBe(stateBefore);
-    await assertAccessTokenActive(request, tokens.access_token);
-
-    const logoutResponse = await request.post(`${apiBaseUrl}/api/v1/auth/local/logout`, {
-      data: { refresh_token: tokens.refresh_token },
-    });
-    expect(logoutResponse.status()).toBe(204);
-
-    const revokedResponse = await request.get(`${apiBaseUrl}/api/v1/auth/session`, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        "X-Organization-ID": organizationId,
-        Accept: "application/json",
-      },
-    });
-    expect(revokedResponse.status()).toBe(401);
-
-    writeFileSync(
-      path.join(evidenceDirectory, "local-auth-persistence-evidence.json"),
-      `${JSON.stringify(
-        {
-          postgres_volume_identity: volumeBefore,
-          before: stateBefore.split("\n"),
-          after_update_recreation: stateAfterUpdate.split("\n"),
-          after_rollback_recreation: stateAfterRollback.split("\n"),
-          access_session_survived_update: true,
-          access_session_survived_rollback: true,
-          post_logout_access_status: revokedResponse.status(),
-        },
-        null,
-        2,
-      )}\n`,
-      { encoding: "utf-8", mode: 0o600 },
-    );
-  },
-);
+      null,
+      2,
+    )}\n`,
+    { encoding: "utf-8", mode: 0o600 },
+  );
+});
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
