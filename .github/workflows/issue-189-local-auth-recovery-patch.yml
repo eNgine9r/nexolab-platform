@@ -1,0 +1,325 @@
+name: Issue 189 Local Auth Recovery Patch
+
+on:
+  push:
+    branches:
+      - feat/189-recovery-acceptance
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue-189-local-auth-recovery-patch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Apply focused recovery integration
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old[:80]!r}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # Recovery policy: add the externally owned local-auth signing pair to the encrypted set.
+          policy_path = Path("security/disaster-recovery-assets.json")
+          policy = json.loads(policy_path.read_text(encoding="utf-8"))
+          existing_ids = {asset["id"] for asset in policy["assets"]}
+          additions = [
+              {
+                  "id": "local-auth-private-key",
+                  "kind": "external_file",
+                  "required": True,
+                  "source_service": "telemetry-service",
+                  "source_path": "/run/secrets/nexolab/local-auth-private.pem",
+                  "consistency_boundary": "operator_secret_snapshot",
+                  "backup_format": "pem",
+                  "backup_path": "local-auth/private.pem",
+                  "restore_order": 40,
+                  "verification": [
+                      "regular-file",
+                      "mode-0600",
+                      "rsa-private-key",
+                      "matching-public-key",
+                      "fail-closed-without-key",
+                  ],
+              },
+              {
+                  "id": "local-auth-public-key",
+                  "kind": "external_file",
+                  "required": True,
+                  "source_service": "telemetry-service",
+                  "source_path": "/run/secrets/nexolab/local-auth-public.pem",
+                  "consistency_boundary": "operator_secret_snapshot",
+                  "backup_format": "pem",
+                  "backup_path": "local-auth/public.pem",
+                  "restore_order": 50,
+                  "verification": [
+                      "regular-file",
+                      "mode-0644",
+                      "rsa-public-key",
+                      "matching-private-key",
+                  ],
+              },
+          ]
+          policy["assets"].extend(asset for asset in additions if asset["id"] not in existing_ids)
+          policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+
+          # Policy validator: volume assets keep strict volume rules; external files keep strict path rules.
+          replace_once(
+              "scripts/validate-disaster-recovery-assets.py",
+              '''    "mqtt-dynamic-security": (\n        "docker_volume",\n        "deterministic_tar",\n        "service_quiesce",\n    ),\n}\n''',
+              '''    "mqtt-dynamic-security": (\n        "docker_volume",\n        "deterministic_tar",\n        "service_quiesce",\n    ),\n    "local-auth-private-key": (\n        "external_file",\n        "pem",\n        "operator_secret_snapshot",\n    ),\n    "local-auth-public-key": (\n        "external_file",\n        "pem",\n        "operator_secret_snapshot",\n    ),\n}\nVOLUME_ASSETS = {"postgresql", "object-storage", "mqtt-dynamic-security"}\n''',
+          )
+          replace_once(
+              "scripts/validate-disaster-recovery-assets.py",
+              'def validate_asset(asset: Any, index: int) -> tuple[str, int, str, list[str]]:\n',
+              'def validate_asset(\n    asset: Any, index: int\n) -> tuple[str, int, str | None, list[str]]:\n',
+          )
+          replace_once(
+              "scripts/validate-disaster-recovery-assets.py",
+              '''    source_volume = require_text(asset.get("source_volume"), f"{label}.source_volume")\n    if not SAFE_VOLUME.fullmatch(source_volume):\n        raise ValidationFailure(f"{label}.source_volume is invalid")\n    validate_absolute_path(asset.get("source_path"), f"{label}.source_path")\n    backup_path = validate_relative_path(\n        asset.get("backup_path"), f"{label}.backup_path"\n    )\n\n    restore_prefix = require_text(\n        asset.get("restore_volume_prefix"), f"{label}.restore_volume_prefix"\n    )\n    if not SAFE_PREFIX.fullmatch(restore_prefix):\n        raise ValidationFailure(f"{label}.restore_volume_prefix is invalid")\n    if source_volume.startswith(restore_prefix) or restore_prefix.startswith(\n        source_volume\n    ):\n        raise ValidationFailure(\n            f"{label}.restore_volume_prefix overlaps the source volume"\n        )\n''',
+              '''    validate_absolute_path(asset.get("source_path"), f"{label}.source_path")\n    backup_path = validate_relative_path(\n        asset.get("backup_path"), f"{label}.backup_path"\n    )\n\n    source_volume: str | None = None\n    if asset_id in VOLUME_ASSETS:\n        source_volume = require_text(\n            asset.get("source_volume"), f"{label}.source_volume"\n        )\n        if not SAFE_VOLUME.fullmatch(source_volume):\n            raise ValidationFailure(f"{label}.source_volume is invalid")\n        restore_prefix = require_text(\n            asset.get("restore_volume_prefix"), f"{label}.restore_volume_prefix"\n        )\n        if not SAFE_PREFIX.fullmatch(restore_prefix):\n            raise ValidationFailure(f"{label}.restore_volume_prefix is invalid")\n        if source_volume.startswith(restore_prefix) or restore_prefix.startswith(\n            source_volume\n        ):\n            raise ValidationFailure(\n                f"{label}.restore_volume_prefix overlaps the source volume"\n            )\n    elif asset.get("source_volume") is not None or asset.get("restore_volume_prefix") is not None:\n        raise ValidationFailure(\n            f"{label}.source_volume and restore_volume_prefix are valid only for volume assets"\n        )\n''',
+          )
+          replace_once(
+              "scripts/validate-disaster-recovery-assets.py",
+              '        volumes.append(volume)\n',
+              '        if volume is not None:\n            volumes.append(volume)\n',
+          )
+
+          # Validator tests track the expanded authoritative set and preserve ordering checks.
+          replace_once(
+              "tests/test_disaster_recovery_assets.py",
+              '''        "mqtt-dynamic-security",\n    ]\n''',
+              '''        "mqtt-dynamic-security",\n        "local-auth-private-key",\n        "local-auth-public-key",\n    ]\n''',
+          )
+          replace_once(
+              "tests/test_disaster_recovery_assets.py",
+              '''    payload["assets"] = [\n        payload["assets"][1],\n        payload["assets"][0],\n        payload["assets"][2],\n    ]\n''',
+              '''    assets = payload["assets"]\n    payload["assets"] = [assets[1], assets[0], *assets[2:]]\n''',
+          )
+          insert_after = '''def test_policy_rejects_restore_prefix_overlapping_source(tmp_path: Path) -> None:\n    payload = policy()\n    payload["assets"][0]["restore_volume_prefix"] = (\n        "nexolab-central-postgres-data-"\n    )\n\n    with pytest.raises(MODULE.ValidationFailure, match="overlaps the source"):\n        MODULE.validate_policy(write_policy(tmp_path, payload))\n\n\n'''
+          new_test = '''def test_policy_rejects_volume_fields_for_external_key(tmp_path: Path) -> None:\n    payload = policy()\n    payload["assets"][3]["source_volume"] = "unexpected-secret-volume"\n\n    with pytest.raises(MODULE.ValidationFailure, match="valid only for volume assets"):\n        MODULE.validate_policy(write_policy(tmp_path, payload))\n\n\n'''
+          replace_once(
+              "tests/test_disaster_recovery_assets.py",
+              insert_after,
+              insert_after + new_test,
+          )
+
+          # Compose: source and restored services use external keys; restore keys come from extracted payload.
+          replace_once(
+              "infrastructure/compose/compose.disaster-recovery.yaml",
+              '''    command: ["alembic", "upgrade", "head"]\n    depends_on:\n''',
+              '''    command: ["alembic", "upgrade", "head"]\n    volumes:\n      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n    depends_on:\n''',
+          )
+          source_service = '''\n  source-auth-service:\n    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}\n    restart: "no"\n    init: true\n    environment:\n      DATABASE_URL: postgresql+psycopg://${DR_POSTGRES_USER:-nexolab}:${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}@source-postgres:5432/${DR_POSTGRES_DB:-nexolab}\n      MQTT_ENABLED: "false"\n      BROKER_CONTROL_ENABLED: "false"\n      OBJECT_STORAGE_BACKEND: disabled\n      RETENTION_ENABLED: "false"\n      AUTH_MODE: jwt\n      AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}\n      AUTH_LOCAL_ENABLED: "true"\n      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab/local-auth-private.pem\n      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/nexolab/local-auth-public.pem\n      AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth\n      AUTH_LOCAL_AUDIENCE: nexolab-api\n      AUTH_LOCAL_PROVIDER: nexolab-local\n      AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"\n      AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"\n    volumes:\n      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n    depends_on:\n      source-postgres:\n        condition: service_healthy\n    healthcheck:\n      test:\n        - CMD\n        - python\n        - -c\n        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready', timeout=3)\n      interval: 2s\n      timeout: 4s\n      retries: 30\n      start_period: 5s\n    networks: [dr]\n'''
+          replace_once(
+              "infrastructure/compose/compose.disaster-recovery.yaml",
+              '\n  source-minio:\n',
+              source_service + '\n  source-minio:\n',
+          )
+          replace_once(
+              "infrastructure/compose/compose.disaster-recovery.yaml",
+              '''      AUTH_MODE: disabled\n      CORS_ALLOWED_ORIGINS: ""\n''',
+              '''      AUTH_MODE: jwt\n      AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}\n      AUTH_LOCAL_ENABLED: "true"\n      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem\n      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem\n      AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth\n      AUTH_LOCAL_AUDIENCE: nexolab-api\n      AUTH_LOCAL_PROVIDER: nexolab-local\n      AUTH_LOCAL_ACCESS_TOKEN_SECONDS: "600"\n      AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"\n      CORS_ALLOWED_ORIGINS: ""\n''',
+          )
+          replace_once(
+              "infrastructure/compose/compose.disaster-recovery.yaml",
+              '''    volumes:\n      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n    depends_on:\n      restore-postgres:\n''',
+              '''    volumes:\n      - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro\n      - ${DR_RESTORE_LOCAL_AUTH_DIR:?DR_RESTORE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro\n    depends_on:\n      restore-postgres:\n''',
+          )
+
+          # Main runtime acceptance: create local identity/session, include keys, fail closed without them, restore them.
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'SECRETS_DIR="$PRIVATE_DIR/secrets"\nWORK_DIR="$PRIVATE_DIR/work"\n',
+              'SECRETS_DIR="$PRIVATE_DIR/secrets"\nRESTORE_LOCAL_AUTH_DIR="$PRIVATE_DIR/restore-local-auth"\nWORK_DIR="$PRIVATE_DIR/work"\n',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'mkdir -p "$SECRETS_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"\n',
+              'mkdir -p "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"\n',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'chmod 0755 "$SECRETS_DIR"\n',
+              'chmod 0755 "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR"\n',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'export DR_SECRETS_DIR="$SECRETS_DIR"\nexport DR_WORK_DIR="$WORK_DIR"\n',
+              'export DR_SECRETS_DIR="$SECRETS_DIR"\nexport DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"\nexport DR_LOCAL_AUTH_ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"\nexport DR_WORK_DIR="$WORK_DIR"\n',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''write_secret "$SECRETS_DIR/edge-02-password"\nwrite_raw_key "$KEY_FILE"\nwrite_raw_key "$WRONG_KEY_FILE"\n''',
+              '''write_secret "$SECRETS_DIR/edge-02-password"\nwrite_secret "$SECRETS_DIR/local-auth-password"\nwrite_raw_key "$KEY_FILE"\nwrite_raw_key "$WRONG_KEY_FILE"\nopenssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 \\\n  -out "$SECRETS_DIR/local-auth-private.pem" >/dev/null 2>&1\nopenssl pkey -in "$SECRETS_DIR/local-auth-private.pem" -pubout \\\n  -out "$SECRETS_DIR/local-auth-public.pem" >/dev/null 2>&1\nchmod 0600 "$SECRETS_DIR/local-auth-private.pem"\nchmod 0644 "$SECRETS_DIR/local-auth-public.pem"\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'for command in docker python3 git sha256sum stat; do\n',
+              'for command in docker python3 git openssl sha256sum stat; do\n',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''    source-postgres restore-postgres source-minio restore-minio \\\n    source-mqtt restore-mqtt restore-telemetry-service >"$EVIDENCE_DIR/services.log" 2>&1 || true\n''',
+              '''    source-postgres restore-postgres source-minio restore-minio \\\n    source-mqtt restore-mqtt source-auth-service restore-telemetry-service \\\n    >"$EVIDENCE_DIR/services.log" 2>&1 || true\n''',
+          )
+          source_auth_seed = '''SQL\n\nLOCAL_AUTH_USERNAME="recovery-administrator"\ncompose run --rm source-migrate \\\n  python -m app.security.local_cli create-account \\\n  --username "$LOCAL_AUTH_USERNAME" \\\n  --password-file /run/secrets/nexolab/local-auth-password \\\n  --display-name "NEXOLAB Recovery Administrator" \\\n  --organization-id "$DR_LOCAL_AUTH_ORGANIZATION_ID" \\\n  --organization-slug nexolab-dr \\\n  --organization-name "NEXOLAB DR" \\\n  --role administrator\ncompose up -d --wait source-auth-service\ncompose exec -T source-auth-service python - \\\n  "$LOCAL_AUTH_USERNAME" "$DR_LOCAL_AUTH_ORGANIZATION_ID" \\\n  >"$WORK_DIR/source-local-auth-tokens.json" <<'PY'\nfrom pathlib import Path\nfrom urllib.request import Request, urlopen\nimport json\nimport sys\n\nusername, organization_id = sys.argv[1:]\npassword = Path("/run/secrets/nexolab/local-auth-password").read_text(encoding="utf-8").strip()\nrequest = Request(\n    "http://127.0.0.1:8082/api/v1/auth/local/login",\n    data=json.dumps({"username": username, "password": password}).encode("utf-8"),\n    headers={"Content-Type": "application/json"},\n    method="POST",\n)\nwith urlopen(request, timeout=10) as response:\n    payload = json.load(response)\nif not payload.get("access_token") or not payload.get("refresh_token"):\n    raise SystemExit("source local-auth login did not return a token pair")\nprint(json.dumps(payload, sort_keys=True))\nPY\nchmod 0600 "$WORK_DIR/source-local-auth-tokens.json"\n\nmkdir -p "$WORK_DIR/seed-objects/equipment"'''
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              'SQL\n\nmkdir -p "$WORK_DIR/seed-objects/equipment"',
+              source_auth_seed,
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''  'alembic_head', COALESCE((SELECT jsonb_agg(version_num ORDER BY version_num) FROM alembic_version), '[]'::jsonb)\n''',
+              '''  'local_accounts', COALESCE((\n    SELECT jsonb_agg(jsonb_build_object(\n      'id', a.id, 'identity_id', a.identity_id, 'username', a.username,\n      'active', a.is_active, 'failed_login_count', a.failed_login_count,\n      'locked_until', a.locked_until, 'password_changed_at', a.password_changed_at\n    ) ORDER BY a.username)\n    FROM security_local_accounts a\n  ), '[]'::jsonb),\n  'local_memberships', COALESCE((\n    SELECT jsonb_agg(jsonb_build_object(\n      'identity_id', m.identity_id, 'organization_id', m.organization_id,\n      'membership_active', m.is_active, 'role', r.role\n    ) ORDER BY m.identity_id, r.role)\n    FROM security_organization_memberships m\n    JOIN security_membership_roles r ON r.membership_id = m.id\n    JOIN security_identities i ON i.id = m.identity_id\n    WHERE i.provider = 'nexolab-local'\n  ), '[]'::jsonb),\n  'local_sessions', COALESCE((\n    SELECT jsonb_agg(jsonb_build_object(\n      'id', s.id, 'account_id', s.account_id, 'created_at', s.created_at,\n      'last_refreshed_at', s.last_refreshed_at, 'expires_at', s.expires_at,\n      'revoked', s.revoked_at IS NOT NULL\n    ) ORDER BY s.id)\n    FROM security_local_sessions s\n  ), '[]'::jsonb),\n  'alembic_head', COALESCE((SELECT jsonb_agg(version_num ORDER BY version_num) FROM alembic_version), '[]'::jsonb)\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''test -s "$PAYLOAD_DIR/mqtt/mosquitto-data.tar"\ncompose start source-mqtt\n''',
+              '''test -s "$PAYLOAD_DIR/mqtt/mosquitto-data.tar"\nmkdir -p "$PAYLOAD_DIR/local-auth"\ninstall -m 0600 "$SECRETS_DIR/local-auth-private.pem" "$PAYLOAD_DIR/local-auth/private.pem"\ninstall -m 0644 "$SECRETS_DIR/local-auth-public.pem" "$PAYLOAD_DIR/local-auth/public.pem"\ncompose start source-mqtt\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''  >"$EVIDENCE_DIR/bundle-extract.json"\n\ncompose up -d --wait restore-postgres restore-minio\n''',
+              '''  >"$EVIDENCE_DIR/bundle-extract.json"\n\nif compose run --rm --no-deps restore-telemetry-service \\\n  python -c 'from app.main import create_app; create_app()' \\\n  >"$WORK_DIR/missing-local-auth-keys.log" 2>&1; then\n  echo "Restored Telemetry Service started without local-auth keys." >&2\n  exit 82\nfi\ngrep -Eqi 'missing|invalid|required' "$WORK_DIR/missing-local-auth-keys.log"\ninstall -m 0600 "$RESTORED_DIR/local-auth/private.pem" "$RESTORE_LOCAL_AUTH_DIR/private.pem"\ninstall -m 0644 "$RESTORED_DIR/local-auth/public.pem" "$RESTORE_LOCAL_AUTH_DIR/public.pem"\nopenssl pkey -in "$RESTORE_LOCAL_AUTH_DIR/private.pem" -pubout -outform DER \\\n  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-private-public.sha256"\nopenssl pkey -pubin -in "$RESTORE_LOCAL_AUTH_DIR/public.pem" -outform DER \\\n  | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-public.sha256"\ncmp "$WORK_DIR/restored-private-public.sha256" "$WORK_DIR/restored-public.sha256"\n\ncompose up -d --wait restore-postgres restore-minio\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"\n\nbash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\\n''',
+              '''MQTT_CLIENT_COUNT="$(compose exec -T restore-mqtt /usr/local/bin/nexolab-dynsec-admin list-clients | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"\nLOCAL_AUTH_ACCOUNT_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM security_local_accounts")"\nLOCAL_AUTH_ACTIVE_SESSION_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM security_local_sessions WHERE revoked_at IS NULL")"\n\nbash "$ROOT_DIR/scripts/verify-restored-platform.sh" \\\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''  'object_storage=private' \\\n  >"$EVIDENCE_DIR/negative-and-safety-checks.txt"\n''',
+              '''  'object_storage=private' \\\n  'local_auth_missing_keys=failed_closed' \\\n  'local_auth_keys=restored_from_encrypted_bundle' \\\n  'local_auth_password=external_to_bundle' \\\n  >"$EVIDENCE_DIR/negative-and-safety-checks.txt"\n''',
+          )
+          replace_once(
+              "scripts/run-disaster-recovery-acceptance.sh",
+              '''    "mqtt": {"client_count": int("$MQTT_CLIENT_COUNT"), "state_sha256": "$SOURCE_MQTT_SHA", "disabled_client_restored": True},\n    "negative_tests": {"wrong_key": "rejected", "ciphertext_tamper": "rejected"},\n''',
+              '''    "mqtt": {"client_count": int("$MQTT_CLIENT_COUNT"), "state_sha256": "$SOURCE_MQTT_SHA", "disabled_client_restored": True},\n    "local_auth": {\n        "account_count": int("$LOCAL_AUTH_ACCOUNT_COUNT"),\n        "active_session_count_before_application_verification": int("$LOCAL_AUTH_ACTIVE_SESSION_COUNT"),\n        "matching_signing_pair": True,\n        "missing_keys_failed_closed": True,\n        "password_bundled": False,\n    },\n    "negative_tests": {"wrong_key": "rejected", "ciphertext_tamper": "rejected"},\n''',
+          )
+
+          # Restored application verification now authenticates REST/WebSocket and proves session continuity.
+          verify_path = Path("scripts/verify-restored-platform.sh")
+          verify = verify_path.read_text(encoding="utf-8")
+          verify = verify.replace(
+              'STARTED_AT="$(date +%s)"\n',
+              'STARTED_AT="$(date +%s)"\nTOKEN_FILE="${DR_WORK_DIR:?DR_WORK_DIR is required}/source-local-auth-tokens.json"\nLOCAL_AUTH_PASSWORD_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/local-auth-password"\n',
+              1,
+          )
+          first_start = verify.index('python3 - "$API_BASE_URL" "$EVIDENCE_DIR" <<\'PY\'\n')
+          first_end = verify.index('\nPY\n\ncompose exec -T restore-telemetry-service python - <<\'PY\'', first_start)
+          first_block = '''python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$TOKEN_FILE" "$ORGANIZATION_ID" <<'PY'\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom urllib.parse import urlencode\nfrom urllib.request import Request, urlopen\nimport json\nimport sys\n\nbase_url = sys.argv[1]\nevidence = Path(sys.argv[2])\ntokens = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))\norganization_id = sys.argv[4]\naccess_token = tokens["access_token"]\nexpected = {\n    "20000000-0000-0000-0000-000000000001",\n    "20000000-0000-0000-0000-000000000002",\n}\n\ndef authorized_json(path: str) -> dict[str, object]:\n    request = Request(\n        f"{base_url}{path}",\n        headers={\n            "Authorization": f"Bearer {access_token}",\n            "X-Organization-ID": organization_id,\n            "Accept": "application/json",\n        },\n    )\n    with urlopen(request, timeout=10) as response:\n        return json.load(response)\n\nwith urlopen(f"{base_url}/health/ready", timeout=10) as response:\n    ready = json.load(response)\nevidence.joinpath("restored-ready.json").write_text(\n    json.dumps(ready, indent=2, sort_keys=True) + "\\n", encoding="utf-8"\n)\nlatest = authorized_json("/api/v1/telemetry/latest?limit=20")\nevidence.joinpath("restored-latest.json").write_text(\n    json.dumps(latest, indent=2, sort_keys=True) + "\\n", encoding="utf-8"\n)\nhistory_query = urlencode(\n    {"from": "2026-07-28T00:00:00+00:00", "to": "2026-07-29T00:00:00+00:00", "limit": 20}\n)\nhistory = authorized_json(f"/api/v1/telemetry/history?{history_query}")\nevidence.joinpath("restored-history.json").write_text(\n    json.dumps(history, indent=2, sort_keys=True) + "\\n", encoding="utf-8"\n)\nfor label, payload in (("latest", latest), ("history", history)):\n    found = {item["event_id"] for item in payload["items"]}\n    if not expected.issubset(found):\n        raise SystemExit(f"Restored telemetry is missing from {label}: {expected - found}")\nPY'''
+          verify = verify[:first_start] + first_block + verify[first_end + len('\nPY'):]
+
+          ws_start = verify.index('compose exec -T restore-telemetry-service python - <<\'PY\'\n')
+          ws_end = verify.index('\nPY\n\ncompose exec -T restore-telemetry-service python - \\\n', ws_start)
+          ws_block = '''compose exec -T restore-telemetry-service python - \\\n  "$ORGANIZATION_ID" <"$TOKEN_FILE" <<'PY'\nfrom __future__ import annotations\n\nimport asyncio\nimport json\nimport sys\nimport websockets\n\norganization_id = sys.argv[1]\ntokens = json.load(sys.stdin)\n\nasync def main() -> None:\n    uri = "ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=edge-01"\n    async with websockets.connect(uri, open_timeout=5, close_timeout=5) as socket:\n        await socket.send(json.dumps({\n            "type": "authenticate",\n            "access_token": tokens["access_token"],\n            "organization_id": organization_id,\n        }))\n        response = json.loads(await asyncio.wait_for(socket.recv(), timeout=5))\n        if response.get("type") != "authenticated":\n            raise SystemExit(f"Restored WebSocket authentication failed: {response}")\n\nasyncio.run(main())\nPY'''
+          verify = verify[:ws_start] + ws_block + verify[ws_end + len('\nPY'):]
+
+          second_start = verify.index('python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$POST_RESTORE_EVENT_ID" <<\'PY\'\n')
+          second_end = verify.index('\nPY\n\nAPPLICATION_SECONDS=', second_start)
+          second_block = '''python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$POST_RESTORE_EVENT_ID" \\\n  "$TOKEN_FILE" "$ORGANIZATION_ID" <<'PY'\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom urllib.parse import urlencode\nfrom urllib.request import Request, urlopen\nimport json\nimport sys\n\nbase_url = sys.argv[1]\nevidence = Path(sys.argv[2])\nevent_id = sys.argv[3]\ntokens = json.loads(Path(sys.argv[4]).read_text(encoding="utf-8"))\norganization_id = sys.argv[5]\nquery = urlencode({"node_id": "edge-01", "equipment_id": "SIM-DR-POST-RESTORE", "limit": 5})\nrequest = Request(\n    f"{base_url}/api/v1/telemetry/latest?{query}",\n    headers={\n        "Authorization": f"Bearer {tokens['access_token']}",\n        "X-Organization-ID": organization_id,\n        "Accept": "application/json",\n    },\n)\nwith urlopen(request, timeout=10) as response:\n    payload = json.load(response)\nif payload["count"] != 1 or payload["items"][0]["event_id"] != event_id:\n    raise SystemExit("Post-restore telemetry is not visible exactly once through REST")\nevidence.joinpath("post-restore-latest.json").write_text(\n    json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8"\n)\nPY\n\npython3 - "$API_BASE_URL" "$TOKEN_FILE" "$LOCAL_AUTH_PASSWORD_FILE" \\\n  "$ORGANIZATION_ID" "$EVIDENCE_DIR" <<'PY'\nfrom pathlib import Path\nfrom urllib.error import HTTPError\nfrom urllib.request import Request, urlopen\nimport json\nimport sys\n\nbase_url, token_path, password_path, organization_id, evidence_dir = sys.argv[1:]\ntokens = json.loads(Path(token_path).read_text(encoding="utf-8"))\npassword = Path(password_path).read_text(encoding="utf-8").strip()\n\ndef call(path: str, *, token: str | None = None, payload: dict[str, str] | None = None) -> tuple[int, object | None]:\n    headers = {"Accept": "application/json"}\n    data = None\n    method = "GET"\n    if token is not None:\n        headers["Authorization"] = f"Bearer {token}"\n        headers["X-Organization-ID"] = organization_id\n    if payload is not None:\n        headers["Content-Type"] = "application/json"\n        data = json.dumps(payload).encode("utf-8")\n        method = "POST"\n    request = Request(f"{base_url}{path}", headers=headers, data=data, method=method)\n    try:\n        with urlopen(request, timeout=10) as response:\n            body = response.read()\n            return response.status, json.loads(body) if body else None\n    except HTTPError as error:\n        body = error.read()\n        return error.code, json.loads(body) if body else None\n\noriginal_status, original_session = call(\n    "/api/v1/auth/session", token=tokens["access_token"]\n)\nif original_status != 200:\n    raise SystemExit(f"pre-backup local access session was not restored: {original_status}")\nrefresh_status, refreshed = call(\n    "/api/v1/auth/local/refresh", payload={"refresh_token": tokens["refresh_token"]}\n)\nif refresh_status != 200 or not isinstance(refreshed, dict):\n    raise SystemExit(f"pre-backup refresh session was not restored: {refresh_status}")\nrefreshed_status, _ = call(\n    "/api/v1/auth/session", token=refreshed["access_token"]\n)\nif refreshed_status != 200:\n    raise SystemExit("refreshed access token is invalid after restore")\nlogout_status, _ = call(\n    "/api/v1/auth/local/logout", payload={"refresh_token": refreshed["refresh_token"]}\n)\nif logout_status != 204:\n    raise SystemExit(f"restored session logout failed: {logout_status}")\nrevoked_original_status, _ = call(\n    "/api/v1/auth/session", token=tokens["access_token"]\n)\nrevoked_refreshed_status, _ = call(\n    "/api/v1/auth/session", token=refreshed["access_token"]\n)\nif (revoked_original_status, revoked_refreshed_status) != (401, 401):\n    raise SystemExit("restored session revocation did not invalidate both access tokens")\nlogin_status, new_login = call(\n    "/api/v1/auth/local/login",\n    payload={"username": "recovery-administrator", "password": password},\n)\nif login_status != 200 or not isinstance(new_login, dict):\n    raise SystemExit(f"new local login failed after restore: {login_status}")\nnew_session_status, new_session = call(\n    "/api/v1/auth/session", token=new_login["access_token"]\n)\nif new_session_status != 200:\n    raise SystemExit("new local session is invalid after restore")\ncall(\n    "/api/v1/auth/local/logout", payload={"refresh_token": new_login["refresh_token"]}\n)\nidentity = original_session.get("identity", {}) if isinstance(original_session, dict) else {}\nPath(evidence_dir, "local-auth-recovery.json").write_text(\n    json.dumps(\n        {\n            "provider": identity.get("provider"),\n            "subject": identity.get("subject"),\n            "pre_backup_access_session_restored": True,\n            "pre_backup_refresh_session_restored": True,\n            "refresh_rotation_after_restore": True,\n            "logout_revoked_original_access": revoked_original_status == 401,\n            "logout_revoked_refreshed_access": revoked_refreshed_status == 401,\n            "new_password_login_after_restore": True,\n        },\n        indent=2,\n        sort_keys=True,\n    ) + "\\n",\n    encoding="utf-8",\n)\nPY'''
+          verify = verify[:second_start] + second_block + verify[second_end + len('\nPY'):]
+          verify = verify.replace(
+              '''    "dead_letter_rows": int("$DEAD_LETTER_ROWS"),\n    "application_verification_seconds": $APPLICATION_SECONDS,\n''',
+              '''    "dead_letter_rows": int("$DEAD_LETTER_ROWS"),\n    "local_auth": {\n        "pre_backup_access_session_restored": True,\n        "pre_backup_refresh_session_restored": True,\n        "refresh_rotation_after_restore": True,\n        "logout_revocation": True,\n        "new_password_login_after_restore": True,\n        "websocket_authenticated": True,\n    },\n    "application_verification_seconds": $APPLICATION_SECONDS,\n''',
+              1,
+          )
+          verify_path.write_text(verify, encoding="utf-8")
+
+          # Workflow config contract includes the extracted-key bind directory.
+          for workflow_path in [".github/workflows/disaster-recovery-acceptance.yml"]:
+              replace_once(
+                  workflow_path,
+                  '''          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \\\n          DR_WORK_DIR=/tmp/nexolab-dr-work \\\n''',
+                  '''          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \\\n          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \\\n          DR_WORK_DIR=/tmp/nexolab-dr-work \\\n''',
+              )
+
+          # Runbook records the five-component encrypted recovery set and key/session proof.
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              '''PostgreSQL + private MinIO objects + Mosquitto persistence/Dynamic Security\n                                  ↓\n''',
+              '''PostgreSQL + private MinIO objects + Mosquitto Dynamic Security + local-auth RSA pair\n                                  ↓\n''',
+          )
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              '''|    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation |\n''',
+              '''|    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation |\n|    40 | Local-auth private signing key               | operator secret snapshot   | PEM inside encrypted bundle            | mode 0600, RSA validity, public-key match, missing-key failure |\n|    50 | Local-auth public verification key           | operator secret snapshot   | PEM inside encrypted bundle            | mode 0644, RSA validity and private-key match                  |\n''',
+          )
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              'Create a bundle only after the three protected components have been captured into the policy-defined payload tree:',
+              'Create a bundle only after the five protected components have been captured into the policy-defined payload tree. The local-auth password and refresh/access tokens remain external and are never bundled:',
+          )
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              '''6. Restore Mosquitto persistence and Dynamic Security state while the restored broker is stopped.\n7. Start the restored broker, migration job and application services.\n8. Verify protected-domain hashes and counts.\n''',
+              '''6. Restore Mosquitto persistence and Dynamic Security state while the restored broker is stopped.\n7. Prove Telemetry Service fails closed without the local-auth key pair, then restore the matching private/public PEM files with modes 0600/0644.\n8. Start the restored broker, migration job and application services with local authentication enabled.\n9. Verify protected-domain hashes and counts, including local accounts, memberships and pre-backup sessions.\n''',
+          )
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              '''9. Verify MinIO object bytes, metadata and private access.\n10. Verify Dynamic Security clients, roles, ACLs, disabled state and credential generation.\n11. Verify readiness, authorized REST and WebSocket reads.\n12. Reconnect two Device Agent identities through CA-verified MQTT TLS.\n13. Publish post-restore telemetry and prove exactly-once persistence.\n14. Load `/nodes`, `/reports` and `/refrigeration/showcase-106-01` in Chromium.\n15. Preserve evidence and destroy only the isolated restore stack after sign-off.\n''',
+              '''10. Verify MinIO object bytes, metadata and private access.\n11. Verify Dynamic Security clients, roles, ACLs, disabled state and credential generation.\n12. Verify the pre-backup local access and refresh session, refresh rotation, logout revocation and a new password login.\n13. Verify readiness and authenticated REST and WebSocket reads.\n14. Reconnect two Device Agent identities through CA-verified MQTT TLS.\n15. Publish post-restore telemetry and prove exactly-once persistence.\n16. Load `/nodes`, `/reports` and `/refrigeration/showcase-106-01` in Chromium.\n17. Preserve evidence and destroy only the isolated restore stack after sign-off.\n''',
+          )
+          replace_once(
+              "docs/operations/disaster-recovery.md",
+              '''- Mosquitto policy-state hash and TLS boundary results;\n- restored application readiness;\n''',
+              '''- Mosquitto policy-state hash and TLS boundary results;\n- local-auth account/membership/session state, restored key-pair validation and fail-closed missing-key result;\n- restored application readiness;\n''',
+          )
+          PY
+
+      - name: Validate patch syntax
+        run: |
+          python -m compileall -q scripts tests
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
+          python scripts/validate-disaster-recovery-assets.py
+          python -m json.tool security/disaster-recovery-assets.json >/dev/null
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              config --quiet
+
+      - name: Commit focused implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            security/disaster-recovery-assets.json \
+            scripts/validate-disaster-recovery-assets.py \
+            tests/test_disaster_recovery_assets.py \
+            infrastructure/compose/compose.disaster-recovery.yaml \
+            scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
+            .github/workflows/disaster-recovery-acceptance.yml \
+            docs/operations/disaster-recovery.md
+          git commit -m "feat(recovery): preserve local authentication state"
+          git push origin HEAD:feat/189-recovery-acceptance
