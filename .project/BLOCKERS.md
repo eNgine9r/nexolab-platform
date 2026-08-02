@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents starting the software-only portion of Issue #189.
+No hard blocker prevents completing and merging the software-only portion of Issue #189.
 
 Stop before:
 
@@ -16,29 +16,40 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Next Ready Work Package
+## Issue #189 recovery status
 
-### N-012 — Backup, restore, rollback and recovery
+### N-012A — Software backup, restore and rollback evidence
 
-**Status:** Issue #189 is Ready for software-only implementation.
+**Status:** Verified on implementation head `9b85ab31d75659c024fc3f1b7191c21628a74728` in PR #224.
 
-Independent software scope:
+Verified software scope:
 
-- fresh checksummed logical backup;
-- isolated PostgreSQL and MinIO restore targets;
-- domain row/object/relationship comparison;
-- central service restart and readiness recovery;
-- rollback with named-volume preservation;
-- explicit stale/offline/recovery browser states;
-- sanitized evidence and RPO/RTO observations.
+- fresh checksummed and encrypted recovery bundle;
+- five authoritative assets: PostgreSQL, private MinIO objects, Mosquitto Dynamic Security, local-auth private key and local-auth public key;
+- fresh-volume PostgreSQL, MinIO and MQTT restore;
+- local account, membership and refresh-session recovery;
+- fail-closed startup without the restored signing pair;
+- matching restored signing pair;
+- pre-backup access and refresh session continuity;
+- refresh rotation, logout revocation and new password login after restore;
+- authenticated REST and WebSocket recovery;
+- exactly-once PostgreSQL persistence after duplicate MQTT QoS 1 publication;
+- wrong-key and ciphertext-tamper rejection;
+- source-volume immutability;
+- disconnected linux/amd64 bundle load/start/update/rollback with container egress blocked.
 
-### Actual-host recovery evidence
+Evidence:
 
-**Status:** Soft blocker for final Issue #189 acceptance.
+- Disaster Recovery Acceptance run `30741446794`, artifact `8831439044`, digest `sha256:83430669994463232592e082da339b0c570f6d1baa6bfe6e3910b107ccbc90e8`;
+- Offline Bundle run `30741446809`, artifact `8831520725`, digest `sha256:232f61b2c57a2c02fb48d2b183c5d227320627ce9fd683d0745bffa4501521dc`.
+
+### N-012B — Actual-host and physical recovery evidence
+
+**Status:** Soft blocker; Issue #189 remains open after the software PR.
 
 The following require controlled central-host and Raspberry Pi access and remain unverified:
 
-- host reboot;
+- central-host reboot;
 - Raspberry Pi reboot;
 - edge power interruption and SQLite outbox recovery;
 - physical power-loss behavior;
@@ -47,13 +58,19 @@ The following require controlled central-host and Raspberry Pi access and remain
 
 Do not claim these from container or CI evidence.
 
+## Next Ready Work Package
+
+### N-013 — Controlled formatting baseline
+
+**Status:** Ready after PR #224 merge.
+
+Resume Issue #191 / PR #192 as a separate maintenance Work Package. Do not mix formatting changes into reliability, frontend, backend or hardware feature Pull Requests.
+
 ## Resolved Work Packages
 
 ### N-011 — Offline operator authentication
 
 Resolved by Issue #188 / PR #216, merged as `94d111855e727fd0a74af0618c099b11123348cf`.
-
-Final head `805d2c1361c42d2017b55c0127fddb95d1da61f5` passed all 19 workflows, including CI `30738209087`, Telemetry Service `30738209102`, Offline Auth Acceptance `30738209088` and Offline Bundle `30738209124`.
 
 Verified boundaries:
 
@@ -108,7 +125,6 @@ The bundle contract supports `linux/arm64`, but complete archive/load/start/upda
 ## Other open soft blockers
 
 - **N-031 / Issue #210 evidence — Affected-PC session bootstrap:** actual host/network cause remains unverified.
-- **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked; read-only evidence required.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked; display/load correlation required.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked; representative KK1/KK2 evidence required.
