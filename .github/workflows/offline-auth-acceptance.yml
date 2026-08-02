@@ -7,6 +7,7 @@ on:
       - "docs/adr/0009-local-operator-authentication.md"
       - "docs/security/local-operator-authentication.md"
       - "e2e/local-auth.production.e2e.ts"
+      - "e2e/local-auth-persistence.production.e2e.ts"
       - "infrastructure/compose/compose.central.yaml"
       - "infrastructure/compose/compose.local-auth.yaml"
       - "infrastructure/compose/compose.local-auth-acceptance.yaml"
