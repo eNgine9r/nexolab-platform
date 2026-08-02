@@ -3,8 +3,7 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-const evidenceDirectory =
-  process.env.NEXOLAB_OBSERVABILITY_EVIDENCE_DIR ?? "test-results-observability";
+const evidenceDirectory = process.env.NEXOLAB_OBSERVABILITY_EVIDENCE_DIR ?? "test-results-observability";
 const adminUser = process.env.GRAFANA_ADMIN_USER ?? "nexolab-admin";
 const adminPassword = process.env.GRAFANA_ADMIN_PASSWORD;
 
@@ -12,9 +11,7 @@ const dashboardPath =
   "/d/nexolab-platform-overview/nexolab-platform-operations" +
   "?orgId=1&from=now-6h&to=now&timezone=browser&refresh=5s";
 
-test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async ({
-  page,
-}) => {
+test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async ({ page }) => {
   expect(adminPassword, "GRAFANA_ADMIN_PASSWORD must be provided").toBeTruthy();
 
   const browserErrors: string[] = [];
@@ -28,9 +25,7 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
 
   await page.goto(dashboardPath, { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/d\/nexolab-platform-overview\//);
-  await expect(
-    page.getByText("NEXOLAB · Platform Operations", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("NEXOLAB · Platform Operations", { exact: true })).toBeVisible();
 
   const panelTitles = [
     "Telemetry Service",
@@ -56,9 +51,7 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
   await fs.mkdir(evidenceDirectory, { recursive: true });
 
   const readinessSection = page.getByText("Platform readiness", { exact: true });
-  await readinessSection.evaluate((element) =>
-    element.scrollIntoView({ block: "start", inline: "nearest" }),
-  );
+  await readinessSection.evaluate((element) => element.scrollIntoView({ block: "start", inline: "nearest" }));
   await page.waitForTimeout(1_000);
   await page.screenshot({
     path: path.join(evidenceDirectory, "grafana-platform-readiness.png"),
@@ -67,17 +60,13 @@ test("operator can inspect the provisioned NEXOLAB monitoring dashboard", async 
   const recoverySection = page.getByText("Disaster recovery readiness", {
     exact: true,
   });
-  await recoverySection.evaluate((element) =>
-    element.scrollIntoView({ block: "start", inline: "nearest" }),
-  );
+  await recoverySection.evaluate((element) => element.scrollIntoView({ block: "start", inline: "nearest" }));
   await page.waitForTimeout(1_000);
   await page.screenshot({
     path: path.join(evidenceDirectory, "grafana-disaster-recovery.png"),
   });
 
-  const alertDeliveryPanel = page
-    .getByText("Alertmanager delivery evidence", { exact: true })
-    .first();
+  const alertDeliveryPanel = page.getByText("Alertmanager delivery evidence", { exact: true }).first();
   await alertDeliveryPanel.evaluate((element) =>
     element.scrollIntoView({ block: "center", inline: "nearest" }),
   );
