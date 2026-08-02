@@ -1,0 +1,51 @@
+name: Issue 189 Scoped Format
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/issue-189-format.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format scoped recovery files
+        run: |
+          npm exec prettier -- --write \
+            docs/operations/disaster-recovery.md \
+            security/disaster-recovery-assets.json
+
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet; then
+            echo "Recovery files already canonical."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/operations/disaster-recovery.md \
+            security/disaster-recovery-assets.json
+          git commit -m "style(recovery): format recovery assets"
+          git push origin HEAD:feat/189-recovery-acceptance
