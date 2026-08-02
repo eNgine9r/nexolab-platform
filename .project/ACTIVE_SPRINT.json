@@ -214,27 +214,40 @@
       "id": "NEXOLAB-205",
       "issue": 205,
       "title": "Upgrade GitHub Actions runtime dependencies",
-      "status": "verified_pending_final_ci",
+      "status": "done",
       "track": "ci-maintenance",
       "pull_request": 234,
-      "baseline_main_sha": "ab3c95809dc349a6b45c079ad4614758173a1e0e",
-      "implementation_head_sha": "ceafcb718071396c43b4e06cbc5d9ea1f12f8fbd",
-      "workflow_file_count": 26,
       "verification": {
-        "inventory_run": 30752317242,
-        "inventory_artifact_id": 8834828551,
-        "compatibility_run": 30752487637,
-        "compatibility_artifact_id": 8834884979,
-        "transformed_artifact_run": 30753198442,
-        "transformed_artifact_id": 8835111194,
-        "initial_full_sweep_head": "617051a6c14195d13383872dd1c58cdac3417e2d",
-        "initial_full_sweep_result": "26_of_26_green",
-        "offline_bundle_run": 30754351605,
-        "offline_bundle_artifact_id": 8835562629,
+        "result": "26_of_26_green",
+        "final_head_sha": "4ac78378a6e7ef1343eae7dbb7aac05ed271a544",
         "checkout_credentials_persisted": false,
         "setup_node_implicit_cache": false,
-        "temporary_workflows_removed": true,
-        "final_full_sweep": "pending_after_state_update"
+        "temporary_workflows_removed": true
+      },
+      "merge_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114"
+    },
+    {
+      "id": "NEXOLAB-237",
+      "issue": 237,
+      "title": "Make generated DR object-storage credentials argument-safe",
+      "status": "verified_pending_merge",
+      "track": "recovery-reliability",
+      "pull_request": 238,
+      "baseline_main_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114",
+      "implementation_head_sha": "1ddd0bf128aed310596b05b0a3da2f150b54ed91",
+      "files_changed": 2,
+      "verification": {
+        "result": "green_software_only",
+        "deterministic_payload": "-leading-option-like",
+        "safe_result": "nxl_-leading-option-like",
+        "ci_run": 30760710838,
+        "disaster_recovery_acceptance_run": 30760710828,
+        "disaster_recovery_attempt": 1,
+        "encrypted_restore": "passed_without_retry",
+        "evidence_artifact_id": 8837371547,
+        "evidence_artifact_digest": "sha256:3c4f07f86c704db683c7ddce1397858ed08b6d696cbc73398a4f6d5a09a6c8d1",
+        "shared_compose_contract_changed": false,
+        "hardware": "not_applicable"
       }
     },
     {
@@ -269,7 +282,7 @@
       "id": "NEXOLAB-203",
       "issue": 203,
       "title": "Review production dependency updates",
-      "status": "ready_after_205_merge"
+      "status": "ready_after_237_merge"
     },
     {
       "id": "NEXOLAB-204",
