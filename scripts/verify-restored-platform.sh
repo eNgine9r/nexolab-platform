@@ -16,6 +16,8 @@ EDGE_01_USERNAME="node:${ORGANIZATION_ID}:edge-01"
 EDGE_01_CLIENT_ID="nexolab-${ORGANIZATION_ID}-edge-01"
 POST_RESTORE_EVENT_ID="30000000-0000-0000-0000-000000000001"
 STARTED_AT="$(date +%s)"
+TOKEN_FILE="${DR_WORK_DIR:?DR_WORK_DIR is required}/source-local-auth-tokens.json"
+LOCAL_AUTH_PASSWORD_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/local-auth-password"
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"
@@ -33,70 +35,82 @@ trap capture_failure ERR
 
 compose up -d --wait restore-telemetry-service
 
-python3 - "$API_BASE_URL" "$EVIDENCE_DIR" <<'PY'
+python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$TOKEN_FILE" "$ORGANIZATION_ID" <<'PY'
 from __future__ import annotations
 
 from pathlib import Path
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import json
 import sys
 
 base_url = sys.argv[1]
 evidence = Path(sys.argv[2])
+tokens = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+organization_id = sys.argv[4]
+access_token = tokens["access_token"]
 expected = {
     "20000000-0000-0000-0000-000000000001",
     "20000000-0000-0000-0000-000000000002",
 }
 
+def authorized_json(path: str) -> dict[str, object]:
+    request = Request(
+        f"{base_url}{path}",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "X-Organization-ID": organization_id,
+            "Accept": "application/json",
+        },
+    )
+    with urlopen(request, timeout=10) as response:
+        return json.load(response)
+
 with urlopen(f"{base_url}/health/ready", timeout=10) as response:
     ready = json.load(response)
 evidence.joinpath("restored-ready.json").write_text(
-    json.dumps(ready, indent=2, sort_keys=True) + "\n",
-    encoding="utf-8",
+    json.dumps(ready, indent=2, sort_keys=True) + "\n", encoding="utf-8"
 )
-
-with urlopen(f"{base_url}/api/v1/telemetry/latest?limit=20", timeout=10) as response:
-    latest = json.load(response)
+latest = authorized_json("/api/v1/telemetry/latest?limit=20")
 evidence.joinpath("restored-latest.json").write_text(
-    json.dumps(latest, indent=2, sort_keys=True) + "\n",
-    encoding="utf-8",
+    json.dumps(latest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
 )
-
 history_query = urlencode(
-    {
-        "from": "2026-07-28T00:00:00+00:00",
-        "to": "2026-07-29T00:00:00+00:00",
-        "limit": 20,
-    }
+    {"from": "2026-07-28T00:00:00+00:00", "to": "2026-07-29T00:00:00+00:00", "limit": 20}
 )
-with urlopen(
-    f"{base_url}/api/v1/telemetry/history?{history_query}", timeout=10
-) as response:
-    history = json.load(response)
+history = authorized_json(f"/api/v1/telemetry/history?{history_query}")
 evidence.joinpath("restored-history.json").write_text(
-    json.dumps(history, indent=2, sort_keys=True) + "\n",
-    encoding="utf-8",
+    json.dumps(history, indent=2, sort_keys=True) + "\n", encoding="utf-8"
 )
-
 for label, payload in (("latest", latest), ("history", history)):
     found = {item["event_id"] for item in payload["items"]}
     if not expected.issubset(found):
         raise SystemExit(f"Restored telemetry is missing from {label}: {expected - found}")
 PY
 
-compose exec -T restore-telemetry-service python - <<'PY'
+compose exec -T restore-telemetry-service python - \
+  "$ORGANIZATION_ID" <"$TOKEN_FILE" <<'PY'
 from __future__ import annotations
 
 import asyncio
+import json
+import sys
 import websockets
 
+organization_id = sys.argv[1]
+tokens = json.load(sys.stdin)
 
 async def main() -> None:
     uri = "ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=edge-01"
-    async with websockets.connect(uri, open_timeout=5, close_timeout=5):
-        return
-
+    async with websockets.connect(uri, open_timeout=5, close_timeout=5) as socket:
+        await socket.send(json.dumps({
+            "type": "authenticate",
+            "access_token": tokens["access_token"],
+            "organization_id": organization_id,
+        }))
+        response = json.loads(await asyncio.wait_for(socket.recv(), timeout=5))
+        if response.get("type") != "authenticated":
+            raise SystemExit(f"Restored WebSocket authentication failed: {response}")
 
 asyncio.run(main())
 PY
@@ -188,31 +202,129 @@ DEAD_LETTER_ROWS="$(compose exec -T restore-postgres \
 test "$TOTAL_TELEMETRY_ROWS" = "3"
 test "$DEAD_LETTER_ROWS" = "0"
 
-python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$POST_RESTORE_EVENT_ID" <<'PY'
+python3 - "$API_BASE_URL" "$EVIDENCE_DIR" "$POST_RESTORE_EVENT_ID" \
+  "$TOKEN_FILE" "$ORGANIZATION_ID" <<'PY'
 from __future__ import annotations
 
 from pathlib import Path
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import json
 import sys
 
 base_url = sys.argv[1]
 evidence = Path(sys.argv[2])
 event_id = sys.argv[3]
-query = urlencode(
-    {
-        "node_id": "edge-01",
-        "equipment_id": "SIM-DR-POST-RESTORE",
-        "limit": 5,
-    }
+tokens = json.loads(Path(sys.argv[4]).read_text(encoding="utf-8"))
+organization_id = sys.argv[5]
+query = urlencode({"node_id": "edge-01", "equipment_id": "SIM-DR-POST-RESTORE", "limit": 5})
+request = Request(
+    f"{base_url}/api/v1/telemetry/latest?{query}",
+    headers={
+        "Authorization": f"Bearer {tokens['access_token']}",
+        "X-Organization-ID": organization_id,
+        "Accept": "application/json",
+    },
 )
-with urlopen(f"{base_url}/api/v1/telemetry/latest?{query}", timeout=10) as response:
+with urlopen(request, timeout=10) as response:
     payload = json.load(response)
 if payload["count"] != 1 or payload["items"][0]["event_id"] != event_id:
     raise SystemExit("Post-restore telemetry is not visible exactly once through REST")
 evidence.joinpath("post-restore-latest.json").write_text(
-    json.dumps(payload, indent=2, sort_keys=True) + "\n",
+    json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+)
+PY
+
+python3 - "$API_BASE_URL" "$TOKEN_FILE" "$LOCAL_AUTH_PASSWORD_FILE" \
+  "$ORGANIZATION_ID" "$EVIDENCE_DIR" <<'PY'
+from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+import json
+import sys
+
+base_url, token_path, password_path, organization_id, evidence_dir = sys.argv[1:]
+tokens = json.loads(Path(token_path).read_text(encoding="utf-8"))
+password = Path(password_path).read_text(encoding="utf-8").strip()
+
+def call(path: str, *, token: str | None = None, payload: dict[str, str] | None = None) -> tuple[int, object | None]:
+    headers = {"Accept": "application/json"}
+    data = None
+    method = "GET"
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-Organization-ID"] = organization_id
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        data = json.dumps(payload).encode("utf-8")
+        method = "POST"
+    request = Request(f"{base_url}{path}", headers=headers, data=data, method=method)
+    try:
+        with urlopen(request, timeout=10) as response:
+            body = response.read()
+            return response.status, json.loads(body) if body else None
+    except HTTPError as error:
+        body = error.read()
+        return error.code, json.loads(body) if body else None
+
+original_status, original_session = call(
+    "/api/v1/auth/session", token=tokens["access_token"]
+)
+if original_status != 200:
+    raise SystemExit(f"pre-backup local access session was not restored: {original_status}")
+refresh_status, refreshed = call(
+    "/api/v1/auth/local/refresh", payload={"refresh_token": tokens["refresh_token"]}
+)
+if refresh_status != 200 or not isinstance(refreshed, dict):
+    raise SystemExit(f"pre-backup refresh session was not restored: {refresh_status}")
+refreshed_status, _ = call(
+    "/api/v1/auth/session", token=refreshed["access_token"]
+)
+if refreshed_status != 200:
+    raise SystemExit("refreshed access token is invalid after restore")
+logout_status, _ = call(
+    "/api/v1/auth/local/logout", payload={"refresh_token": refreshed["refresh_token"]}
+)
+if logout_status != 204:
+    raise SystemExit(f"restored session logout failed: {logout_status}")
+revoked_original_status, _ = call(
+    "/api/v1/auth/session", token=tokens["access_token"]
+)
+revoked_refreshed_status, _ = call(
+    "/api/v1/auth/session", token=refreshed["access_token"]
+)
+if (revoked_original_status, revoked_refreshed_status) != (401, 401):
+    raise SystemExit("restored session revocation did not invalidate both access tokens")
+login_status, new_login = call(
+    "/api/v1/auth/local/login",
+    payload={"username": "recovery-administrator", "password": password},
+)
+if login_status != 200 or not isinstance(new_login, dict):
+    raise SystemExit(f"new local login failed after restore: {login_status}")
+new_session_status, new_session = call(
+    "/api/v1/auth/session", token=new_login["access_token"]
+)
+if new_session_status != 200:
+    raise SystemExit("new local session is invalid after restore")
+call(
+    "/api/v1/auth/local/logout", payload={"refresh_token": new_login["refresh_token"]}
+)
+identity = original_session.get("identity", {}) if isinstance(original_session, dict) else {}
+Path(evidence_dir, "local-auth-recovery.json").write_text(
+    json.dumps(
+        {
+            "provider": identity.get("provider"),
+            "subject": identity.get("subject"),
+            "pre_backup_access_session_restored": True,
+            "pre_backup_refresh_session_restored": True,
+            "refresh_rotation_after_restore": True,
+            "logout_revoked_original_access": revoked_original_status == 401,
+            "logout_revoked_refreshed_access": revoked_refreshed_status == 401,
+            "new_password_login_after_restore": True,
+        },
+        indent=2,
+        sort_keys=True,
+    ) + "\n",
     encoding="utf-8",
 )
 PY
@@ -234,6 +346,14 @@ payload = {
     "post_restore_exactly_once_rows": int("$POST_RESTORE_ROW_COUNT"),
     "total_telemetry_rows": int("$TOTAL_TELEMETRY_ROWS"),
     "dead_letter_rows": int("$DEAD_LETTER_ROWS"),
+    "local_auth": {
+        "pre_backup_access_session_restored": True,
+        "pre_backup_refresh_session_restored": True,
+        "refresh_rotation_after_restore": True,
+        "logout_revocation": True,
+        "new_password_login_after_restore": True,
+        "websocket_authenticated": True,
+    },
     "application_verification_seconds": $APPLICATION_SECONDS,
 }
 Path(sys.argv[1]).write_text(

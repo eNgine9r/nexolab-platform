@@ -36,6 +36,8 @@ def test_repository_policy_is_valid() -> None:
         "postgresql",
         "object-storage",
         "mqtt-dynamic-security",
+        "local-auth-private-key",
+        "local-auth-public-key",
     ]
     assert payload["bundle"]["encryption"] == "aes-256-gcm"
 
@@ -74,6 +76,14 @@ def test_policy_rejects_restore_prefix_overlapping_source(tmp_path: Path) -> Non
         MODULE.validate_policy(write_policy(tmp_path, payload))
 
 
+def test_policy_rejects_volume_fields_for_external_key(tmp_path: Path) -> None:
+    payload = policy()
+    payload["assets"][3]["source_volume"] = "unexpected-secret-volume"
+
+    with pytest.raises(MODULE.ValidationFailure, match="valid only for volume assets"):
+        MODULE.validate_policy(write_policy(tmp_path, payload))
+
+
 def test_policy_rejects_versioned_secret_or_command(tmp_path: Path) -> None:
     for key, value in (
         ("password", "not-allowed"),
@@ -104,11 +114,8 @@ def test_policy_rejects_duplicate_output_path(tmp_path: Path) -> None:
 
 def test_policy_rejects_reordered_restore_plan(tmp_path: Path) -> None:
     payload = policy()
-    payload["assets"] = [
-        payload["assets"][1],
-        payload["assets"][0],
-        payload["assets"][2],
-    ]
+    assets = payload["assets"]
+    payload["assets"] = [assets[1], assets[0], *assets[2:]]
 
     with pytest.raises(MODULE.ValidationFailure, match="declared in restore_order"):
         MODULE.validate_policy(write_policy(tmp_path, payload))

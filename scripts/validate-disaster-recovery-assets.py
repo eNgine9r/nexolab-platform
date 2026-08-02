@@ -16,7 +16,18 @@ REQUIRED_ASSETS = {
         "deterministic_tar",
         "service_quiesce",
     ),
+    "local-auth-private-key": (
+        "external_file",
+        "pem",
+        "operator_secret_snapshot",
+    ),
+    "local-auth-public-key": (
+        "external_file",
+        "pem",
+        "operator_secret_snapshot",
+    ),
 }
+VOLUME_ASSETS = {"postgresql", "object-storage", "mqtt-dynamic-security"}
 ALLOWED_BUNDLE_FORMATS = {"nexolab-dr-v1"}
 ALLOWED_ENCRYPTION = {"aes-256-gcm"}
 ALLOWED_KEY_SOURCES = {"mounted_file"}
@@ -138,7 +149,9 @@ def validate_objectives(objectives: Any) -> None:
             raise ValidationFailure(f"{label} must be a positive integer")
 
 
-def validate_asset(asset: Any, index: int) -> tuple[str, int, str, list[str]]:
+def validate_asset(
+    asset: Any, index: int
+) -> tuple[str, int, str | None, list[str]]:
     label = f"assets[{index}]"
     if not isinstance(asset, dict):
         raise ValidationFailure(f"{label} must be an object")
@@ -162,24 +175,32 @@ def validate_asset(asset: Any, index: int) -> tuple[str, int, str, list[str]]:
     service = require_text(asset.get("source_service"), f"{label}.source_service")
     if not SAFE_SERVICE.fullmatch(service):
         raise ValidationFailure(f"{label}.source_service is invalid")
-    source_volume = require_text(asset.get("source_volume"), f"{label}.source_volume")
-    if not SAFE_VOLUME.fullmatch(source_volume):
-        raise ValidationFailure(f"{label}.source_volume is invalid")
     validate_absolute_path(asset.get("source_path"), f"{label}.source_path")
     backup_path = validate_relative_path(
         asset.get("backup_path"), f"{label}.backup_path"
     )
 
-    restore_prefix = require_text(
-        asset.get("restore_volume_prefix"), f"{label}.restore_volume_prefix"
-    )
-    if not SAFE_PREFIX.fullmatch(restore_prefix):
-        raise ValidationFailure(f"{label}.restore_volume_prefix is invalid")
-    if source_volume.startswith(restore_prefix) or restore_prefix.startswith(
-        source_volume
-    ):
+    source_volume: str | None = None
+    if asset_id in VOLUME_ASSETS:
+        source_volume = require_text(
+            asset.get("source_volume"), f"{label}.source_volume"
+        )
+        if not SAFE_VOLUME.fullmatch(source_volume):
+            raise ValidationFailure(f"{label}.source_volume is invalid")
+        restore_prefix = require_text(
+            asset.get("restore_volume_prefix"), f"{label}.restore_volume_prefix"
+        )
+        if not SAFE_PREFIX.fullmatch(restore_prefix):
+            raise ValidationFailure(f"{label}.restore_volume_prefix is invalid")
+        if source_volume.startswith(restore_prefix) or restore_prefix.startswith(
+            source_volume
+        ):
+            raise ValidationFailure(
+                f"{label}.restore_volume_prefix overlaps the source volume"
+            )
+    elif asset.get("source_volume") is not None or asset.get("restore_volume_prefix") is not None:
         raise ValidationFailure(
-            f"{label}.restore_volume_prefix overlaps the source volume"
+            f"{label}.source_volume and restore_volume_prefix are valid only for volume assets"
         )
 
     restore_order = asset.get("restore_order")
@@ -234,7 +255,8 @@ def validate_policy(path: Path) -> dict[str, Any]:
         asset_id, order, volume, paths = validate_asset(asset, index)
         ids.append(asset_id)
         orders.append(order)
-        volumes.append(volume)
+        if volume is not None:
+            volumes.append(volume)
         output_paths.extend(paths)
 
     if set(ids) != set(REQUIRED_ASSETS) or len(ids) != len(set(ids)):
