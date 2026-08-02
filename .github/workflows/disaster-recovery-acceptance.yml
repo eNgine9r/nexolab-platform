@@ -69,6 +69,7 @@ jobs:
       - name: Validate shell and Compose syntax
         run: |
           bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash scripts/run-disaster-recovery-acceptance.sh --self-test-argument-safe-secret
           bash -n scripts/verify-restored-platform.sh
           DR_POSTGRES_PASSWORD=validation \
           DR_MINIO_ROOT_USER=validation \
