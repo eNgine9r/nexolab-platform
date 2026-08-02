@@ -5,9 +5,14 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/issue-189-bundle-fixture-fix.yml"
+      - "scripts/issue-189-overlay-fix.py"
 
 permissions:
   contents: write
+
+concurrency:
+  group: issue-189-overlay-migration-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   fix:
@@ -20,51 +25,44 @@ jobs:
           ref: feat/189-recovery-acceptance
           fetch-depth: 0
 
-      - name: Expand canonical bundle fixtures
+      - name: Apply isolated overlay migration
+        run: python scripts/issue-189-overlay-fix.py
+
+      - name: Validate base and overlay contracts
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              -f infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+              config --quiet
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              config --quiet
+          ! grep -q 'DR_RESTORE_LOCAL_AUTH_DIR' infrastructure/compose/compose.disaster-recovery.yaml
+          ! grep -q '<"$TOKEN_FILE" <<' scripts/verify-restored-platform.sh
 
-          path = Path("tests/test_nexolab_backup_bundle.py")
-          text = path.read_text(encoding="utf-8")
-
-          old = '''    (payload / "mqtt").mkdir(parents=True)\n    (payload / "mqtt" / "mosquitto-data.tar").write_bytes(b"mqtt-volume-tar")\n    return payload\n'''
-          new = '''    (payload / "mqtt").mkdir(parents=True)\n    (payload / "mqtt" / "mosquitto-data.tar").write_bytes(b"mqtt-volume-tar")\n    (payload / "local-auth").mkdir(parents=True)\n    private_key = payload / "local-auth" / "private.pem"\n    public_key = payload / "local-auth" / "public.pem"\n    private_key.write_bytes(b"local-auth-private-key-fixture")\n    public_key.write_bytes(b"local-auth-public-key-fixture")\n    private_key.chmod(0o600)\n    public_key.chmod(0o644)\n    return payload\n'''
-          if text.count(old) != 1:
-              raise SystemExit("payload fixture replacement precondition failed")
-          text = text.replace(old, new, 1)
-
-          old = '''        "mqtt-dynamic-security",\n    ]\n    assert set(files) == {\n'''
-          new = '''        "mqtt-dynamic-security",\n        "local-auth-private-key",\n        "local-auth-public-key",\n    ]\n    assert set(files) == {\n'''
-          if text.count(old) != 1:
-              raise SystemExit("manifest asset replacement precondition failed")
-          text = text.replace(old, new, 1)
-
-          old = '''        "mqtt/mosquitto-data.tar",\n    }\n'''
-          new = '''        "mqtt/mosquitto-data.tar",\n        "local-auth/private.pem",\n        "local-auth/public.pem",\n    }\n'''
-          if text.count(old) != 1:
-              raise SystemExit("manifest file replacement precondition failed")
-          text = text.replace(old, new, 1)
-
-          anchor = '''def test_missing_required_asset_is_rejected(tmp_path: Path) -> None:\n    payload = write_payload(tmp_path)\n    (payload / "mqtt" / "mosquitto-data.tar").unlink()\n    key = write_key(tmp_path / "backup.key")\n\n    with pytest.raises(MODULE.BundleFailure, match="required payload path is missing"):\n        MODULE.create_bundle(\n            payload_dir=payload,\n            key_file=key,\n            output=tmp_path / "backup.nxl",\n            policy_path=POLICY_PATH,\n            repository="eNgine9r/nexolab-platform",\n            commit="a" * 40,\n        )\n\n\n'''
-          addition = '''def test_missing_local_auth_key_is_rejected(tmp_path: Path) -> None:\n    payload = write_payload(tmp_path)\n    (payload / "local-auth" / "private.pem").unlink()\n    key = write_key(tmp_path / "backup.key")\n\n    with pytest.raises(MODULE.BundleFailure, match="local-auth/private.pem"):\n        MODULE.create_bundle(\n            payload_dir=payload,\n            key_file=key,\n            output=tmp_path / "backup.nxl",\n            policy_path=POLICY_PATH,\n            repository="eNgine9r/nexolab-platform",\n            commit="a" * 40,\n        )\n\n\n'''
-          if text.count(anchor) != 1:
-              raise SystemExit("missing-asset test anchor precondition failed")
-          path.write_text(text.replace(anchor, anchor + addition, 1), encoding="utf-8")
-          PY
-
-      - name: Run bundle regression tests
-        run: |
-          python -m pip install pytest==8.4.2 cryptography==48.0.1
-          python -m pytest -q \
-            tests/test_disaster_recovery_assets.py \
-            tests/test_nexolab_backup_bundle.py \
-            tests/test_nexolab_backup_bundle_archive_validation.py
-
-      - name: Commit fixture update
+      - name: Commit isolated runtime correction
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/test_nexolab_backup_bundle.py
-          git commit -m "test(recovery): cover local auth bundle assets"
+          git add \
+            infrastructure/compose/compose.disaster-recovery.yaml \
+            infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+            scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh
+          git commit -m "fix(recovery): isolate local auth restore overlay"
           git push origin HEAD:feat/189-recovery-acceptance
