@@ -192,7 +192,11 @@ class LocalAuthRepository:
     ) -> datetime | None:
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                account = session.get(SecurityLocalAccount, account_id)
+                account = session.scalar(
+                    select(SecurityLocalAccount)
+                    .where(SecurityLocalAccount.id == account_id)
+                    .with_for_update()
+                )
                 if account is None:
                     return None
                 account.failed_login_count += 1
