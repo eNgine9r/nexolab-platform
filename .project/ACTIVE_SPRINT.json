@@ -117,18 +117,19 @@
       "id": "NEXOLAB-188",
       "issue": 188,
       "title": "Define and prove offline operator authentication",
-      "status": "ready_for_merge",
+      "status": "done",
       "priority": 9,
       "depends_on": ["NEXOLAB-198", "NEXOLAB-187"],
       "pull_request": 216,
-      "verified_implementation_head": "e02a830b2ca413b3dd35b5e60c6647681dd0c02b",
+      "merge_sha": "94d111855e727fd0a74af0618c099b11123348cf",
+      "verified_final_head": "805d2c1361c42d2017b55c0127fddb95d1da61f5",
       "verification": {
         "result": "green",
         "workflow_count": 19,
-        "general_ci_run": 30737691025,
-        "telemetry_service_run": 30737691020,
-        "offline_auth_acceptance_run": 30737691023,
-        "offline_bundle_run": 30737691007,
+        "general_ci_run": 30738209087,
+        "telemetry_service_run": 30738209102,
+        "offline_auth_acceptance_run": 30738209088,
+        "offline_bundle_run": 30738209124,
         "migration_roundtrip": "passed",
         "disconnected_browser_auth": "passed",
         "rbac_roles": ["viewer", "operator", "administrator"],
@@ -141,6 +142,7 @@
         "offline_bundle_artifact_id": 8830269134,
         "offline_bundle_artifact_sha256": "6d72d2f43872ae3f4a441d0d3d0d3110721eb0c07ba798d72eba9849744d75ce",
         "review_threads": 0,
+        "submitted_reviews": 0,
         "hardware": "unverified"
       }
     },
@@ -151,7 +153,7 @@
       "status": "ready_software_only",
       "priority": 10,
       "depends_on": ["NEXOLAB-187", "NEXOLAB-188", "NEXOLAB-198"],
-      "activation": "After Issue #188 merges, start checksummed backup, isolated restore, central restart, rollback and browser recovery evidence.",
+      "activation": "Start checksummed backup, isolated restore, central restart, rollback and browser recovery evidence.",
       "soft_blocker": "Host reboot, Raspberry Pi reboot, edge power interruption and physical power-loss evidence require controlled actual-host access."
     },
     {
