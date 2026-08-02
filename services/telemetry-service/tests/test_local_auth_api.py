@@ -36,7 +36,12 @@ class LocalAuthFixture:
         self.database.dispose()
 
 
-def build_fixture(tmp_path: Path, *, max_failed_attempts: int = 3) -> LocalAuthFixture:
+def build_fixture(
+    tmp_path: Path,
+    *,
+    max_failed_attempts: int = 3,
+    lockout_seconds: int = 300,
+) -> LocalAuthFixture:
     register_models()
     database = Database(f"sqlite:///{tmp_path / 'local-auth.db'}")
     database.create_schema()
@@ -78,7 +83,7 @@ def build_fixture(tmp_path: Path, *, max_failed_attempts: int = 3) -> LocalAuthF
         access_token_seconds=300,
         refresh_token_seconds=3600,
         max_failed_attempts=max_failed_attempts,
-        lockout_seconds=300,
+        lockout_seconds=lockout_seconds,
     )
     dependencies = SecurityDependencies(
         security_repository,
@@ -197,22 +202,26 @@ def test_local_roles_remain_server_authoritative(tmp_path: Path) -> None:
 
 
 def test_repeated_bad_passwords_trigger_bounded_lockout(tmp_path: Path) -> None:
-    fixture = build_fixture(tmp_path, max_failed_attempts=3)
+    fixture = build_fixture(tmp_path, max_failed_attempts=3, lockout_seconds=60)
     try:
-        statuses = []
+        responses = []
         for _ in range(3):
-            response = fixture.client.post(
-                "/api/v1/auth/local/login",
-                json={"username": "operator", "password": "Wrong-Password-Value-99"},
+            responses.append(
+                fixture.client.post(
+                    "/api/v1/auth/local/login",
+                    json={"username": "operator", "password": "Wrong-Password-Value-99"},
+                )
             )
-            statuses.append(response.status_code)
 
-        assert statuses == [401, 401, 429]
+        assert [response.status_code for response in responses] == [401, 401, 429]
+        assert responses[-1].headers["retry-after"] == "60"
         correct_password_response = fixture.client.post(
             "/api/v1/auth/local/login",
             json={"username": "operator", "password": PASSWORD},
         )
         assert correct_password_response.status_code == 429
+        retry_after = int(correct_password_response.headers["retry-after"])
+        assert 1 <= retry_after <= 60
     finally:
         fixture.close()
 
