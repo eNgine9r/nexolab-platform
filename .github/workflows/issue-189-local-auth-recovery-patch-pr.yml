@@ -1,0 +1,79 @@
+name: Issue 189 Recovery Patch PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/issue-189-local-auth-recovery-patch.yml"
+      - ".github/workflows/issue-189-local-auth-recovery-patch-pr.yml"
+      - ".project/ISSUE_189_PATCH_TRIGGER.md"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue-189-recovery-patch-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Execute embedded focused patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/issue-189-local-auth-recovery-patch.yml")
+          text = workflow.read_text(encoding="utf-8")
+          marker = "          python - <<'PY'\n"
+          start = text.index(marker) + len(marker)
+          end = text.index("\n          PY\n\n      - name: Validate patch syntax", start)
+          lines = text[start:end].splitlines()
+          script = "\n".join(
+              line[10:] if line.startswith("          ") else line for line in lines
+          ) + "\n"
+          compile(script, str(workflow), "exec")
+          exec(script, {"__name__": "__main__"})
+          PY
+
+      - name: Validate focused implementation
+        run: |
+          python -m compileall -q scripts tests
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          bash -n scripts/verify-restored-platform.sh
+          python scripts/validate-disaster-recovery-assets.py
+          python -m json.tool security/disaster-recovery-assets.json >/dev/null
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              config --quiet
+
+      - name: Commit focused implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            security/disaster-recovery-assets.json \
+            scripts/validate-disaster-recovery-assets.py \
+            tests/test_disaster_recovery_assets.py \
+            infrastructure/compose/compose.disaster-recovery.yaml \
+            scripts/run-disaster-recovery-acceptance.sh \
+            scripts/verify-restored-platform.sh \
+            .github/workflows/disaster-recovery-acceptance.yml \
+            docs/operations/disaster-recovery.md
+          git commit -m "feat(recovery): preserve local authentication state"
+          git push origin HEAD:feat/189-recovery-acceptance
