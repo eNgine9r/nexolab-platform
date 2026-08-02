@@ -2,116 +2,121 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-189",
-  "issue": 189,
-  "pull_request": 224,
-  "status": "software_verified_hardware_blocked",
-  "timestamp": "2026-08-02T12:27:00+03:00",
-  "baseline_main_sha": "915d4c2c914ae3c3b9ef2b0f6b60fabb18f00a85",
-  "verified_implementation_head": "9b85ab31d75659c024fc3f1b7191c21628a74728",
-  "summary": "Extended the canonical encrypted disaster-recovery bundle and isolated restore acceptance to preserve fail-closed local operator authentication, while retaining PostgreSQL, MinIO, MQTT, exactly-once ingestion, disconnected startup and update/rollback evidence. Physical reboot and power-loss acceptance remains explicitly unverified.",
+  "task": "NEXOLAB-191",
+  "issue": 191,
+  "pull_request": 192,
+  "status": "verified_pending_merge",
+  "timestamp": "2026-08-02T12:58:00+03:00",
+  "baseline_main_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
+  "summary": "Rebuilt the historical Prettier debt inventory on the current merged main baseline, reduced the verified backlog from the stale 48-file result to 46 files, updated the affected child Work Package and preserved a documentation-and-state-only final diff.",
   "scope_completed": [
-    "added local-auth RSA private and public keys to the authoritative encrypted recovery inventory",
-    "kept local-auth passwords, access tokens and refresh tokens external to the recovery bundle",
-    "preserved PostgreSQL local accounts, memberships and refresh sessions",
-    "proved restored Telemetry Service fails closed without matching local-auth keys",
-    "proved restored private and public keys form the matching signing pair",
-    "proved a pre-backup access session and refresh session remain valid after restore",
-    "proved refresh rotation, logout revocation and new password login after restore",
-    "proved authenticated REST and WebSocket recovery flows",
-    "proved duplicate post-restore MQTT QoS 1 publishes create exactly one PostgreSQL row",
-    "proved wrong-key and ciphertext-tamper rejection",
-    "proved source volumes remain unchanged and destination volumes are fresh",
-    "added a runtime-only UID 10001 mode 0400 token copy while preserving the host-owned mode 0600 operator token file",
-    "normalized ownership only inside the isolated temporary recovery directory before cleanup",
-    "preserved the base disaster-recovery Compose contract and isolated local authentication in a dedicated overlay",
-    "updated disaster-recovery operations documentation and project state"
+    "reset the existing feature branch to the current main baseline without modifying main",
+    "ran Prettier 3.9.6 in read-only list-different mode against exact main SHA f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
+    "classified all 46 reported paths by review group, extension and line ending",
+    "verified all 46 reported files use LF line endings",
+    "verified no generated, vendored or externally managed file appears in the inventory",
+    "verified no new .prettierignore exclusion is justified",
+    "removed dashboard-shell.tsx and websocket-client.ts from the stale backlog because they are now Prettier-clean",
+    "updated Issue #195 from 12 files to the exact current 10-file scope",
+    "recorded the exact path inventory in docs/maintenance/prettier-baseline.md",
+    "removed the temporary inventory workflow before final review",
+    "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "files_changed": [
-    ".github/workflows/disaster-recovery-acceptance.yml",
-    "docs/operations/disaster-recovery.md",
-    "infrastructure/compose/compose.disaster-recovery-local-auth.yaml",
-    "scripts/run-disaster-recovery-acceptance.sh",
-    "scripts/validate-disaster-recovery-assets.py",
-    "scripts/verify-restored-platform.sh",
-    "security/disaster-recovery-assets.json",
-    "tests/test_disaster_recovery_assets.py",
-    "tests/test_nexolab_backup_bundle.py",
+    "docs/maintenance/prettier-baseline.md",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
   "checks_actually_run": [
-    "CI run 30741446834 passed changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build",
-    "Telemetry Service run 30741446799 passed migrations, backend tests, outage recovery, offline migration SQL and container build",
-    "Disaster Recovery Domain Completeness run 30741446796 passed",
-    "Disaster Recovery Acceptance run 30741446794 passed recovery inventory, shell syntax, base and overlay Compose validation, bundle tests, secret scan, destructive-operation scan and encrypted source-to-fresh-restore application acceptance",
-    "Offline Bundle run 30741446809 passed linux/amd64 build, runtime-image removal, blocked container egress, archive-only load, pull-never startup and update/rollback persistent-volume preservation",
-    "review threads: zero",
-    "submitted reviews: zero"
+    "Prettier Inventory workflow run 30742515790 passed dependency installation, Prettier version capture, read-only list-different inventory generation, line-ending classification and artifact upload",
+    "the inventory checked out exact main SHA f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
+    "artifact inspection confirmed 46 paths, 46 LF line endings, zero generated/vendor candidates and no justified new ignore rules",
+    "temporary inventory workflow was removed before the final diff",
+    "final exact-head standard CI remains pending after state finalization"
+  ],
+  "inventory_evidence": {
+    "base_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
+    "prettier_version": "3.9.6",
+    "command": "npm exec prettier -- --list-different .",
+    "file_count": 46,
+    "line_endings": {
+      "lf": 46,
+      "crlf": 0,
+      "mixed": 0,
+      "cr": 0
+    },
+    "extensions": {
+      ".md": 3,
+      ".mjs": 1,
+      ".ts": 21,
+      ".tsx": 21
+    },
+    "generated_vendor_candidates": 0,
+    "new_ignore_candidates": 0,
+    "workflow_run": 30742515790,
+    "artifact_id": 8831767220,
+    "artifact_sha256": "5d55e49b403eca21dbfa798a360574d383fe3c4f4e27abacc77626aefb4569e7"
+  },
+  "formatting_groups": [
+    {
+      "issue": 193,
+      "title": "Format the three historical documentation files",
+      "file_count": 3,
+      "status": "ready_after_191_merge"
+    },
+    {
+      "issue": 194,
+      "title": "Format E2E tests and root tooling configuration",
+      "file_count": 6,
+      "status": "queued"
+    },
+    {
+      "issue": 195,
+      "title": "Format telemetry and dashboard frontend files",
+      "file_count": 10,
+      "status": "queued"
+    },
+    {
+      "issue": 196,
+      "title": "Format refrigeration domain and repository files",
+      "file_count": 10,
+      "status": "queued"
+    },
+    {
+      "issue": 197,
+      "title": "Format refrigeration UI component files",
+      "file_count": 17,
+      "status": "blocked_by_196"
+    }
   ],
   "runtime_and_offline_evidence": [
-    "backup completed in 4 seconds and isolated restore completed in 15 seconds",
-    "software RPO was zero seconds for the controlled fixture",
-    "two source telemetry rows and one exactly-once post-restore row were verified",
-    "zero dead-letter rows remained after post-restore ingestion",
-    "three private MinIO objects were restored byte-for-byte",
-    "four MQTT identities were restored including the disabled-client state",
-    "one local account and one active pre-verification session were restored",
-    "pre-backup access and refresh sessions worked after restore",
-    "refresh rotation, logout revocation and a new password login worked after restore",
-    "restored WebSocket authentication succeeded",
-    "wrong backup key and modified ciphertext were rejected",
-    "source volumes were not mutated",
-    "linux/amd64 offline archive started with registry pulls disabled and container egress blocked",
-    "update-style and rollback-style recreation preserved persistent data"
+    "not applicable: this Work Package changes maintenance documentation and project state only",
+    "no runtime, deployment, data, network, authentication or hardware path was modified"
   ],
-  "evidence_artifacts": {
-    "disaster_recovery": {
-      "run_id": 30741446794,
-      "artifact_id": 8831439044,
-      "sha256": "83430669994463232592e082da339b0c570f6d1baa6bfe6e3910b107ccbc90e8",
-      "tested_pr_merge_ref": "51943895cc455f68722ac67afc0f420b0afb20da",
-      "source_head": "9b85ab31d75659c024fc3f1b7191c21628a74728"
-    },
-    "offline_bundle": {
-      "run_id": 30741446809,
-      "artifact_id": 8831520725,
-      "sha256": "232f61b2c57a2c02fb48d2b183c5d227320627ce9fd683d0745bffa4501521dc",
-      "source_head": "9b85ab31d75659c024fc3f1b7191c21628a74728"
-    }
-  },
   "hardware_evidence": {
-    "status": "unverified",
-    "software_verified": true,
-    "linux_amd64_disconnected_container_runtime_verified": true,
-    "linux_arm64_actual_host_verified": false,
-    "raspberry_pi_verified": false,
-    "central_host_reboot_verified": false,
-    "edge_reboot_verified": false,
-    "power_loss_verified": false,
-    "physical_media_restore_verified": false,
+    "status": "not_applicable",
     "hardware_verified": false,
-    "note": "No Raspberry Pi deployment, physical reboot, physical power interruption, Modbus write, hardware action or production/site cutover was performed."
+    "note": "No Raspberry Pi, Modbus, physical device, deployment, production/site or data operation was performed."
   },
   "checks_pending": [
-    "final exact-head workflows after project-state commits",
-    "controlled central-host reboot evidence",
-    "controlled Raspberry Pi reboot and SQLite outbox recovery evidence",
-    "physical power-loss and physical-media restore evidence"
+    "final changed-file formatting",
+    "ESLint",
+    "strict TypeScript typecheck",
+    "Vitest",
+    "production build",
+    "review-thread and review-submission check"
   ],
   "open_risks": [
-    "the local private signing key requires operator-managed encrypted backup, access control and controlled rotation",
-    "PostgreSQL availability remains required for local session validation and immediate revocation",
-    "linux/arm64 execution on an actual Raspberry Pi 5 remains unverified",
-    "physical disk-full, disk-loss, reboot and power-loss behavior remains unverified",
-    "Issue #189 must remain open until approved actual-host evidence exists"
+    "the repository-wide Prettier debt remains until child Issues #193-#197 are completed",
+    "formatting child Pull Requests must not mix behavior changes, refactoring or dependency upgrades",
+    "Issue #197 must remain blocked until Issue #196 is merged",
+    "Issue #189 physical recovery evidence remains unverified"
   ],
   "next_ready_work_package": {
-    "issue": 191,
-    "pull_request": 192,
-    "title": "Establish controlled Prettier baseline",
-    "instruction": "After PR #224 reaches final exact-head GREEN and is merged, resume the separate focused formatting-baseline Work Package without mixing product or reliability changes."
+    "issue": 193,
+    "title": "Format the three historical documentation files",
+    "instruction": "After PR #192 reaches final exact-head GREEN and is merged, format only the three exact documentation paths listed in Issue #193, run targeted Prettier and standard CI, update state and merge independently."
   }
 }
