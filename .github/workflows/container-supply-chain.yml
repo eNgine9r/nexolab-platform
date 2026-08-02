@@ -229,7 +229,7 @@ jobs:
             "$EVIDENCE_DIR"
 
       - name: Upload image evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: container-evidence-${{ matrix.id }}
           path: evidence
@@ -268,7 +268,7 @@ jobs:
             evidence
 
       - name: Upload aggregate release evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: container-release-evidence-${{ github.sha }}
           path: evidence
@@ -362,7 +362,7 @@ jobs:
           PY
 
       - name: Upload publication record
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: published-container-${{ matrix.id }}-${{ github.sha }}
           path: published/${{ matrix.id }}.json

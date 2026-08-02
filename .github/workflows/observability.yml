@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload sanitized policy diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: observability-policy-diagnostics-${{ github.sha }}
           path: observability-policy-diagnostics.txt
@@ -260,7 +260,7 @@ jobs:
 
       - name: Upload sanitized observability evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: observability-runtime-evidence-${{ github.sha }}
           path: test-results-observability

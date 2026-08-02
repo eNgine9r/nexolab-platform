@@ -164,7 +164,7 @@ jobs:
           python -m pytest -q -m "not database_outage" 2>&1 | tee /tmp/telemetry-pytest.log
       - name: Upload Pytest failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: telemetry-pytest-diagnostics
           path: /tmp/telemetry-pytest.log

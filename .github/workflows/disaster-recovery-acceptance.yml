@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload sanitized recovery evidence
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: disaster-recovery-evidence-${{ github.sha }}
           path: test-results-disaster-recovery
@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload sanitized failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: disaster-recovery-failure-${{ github.sha }}
           path: |

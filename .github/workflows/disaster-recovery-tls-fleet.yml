@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload sanitized TLS fleet evidence
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: disaster-recovery-tls-fleet-evidence-${{ github.sha }}
           path: test-results-disaster-recovery-tls-fleet
@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload sanitized failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: disaster-recovery-tls-fleet-failure-${{ github.sha }}
           path: |

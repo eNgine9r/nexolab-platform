@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload test sessions evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-sessions-browser-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
           path: test-sessions-acceptance-evidence
