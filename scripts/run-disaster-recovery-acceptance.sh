@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"
+BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"
+LOCAL_AUTH_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery-local-auth.yaml"
 POLICY_FILE="$ROOT_DIR/security/disaster-recovery-assets.json"
 BUNDLE_TOOL="$ROOT_DIR/scripts/nexolab-backup-bundle.py"
 PROJECT_SUFFIX="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
@@ -98,7 +99,11 @@ chmod 0600 "$SECRETS_DIR/local-auth-private.pem"
 chmod 0644 "$SECRETS_DIR/local-auth-public.pem"
 
 compose() {
-  docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"
+  docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$BASE_COMPOSE" \
+    -f "$LOCAL_AUTH_COMPOSE" \
+    "$@"
 }
 
 cleanup() {
@@ -187,7 +192,7 @@ compose run --rm source-migrate \
 compose up -d --wait source-auth-service
 compose exec -T source-auth-service python - \
   "$LOCAL_AUTH_USERNAME" "$DR_LOCAL_AUTH_ORGANIZATION_ID" \
-  >"$WORK_DIR/source-local-auth-tokens.json" <<'PY'
+  >"$SECRETS_DIR/source-local-auth-tokens.json" <<'PY'
 from pathlib import Path
 from urllib.request import Request, urlopen
 import json
@@ -207,7 +212,7 @@ if not payload.get("access_token") or not payload.get("refresh_token"):
     raise SystemExit("source local-auth login did not return a token pair")
 print(json.dumps(payload, sort_keys=True))
 PY
-chmod 0600 "$WORK_DIR/source-local-auth-tokens.json"
+chmod 0600 "$SECRETS_DIR/source-local-auth-tokens.json"
 
 mkdir -p "$WORK_DIR/seed-objects/equipment" "$WORK_DIR/seed-objects/reports/session-001"
 printf '%s\n' 'NEXOLAB equipment image recovery fixture' >"$WORK_DIR/seed-objects/equipment/fixture-a.bin"
@@ -500,7 +505,7 @@ LOCAL_AUTH_ACCOUNT_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGR
 LOCAL_AUTH_ACTIVE_SESSION_COUNT="$(compose exec -T restore-postgres psql -U "$DR_POSTGRES_USER" -d "$DR_POSTGRES_DB" -Atc "SELECT COUNT(*) FROM security_local_sessions WHERE revoked_at IS NULL")"
 
 bash "$ROOT_DIR/scripts/verify-restored-platform.sh" \
-  "$PROJECT_NAME" "$COMPOSE_FILE" "$EVIDENCE_DIR"
+  "$PROJECT_NAME" "$BASE_COMPOSE" "$LOCAL_AUTH_COMPOSE" "$EVIDENCE_DIR"
 
 grep -Fq 'Disabled: true' "$WORK_DIR/restore-mqtt-state.txt"
 cp "$BUNDLE_FILE" "$EVIDENCE_DIR/nexolab-backup.nxl"

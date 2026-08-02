@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-if [[ $# -ne 3 ]]; then
-  echo "Usage: verify-restored-platform.sh <project-name> <compose-file> <evidence-dir>" >&2
+if [[ $# -ne 4 ]]; then
+  echo "Usage: verify-restored-platform.sh <project-name> <base-compose> <local-auth-compose> <evidence-dir>" >&2
   exit 64
 fi
 
 PROJECT_NAME=$1
-COMPOSE_FILE=$2
-EVIDENCE_DIR=$3
+BASE_COMPOSE=$2
+LOCAL_AUTH_COMPOSE=$3
+EVIDENCE_DIR=$4
 API_PORT="${DR_RESTORE_API_PORT:-8094}"
 API_BASE_URL="http://127.0.0.1:${API_PORT}"
 ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
@@ -16,11 +17,15 @@ EDGE_01_USERNAME="node:${ORGANIZATION_ID}:edge-01"
 EDGE_01_CLIENT_ID="nexolab-${ORGANIZATION_ID}-edge-01"
 POST_RESTORE_EVENT_ID="30000000-0000-0000-0000-000000000001"
 STARTED_AT="$(date +%s)"
-TOKEN_FILE="${DR_WORK_DIR:?DR_WORK_DIR is required}/source-local-auth-tokens.json"
+TOKEN_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/source-local-auth-tokens.json"
 LOCAL_AUTH_PASSWORD_FILE="${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}/local-auth-password"
 
 compose() {
-  docker compose --project-name "$PROJECT_NAME" -f "$COMPOSE_FILE" "$@"
+  docker compose \
+    --project-name "$PROJECT_NAME" \
+    -f "$BASE_COMPOSE" \
+    -f "$LOCAL_AUTH_COMPOSE" \
+    "$@"
 }
 
 capture_failure() {
@@ -89,16 +94,21 @@ for label, payload in (("latest", latest), ("history", history)):
 PY
 
 compose exec -T restore-telemetry-service python - \
-  "$ORGANIZATION_ID" <"$TOKEN_FILE" <<'PY'
+  "$ORGANIZATION_ID" <<'PY'
 from __future__ import annotations
 
+from pathlib import Path
 import asyncio
 import json
 import sys
 import websockets
 
 organization_id = sys.argv[1]
-tokens = json.load(sys.stdin)
+tokens = json.loads(
+    Path("/run/secrets/nexolab/source-local-auth-tokens.json").read_text(
+        encoding="utf-8"
+    )
+)
 
 async def main() -> None:
     uri = "ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=edge-01"
