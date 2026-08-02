@@ -56,12 +56,7 @@
       "priority": 4,
       "depends_on": ["NEXOLAB-186"],
       "pull_request": 207,
-      "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5",
-      "verification": {
-        "result": "green",
-        "workflow_count": 19,
-        "review_threads": 0
-      }
+      "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5"
     },
     {
       "id": "NEXOLAB-208",
@@ -192,9 +187,9 @@
       "depends_on": ["NEXOLAB-186"],
       "track": "separate-maintenance",
       "inventory_files_before_children": 46,
-      "remaining_inventory_files_after_193": 43,
+      "remaining_inventory_files_after_194": 37,
       "inventory_base_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
-      "remaining_children_after_193": [194, 195, 196, 197]
+      "remaining_children_after_194": [195, 196, 197]
     },
     {
       "id": "NEXOLAB-191",
@@ -216,39 +211,53 @@
       "id": "NEXOLAB-193",
       "issue": 193,
       "title": "Format the three historical documentation files",
-      "status": "verified_pending_merge",
+      "status": "done",
       "priority": 52,
       "depends_on": ["NEXOLAB-191"],
       "track": "formatting-maintenance",
       "pull_request": 225,
+      "merge_sha": "75fb9f2921053d39187bbf216057913be2c7fe43",
       "file_count": 3,
       "verification": {
         "prettier_version": "3.9.6",
         "generation_workflow_run": 30742929245,
-        "artifact_id": 8831904927,
-        "artifact_sha256": "e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543",
+        "apply_workflow_run": 30743063830,
         "patch_review": "markdown_table_alignment_only",
-        "temporary_workflow_removed": true,
-        "final_ci": "pending"
+        "result": "green"
       }
     },
     {
       "id": "NEXOLAB-194",
       "issue": 194,
       "title": "Format E2E tests and root tooling configuration",
-      "status": "ready_after_193_merge",
+      "status": "verified_pending_merge",
       "priority": 53,
       "depends_on": ["NEXOLAB-193"],
       "track": "formatting-maintenance",
-      "file_count": 6
+      "pull_request": 226,
+      "file_count": 6,
+      "verification": {
+        "prettier_version": "3.9.6",
+        "generation_workflow_run": 30743441993,
+        "generation_artifact_id": 8832069755,
+        "generation_artifact_sha256": "0b3816f36eb2d2e01605e55f17d0f2be08b2f976cff02397b1d02d29651370e1",
+        "apply_workflow_run": 30743671286,
+        "semantic_ast_equal": true,
+        "comments_equal": true,
+        "eslint_config_loaded": true,
+        "playwright_test_list_loaded": true,
+        "site_e2e_executed": false,
+        "temporary_workflow_removed": true,
+        "final_ci": "pending"
+      }
     },
     {
       "id": "NEXOLAB-195",
       "issue": 195,
       "title": "Format telemetry and dashboard frontend files",
-      "status": "queued",
+      "status": "ready_after_194_merge",
       "priority": 54,
-      "depends_on": ["NEXOLAB-191"],
+      "depends_on": ["NEXOLAB-194"],
       "track": "formatting-maintenance",
       "file_count": 10
     },
