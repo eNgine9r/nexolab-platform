@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-01  
-Verified product baseline: `main` merge `4c980781ff1beb0afb89f1779c82750a06e8eb7e`  
-Next Ready Work Package: Issue #188  
-Status confidence: high for repository, linux/amd64 software-CI and disconnected container-runtime boundaries; partial for ARM64 actual-host, Raspberry Pi and hardware acceptance.
+Updated: 2026-08-02  
+Verified product baseline: `main` at `d4b5971a0abb31a571be1540512c8694485967d7` plus Issue #188 implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b` in PR #216  
+Next Ready Work Package: Issue #189 software-only recovery preparation  
+Status confidence: high for repository, linux/amd64 CI, local operator authentication and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
 
@@ -16,103 +16,108 @@ Status confidence: high for repository, linux/amd64 software-CI and disconnected
 
 ## Completed baseline
 
-- PR #184 merged the AI Development Operating Standard.
-- PR #190 merged the verified architecture and offline boundary.
-- PR #206 reconciled stale Pull Requests, trackers and successor Issues.
-- PR #209 hardened Device Agent supply-chain evidence.
-- PR #207 completed durable central telemetry ingestion.
-- PR #213 restored actionable dashboard security bootstrap diagnostics.
-- PR #214 stabilized the live telemetry WebSocket lifecycle.
-- PR #215 added and proved the offline installation/update bundle, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
+- PR #184 — AI Development Operating Standard.
+- PR #190 — verified architecture and offline boundary.
+- PR #206 — stale tracker and Pull Request reconciliation.
+- PR #207 — durable MQTT-to-PostgreSQL telemetry ingestion.
+- PR #209 — Device Agent supply-chain hardening.
+- PR #213 — dashboard security bootstrap diagnostics.
+- PR #214 — live WebSocket lifecycle stabilization.
+- PR #215 — verified offline installation/update bundle.
+- PR #223 — argument-safe disposable DR MinIO credential.
 
-## Issue #187 completed outcome
+## Issue #188 verified outcome
 
-NEXOLAB now has a versioned offline bundle for the complete core runtime:
+PR #216 implements a fail-closed local identity authority inside Telemetry Service while preserving the provider-neutral JWT, organization-membership, RBAC and immutable audit boundaries.
 
-- dashboard;
-- telemetry service and migrations;
-- Device Agent;
-- Mosquitto;
-- PostgreSQL;
-- MinIO;
-- MinIO Client.
+Implemented runtime behavior:
 
-The bundle includes:
+- PostgreSQL local accounts linked to existing security identities and memberships;
+- standard-library `scrypt` password hashes with bounded parameters and malformed-hash rejection;
+- RS256 access JWTs signed only by an externally mounted private key;
+- matching local public-key validation through the existing JWT boundary;
+- opaque refresh tokens with SHA-256 hashes persisted in PostgreSQL;
+- PostgreSQL session identifier validation on every local authenticated request;
+- bounded database-backed failed-login lockout;
+- login, refresh rotation, logout and immediate post-revocation rejection;
+- explicit CLI key generation, account bootstrap, password reset and session revocation;
+- local browser credential provider and generic login page;
+- optional Supabase/external JWT behavior remains isolated and non-mandatory;
+- offline bundle includes the local-auth Compose overlay and operator documentation, but no accounts, passwords or signing keys.
 
-- target platform and exact source-commit manifest;
-- versioned Docker image archive;
-- archive and per-file SHA-256 checksums;
-- image IDs and sizes;
-- provenance;
-- CycloneDX and SPDX SBOMs;
-- offline central and edge Compose overlays;
-- external environment templates;
-- integrity verifier;
-- disconnected installer;
-- runtime smoke checks;
-- update/rollback volume-preservation drill;
-- operator runbook.
+## Verification on implementation head
 
-## Final verification
+Implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b` passed all 19 Pull Request workflows.
 
-Final PR head `5dafd5b3014af69fa34b2524e00cb59cf7d5acb7` passed:
+Key runs:
 
-- CI run `30709170478`;
-- Telemetry Service run `30709170479`;
-- Offline Bundle run `30709170491`.
+- CI: `30737691025` — changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build passed.
+- Telemetry Service: `30737691020` — PostgreSQL migrations, backend tests, outage recovery, offline migration SQL and container build passed.
+- Offline Auth Acceptance: `30737691023` — migration round-trip, disconnected browser/API authentication, RBAC, refresh/logout/revocation, blocked container egress and persistence recreation passed.
+- Offline Bundle: `30737691007` — linux/amd64 bundle build, archive-only load, `--pull never` startup, smoke checks and update/rollback volume preservation passed.
+- Container Supply Chain, Capacity Release, MQTT TLS Fleet, Device Agent Fleet, Security, Authenticated Dashboard, Nodes, Refrigeration, Sessions, Alerts, Reports and Disaster Recovery acceptance workflows passed.
 
-The final Offline Bundle gate proved:
+Offline-auth evidence artifact:
 
-- linux/amd64 seven-image build;
-- exact source provenance;
-- checksum, manifest and SBOM verification;
-- deletion of all seven local runtime image references;
-- clean validation-directory extraction;
-- archive-only `docker load`;
-- blocked container egress;
-- central and edge simulator startup with `--no-build --pull never`;
-- dashboard, REST, WebSocket, MQTT, PostgreSQL, MinIO and edge health;
-- update and rollback container recreation;
-- unchanged identities for six required persistent-data volumes;
-- preserved PostgreSQL, retained MQTT, MinIO object and edge-volume markers.
+- artifact ID: `8830202764`;
+- size: `218992` bytes;
+- digest: `sha256:437b86732aaa6dacf9656541a0d0f9f6caeb625f31557e064e458705b47eaccd`.
 
-Final artifact:
+Evidence proves:
 
-- artifact ID: `8821407762`;
-- size: `558421492` bytes;
-- digest: `sha256:39d8ae8912e813de5419f004d9a2c1e301baf498932cbc312c5d299092013c14`.
+- migration revision `20260801_0021` upgrades, downgrades to `20260731_0021`, and upgrades again;
+- auth tables are present after upgrade, absent after downgrade, and present after re-upgrade;
+- viewer and operator are denied `audit.read`, administrator is permitted;
+- three accounts and three membership-role bindings retain identical fingerprints through update-style and rollback-style recreation;
+- the same PostgreSQL volume identity is preserved;
+- the access session remains valid through both recreations and returns `401` after logout;
+- audit records identify the local actor and server-side role;
+- Telemetry Service public egress is blocked during acceptance.
+
+Offline bundle artifact:
+
+- artifact ID: `8830269134`;
+- size: `558463050` bytes;
+- digest: `sha256:6d72d2f43872ae3f4a441d0d3d0d3110721eb0c07ba798d72eba9849744d75ce`.
 
 ## Runtime and security boundary
 
-- Runtime startup required no registry, npm, PyPI, external API or paid service after archive transfer.
-- Environment files and secrets remain external to the bundle.
-- No persistent volume was deleted.
-- The isolated validation profile used `AUTH_MODE=disabled`; this does not complete offline operator authentication.
+- Production-intended `LOCAL_LAN` authentication is local and fail-closed; `AUTH_MODE=disabled` remains development/isolated-validation only.
+- No password, private signing key, refresh token or production identity is committed or bundled.
+- Core login, session validation and RBAC require no internet, remote JWKS, Supabase or paid service.
+- PostgreSQL availability is required for local session validation and revocation.
+- Signing-key backup and controlled rotation remain operator responsibilities documented in the security runbook.
+- No persistent production volume was deleted.
 - No production/site deployment, Modbus write or hardware action was performed.
 
 ## Open Pull Requests
 
-- #192 — separate draft formatting inventory; not mixed into product work.
+- #216 — Issue #188 implementation, verified and pending final state/merge guard.
+- #192 — separate draft formatting inventory.
+- #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
 ## Next Ready Work Package
 
-Issue #188 — define and prove fail-closed offline operator authentication and RBAC without a mandatory cloud identity service.
+Issue #189 — prepare and prove the software-only portion of backup, isolated restore, rollback and recovery acceptance.
 
-Required boundary:
+Allowed immediate scope without Raspberry Pi access:
 
-- local identity must work while the LAN is disconnected from the internet;
-- authentication and authorization must remain fail-closed;
-- no private signing key or user password may be bundled in images or source;
-- existing JWT/RBAC/audit contracts must be preserved or versioned explicitly;
-- cloud identity may remain optional and isolated;
-- no authentication bypass may be presented as production behavior.
+- fresh logical backup and checksums;
+- isolated PostgreSQL and MinIO restore targets;
+- row, object and relationship comparison;
+- central service restart and readiness recovery;
+- version rollback with named-volume preservation;
+- explicit stale/offline/recovery dashboard states;
+- exact evidence and RPO/RTO observations.
+
+Actual central-host reboot, Raspberry Pi reboot, edge power interruption and physical power-loss acceptance remain soft-blocked until controlled host access exists. They must not be inferred from container evidence.
 
 ## Remaining unverified areas
 
 - linux/arm64 bundle execution on an actual Raspberry Pi 5;
-- physical transfer and install on an operator-owned disconnected host;
-- actual Raspberry Pi or central-host power interruption;
-- physical disk-full and disk-loss recovery;
+- physical-media transfer and installation on an operator-owned disconnected host;
+- actual central-host and Raspberry Pi reboot/power interruption;
+- physical disk-full and disk-loss behavior;
 - production/site deployment;
 - Modbus or other hardware writes;
 - full hardware acceptance beyond previously recorded read-only evidence.
