@@ -1,9 +1,9 @@
 name: Prettier Inventory
 
 on:
-  push:
+  pull_request:
     branches:
-      - chore/191-prettier-inventory
+      - main
     paths:
       - ".github/workflows/prettier-inventory.yml"
   workflow_dispatch:
