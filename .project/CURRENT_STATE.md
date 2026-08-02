@@ -1,8 +1,8 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified product baseline: `main` at `d4b5971a0abb31a571be1540512c8694485967d7` plus Issue #188 implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b` in PR #216  
-Next Ready Work Package: Issue #189 software-only recovery preparation  
+Verified product baseline: `main` at `94d111855e727fd0a74af0618c099b11123348cf`  
+Active Ready Work Package: Issue #189 software-only backup, restore, rollback and recovery evidence  
 Status confidence: high for repository, linux/amd64 CI, local operator authentication and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
@@ -24,11 +24,14 @@ Status confidence: high for repository, linux/amd64 CI, local operator authentic
 - PR #213 — dashboard security bootstrap diagnostics.
 - PR #214 — live WebSocket lifecycle stabilization.
 - PR #215 — verified offline installation/update bundle.
+- PR #216 — fail-closed offline operator authentication.
 - PR #223 — argument-safe disposable DR MinIO credential.
 
-## Issue #188 verified outcome
+## Issue #188 completed outcome
 
-PR #216 implements a fail-closed local identity authority inside Telemetry Service while preserving the provider-neutral JWT, organization-membership, RBAC and immutable audit boundaries.
+Issue #188 / PR #216 was squash-merged as `94d111855e727fd0a74af0618c099b11123348cf`.
+
+NEXOLAB now has a fail-closed local identity authority inside Telemetry Service while preserving the provider-neutral JWT, organization-membership, RBAC and immutable audit boundaries.
 
 Implemented runtime behavior:
 
@@ -45,23 +48,24 @@ Implemented runtime behavior:
 - optional Supabase/external JWT behavior remains isolated and non-mandatory;
 - offline bundle includes the local-auth Compose overlay and operator documentation, but no accounts, passwords or signing keys.
 
-## Verification on implementation head
+## Exact-head verification
 
-Implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b` passed all 19 Pull Request workflows.
+Final PR head `805d2c1361c42d2017b55c0127fddb95d1da61f5` passed all 19 Pull Request workflows before merge.
 
-Key runs:
+Key exact-head runs:
 
-- CI: `30737691025` — changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build passed.
-- Telemetry Service: `30737691020` — PostgreSQL migrations, backend tests, outage recovery, offline migration SQL and container build passed.
-- Offline Auth Acceptance: `30737691023` — migration round-trip, disconnected browser/API authentication, RBAC, refresh/logout/revocation, blocked container egress and persistence recreation passed.
-- Offline Bundle: `30737691007` — linux/amd64 bundle build, archive-only load, `--pull never` startup, smoke checks and update/rollback volume preservation passed.
+- CI: `30738209087` — changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build passed.
+- Telemetry Service: `30738209102` — PostgreSQL migrations, backend tests, outage recovery, offline migration SQL and container build passed.
+- Offline Auth Acceptance: `30738209088` — migration round-trip, disconnected browser/API authentication, RBAC, refresh/logout/revocation, blocked container egress and persistence recreation passed.
+- Offline Bundle: `30738209124` — linux/amd64 bundle build, archive-only load, `--pull never` startup, smoke checks and update/rollback volume preservation passed.
 - Container Supply Chain, Capacity Release, MQTT TLS Fleet, Device Agent Fleet, Security, Authenticated Dashboard, Nodes, Refrigeration, Sessions, Alerts, Reports and Disaster Recovery acceptance workflows passed.
+- Review threads: 0.
+- Submitted reviews: 0.
 
-Offline-auth evidence artifact:
+Primary implementation evidence remains:
 
-- artifact ID: `8830202764`;
-- size: `218992` bytes;
-- digest: `sha256:437b86732aaa6dacf9656541a0d0f9f6caeb625f31557e064e458705b47eaccd`.
+- offline-auth artifact ID `8830202764`, digest `sha256:437b86732aaa6dacf9656541a0d0f9f6caeb625f31557e064e458705b47eaccd`;
+- offline-bundle artifact ID `8830269134`, digest `sha256:6d72d2f43872ae3f4a441d0d3d0d3110721eb0c07ba798d72eba9849744d75ce`.
 
 Evidence proves:
 
@@ -73,12 +77,6 @@ Evidence proves:
 - the access session remains valid through both recreations and returns `401` after logout;
 - audit records identify the local actor and server-side role;
 - Telemetry Service public egress is blocked during acceptance.
-
-Offline bundle artifact:
-
-- artifact ID: `8830269134`;
-- size: `558463050` bytes;
-- digest: `sha256:6d72d2f43872ae3f4a441d0d3d0d3110721eb0c07ba798d72eba9849744d75ce`.
 
 ## Runtime and security boundary
 
@@ -92,11 +90,10 @@ Offline bundle artifact:
 
 ## Open Pull Requests
 
-- #216 — Issue #188 implementation, verified and pending final state/merge guard.
 - #192 — separate draft formatting inventory.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
-## Next Ready Work Package
+## Active Ready Work Package
 
 Issue #189 — prepare and prove the software-only portion of backup, isolated restore, rollback and recovery acceptance.
 
