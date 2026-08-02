@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents finalizing Issue #188 or starting the software-only preparation portion of Issue #189 after merge.
+No hard blocker prevents starting the software-only portion of Issue #189.
 
 Stop before:
 
@@ -16,40 +16,11 @@ Stop before:
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Verified Work Package awaiting merge
-
-### N-011 — Offline operator authentication
-
-**Status:** Software and disconnected-container acceptance verified in Issue #188 / PR #216 on implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b`.
-
-Verified boundaries:
-
-- fail-closed local identity authority inside Telemetry Service;
-- PostgreSQL accounts, memberships and revocable sessions;
-- `scrypt` password hashing;
-- externally mounted RS256 signing keys;
-- access-token session validation and immediate revocation;
-- viewer/operator/administrator server-side RBAC;
-- immutable local actor audit attribution;
-- migration upgrade/downgrade/re-upgrade consistency;
-- disconnected browser login, refresh and logout;
-- blocked Telemetry Service container egress;
-- preserved account, membership and session fingerprints through update-style and rollback-style recreation;
-- local-auth overlay and runbook included in the offline bundle;
-- no bundled password, private key, refresh token or production identity data.
-
-Key runs:
-
-- CI `30737691025`;
-- Telemetry Service `30737691020`;
-- Offline Auth Acceptance `30737691023`;
-- Offline Bundle `30737691007`.
-
 ## Next Ready Work Package
 
 ### N-012 — Backup, restore, rollback and recovery
 
-**Status:** Issue #189 is ready for software-only preparation after Issue #188 merges.
+**Status:** Issue #189 is Ready for software-only implementation.
 
 Independent software scope:
 
@@ -77,6 +48,28 @@ The following require controlled central-host and Raspberry Pi access and remain
 Do not claim these from container or CI evidence.
 
 ## Resolved Work Packages
+
+### N-011 — Offline operator authentication
+
+Resolved by Issue #188 / PR #216, merged as `94d111855e727fd0a74af0618c099b11123348cf`.
+
+Final head `805d2c1361c42d2017b55c0127fddb95d1da61f5` passed all 19 workflows, including CI `30738209087`, Telemetry Service `30738209102`, Offline Auth Acceptance `30738209088` and Offline Bundle `30738209124`.
+
+Verified boundaries:
+
+- fail-closed local identity authority inside Telemetry Service;
+- PostgreSQL accounts, memberships and revocable sessions;
+- `scrypt` password hashing;
+- externally mounted RS256 signing keys;
+- access-token session validation and immediate revocation;
+- viewer/operator/administrator server-side RBAC;
+- immutable local actor audit attribution;
+- migration upgrade/downgrade/re-upgrade consistency;
+- disconnected browser login, refresh and logout;
+- blocked Telemetry Service container egress;
+- preserved account, membership and session fingerprints through update-style and rollback-style recreation;
+- local-auth overlay and runbook included in the offline bundle;
+- no bundled password, private key, refresh token or production identity data.
 
 ### N-010 — Offline installation and update bundle
 
