@@ -1,0 +1,96 @@
+services:
+  mqtt:
+    restart: "no"
+
+  postgres:
+    restart: "no"
+
+  minio:
+    restart: "no"
+
+  telemetry-service:
+    restart: "no"
+    ports: !reset []
+
+  local-auth-api-proxy:
+    image: ${TELEMETRY_SERVICE_IMAGE:-nexolab-telemetry-service:local}
+    restart: "no"
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        python - <<'PY'
+        import asyncio
+
+        async def relay(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+            try:
+                while data := await reader.read(65536):
+                    writer.write(data)
+                    await writer.drain()
+            except (ConnectionError, asyncio.CancelledError):
+                pass
+            finally:
+                try:
+                    writer.write_eof()
+                except (AttributeError, OSError):
+                    pass
+
+        async def handle(
+            client_reader: asyncio.StreamReader,
+            client_writer: asyncio.StreamWriter,
+        ) -> None:
+            upstream_writer = None
+            try:
+                upstream_reader, upstream_writer = await asyncio.open_connection(
+                    "telemetry-service",
+                    8082,
+                )
+                await asyncio.gather(
+                    relay(client_reader, upstream_writer),
+                    relay(upstream_reader, client_writer),
+                )
+            finally:
+                if upstream_writer is not None:
+                    upstream_writer.close()
+                    await upstream_writer.wait_closed()
+                client_writer.close()
+                await client_writer.wait_closed()
+
+        async def main() -> None:
+            server = await asyncio.start_server(handle, "0.0.0.0", 8082)
+            async with server:
+                await server.serve_forever()
+
+        asyncio.run(main())
+        PY
+    depends_on:
+      telemetry-service:
+        condition: service_healthy
+    ports:
+      - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_API_PORT:-8082}:8082"
+    networks:
+      - central
+      - acceptance-host-access
+
+volumes:
+  central-mqtt-data:
+    name: ${ACCEPTANCE_MQTT_VOLUME_NAME:?ACCEPTANCE_MQTT_VOLUME_NAME is required}
+  central-postgres-data:
+    name: ${ACCEPTANCE_POSTGRES_VOLUME_NAME:?ACCEPTANCE_POSTGRES_VOLUME_NAME is required}
+  central-object-storage-data:
+    name: ${ACCEPTANCE_OBJECT_STORAGE_VOLUME_NAME:?ACCEPTANCE_OBJECT_STORAGE_VOLUME_NAME is required}
+
+networks:
+  central:
+    name: ${ACCEPTANCE_NETWORK_NAME:?ACCEPTANCE_NETWORK_NAME is required}
+    internal: true
+  acceptance-host-access:
+    name: ${COMPOSE_PROJECT_NAME:-nexolab-local-auth-acceptance}-host-access
+    driver: bridge

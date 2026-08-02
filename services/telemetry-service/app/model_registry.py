@@ -16,6 +16,7 @@ def register_models() -> None:
     from app.refrigeration import models as _refrigeration_models
     from app.reports import models as _report_models
     from app.reports.immutability import register_report_immutability
+    from app.security import local_models as _local_security_models
     from app.security import models as _security_models
     from app.sessions import models as _session_models
     from app.sessions import telemetry_attribution as _telemetry_attribution
@@ -74,3 +75,9 @@ def register_models() -> None:
         "test_report_approval_events"
     )
     assert _security_models.SecurityAuditEvent.__tablename__ == "security_audit_events"
+    assert _local_security_models.SecurityLocalAccount.__tablename__ == (
+        "security_local_accounts"
+    )
+    assert _local_security_models.SecurityLocalSession.__tablename__ == (
+        "security_local_sessions"
+    )

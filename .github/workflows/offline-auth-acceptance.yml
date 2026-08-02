@@ -1,0 +1,90 @@
+name: Offline Auth Acceptance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/offline-auth-acceptance.yml"
+      - "docs/adr/0009-local-operator-authentication.md"
+      - "docs/security/local-operator-authentication.md"
+      - "e2e/local-auth.production.e2e.ts"
+      - "e2e/local-auth-persistence.production.e2e.ts"
+      - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/compose/compose.local-auth.yaml"
+      - "infrastructure/compose/compose.local-auth-acceptance.yaml"
+      - "package-lock.json"
+      - "package.json"
+      - "playwright.local-auth.config.ts"
+      - "scripts/run-local-auth-migration-acceptance.sh"
+      - "scripts/run-offline-auth-acceptance.sh"
+      - "services/telemetry-service/**"
+      - "src/app/login/**"
+      - "src/features/security/**"
+      - "src/hooks/use-dashboard-security.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-auth-acceptance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  disconnected-local-auth:
+    name: Prove fail-closed local login and RBAC
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate acceptance scripts and Compose contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n scripts/run-local-auth-migration-acceptance.sh
+          bash -n scripts/run-offline-auth-acceptance.sh
+          python -m compileall -q \
+            services/telemetry-service/app/security \
+            services/telemetry-service/tests/test_local_auth_api.py \
+            services/telemetry-service/tests/test_local_auth_keys.py \
+            services/telemetry-service/tests/test_local_passwords.py
+          test "$(grep -c 'internal: true' infrastructure/compose/compose.local-auth-acceptance.yaml)" -eq 1
+          test "$(grep -c 'AUTH_LOCAL_PRIVATE_KEY_HOST_FILE' infrastructure/compose/compose.local-auth.yaml)" -eq 1
+          ! grep -R --line-number --extended-regexp \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' \
+            docs/adr/0009-local-operator-authentication.md \
+            docs/security/local-operator-authentication.md \
+            infrastructure/compose/compose.local-auth.yaml \
+            scripts/run-local-auth-migration-acceptance.sh \
+            scripts/run-offline-auth-acceptance.sh \
+            services/telemetry-service/app/security \
+            src/features/security/local-auth.ts
+
+      - name: Prove local-auth migration upgrade and downgrade
+        shell: bash
+        run: bash scripts/run-local-auth-migration-acceptance.sh
+
+      - name: Run disconnected local authentication acceptance
+        shell: bash
+        run: bash scripts/run-offline-auth-acceptance.sh
+
+      - name: Upload non-secret acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-auth-acceptance-${{ github.event.pull_request.head.sha || github.sha }}
+          path: runtime/evidence/offline-auth-acceptance-*
+          if-no-files-found: warn
+          retention-days: 7

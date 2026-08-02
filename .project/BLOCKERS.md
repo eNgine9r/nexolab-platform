@@ -1,66 +1,86 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-01
+Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents starting Issue #188, the next independent software Work Package.
+No hard blocker prevents finalizing Issue #188 or starting the software-only preparation portion of Issue #189 after merge.
 
 Stop before:
 
 - destructive database or persistent-volume operation;
+- restore over production data without an isolated proof and explicit approval;
 - production/site cutover without explicit approval;
 - Modbus or other unsafe hardware write;
-- secret exposure or unauthorized key rotation;
+- secret exposure or unauthorized signing-key rotation;
 - an unresolved materially different product or architecture decision;
 - inability to preserve local laboratory data.
 
-## Resolved Work Package
-
-### N-010 — Offline installation and update bundle
-
-**Status:** Resolved by Issue #187 / PR #215, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
-
-Final head `5dafd5b3014af69fa34b2524e00cb59cf7d5acb7` passed CI run `30709170478`, Telemetry Service run `30709170479` and Offline Bundle run `30709170491`.
-
-Verified software boundary on `linux/amd64`:
-
-- seven-image versioned bundle;
-- archive and file SHA-256 verification;
-- CycloneDX and SPDX SBOMs;
-- exact source-commit provenance;
-- clean-host image-reference removal and archive-only `docker load`;
-- blocked container egress;
-- Compose startup with `--no-build --pull never`;
-- dashboard, REST, WebSocket, MQTT, PostgreSQL, MinIO and edge simulator smoke checks;
-- update and rollback container recreation;
-- six required persistent-data volume identities unchanged;
-- PostgreSQL, retained MQTT, MinIO object and edge-volume markers preserved.
-
-### N-032 — ARM64 and operator-host offline evidence
-
-**Status:** Soft blocker for actual-host acceptance; software work may continue.
-
-The bundle contract supports `linux/arm64`, but the complete archive/load/start/update/rollback drill has not run on an actual Raspberry Pi 5 or operator-owned disconnected host. Do not claim ARM64, physical-media or Raspberry Pi acceptance until that evidence exists.
-
-## Next Ready Work Package
+## Verified Work Package awaiting merge
 
 ### N-011 — Offline operator authentication
 
-**Status:** Ready — Issue #188.
+**Status:** Software and disconnected-container acceptance verified in Issue #188 / PR #216 on implementation head `e02a830b2ca413b3dd35b5e60c6647681dd0c02b`.
 
-The Work Package must define and prove fail-closed local operator identity, session management and RBAC without making the core runtime depend on a cloud identity provider.
+Verified boundaries:
 
-Mandatory boundaries:
+- fail-closed local identity authority inside Telemetry Service;
+- PostgreSQL accounts, memberships and revocable sessions;
+- `scrypt` password hashing;
+- externally mounted RS256 signing keys;
+- access-token session validation and immediate revocation;
+- viewer/operator/administrator server-side RBAC;
+- immutable local actor audit attribution;
+- migration upgrade/downgrade/re-upgrade consistency;
+- disconnected browser login, refresh and logout;
+- blocked Telemetry Service container egress;
+- preserved account, membership and session fingerprints through update-style and rollback-style recreation;
+- local-auth overlay and runbook included in the offline bundle;
+- no bundled password, private key, refresh token or production identity data.
 
-- no authentication bypass;
-- no bundled passwords, private signing keys or user tokens;
-- no mandatory remote JWKS or cloud session dependency;
-- preserve organization scope, RBAC and immutable audit attribution;
-- distinguish local validation mode from production-ready authenticated mode;
-- keep secrets in external local configuration or an approved local secret store.
+Key runs:
 
-## Other resolved Work Packages
+- CI `30737691025`;
+- Telemetry Service `30737691020`;
+- Offline Auth Acceptance `30737691023`;
+- Offline Bundle `30737691007`.
+
+## Next Ready Work Package
+
+### N-012 — Backup, restore, rollback and recovery
+
+**Status:** Issue #189 is ready for software-only preparation after Issue #188 merges.
+
+Independent software scope:
+
+- fresh checksummed logical backup;
+- isolated PostgreSQL and MinIO restore targets;
+- domain row/object/relationship comparison;
+- central service restart and readiness recovery;
+- rollback with named-volume preservation;
+- explicit stale/offline/recovery browser states;
+- sanitized evidence and RPO/RTO observations.
+
+### Actual-host recovery evidence
+
+**Status:** Soft blocker for final Issue #189 acceptance.
+
+The following require controlled central-host and Raspberry Pi access and remain unverified:
+
+- host reboot;
+- Raspberry Pi reboot;
+- edge power interruption and SQLite outbox recovery;
+- physical power-loss behavior;
+- actual disk-full/disk-loss behavior;
+- operator-owned physical-media restore.
+
+Do not claim these from container or CI evidence.
+
+## Resolved Work Packages
+
+### N-010 — Offline installation and update bundle
+
+Resolved by Issue #187 / PR #215, merged as `4c980781ff1beb0afb89f1779c82750a06e8eb7e`.
 
 ### N-009 — Live WebSocket lifecycle
 
@@ -76,10 +96,6 @@ Resolved by Issue #198 / PR #207, merged as `5851955ea9a38a9068bbab1eb0c9701722c
 
 ## Open operational and hardware risks
 
-### N-022 — Actual-host spool recovery
-
-**Status:** Software prepared; host evidence pending under Issue #189.
-
 ### N-023 — Node health/status durability
 
 Current node health/status persistence is not claimed to have the same process-restart durability as telemetry measurements.
@@ -92,16 +108,19 @@ Do not roll back to a pre-ADR-0008 image while pending or terminal spool records
 
 Software thresholds and alerts exist. Validate them against actual-host capacity and throughput evidence. Never auto-delete pending or terminal records.
 
+### N-032 — ARM64 and operator-host offline evidence
+
+The bundle contract supports `linux/arm64`, but complete archive/load/start/update/rollback execution on an actual Raspberry Pi 5 or operator-owned disconnected host remains unverified.
+
 ## Other open soft blockers
 
 - **N-031 / Issue #210 evidence — Affected-PC session bootstrap:** actual host/network cause remains unverified.
-- **N-012 / #189 — Recovery and power loss:** final evidence requires controlled central-host and Raspberry Pi access.
 - **N-013 / #185, #191, PR #192 — Formatting baseline:** keep separate from product and reliability work.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked; read-only evidence required.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked; display/load correlation required.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked; representative KK1/KK2 evidence required.
 - **N-017 / #17 — Versioned device profiles:** blocked until #200–#202 evidence exists.
-- **N-018 / #108 — Optional Tailscale acceptance:** requires offline-auth decision and controlled hosts.
+- **N-018 / #108 — Optional Tailscale acceptance:** requires controlled hosts.
 - **N-019 / #203 — Production dependency updates:** queued maintenance.
 - **N-020 / #204 — Major frontend toolchain:** queued maintenance.
 - **N-021 / #205 — GitHub Actions runtime dependencies:** queued maintenance.

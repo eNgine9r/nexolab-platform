@@ -4,11 +4,12 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 
-import { signInWithPassword } from "@/features/security/supabase-auth";
+import { signInWithPassword } from "@/features/security/auth-runtime";
+import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -17,7 +18,14 @@ export default function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
-    const result = await signInWithPassword(email, password);
+    let apiBaseUrl: string | null = null;
+    try {
+      const runtime = getTelemetryRuntimeConfig();
+      apiBaseUrl = runtime.mode === "live" ? runtime.apiBaseUrl : null;
+    } catch {
+      apiBaseUrl = null;
+    }
+    const result = await signInWithPassword(apiBaseUrl, identifier, password);
     if (!result.ok) {
       setError(result.message);
       setSubmitting(false);
@@ -41,19 +49,19 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 text-sm leading-6 text-slate-400">
-          Увійдіть через обліковий запис лабораторії. Доступ до організацій і операцій визначається серверними
-          ролями RBAC.
+          Увійдіть через локальний або дозволений зовнішній обліковий запис лабораторії. Доступ до організацій
+          і операцій визначається серверними ролями RBAC.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={submit}>
           <label className="block">
-            <span className="mb-2 block text-xs text-slate-400">Email</span>
+            <span className="mb-2 block text-xs text-slate-400">Логін або email</span>
             <input
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
               className="w-full rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/40"
             />
           </label>
@@ -95,8 +103,8 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-[11px] leading-5 text-slate-600">
-          Токен сесії отримується від Supabase Auth і перевіряється backend через issuer, audience та JWKS.
-          Роль не приймається з браузера.
+          Пароль не зберігається у браузері. Роль і доступ до організації перевіряються backend; браузер не
+          може призначити собі повноваження.
         </p>
       </section>
     </main>

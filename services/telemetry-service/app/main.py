@@ -46,6 +46,11 @@ from app.retention import RetentionWorker
 from app.security.api import create_security_router
 from app.security.authentication import JwtAuthenticator
 from app.security.dependencies import SecurityDependencies
+from app.security.local_api import create_local_auth_router
+from app.security.local_config import LocalAuthSettings
+from app.security.local_keys import load_local_signing_keys
+from app.security.local_repository import LocalAuthRepository
+from app.security.local_service import LocalAuthService
 from app.security.repository import SecurityRepository
 from app.sessions.api import create_session_router
 from app.sessions.audit_api import create_session_audit_router
@@ -56,7 +61,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.17.0"
+SERVICE_VERSION = "0.18.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -82,6 +87,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(database)
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
     security_repository = SecurityRepository(database)
+    security_dependencies, local_auth_service = _create_security_runtime(
+        resolved,
+        database,
+        security_repository,
+    )
     broker_control_repository, broker_control_worker = _create_broker_control(
         resolved,
         database,
@@ -110,10 +120,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         security_repository=security_repository,
     )
     report_output_query_repository = ReportOutputQueryRepository(database)
-    security_dependencies = _create_security_dependencies(
-        resolved,
-        security_repository,
-    )
     object_storage = _create_object_storage(resolved)
     state = RuntimeState()
     live_hub = LiveTelemetryHub(
@@ -227,11 +233,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.report_output_query_repository = report_output_query_repository
     app.state.security_repository = security_repository
     app.state.security_dependencies = security_dependencies
+    app.state.local_auth_service = local_auth_service
     app.state.object_storage = object_storage
     app.state.runtime = state
     app.state.ingestor = ingestor
     app.state.live_hub = live_hub
     app.state.retention_worker = retention_worker
+    if local_auth_service is not None:
+        app.include_router(create_local_auth_router(local_auth_service))
     app.include_router(create_security_router(security_repository, security_dependencies))
     app.include_router(create_node_router(node_repository, security_dependencies))
     app.include_router(
@@ -411,10 +420,52 @@ def _create_broker_control(
     return repository, worker
 
 
-def _create_security_dependencies(
+def _create_security_runtime(
     settings: Settings,
+    database: SessionAwareDatabase,
     repository: SecurityRepository,
-) -> SecurityDependencies:
+) -> tuple[SecurityDependencies, LocalAuthService | None]:
+    local = LocalAuthSettings()
+    if local.auth_local_enabled:
+        if settings.auth_mode != "jwt":
+            raise ValueError(
+                "AUTH_MODE must be jwt when AUTH_LOCAL_ENABLED=true"
+            )
+        keys = load_local_signing_keys(
+            private_key_file=local.auth_local_private_key_file or "",
+            public_key_file=local.auth_local_public_key_file or "",
+        )
+        authenticator = JwtAuthenticator(
+            public_key=keys.public_key_pem,
+            algorithm="RS256",
+            issuer=local.auth_local_issuer,
+            audience=local.auth_local_audience,
+            provider=local.auth_local_provider,
+        )
+        local_repository = LocalAuthRepository(database)
+        service = LocalAuthService(
+            local_repository,
+            repository,
+            private_key=keys.private_key_pem,
+            algorithm="RS256",
+            issuer=local.auth_local_issuer,
+            audience=local.auth_local_audience,
+            access_token_seconds=local.auth_local_access_token_seconds,
+            refresh_token_seconds=local.auth_local_refresh_token_seconds,
+            max_failed_attempts=local.auth_local_max_failed_attempts,
+            lockout_seconds=local.auth_local_lockout_seconds,
+        )
+        return (
+            SecurityDependencies(
+                repository,
+                mode="local",
+                authenticator=authenticator,
+                default_organization_id=settings.auth_default_organization_id,
+                local_session_validator=service.validate_access_claims,
+            ),
+            service,
+        )
+
     authenticator: JwtAuthenticator | None = None
     if settings.auth_mode == "jwt":
         authenticator = JwtAuthenticator(
@@ -425,11 +476,14 @@ def _create_security_dependencies(
             audience=settings.auth_jwt_audience,
             provider=settings.auth_jwt_provider,
         )
-    return SecurityDependencies(
-        repository,
-        mode=settings.auth_mode,
-        authenticator=authenticator,
-        default_organization_id=settings.auth_default_organization_id,
+    return (
+        SecurityDependencies(
+            repository,
+            mode=settings.auth_mode,
+            authenticator=authenticator,
+            default_organization_id=settings.auth_default_organization_id,
+        ),
+        None,
     )
 
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { createRuntimeCredentialProvider, signOut as signOutRuntime } from "@/features/security/auth-runtime";
 import {
   createAuthenticatedFetch,
   getSecurityCredentials,
@@ -12,10 +13,6 @@ import {
   type SecuritySessionDiagnostics,
   type SecuritySessionErrorCode,
 } from "@/features/security/security-session";
-import {
-  createRuntimeCredentialProvider,
-  signOut as signOutSupabase,
-} from "@/features/security/supabase-auth";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 const STORAGE_KEY = "nexolab.selectedOrganizationId";
@@ -39,7 +36,12 @@ export type DashboardSecurityModel = {
 };
 
 type Runtime =
-  | { mode: "demo"; apiBaseUrl: null; configuredOrganizationId: null; error: null }
+  | {
+      mode: "demo";
+      apiBaseUrl: null;
+      configuredOrganizationId: null;
+      error: null;
+    }
   | {
       mode: "live";
       apiBaseUrl: string | null;
@@ -51,7 +53,12 @@ function loadRuntime(): Runtime {
   try {
     const config = getTelemetryRuntimeConfig();
     if (config.mode === "demo") {
-      return { mode: "demo", apiBaseUrl: null, configuredOrganizationId: null, error: null };
+      return {
+        mode: "demo",
+        apiBaseUrl: null,
+        configuredOrganizationId: null,
+        error: null,
+      };
     }
     return {
       mode: "live",
@@ -146,7 +153,10 @@ export function useDashboardSecurity(): DashboardSecurityModel {
     if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;
 
     let cancelled = false;
-    const credentialProvider = createRuntimeCredentialProvider(runtime.configuredOrganizationId);
+    const credentialProvider = createRuntimeCredentialProvider(
+      runtime.apiBaseUrl,
+      runtime.configuredOrganizationId,
+    );
     const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentialProvider);
     const client = new HttpSecuritySessionClient({
       apiBaseUrl: runtime.apiBaseUrl,
@@ -225,14 +235,14 @@ export function useDashboardSecurity(): DashboardSecurityModel {
   );
 
   const signOut = useCallback(async () => {
-    await signOutSupabase();
+    await signOutRuntime(runtime.apiBaseUrl);
     clearPersistedOrganizationId();
     setSecurityCredentials({ accessToken: null, organizationId: null });
     setSession(null);
     setMembership(null);
     clearFailure();
     setState(runtime.mode === "demo" ? "demo" : "unauthenticated");
-  }, [clearFailure, runtime.mode]);
+  }, [clearFailure, runtime.apiBaseUrl, runtime.mode]);
 
   return useMemo(
     () => ({
