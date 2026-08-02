@@ -8,13 +8,13 @@ The canonical schema is `schemas/rs485-register-evidence.schema.json`. The seman
 
 ## Confidence levels
 
-| Level | Minimum evidence |
-| --- | --- |
-| `candidate` | At least one CRC-valid passing sample whose decoded value is physically plausible. No physical correlation is claimed. |
-| `correlated` | At least two passing samples under distinct controlled conditions. Each sample has a physical/display/control reference and an observed or confirmed correlation. |
-| `confirmed` | At least two passing samples under distinct conditions. Every passing sample is matched to a device display or reference instrument and marked `correlation: confirmed`. |
-| `portable` | Confirmed evidence repeated at least twice on each of at least two physical device IDs. |
-| `rejected` | The candidate is explicitly disproved or unsupported. Raw samples remain archived and `rejection_reason` is mandatory. |
+| Level        | Minimum evidence                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `candidate`  | At least one CRC-valid passing sample whose decoded value is physically plausible. No physical correlation is claimed.                                                   |
+| `correlated` | At least two passing samples under distinct controlled conditions. Each sample has a physical/display/control reference and an observed or confirmed correlation.        |
+| `confirmed`  | At least two passing samples under distinct conditions. Every passing sample is matched to a device display or reference instrument and marked `correlation: confirmed`. |
+| `portable`   | Confirmed evidence repeated at least twice on each of at least two physical device IDs.                                                                                  |
+| `rejected`   | The candidate is explicitly disproved or unsupported. Raw samples remain archived and `rejection_reason` is mandatory.                                                   |
 
 A single passing sample can never produce `confirmed`. A CRC-valid response proves frame integrity only; it does not prove register meaning, scale, sign, engineering unit or portability.
 
