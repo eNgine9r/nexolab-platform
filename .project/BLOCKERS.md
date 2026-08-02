@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging the software-only portion of Issue #189.
+No hard blocker prevents completing and merging Issue #191.
 
 Stop before:
 
@@ -20,7 +20,7 @@ Stop before:
 
 ### N-012A — Software backup, restore and rollback evidence
 
-**Status:** Verified on implementation head `9b85ab31d75659c024fc3f1b7191c21628a74728` in PR #224.
+**Status:** Verified and merged through PR #224 as `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`.
 
 Verified software scope:
 
@@ -45,7 +45,7 @@ Evidence:
 
 ### N-012B — Actual-host and physical recovery evidence
 
-**Status:** Soft blocker; Issue #189 remains open after the software PR.
+**Status:** Soft blocker; Issue #189 remains open.
 
 The following require controlled central-host and Raspberry Pi access and remain unverified:
 
@@ -58,35 +58,60 @@ The following require controlled central-host and Raspberry Pi access and remain
 
 Do not claim these from container or CI evidence.
 
+## Formatting maintenance status
+
+### N-033 — Historical Prettier debt inventory
+
+**Status:** Verified in Issue #191 / PR #192; pending final exact-head CI and merge.
+
+Read-only inventory evidence:
+
+- exact baseline: `main` at `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`;
+- Prettier: `3.9.6`;
+- command: `npm exec prettier -- --list-different .`;
+- exact debt: 46 files;
+- line endings: 46 LF, 0 CRLF, 0 mixed, 0 lone CR;
+- generated/vendor candidates: 0;
+- justified new `.prettierignore` exclusions: 0;
+- workflow run: `30742515790`;
+- evidence artifact: `8831767220`;
+- artifact digest: `sha256:5d55e49b403eca21dbfa798a360574d383fe3c4f4e27abacc77626aefb4569e7`.
+
+No runtime or source file is reformatted by Issue #191. The temporary inventory workflow was removed before final review.
+
+### N-034 — Controlled formatting child sequence
+
+**Status:** Ready after PR #192 merge.
+
+Execution order:
+
+1. Issue #193 — three documentation files;
+2. Issue #194 — six E2E/root tooling files;
+3. Issue #195 — ten telemetry/dashboard files;
+4. Issue #196 — ten refrigeration domain/repository files;
+5. Issue #197 — seventeen refrigeration UI files after #196.
+
+Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
+
 ## Next Ready Work Package
 
-### N-013 — Controlled formatting baseline
+### Issue #193 — Format the three historical documentation files
 
-**Status:** Ready after PR #224 merge.
+**Status:** Ready after PR #192 merge.
 
-Resume Issue #191 / PR #192 as a separate maintenance Work Package. Do not mix formatting changes into reliability, frontend, backend or hardware feature Pull Requests.
+Exact scope:
+
+- `docs/operations/capacity-release-gate.md`;
+- `docs/operations/observability.md`;
+- `docs/rs485/evidence-standard.md`.
+
+Do not combine this group with other formatting, feature, reliability or hardware work.
 
 ## Resolved Work Packages
 
 ### N-011 — Offline operator authentication
 
 Resolved by Issue #188 / PR #216, merged as `94d111855e727fd0a74af0618c099b11123348cf`.
-
-Verified boundaries:
-
-- fail-closed local identity authority inside Telemetry Service;
-- PostgreSQL accounts, memberships and revocable sessions;
-- `scrypt` password hashing;
-- externally mounted RS256 signing keys;
-- access-token session validation and immediate revocation;
-- viewer/operator/administrator server-side RBAC;
-- immutable local actor audit attribution;
-- migration upgrade/downgrade/re-upgrade consistency;
-- disconnected browser login, refresh and logout;
-- blocked Telemetry Service container egress;
-- preserved account, membership and session fingerprints through update-style and rollback-style recreation;
-- local-auth overlay and runbook included in the offline bundle;
-- no bundled password, private key, refresh token or production identity data.
 
 ### N-010 — Offline installation and update bundle
 
