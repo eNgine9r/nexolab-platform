@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified product baseline: `main` at `94d111855e727fd0a74af0618c099b11123348cf`  
-Active Ready Work Package: Issue #189 software-only backup, restore, rollback and recovery evidence  
-Status confidence: high for repository, linux/amd64 CI, local operator authentication and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
+Verified main baseline before this Work Package: `915d4c2c914ae3c3b9ef2b0f6b60fabb18f00a85`  
+Active Work Package: Issue #189 software recovery slice / PR #224  
+Status confidence: high for repository, linux/amd64 CI, encrypted software recovery, local operator authentication and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
 
@@ -27,94 +27,87 @@ Status confidence: high for repository, linux/amd64 CI, local operator authentic
 - PR #216 — fail-closed offline operator authentication.
 - PR #223 — argument-safe disposable DR MinIO credential.
 
-## Issue #188 completed outcome
+## Issue #189 software recovery outcome
 
-Issue #188 / PR #216 was squash-merged as `94d111855e727fd0a74af0618c099b11123348cf`.
+PR #224 extends the canonical encrypted disaster-recovery boundary to the local operator-authentication state introduced by Issue #188.
 
-NEXOLAB now has a fail-closed local identity authority inside Telemetry Service while preserving the provider-neutral JWT, organization-membership, RBAC and immutable audit boundaries.
+Implementation head `9b85ab31d75659c024fc3f1b7191c21628a74728` verified:
 
-Implemented runtime behavior:
+- PostgreSQL, private MinIO objects, Mosquitto Dynamic Security and the local-auth RSA private/public pair are represented as five authoritative recovery assets;
+- passwords, access tokens and refresh tokens remain external to the encrypted bundle;
+- restored Telemetry Service fails closed without the matching signing pair;
+- the restored private/public key fingerprints match before runtime startup;
+- local accounts, organization memberships and refresh-session state survive logical backup and isolated restore;
+- a pre-backup access session and refresh session remain valid after restore;
+- refresh rotation, logout revocation and a new password login work after restore;
+- restored REST and WebSocket paths require and accept the recovered local identity;
+- duplicate post-restore MQTT QoS 1 publishes produce exactly one PostgreSQL row;
+- wrong backup keys and modified ciphertext are rejected;
+- source volumes remain unchanged and restore volumes are fresh;
+- runtime token verification uses a separate UID `10001`, mode `0400` copy while the operator copy remains host-owned mode `0600`;
+- temporary container-owned object files are ownership-normalized only inside the isolated `mktemp` recovery directory before cleanup.
 
-- PostgreSQL local accounts linked to existing security identities and memberships;
-- standard-library `scrypt` password hashes with bounded parameters and malformed-hash rejection;
-- RS256 access JWTs signed only by an externally mounted private key;
-- matching local public-key validation through the existing JWT boundary;
-- opaque refresh tokens with SHA-256 hashes persisted in PostgreSQL;
-- PostgreSQL session identifier validation on every local authenticated request;
-- bounded database-backed failed-login lockout;
-- login, refresh rotation, logout and immediate post-revocation rejection;
-- explicit CLI key generation, account bootstrap, password reset and session revocation;
-- local browser credential provider and generic login page;
-- optional Supabase/external JWT behavior remains isolated and non-mandatory;
-- offline bundle includes the local-auth Compose overlay and operator documentation, but no accounts, passwords or signing keys.
+## Exact implementation-head verification
 
-## Exact-head verification
+The five workflows triggered by the focused diff passed on implementation head `9b85ab31d75659c024fc3f1b7191c21628a74728`:
 
-Final PR head `805d2c1361c42d2017b55c0127fddb95d1da61f5` passed all 19 Pull Request workflows before merge.
-
-Key exact-head runs:
-
-- CI: `30738209087` — changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build passed.
-- Telemetry Service: `30738209102` — PostgreSQL migrations, backend tests, outage recovery, offline migration SQL and container build passed.
-- Offline Auth Acceptance: `30738209088` — migration round-trip, disconnected browser/API authentication, RBAC, refresh/logout/revocation, blocked container egress and persistence recreation passed.
-- Offline Bundle: `30738209124` — linux/amd64 bundle build, archive-only load, `--pull never` startup, smoke checks and update/rollback volume preservation passed.
-- Container Supply Chain, Capacity Release, MQTT TLS Fleet, Device Agent Fleet, Security, Authenticated Dashboard, Nodes, Refrigeration, Sessions, Alerts, Reports and Disaster Recovery acceptance workflows passed.
+- CI run `30741446834` — changed-file formatting, ESLint, strict TypeScript, all Vitest suites and production build passed.
+- Telemetry Service run `30741446799` — migrations, backend tests, outage recovery, offline migration SQL and container build passed.
+- Disaster Recovery Domain Completeness run `30741446796` passed.
+- Disaster Recovery Acceptance run `30741446794` — recovery inventory/policy plus encrypted source-to-fresh-restore application acceptance passed.
+- Offline Bundle run `30741446809` — linux/amd64 bundle build, runtime-image removal, blocked container egress, archive-only load, `--pull never` startup and update/rollback volume preservation passed.
 - Review threads: 0.
 - Submitted reviews: 0.
 
-Primary implementation evidence remains:
+Primary evidence:
 
-- offline-auth artifact ID `8830202764`, digest `sha256:437b86732aaa6dacf9656541a0d0f9f6caeb625f31557e064e458705b47eaccd`;
-- offline-bundle artifact ID `8830269134`, digest `sha256:6d72d2f43872ae3f4a441d0d3d0d3110721eb0c07ba798d72eba9849744d75ce`.
+- disaster-recovery artifact ID `8831439044`, digest `sha256:83430669994463232592e082da339b0c570f6d1baa6bfe6e3910b107ccbc90e8`;
+- offline-bundle artifact ID `8831520725`, digest `sha256:232f61b2c57a2c02fb48d2b183c5d227320627ce9fd683d0745bffa4501521dc`.
 
-Evidence proves:
+The sanitized recovery artifact records:
 
-- migration revision `20260801_0021` upgrades, downgrades to `20260731_0021`, and upgrades again;
-- auth tables are present after upgrade, absent after downgrade, and present after re-upgrade;
-- viewer and operator are denied `audit.read`, administrator is permitted;
-- three accounts and three membership-role bindings retain identical fingerprints through update-style and rollback-style recreation;
-- the same PostgreSQL volume identity is preserved;
-- the access session remains valid through both recreations and returns `401` after logout;
-- audit records identify the local actor and server-side role;
-- Telemetry Service public egress is blocked during acceptance.
+- backup duration: 4 seconds;
+- restore duration: 15 seconds;
+- software RPO: 0 seconds;
+- two restored source telemetry rows and one exactly-once post-restore row;
+- zero dead-letter rows;
+- three private MinIO objects;
+- four restored MQTT identities including a disabled client;
+- one restored local account and one active pre-verification session;
+- authenticated WebSocket handshake;
+- successful refresh rotation, logout revocation and new password login;
+- no source-volume mutation.
+
+The artifact summary identifies GitHub's tested PR merge ref `51943895cc455f68722ac67afc0f420b0afb20da`; the artifact metadata binds that run to source head `9b85ab31d75659c024fc3f1b7191c21628a74728`.
 
 ## Runtime and security boundary
 
-- Production-intended `LOCAL_LAN` authentication is local and fail-closed; `AUTH_MODE=disabled` remains development/isolated-validation only.
-- No password, private signing key, refresh token or production identity is committed or bundled.
-- Core login, session validation and RBAC require no internet, remote JWKS, Supabase or paid service.
-- PostgreSQL availability is required for local session validation and revocation.
-- Signing-key backup and controlled rotation remain operator responsibilities documented in the security runbook.
+- Core recovery requires no internet, remote identity provider or paid runtime service.
+- No password, refresh token, access token or production identity is committed or included in the recovery bundle.
+- The RSA private signing key is included only inside the encrypted recovery payload and remains an operator-controlled secret.
+- PostgreSQL availability remains required for local session validation and immediate revocation.
 - No persistent production volume was deleted.
 - No production/site deployment, Modbus write or hardware action was performed.
 
 ## Open Pull Requests
 
-- #192 — separate draft formatting inventory.
+- #224 — software recovery extension; implementation is verified and project-state finalization is in progress before ready/merge.
+- #192 — separate draft controlled-formatting inventory.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
-## Active Ready Work Package
+## Remaining Issue #189 hardware scope
 
-Issue #189 — prepare and prove the software-only portion of backup, isolated restore, rollback and recovery acceptance.
+The software-only portion is verified. Issue #189 remains open for controlled actual-host evidence:
 
-Allowed immediate scope without Raspberry Pi access:
+- central-host reboot;
+- Raspberry Pi reboot;
+- edge power interruption and SQLite outbox recovery;
+- physical power-loss behavior;
+- actual disk-full/disk-loss behavior;
+- operator-owned physical-media restore.
 
-- fresh logical backup and checksums;
-- isolated PostgreSQL and MinIO restore targets;
-- row, object and relationship comparison;
-- central service restart and readiness recovery;
-- version rollback with named-volume preservation;
-- explicit stale/offline/recovery dashboard states;
-- exact evidence and RPO/RTO observations.
+These results must not be inferred from container evidence.
 
-Actual central-host reboot, Raspberry Pi reboot, edge power interruption and physical power-loss acceptance remain soft-blocked until controlled host access exists. They must not be inferred from container evidence.
+## Next Ready Work Package
 
-## Remaining unverified areas
-
-- linux/arm64 bundle execution on an actual Raspberry Pi 5;
-- physical-media transfer and installation on an operator-owned disconnected host;
-- actual central-host and Raspberry Pi reboot/power interruption;
-- physical disk-full and disk-loss behavior;
-- production/site deployment;
-- Modbus or other hardware writes;
-- full hardware acceptance beyond previously recorded read-only evidence.
+After PR #224 reaches final exact-head GREEN and is merged, continue the next independent Ready maintenance package: Issue #191 / PR #192, the controlled formatting baseline. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
