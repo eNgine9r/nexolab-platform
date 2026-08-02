@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #191.
+No hard blocker prevents completing and merging Issue #193.
 
 Stop before:
 
@@ -21,27 +21,6 @@ Stop before:
 ### N-012A — Software backup, restore and rollback evidence
 
 **Status:** Verified and merged through PR #224 as `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`.
-
-Verified software scope:
-
-- fresh checksummed and encrypted recovery bundle;
-- five authoritative assets: PostgreSQL, private MinIO objects, Mosquitto Dynamic Security, local-auth private key and local-auth public key;
-- fresh-volume PostgreSQL, MinIO and MQTT restore;
-- local account, membership and refresh-session recovery;
-- fail-closed startup without the restored signing pair;
-- matching restored signing pair;
-- pre-backup access and refresh session continuity;
-- refresh rotation, logout revocation and new password login after restore;
-- authenticated REST and WebSocket recovery;
-- exactly-once PostgreSQL persistence after duplicate MQTT QoS 1 publication;
-- wrong-key and ciphertext-tamper rejection;
-- source-volume immutability;
-- disconnected linux/amd64 bundle load/start/update/rollback with container egress blocked.
-
-Evidence:
-
-- Disaster Recovery Acceptance run `30741446794`, artifact `8831439044`, digest `sha256:83430669994463232592e082da339b0c570f6d1baa6bfe6e3910b107ccbc90e8`;
-- Offline Bundle run `30741446809`, artifact `8831520725`, digest `sha256:232f61b2c57a2c02fb48d2b183c5d227320627ce9fd683d0745bffa4501521dc`.
 
 ### N-012B — Actual-host and physical recovery evidence
 
@@ -62,48 +41,53 @@ Do not claim these from container or CI evidence.
 
 ### N-033 — Historical Prettier debt inventory
 
-**Status:** Verified in Issue #191 / PR #192; pending final exact-head CI and merge.
+**Status:** Resolved by Issue #191 / PR #192, merged as `16f1c04616541e7d2391a13eb9eb6b8fb955567c`.
 
-Read-only inventory evidence:
+Verified baseline:
 
-- exact baseline: `main` at `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`;
-- Prettier: `3.9.6`;
-- command: `npm exec prettier -- --list-different .`;
 - exact debt: 46 files;
+- Prettier: `3.9.6`;
 - line endings: 46 LF, 0 CRLF, 0 mixed, 0 lone CR;
 - generated/vendor candidates: 0;
 - justified new `.prettierignore` exclusions: 0;
 - workflow run: `30742515790`;
-- evidence artifact: `8831767220`;
-- artifact digest: `sha256:5d55e49b403eca21dbfa798a360574d383fe3c4f4e27abacc77626aefb4569e7`.
-
-No runtime or source file is reformatted by Issue #191. The temporary inventory workflow was removed before final review.
+- evidence artifact: `8831767220`.
 
 ### N-034 — Controlled formatting child sequence
 
-**Status:** Ready after PR #192 merge.
+**Status:** In progress.
 
-Execution order:
+Issue #193 / PR #225 is verified as formatting-only and pending final exact-head CI and merge.
 
-1. Issue #193 — three documentation files;
-2. Issue #194 — six E2E/root tooling files;
-3. Issue #195 — ten telemetry/dashboard files;
-4. Issue #196 — ten refrigeration domain/repository files;
-5. Issue #197 — seventeen refrigeration UI files after #196.
+Exact Issue #193 scope:
+
+- `docs/operations/capacity-release-gate.md`;
+- `docs/operations/observability.md`;
+- `docs/rs485/evidence-standard.md`.
+
+Evidence:
+
+- Prettier `3.9.6` generation workflow `30742929245` passed;
+- artifact `8831904927`;
+- digest `sha256:e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543`;
+- PR patch review shows Markdown table alignment only;
+- no wording, number, threshold, image tag, command, path or semantic contract changed;
+- temporary generation/write workflow removed before final review.
+
+Remaining sequence after #193:
+
+1. Issue #194 — six E2E/root tooling files;
+2. Issue #195 — ten telemetry/dashboard files;
+3. Issue #196 — ten refrigeration domain/repository files;
+4. Issue #197 — seventeen refrigeration UI files after #196.
 
 Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
 
 ## Next Ready Work Package
 
-### Issue #193 — Format the three historical documentation files
+### Issue #194 — Format E2E tests and root tooling configuration
 
-**Status:** Ready after PR #192 merge.
-
-Exact scope:
-
-- `docs/operations/capacity-release-gate.md`;
-- `docs/operations/observability.md`;
-- `docs/rs485/evidence-standard.md`.
+**Status:** Ready after PR #225 merge.
 
 Do not combine this group with other formatting, feature, reliability or hardware work.
 

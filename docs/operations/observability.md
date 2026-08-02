@@ -22,13 +22,13 @@ The stack is designed for local, offline-first operation. Prometheus, Alertmanag
 
 ## Pinned components
 
-| Component    | Image                          | Purpose                              |
-| ------------ | ------------------------------ | ------------------------------------ |
-| Prometheus   | `prom/prometheus:v3.13.0`      | scrape, recording rules and alerts  |
-| Alertmanager | `prom/alertmanager:v0.32.1`    | grouping, inhibition and delivery   |
-| Grafana      | `grafana/grafana:13.1.0`       | provisioned operator dashboard      |
-| Alert sink   | `python:3.13-alpine`            | local append-only delivery evidence |
-| DR exporter  | `python:3.13-alpine`            | safe Prometheus textfile bridge      |
+| Component    | Image                       | Purpose                             |
+| ------------ | --------------------------- | ----------------------------------- |
+| Prometheus   | `prom/prometheus:v3.13.0`   | scrape, recording rules and alerts  |
+| Alertmanager | `prom/alertmanager:v0.32.1` | grouping, inhibition and delivery   |
+| Grafana      | `grafana/grafana:13.1.0`    | provisioned operator dashboard      |
+| Alert sink   | `python:3.13-alpine`        | local append-only delivery evidence |
+| DR exporter  | `python:3.13-alpine`        | safe Prometheus textfile bridge     |
 
 Image versions are policy-validated. `latest` tags are not accepted.
 
@@ -158,20 +158,20 @@ The build metric uses one bounded `version` label. Do not add node IDs, event ID
 
 These targets are software acceptance values. They are not claims about the final central host, storage, network or alert-delivery provider.
 
-| Signal                                   | Warning            | Critical           |
-| ---------------------------------------- | ------------------ | ------------------ |
-| Telemetry scrape availability            | policy trend       | down for 1 minute  |
-| MQTT subscription                        | —                  | down for 2 minutes |
-| PostgreSQL readiness                     | —                  | down for 2 minutes |
-| Ingestion lag                            | above 30 seconds   | above 120 seconds  |
-| Queue utilization                        | above 70%          | above 90%          |
-| Dropped queue work                       | —                  | any increase       |
-| Persistence failures                     | any increase       | sustained increase |
-| Dead-letter persistence                  | any increase       | burst above policy |
-| Verified backup age                      | above 30 hours     | above 48 hours     |
-| Restore rehearsal age                    | above 35 days      | —                  |
-| Backup destination utilization           | —                  | above 90%          |
-| Alert audit sink                         | —                  | down for 2 minutes |
+| Signal                         | Warning          | Critical           |
+| ------------------------------ | ---------------- | ------------------ |
+| Telemetry scrape availability  | policy trend     | down for 1 minute  |
+| MQTT subscription              | —                | down for 2 minutes |
+| PostgreSQL readiness           | —                | down for 2 minutes |
+| Ingestion lag                  | above 30 seconds | above 120 seconds  |
+| Queue utilization              | above 70%        | above 90%          |
+| Dropped queue work             | —                | any increase       |
+| Persistence failures           | any increase     | sustained increase |
+| Dead-letter persistence        | any increase     | burst above policy |
+| Verified backup age            | above 30 hours   | above 48 hours     |
+| Restore rehearsal age          | above 35 days    | —                  |
+| Backup destination utilization | —                | above 90%          |
+| Alert audit sink               | —                | down for 2 minutes |
 
 ## Disaster-recovery metrics bridge
 

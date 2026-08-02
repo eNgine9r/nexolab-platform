@@ -2,97 +2,59 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-191",
-  "issue": 191,
-  "pull_request": 192,
+  "task": "NEXOLAB-193",
+  "issue": 193,
+  "pull_request": 225,
   "status": "verified_pending_merge",
-  "timestamp": "2026-08-02T12:58:00+03:00",
-  "baseline_main_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
-  "summary": "Rebuilt the historical Prettier debt inventory on the current merged main baseline, reduced the verified backlog from the stale 48-file result to 46 files, updated the affected child Work Package and preserved a documentation-and-state-only final diff.",
+  "timestamp": "2026-08-02T13:16:00+03:00",
+  "baseline_main_sha": "16f1c04616541e7d2391a13eb9eb6b8fb955567c",
+  "summary": "Applied locked Prettier 3.9.6 formatting only to the three historical documentation files assigned to Issue #193, reviewed the exact patches as Markdown table alignment only and removed the temporary generation/write workflow before final CI.",
   "scope_completed": [
-    "reset the existing feature branch to the current main baseline without modifying main",
-    "ran Prettier 3.9.6 in read-only list-different mode against exact main SHA f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
-    "classified all 46 reported paths by review group, extension and line ending",
-    "verified all 46 reported files use LF line endings",
-    "verified no generated, vendored or externally managed file appears in the inventory",
-    "verified no new .prettierignore exclusion is justified",
-    "removed dashboard-shell.tsx and websocket-client.ts from the stale backlog because they are now Prettier-clean",
-    "updated Issue #195 from 12 files to the exact current 10-file scope",
-    "recorded the exact path inventory in docs/maintenance/prettier-baseline.md",
-    "removed the temporary inventory workflow before final review",
+    "created feature branch chore/193-format-documentation from exact main SHA 16f1c04616541e7d2391a13eb9eb6b8fb955567c",
+    "generated formatted copies for the three exact Issue #193 paths with Prettier 3.9.6",
+    "captured separate patches and SHA-256 digests in a workflow artifact",
+    "reviewed every patch and confirmed only Markdown table alignment changed",
+    "applied formatting through an allowlisted workflow that rejected unexpected changed paths",
+    "removed the temporary generation/write workflow from the final diff",
     "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "files_changed": [
-    "docs/maintenance/prettier-baseline.md",
+    "docs/operations/capacity-release-gate.md",
+    "docs/operations/observability.md",
+    "docs/rs485/evidence-standard.md",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
   "checks_actually_run": [
-    "Prettier Inventory workflow run 30742515790 passed dependency installation, Prettier version capture, read-only list-different inventory generation, line-ending classification and artifact upload",
-    "the inventory checked out exact main SHA f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
-    "artifact inspection confirmed 46 paths, 46 LF line endings, zero generated/vendor candidates and no justified new ignore rules",
-    "temporary inventory workflow was removed before the final diff",
-    "final exact-head standard CI remains pending after state finalization"
+    "Prettier Documentation 193 generation workflow run 30742929245 passed dependency installation, Prettier 3.9.6 write/check, patch generation, file hashing and artifact upload",
+    "artifact patch inspection confirmed Markdown table alignment only",
+    "allowlisted write workflow run 30743063830 passed exact-path Prettier write/check, unexpected-path rejection, git diff --check and feature-branch commit",
+    "temporary workflow removed before final review",
+    "final exact-head standard CI remains pending after project-state updates"
   ],
-  "inventory_evidence": {
-    "base_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
+  "formatting_evidence": {
     "prettier_version": "3.9.6",
-    "command": "npm exec prettier -- --list-different .",
-    "file_count": 46,
-    "line_endings": {
-      "lf": 46,
-      "crlf": 0,
-      "mixed": 0,
-      "cr": 0
+    "generation_workflow_run": 30742929245,
+    "apply_workflow_run": 30743063830,
+    "artifact_id": 8831904927,
+    "artifact_sha256": "e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543",
+    "formatted_file_sha256": {
+      "docs/operations/capacity-release-gate.md": "fa3bdc6acd8f82314aab93bd55b806859c1099cd330b81809b244306623e41a0",
+      "docs/operations/observability.md": "1105f999807c3acd95d190461d164f487b5c2fab987acfec516fcc37e9bb09c2",
+      "docs/rs485/evidence-standard.md": "f8ec6f1fcdba25f36daf0bdf929509de91a1bee7e3bca34d93884e94b21fa251"
     },
-    "extensions": {
-      ".md": 3,
-      ".mjs": 1,
-      ".ts": 21,
-      ".tsx": 21
-    },
-    "generated_vendor_candidates": 0,
-    "new_ignore_candidates": 0,
-    "workflow_run": 30742515790,
-    "artifact_id": 8831767220,
-    "artifact_sha256": "5d55e49b403eca21dbfa798a360574d383fe3c4f4e27abacc77626aefb4569e7"
+    "patch_review": "markdown_table_alignment_only",
+    "wording_changed": false,
+    "numbers_changed": false,
+    "thresholds_changed": false,
+    "commands_changed": false,
+    "contracts_changed": false,
+    "temporary_workflow_removed": true
   },
-  "formatting_groups": [
-    {
-      "issue": 193,
-      "title": "Format the three historical documentation files",
-      "file_count": 3,
-      "status": "ready_after_191_merge"
-    },
-    {
-      "issue": 194,
-      "title": "Format E2E tests and root tooling configuration",
-      "file_count": 6,
-      "status": "queued"
-    },
-    {
-      "issue": 195,
-      "title": "Format telemetry and dashboard frontend files",
-      "file_count": 10,
-      "status": "queued"
-    },
-    {
-      "issue": 196,
-      "title": "Format refrigeration domain and repository files",
-      "file_count": 10,
-      "status": "queued"
-    },
-    {
-      "issue": 197,
-      "title": "Format refrigeration UI component files",
-      "file_count": 17,
-      "status": "blocked_by_196"
-    }
-  ],
   "runtime_and_offline_evidence": [
-    "not applicable: this Work Package changes maintenance documentation and project state only",
+    "not applicable: this Work Package changes documentation formatting and project state only",
     "no runtime, deployment, data, network, authentication or hardware path was modified"
   ],
   "hardware_evidence": {
@@ -109,14 +71,14 @@
     "review-thread and review-submission check"
   ],
   "open_risks": [
-    "the repository-wide Prettier debt remains until child Issues #193-#197 are completed",
+    "43 paths remain in the historical Prettier backlog after Issue #193",
     "formatting child Pull Requests must not mix behavior changes, refactoring or dependency upgrades",
     "Issue #197 must remain blocked until Issue #196 is merged",
     "Issue #189 physical recovery evidence remains unverified"
   ],
   "next_ready_work_package": {
-    "issue": 193,
-    "title": "Format the three historical documentation files",
-    "instruction": "After PR #192 reaches final exact-head GREEN and is merged, format only the three exact documentation paths listed in Issue #193, run targeted Prettier and standard CI, update state and merge independently."
+    "issue": 194,
+    "title": "Format E2E tests and root tooling configuration",
+    "instruction": "After PR #225 reaches final exact-head GREEN and is merged, format only the six exact paths listed in Issue #194, verify no test logic or tooling behavior changes, update state and merge independently."
   }
 }

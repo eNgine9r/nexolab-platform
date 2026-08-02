@@ -10,17 +10,17 @@ It does not require Raspberry Pi, RS-485 devices, Tailscale, the laboratory netw
 
 The canonical policy is `infrastructure/performance/release-workload.v1.yaml`.
 
-| Phase | Contract |
-| --- | --- |
-| Topology | 6 simulated nodes, 8 streams each, 48 total streams |
-| Steady state | 48 events/s for 60 s; exactly 2,880 persisted events |
-| Steady latency | capture-to-persistence p95 ≤ 3 s |
-| Queue | maximum utilization < 70% during steady traffic |
-| Replay | 5,000 valid events; drain ≤ 120 s |
-| Idempotency | replay all 5,000 event IDs again; zero new rows |
-| REST | bounded concurrent latest/history queries with p95 limits of 1 s / 2 s |
-| WebSocket | 20 conforming clients; 96 expected events per client; zero loss |
-| Recovery | stop PostgreSQL, retain 240 accepted events, restart and drain while 48 live events continue |
+| Phase          | Contract                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Topology       | 6 simulated nodes, 8 streams each, 48 total streams                                          |
+| Steady state   | 48 events/s for 60 s; exactly 2,880 persisted events                                         |
+| Steady latency | capture-to-persistence p95 ≤ 3 s                                                             |
+| Queue          | maximum utilization < 70% during steady traffic                                              |
+| Replay         | 5,000 valid events; drain ≤ 120 s                                                            |
+| Idempotency    | replay all 5,000 event IDs again; zero new rows                                              |
+| REST           | bounded concurrent latest/history queries with p95 limits of 1 s / 2 s                       |
+| WebSocket      | 20 conforming clients; 96 expected events per client; zero loss                              |
+| Recovery       | stop PostgreSQL, retain 240 accepted events, restart and drain while 48 live events continue |
 
 Policy changes must remain explicit and reviewed. The validator rejects unknown fields, inconsistent event counts, weakened latency bounds, incomplete duplicate replay and unbounded runtime/evidence settings.
 

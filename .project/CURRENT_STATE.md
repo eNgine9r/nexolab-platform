@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-02  
-Verified main baseline: `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`  
-Active Work Package: Issue #191 / PR #192 — inventory and partition historical Prettier debt  
-Status confidence: high for repository state, current Prettier inventory, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
+Verified main baseline: `16f1c04616541e7d2391a13eb9eb6b8fb955567c`  
+Active Work Package: Issue #193 / PR #225 — format the three historical documentation files  
+Status confidence: high for repository state, formatting-only evidence, current Prettier inventory, linux/amd64 CI, encrypted software recovery and disconnected-container evidence; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and hardware acceptance.
 
 ## Profile
 
@@ -26,7 +26,8 @@ Status confidence: high for repository state, current Prettier inventory, linux/
 - PR #215 — verified offline installation/update bundle.
 - PR #216 — fail-closed offline operator authentication.
 - PR #223 — argument-safe disposable DR MinIO credential.
-- PR #224 — encrypted local-auth disaster-recovery extension, merged as `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`.
+- PR #224 — encrypted local-auth disaster-recovery extension.
+- PR #192 — exact 46-file historical Prettier inventory, merged as `16f1c04616541e7d2391a13eb9eb6b8fb955567c`.
 
 ## Issue #189 remaining boundary
 
@@ -41,32 +42,11 @@ The software-only recovery portion is verified and merged. Issue #189 remains op
 
 These outcomes must not be inferred from container evidence.
 
-## Issue #191 Prettier inventory outcome
+## Formatting maintenance baseline
 
-PR #192 was rebuilt on current `main` instead of relying on its stale July baseline.
+Issue #191 established an exact Prettier `3.9.6` debt inventory of 46 files on `main` SHA `f54cd7b6f6db580f3931a40889f5b4e33af3cc30`.
 
-Read-only workflow run `30742515790` checked out exact `main` SHA `f54cd7b6f6db580f3931a40889f5b4e33af3cc30` and executed Prettier `3.9.6` with:
-
-```text
-npm exec prettier -- --list-different .
-```
-
-Verified result:
-
-- exact historical debt: **46 files**;
-- line endings: **46 LF**, 0 CRLF, 0 mixed, 0 lone CR;
-- extension distribution: 3 Markdown, 1 MJS, 21 TypeScript and 21 TSX;
-- generated/vendor candidates: 0;
-- new `.prettierignore` exclusions justified: 0;
-- evidence artifact ID: `8831767220`;
-- artifact digest: `sha256:5d55e49b403eca21dbfa798a360574d383fe3c4f4e27abacc77626aefb4569e7`.
-
-The prior 48-file inventory is stale. These two files are now Prettier-clean and were removed from the backlog:
-
-- `src/components/dashboard/dashboard-shell.tsx`;
-- `src/lib/telemetry/websocket-client.ts`.
-
-Current focused groups:
+The formatting sequence remains split into focused Work Packages:
 
 - Issue #193 — documentation: 3 files;
 - Issue #194 — E2E/root tooling: 6 files;
@@ -74,13 +54,34 @@ Current focused groups:
 - Issue #196 — refrigeration domain/repositories: 10 files;
 - Issue #197 — refrigeration UI: 17 files, depends on #196.
 
-The durable exact path inventory is `docs/maintenance/prettier-baseline.md`. The temporary inventory workflow is removed before final review. No runtime/source file is reformatted in Issue #191.
+## Issue #193 outcome
+
+PR #225 applies Prettier only to:
+
+- `docs/operations/capacity-release-gate.md`;
+- `docs/operations/observability.md`;
+- `docs/rs485/evidence-standard.md`.
+
+Verified evidence:
+
+- Prettier version: `3.9.6`;
+- generation workflow: `30742929245`;
+- evidence artifact: `8831904927`;
+- artifact digest: `sha256:e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543`;
+- formatted file digests:
+  - capacity release Gate: `fa3bdc6acd8f82314aab93bd55b806859c1099cd330b81809b244306623e41a0`;
+  - observability runbook: `1105f999807c3acd95d190461d164f487b5c2fab987acfec516fcc37e9bb09c2`;
+  - RS-485 evidence standard: `f8ec6f1fcdba25f36daf0bdf929509de91a1bee7e3bca34d93884e94b21fa251`.
+
+Patch review confirms only Markdown table alignment changed. No wording, number, threshold, image tag, command, path, contract or safety statement changed. The temporary generation/write workflow was removed before final review.
+
+No runtime, source, configuration, dependency, `.prettierignore`, production data, hardware or Modbus path changed. After these three files are merged, 43 paths remain in the recorded historical formatting backlog.
 
 ## Open Pull Requests
 
-- #192 — refreshed controlled Prettier inventory and project-state finalization.
+- #225 — formatting-only documentation Work Package; project-state finalization and exact-head CI are in progress.
 - #217–#221 — queued Dependabot workflow-runtime updates; separate maintenance scope.
 
 ## Next Ready Work Package
 
-After PR #192 reaches final exact-head GREEN and is merged, start Issue #193: format only the three inventoried documentation files. Do not combine formatting groups or product changes. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
+After PR #225 reaches final exact-head GREEN and is merged, start Issue #194: format only the six inventoried E2E/root tooling files. Do not combine formatting groups or product changes. Hardware Issues #200–#202 remain blocked pending read-only physical evidence.
