@@ -50,54 +50,68 @@ jobs:
             node - "$output" "$@" <<'NODE'
           const crypto = require("node:crypto");
           const fs = require("node:fs");
+          const prettier = require("prettier");
           const ts = require("typescript");
 
-          const [output, ...files] = process.argv.slice(2);
-          const analysis = {};
-          for (const file of files) {
-            const source = fs.readFileSync(file, "utf8");
-            const transpiled = ts.transpileModule(source, {
-              fileName: file,
-              reportDiagnostics: true,
-              compilerOptions: {
-                target: ts.ScriptTarget.ES2022,
-                module: ts.ModuleKind.ESNext,
-                jsx: ts.JsxEmit.ReactJSX,
-                isolatedModules: true,
-                removeComments: true,
-              },
-            });
-            const errors = (transpiled.diagnostics ?? []).filter(
-              (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
-            );
-            if (errors.length > 0) {
-              throw new Error(
-                `${file} transpile diagnostics: ${errors
-                  .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
-                  .join(" | ")}`,
+          async function main() {
+            const [output, ...files] = process.argv.slice(2);
+            const analysis = {};
+            for (const file of files) {
+              const source = fs.readFileSync(file, "utf8");
+              const transpiled = ts.transpileModule(source, {
+                fileName: file,
+                reportDiagnostics: true,
+                compilerOptions: {
+                  target: ts.ScriptTarget.ES2022,
+                  module: ts.ModuleKind.ESNext,
+                  jsx: ts.JsxEmit.ReactJSX,
+                  isolatedModules: true,
+                  removeComments: true,
+                },
+              });
+              const errors = (transpiled.diagnostics ?? []).filter(
+                (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
               );
-            }
-            const scanner = ts.createScanner(
-              ts.ScriptTarget.Latest,
-              false,
-              ts.LanguageVariant.Standard,
-              source,
-            );
-            const comments = [];
-            for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
-              if (
-                token === ts.SyntaxKind.SingleLineCommentTrivia ||
-                token === ts.SyntaxKind.MultiLineCommentTrivia
-              ) {
-                comments.push(scanner.getTokenText());
+              if (errors.length > 0) {
+                throw new Error(
+                  `${file} transpile diagnostics: ${errors
+                    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
+                    .join(" | ")}`,
+                );
               }
+              const canonicalOutput = await prettier.format(transpiled.outputText, {
+                parser: "babel",
+              });
+              const scanner = ts.createScanner(
+                ts.ScriptTarget.Latest,
+                false,
+                ts.LanguageVariant.Standard,
+                source,
+              );
+              const comments = [];
+              for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+                if (
+                  token === ts.SyntaxKind.SingleLineCommentTrivia ||
+                  token === ts.SyntaxKind.MultiLineCommentTrivia
+                ) {
+                  comments.push(scanner.getTokenText());
+                }
+              }
+              analysis[file] = {
+                canonical_transpiled_sha256: crypto
+                  .createHash("sha256")
+                  .update(canonicalOutput)
+                  .digest("hex"),
+                comments,
+              };
             }
-            analysis[file] = {
-              transpiled_sha256: crypto.createHash("sha256").update(transpiled.outputText).digest("hex"),
-              comments,
-            };
+            fs.writeFileSync(output, `${JSON.stringify(analysis, null, 2)}\n`, "utf8");
           }
-          fs.writeFileSync(output, `${JSON.stringify(analysis, null, 2)}\n`, "utf8");
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
           NODE
           }
 
