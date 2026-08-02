@@ -94,8 +94,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   const [lifecycleOpen, setLifecycleOpen] = useState(false);
 
-  const effectiveLifecycleRepository =
-    sensorConfigurationRepository ?? lifecycleRepository;
+  const effectiveLifecycleRepository = sensorConfigurationRepository ?? lifecycleRepository;
   const effectiveChannels = availableSensors ?? channels;
   const externallyReadOnly = forceReadOnly || canManageEquipment === false;
 
@@ -142,9 +141,8 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         return;
       }
       const selectedMembership =
-        result.value.memberships.find(
-          (item) => item.organizationId === runtime.organizationId,
-        ) ?? result.value.memberships[0];
+        result.value.memberships.find((item) => item.organizationId === runtime.organizationId) ??
+        result.value.memberships[0];
       if (!selectedMembership) {
         setSecurityState("error");
         setSecurityError("Користувач не має активного членства в організації NEXOLAB.");
@@ -165,8 +163,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     };
   }, [runtime]);
 
-  const liveRuntimeUnavailable =
-    runtime.mode === "live" && (!runtime.sessionClient || !layoutRepository);
+  const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !layoutRepository);
   if (liveRuntimeUnavailable) {
     return (
       <div
@@ -208,10 +205,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     onConfigurationSaved?.();
   };
   const workspaceToolbar = (
-    <div
-      className="flex items-center justify-end gap-1.5"
-      aria-label="Інструменти робочої області"
-    >
+    <div className="flex items-center justify-end gap-1.5" aria-label="Інструменти робочої області">
       {toolbarTools}
 
       <details className="group relative">
@@ -233,13 +227,9 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           ) : session && membership ? (
             <>
               <p className="truncate text-[10px] font-semibold text-white">
-                {session.identity.displayName ??
-                  session.identity.email ??
-                  session.identity.subject}
+                {session.identity.displayName ?? session.identity.email ?? session.identity.subject}
               </p>
-              <p className="mt-1 truncate text-[9px] text-emerald-200/70">
-                {membership.organizationName}
-              </p>
+              <p className="mt-1 truncate text-[9px] text-emerald-200/70">{membership.organizationName}</p>
               <div className="mt-2 flex flex-wrap gap-1">
                 {membership.roles.map((role) => (
                   <span
@@ -355,7 +345,10 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
               <div className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-200">
                 <History className="h-4 w-4" />
               </div>
-              <h2 id="layout-lifecycle-title" className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+              <h2
+                id="layout-lifecycle-title"
+                className="min-w-0 flex-1 truncate text-sm font-semibold text-white"
+              >
                 Версії та публікація схеми
               </h2>
               <button

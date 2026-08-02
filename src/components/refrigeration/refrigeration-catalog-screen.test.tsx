@@ -63,9 +63,7 @@ const lifecycleRepository: EquipmentLifecycleRepository = {
 };
 
 function runtime(): RefrigerationEquipmentRuntime {
-  const equipmentRepository = new InMemoryRefrigerationEquipmentRepository(
-    refrigerationEquipment,
-  );
+  const equipmentRepository = new InMemoryRefrigerationEquipmentRepository(refrigerationEquipment);
   return {
     mode: "demo",
     repository: equipmentRepository,
@@ -80,9 +78,7 @@ function runtime(): RefrigerationEquipmentRuntime {
 
 async function selectClimateChamber() {
   await waitFor(() =>
-    expect(
-      screen.getByRole("option", { name: /Кліматична камера КК2/ }),
-    ).toBeInTheDocument(),
+    expect(screen.getByRole("option", { name: /Кліматична камера КК2/ })).toBeInTheDocument(),
   );
   fireEvent.change(screen.getByLabelText(/^Кліматична камера/), {
     target: { value: "kk2" },
@@ -135,9 +131,7 @@ describe("RefrigerationCatalogScreen", () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Додати холодильне обладнання" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Додати холодильне обладнання" }));
     expect(screen.getByText(/Спочатку оберіть кліматичну камеру/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
 
@@ -172,9 +166,7 @@ describe("RefrigerationCatalogScreen", () => {
 
     expect(await screen.findByText("Вітрина №108-01")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("додано до каталогу");
-    expect(
-      screen.getByRole("link", { name: "Відкрити Вітрина №108-01" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Відкрити Вітрина №108-01" })).toBeInTheDocument();
   });
 
   it("creates an independent copy only after selecting its climate chamber", async () => {
@@ -184,14 +176,10 @@ describe("RefrigerationCatalogScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: `Копіювати ${source.name}` }));
 
-    expect(
-      screen.getByRole("heading", { name: "Копія холодильного обладнання" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Копія холодильного обладнання" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Кліматична камера/)).toHaveValue("");
     expect(screen.getByLabelText(/^Назва/)).toBeDisabled();
-    expect(
-      screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/датчики, фото, схеми, історія й аудит не копіюються/i)).toBeInTheDocument();
 
     await selectClimateChamber();
     expect(screen.getByLabelText(/^Назва/)).toHaveValue(`${source.name} — копія`);
@@ -204,24 +192,18 @@ describe("RefrigerationCatalogScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Створити копію" }));
 
     expect(await screen.findByText(`${source.name} — копія`)).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "створено як незалежну копію",
-    );
+    expect(screen.getByRole("status")).toHaveTextContent("створено як незалежну копію");
   });
 
   it("deletes equipment through the destructive confirmation dialog", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Видалити Вітрина №106-01" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Видалити Вітрина №106-01" }));
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Видалити" }));
 
-    await waitFor(() =>
-      expect(screen.queryByText("Вітрина №106-01")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText("Вітрина №106-01")).not.toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent("видалено з каталогу");
   });
 });

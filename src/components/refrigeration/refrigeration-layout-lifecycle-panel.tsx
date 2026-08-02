@@ -223,9 +223,7 @@ export function RefrigerationLayoutLifecyclePanel({
                   onChange={uploadPhoto}
                 />
                 <RefrigerationIconButton
-                  label={
-                    draft.image ? "Замінити production-фото" : "Завантажити production-фото"
-                  }
+                  label={draft.image ? "Замінити production-фото" : "Завантажити production-фото"}
                   onClick={() => photoInput.current?.click()}
                   disabled={action !== "idle" || mode === "edit"}
                   tone="info"
@@ -260,10 +258,7 @@ export function RefrigerationLayoutLifecyclePanel({
                 label="Опублікувати поточну чернетку"
                 onClick={() => void publish()}
                 disabled={
-                  action !== "idle" ||
-                  mode === "edit" ||
-                  !draft.imageId ||
-                  draft.placements.length === 0
+                  action !== "idle" || mode === "edit" || !draft.imageId || draft.placements.length === 0
                 }
                 tone="success"
               >

@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #196.
+No hard blocker prevents completing and merging Issue #197.
 
 Stop before:
 
@@ -47,54 +47,48 @@ Verified baseline:
 
 - exact debt: 46 files;
 - Prettier: `3.9.6`;
-- line endings: 46 LF, 0 CRLF, 0 mixed, 0 lone CR;
 - generated/vendor candidates: 0;
 - justified new `.prettierignore` exclusions: 0.
 
 ### N-034 — Controlled formatting child sequence
 
-**Status:** In progress.
+**Status:** Final child in progress.
 
 Completed:
 
 - Issue #193 / PR #225 — 3 documentation files;
 - Issue #194 / PR #226 — 6 E2E/root tooling files;
-- Issue #195 / PR #227 — 10 telemetry/dashboard files, merged as `c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c`.
+- Issue #195 / PR #227 — 10 telemetry/dashboard files;
+- Issue #196 / PR #228 — 10 refrigeration domain/repository files, merged as `402df05d516af08f1d001e3b80bcb174c33197e0`.
 
-Issue #196 / PR #228 is formatting-only and pending final exact-head CI after project-state updates.
+Issue #197 / PR #229 is formatting-only and pending final exact-head CI after project-state updates.
 
-Verified Issue #196 evidence:
+Verified Issue #197 evidence:
 
-- exact scope: 10 refrigeration domain/repository paths;
-- Prettier generation workflow `30748758550`;
-- artifact `8833742334`;
-- digest `sha256:7b0a538fec903beb1e2440422a7abbcbcf7cea1a48103e74d894259e0690e56f`;
-- verified staging workflow `30748882865` passed;
-- source AST remained identical;
-- transpiled runtime AST remained identical;
-- exact comment-token sequences remained identical;
-- targeted climate catalog repository, layout draft storage and sensor placement management tests passed;
-- all ten patches were reviewed;
-- REST paths and methods, request payloads, `If-Match`, `X-Audit-Reason`, ETag/version handling, validation predicates, identifiers, error strings and assertions are unchanged;
-- clean commit `24eb015513f28780fcf1d1ee919ef1db41908e72` was created directly from merged `main` using only verified formatted blob SHA values;
-- final source diff contains exactly the ten allowlisted files before mandatory state updates;
-- temporary generation/write workflow is absent from final branch history and diff.
+- exact scope: 17 refrigeration UI/component paths;
+- initial fail-closed semantic workflow `30749791642` stopped before source commit;
+- diagnostic workflow `30749858956`, artifact `8834080073`, digest `sha256:85967a8a6039585559511bccc86c1d053e2e51432ddff17faf1030693ae0f727`;
+- verified semantic workflow `30749965825`, artifact `8834113947`, digest `sha256:b79c4aa42a7a6bbeec9de6f0f45a228794ce46e8c6ac22c8610839c6731c822f`;
+- staging workflow `30750064883` passed exact artifact hash and allowlist checks;
+- TSX structural AST, JSX text slots, direct `className` utility-token sets and exact comment sequences remained identical;
+- targeted catalog, detail, layout editor and sensor-placement tests passed;
+- all 17 patches were reviewed;
+- ARIA labels, visible text, icons, coordinates, handlers, conditions and assertions are unchanged;
+- clean commit `35fc2d51c5b6d1c794c81cc1488e97a73043e683` was created directly from merged `main` using only verified formatted blob SHA values;
+- final source diff contains exactly the 17 allowlisted files before mandatory state updates;
+- all temporary diagnostic/evidence/staging workflows are absent from final branch history and diff.
 
-No behavior, schema, migration, dependency, UI, deployment, hardware or Modbus change is included.
+No product redesign, defect fix, refactor, dependency, runtime, deployment, hardware or Modbus change is included.
 
-Remaining sequence after #196:
-
-1. Issue #197 — 17 refrigeration UI files.
-
-Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
+After #197, zero paths remain in the 46-file historical formatting inventory.
 
 ## Next Ready Work Package
 
-### Issue #197 — Format refrigeration UI component files
+### Parent Issue #185 — Final Prettier zero-difference verification
 
-**Status:** Ready after PR #228 merge.
+**Status:** Ready after PR #229 merge.
 
-Do not combine this group with product fixes, domain/repository changes, schema changes, dependencies, deployment or hardware work.
+Run locked repository-wide Prettier verification, prove zero remaining differences, update project state and close parent #185. Do not mix dependency, feature, refactor or deployment work into the closure gate.
 
 ## Open operational and hardware risks
 

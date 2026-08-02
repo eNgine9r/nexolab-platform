@@ -7,25 +7,9 @@ import type {
   SyntheticEvent,
 } from "react";
 import Image from "next/image";
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { clsx } from "clsx";
-import {
-  Expand,
-  ImageIcon,
-  Maximize2,
-  Minimize2,
-  Minus,
-  Plus,
-  Scan,
-  Shrink,
-} from "lucide-react";
+import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Plus, Scan, Shrink } from "lucide-react";
 
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
 import type { LayoutPlacement, SnapMode } from "@/features/refrigeration/layout-editor";
@@ -41,14 +25,8 @@ type RefrigerationImageCanvasProps = {
   snapMode: SnapMode;
   stageRef: RefObject<HTMLDivElement | null>;
   onSelect: (sensorId: string) => void;
-  onMarkerKeyDown: (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => void;
-  onMarkerPointerDown: (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => void;
+  onMarkerKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => void;
+  onMarkerPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => void;
   onMarkerPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onMarkerPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onImageDimensions: (widthPx: number, heightPx: number) => void;
@@ -86,27 +64,18 @@ export function RefrigerationImageCanvas({
   const [fullscreen, setFullscreen] = useState(false);
 
   const subscribeToScale = useCallback(
-    (onStoreChange: () => void) =>
-      subscribeToStoredScale(equipmentId, onStoreChange),
+    (onStoreChange: () => void) => subscribeToStoredScale(equipmentId, onStoreChange),
     [equipmentId],
   );
-  const getScaleSnapshot = useCallback(
-    () => readStoredScale(equipmentId),
-    [equipmentId],
-  );
-  const scalePercent = useSyncExternalStore(
-    subscribeToScale,
-    getScaleSnapshot,
-    getDefaultScaleSnapshot,
-  );
+  const getScaleSnapshot = useCallback(() => readStoredScale(equipmentId), [equipmentId]);
+  const scalePercent = useSyncExternalStore(subscribeToScale, getScaleSnapshot, getDefaultScaleSnapshot);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       setFullscreen(document.fullscreenElement === workspaceRef.current);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   useEffect(() => {
@@ -144,15 +113,10 @@ export function RefrigerationImageCanvas({
   };
 
   const aspectRatio =
-    image && image.widthPx > 0 && image.heightPx > 0
-      ? `${image.widthPx} / ${image.heightPx}`
-      : "16 / 10";
+    image && image.widthPx > 0 && image.heightPx > 0 ? `${image.widthPx} / ${image.heightPx}` : "16 / 10";
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
-    onImageDimensions(
-      event.currentTarget.naturalWidth,
-      event.currentTarget.naturalHeight,
-    );
+    onImageDimensions(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight);
   };
 
   return (
@@ -162,10 +126,7 @@ export function RefrigerationImageCanvas({
       data-expanded={expanded}
       data-fullscreen={fullscreen}
       data-fit-contour={fitContour}
-      className={clsx(
-        "space-y-2",
-        fullscreen && "h-screen overflow-hidden bg-[#06142a] p-3 text-slate-100",
-      )}
+      className={clsx("space-y-2", fullscreen && "h-screen overflow-hidden bg-[#06142a] p-3 text-slate-100")}
     >
       <div className="flex items-center justify-end gap-1.5">
         <div
@@ -201,7 +162,7 @@ export function RefrigerationImageCanvas({
           />
           <output
             htmlFor={sliderId}
-            className="min-w-8 text-right text-[9px] font-semibold tabular-nums text-cyan-200"
+            className="min-w-8 text-right text-[9px] font-semibold text-cyan-200 tabular-nums"
             aria-live="polite"
           >
             {scalePercent}%
@@ -226,8 +187,7 @@ export function RefrigerationImageCanvas({
             onClick={() => setFitContour((current) => !current)}
             className={clsx(
               smallButtonClass,
-              fitContour &&
-                "border-cyan-300/25 bg-cyan-400/15 text-cyan-100",
+              fitContour && "border-cyan-300/25 bg-cyan-400/15 text-cyan-100",
             )}
           >
             <Scan className="h-3.5 w-3.5" />
@@ -236,37 +196,23 @@ export function RefrigerationImageCanvas({
 
         <button
           type="button"
-          aria-label={
-            expanded ? "Звичайний розмір підкладки" : "Збільшити підкладку"
-          }
+          aria-label={expanded ? "Звичайний розмір підкладки" : "Збільшити підкладку"}
           title={expanded ? "Звичайний розмір" : "Розгорнути"}
           aria-pressed={expanded}
           onClick={() => setExpanded((current) => !current)}
           className={toolbarButtonClass}
         >
-          {expanded ? (
-            <Shrink className="h-3.5 w-3.5" />
-          ) : (
-            <Expand className="h-3.5 w-3.5" />
-          )}
+          {expanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
         </button>
 
         <button
           type="button"
-          aria-label={
-            fullscreen
-              ? "Вийти з повноекранного режиму"
-              : "Відкрити підкладку на повний екран"
-          }
+          aria-label={fullscreen ? "Вийти з повноекранного режиму" : "Відкрити підкладку на повний екран"}
           title={fullscreen ? "Вийти з повного екрана" : "Повний екран"}
           onClick={() => void toggleFullscreen()}
           className={toolbarButtonClass}
         >
-          {fullscreen ? (
-            <Minimize2 className="h-3.5 w-3.5" />
-          ) : (
-            <Maximize2 className="h-3.5 w-3.5" />
-          )}
+          {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
       </div>
 
@@ -285,12 +231,7 @@ export function RefrigerationImageCanvas({
           mode === "edit" && "ring-1 ring-blue-400/30",
         )}
       >
-        <div
-          className={clsx(
-            "relative",
-            fitContour ? "h-full w-full" : "min-h-full min-w-full p-3",
-          )}
-        >
+        <div className={clsx("relative", fitContour ? "h-full w-full" : "min-h-full min-w-full p-3")}>
           <div
             ref={stageRef}
             data-testid="equipment-image-stage"
@@ -319,10 +260,7 @@ export function RefrigerationImageCanvas({
                   unoptimized
                   draggable={false}
                   sizes="(min-width: 1536px) 1700px, 98vw"
-                  className={clsx(
-                    "select-none",
-                    fitContour ? "object-fill" : "object-contain",
-                  )}
+                  className={clsx("select-none", fitContour ? "object-fill" : "object-contain")}
                   onLoad={handleImageLoad}
                 />
               ) : (
@@ -335,10 +273,7 @@ export function RefrigerationImageCanvas({
               <div className="pointer-events-none absolute inset-0 z-20 rounded-lg bg-[linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] bg-[size:2.5%_2.5%]" />
             ) : null}
 
-            <div
-              data-testid="sensor-marker-layer"
-              className="pointer-events-none absolute inset-0 z-40"
-            >
+            <div data-testid="sensor-marker-layer" className="pointer-events-none absolute inset-0 z-40">
               {visibleSensors.map((sensor) => {
                 const placement = placementBySensorId.get(sensor.id);
                 if (!placement) return null;
@@ -353,17 +288,14 @@ export function RefrigerationImageCanvas({
                     data-y={placement.y.toFixed(4)}
                     onClick={() => onSelect(sensor.id)}
                     onKeyDown={(event) => onMarkerKeyDown(event, sensor.id)}
-                    onPointerDown={(event) =>
-                      onMarkerPointerDown(event, sensor.id)
-                    }
+                    onPointerDown={(event) => onMarkerPointerDown(event, sensor.id)}
                     onPointerMove={onMarkerPointerMove}
                     onPointerUp={onMarkerPointerUp}
                     onPointerCancel={onMarkerPointerUp}
                     className={clsx(
                       "pointer-events-auto absolute z-0 min-w-10 -translate-x-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-center text-[8px] leading-tight font-bold backdrop-blur-md transition-[transform,box-shadow] focus:z-20 focus:ring-2 focus:ring-cyan-200 focus:outline-none",
                       markerTone[sensor.status],
-                      sensor.id === selectedId &&
-                        "z-20 scale-110 ring-2 ring-white/90",
+                      sensor.id === selectedId && "z-20 scale-110 ring-2 ring-white/90",
                       mode === "edit"
                         ? "cursor-grab touch-none hover:z-20 hover:scale-110 active:cursor-grabbing"
                         : "cursor-pointer hover:z-20 hover:scale-110",
@@ -374,9 +306,7 @@ export function RefrigerationImageCanvas({
                     }}
                   >
                     <span className="block">{sensor.label}</span>
-                    <span className="block font-semibold">
-                      {formatTemperature(sensor.temperatureC)}
-                    </span>
+                    <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
                   </button>
                 );
               })}
@@ -395,9 +325,7 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
           <ImageIcon className="h-6 w-6" />
         </div>
-        <p className="mt-3 text-xs font-medium text-slate-300">
-          Фото {equipmentName} не завантажено
-        </p>
+        <p className="mt-3 text-xs font-medium text-slate-300">Фото {equipmentName} не завантажено</p>
       </div>
     </div>
   );
@@ -407,10 +335,7 @@ function clampScale(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_SCALE_PERCENT;
   return Math.min(
     MAX_SCALE_PERCENT,
-    Math.max(
-      MIN_SCALE_PERCENT,
-      Math.round(value / SCALE_STEP_PERCENT) * SCALE_STEP_PERCENT,
-    ),
+    Math.max(MIN_SCALE_PERCENT, Math.round(value / SCALE_STEP_PERCENT) * SCALE_STEP_PERCENT),
   );
 }
 
@@ -418,10 +343,7 @@ function getDefaultScaleSnapshot(): number {
   return DEFAULT_SCALE_PERCENT;
 }
 
-function subscribeToStoredScale(
-  equipmentId: string,
-  onStoreChange: () => void,
-): () => void {
+function subscribeToStoredScale(equipmentId: string, onStoreChange: () => void): () => void {
   const key = scaleStorageKey(equipmentId);
 
   const handleStorage = (event: StorageEvent) => {
@@ -496,8 +418,7 @@ const markerTone = {
     "border-amber-200/90 bg-amber-950/90 text-amber-50 shadow-[0_2px_14px_rgba(2,6,23,.72),0_0_18px_rgba(245,158,11,.42)]",
   alarm:
     "border-rose-200/95 bg-rose-950/90 text-rose-50 shadow-[0_2px_14px_rgba(2,6,23,.72),0_0_20px_rgba(244,63,94,.48)]",
-  "no-data":
-    "border-slate-300/80 bg-slate-950/90 text-slate-100 shadow-[0_2px_14px_rgba(2,6,23,.72)]",
+  "no-data": "border-slate-300/80 bg-slate-950/90 text-slate-100 shadow-[0_2px_14px_rgba(2,6,23,.72)]",
 };
 
 const smallButtonClass =

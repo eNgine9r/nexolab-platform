@@ -98,9 +98,7 @@ describe("SensorPlacementManager", () => {
     expect(screen.getByRole("option", { name: /106-03.*Live/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /106-04.*Немає даних/ })).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
 
     expect(onConfigurationChange).toHaveBeenCalledTimes(1);
     expect(onConfigurationChange.mock.calls[0]?.[0]).toEqual([
@@ -121,17 +119,12 @@ describe("SensorPlacementManager", () => {
 
     expect(screen.getByText("0/48")).toBeInTheDocument();
     expect(screen.getByText(/місткість датчиків була задана як 0/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" })).toBeEnabled();
 
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
-      { target: { value: "106-04" } },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
-    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }), {
+      target: { value: "106-04" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
 
     expect(onConfigurationChange).toHaveBeenCalledWith([
       expect.objectContaining({ id: "106-04", slotKey: "front-01" }),
@@ -140,13 +133,10 @@ describe("SensorPlacementManager", () => {
 
   it("allows a configured channel without telemetry to be placed", () => {
     const { onConfigurationChange } = renderManager();
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }),
-      { target: { value: "106-04" } },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }),
-    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }), {
+      target: { value: "106-04" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
 
     expect(onConfigurationChange).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -205,9 +195,7 @@ describe("SensorPlacementManager", () => {
       expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
     ]);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Видалити датчик з підкладки" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
     expect(onConfigurationChange).toHaveBeenLastCalledWith([]);
     expect(onEditingSensorIdChange).toHaveBeenCalledWith(null);
   });
