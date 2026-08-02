@@ -1,0 +1,77 @@
+name: Issue 189 Runtime Key Permissions Fix Push
+
+on:
+  push:
+    branches:
+      - feat/189-recovery-acceptance
+    paths:
+      - ".github/workflows/issue-189-key-permissions-fix-push.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/189-recovery-acceptance
+          fetch-depth: 0
+
+      - name: Execute focused correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/issue-189-key-permissions-fix.yml")
+          text = workflow.read_text(encoding="utf-8")
+
+          def execute_between(start_marker: str, end_marker: str) -> None:
+              start = text.index(start_marker) + len(start_marker)
+              end = text.index(end_marker, start)
+              lines = text[start:end].splitlines()
+              script = "\n".join(
+                  line[10:] if line.startswith("          ") else line for line in lines
+              ) + "\n"
+              compile(script, str(workflow), "exec")
+              exec(script, {"__name__": "__main__"})
+
+          execute_between(
+              "      - name: Create non-root runtime key copies\n        run: |\n          python - <<'PY'\n",
+              "\n          PY\n\n      - name: Patch source service mount",
+          )
+          execute_between(
+              "      - name: Patch source service mount\n        run: |\n          python - <<'PY'\n",
+              "\n          PY\n\n      - name: Validate focused correction",
+          )
+          PY
+
+      - name: Validate focused correction
+        run: |
+          bash -n scripts/run-disaster-recovery-acceptance.sh
+          DR_POSTGRES_PASSWORD=validation \
+          DR_MINIO_ROOT_USER=validation \
+          DR_MINIO_ROOT_PASSWORD=validation \
+          DR_MQTT_ADMIN_USERNAME=validation \
+          DR_SECRETS_DIR=/tmp/nexolab-dr-secrets \
+          DR_SOURCE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-source-local-auth \
+          DR_RESTORE_LOCAL_AUTH_DIR=/tmp/nexolab-dr-restore-local-auth \
+          DR_WORK_DIR=/tmp/nexolab-dr-work \
+            docker compose \
+              -f infrastructure/compose/compose.disaster-recovery.yaml \
+              -f infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+              config --quiet
+          grep -Fq 'chmod 0400 /run/local-auth/private.pem' scripts/run-disaster-recovery-acceptance.sh
+
+      - name: Commit runtime key correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
+            scripts/run-disaster-recovery-acceptance.sh
+          git commit -m "fix(recovery): prepare non-root auth key copies"
+          git push origin HEAD:feat/189-recovery-acceptance
