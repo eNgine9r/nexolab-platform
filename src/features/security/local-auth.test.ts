@@ -67,7 +67,7 @@ describe("local browser authentication", () => {
   it("serializes concurrent refreshes so a rotated token cannot invalidate the active tab", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-01T18:00:00Z"));
-    let resolveRefresh: ((response: Response) => void) | null = null;
+    let resolveRefresh!: (response: Response) => void;
     const refreshResponse = new Promise<Response>((resolve) => {
       resolveRefresh = resolve;
     });
@@ -84,7 +84,7 @@ describe("local browser authentication", () => {
     const second = provider();
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    resolveRefresh?.(tokenResponse("access-2", "refresh-2", 300));
+    resolveRefresh(tokenResponse("access-2", "refresh-2", 300));
 
     await expect(Promise.all([first, second])).resolves.toEqual([
       { accessToken: "access-2", organizationId: ORGANIZATION_ID },
