@@ -9,14 +9,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  generate:
+  apply:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout exact feature head
+      - name: Checkout exact feature branch
         uses: actions/checkout@v4
         with:
           ref: chore/193-format-documentation
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate exact formatting patch
+      - name: Apply exact formatting scope
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -40,45 +40,29 @@ jobs:
             docs/operations/observability.md
             docs/rs485/evidence-standard.md
           )
-          mkdir -p prettier-docs-193/formatted
-          npm exec prettier -- --version > prettier-docs-193/prettier-version.txt
-          cp --parents "${files[@]}" prettier-docs-193/formatted
-          npm exec prettier -- --write \
-            prettier-docs-193/formatted/docs/operations/capacity-release-gate.md \
-            prettier-docs-193/formatted/docs/operations/observability.md \
-            prettier-docs-193/formatted/docs/rs485/evidence-standard.md
-          npm exec prettier -- --check \
-            prettier-docs-193/formatted/docs/operations/capacity-release-gate.md \
-            prettier-docs-193/formatted/docs/operations/observability.md \
-            prettier-docs-193/formatted/docs/rs485/evidence-standard.md
-          diff -ruN \
-            --label original \
-            --label formatted \
-            docs/operations/capacity-release-gate.md \
-            prettier-docs-193/formatted/docs/operations/capacity-release-gate.md \
-            > prettier-docs-193/capacity-release-gate.patch || test $? -eq 1
-          diff -ruN \
-            --label original \
-            --label formatted \
-            docs/operations/observability.md \
-            prettier-docs-193/formatted/docs/operations/observability.md \
-            > prettier-docs-193/observability.patch || test $? -eq 1
-          diff -ruN \
-            --label original \
-            --label formatted \
-            docs/rs485/evidence-standard.md \
-            prettier-docs-193/formatted/docs/rs485/evidence-standard.md \
-            > prettier-docs-193/evidence-standard.patch || test $? -eq 1
-          sha256sum \
-            prettier-docs-193/formatted/docs/operations/capacity-release-gate.md \
-            prettier-docs-193/formatted/docs/operations/observability.md \
-            prettier-docs-193/formatted/docs/rs485/evidence-standard.md \
-            > prettier-docs-193/formatted.sha256
+          npm exec prettier -- --write "${files[@]}"
+          npm exec prettier -- --check "${files[@]}"
 
-      - name: Upload formatting evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: prettier-docs-193
-          path: prettier-docs-193
-          if-no-files-found: error
-          retention-days: 14
+          mapfile -t changed < <(git diff --name-only)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              docs/operations/capacity-release-gate.md|docs/operations/observability.md|docs/rs485/evidence-standard.md)
+                ;;
+              *)
+                echo "Unexpected formatted path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if [[ ${#changed[@]} -eq 0 ]]; then
+            echo "Exact documentation scope is already Prettier-clean."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${files[@]}"
+          git diff --cached --check
+          git commit -m "style(docs): format historical documentation"
+          git push origin HEAD:chore/193-format-documentation
