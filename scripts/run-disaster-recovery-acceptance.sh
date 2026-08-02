@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+argument_safe_secret() {
+  local payload
+
+  if [[ $# -gt 0 ]]; then
+    payload=$1
+  else
+    payload="$(random_secret)"
+  fi
+
+  printf 'nxl_%s\n' "$payload"
+}
+
+if [[ "${1:-}" == "--self-test-argument-safe-secret" ]]; then
+  test_value="$(argument_safe_secret "-leading-option-like")"
+  [[ "$test_value" == "nxl_-leading-option-like" ]]
+  [[ "$test_value" != -* ]]
+  printf '%s\n' "argument-safe DR credential generator self-test passed"
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery.yaml"
 LOCAL_AUTH_COMPOSE="$ROOT_DIR/infrastructure/compose/compose.disaster-recovery-local-auth.yaml"
@@ -101,7 +121,7 @@ export DR_POSTGRES_DB="nexolab"
 export DR_POSTGRES_USER="nexolab"
 export DR_POSTGRES_PASSWORD="$(random_secret)"
 export DR_MINIO_ROOT_USER="nexolabdr"
-export DR_MINIO_ROOT_PASSWORD="$(random_secret)"
+export DR_MINIO_ROOT_PASSWORD="$(argument_safe_secret)"
 export DR_MQTT_ADMIN_USERNAME="nexolab-dr-admin"
 export DR_SECRETS_DIR="$SECRETS_DIR"
 export DR_SOURCE_LOCAL_AUTH_DIR="$SOURCE_LOCAL_AUTH_DIR"
