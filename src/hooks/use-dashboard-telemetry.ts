@@ -107,7 +107,10 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       ? null
       : [...new Set(options.temperatureChannelIds)].sort().join(",");
   const allowedTemperatureChannels = useMemo(
-    () => (temperatureChannelKey === null ? null : new Set(temperatureChannelKey ? temperatureChannelKey.split(",") : [])),
+    () =>
+      temperatureChannelKey === null
+        ? null
+        : new Set(temperatureChannelKey ? temperatureChannelKey.split(",") : []),
     [temperatureChannelKey],
   );
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
@@ -276,12 +279,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   }, [enabled, historyGeneration, historyKey, historyRange, runtime.config, selectedOrganizationId]);
 
   const view = useMemo(() => {
-    if (
-      runtime.config?.mode !== "live" ||
-      !enabled ||
-      scopeKey === null ||
-      activeScopeKey !== scopeKey
-    ) {
+    if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
       return null;
     }
     return filterTemperatureScope(
