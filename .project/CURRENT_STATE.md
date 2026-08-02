@@ -1,9 +1,10 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-02  
-Verified main baseline: `99c3785f073f37e9c4c131ca68b4c6df3c219114`  
-Active Work Package: Issue #237 / PR #238 — make generated DR object-storage credentials argument-safe  
-Status confidence: high for repository state, GitHub-hosted CI, deterministic credential regression and encrypted software recovery; partial for ARM64 actual-host, Raspberry Pi, reboot, power-loss and physical hardware acceptance.
+Updated: 2026-08-02
+Verified main baseline: `36b63cd6aba96c0fcb0e7f8649496e0207840cf3`
+Active Work Package: Issue #239 / PR #240 — patch the Next.js 16.2 and React 19.2 security line
+Parent maintenance track: Issue #203 — focused production dependency updates
+Status confidence: high for repository state, deterministic lockfile generation, GitHub-hosted CI, browser acceptance and linux/amd64 disconnected runtime; partial for actual Raspberry Pi, ARM64 host, reboot, power-loss and physical hardware acceptance.
 
 ## Profile
 
@@ -12,52 +13,73 @@ Status confidence: high for repository state, GitHub-hosted CI, deterministic cr
 - Local PostgreSQL, MQTT, edge SQLite, logs, backup and restore remain first-class.
 - No Modbus write, hardware write or production/site cutover is authorized.
 
-## Completed reliability and maintenance baseline
+## Completed maintenance baseline
 
 - PR #184 — AI Development Operating Standard.
 - PR #190 — verified architecture and offline boundary.
-- PR #206 — stale tracker and Pull Request reconciliation.
-- PR #207 — durable MQTT-to-PostgreSQL telemetry ingestion.
+- PR #206 — tracker and Pull Request reconciliation.
+- PR #207 — durable MQTT-to-PostgreSQL ingestion.
 - PR #209 — Device Agent supply-chain hardening.
-- PR #213 — dashboard security bootstrap diagnostics.
-- PR #214 — live WebSocket lifecycle stabilization.
-- PR #215 — verified offline installation/update bundle.
-- PR #216 — fail-closed offline operator authentication.
-- PR #224 — encrypted local-auth disaster-recovery extension.
-- PR #225–#229 and #233 — controlled formatting baseline and permanent repository-wide Prettier gate.
-- PR #234 / Issue #205 — GitHub Actions runtime compatibility, merged as `99c3785f073f37e9c4c131ca68b4c6df3c219114` after a 26-of-26 GREEN workflow sweep.
+- PR #213 — dashboard security diagnostics.
+- PR #214 — WebSocket lifecycle stabilization.
+- PR #215 — offline installation/update bundle.
+- PR #216 — offline operator authentication.
+- PR #224 — encrypted local-auth disaster recovery.
+- PR #225–#229 and #233 — controlled Prettier baseline.
+- PR #234 — GitHub Actions runtime compatibility.
+- PR #238 / Issue #237 — argument-safe DR credentials, merged as `36b63cd6aba96c0fcb0e7f8649496e0207840cf3`.
 
-## Issue #237 / PR #238 outcome
+## Issue #239 / PR #240 outcome
 
-The nondeterministic MinIO CLI failure is fixed at the credential generator boundary instead of changing the shared Compose credential contract.
+The framework security group is isolated from Supabase, Lucide and major toolchain migrations.
 
-Implementation:
+Direct changes:
 
-- `compose.disaster-recovery.yaml` is unchanged from `main`.
-- `run-disaster-recovery-acceptance.sh` prefixes generated MinIO credentials with `nxl_` while preserving the full random payload.
-- a deterministic self-test proves `-leading-option-like` becomes `nxl_-leading-option-like` and cannot begin with `-`.
-- Disaster Recovery Acceptance invokes the self-test before policy and encrypted runtime verification.
+- `next`: `16.2.10` → `16.2.12`;
+- `eslint-config-next`: `16.2.10` → `16.2.12`;
+- `react`: `19.2.4` → `19.2.8`;
+- `react-dom`: `19.2.4` → `19.2.8`.
 
-Verified implementation head:
+Deterministic package evidence:
 
-- `1ddd0bf128aed310596b05b0a3da2f150b54ed91`;
-- CI run `30760710838` — formatting, lint, typecheck, full tests and production build GREEN;
-- Disaster Recovery Acceptance run `30760710828` — policy and encrypted source-to-restore runtime GREEN on the first attempt, without rerun;
-- sanitized evidence artifact `8837371547`, digest `sha256:3c4f07f86c704db683c7ddce1397858ed08b6d696cbc73398a4f6d5a09a6c8d1`;
-- exact changed paths before state update: the DR script and DR Acceptance workflow only.
+- generation/audit run `30762557284` — GREEN;
+- artifact `8837927439`, digest `sha256:79caeea78bfb8a4b1e212a2a31abd9d4259113966cfc11fe930c11de023eebfd`;
+- `package.json` SHA-256 `70b43835bd19f3c0f405430680494651a18f8b32d54ac4c69bafaf3d350d5556`;
+- `package-lock.json` SHA-256 `cc3746f2e95fc449350bd2e92d65754f1b9b8e9acb2f12b1a08cb41572d813d7`;
+- Supabase remains resolved at `2.110.8`;
+- Lucide remains resolved at `1.26.0`.
+
+Audit classification:
+
+- all direct Next.js advisories affecting `<16.2.11` are removed;
+- remaining production risk: transitive `sharp 0.34.5`, advisory range `<0.35.0`;
+- Next.js `16.2.12` constrains optional `sharp` to `^0.34.5`, so forcing `0.35.x` is excluded from this PR;
+- Playwright `1.55.0` is a dev-tool advisory and remains isolated under the toolchain track.
+
+Verified implementation head `814fc1d46003c2b786e5bb73723b654ce5e3fffe`:
+
+- exactly `package.json` and `package-lock.json` changed;
+- CI `30764056361` — formatting, lint, typecheck, 181 tests and production build GREEN;
+- Security Browser `30764056348` — GREEN, artifact `8838386715`, digest `sha256:0904ac5269fbb49aee58096be97236b258d615aba74ae96f828ab02491295692`;
+- Authenticated Dashboard `30764056342` — GREEN, artifact `8838388043`, digest `sha256:6674f3a2402ce008813ff193cca55dafc47cf55cc38dde942f1021f815b91b20`;
+- Refrigeration Browser `30764056354` — GREEN, artifact `8838383301`, digest `sha256:e103e86fc620fcf8349ee76e86a03ece195601ac67e9907be8031cd8fd59fecb`;
+- Offline Bundle `30764056351` — disconnected load/start and update/rollback volume preservation GREEN, artifact `8838464830`, digest `sha256:4fb9e27a84ecc42fea42a4f8269a5b6a464f51c4a1fb46d786560877a2272730`;
+- reports, rendered reports, alerts, sessions, nodes and offline-auth workflows also completed GREEN.
 
 ## Open Pull Requests
 
-- #238 — verified software fix, pending final exact-head CI, review audit and merge.
+- #240 — verified framework package/lock implementation; pending final exact-head CI after state update, review audit and merge.
 
 ## Open risks and blockers
 
-- No hard blocker prevents completing PR #238.
-- Issue #189 actual-host reboot, power-loss and physical-media recovery evidence remains unverified.
-- Hardware Issues #200–#202 remain blocked pending controlled read-only physical evidence.
-- Complete `linux/arm64` offline archive/load/start/update/rollback execution on an actual Raspberry Pi 5 remains unverified.
-- Existing frontend test warnings remain outside this DR scripting Work Package.
+- No hard blocker prevents completing PR #240.
+- `sharp 0.34.5` requires a separate focused compatibility Work Package after merge.
+- Playwright `1.55.0` remains outside Issue #239.
+- Issue #189 actual-host recovery evidence remains unverified.
+- Hardware Issues #200–#202 remain blocked pending controlled read-only evidence.
+- Actual Raspberry Pi 5 ARM64 offline update/rollback remains unverified.
+- Existing non-failing frontend test warnings are pre-existing and out of scope.
 
 ## Next Ready Work Package
 
-After PR #238 reaches exact-head GREEN and merges, start Issue #203: focused review of production dependency updates. Major frontend migrations remain isolated in Issue #204.
+Finish and merge PR #240 on exact-head GREEN. Then create a focused Issue for the transitive `sharp` risk. Continue parent Issue #203 with separate Supabase and Lucide compatibility groups; keep Issue #204 toolchain migrations isolated.
