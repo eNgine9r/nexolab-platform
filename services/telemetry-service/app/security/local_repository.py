@@ -117,6 +117,7 @@ class LocalAuthRepository:
                     session.add(organization)
                 elif not organization.is_active:
                     organization.is_active = True
+                session.flush()
 
                 identity = SecurityIdentity(
                     id=identity_id,
@@ -129,6 +130,8 @@ class LocalAuthRepository:
                     last_authenticated_at=now,
                 )
                 session.add(identity)
+                session.flush()
+
                 session.add(
                     SecurityLocalAccount(
                         id=account_id,
@@ -152,6 +155,8 @@ class LocalAuthRepository:
                         created_at=now,
                     )
                 )
+                session.flush()
+
                 session.add_all(
                     SecurityMembershipRole(
                         membership_id=membership_id,
