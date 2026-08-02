@@ -50,68 +50,89 @@ jobs:
             node - "$output" "$@" <<'NODE'
           const crypto = require("node:crypto");
           const fs = require("node:fs");
-          const prettier = require("prettier");
           const ts = require("typescript");
 
-          async function main() {
-            const [output, ...files] = process.argv.slice(2);
-            const analysis = {};
-            for (const file of files) {
-              const source = fs.readFileSync(file, "utf8");
-              const transpiled = ts.transpileModule(source, {
-                fileName: file,
-                reportDiagnostics: true,
-                compilerOptions: {
-                  target: ts.ScriptTarget.ES2022,
-                  module: ts.ModuleKind.ESNext,
-                  jsx: ts.JsxEmit.ReactJSX,
-                  isolatedModules: true,
-                  removeComments: true,
-                },
-              });
-              const errors = (transpiled.diagnostics ?? []).filter(
-                (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
-              );
-              if (errors.length > 0) {
-                throw new Error(
-                  `${file} transpile diagnostics: ${errors
-                    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
-                    .join(" | ")}`,
-                );
-              }
-              const canonicalOutput = await prettier.format(transpiled.outputText, {
-                parser: "babel",
-              });
-              const scanner = ts.createScanner(
-                ts.ScriptTarget.Latest,
-                false,
-                ts.LanguageVariant.Standard,
-                source,
-              );
-              const comments = [];
-              for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
-                if (
-                  token === ts.SyntaxKind.SingleLineCommentTrivia ||
-                  token === ts.SyntaxKind.MultiLineCommentTrivia
-                ) {
-                  comments.push(scanner.getTokenText());
-                }
-              }
-              analysis[file] = {
-                canonical_transpiled_sha256: crypto
-                  .createHash("sha256")
-                  .update(canonicalOutput)
-                  .digest("hex"),
-                comments,
-              };
+          function semanticValue(node) {
+            switch (node.kind) {
+              case ts.SyntaxKind.Identifier:
+              case ts.SyntaxKind.PrivateIdentifier:
+              case ts.SyntaxKind.StringLiteral:
+              case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
+              case ts.SyntaxKind.NumericLiteral:
+              case ts.SyntaxKind.BigIntLiteral:
+              case ts.SyntaxKind.RegularExpressionLiteral:
+              case ts.SyntaxKind.TemplateHead:
+              case ts.SyntaxKind.TemplateMiddle:
+              case ts.SyntaxKind.TemplateTail:
+                return node.text;
+              default:
+                return null;
             }
-            fs.writeFileSync(output, `${JSON.stringify(analysis, null, 2)}\n`, "utf8");
           }
 
-          main().catch((error) => {
-            console.error(error);
-            process.exit(1);
-          });
+          function fingerprintNode(node) {
+            const children = [];
+            ts.forEachChild(node, (child) => {
+              children.push(fingerprintNode(child));
+            });
+            if (node.kind === ts.SyntaxKind.ParenthesizedExpression && children.length === 1) {
+              return children[0];
+            }
+            return [node.kind, semanticValue(node), children];
+          }
+
+          function commentsFrom(source) {
+            const scanner = ts.createScanner(
+              ts.ScriptTarget.Latest,
+              false,
+              ts.LanguageVariant.Standard,
+              source,
+            );
+            const comments = [];
+            for (
+              let token = scanner.scan();
+              token !== ts.SyntaxKind.EndOfFileToken;
+              token = scanner.scan()
+            ) {
+              if (
+                token === ts.SyntaxKind.SingleLineCommentTrivia ||
+                token === ts.SyntaxKind.MultiLineCommentTrivia
+              ) {
+                comments.push(scanner.getTokenText());
+              }
+            }
+            return comments;
+          }
+
+          const [output, ...files] = process.argv.slice(2);
+          const analysis = {};
+          for (const file of files) {
+            const source = fs.readFileSync(file, "utf8");
+            const scriptKind = file.endsWith(".mjs") ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+            const sourceFile = ts.createSourceFile(
+              file,
+              source,
+              ts.ScriptTarget.Latest,
+              true,
+              scriptKind,
+            );
+            const diagnostics = sourceFile.parseDiagnostics ?? [];
+            if (diagnostics.length > 0) {
+              throw new Error(
+                `${file} parse diagnostics: ${diagnostics
+                  .map((diagnostic) =>
+                    ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+                  )
+                  .join(" | ")}`,
+              );
+            }
+            const ast = JSON.stringify(fingerprintNode(sourceFile));
+            analysis[file] = {
+              ast_sha256: crypto.createHash("sha256").update(ast).digest("hex"),
+              comments: commentsFrom(source),
+            };
+          }
+          fs.writeFileSync(output, `${JSON.stringify(analysis, null, 2)}\n`, "utf8");
           NODE
           }
 
@@ -119,7 +140,10 @@ jobs:
           npm exec prettier -- --write "${files[@]}"
           npm exec prettier -- --check "${files[@]}"
           analyze /tmp/issue-194-after.json "${files[@]}"
-          cmp /tmp/issue-194-before.json /tmp/issue-194-after.json
+          if ! cmp /tmp/issue-194-before.json /tmp/issue-194-after.json; then
+            diff -u /tmp/issue-194-before.json /tmp/issue-194-after.json || true
+            exit 1
+          fi
 
           node -e 'import("./eslint.config.mjs").then((module) => { if (!Array.isArray(module.default)) throw new Error("ESLint flat config did not load as an array"); })'
           npm exec playwright -- test --config=playwright.observability.config.ts --list > /tmp/issue-194-playwright-list.txt
