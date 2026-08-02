@@ -9,10 +9,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  generate:
+  apply:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate exact formatting evidence
+      - name: Apply exact formatting scope
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -43,29 +43,94 @@ jobs:
             eslint.config.mjs
             playwright.observability.config.ts
           )
-          mkdir -p prettier-e2e-194/formatted prettier-e2e-194/patches
-          npm exec prettier -- --version > prettier-e2e-194/prettier-version.txt
-          cp --parents "${files[@]}" prettier-e2e-194/formatted
-          formatted=()
-          for path in "${files[@]}"; do
-            formatted+=("prettier-e2e-194/formatted/$path")
-          done
-          npm exec prettier -- --write "${formatted[@]}"
-          npm exec prettier -- --check "${formatted[@]}"
-          for path in "${files[@]}"; do
-            patch_name="${path//\//__}.patch"
-            diff -u \
-              --label "original/$path" \
-              --label "formatted/$path" \
-              "$path" "prettier-e2e-194/formatted/$path" \
-              > "prettier-e2e-194/patches/$patch_name" || test $? -eq 1
-          done
-          sha256sum "${formatted[@]}" > prettier-e2e-194/formatted.sha256
 
-      - name: Upload formatting evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: prettier-e2e-194
-          path: prettier-e2e-194
-          if-no-files-found: error
-          retention-days: 14
+          analyze() {
+            local output=$1
+            shift
+            node - "$output" "$@" <<'NODE'
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+          const ts = require("typescript");
+
+          const [output, ...files] = process.argv.slice(2);
+          const analysis = {};
+          for (const file of files) {
+            const source = fs.readFileSync(file, "utf8");
+            const transpiled = ts.transpileModule(source, {
+              fileName: file,
+              reportDiagnostics: true,
+              compilerOptions: {
+                target: ts.ScriptTarget.ES2022,
+                module: ts.ModuleKind.ESNext,
+                jsx: ts.JsxEmit.ReactJSX,
+                isolatedModules: true,
+                removeComments: true,
+              },
+            });
+            const errors = (transpiled.diagnostics ?? []).filter(
+              (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
+            );
+            if (errors.length > 0) {
+              throw new Error(
+                `${file} transpile diagnostics: ${errors
+                  .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
+                  .join(" | ")}`,
+              );
+            }
+            const scanner = ts.createScanner(
+              ts.ScriptTarget.Latest,
+              false,
+              ts.LanguageVariant.Standard,
+              source,
+            );
+            const comments = [];
+            for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+              if (
+                token === ts.SyntaxKind.SingleLineCommentTrivia ||
+                token === ts.SyntaxKind.MultiLineCommentTrivia
+              ) {
+                comments.push(scanner.getTokenText());
+              }
+            }
+            analysis[file] = {
+              transpiled_sha256: crypto.createHash("sha256").update(transpiled.outputText).digest("hex"),
+              comments,
+            };
+          }
+          fs.writeFileSync(output, `${JSON.stringify(analysis, null, 2)}\n`, "utf8");
+          NODE
+          }
+
+          analyze /tmp/issue-194-before.json "${files[@]}"
+          npm exec prettier -- --write "${files[@]}"
+          npm exec prettier -- --check "${files[@]}"
+          analyze /tmp/issue-194-after.json "${files[@]}"
+          cmp /tmp/issue-194-before.json /tmp/issue-194-after.json
+
+          node -e 'import("./eslint.config.mjs").then((module) => { if (!Array.isArray(module.default)) throw new Error("ESLint flat config did not load as an array"); })'
+          npm exec playwright -- test --config=playwright.observability.config.ts --list > /tmp/issue-194-playwright-list.txt
+          test -s /tmp/issue-194-playwright-list.txt
+
+          mapfile -t changed < <(git diff --name-only)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              e2e/nodes.production.e2e.ts|e2e/observability.production.e2e.ts|e2e/refrigeration-layout.production.e2e.ts|e2e/security-rbac.production.e2e.ts|eslint.config.mjs|playwright.observability.config.ts)
+                ;;
+              *)
+                echo "Unexpected formatted path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if [[ ${#changed[@]} -eq 0 ]]; then
+            echo "Exact E2E/tooling scope is already Prettier-clean."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "${files[@]}"
+          git diff --cached --check
+          git commit -m "style(test): format E2E and tooling files"
+          git push origin HEAD:chore/194-format-e2e-tooling
