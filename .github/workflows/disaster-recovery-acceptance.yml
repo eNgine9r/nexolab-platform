@@ -27,7 +27,7 @@ on:
       - "scripts/nexolab-volume-archive.py"
       - "scripts/run-disaster-recovery-acceptance.sh"
       - "scripts/verify-restored-platform.sh"
-      - "tests/test_disaster_recovery-assets.py"
+      - "tests/test_disaster_recovery_assets.py"
       - "tests/test_nexolab_backup_bundle.py"
       - "tests/test_nexolab_backup_bundle_archive_validation.py"
       - "tests/test_nexolab_volume_archive.py"
