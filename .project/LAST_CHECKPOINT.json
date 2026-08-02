@@ -2,60 +2,76 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "BASELINE-RECONCILIATION-1",
-  "task": "NEXOLAB-193",
-  "issue": 193,
-  "pull_request": 225,
+  "task": "NEXOLAB-194",
+  "issue": 194,
+  "pull_request": 226,
   "status": "verified_pending_merge",
-  "timestamp": "2026-08-02T13:16:00+03:00",
-  "baseline_main_sha": "16f1c04616541e7d2391a13eb9eb6b8fb955567c",
-  "summary": "Applied locked Prettier 3.9.6 formatting only to the three historical documentation files assigned to Issue #193, reviewed the exact patches as Markdown table alignment only and removed the temporary generation/write workflow before final CI.",
+  "timestamp": "2026-08-02T13:27:00+03:00",
+  "baseline_main_sha": "75fb9f2921053d39187bbf216057913be2c7fe43",
+  "summary": "Applied locked Prettier 3.9.6 formatting only to the six E2E/root tooling files assigned to Issue #194, proved semantic TypeScript AST and comment-token equivalence, loaded the ESLint and Playwright configurations without site execution and removed the temporary workflow before final CI.",
   "scope_completed": [
-    "created feature branch chore/193-format-documentation from exact main SHA 16f1c04616541e7d2391a13eb9eb6b8fb955567c",
-    "generated formatted copies for the three exact Issue #193 paths with Prettier 3.9.6",
-    "captured separate patches and SHA-256 digests in a workflow artifact",
-    "reviewed every patch and confirmed only Markdown table alignment changed",
+    "created feature branch chore/194-format-e2e-tooling from exact main SHA 75fb9f2921053d39187bbf216057913be2c7fe43",
+    "generated formatted copies and separate patches for the six exact Issue #194 paths",
+    "captured SHA-256 digests in workflow artifact 8832069755",
+    "reviewed patches and confirmed line wrapping, collection layout and optional trailing-comma formatting only",
+    "proved identical TypeScript semantic AST fingerprints before and after formatting",
+    "proved exact comment-token sequences before and after formatting",
+    "loaded the ESLint flat config successfully",
+    "loaded the Playwright observability config and generated a non-empty test list without executing production/site E2E",
     "applied formatting through an allowlisted workflow that rejected unexpected changed paths",
     "removed the temporary generation/write workflow from the final diff",
     "updated CURRENT_STATE, ACTIVE_SPRINT, BLOCKERS and LAST_CHECKPOINT"
   ],
   "files_changed": [
-    "docs/operations/capacity-release-gate.md",
-    "docs/operations/observability.md",
-    "docs/rs485/evidence-standard.md",
+    "e2e/nodes.production.e2e.ts",
+    "e2e/observability.production.e2e.ts",
+    "e2e/refrigeration-layout.production.e2e.ts",
+    "e2e/security-rbac.production.e2e.ts",
+    "eslint.config.mjs",
+    "playwright.observability.config.ts",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
   "checks_actually_run": [
-    "Prettier Documentation 193 generation workflow run 30742929245 passed dependency installation, Prettier 3.9.6 write/check, patch generation, file hashing and artifact upload",
-    "artifact patch inspection confirmed Markdown table alignment only",
-    "allowlisted write workflow run 30743063830 passed exact-path Prettier write/check, unexpected-path rejection, git diff --check and feature-branch commit",
+    "Prettier E2E Tooling generation workflow run 30743441993 passed dependency installation, Prettier 3.9.6 write/check, patch generation, file hashing and artifact upload",
+    "artifact patch inspection confirmed formatting-only changes",
+    "semantic allowlisted apply workflow run 30743671286 passed AST fingerprint comparison, exact comment-token comparison, ESLint config import, Playwright test discovery, unexpected-path rejection, git diff --check and feature-branch commit",
+    "production/site E2E was not executed",
     "temporary workflow removed before final review",
     "final exact-head standard CI remains pending after project-state updates"
   ],
   "formatting_evidence": {
     "prettier_version": "3.9.6",
-    "generation_workflow_run": 30742929245,
-    "apply_workflow_run": 30743063830,
-    "artifact_id": 8831904927,
-    "artifact_sha256": "e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543",
+    "generation_workflow_run": 30743441993,
+    "apply_workflow_run": 30743671286,
+    "artifact_id": 8832069755,
+    "artifact_sha256": "0b3816f36eb2d2e01605e55f17d0f2be08b2f976cff02397b1d02d29651370e1",
     "formatted_file_sha256": {
-      "docs/operations/capacity-release-gate.md": "fa3bdc6acd8f82314aab93bd55b806859c1099cd330b81809b244306623e41a0",
-      "docs/operations/observability.md": "1105f999807c3acd95d190461d164f487b5c2fab987acfec516fcc37e9bb09c2",
-      "docs/rs485/evidence-standard.md": "f8ec6f1fcdba25f36daf0bdf929509de91a1bee7e3bca34d93884e94b21fa251"
+      "e2e/nodes.production.e2e.ts": "10bc91bf56100d371583fcb17682f480beb8151a7e7ea611b5166f842302b7d1",
+      "e2e/observability.production.e2e.ts": "773ee061e3a8a6285d20d88b3edad63c84dff03aca81cfafe6c857cf8945c539",
+      "e2e/refrigeration-layout.production.e2e.ts": "95a206877defa208d25e7f78eabf26a0f04e1e6fa1a06f67c1e115a98b5a2a81",
+      "e2e/security-rbac.production.e2e.ts": "d32c410363c13bcfecd5ce092bd5f16b7e5a9e3f68e74cb1c059188259d90cc0",
+      "eslint.config.mjs": "45a7bc6d9d5bcf465bd7b74aac397219b6e129292edb1e4d492b02c4ec652d05",
+      "playwright.observability.config.ts": "93e44e53dd9669cd3520036974ec338a1111f1e79f04ab272961ed9061fc962d"
     },
-    "patch_review": "markdown_table_alignment_only",
-    "wording_changed": false,
-    "numbers_changed": false,
-    "thresholds_changed": false,
-    "commands_changed": false,
-    "contracts_changed": false,
+    "semantic_ast_equal": true,
+    "comments_equal": true,
+    "eslint_config_loaded": true,
+    "playwright_test_list_loaded": true,
+    "site_e2e_executed": false,
+    "assertions_changed": false,
+    "selectors_changed": false,
+    "timeouts_changed": false,
+    "urls_changed": false,
+    "permissions_changed": false,
+    "config_values_changed": false,
     "temporary_workflow_removed": true
   },
   "runtime_and_offline_evidence": [
-    "not applicable: this Work Package changes documentation formatting and project state only",
-    "no runtime, deployment, data, network, authentication or hardware path was modified"
+    "not applicable: this Work Package changes test/tooling formatting and project state only",
+    "no production E2E, deployment, data, network, authentication or hardware path was executed or modified"
   ],
   "hardware_evidence": {
     "status": "not_applicable",
@@ -71,14 +87,14 @@
     "review-thread and review-submission check"
   ],
   "open_risks": [
-    "43 paths remain in the historical Prettier backlog after Issue #193",
+    "37 paths remain in the historical Prettier backlog after Issue #194",
     "formatting child Pull Requests must not mix behavior changes, refactoring or dependency upgrades",
     "Issue #197 must remain blocked until Issue #196 is merged",
     "Issue #189 physical recovery evidence remains unverified"
   ],
   "next_ready_work_package": {
-    "issue": 194,
-    "title": "Format E2E tests and root tooling configuration",
-    "instruction": "After PR #225 reaches final exact-head GREEN and is merged, format only the six exact paths listed in Issue #194, verify no test logic or tooling behavior changes, update state and merge independently."
+    "issue": 195,
+    "title": "Format telemetry and dashboard frontend files",
+    "instruction": "After PR #226 reaches final exact-head GREEN and is merged, format only the ten exact paths listed in Issue #195, prove semantic equivalence and targeted tests, update state and merge independently."
   }
 }

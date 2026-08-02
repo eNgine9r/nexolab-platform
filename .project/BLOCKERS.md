@@ -4,7 +4,7 @@ Updated: 2026-08-02
 
 ## Hard blockers
 
-No hard blocker prevents completing and merging Issue #193.
+No hard blocker prevents completing and merging Issue #194.
 
 Stop before:
 
@@ -49,45 +49,52 @@ Verified baseline:
 - Prettier: `3.9.6`;
 - line endings: 46 LF, 0 CRLF, 0 mixed, 0 lone CR;
 - generated/vendor candidates: 0;
-- justified new `.prettierignore` exclusions: 0;
-- workflow run: `30742515790`;
-- evidence artifact: `8831767220`.
+- justified new `.prettierignore` exclusions: 0.
 
 ### N-034 — Controlled formatting child sequence
 
 **Status:** In progress.
 
-Issue #193 / PR #225 is verified as formatting-only and pending final exact-head CI and merge.
+Completed:
 
-Exact Issue #193 scope:
+- Issue #193 / PR #225 — three Markdown files, merged as `75fb9f2921053d39187bbf216057913be2c7fe43`.
 
-- `docs/operations/capacity-release-gate.md`;
-- `docs/operations/observability.md`;
-- `docs/rs485/evidence-standard.md`.
+Issue #194 / PR #226 is verified as formatting-only and pending final exact-head CI and merge.
+
+Exact Issue #194 scope:
+
+- `e2e/nodes.production.e2e.ts`;
+- `e2e/observability.production.e2e.ts`;
+- `e2e/refrigeration-layout.production.e2e.ts`;
+- `e2e/security-rbac.production.e2e.ts`;
+- `eslint.config.mjs`;
+- `playwright.observability.config.ts`.
 
 Evidence:
 
-- Prettier `3.9.6` generation workflow `30742929245` passed;
-- artifact `8831904927`;
-- digest `sha256:e19ea8a75f6f8c96656a403f1f2638b4af79071384a72504696926e1d4dfd543`;
-- PR patch review shows Markdown table alignment only;
-- no wording, number, threshold, image tag, command, path or semantic contract changed;
+- Prettier `3.9.6` generation workflow `30743441993` passed;
+- artifact `8832069755`;
+- digest `sha256:0b3816f36eb2d2e01605e55f17d0f2be08b2f976cff02397b1d02d29651370e1`;
+- allowlisted semantic apply workflow `30743671286` passed;
+- TypeScript AST fingerprints and exact comment-token sequences are identical before and after formatting;
+- ESLint flat config imported successfully;
+- Playwright observability config generated a non-empty test list without executing production/site E2E;
+- patch review shows line wrapping, collection layout and optional trailing-comma formatting only;
 - temporary generation/write workflow removed before final review.
 
-Remaining sequence after #193:
+Remaining sequence after #194:
 
-1. Issue #194 — six E2E/root tooling files;
-2. Issue #195 — ten telemetry/dashboard files;
-3. Issue #196 — ten refrigeration domain/repository files;
-4. Issue #197 — seventeen refrigeration UI files after #196.
+1. Issue #195 — ten telemetry/dashboard files;
+2. Issue #196 — ten refrigeration domain/repository files;
+3. Issue #197 — seventeen refrigeration UI files after #196.
 
 Each Issue must use one focused branch and PR, run Prettier only on its exact file list, contain no product/refactor/dependency changes and update project state independently.
 
 ## Next Ready Work Package
 
-### Issue #194 — Format E2E tests and root tooling configuration
+### Issue #195 — Format telemetry and dashboard frontend files
 
-**Status:** Ready after PR #225 merge.
+**Status:** Ready after PR #226 merge.
 
 Do not combine this group with other formatting, feature, reliability or hardware work.
 
