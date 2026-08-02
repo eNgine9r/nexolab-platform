@@ -19,9 +19,7 @@ type LocalTokenPayload = {
   refresh_expires_in: number;
 };
 
-type TokenPairRequestResult =
-  | { ok: true; value: LocalTokenPayload }
-  | { ok: false; message: string };
+type TokenPairRequestResult = { ok: true; value: LocalTokenPayload } | { ok: false; message: string };
 
 export function createLocalCredentialProvider(
   apiBaseUrl: string,
