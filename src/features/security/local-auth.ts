@@ -19,11 +19,17 @@ type LocalTokenPayload = {
   refresh_expires_in: number;
 };
 
+type TokenPairRequestResult =
+  | { ok: true; value: LocalTokenPayload }
+  | { ok: false; message: string };
+
 export function createLocalCredentialProvider(
   apiBaseUrl: string,
   organizationId: string | null,
 ): SecurityCredentialProvider {
   const normalizedBaseUrl = normalizeBaseUrl(apiBaseUrl);
+  let refreshPromise: Promise<TokenPairRequestResult> | null = null;
+
   return async (): Promise<SecurityCredentialSnapshot> => {
     if (typeof window === "undefined") {
       return { accessToken: null, organizationId };
@@ -49,9 +55,25 @@ export function createLocalCredentialProvider(
       return snapshot;
     }
 
-    const refreshed = await requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/refresh`, {
-      refresh_token: refreshToken,
-    });
+    const activeRefresh =
+      refreshPromise ??
+      requestTokenPair(`${normalizedBaseUrl}/api/v1/auth/local/refresh`, {
+        refresh_token: refreshToken,
+      });
+    refreshPromise = activeRefresh;
+
+    let refreshed: TokenPairRequestResult;
+    try {
+      refreshed = await activeRefresh;
+    } finally {
+      if (refreshPromise === activeRefresh) {
+        refreshPromise = null;
+      }
+    }
+
+    if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken) {
+      return currentCredentialSnapshot(resolvedOrganizationId);
+    }
     if (!refreshed.ok) {
       clearLocalAuthStorage();
       const snapshot = {
@@ -125,7 +147,7 @@ export function clearLocalAuthStorage(): void {
 async function requestTokenPair(
   url: string,
   payload: Record<string, string>,
-): Promise<{ ok: true; value: LocalTokenPayload } | { ok: false; message: string }> {
+): Promise<TokenPairRequestResult> {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -156,6 +178,15 @@ async function requestTokenPair(
       message: "Локальний сервер автентифікації NEXOLAB недоступний.",
     };
   }
+}
+
+function currentCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot {
+  const snapshot = {
+    accessToken: window.sessionStorage.getItem(ACCESS_TOKEN_KEY),
+    organizationId,
+  };
+  setSecurityCredentials(snapshot);
+  return snapshot;
 }
 
 function storeTokenPair(payload: LocalTokenPayload): void {
