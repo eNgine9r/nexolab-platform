@@ -49,10 +49,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -82,7 +84,7 @@ jobs:
 
       - name: Upload sanitized policy diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: observability-policy-diagnostics-${{ github.sha }}
           path: observability-policy-diagnostics.txt
@@ -156,11 +158,14 @@ jobs:
       NEXOLAB_OBSERVABILITY_EVIDENCE_DIR: test-results-observability
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
+          package-manager-cache: false
           node-version-file: .nvmrc
 
       - name: Generate temporary acceptance credentials
@@ -260,7 +265,7 @@ jobs:
 
       - name: Upload sanitized observability evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: observability-runtime-evidence-${{ github.sha }}
           path: test-results-observability
