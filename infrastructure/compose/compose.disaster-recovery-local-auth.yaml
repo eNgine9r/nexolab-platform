@@ -16,8 +16,8 @@ services:
       AUTH_MODE: jwt
       AUTH_DEFAULT_ORGANIZATION_ID: ${DR_LOCAL_AUTH_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000099}
       AUTH_LOCAL_ENABLED: "true"
-      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/nexolab/local-auth-private.pem
-      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/nexolab/local-auth-public.pem
+      AUTH_LOCAL_PRIVATE_KEY_FILE: /run/secrets/local-auth/private.pem
+      AUTH_LOCAL_PUBLIC_KEY_FILE: /run/secrets/local-auth/public.pem
       AUTH_LOCAL_ISSUER: urn:nexolab:dr-local-auth
       AUTH_LOCAL_AUDIENCE: nexolab-api
       AUTH_LOCAL_PROVIDER: nexolab-local
@@ -25,6 +25,7 @@ services:
       AUTH_LOCAL_REFRESH_TOKEN_SECONDS: "3600"
     volumes:
       - ${DR_SECRETS_DIR:?DR_SECRETS_DIR is required}:/run/secrets/nexolab:ro
+      - ${DR_SOURCE_LOCAL_AUTH_DIR:?DR_SOURCE_LOCAL_AUTH_DIR is required}:/run/secrets/local-auth:ro
     depends_on:
       source-postgres:
         condition: service_healthy

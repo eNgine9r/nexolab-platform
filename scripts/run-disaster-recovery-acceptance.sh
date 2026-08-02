@@ -10,6 +10,7 @@ PROJECT_SUFFIX="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 PROJECT_NAME="nexolab-dr-${PROJECT_SUFFIX}"
 PRIVATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${PROJECT_NAME}.XXXXXX")"
 SECRETS_DIR="$PRIVATE_DIR/secrets"
+SOURCE_LOCAL_AUTH_DIR="$PRIVATE_DIR/source-local-auth"
 RESTORE_LOCAL_AUTH_DIR="$PRIVATE_DIR/restore-local-auth"
 WORK_DIR="$PRIVATE_DIR/work"
 PAYLOAD_DIR="$WORK_DIR/payload"
@@ -27,10 +28,10 @@ if [[ ! "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
   SOURCE_COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)"
 fi
 
-mkdir -p "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"
+mkdir -p "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR" "$WORK_DIR" "$PAYLOAD_DIR" "$EVIDENCE_DIR"
 rm -rf "$EVIDENCE_DIR"/*
 chmod 0700 "$PRIVATE_DIR" "$WORK_DIR"
-chmod 0755 "$SECRETS_DIR" "$RESTORE_LOCAL_AUTH_DIR"
+chmod 0755 "$SECRETS_DIR" "$SOURCE_LOCAL_AUTH_DIR" "$RESTORE_LOCAL_AUTH_DIR"
 
 random_secret() {
   python3 - <<'PY'
@@ -63,6 +64,24 @@ path.chmod(0o600)
 PY
 }
 
+prepare_runtime_local_auth_dir() {
+  local private_source=$1
+  local public_source=$2
+  local target_dir=$3
+  install -m 0600 "$private_source" "$target_dir/private.pem"
+  install -m 0644 "$public_source" "$target_dir/public.pem"
+  docker run --rm \
+    --user 0:0 \
+    --volume "$target_dir:/run/local-auth" \
+    --entrypoint /bin/sh \
+    "$DR_TELEMETRY_IMAGE" \
+    -ec '
+      chown 10001:10001 /run/local-auth/private.pem /run/local-auth/public.pem
+      chmod 0400 /run/local-auth/private.pem
+      chmod 0444 /run/local-auth/public.pem
+    '
+}
+
 export DR_POSTGRES_DB="nexolab"
 export DR_POSTGRES_USER="nexolab"
 export DR_POSTGRES_PASSWORD="$(random_secret)"
@@ -70,6 +89,7 @@ export DR_MINIO_ROOT_USER="nexolabdr"
 export DR_MINIO_ROOT_PASSWORD="$(random_secret)"
 export DR_MQTT_ADMIN_USERNAME="nexolab-dr-admin"
 export DR_SECRETS_DIR="$SECRETS_DIR"
+export DR_SOURCE_LOCAL_AUTH_DIR="$SOURCE_LOCAL_AUTH_DIR"
 export DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"
 export DR_LOCAL_AUTH_ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
 export DR_WORK_DIR="$WORK_DIR"
@@ -141,6 +161,10 @@ python3 "$ROOT_DIR/scripts/validate-disaster-recovery-assets.py" --policy "$POLI
 compose config --quiet
 
 compose build source-migrate source-mqtt
+prepare_runtime_local_auth_dir \
+  "$SECRETS_DIR/local-auth-private.pem" \
+  "$SECRETS_DIR/local-auth-public.pem" \
+  "$SOURCE_LOCAL_AUTH_DIR"
 compose up -d --wait source-postgres source-minio source-mqtt
 compose run --rm source-migrate
 
@@ -433,13 +457,15 @@ if compose run --rm --no-deps restore-telemetry-service \
   exit 82
 fi
 grep -Eqi 'missing|invalid|required' "$WORK_DIR/missing-local-auth-keys.log"
-install -m 0600 "$RESTORED_DIR/local-auth/private.pem" "$RESTORE_LOCAL_AUTH_DIR/private.pem"
-install -m 0644 "$RESTORED_DIR/local-auth/public.pem" "$RESTORE_LOCAL_AUTH_DIR/public.pem"
-openssl pkey -in "$RESTORE_LOCAL_AUTH_DIR/private.pem" -pubout -outform DER \
+openssl pkey -in "$RESTORED_DIR/local-auth/private.pem" -pubout -outform DER \
   | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-private-public.sha256"
-openssl pkey -pubin -in "$RESTORE_LOCAL_AUTH_DIR/public.pem" -outform DER \
+openssl pkey -pubin -in "$RESTORED_DIR/local-auth/public.pem" -outform DER \
   | sha256sum | awk '{print $1}' >"$WORK_DIR/restored-public.sha256"
 cmp "$WORK_DIR/restored-private-public.sha256" "$WORK_DIR/restored-public.sha256"
+prepare_runtime_local_auth_dir \
+  "$RESTORED_DIR/local-auth/private.pem" \
+  "$RESTORED_DIR/local-auth/public.pem" \
+  "$RESTORE_LOCAL_AUTH_DIR"
 
 compose up -d --wait restore-postgres restore-minio
 compose exec -T restore-postgres \
