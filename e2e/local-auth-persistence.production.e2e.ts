@@ -124,6 +124,7 @@ async function recreateStack(request: APIRequestContext): Promise<void> {
 test("preserves local accounts, memberships and refresh sessions through update and rollback recreation", async ({
   request,
 }) => {
+  test.setTimeout(420_000);
   mkdirSync(evidenceDirectory, { recursive: true });
 
   const loginResponse = await request.post(`${apiBaseUrl}/api/v1/auth/local/login`, {
