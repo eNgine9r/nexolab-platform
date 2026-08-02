@@ -38,7 +38,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: disaster-recovery-${{ github.ref }}
@@ -50,55 +50,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Checkout feature branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: feat/189-recovery-acceptance
-          fetch-depth: 0
-
-      - name: Apply runtime key correction
-        if: github.actor != 'github-actions[bot]'
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          workflow = Path(".github/workflows/issue-189-key-permissions-fix.yml")
-          text = workflow.read_text(encoding="utf-8")
-
-          def execute_between(start_marker: str, end_marker: str) -> None:
-              start = text.index(start_marker) + len(start_marker)
-              end = text.index(end_marker, start)
-              lines = text[start:end].splitlines()
-              script = "\n".join(
-                  line[10:] if line.startswith("          ") else line for line in lines
-              ) + "\n"
-              compile(script, str(workflow), "exec")
-              exec(script, {"__name__": "__main__"})
-
-          execute_between(
-              "      - name: Create non-root runtime key copies\n        run: |\n          python - <<'PY'\n",
-              "\n          PY\n\n      - name: Patch source service mount",
-          )
-          execute_between(
-              "      - name: Patch source service mount\n        run: |\n          python - <<'PY'\n",
-              "\n          PY\n\n      - name: Validate focused correction",
-          )
-          PY
-
-      - name: Commit runtime key correction
-        if: github.actor != 'github-actions[bot]'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            infrastructure/compose/compose.disaster-recovery-local-auth.yaml \
-            scripts/run-disaster-recovery-acceptance.sh
-          if git diff --cached --quiet; then
-            echo "Runtime key correction already applied."
-          else
-            git commit -m "fix(recovery): prepare non-root auth key copies"
-            git push origin HEAD:feat/189-recovery-acceptance
-          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -185,10 +138,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - name: Checkout latest feature branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: feat/189-recovery-acceptance
 
       - name: Setup Python
         uses: actions/setup-python@v5
