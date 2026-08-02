@@ -4,6 +4,7 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from uuid import uuid4
 
 import jwt
@@ -29,6 +30,10 @@ class InvalidLocalCredentialsError(LocalAuthenticationError):
 
 class LocalAccountLockedError(LocalAuthenticationError):
     code = "local_account_locked"
+
+    def __init__(self, message: str, *, retry_after_seconds: int) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = max(1, retry_after_seconds)
 
 
 class InvalidLocalRefreshTokenError(LocalAuthenticationError):
@@ -104,7 +109,10 @@ class LocalAuthService:
 
         password_valid = verify_password(password, account.password_hash)
         if account.locked_until is not None and account.locked_until > now:
-            raise LocalAccountLockedError("local account is temporarily locked")
+            raise LocalAccountLockedError(
+                "local account is temporarily locked",
+                retry_after_seconds=ceil((account.locked_until - now).total_seconds()),
+            )
         if not account.is_active or not password_valid:
             locked_until = self._repository.record_failed_login(
                 account_id=account.id,
@@ -113,7 +121,10 @@ class LocalAuthService:
                 now=now,
             )
             if locked_until is not None:
-                raise LocalAccountLockedError("local account is temporarily locked")
+                raise LocalAccountLockedError(
+                    "local account is temporarily locked",
+                    retry_after_seconds=ceil((locked_until - now).total_seconds()),
+                )
             raise InvalidLocalCredentialsError("invalid username or password")
 
         security_session = self._security_repository.resolve_session(account.claims)
