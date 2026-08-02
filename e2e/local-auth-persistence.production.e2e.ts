@@ -13,8 +13,7 @@ const composeProjectName = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const postgresVolumeName = requiredEnvironment("ACCEPTANCE_POSTGRES_VOLUME_NAME");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const postgresUser = requiredEnvironment("POSTGRES_USER");
-const evidenceDirectory =
-  process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR ?? "local-auth-acceptance-evidence";
 
 const composeFiles = [
   "infrastructure/compose/compose.central.yaml",
@@ -68,18 +67,7 @@ SELECT 'sessions_fingerprint=' || md5(COALESCE(string_agg(
 `;
 
   return compose(
-    [
-      "exec",
-      "-T",
-      "postgres",
-      "psql",
-      "-U",
-      postgresUser,
-      "-d",
-      postgresDatabase,
-      "-v",
-      "ON_ERROR_STOP=1",
-    ],
+    ["exec", "-T", "postgres", "psql", "-U", postgresUser, "-d", postgresDatabase, "-v", "ON_ERROR_STOP=1"],
     sql,
   ).trim();
 }
@@ -117,10 +105,7 @@ async function waitForReady(request: APIRequestContext): Promise<void> {
     .toBe(200);
 }
 
-async function assertAccessTokenActive(
-  request: APIRequestContext,
-  accessToken: string,
-): Promise<void> {
+async function assertAccessTokenActive(request: APIRequestContext, accessToken: string): Promise<void> {
   const response = await request.get(`${apiBaseUrl}/api/v1/auth/session`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
