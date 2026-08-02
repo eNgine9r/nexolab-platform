@@ -64,6 +64,36 @@ describe("local browser authentication", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe(`${API_BASE_URL}/api/v1/auth/local/refresh`);
   });
 
+  it("serializes concurrent refreshes so a rotated token cannot invalidate the active tab", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T18:00:00Z"));
+    let resolveRefresh: ((response: Response) => void) | null = null;
+    const refreshResponse = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(tokenResponse("access-1", "refresh-1", 1))
+      .mockReturnValueOnce(refreshResponse);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+    await vi.advanceTimersByTimeAsync(2_000);
+    const provider = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID);
+    const first = provider();
+    const second = provider();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    resolveRefresh?.(tokenResponse("access-2", "refresh-2", 300));
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { accessToken: "access-2", organizationId: ORGANIZATION_ID },
+      { accessToken: "access-2", organizationId: ORGANIZATION_ID },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-2");
+  });
+
   it("clears local material when refresh is rejected", async () => {
     const fetchMock = vi
       .fn()
