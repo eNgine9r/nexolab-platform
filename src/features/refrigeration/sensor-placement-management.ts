@@ -6,9 +6,7 @@ export type SensorPlacementChange =
   | { type: "remove"; sensorId: string }
   | { type: "replace"; sensorId: string; replacementSensorId: string };
 
-export function assignedSensorIds(
-  placements: readonly LayoutPlacement[],
-): ReadonlySet<string> {
+export function assignedSensorIds(placements: readonly LayoutPlacement[]): ReadonlySet<string> {
   return new Set(placements.map(({ sensorId }) => sensorId));
 }
 
@@ -105,9 +103,7 @@ export function suggestPlacement(
 }
 
 function isOccupied(point: NormalizedPoint, placements: readonly LayoutPlacement[]): boolean {
-  return placements.some(
-    (placement) => Math.hypot(placement.x - point.x, placement.y - point.y) < 0.025,
-  );
+  return placements.some((placement) => Math.hypot(placement.x - point.x, placement.y - point.y) < 0.025);
 }
 
 function assertKnownSensor(sensorIds: ReadonlySet<string>, sensorId: string): void {

@@ -7,10 +7,7 @@ import {
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
-import {
-  HttpClimateCatalogRepository,
-  type ClimateCatalogRepository,
-} from "./climate-catalog-repository";
+import { HttpClimateCatalogRepository, type ClimateCatalogRepository } from "./climate-catalog-repository";
 import {
   HttpEquipmentLifecycleRepository,
   type EquipmentLifecycleRepository,
@@ -71,8 +68,7 @@ export function createRefrigerationEquipmentRuntime(
       input.organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID,
     );
     const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
-    const credentialProvider =
-      input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
+    const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
     const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
     const equipmentRepository = new HttpRefrigerationEquipmentRepository({
       apiBaseUrl: config.apiBaseUrl,
@@ -109,10 +105,7 @@ export function createRefrigerationEquipmentRuntime(
       climateCatalogRepository: null,
       sessionClient: null,
       organizationId: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Не вдалося налаштувати каталог обладнання.",
+      error: error instanceof Error ? error.message : "Не вдалося налаштувати каталог обладнання.",
     };
   }
 }

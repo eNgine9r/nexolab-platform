@@ -26,10 +26,7 @@ describe("sensor placement management", () => {
   });
 
   it("lists every other sensor as a replacement candidate", () => {
-    expect(replacementSensors(sensors, "sensor-1").map(({ id }) => id)).toEqual([
-      "sensor-2",
-      "sensor-3",
-    ]);
+    expect(replacementSensors(sensors, "sensor-1").map(({ id }) => id)).toEqual(["sensor-2", "sensor-3"]);
   });
 
   it("adds an available sensor at its preferred free point", () => {
@@ -61,9 +58,9 @@ describe("sensor placement management", () => {
   });
 
   it("removes an assigned sensor but never allows an empty layout", () => {
-    expect(
-      applySensorPlacementChange(placements, sensors, { type: "remove", sensorId: "sensor-1" }),
-    ).toEqual([{ sensorId: "sensor-2", x: 0.5, y: 0.5 }]);
+    expect(applySensorPlacementChange(placements, sensors, { type: "remove", sensorId: "sensor-1" })).toEqual(
+      [{ sensorId: "sensor-2", x: 0.5, y: 0.5 }],
+    );
 
     expect(() =>
       applySensorPlacementChange([placements[0]], sensors, {

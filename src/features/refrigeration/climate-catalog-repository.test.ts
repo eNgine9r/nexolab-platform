@@ -52,9 +52,9 @@ function response(payload: unknown): Response {
 
 describe("HttpClimateCatalogRepository", () => {
   it("parses logical chambers sharing one physical edge node and RS485 bus", async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
-      response({ items: [chamber("KK1", 1), chamber("KK2", 2)] }),
-    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response({ items: [chamber("KK1", 1), chamber("KK2", 2)] }));
     const repository = new HttpClimateCatalogRepository({
       apiBaseUrl: "http://nexolab.test/",
       fetchImpl,
@@ -96,8 +96,7 @@ describe("HttpClimateCatalogRepository", () => {
         ],
         temperatureChannels: [channel("KK2", 101, 1, 471)],
         energyMeters: [],
-        energyMeterEmptyMessage:
-          "До цієї кліматичної камери лічильники електроенергії ще не підключені.",
+        energyMeterEmptyMessage: "До цієї кліматичної камери лічильники електроенергії ще не підключені.",
       }),
     );
     const repository = new HttpClimateCatalogRepository({
@@ -120,9 +119,10 @@ describe("HttpClimateCatalogRepository", () => {
       logicalSensorNumber: 471,
       physicalSensorCount: 2,
     });
-    expect(
-      catalog.temperatureChannels[0]?.physicalSensors.map((item) => item.inventoryNumber),
-    ).toEqual(["471-A", "471-B"]);
+    expect(catalog.temperatureChannels[0]?.physicalSensors.map((item) => item.inventoryNumber)).toEqual([
+      "471-A",
+      "471-B",
+    ]);
     expect(catalog.energyMeters).toEqual([]);
     expect(catalog.energyMeterEmptyMessage).toBe(
       "До цієї кліматичної камери лічильники електроенергії ще не підключені.",

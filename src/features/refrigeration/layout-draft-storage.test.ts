@@ -24,9 +24,7 @@ describe("layout draft storage", () => {
   it("round-trips a valid equipment-scoped placement draft", () => {
     const serialized = serializeLayoutDraft(validPayload());
 
-    expect(parseLayoutDraft(serialized, "equipment-1", allowedSensorIds, nowMs)).toEqual(
-      validPayload(),
-    );
+    expect(parseLayoutDraft(serialized, "equipment-1", allowedSensorIds, nowMs)).toEqual(validPayload());
   });
 
   it("round-trips a valid partial sensor assignment", () => {
@@ -35,9 +33,9 @@ describe("layout draft storage", () => {
       placements: placements.slice(0, 1),
     };
 
-    expect(
-      parseLayoutDraft(JSON.stringify(partial), "equipment-1", allowedSensorIds, nowMs),
-    ).toEqual(partial);
+    expect(parseLayoutDraft(JSON.stringify(partial), "equipment-1", allowedSensorIds, nowMs)).toEqual(
+      partial,
+    );
   });
 
   it("stores only normalized placement geometry", () => {
@@ -58,21 +56,15 @@ describe("layout draft storage", () => {
     expect(parseLayoutDraft("{broken", "equipment-1", allowedSensorIds, nowMs)).toBeNull();
 
     const unsupported = { ...validPayload(), schemaVersion: 99 };
-    expect(
-      parseLayoutDraft(JSON.stringify(unsupported), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(unsupported), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
   });
 
   it("rejects stale and implausibly future drafts", () => {
     const stale = validPayload(new Date(nowMs - LAYOUT_DRAFT_MAX_AGE_MS - 1).toISOString());
-    expect(
-      parseLayoutDraft(JSON.stringify(stale), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(stale), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
 
     const future = validPayload(new Date(nowMs + 10 * 60 * 1000).toISOString());
-    expect(
-      parseLayoutDraft(JSON.stringify(future), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(future), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
   });
 
   it("rejects equipment mismatches, empty drafts and duplicate sensors", () => {
@@ -80,17 +72,13 @@ describe("layout draft storage", () => {
     expect(parseLayoutDraft(serialized, "equipment-2", allowedSensorIds, nowMs)).toBeNull();
 
     const empty = { ...validPayload(), placements: [] };
-    expect(
-      parseLayoutDraft(JSON.stringify(empty), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(empty), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
 
     const duplicate = {
       ...validPayload(),
       placements: [placements[0], { ...placements[0] }],
     };
-    expect(
-      parseLayoutDraft(JSON.stringify(duplicate), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(duplicate), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
   });
 
   it("rejects non-finite and out-of-range normalized coordinates", () => {
@@ -99,9 +87,7 @@ describe("layout draft storage", () => {
       placements: [placements[0], { sensorId: "sensor-2", x: 1.01, y: 0.5 }],
     };
 
-    expect(
-      parseLayoutDraft(JSON.stringify(invalid), "equipment-1", allowedSensorIds, nowMs),
-    ).toBeNull();
+    expect(parseLayoutDraft(JSON.stringify(invalid), "equipment-1", allowedSensorIds, nowMs)).toBeNull();
   });
 
   it("fails open when browser storage operations throw", () => {

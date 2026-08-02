@@ -104,30 +104,21 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
   }
 
   async listNodes(): Promise<EquipmentNodeOption[]> {
-    const payload = asRecord(
-      await this.json("/api/v1/equipment/options/nodes", { method: "GET" }),
-    );
+    const payload = asRecord(await this.json("/api/v1/equipment/options/nodes", { method: "GET" }));
     if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseNode);
   }
 
-  async listClimateChamberChannels(
-    climateChamberId: string,
-  ): Promise<AvailableSensor[]> {
+  async listClimateChamberChannels(climateChamberId: string): Promise<AvailableSensor[]> {
     const payload = asRecord(
-      await this.json(
-        `/api/v1/equipment/options/nodes/${encodeURIComponent(climateChamberId)}/channels`,
-        { method: "GET" },
-      ),
+      await this.json(`/api/v1/equipment/options/nodes/${encodeURIComponent(climateChamberId)}/channels`, {
+        method: "GET",
+      }),
     );
     // The URL is scoped by the logical climate-chamber identifier. The response
     // deliberately exposes the physical edge node that owns the chamber's bus,
     // so node_id must be valid but must not equal the chamber UUID.
-    if (
-      !payload ||
-      !Array.isArray(payload.items) ||
-      !readString(payload.node_id)
-    ) {
+    if (!payload || !Array.isArray(payload.items) || !readString(payload.node_id)) {
       throw invalidResponse();
     }
     return payload.items.map(parseAvailableSensor);
@@ -162,10 +153,7 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     );
   }
 
-  async listBindings(
-    equipmentId: string,
-    includeHistory = false,
-  ): Promise<SensorBinding[]> {
+  async listBindings(equipmentId: string, includeHistory = false): Promise<SensorBinding[]> {
     const payload = asRecord(
       await this.json(
         `/api/v1/equipment/${encodeURIComponent(equipmentId)}/sensor-bindings${includeHistory ? "?include_history=true" : ""}`,
@@ -178,10 +166,9 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
 
   async listAvailableSensors(equipmentId: string): Promise<AvailableSensor[]> {
     const payload = asRecord(
-      await this.json(
-        `/api/v1/equipment/${encodeURIComponent(equipmentId)}/available-sensors`,
-        { method: "GET" },
-      ),
+      await this.json(`/api/v1/equipment/${encodeURIComponent(equipmentId)}/available-sensors`, {
+        method: "GET",
+      }),
     );
     if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseAvailableSensor);
@@ -194,30 +181,27 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     bindings: readonly SensorConfigurationItem[],
   ): Promise<SensorConfigurationMutation> {
     const payload = asRecord(
-      await this.json(
-        `/api/v1/equipment/${encodeURIComponent(equipmentId)}/sensor-configuration`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "If-Match": equipmentEtag(expectedEquipmentVersion),
-            "X-Audit-Reason": "Updated climate chamber sensor configuration",
-          },
-          body: JSON.stringify({
-            expected_draft_version: expectedDraftVersion,
-            bindings: bindings.map((item) => ({
-              slot_key: item.slotKey,
-              channel_id: item.channelId,
-              label: item.label,
-              side: item.side,
-              shelf: item.shelf,
-              position: item.position,
-              x: item.x,
-              y: item.y,
-            })),
-          }),
+      await this.json(`/api/v1/equipment/${encodeURIComponent(equipmentId)}/sensor-configuration`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": equipmentEtag(expectedEquipmentVersion),
+          "X-Audit-Reason": "Updated climate chamber sensor configuration",
         },
-      ),
+        body: JSON.stringify({
+          expected_draft_version: expectedDraftVersion,
+          bindings: bindings.map((item) => ({
+            slot_key: item.slotKey,
+            channel_id: item.channelId,
+            label: item.label,
+            side: item.side,
+            shelf: item.shelf,
+            position: item.position,
+            x: item.x,
+            y: item.y,
+          })),
+        }),
+      }),
     );
     if (!payload || !Array.isArray(payload.bindings)) throw invalidResponse();
     return {
@@ -288,9 +272,7 @@ export class HttpEquipmentLifecycleRepository implements EquipmentLifecycleRepos
     const payload = await readJson(response);
     if (!response.ok) {
       const detail = asRecord(asRecord(payload)?.detail);
-      const error = new Error(
-        readString(detail?.message) ?? "Lifecycle-операцію не виконано.",
-      );
+      const error = new Error(readString(detail?.message) ?? "Lifecycle-операцію не виконано.");
       (
         error as Error & {
           code?: string;
@@ -346,9 +328,7 @@ function parseImage(value: unknown): EquipmentImageMetadata {
   if (
     !id ||
     !fileName ||
-    (mimeType !== "image/jpeg" &&
-      mimeType !== "image/png" &&
-      mimeType !== "image/webp") ||
+    (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") ||
     widthPx === null ||
     heightPx === null ||
     sizeBytes === null ||
@@ -526,24 +506,15 @@ function readOptionalString(value: unknown): string | null {
 }
 
 function readInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value >= 1
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : null;
 }
 
 function readNormalizedNumber(value: unknown): number | null {
-  return typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= 0 &&
-    value <= 1
-    ? value
-    : null;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
 }
 
 function readNullableNumber(value: unknown): number | null {
