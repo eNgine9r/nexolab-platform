@@ -9,17 +9,7 @@ import type {
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { clsx } from "clsx";
-import {
-  Expand,
-  ImageIcon,
-  Maximize2,
-  Minimize2,
-  Minus,
-  Pencil,
-  Plus,
-  Scan,
-  Shrink,
-} from "lucide-react";
+import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Pencil, Plus, Scan, Shrink } from "lucide-react";
 
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
 import type { LayoutPlacement, SnapMode } from "@/features/refrigeration/layout-editor";
@@ -94,9 +84,7 @@ export function CameraScopedImageCanvas({
   };
 
   const aspectRatio =
-    image && image.widthPx > 0 && image.heightPx > 0
-      ? `${image.widthPx} / ${image.heightPx}`
-      : "16 / 10";
+    image && image.widthPx > 0 && image.heightPx > 0 ? `${image.widthPx} / ${image.heightPx}` : "16 / 10";
 
   return (
     <div
@@ -105,10 +93,7 @@ export function CameraScopedImageCanvas({
       data-expanded={expanded}
       data-fullscreen={fullscreen}
       data-fit-contour={fitContour}
-      className={clsx(
-        "space-y-2",
-        fullscreen && "h-screen overflow-hidden bg-[#06142a] p-3 text-slate-100",
-      )}
+      className={clsx("space-y-2", fullscreen && "h-screen overflow-hidden bg-[#06142a] p-3 text-slate-100")}
     >
       <div className="flex items-center justify-end gap-1.5">
         <div
@@ -141,7 +126,7 @@ export function CameraScopedImageCanvas({
             onChange={(event) => updateScale(Number(event.target.value))}
             className="h-1.5 w-20 cursor-pointer accent-cyan-400 sm:w-28"
           />
-          <output className="min-w-8 text-right text-[9px] font-semibold tabular-nums text-cyan-200">
+          <output className="min-w-8 text-right text-[9px] font-semibold text-cyan-200 tabular-nums">
             {scalePercent}%
           </output>
           <button
@@ -182,20 +167,12 @@ export function CameraScopedImageCanvas({
 
         <button
           type="button"
-          aria-label={
-            fullscreen
-              ? "Вийти з повноекранного режиму"
-              : "Відкрити підкладку на повний екран"
-          }
+          aria-label={fullscreen ? "Вийти з повноекранного режиму" : "Відкрити підкладку на повний екран"}
           title={fullscreen ? "Вийти з повного екрана" : "Повний екран"}
           onClick={() => void toggleFullscreen()}
           className={toolbarButtonClass}
         >
-          {fullscreen ? (
-            <Minimize2 className="h-3.5 w-3.5" />
-          ) : (
-            <Maximize2 className="h-3.5 w-3.5" />
-          )}
+          {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
       </div>
 
@@ -212,12 +189,7 @@ export function CameraScopedImageCanvas({
           mode === "edit" && "ring-1 ring-blue-400/30",
         )}
       >
-        <div
-          className={clsx(
-            "relative",
-            fitContour ? "h-full w-full" : "min-h-full min-w-full p-3",
-          )}
-        >
+        <div className={clsx("relative", fitContour ? "h-full w-full" : "min-h-full min-w-full p-3")}>
           <div
             ref={stageRef}
             data-testid="equipment-image-stage"
@@ -247,15 +219,9 @@ export function CameraScopedImageCanvas({
                   unoptimized
                   draggable={false}
                   sizes="(min-width: 1536px) 1700px, 98vw"
-                  className={clsx(
-                    "select-none",
-                    fitContour ? "object-fill" : "object-contain",
-                  )}
+                  className={clsx("select-none", fitContour ? "object-fill" : "object-contain")}
                   onLoad={(event: SyntheticEvent<HTMLImageElement>) =>
-                    onImageDimensions(
-                      event.currentTarget.naturalWidth,
-                      event.currentTarget.naturalHeight,
-                    )
+                    onImageDimensions(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)
                   }
                 />
               ) : (
@@ -269,10 +235,7 @@ export function CameraScopedImageCanvas({
               <div className="pointer-events-none absolute inset-0 z-20 rounded-lg bg-[linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] bg-[size:2.5%_2.5%]" />
             ) : null}
 
-            <div
-              data-testid="sensor-marker-layer"
-              className="pointer-events-none absolute inset-0 z-40"
-            >
+            <div data-testid="sensor-marker-layer" className="pointer-events-none absolute inset-0 z-40">
               {visibleSensors.map((sensor) => {
                 const placement = placementBySensorId.get(sensor.id);
                 if (!placement) return null;
@@ -326,9 +289,7 @@ export function CameraScopedImageCanvas({
                       )}
                     >
                       <span className="block">{sensor.label}</span>
-                      <span className="block font-semibold">
-                        {formatTemperature(sensor.temperatureC)}
-                      </span>
+                      <span className="block font-semibold">{formatTemperature(sensor.temperatureC)}</span>
                     </button>
                   </div>
                 );
@@ -348,9 +309,7 @@ function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
           <ImageIcon className="h-6 w-6" />
         </div>
-        <p className="mt-3 text-xs font-medium text-slate-300">
-          Фото {equipmentName} не завантажено
-        </p>
+        <p className="mt-3 text-xs font-medium text-slate-300">Фото {equipmentName} не завантажено</p>
       </div>
     </div>
   );
@@ -367,8 +326,7 @@ const markerTone = {
     "border-amber-200/90 bg-amber-950/90 text-amber-50 shadow-[0_2px_14px_rgba(2,6,23,.72),0_0_18px_rgba(245,158,11,.42)]",
   alarm:
     "border-rose-200/95 bg-rose-950/90 text-rose-50 shadow-[0_2px_14px_rgba(2,6,23,.72),0_0_20px_rgba(244,63,94,.48)]",
-  "no-data":
-    "border-slate-300/80 bg-slate-950/90 text-slate-100 shadow-[0_2px_14px_rgba(2,6,23,.72)]",
+  "no-data": "border-slate-300/80 bg-slate-950/90 text-slate-100 shadow-[0_2px_14px_rgba(2,6,23,.72)]",
 };
 
 const smallButtonClass =

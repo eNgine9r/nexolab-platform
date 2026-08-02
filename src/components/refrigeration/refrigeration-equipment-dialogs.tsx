@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import {
-  AlertTriangle,
-  CopyPlus,
-  LoaderCircle,
-  Pencil,
-  Plus,
-  RadioTower,
-  Trash2,
-  X,
-} from "lucide-react";
+import { AlertTriangle, CopyPlus, LoaderCircle, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import type { EquipmentLifecycleStatus, RefrigerationEquipment } from "@/data/refrigeration";
@@ -72,9 +63,7 @@ export function CreateEquipmentDialog({
   intent?: "create" | "duplicate";
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
-  onClimateChamberChange?: (
-    nodeId: string,
-  ) => Promise<ClimateChamberEquipmentSummary>;
+  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
   return (
     <EquipmentPassportDialog
@@ -106,9 +95,7 @@ export function EditEquipmentDialog({
   nodeOptions: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentUpdateInput) => Promise<void>;
-  onClimateChamberChange?: (
-    nodeId: string,
-  ) => Promise<ClimateChamberEquipmentSummary>;
+  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
   if (!equipment) return null;
   return (
@@ -145,16 +132,12 @@ function EquipmentPassportDialog({
   nodeOptions: EquipmentNodeOption[];
   onClose: () => void;
   onSubmit: (input: RefrigerationEquipmentCreateInput) => Promise<void>;
-  onClimateChamberChange?: (
-    nodeId: string,
-  ) => Promise<ClimateChamberEquipmentSummary>;
+  onClimateChamberChange?: (nodeId: string) => Promise<ClimateChamberEquipmentSummary>;
 }) {
   const [form, setForm] = useState(initialValue);
   const [retirementConfirmed, setRetirementConfirmed] = useState(false);
-  const [chamberLoadState, setChamberLoadState] =
-    useState<ChamberLoadState>("idle");
-  const [chamberSummary, setChamberSummary] =
-    useState<ClimateChamberEquipmentSummary | null>(null);
+  const [chamberLoadState, setChamberLoadState] = useState<ChamberLoadState>("idle");
+  const [chamberSummary, setChamberSummary] = useState<ClimateChamberEquipmentSummary | null>(null);
   const [chamberError, setChamberError] = useState<string | null>(null);
   const titleId = useId();
   const chamberField = useRef<HTMLSelectElement>(null);
@@ -230,8 +213,7 @@ function EquipmentPassportDialog({
     await onSubmit(form);
   };
 
-  const retirementBlocked =
-    form.lifecycleStatus === "retired" && !retirementConfirmed;
+  const retirementBlocked = form.lifecycleStatus === "retired" && !retirementConfirmed;
   const chamberRequired = form.lifecycleStatus !== "retired";
   const passportLocked = mode !== "edit" && !form.nodeId;
   const title =
@@ -258,11 +240,7 @@ function EquipmentPassportDialog({
               {title}
             </h2>
           </div>
-          <RefrigerationIconButton
-            label="Закрити форму"
-            onClick={onClose}
-            disabled={busy}
-          >
+          <RefrigerationIconButton label="Закрити форму" onClick={onClose} disabled={busy}>
             <X className="h-4 w-4" />
           </RefrigerationIconButton>
         </header>
@@ -272,9 +250,8 @@ function EquipmentPassportDialog({
             <div className="mb-5 flex items-start gap-3 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-xs leading-5 text-blue-100">
               <CopyPlus className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Перенесено лише технічні параметри паспорта. Оберіть кліматичну
-                камеру, перевірте назву, код і розташування та введіть новий
-                серійний номер. Датчики, фото, схеми, історія й аудит не
+                Перенесено лише технічні параметри паспорта. Оберіть кліматичну камеру, перевірте назву, код і
+                розташування та введіть новий серійний номер. Датчики, фото, схеми, історія й аудит не
                 копіюються.
               </span>
             </div>
@@ -289,19 +266,13 @@ function EquipmentPassportDialog({
                 <Field
                   label="Кліматична камера"
                   required={chamberRequired}
-                  hint={
-                    mode === "edit"
-                      ? "Зміна потребує відсутності активних bindings"
-                      : "Перший крок"
-                  }
+                  hint={mode === "edit" ? "Зміна потребує відсутності активних bindings" : "Перший крок"}
                 >
                   <select
                     ref={chamberField}
                     required={chamberRequired}
                     value={form.nodeId}
-                    onChange={(event) =>
-                      void selectClimateChamber(event.target.value)
-                    }
+                    onChange={(event) => void selectClimateChamber(event.target.value)}
                     className={inputClass}
                     aria-describedby="climate-chamber-help"
                   >
@@ -318,10 +289,7 @@ function EquipmentPassportDialog({
                     ))}
                   </select>
                 </Field>
-                <div
-                  id="climate-chamber-help"
-                  className="mt-2 min-h-5 text-[10px] leading-5"
-                >
+                <div id="climate-chamber-help" className="mt-2 min-h-5 text-[10px] leading-5">
                   {chamberLoadState === "loading" ? (
                     <span className="inline-flex items-center gap-2 text-cyan-200">
                       <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
@@ -330,27 +298,18 @@ function EquipmentPassportDialog({
                   ) : chamberLoadState === "ready" && chamberSummary ? (
                     <div className="space-y-2">
                       <div className="grid gap-2 sm:grid-cols-3">
-                        <CatalogMetric
-                          label="Dixell"
-                          value={chamberSummary.temperatureControllers}
-                        />
+                        <CatalogMetric label="Dixell" value={chamberSummary.temperatureControllers} />
                         <CatalogMetric
                           label="Температурні канали"
                           value={chamberSummary.temperatureChannels}
                         />
-                        <CatalogMetric
-                          label="Лічильники"
-                          value={chamberSummary.energyMeters}
-                        />
+                        <CatalogMetric label="Лічильники" value={chamberSummary.energyMeters} />
                       </div>
                       {chamberSummary.energyMeterEmptyMessage ? (
-                        <p className="text-slate-400">
-                          {chamberSummary.energyMeterEmptyMessage}
-                        </p>
+                        <p className="text-slate-400">{chamberSummary.energyMeterEmptyMessage}</p>
                       ) : (
                         <p className="text-emerald-300">
-                          На схемі будуть показані лише канали та прилади цієї
-                          камери.
+                          На схемі будуть показані лише канали та прилади цієї камери.
                         </p>
                       )}
                     </div>
@@ -358,8 +317,7 @@ function EquipmentPassportDialog({
                     <span className="text-rose-300">{chamberError}</span>
                   ) : (
                     <span className="text-slate-500">
-                      Камера визначає набір доступних датчиків і вимірювальних
-                      приладів.
+                      Камера визначає набір доступних датчиків і вимірювальних приладів.
                     </span>
                   )}
                 </div>
@@ -369,8 +327,7 @@ function EquipmentPassportDialog({
 
           {passportLocked ? (
             <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Спочатку оберіть кліматичну камеру. Після цього стане доступним
-              паспорт обладнання.
+              Спочатку оберіть кліматичну камеру. Після цього стане доступним паспорт обладнання.
             </p>
           ) : null}
 
@@ -423,11 +380,7 @@ function EquipmentPassportDialog({
                   placeholder="Зона C"
                 />
               </Field>
-              <Field
-                label="Відображуване розташування"
-                required
-                hint="Каталог і звіти"
-              >
+              <Field label="Відображуване розташування" required hint="Каталог і звіти">
                 <input
                   required
                   value={form.location}
@@ -454,11 +407,7 @@ function EquipmentPassportDialog({
                   placeholder="Модель"
                 />
               </Field>
-              <Field
-                label="Серійний номер"
-                required
-                hint={mode === "duplicate" ? "Новий" : undefined}
-              >
+              <Field label="Серійний номер" required hint={mode === "duplicate" ? "Новий" : undefined}>
                 <input
                   required
                   value={form.serialNumber}
@@ -471,9 +420,7 @@ function EquipmentPassportDialog({
                 <input
                   required
                   value={form.temperatureClass}
-                  onChange={(event) =>
-                    update("temperatureClass", event.target.value)
-                  }
+                  onChange={(event) => update("temperatureClass", event.target.value)}
                   className={inputClass}
                   placeholder="3M1 (0…+5 °C)"
                 />
@@ -482,18 +429,13 @@ function EquipmentPassportDialog({
                 <select
                   value={form.lifecycleStatus}
                   onChange={(event) =>
-                    update(
-                      "lifecycleStatus",
-                      event.target.value as EquipmentLifecycleStatus,
-                    )
+                    update("lifecycleStatus", event.target.value as EquipmentLifecycleStatus)
                   }
                   className={inputClass}
                 >
                   <option value="active">Активне</option>
                   <option value="maintenance">Обслуговування</option>
-                  {mode === "edit" ? (
-                    <option value="retired">Виведене з експлуатації</option>
-                  ) : null}
+                  {mode === "edit" ? <option value="retired">Виведене з експлуатації</option> : null}
                 </select>
               </Field>
               <Field label="Дата встановлення">
@@ -518,9 +460,7 @@ function EquipmentPassportDialog({
                   min={0}
                   max={48}
                   value={form.totalSensors}
-                  onChange={(event) =>
-                    update("totalSensors", Number(event.target.value))
-                  }
+                  onChange={(event) => update("totalSensors", Number(event.target.value))}
                   className={inputClass}
                 />
               </Field>
@@ -532,15 +472,12 @@ function EquipmentPassportDialog({
               <input
                 type="checkbox"
                 checked={retirementConfirmed}
-                onChange={(event) =>
-                  setRetirementConfirmed(event.target.checked)
-                }
+                onChange={(event) => setRetirementConfirmed(event.target.checked)}
                 className="mt-0.5 h-4 w-4 accent-rose-400"
               />
               <span>
-                Підтверджую незворотне виведення обладнання з експлуатації.
-                Активні bindings буде завершено, чернетка стане read-only,
-                історичні фото та опубліковані ревізії залишаться доступними.
+                Підтверджую незворотне виведення обладнання з експлуатації. Активні bindings буде завершено,
+                чернетка стане read-only, історичні фото та опубліковані ревізії залишаться доступними.
               </span>
             </label>
           ) : null}
@@ -613,9 +550,7 @@ export function DeleteEquipmentDialog({
 
   useEffect(() => {
     if (!equipment) return;
-    const frame = window.requestAnimationFrame(() =>
-      cancelButton.current?.focus(),
-    );
+    const frame = window.requestAnimationFrame(() => cancelButton.current?.focus());
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) onClose();
     };
@@ -645,11 +580,8 @@ export function DeleteEquipmentDialog({
               Видалити обладнання?
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              <span className="font-medium text-slate-200">
-                {equipment.name}
-              </span>{" "}
-              буде прибрано з каталогу. Історичні схеми та аудит залишаться
-              збереженими.
+              <span className="font-medium text-slate-200">{equipment.name}</span> буде прибрано з каталогу.
+              Історичні схеми та аудит залишаться збереженими.
             </p>
             <p className="mt-2 text-xs text-slate-600">{equipment.code}</p>
           </div>
@@ -689,9 +621,7 @@ export function DeleteEquipmentDialog({
   );
 }
 
-function equipmentToInput(
-  equipment: RefrigerationEquipment,
-): RefrigerationEquipmentUpdateInput {
+function equipmentToInput(equipment: RefrigerationEquipment): RefrigerationEquipmentUpdateInput {
   return {
     code: equipment.code,
     name: equipment.name,
@@ -737,9 +667,7 @@ function Field({
           {label}
           {required ? <span className="ml-1 text-cyan-300">*</span> : null}
         </span>
-        {hint ? (
-          <span className="text-[10px] font-normal text-slate-600">{hint}</span>
-        ) : null}
+        {hint ? <span className="text-[10px] font-normal text-slate-600">{hint}</span> : null}
       </span>
       {children}
     </label>

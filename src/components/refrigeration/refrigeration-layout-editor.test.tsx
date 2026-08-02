@@ -66,10 +66,7 @@ function CanvasHarness({ equipmentId }: { equipmentId: string }) {
   const equipment = referenceEquipment();
   const stageRef = useRef<HTMLDivElement>(null);
   const placementBySensorId = useMemo(
-    () =>
-      new Map(
-        equipment.sensors.map(({ id, x, y }) => [id, { sensorId: id, x, y }] as const),
-      ),
+    () => new Map(equipment.sensors.map(({ id, x, y }) => [id, { sensorId: id, x, y }] as const)),
     [equipment.sensors],
   );
 
@@ -192,9 +189,7 @@ describe("RefrigerationLayoutEditor", () => {
     expect(stage).toHaveAttribute("data-scale-percent", "130");
     expect(marker("01F")).toHaveAttribute("data-x", originalX);
     expect(marker("01F")).toHaveAttribute("data-y", originalY);
-    expect(window.localStorage.getItem("nexolab:refrigeration:image-scale:showcase-106-01")).toBe(
-      "130",
-    );
+    expect(window.localStorage.getItem("nexolab:refrigeration:image-scale:showcase-106-01")).toBe("130");
   });
 
   it("expands the canvas and falls back to expanded mode when Fullscreen API is unavailable", () => {
@@ -218,18 +213,12 @@ describe("RefrigerationLayoutEditor", () => {
 
     const { rerender } = render(<CanvasHarness equipmentId="showcase-106-01" />);
     await waitFor(() => {
-      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute(
-        "data-scale-percent",
-        "120",
-      );
+      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute("data-scale-percent", "120");
     });
 
     rerender(<CanvasHarness equipmentId="showcase-115-01" />);
     await waitFor(() => {
-      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute(
-        "data-scale-percent",
-        "150",
-      );
+      expect(screen.getByTestId("equipment-image-stage")).toHaveAttribute("data-scale-percent", "150");
     });
   });
 

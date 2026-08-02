@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Grid3X3, LoaderCircle, Pencil, Save, X } from "lucide-react";
 
@@ -103,27 +100,13 @@ export function CameraScopedLayoutEditor({
   const dirty = !configurationsEqual(configuration, persisted);
   const placementBySensorId = useMemo<ReadonlyMap<string, LayoutPlacement>>(
     () =>
-      new Map(
-        configuration.map((sensor) => [
-          sensor.id,
-          { sensorId: sensor.id, x: sensor.x, y: sensor.y },
-        ]),
-      ),
+      new Map(configuration.map((sensor) => [sensor.id, { sensorId: sensor.id, x: sensor.x, y: sensor.y }])),
     [configuration],
   );
-  const snapSlots = useMemo(
-    () => configuration.map(({ x, y }) => ({ x, y })),
-    [configuration],
-  );
-  const viewSensorIds = useMemo(
-    () => new Set(visibleSensors.map((sensor) => sensor.id)),
-    [visibleSensors],
-  );
+  const snapSlots = useMemo(() => configuration.map(({ x, y }) => ({ x, y })), [configuration]);
+  const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
-    () =>
-      mode === "edit"
-        ? configuration
-        : configuration.filter((sensor) => viewSensorIds.has(sensor.id)),
+    () => (mode === "edit" ? configuration : configuration.filter((sensor) => viewSensorIds.has(sensor.id))),
     [configuration, mode, viewSensorIds],
   );
 
@@ -162,11 +145,7 @@ export function CameraScopedLayoutEditor({
         draft.version,
         configurationPayload(configuration),
       );
-      const next = buildStagedSensorConfiguration(
-        result.bindings,
-        channels,
-        result.draft.placements,
-      );
+      const next = buildStagedSensorConfiguration(result.bindings, channels, result.draft.placements);
       setDraft(result.draft);
       setPersisted(next);
       setConfiguration(next);
@@ -177,21 +156,14 @@ export function CameraScopedLayoutEditor({
       setNotice(`Конфігурацію ${next.length} датчиків збережено.`);
     } catch (cause) {
       const typed = cause as Error & { code?: string; actualVersion?: number };
-      if (
-        typed.code === "equipment_version_conflict" ||
-        typed.code === "layout_version_conflict"
-      ) {
+      if (typed.code === "equipment_version_conflict" || typed.code === "layout_version_conflict") {
         setError(
           `Конфігурацію змінив інший оператор${
             typed.actualVersion ? ` · актуальна версія ${typed.actualVersion}` : ""
           }. Оновіть сторінку та повторіть дію.`,
         );
       } else {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "Конфігурацію датчиків не збережено.",
-        );
+        setError(cause instanceof Error ? cause.message : "Конфігурацію датчиків не збережено.");
       }
     } finally {
       setState("ready");
@@ -199,9 +171,7 @@ export function CameraScopedLayoutEditor({
   };
 
   const cancel = () => {
-    setConfiguration(
-      persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })),
-    );
+    setConfiguration(persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })));
     setEditingSensorId(null);
     setError(null);
     setNotice(null);
@@ -218,15 +188,10 @@ export function CameraScopedLayoutEditor({
       gridDivisions: 40,
       slots: snapSlots,
     });
-    updateConfiguration(
-      moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y),
-    );
+    updateConfiguration(moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y));
   };
 
-  const markerKeyDown = (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => {
+  const markerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => {
     if (mode !== "edit") return;
     const sensor = configuration.find((candidate) => candidate.id === sensorId);
     if (!sensor) return;
@@ -240,18 +205,11 @@ export function CameraScopedLayoutEditor({
     });
   };
 
-  const markerPointerDown = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => {
+  const markerPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => {
     onSelect(sensorId);
     if (mode !== "edit") return;
     const sensor = configuration.find((candidate) => candidate.id === sensorId);
-    const point = pointFromPointer(
-      event.clientX,
-      event.clientY,
-      stageRef.current,
-    );
+    const point = pointFromPointer(event.clientX, event.clientY, stageRef.current);
     if (!sensor || !point) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -262,16 +220,10 @@ export function CameraScopedLayoutEditor({
     };
   };
 
-  const markerPointerMove = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
+  const markerPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId || mode !== "edit") return;
-    const point = pointFromPointer(
-      event.clientX,
-      event.clientY,
-      stageRef.current,
-    );
+    const point = pointFromPointer(event.clientX, event.clientY, stageRef.current);
     if (!point) return;
     event.preventDefault();
     applyMovement(drag.sensorId, {
@@ -280,9 +232,7 @@ export function CameraScopedLayoutEditor({
     });
   };
 
-  const markerPointerUp = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
+  const markerPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
@@ -305,9 +255,7 @@ export function CameraScopedLayoutEditor({
       <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2 className="text-xs font-semibold text-white sm:text-sm">
-              Фото та схема розміщення
-            </h2>
+            <h2 className="text-xs font-semibold text-white sm:text-sm">Фото та схема розміщення</h2>
             <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-0.5 text-[8px] text-cyan-200">
               Чернетка v{draft.version}
             </span>
@@ -361,11 +309,7 @@ export function CameraScopedLayoutEditor({
                   <Save className="h-4 w-4" />
                 )}
               </RefrigerationIconButton>
-              <RefrigerationIconButton
-                label="Скасувати редагування"
-                onClick={cancel}
-                size="lg"
-              >
+              <RefrigerationIconButton label="Скасувати редагування" onClick={cancel} size="lg">
                 <X className="h-4 w-4" />
               </RefrigerationIconButton>
             </div>

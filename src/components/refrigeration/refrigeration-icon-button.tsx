@@ -33,23 +33,22 @@ const sizeClasses: Record<IconButtonSize, string> = {
   lg: "h-11 w-11 rounded-xl",
 };
 
-export const RefrigerationIconButton = forwardRef<
-  HTMLButtonElement,
-  RefrigerationIconButtonProps
->(function RefrigerationIconButton(
-  { label, children, tone = "default", size = "md", className = "", type = "button", ...props },
-  ref,
-) {
-  return (
-    <button
-      ref={ref}
-      type={type}
-      aria-label={label}
-      title={label}
-      className={`grid shrink-0 place-items-center border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-35 ${sizeClasses[size]} ${toneClasses[tone]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-});
+export const RefrigerationIconButton = forwardRef<HTMLButtonElement, RefrigerationIconButtonProps>(
+  function RefrigerationIconButton(
+    { label, children, tone = "default", size = "md", className = "", type = "button", ...props },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        aria-label={label}
+        title={label}
+        className={`grid shrink-0 place-items-center border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-35 ${sizeClasses[size]} ${toneClasses[tone]} ${className}`}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
+);

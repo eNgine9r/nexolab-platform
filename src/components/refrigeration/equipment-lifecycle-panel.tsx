@@ -63,9 +63,7 @@ export function EquipmentLifecyclePanel({
   const [chambers, setChambers] = useState<DialogNodeOption[]>([]);
   const [images, setImages] = useState<EquipmentImageMetadata[]>([]);
   const [bindings, setBindings] = useState<SensorBinding[]>([]);
-  const [loading, setLoading] = useState(
-    lifecycleRepository !== null || climateCatalogRepository !== null,
-  );
+  const [loading, setLoading] = useState(lifecycleRepository !== null || climateCatalogRepository !== null);
   const [notice, setNotice] = useState<Notice>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
@@ -93,12 +91,8 @@ export function EquipmentLifecyclePanel({
               })),
             )
           : Promise.resolve([]),
-        lifecycleRepository
-          ? lifecycleRepository.listImages(equipment.id)
-          : Promise.resolve([]),
-        lifecycleRepository
-          ? lifecycleRepository.listBindings(equipment.id)
-          : Promise.resolve([]),
+        lifecycleRepository ? lifecycleRepository.listImages(equipment.id) : Promise.resolve([]),
+        lifecycleRepository ? lifecycleRepository.listBindings(equipment.id) : Promise.resolve([]),
       ]);
       setChambers(loadedChambers);
       setImages(loadedImages);
@@ -177,11 +171,7 @@ export function EquipmentLifecyclePanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <IconButton
-            label="Оновити lifecycle-дані"
-            onClick={() => void refresh()}
-            disabled={loading}
-          >
+          <IconButton label="Оновити lifecycle-дані" onClick={() => void refresh()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </IconButton>
           {canManage && repository && mutable ? (
@@ -220,8 +210,7 @@ export function EquipmentLifecyclePanel({
       {equipment.lifecycleStatus === "retired" ? (
         <div className="mb-3 flex items-start gap-2 rounded-xl border border-slate-400/15 bg-slate-400/[0.06] p-3 text-xs text-slate-300">
           <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
-          Обладнання виведено з експлуатації. Паспорт, фото, bindings і схема доступні
-          лише для аудиту.
+          Обладнання виведено з експлуатації. Паспорт, фото, bindings і схема доступні лише для аудиту.
         </div>
       ) : null}
 
@@ -305,8 +294,8 @@ export function EquipmentLifecyclePanel({
             <EmptyState text="Активних bindings немає." />
           )}
           <p className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.035] px-3 py-2 text-[10px] leading-relaxed text-slate-500">
-            Додавання, заміна та видалення датчиків виконуються на підкладці в режимі
-            редагування. Усі зміни зберігаються одним атомарним пакетом.
+            Додавання, заміна та видалення датчиків виконуються на підкладці в режимі редагування. Усі зміни
+            зберігаються одним атомарним пакетом.
           </p>
         </LifecycleCard>
       </div>

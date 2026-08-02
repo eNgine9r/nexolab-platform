@@ -4,14 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  FileText,
-  RadioTower,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -26,10 +19,7 @@ import type {
   SensorSide,
   SensorStatus,
 } from "@/data/refrigeration";
-import type {
-  AvailableSensor,
-  SensorBinding,
-} from "@/features/refrigeration/equipment-lifecycle-repository";
+import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 import { hasPermission } from "@/features/security/security-session";
 
@@ -166,9 +156,7 @@ export function RefrigerationDetailScreen({
       setBindings([]);
       setChannels([]);
       setChannelError(
-        runtime.mode === "live" && !chamberId
-          ? "Для обладнання не вибрано кліматичну камеру."
-          : null,
+        runtime.mode === "live" && !chamberId ? "Для обладнання не вибрано кліматичну камеру." : null,
       );
       return;
     }
@@ -221,13 +209,7 @@ export function RefrigerationDetailScreen({
     return () => {
       active = false;
     };
-  }, [
-    bindingEpoch,
-    equipmentRecord.climateChamberId,
-    equipmentRecord.id,
-    equipmentRecord.version,
-    runtime,
-  ]);
+  }, [bindingEpoch, equipmentRecord.climateChamberId, equipmentRecord.id, equipmentRecord.version, runtime]);
 
   const equipment = useMemo(
     () => (bindingSensors === null ? equipmentRecord : { ...equipmentRecord, sensors: bindingSensors }),
@@ -236,8 +218,7 @@ export function RefrigerationDetailScreen({
   const visibleSensors = useMemo(
     () =>
       equipment.sensors.filter(
-        (sensor) =>
-          (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
+        (sensor) => (side === "all" || sensor.side === side) && (shelf === "all" || sensor.shelf === shelf),
       ),
     [equipment.sensors, shelf, side],
   );
@@ -283,9 +264,7 @@ export function RefrigerationDetailScreen({
 
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h1 className="truncate text-base font-semibold text-white sm:text-lg">
-                    {equipment.name}
-                  </h1>
+                  <h1 className="truncate text-base font-semibold text-white sm:text-lg">{equipment.name}</h1>
                   <span
                     className={clsx(
                       "rounded-full border px-2 py-0.5 text-[9px]",
@@ -307,10 +286,7 @@ export function RefrigerationDetailScreen({
                 className="ml-auto flex shrink-0 items-center gap-1.5"
                 aria-label="Дії сторінки обладнання"
               >
-                <div
-                  ref={setHeaderToolbarTarget}
-                  className="flex w-[132px] shrink-0 items-center gap-1.5"
-                />
+                <div ref={setHeaderToolbarTarget} className="flex w-[132px] shrink-0 items-center gap-1.5" />
                 <button
                   type="button"
                   aria-label="Відкрити паспорт обладнання"
@@ -481,11 +457,7 @@ function LayoutFilterMenu({
             Усі
           </FilterButton>
           {shelves.map((item) => (
-            <FilterButton
-              key={item}
-              active={shelf === item}
-              onClick={() => onShelfChange(item)}
-            >
+            <FilterButton key={item} active={shelf === item} onClick={() => onShelfChange(item)}>
               {item}
             </FilterButton>
           ))}

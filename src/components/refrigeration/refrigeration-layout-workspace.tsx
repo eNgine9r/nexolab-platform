@@ -482,7 +482,9 @@ function PhotoUploadCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-white">Production-фото</p>
-          <p className="mt-1 text-[10px] text-slate-500">S3-compatible storage · JPEG/PNG/WebP · максимум 1,5 МБ</p>
+          <p className="mt-1 text-[10px] text-slate-500">
+            S3-compatible storage · JPEG/PNG/WebP · максимум 1,5 МБ
+          </p>
         </div>
         <ImagePlus className="h-4 w-4 text-cyan-300" />
       </div>

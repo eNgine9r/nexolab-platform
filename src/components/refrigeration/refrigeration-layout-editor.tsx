@@ -122,12 +122,9 @@ export function RefrigerationLayoutEditor({
       });
   }
 
-  const [persistedPlacements, setPersistedPlacements] =
-    useState<LayoutPlacement[]>(initialPlacements);
+  const [persistedPlacements, setPersistedPlacements] = useState<LayoutPlacement[]>(initialPlacements);
   const [draftPlacements, setDraftPlacements] = useState<LayoutPlacement[]>(initialPlacements);
-  const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(
-    equipment.image,
-  );
+  const [persistedImage, setPersistedImage] = useState<EquipmentImageMetadata | null>(equipment.image);
   const [draftImage, setDraftImage] = useState<EquipmentImageMetadata | null>(equipment.image);
   const [draftVersion, setDraftVersion] = useState(1);
   const [history, setHistory] = useState<CommandHistory>(createEmptyHistory);
@@ -136,9 +133,7 @@ export function RefrigerationLayoutEditor({
   const [repositoryError, setRepositoryError] = useState<string | null>(null);
   const [versionConflict, setVersionConflict] = useState<VersionConflict | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [repositoryState, setRepositoryState] = useState<"loading" | "ready" | "saving">(
-    "loading",
-  );
+  const [repositoryState, setRepositoryState] = useState<"loading" | "ready" | "saving">("loading");
   const [recoveryDraft, setRecoveryDraft] = useState<LayoutDraftPayload | null>(null);
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -195,8 +190,7 @@ export function RefrigerationLayoutEditor({
     if (repositoryState !== "ready") return;
     if (recoveryCheckedEquipmentRef.current === equipment.id) return;
 
-    const storage =
-      recoveryStorageRef.current ?? createBrowserLayoutDraftStorage(window.sessionStorage);
+    const storage = recoveryStorageRef.current ?? createBrowserLayoutDraftStorage(window.sessionStorage);
     recoveryStorageRef.current = storage;
 
     const raw = storage.load(equipment.id);
@@ -229,10 +223,7 @@ export function RefrigerationLayoutEditor({
     }
     if (mode !== "edit") return;
 
-    storage.save(
-      equipment.id,
-      serializeLayoutDraft(createLayoutDraftPayload(equipment.id, draftPlacements)),
-    );
+    storage.save(equipment.id, serializeLayoutDraft(createLayoutDraftPayload(equipment.id, draftPlacements)));
   }, [draftPlacements, equipment.id, mode, placementDirty, recoveryDraft, repositoryState]);
 
   useEffect(() => {
@@ -337,10 +328,7 @@ export function RefrigerationLayoutEditor({
     );
   };
 
-  const handleMarkerPointerDown = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    sensorId: string,
-  ) => {
+  const handleMarkerPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => {
     onSelect(sensorId);
     if (mode !== "edit") return;
 
@@ -607,8 +595,8 @@ export function RefrigerationLayoutEditor({
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">Конфлікт версій схеми</p>
                 <p className="mt-1 leading-5 text-amber-100/80">
-                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є
-                  версія {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
+                  Ви редагували версію {versionConflict.expectedVersion}, але в сховищі вже є версія{" "}
+                  {versionConflict.actualVersion}. Локальні позиції та фото не втрачено.
                 </p>
                 <button
                   type="button"
@@ -674,8 +662,7 @@ function RecoveryBanner({
           <div>
             <p className="font-semibold">Знайдено незбережену чернетку позицій</p>
             <p className="mt-1 leading-5 text-cyan-100/75">
-              Збережено локально {formatRecoveryTimestamp(savedAt)}. Фото та серверна версія не
-              змінювалися.
+              Збережено локально {formatRecoveryTimestamp(savedAt)}. Фото та серверна версія не змінювалися.
             </p>
           </div>
         </div>
@@ -789,18 +776,8 @@ function EditorToolbar({
         </select>
       </label>
 
-      <ToolbarButton
-        label="Скасувати останню дію"
-        icon={Undo2}
-        disabled={!canUndo}
-        onClick={onUndo}
-      />
-      <ToolbarButton
-        label="Повторити останню дію"
-        icon={Redo2}
-        disabled={!canRedo}
-        onClick={onRedo}
-      />
+      <ToolbarButton label="Скасувати останню дію" icon={Undo2} disabled={!canUndo} onClick={onUndo} />
+      <ToolbarButton label="Повторити останню дію" icon={Redo2} disabled={!canRedo} onClick={onRedo} />
       <ToolbarButton label="Скинути позиції" icon={RotateCcw} onClick={onReset} />
       <button
         type="button"
@@ -808,11 +785,7 @@ function EditorToolbar({
         disabled={!dirty || saving || loading}
         className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-200 enabled:hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {saving ? (
-          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Save className="h-3.5 w-3.5" />
-        )}
+        {saving ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
         {saving ? "Збереження…" : "Зберегти чернетку"}
       </button>
       <button
@@ -904,10 +877,7 @@ function pointsEqual(first: NormalizedPoint, second: NormalizedPoint): boolean {
   return Math.abs(first.x - second.x) < 0.000001 && Math.abs(first.y - second.y) < 0.000001;
 }
 
-function placementsEqual(
-  first: readonly LayoutPlacement[],
-  second: readonly LayoutPlacement[],
-): boolean {
+function placementsEqual(first: readonly LayoutPlacement[], second: readonly LayoutPlacement[]): boolean {
   if (first.length !== second.length) return false;
   const secondById = new Map(second.map((placement) => [placement.sensorId, placement]));
   return first.every((placement) => {
@@ -916,10 +886,7 @@ function placementsEqual(
   });
 }
 
-function imagesEqual(
-  first: EquipmentImageMetadata | null,
-  second: EquipmentImageMetadata | null,
-): boolean {
+function imagesEqual(first: EquipmentImageMetadata | null, second: EquipmentImageMetadata | null): boolean {
   if (first === null || second === null) return first === second;
   return first.id === second.id && first.sourceUrl === second.sourceUrl;
 }
