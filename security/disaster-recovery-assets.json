@@ -26,12 +26,7 @@
       "backup_path": "postgresql/nexolab.dump",
       "restore_order": 10,
       "restore_volume_prefix": "nexolab-dr-postgres-",
-      "verification": [
-        "pg-restore-list",
-        "schema-head",
-        "row-counts",
-        "immutable-hashes"
-      ]
+      "verification": ["pg-restore-list", "schema-head", "row-counts", "immutable-hashes"]
     },
     {
       "id": "object-storage",
@@ -47,12 +42,7 @@
       "metadata_path": "object-storage/objects.json",
       "restore_order": 20,
       "restore_volume_prefix": "nexolab-dr-object-storage-",
-      "verification": [
-        "private-bucket",
-        "object-count",
-        "object-size",
-        "object-sha256"
-      ]
+      "verification": ["private-bucket", "object-count", "object-size", "object-sha256"]
     },
     {
       "id": "mqtt-dynamic-security",
@@ -102,12 +92,7 @@
       "backup_format": "pem",
       "backup_path": "local-auth/public.pem",
       "restore_order": 50,
-      "verification": [
-        "regular-file",
-        "mode-0644",
-        "rsa-public-key",
-        "matching-private-key"
-      ]
+      "verification": ["regular-file", "mode-0644", "rsa-public-key", "matching-private-key"]
     }
   ]
 }

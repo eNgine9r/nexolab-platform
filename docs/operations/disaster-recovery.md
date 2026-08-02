@@ -24,13 +24,13 @@ Actual-host scheduling, off-host storage, hardware-backed key custody, physical-
 
 The authoritative inventory is `security/disaster-recovery-assets.json`.
 
-| Order | Asset                                      | Consistency boundary       | Backup format                          | Restore verification                                         |
-| ----: | ------------------------------------------ | -------------------------- | -------------------------------------- | ------------------------------------------------------------ |
-|    10 | PostgreSQL                                 | logical snapshot           | `pg_dump --format=custom`              | archive list, Alembic head, row counts, immutable hashes     |
-|    20 | MinIO bucket `nexolab-equipment-images`    | application quiesce        | object tree + sorted metadata manifest | private bucket, count, size and SHA-256                      |
-|    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation |
-|    40 | Local-auth private signing key               | operator secret snapshot   | PEM inside encrypted bundle            | mode 0600, RSA validity, public-key match, missing-key failure |
-|    50 | Local-auth public verification key           | operator secret snapshot   | PEM inside encrypted bundle            | mode 0644, RSA validity and private-key match                  |
+| Order | Asset                                      | Consistency boundary       | Backup format                          | Restore verification                                           |
+| ----: | ------------------------------------------ | -------------------------- | -------------------------------------- | -------------------------------------------------------------- |
+|    10 | PostgreSQL                                 | logical snapshot           | `pg_dump --format=custom`              | archive list, Alembic head, row counts, immutable hashes       |
+|    20 | MinIO bucket `nexolab-equipment-images`    | application quiesce        | object tree + sorted metadata manifest | private bucket, count, size and SHA-256                        |
+|    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation   |
+|    40 | Local-auth private signing key             | operator secret snapshot   | PEM inside encrypted bundle            | mode 0600, RSA validity, public-key match, missing-key failure |
+|    50 | Local-auth public verification key         | operator secret snapshot   | PEM inside encrypted bundle            | mode 0644, RSA validity and private-key match                  |
 
 Software acceptance objectives:
 
