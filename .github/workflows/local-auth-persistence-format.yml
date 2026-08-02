@@ -1,0 +1,49 @@
+name: Local Auth Persistence Format
+
+on:
+  push:
+    branches:
+      - feat/188-offline-operator-auth
+
+permissions:
+  contents: write
+
+concurrency:
+  group: local-auth-persistence-format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/188-offline-operator-auth
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Apply locked Prettier formatting
+        run: npm exec prettier -- --write e2e/local-auth-persistence.production.e2e.ts
+
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet; then
+            echo "Formatting already canonical."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/local-auth-persistence.production.e2e.ts
+          git commit -m "style(auth): apply persistence formatting"
+          git push origin HEAD:feat/188-offline-operator-auth
