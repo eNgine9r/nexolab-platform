@@ -73,7 +73,6 @@ jobs:
             infrastructure/compose/compose.disaster-recovery.yaml \
             scripts/run-disaster-recovery-acceptance.sh \
             scripts/verify-restored-platform.sh \
-            .github/workflows/disaster-recovery-acceptance.yml \
             docs/operations/disaster-recovery.md
           git commit -m "feat(recovery): preserve local authentication state"
           git push origin HEAD:feat/189-recovery-acceptance
