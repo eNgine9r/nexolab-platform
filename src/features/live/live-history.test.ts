@@ -20,7 +20,7 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
   return {
     event_id: "event-1",
     node_id: "edge-01",
-    captured_at: "2026-08-04T00:00:00.000Z",
+    captured_at: "2026-08-03T21:00:00.000Z",
     metric: "temperature",
     value: 4.2,
     unit: "degC",
@@ -37,7 +37,7 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 
 function response(
   items: TelemetrySample[],
-  snapshotAt = "2026-08-04T00:10:00.000Z",
+  snapshotAt = "2026-08-03T21:10:00.000Z",
   nextOffset: number | null = null,
 ): TelemetryCollectionResponse {
   return {
@@ -60,8 +60,8 @@ function adapter(history: TelemetryAdapter["history"]): TelemetryAdapter {
 }
 
 const window = {
-  from: new Date("2026-08-03T23:00:00.000Z"),
-  to: new Date("2026-08-04T00:10:00.000Z"),
+  from: new Date("2026-08-03T20:00:00.000Z"),
+  to: new Date("2026-08-03T21:10:00.000Z"),
 };
 
 describe("live history loading", () => {
@@ -83,7 +83,7 @@ describe("live history loading", () => {
 
     const result = await loadCompleteLiveHistory(adapter(history), [temperature, power], window);
 
-    expect(result.snapshotAt).toBe("2026-08-04T00:10:00.000Z");
+    expect(result.snapshotAt).toBe("2026-08-03T21:10:00.000Z");
     expect(queries).toHaveLength(2);
     expect(queries[0].snapshot_at).toBeUndefined();
     expect(queries[1].snapshot_at).toBe(result.snapshotAt);
@@ -102,7 +102,7 @@ describe("live history loading", () => {
     const history = vi
       .fn<TelemetryAdapter["history"]>()
       .mockResolvedValueOnce(response([temperature]))
-      .mockResolvedValueOnce(response([power], "2026-08-04T00:11:00.000Z"));
+      .mockResolvedValueOnce(response([power], "2026-08-03T21:11:00.000Z"));
 
     await expect(loadCompleteLiveHistory(adapter(history), [temperature, power], window)).rejects.toThrow(
       "snapshot changed",
@@ -137,14 +137,14 @@ describe("live history downsampling", () => {
 
   it("preserves a communication failure as a separate recovery segment", () => {
     const samples = [
-      sample({ event_id: "before", captured_at: "2026-08-04T00:00:00.000Z", value: 4.1 }),
+      sample({ event_id: "before", captured_at: "2026-08-03T21:00:00.000Z", value: 4.1 }),
       sample({
         event_id: "failure",
-        captured_at: "2026-08-04T00:00:05.000Z",
+        captured_at: "2026-08-03T21:00:05.000Z",
         quality: "communication_error",
         value: null,
       }),
-      sample({ event_id: "recovery", captured_at: "2026-08-04T00:00:10.000Z", value: 4.3 }),
+      sample({ event_id: "recovery", captured_at: "2026-08-03T21:00:10.000Z", value: 4.3 }),
     ];
 
     const result = downsampleLiveHistory(samples, window, 10);
@@ -155,15 +155,15 @@ describe("live history downsampling", () => {
   });
 
   it("does not let delayed replay close a newer pending outage", () => {
-    const latest = sample({ event_id: "latest", captured_at: "2026-08-04T00:00:20.000Z" });
+    const latest = sample({ event_id: "latest", captured_at: "2026-08-03T21:00:20.000Z" });
     const failure = sample({
       event_id: "failure",
-      captured_at: "2026-08-04T00:00:25.000Z",
+      captured_at: "2026-08-03T21:00:25.000Z",
       quality: "communication_error",
       value: null,
     });
-    const delayed = sample({ event_id: "delayed", captured_at: "2026-08-04T00:00:10.000Z" });
-    const recovery = sample({ event_id: "recovery", captured_at: "2026-08-04T00:00:30.000Z" });
+    const delayed = sample({ event_id: "delayed", captured_at: "2026-08-03T21:00:10.000Z" });
+    const recovery = sample({ event_id: "recovery", captured_at: "2026-08-03T21:00:30.000Z" });
     const afterFailure = reconcileLiveHistoryEvents([failure], seedLiveHistoryOrderingState([latest]));
     const afterDelayed = reconcileLiveHistoryEvents([delayed], afterFailure.state);
     const afterRecovery = reconcileLiveHistoryEvents([recovery], afterDelayed.state);
