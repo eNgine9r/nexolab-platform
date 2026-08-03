@@ -18,6 +18,16 @@ export interface LiveHistoryResult {
   snapshotAt: string;
 }
 
+export interface LiveHistoryOrderingState {
+  newestCapturedAtByChannel: Map<string, number>;
+  pendingBreakChannels: Set<string>;
+}
+
+export interface LiveHistoryReconciliation {
+  samples: TelemetrySample[];
+  state: LiveHistoryOrderingState;
+}
+
 function parsedTimestamp(value: string): number {
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
@@ -63,6 +73,7 @@ function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetryS
   let breakPending = false;
 
   for (const original of sorted) {
+    const explicitSegment = isLiveHistorySegmentStart(original);
     const sample = clearSegmentStart(original);
     const capturedAt = parsedTimestamp(sample.captured_at);
     if (!Number.isFinite(capturedAt)) continue;
@@ -73,6 +84,7 @@ function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetryS
     }
 
     const startsSegment =
+      explicitSegment ||
       breakPending ||
       (previousRenderableAt !== null && capturedAt - previousRenderableAt > LIVE_HISTORY_SOURCE_GAP_MS);
     annotated.push(startsSegment ? markSegmentStart(sample) : sample);
@@ -153,6 +165,57 @@ export function downsampleLiveHistory(
   return [...groups.entries()]
     .sort(([left], [right]) => left.localeCompare(right, "uk-UA"))
     .flatMap(([, channelSamples]) => downsampleChannel(channelSamples, window, maximumPointsPerChannel));
+}
+
+export function seedLiveHistoryOrderingState(
+  samples: readonly TelemetrySample[],
+): LiveHistoryOrderingState {
+  const newestCapturedAtByChannel = new Map<string, number>();
+  for (const sample of samples) {
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    if (!acceptedSample(sample) || !Number.isFinite(capturedAt)) continue;
+    const key = liveChannelKey(sample);
+    const current = newestCapturedAtByChannel.get(key);
+    if (current === undefined || capturedAt > current) newestCapturedAtByChannel.set(key, capturedAt);
+  }
+  return { newestCapturedAtByChannel, pendingBreakChannels: new Set() };
+}
+
+export function reconcileLiveHistoryEvents(
+  incoming: readonly TelemetrySample[],
+  currentState: LiveHistoryOrderingState,
+): LiveHistoryReconciliation {
+  const newestCapturedAtByChannel = new Map(currentState.newestCapturedAtByChannel);
+  const pendingBreakChannels = new Set(currentState.pendingBreakChannels);
+  const samples: TelemetrySample[] = [];
+  const sorted = [...incoming].sort(
+    (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
+  );
+
+  for (const sample of sorted) {
+    if (!acceptedSample(sample)) continue;
+    const key = liveChannelKey(sample);
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    const newest = newestCapturedAtByChannel.get(key);
+    if (newest !== undefined && capturedAt <= newest) continue;
+
+    newestCapturedAtByChannel.set(key, capturedAt);
+    if (!isRenderable(sample)) {
+      pendingBreakChannels.add(key);
+      continue;
+    }
+
+    const startsSegment =
+      pendingBreakChannels.has(key) ||
+      (newest !== undefined && capturedAt - newest > LIVE_HISTORY_SOURCE_GAP_MS);
+    samples.push(startsSegment ? markSegmentStart(sample) : sample);
+    pendingBreakChannels.delete(key);
+  }
+
+  return {
+    samples,
+    state: { newestCapturedAtByChannel, pendingBreakChannels },
+  };
 }
 
 async function loadIdentityHistory(
