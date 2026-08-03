@@ -54,7 +54,7 @@
   },
   "description": "NEXOLAB cold-chain and laboratory IoT monitoring dashboard.",
   "engines": {
-    "node": ">=22.22.1 <23",
+    "node": ">=22.22.1 <23 || >=24 <25",
     "npm": ">=10.0.0"
   },
   "lint-staged": {
