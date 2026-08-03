@@ -7,54 +7,31 @@
   "parent_issue": 260,
   "pull_request": 262,
   "status": "exact_head_green_ready_for_merge",
-  "timestamp": "2026-08-03T19:00:00+03:00",
+  "timestamp": "2026-08-03T19:30:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-  "verified_head_sha": "3143bf31757b7d866623896c241f695da650944f",
+  "verified_implementation_head_sha": "40e2b0897b389a2adcd43903223dc16129e7460d",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Energy Monitoring is implemented and exact-head verified. The page uses production-node scoped latest, history and WebSocket telemetry, loads complete history once, then advances the rolling plot through bounded WebSocket-tail merges without periodic full-window reloads.",
-  "scope_completed": [
-    "replaced the /energy placeholder with the authenticated NEXOLAB operator workspace",
-    "added W1-W4 latest cards and confirmed electrical metrics",
-    "added production edge-01 scope to latest, history and WebSocket",
-    "added complete paginated 1h, 6h and 24h history",
-    "added bounded per-meter downsampling and requested-window chart scaling",
-    "added incremental WebSocket history-tail merge with deduplication and rolling-window pruning",
-    "added metric-unit compatibility validation",
-    "added loading, empty, stale, offline, permission and error states",
-    "kept cumulative energy unavailable pending Issue #201 hardware evidence",
-    "created next product Work Package #263 for /live"
-  ],
+  "summary": "Energy Monitoring is implemented and verified with stable captured-time history pagination, renderable-only downsampling, WebSocket tail updates and wall-clock rolling-window pruning.",
   "checks_actually_run": [
-    "CI 30830167308 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
-    "Authenticated Dashboard Acceptance 30830165546 GREEN: energy latest/history, selection, live WebSocket update and evidence upload"
-  ],
-  "review_findings_addressed": [
-    "history pagination and complete-window downsampling",
-    "mixed-freshness meter cards",
-    "requested-window chart scaling",
-    "rolling history updates",
-    "metric-unit mismatch rejection",
-    "production node isolation",
-    "elimination of minute-by-minute full 24-hour history reloads",
-    "repository source-of-truth advancement"
+    "CI 30832280986 GREEN",
+    "Authenticated Dashboard Acceptance 30832281295 GREEN"
   ],
   "runtime_and_offline_evidence": [
-    "uses existing local REST, WebSocket, PostgreSQL and local authentication contracts",
+    "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
     "no package, Compose, container or offline-delivery contract changed",
-    "no mandatory cloud, CDN, remote font or external runtime request introduced",
-    "live mode does not silently fall back to demo data"
+    "no mandatory online runtime dependency introduced"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was performed. Confirmed read-only metric contracts are used; cumulative active energy remains hardware-unverified under Issue #201."
+    "note": "No hardware operation was performed; cumulative active energy remains unverified under Issue #201."
   },
   "remaining_actions": [
-    "resolve addressed PR #262 review threads",
+    "resolve addressed PR review threads",
     "merge PR #262 with expected-head protection",
-    "start Issue #263 on a new focused feature branch"
+    "start Issue #263"
   ],
   "next_ready_work_package": {
     "issue": 263,
-    "instruction": "After PR #262 merges, replace /live with the universal authenticated telemetry explorer. Do not resume deferred toolchain maintenance."
+    "instruction": "Replace /live with the universal authenticated telemetry explorer."
   }
 }
