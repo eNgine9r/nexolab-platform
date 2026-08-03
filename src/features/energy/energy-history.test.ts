@@ -14,6 +14,8 @@ import {
   isEnergyHistorySegmentStart,
 } from "./energy-history-segment";
 
+const SNAPSHOT_AT = "2026-08-03T11:00:00.000Z";
+
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
     event_id: `energy-${nodeId}-${unitId}-${index}`,
@@ -45,7 +47,7 @@ function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapte
 }
 
 describe("energy history", () => {
-  it("uses an overlapping captured-at cursor instead of mutable offsets", async () => {
+  it("uses an overlapping captured-at cursor pinned to one ingestion snapshot", async () => {
     const adapter = adapterWithPages([
       {
         items: [sample(3), sample(2), sample(99, 200, "edge-02")],
@@ -53,6 +55,7 @@ describe("energy history", () => {
         limit: 3,
         offset: 0,
         next_offset: 3,
+        snapshot_at: SNAPSHOT_AT,
       },
       {
         items: [sample(2), sample(1), sample(0)],
@@ -60,6 +63,7 @@ describe("energy history", () => {
         limit: 3,
         offset: 0,
         next_offset: null,
+        snapshot_at: SNAPSHOT_AT,
       },
     ]);
 
@@ -73,7 +77,12 @@ describe("energy history", () => {
     expect(adapter.history).toHaveBeenCalledTimes(2);
     expect(adapter.history).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ node_id: "edge-01", offset: 0, limit: 1000 }),
+      expect.objectContaining({
+        node_id: "edge-01",
+        offset: 0,
+        limit: 1000,
+        snapshot_at: undefined,
+      }),
       undefined,
     );
     expect(adapter.history).toHaveBeenNthCalledWith(
@@ -82,6 +91,7 @@ describe("energy history", () => {
         node_id: "edge-01",
         offset: 0,
         limit: 1000,
+        snapshot_at: SNAPSHOT_AT,
         to: new Date("2026-08-03T10:00:02.001Z"),
       }),
       undefined,
@@ -92,6 +102,57 @@ describe("energy history", () => {
       "energy-edge-01-200-2",
       "energy-edge-01-200-3",
     ]);
+  });
+
+  it("rejects history pages without a stable ingestion snapshot", async () => {
+    const adapter = adapterWithPages([
+      {
+        items: [sample(1)],
+        count: 1,
+        limit: 1000,
+        offset: 0,
+        next_offset: null,
+      },
+    ]);
+
+    await expect(
+      loadCompleteEnergyHistory(adapter, {
+        nodeId: "edge-01",
+        metric: "electrical.power.active",
+        from: new Date("2026-08-03T09:00:00Z"),
+        to: new Date("2026-08-03T11:00:00Z"),
+      }),
+    ).rejects.toThrow("ingestion snapshot watermark");
+  });
+
+  it("rejects a changed ingestion snapshot during pagination", async () => {
+    const adapter = adapterWithPages([
+      {
+        items: [sample(3), sample(2)],
+        count: 2,
+        limit: 2,
+        offset: 0,
+        next_offset: 2,
+        snapshot_at: SNAPSHOT_AT,
+      },
+      {
+        items: [sample(1), sample(0)],
+        count: 2,
+        limit: 2,
+        offset: 0,
+        next_offset: null,
+        snapshot_at: "2026-08-03T11:00:01.000Z",
+      },
+    ]);
+
+    await expect(
+      loadCompleteEnergyHistory(adapter, {
+        nodeId: "edge-01",
+        metric: "electrical.power.active",
+        from: new Date("2026-08-03T09:00:00Z"),
+        to: new Date("2026-08-03T11:00:00Z"),
+      }),
+    ).rejects.toThrow("snapshot changed");
   });
 
   it("downsamples each meter across the complete time span", () => {
@@ -241,6 +302,7 @@ describe("energy history", () => {
         limit: 1000,
         offset: 0,
         next_offset: 1,
+        snapshot_at: SNAPSHOT_AT,
       },
     ]);
 
