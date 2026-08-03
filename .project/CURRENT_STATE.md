@@ -2,7 +2,7 @@
 
 Updated: 2026-08-03
 Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Verified implementation head: `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d`
+Verified implementation head: `6738277080db3388ef241468c0a28e3204ac7f98`
 Active Work Package: Issue #261 — Energy Monitoring finalization in progress
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Next Ready Work Package: Issue #263 — Live Data telemetry explorer
@@ -39,25 +39,26 @@ Delivered behavior:
 
 - authenticated local REST latest/history and WebSocket live telemetry;
 - `telemetry.read` permission gating before network traffic begins;
-- stable captured-time cursor pagination with overlapping page-boundary timestamps;
-- bounded per-meter absolute-bucket downsampling with preserved first/latest endpoints;
-- source-derived outage segments from raw communication errors and cadence gaps;
-- persistent pending outage state across separate WebSocket error/recovery callbacks;
-- first-bucket outage markers transferred to the next retained point without losing the earliest endpoint;
-- requested-window chart scaling, incremental live tails, wall-clock pruning and future-skew rejection;
-- metric/unit compatibility, node `edge-01` scope and explicit stale/offline/error states;
+- WebSocket subscription established before the initial REST latest snapshot;
+- bounded startup event buffer reconciled with the snapshot so capture cycles between REST and subscription cannot be lost;
+- startup communication errors retained as per-meter pending breaks even before historical points exist;
+- stable captured-time pagination with overlapping page-boundary timestamps;
+- bounded per-meter absolute-bucket downsampling with first/latest endpoint preservation;
+- source-derived, cross-callback and first-bucket outage segmentation;
+- requested-window scaling, incremental live tails, wall-clock pruning and future-skew rejection;
+- metric/unit compatibility, production node scope and explicit stale/offline/error states;
 - no demo fallback and no unverified cumulative `kWh`.
 
 No package, Compose, container, database migration, Modbus write, production deployment or hardware action is part of this Work Package.
 
 ## Verified implementation evidence
 
-Verified on implementation head `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d`:
+Verified on implementation head `6738277080db3388ef241468c0a28e3204ac7f98`:
 
-- CI run `30843193403` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30843193556` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
-- Refrigeration Browser Acceptance run `30843192945` GREEN: existing refrigeration operator flow remains intact;
-- focused coverage includes shared timestamp boundaries, endpoint preservation, source/pending outage markers, first-bucket marker transfer, future skew, deduplication and rolling-window pruning.
+- CI run `30844693579` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30844693548` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
+- Refrigeration Browser Acceptance run `30844693576` GREEN: existing refrigeration operator flow remains intact;
+- focused coverage includes buffered snapshot-window events, startup pending outages, shared timestamp boundaries, endpoint preservation, source/pending/first-bucket outage markers, future skew, deduplication and rolling-window pruning.
 
 This state update records the verified implementation SHA; the state-only commit still requires its own repository checks before protected merge.
 
@@ -71,4 +72,4 @@ Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence f
 
 ## Next Ready Work Package
 
-Complete the state-only gate, resolve addressed PR #262 review threads and merge with expected-head protection. Then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
+Complete the state-only gate, resolve the addressed PR #262 review threads and merge with expected-head protection. Then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
