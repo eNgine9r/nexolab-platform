@@ -71,6 +71,8 @@ describe("energy history repeated outages", () => {
     expect(
       isEnergyHistorySegmentStart(findSample(afterSecondRecovery, "energy-20").event_id),
     ).toBe(true);
-    expect(afterSecondRecovery.some((item) => isEnergyHistoryBreakPending(item.event_id))).toBe(false);
+    expect(
+      afterSecondRecovery.some((item) => isEnergyHistoryBreakPending(item.event_id)),
+    ).toBe(false);
   });
 });
