@@ -2,28 +2,38 @@
 
 Updated: 2026-08-03
 
-## Issue #203 — production dependency maintenance
+## Issue #204 — frontend toolchain migration planning
 
-No dependency-maintenance blocker remains.
+No hard blocker prevents completing the planning Pull Request.
 
-Completed focused groups:
+The grouped Dependabot PR #160 is superseded by focused child Issues #251–#257.
 
-- #239 / PR #240 — Next.js and React security line;
-- #241 / PR #244 — transitive Sharp risk;
-- #242 / PR #248 — optional Supabase compatibility with offline-local auth preserved;
-- #243 / PR #249 — Lucide operator-semantics review and no-update decision.
+## Ready and queued toolchain work
 
-Only the state-only reconciliation PR and parent Issue closure remain.
+- **#251 — Ready:** align Node 22 developer/CI baseline and Node 22 type definitions.
+- **#254 — Queued after #251:** Playwright browser/evidence migration.
+- **#253 — Queued after #251:** jsdom unit-test DOM migration.
+- **#255 — Queued after independent tool migrations:** TypeScript 6 transition.
 
-## Issue #204 — major frontend toolchain migrations
+## Toolchain blockers
 
-No hard blocker prevents planning. Package changes must not begin until a compatibility matrix and migration order exist.
+### #252 — lint-staged 17
 
-Open dev-tool risk:
+Blocked by #251.
 
-- Playwright `1.55.0` advisory remains isolated here and is not a mandatory runtime dependency.
+Reason: lint-staged 17 requires Node 22.22.1 or newer, while the repository currently declares `node >=22.0.0` and uses a broad `.nvmrc` selector.
 
-Do not bundle TypeScript, ESLint, Next.js ESLint config, jsdom, lint-staged, Playwright or Node types blindly. Each migration group requires its own Issue, branch, PR and rollback.
+### #256 — TypeScript 7
+
+Blocked by #255 and confirmed ecosystem support.
+
+Reason: direct `5.9.3 → 7.0.2` migration is not accepted. TypeScript 6 must provide a verified transition baseline, and Next.js, Vitest/Vite and ESLint integrations must support the chosen TypeScript 7 line.
+
+### #257 — ESLint 10
+
+Blocked by the current resolved Next plugin graph.
+
+Reason: `eslint-plugin-import 2.32.0` declares peer compatibility only through ESLint 9. Do not install ESLint 10 until every resolved plugin declares support.
 
 ## Hard blockers
 
@@ -63,8 +73,7 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked.
-- **N-017 / #17 — Versioned profiles:** blocked until #200–#202 evidence exists.
 
 ## Next Ready action
 
-Merge the Issue #203 state reconciliation, close the parent Issue, then begin Issue #204 with planning only: current package inventory, compatibility matrix, migration order and focused child Issues.
+Merge the Issue #204 planning PR after exact-head CI and review, keep #204 open as the tracking parent, then start Issue #251 on its own feature branch.
