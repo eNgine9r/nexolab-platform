@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { loadCompleteEnergyHistory } from "@/features/energy/energy-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -220,19 +221,18 @@ export function useEnergyTelemetry({
       setHistoryError(null);
     });
 
-    void adapter
-      .history(
-        {
-          metric: selectedMetric,
-          from,
-          to,
-          limit: 1000,
-        },
-        controller.signal,
-      )
-      .then((response) => {
+    void loadCompleteEnergyHistory(
+      adapter,
+      {
+        metric: selectedMetric,
+        from,
+        to,
+      },
+      controller.signal,
+    )
+      .then((samples) => {
         if (disposed) return;
-        setHistorySamples(response.items.filter(isEnergySample));
+        setHistorySamples(samples);
         setHistoryStatus("ready");
         setHistoryError(null);
       })
