@@ -2,8 +2,8 @@
 
 Updated: 2026-08-03
 Verified main baseline: `33224e148c733e50896fe68c13c53130e0a7afac`
-Active Work Package: Issue #243 — Lucide operator-semantics compatibility review
-Status confidence: high for repository inventory, package metadata, release-impact analysis and accessibility contracts; exact-head GitHub workflows are pending for the state-only no-update decision.
+Active Work Package: Issue #243 / PR #249 — Lucide operator-semantics compatibility review
+Status confidence: high for repository inventory, package metadata, release-impact analysis and accessibility contracts; exact-head GitHub workflows are pending for the final focused-test head.
 
 ## Completed dependency baseline
 
@@ -62,31 +62,35 @@ Zap
 
 No NEXOLAB import was found for the other changed 1.27.0 icons such as `ZapOff`, `Toolbox`, `SquareScissors`, `Feather`, `Barrel`, `Trophy` or `Podcast`.
 
-## Accessibility and layout evidence
+## Accessibility and regression evidence
 
 - Topbar icon-only controls have explicit labels: menu, notifications and sign-out.
 - Refrigeration icon-only controls use `RefrigerationIconButton`, which requires a non-optional `label` and applies both `aria-label` and `title`.
 - Refrigeration icon-button size tokens remain deterministic at `32 px`, `40 px` and `44 px` with `focus-visible` outlines.
 - Session, alert, node, security and report actions retain visible action text or explicit accessible names.
 - Status meaning is not carried by icon or color alone.
-- No component, import, layout, styling or operator meaning changed in this Work Package.
+- `lucide-operator-semantics.test.tsx` locks the `Zap → Енергомоніторинг → /energy` mapping.
+- The focused test also proves the icon-only refrigeration button retains its accessible name, title, button type, `40 px` default size and keyboard focus outline.
+- No production component, import, layout, styling or operator meaning changed.
 
 ## Files changed
 
 ```text
+src/components/dashboard/lucide-operator-semantics.test.tsx
 .project/CURRENT_STATE.md
 .project/ACTIVE_SPRINT.json
 .project/BLOCKERS.md
 .project/LAST_CHECKPOINT.json
 ```
 
-`package.json`, `package-lock.json` and all UI components remain byte-for-byte unchanged from main.
+`package.json`, `package-lock.json` and all production UI components remain byte-for-byte unchanged from main.
 
 ## Verification and next action
 
 Pending on the final branch head:
 
-- repository formatting, ESLint, strict TypeScript, Vitest and production build;
+- focused Lucide operator-semantics Vitest;
+- repository formatting, ESLint, strict TypeScript, full Vitest and production build;
 - Refrigeration Browser;
 - Security Browser;
 - Authenticated Dashboard;
@@ -97,4 +101,4 @@ Pending on the final branch head:
 - Offline Bundle disconnected startup and update/rollback volume preservation;
 - review audit and expected-head merge.
 
-After GREEN, merge the state-only no-update PR, close Issue #243, reconcile parent Issue #203 and resume the next Ready software Work Package. Actual Raspberry Pi acceptance for Issue #245 remains separate and hardware-unverified.
+After GREEN, merge PR #249, close Issue #243, reconcile parent Issue #203 and resume the next Ready software Work Package. Actual Raspberry Pi acceptance for Issue #245 remains separate and hardware-unverified.
