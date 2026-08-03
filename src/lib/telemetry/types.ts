@@ -27,6 +27,7 @@ export interface TelemetryCollectionResponse {
   limit: number;
   offset: number;
   next_offset: number | null;
+  snapshot_at?: string | null;
 }
 
 export interface TelemetryReadinessResponse {
@@ -60,6 +61,7 @@ export interface TelemetryPageQuery extends TelemetryFilters {
 export interface TelemetryHistoryQuery extends TelemetryPageQuery {
   from: Date | string;
   to: Date | string;
+  snapshot_at?: Date | string;
 }
 
 export interface TelemetryRuntimeConfig {
