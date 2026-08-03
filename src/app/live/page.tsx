@@ -1,14 +1,17 @@
-import { Activity } from "lucide-react";
+import { Suspense } from "react";
 
-import { PlatformPlaceholderScreen } from "@/components/dashboard/platform-placeholder-screen";
+import { LiveScreen } from "@/components/live/live-screen";
 
 export default function LivePage() {
   return (
-    <PlatformPlaceholderScreen
-      title="Live дані"
-      eyebrow="Realtime telemetry"
-      description="Оперативний потік телеметрії відкривається всередині основного інтерфейсу NEXOLAB із постійною боковою навігацією."
-      icon={<Activity className="h-7 w-7" />}
-    />
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400">
+          Підготовка Live Data workspace…
+        </main>
+      }
+    >
+      <LiveScreen />
+    </Suspense>
   );
 }
