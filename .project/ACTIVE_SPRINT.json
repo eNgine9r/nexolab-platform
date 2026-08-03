@@ -5,7 +5,7 @@
   "sprint": {
     "id": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
     "title": "Focused production dependency maintenance",
-    "goal": "Review optional production dependencies without weakening the LOCAL_LAN offline runtime.",
+    "goal": "Review production dependencies without weakening operator semantics or the LOCAL_LAN offline runtime.",
     "status": "in_progress",
     "started_at": "2026-08-03"
   },
@@ -69,100 +69,67 @@
       "pull_request": 244,
       "merge_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
       "outcome": "transitive sharp 0.35.3 compatibility control"
+    },
+    {
+      "issue": 245,
+      "pull_request": 246,
+      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+      "outcome": "standalone offline Raspberry Pi software runtime; actual-host acceptance pending"
+    },
+    {
+      "issue": 242,
+      "pull_request": 248,
+      "merge_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
+      "outcome": "optional Supabase SDK compatibility update with offline-local auth preserved"
     }
   ],
   "tasks": [
     {
-      "id": "NEXOLAB-245",
-      "issue": 245,
-      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "software_merged_pending_actual_pi",
-      "track": "runtime-reliability",
-      "pull_request": 246,
-      "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
-      "candidate_head_sha": "ca845f68fc0d153ee99869908fde932c52fc921c",
-      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
-      "runtime_modes": ["lan", "standalone"],
-      "standalone_contract": {
-        "dashboard": "http://127.0.0.1:3000",
-        "api": "http://127.0.0.1:8082",
-        "websocket": "ws://127.0.0.1:8082/api/v1/telemetry/live",
-        "central_mqtt_alias": "central-mqtt:1883",
-        "network_online_dependency": false,
-        "wildcard_cors": false,
-        "demo_fallback": false,
-        "modbus_writes": false
+      "id": "NEXOLAB-243",
+      "issue": 243,
+      "title": "Review Lucide icon dependency without changing operator semantics",
+      "status": "no_update_decision_pending_pr_ci",
+      "parent_issue": 203,
+      "branch": "maint/243-lucide-operator-semantics",
+      "baseline_main_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
+      "decision": "retain",
+      "manifest_range": "^1.25.0",
+      "resolved_version": "1.26.0",
+      "published_candidate_reviewed": "1.27.0",
+      "import_inventory": {
+        "source_files": 52,
+        "distinct_exports": 103,
+        "release_sensitive_intersection": ["Zap"]
       },
-      "candidate_verification": {
-        "result": "3_of_3_green",
-        "ci_run": 30792028567,
-        "telemetry_service_run": 30792028512,
-        "offline_bundle_run": 30792028514,
-        "format": "green",
-        "lint": "green",
-        "typecheck": "green",
-        "tests": "green",
-        "build": "green",
-        "disconnected_runtime": "green",
-        "update_rollback_volume_preservation": "green"
+      "operator_semantics": {
+        "zap_usage": ["sidebar energy navigation", "energy page icon"],
+        "icon_only_accessible_names": "verified",
+        "refrigeration_size_tokens": [32, 40, 44],
+        "component_changes": false
       },
-      "hardware_verification": {
-        "status": "pending",
-        "required_host": "Raspberry Pi 5",
-        "required_network_state": "no physical uplink IPv4 and no default route",
-        "required_observation_minutes": 15,
-        "required_restart_checks": [
-          "Telemetry Service restart",
-          "Raspberry Pi reboot",
-          "second Raspberry Pi reboot"
-        ]
-      },
-      "next_action": "Collect actual Raspberry Pi acceptance separately; do not mark hardware verified."
+      "state_commit_sha": "4cc3d288425bdb016da2beb3c1553de705c4fc78",
+      "next_action": "Publish the state-only PR, run exact-head CI and browser/offline acceptance, review and merge only on GREEN."
     },
     {
       "id": "NEXOLAB-203",
       "issue": 203,
       "title": "Review production dependency updates",
-      "status": "in_progress",
-      "remaining_groups": ["Lucide icons"]
+      "status": "pending_child_243_merge",
+      "remaining_groups": []
     },
     {
-      "id": "NEXOLAB-242",
-      "issue": 242,
-      "pull_request": 248,
-      "title": "Review optional Supabase dependency while preserving offline-local auth",
-      "status": "exact_head_green_ready_for_merge",
-      "parent_issue": 203,
-      "branch": "maint/242-supabase-offline-compat",
-      "baseline_main_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
-      "verified_head_sha": "73cf19b2e7191a38290b3dc99fa211bdaf038878",
-      "state_fix_commit_sha": "2d22e0aea40ac31765ee61a06a08296dd2302bb9",
-      "decision": "update",
-      "resolved_version_before": "2.110.8",
-      "resolved_version_after": "2.112.0",
-      "local_verification": ["format", "lint", "typecheck", "tests", "build"],
-      "github_verification": {
-        "ci": 30800858215,
-        "security_browser": 30800857389,
-        "offline_auth": 30800857575,
-        "authenticated_dashboard": 30800857397,
-        "offline_bundle": 30800858287,
-        "refrigeration_browser": 30800857965,
-        "nodes_browser": 30800857446,
-        "alerts_browser": 30800858049,
-        "test_sessions_browser": 30800857431,
-        "reports_browser": 30800857402,
-        "rendered_reports_browser": 30800857520,
-        "result": "all_triggered_green"
-      },
-      "next_action": "Run exact-head workflows for the state-fix commit, resolve review, and merge PR #248."
-    },
-    {
-      "id": "NEXOLAB-243",
-      "issue": 243,
-      "title": "Review Lucide icon dependency without changing operator semantics",
-      "status": "queued_after_242",
-      "parent_issue": 203
+      "id": "NEXOLAB-245",
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "status": "software_merged_pending_actual_pi",
+      "pull_request": 246,
+      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+      "hardware_verification": {
+        "status": "pending",
+        "required_host": "Raspberry Pi 5",
+        "required_network_state": "no physical uplink IPv4 and no default route",
+        "required_observation_minutes": 15
+      }
     },
     {
       "id": "NEXOLAB-189",
