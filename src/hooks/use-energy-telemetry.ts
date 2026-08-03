@@ -7,7 +7,10 @@ import {
   mergeEnergyHistoryTail,
   selectEnergyHistoryTail,
 } from "@/features/energy/energy-history";
-import { reconcileEnergyLiveHistory } from "@/features/energy/energy-live-history";
+import {
+  reconcileEnergyLiveHistory,
+  seedEnergyLiveHistoryState,
+} from "@/features/energy/energy-live-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -130,6 +133,8 @@ export function useEnergyTelemetry({
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const historyKey = scopeKey === null ? null : `${scopeKey}:${selectedMetric}:${historyRange}`;
+  const storeRef = useRef(store);
+  const historySamplesRef = useRef(historySamples);
   const selectedMetricRef = useRef(selectedMetric);
   const historyRangeRef = useRef(historyRange);
   const historyKeyRef = useRef(historyKey);
@@ -141,28 +146,38 @@ export function useEnergyTelemetry({
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
+    const emptyStore = createDashboardTelemetryStore();
+    storeRef.current = emptyStore;
     setConnectionState("connecting");
     setLiveCoverageScopeKey(null);
     setHasLoadedSnapshot(false);
     setError(null);
-    setStore(createDashboardTelemetryStore());
+    setStore(emptyStore);
     setActiveScopeKey(scopeKey);
+    setHistoryStatus("loading");
+    setHistoryError(null);
     setClock(Date.now());
     setGeneration((value) => value + 1);
   }, [runtime.config, scopeKey]);
 
   const retryHistory = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
+    if (scopeKey !== null && liveCoverageScopeKey !== scopeKey) {
+      retry();
+      return;
+    }
     setHistoryGeneration((value) => value + 1);
-  }, [runtime.config]);
+  }, [liveCoverageScopeKey, retry, runtime.config, scopeKey]);
 
   useEffect(() => {
+    storeRef.current = store;
+    historySamplesRef.current = historySamples;
     selectedMetricRef.current = selectedMetric;
     historyRangeRef.current = historyRange;
     historyKeyRef.current = historyKey;
     activeHistoryKeyRef.current = activeHistoryKey;
     historyWindowRef.current = historyWindow;
-  }, [activeHistoryKey, historyKey, historyRange, historyWindow, selectedMetric]);
+  }, [activeHistoryKey, historyKey, historyRange, historySamples, historyWindow, selectedMetric, store]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -188,14 +203,16 @@ export function useEnergyTelemetry({
       };
       historyWindowRef.current = nextWindow;
       setHistoryWindow(nextWindow);
-      setHistorySamples((current) =>
-        mergeEnergyHistoryTail(current, [], {
+      setHistorySamples((current) => {
+        const next = mergeEnergyHistoryTail(current, [], {
           nodeId: ENERGY_NODE_ID,
           metric: selectedMetricRef.current,
           from: new Date(nextWindow.from),
           to: new Date(nextWindow.to),
-        }),
-      );
+        });
+        historySamplesRef.current = next;
+        return next;
+      });
     }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
   }, []);
@@ -233,12 +250,14 @@ export function useEnergyTelemetry({
 
     void Promise.resolve().then(() => {
       if (disposed) return;
+      const emptyStore = createDashboardTelemetryStore();
+      storeRef.current = emptyStore;
       setActiveScopeKey(scopeKey);
       setLiveCoverageScopeKey(null);
       setConnectionState("connecting");
       setHasLoadedSnapshot(false);
       setError(null);
-      setStore(createDashboardTelemetryStore());
+      setStore(emptyStore);
       setClock(Date.now());
     });
 
@@ -248,13 +267,22 @@ export function useEnergyTelemetry({
       );
       if (disposed || accepted.length === 0) return;
       const now = Date.now();
-      setStore((current) => mergeDashboardTelemetry(current, accepted, { now }));
+      const nextStore = mergeDashboardTelemetry(storeRef.current, accepted, { now });
+      storeRef.current = nextStore;
+      setStore(nextStore);
 
       const selectedHistoryMetric = selectedMetricRef.current;
       if (pendingHistoryMetricRef.current !== selectedHistoryMetric) {
         pendingHistoryMetricRef.current = selectedHistoryMetric;
-        pendingHistoryBreakUnitIdsRef.current = new Set();
-        newestHistoryCapturedAtByUnitIdRef.current = new Map();
+        const retained = selectEnergyHistoryTail(
+          [...Object.values(nextStore.samples), ...historySamplesRef.current],
+          ENERGY_NODE_ID,
+          selectedHistoryMetric,
+          now,
+        );
+        const seed = seedEnergyLiveHistoryState(retained);
+        pendingHistoryBreakUnitIdsRef.current = seed.pendingUnitIds;
+        newestHistoryCapturedAtByUnitIdRef.current = seed.newestCapturedAtByUnitId;
       }
       const selectedTail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
       const reconciliation = reconcileEnergyLiveHistory(
@@ -282,14 +310,16 @@ export function useEnergyTelemetry({
         };
         historyWindowRef.current = nextWindow;
         setHistoryWindow(nextWindow);
-        setHistorySamples((current) =>
-          mergeEnergyHistoryTail(current, tail, {
+        setHistorySamples((current) => {
+          const next = mergeEnergyHistoryTail(current, tail, {
             nodeId: ENERGY_NODE_ID,
             metric: selectedHistoryMetric,
             from: new Date(nextWindow.from),
             to: new Date(nextWindow.to),
-          }),
-        );
+          });
+          historySamplesRef.current = next;
+          return next;
+        });
       }
 
       setError(null);
@@ -388,6 +418,7 @@ export function useEnergyTelemetry({
 
     void Promise.resolve().then(() => {
       if (disposed) return;
+      historySamplesRef.current = [];
       setActiveHistoryKey(historyKey);
       setHistoryWindow(requestedWindow);
       setHistorySamples([]);
@@ -408,14 +439,16 @@ export function useEnergyTelemetry({
       .then((samples) => {
         if (disposed) return;
         const currentWindow = historyWindowRef.current ?? requestedWindow;
-        setHistorySamples((current) =>
-          mergeEnergyHistoryTail(samples, current, {
+        setHistorySamples((current) => {
+          const next = mergeEnergyHistoryTail(samples, current, {
             nodeId: ENERGY_NODE_ID,
             metric: selectedMetric,
             from: new Date(currentWindow.from),
             to: new Date(currentWindow.to),
-          }),
-        );
+          });
+          historySamplesRef.current = next;
+          return next;
+        });
         setHistoryStatus("ready");
         setHistoryError(null);
       })
@@ -440,6 +473,33 @@ export function useEnergyTelemetry({
     selectedMetric,
     selectedOrganizationId,
   ]);
+
+  useEffect(() => {
+    const config = runtime.config;
+    if (
+      !config ||
+      config.mode === "demo" ||
+      !enabled ||
+      historyKey === null ||
+      scopeKey === null ||
+      liveCoverageScopeKey === scopeKey ||
+      !TERMINAL_STARTUP_STATES.has(connectionState)
+    ) {
+      return;
+    }
+
+    const nextError = new Error(
+      `Energy history requires authenticated live coverage; WebSocket state is ${connectionState}`,
+    );
+    activeHistoryKeyRef.current = historyKey;
+    historyWindowRef.current = null;
+    historySamplesRef.current = [];
+    setActiveHistoryKey(historyKey);
+    setHistoryWindow(null);
+    setHistorySamples([]);
+    setHistoryStatus("error");
+    setHistoryError(nextError);
+  }, [connectionState, enabled, historyKey, liveCoverageScopeKey, runtime.config, scopeKey]);
 
   const view = useMemo(() => {
     if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
