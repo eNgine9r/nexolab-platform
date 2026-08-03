@@ -8,7 +8,11 @@ const webPort = new URL(webUrl).port || "13020";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["authenticated-dashboard.production.e2e.ts", "energy.production.e2e.ts"],
+  testMatch: [
+    "authenticated-dashboard.production.e2e.ts",
+    "energy.production.e2e.ts",
+    "live.production.e2e.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   retries: 0,
