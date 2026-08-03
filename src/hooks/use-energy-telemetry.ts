@@ -148,7 +148,38 @@ export function useEnergyTelemetry({
   }, [activeHistoryKey, historyKey, historyRange, historyWindow, selectedMetric]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setClock(now);
+
+      const currentWindow = historyWindowRef.current;
+      if (
+        currentWindow === null ||
+        historyKeyRef.current === null ||
+        activeHistoryKeyRef.current !== historyKeyRef.current
+      ) {
+        return;
+      }
+
+      const currentTo = Date.parse(currentWindow.to);
+      if (!Number.isFinite(currentTo) || now <= currentTo) return;
+
+      const rangeMs = HISTORY_HOURS[historyRangeRef.current] * 60 * 60 * 1000;
+      const nextWindow = {
+        from: new Date(now - rangeMs).toISOString(),
+        to: new Date(now).toISOString(),
+      };
+      historyWindowRef.current = nextWindow;
+      setHistoryWindow(nextWindow);
+      setHistorySamples((current) =>
+        mergeEnergyHistoryTail(current, [], {
+          nodeId: ENERGY_NODE_ID,
+          metric: selectedMetricRef.current,
+          from: new Date(nextWindow.from),
+          to: new Date(nextWindow.to),
+        }),
+      );
+    }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
   }, []);
 
