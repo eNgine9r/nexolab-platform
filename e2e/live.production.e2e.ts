@@ -81,6 +81,7 @@ function publishSample(seed: LiveSeed): void {
     ],
     { stdio: "pipe" },
   );
+  execFileSync("sleep", ["0.5"]);
 }
 
 function seedLiveEvidence(): void {
@@ -111,6 +112,15 @@ function seedLiveEvidence(): void {
     channelId: "106-03",
     metric: "temperature",
     value: 4.4,
+    unit: "degC",
+    capturedAt: ago(10),
+    source: "xjp60d",
+  });
+  publishSample({
+    equipmentId: "DIXELL-115",
+    channelId: "115-04",
+    metric: "temperature",
+    value: 5.7,
     unit: "degC",
     capturedAt: ago(10),
     source: "xjp60d",
@@ -172,13 +182,13 @@ test("discovers, filters and compares real telemetry with stable history and rec
   try {
     await page.goto("/live", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live дані" })).toBeVisible();
-    const temperatureRow = page
+    const staleRow = page
       .locator("tbody tr")
-      .filter({ hasText: "DIXELL-106" })
-      .filter({ hasText: "106-03" })
+      .filter({ hasText: "DIXELL-115" })
+      .filter({ hasText: "115-04" })
       .filter({ hasText: "temperature" });
-    await expect(temperatureRow).toHaveCount(1);
-    await expect(temperatureRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
+    await expect(staleRow).toHaveCount(1);
+    await expect(staleRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
 
     await page.getByLabel("Пошук").fill("106-03");
     await page.getByLabel("Node").selectOption("edge-01");
