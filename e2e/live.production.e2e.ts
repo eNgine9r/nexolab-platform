@@ -170,7 +170,10 @@ test("discovers, filters and compares real telemetry with stable history and rec
   try {
     await page.goto("/live", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live дані" })).toBeVisible();
-    await expect(page.getByText("Застарілі дані", { exact: true })).toBeVisible();
+    const temperatureRow = page.getByRole("row", {
+      name: /DIXELL-106 · 106-03 · temperature/,
+    });
+    await expect(temperatureRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
 
     await page.getByLabel("Пошук").fill("106-03");
     await page.getByLabel("Node").selectOption("edge-01");
