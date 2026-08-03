@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "RUNTIME-RELIABILITY-1",
-    "title": "Standalone offline Raspberry Pi runtime",
-    "goal": "Make the locally attached NEXOLAB dashboard and telemetry pipeline usable without Ethernet, Wi-Fi, LAN IPv4, a default route, DNS or internet.",
+    "id": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
+    "title": "Focused production dependency maintenance",
+    "goal": "Review optional production dependencies without weakening the LOCAL_LAN offline runtime.",
     "status": "in_progress",
     "started_at": "2026-08-03"
   },
@@ -76,7 +76,7 @@
       "id": "NEXOLAB-245",
       "issue": 245,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "software_verified_pending_actual_pi",
+      "status": "software_merged_pending_actual_pi",
       "track": "runtime-reliability",
       "pull_request": 246,
       "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
@@ -116,22 +116,35 @@
           "second Raspberry Pi reboot"
         ]
       },
-      "next_action": "Complete exact-head state sweep, merge PR #246, deploy standalone mode on the Raspberry Pi and collect actual-host evidence."
+      "next_action": "Collect actual Raspberry Pi acceptance separately; do not mark hardware verified.",
+      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
     },
     {
       "id": "NEXOLAB-203",
       "issue": 203,
       "title": "Review production dependency updates",
-      "status": "in_progress_paused_for_critical_runtime_issue",
-      "paused_for_issue": 245,
-      "remaining_groups": ["optional Supabase", "Lucide icons"]
+      "status": "in_progress",
+      "remaining_groups": ["Lucide icons"]
     },
     {
       "id": "NEXOLAB-242",
       "issue": 242,
       "title": "Review optional Supabase dependency while preserving offline-local auth",
-      "status": "queued_after_245",
-      "parent_issue": 203
+      "status": "local_verified_pending_pr_ci",
+      "parent_issue": 203,
+      "branch": "maint/242-supabase-offline-compat",
+      "baseline_main_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+      "decision": "update",
+      "resolved_version_before": "2.110.8",
+      "resolved_version_after": "2.112.0",
+      "local_verification": ["format", "lint", "typecheck", "tests", "build"],
+      "pending_verification": [
+        "Security Browser",
+        "Offline Auth",
+        "Authenticated Dashboard",
+        "Offline Bundle",
+        "update/rollback volume preservation"
+      ]
     },
     {
       "id": "NEXOLAB-243",

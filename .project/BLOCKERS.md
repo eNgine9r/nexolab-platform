@@ -2,6 +2,10 @@
 
 Updated: 2026-08-03
 
+## Issue #242 — optional Supabase compatibility
+
+No product or implementation blocker is open. This host has no Docker executable, so Security Browser, Offline Auth, Authenticated Dashboard, disconnected Offline Bundle and volume-preserving update/rollback evidence must come from the existing GitHub workflows before merge. Do not merge until those required checks are GREEN.
+
 ## Hard blockers
 
 No hard blocker prevents completing the final software sweep and merging Issue #245 / PR #246.
