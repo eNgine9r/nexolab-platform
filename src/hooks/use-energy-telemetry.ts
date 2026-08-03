@@ -491,14 +491,22 @@ export function useEnergyTelemetry({
     const nextError = new Error(
       `Energy history requires authenticated live coverage; WebSocket state is ${connectionState}`,
     );
-    activeHistoryKeyRef.current = historyKey;
-    historyWindowRef.current = null;
-    historySamplesRef.current = [];
-    setActiveHistoryKey(historyKey);
-    setHistoryWindow(null);
-    setHistorySamples([]);
-    setHistoryStatus("error");
-    setHistoryError(nextError);
+    let disposed = false;
+    void Promise.resolve().then(() => {
+      if (disposed) return;
+      activeHistoryKeyRef.current = historyKey;
+      historyWindowRef.current = null;
+      historySamplesRef.current = [];
+      setActiveHistoryKey(historyKey);
+      setHistoryWindow(null);
+      setHistorySamples([]);
+      setHistoryStatus("error");
+      setHistoryError(nextError);
+    });
+
+    return () => {
+      disposed = true;
+    };
   }, [connectionState, enabled, historyKey, liveCoverageScopeKey, runtime.config, scopeKey]);
 
   const view = useMemo(() => {
