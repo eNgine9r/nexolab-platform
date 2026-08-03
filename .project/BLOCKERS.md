@@ -2,21 +2,31 @@
 
 Updated: 2026-08-03
 
-## Issue #242 — optional Supabase compatibility
+## Issue #243 — Lucide operator-semantics compatibility
 
-No product, implementation, offline-runtime or hardware blocker is open for this Work Package.
+No product, implementation, security, accessibility, offline-runtime or hardware blocker is open.
 
-The required exact-head workflows for candidate `73cf19b2e7191a38290b3dc99fa211bdaf038878` completed GREEN, including CI, Security Browser, Offline Auth, Authenticated Dashboard and disconnected Offline Bundle with update/rollback volume preservation.
+Decision: retain `lucide-react ^1.25.0` with lockfile resolution `1.26.0`.
 
-A state-only follow-up commit records the completed checks. Merge remains gated only by:
+The published npm candidate `1.27.0` changes the SVG geometry of `Zap`, which NEXOLAB uses for the persistent **Енергомоніторинг** navigation item and its page icon. No security advisory, runtime compatibility fix or product requirement justifies that operator-facing visual change.
 
-- exact-head GREEN workflows for the state-only commit;
-- resolution of the review thread;
-- expected-head merge protection.
+A focused regression test now locks:
+
+- `Zap → Енергомоніторинг → /energy`;
+- explicit accessible naming for icon-only refrigeration controls;
+- default `40 px` icon-button sizing;
+- keyboard focus outline behavior.
+
+Merge remains gated only by normal software controls:
+
+- exact-head repository formatting, ESLint, strict TypeScript, Vitest and production build;
+- relevant browser acceptance for refrigeration, security, dashboard, nodes, sessions, alerts and reports;
+- Offline Bundle disconnected startup and update/rollback volume preservation;
+- clean review audit and expected-head merge protection.
 
 ## Hard blockers
 
-No hard blocker prevents completing PR #248 or beginning the next independent software Work Package after merge.
+No hard blocker prevents completing Issue #243.
 
 Stop before:
 
@@ -81,4 +91,4 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 
 ## Next Ready action
 
-Complete the state-only exact-head checks, resolve the PR #248 review thread and merge with expected-head protection. Then record the actual merge SHA and begin Issue #243.
+Run the exact-head PR #249 CI/browser/offline cascade, perform review audit and merge only on GREEN. Then reconcile parent Issue #203 and select the next independent Ready software Work Package.
