@@ -57,7 +57,7 @@
       "id": "NEXOLAB-204",
       "issue": 204,
       "title": "Plan and execute major frontend toolchain migrations separately",
-      "status": "ready_after_203",
+      "status": "ready",
       "first_action": "Create a compatibility matrix and migration order before changing any dependency."
     },
     {
