@@ -5,9 +5,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 
 from app.config import Settings
 from app.contracts import TelemetryEvent
+from app.db import TelemetrySample
 from app.main import create_app
 
 
@@ -84,6 +86,7 @@ def test_latest_returns_one_newest_sample_per_channel_metric(tmp_path: Path) -> 
         payload = response.json()
         assert payload["count"] == 2
         assert payload["next_offset"] is None
+        assert payload["snapshot_at"] is None
         values = {item["channel_id"]: item["value"] for item in payload["items"]}
         assert values == {
             "201-voltage": 227.3,
@@ -127,15 +130,42 @@ def test_history_is_bounded_filtered_and_deterministically_paginated(
         first_payload = first.json()
         assert [item["value"] for item in first_payload["items"]] == [228.0, 227.3]
         assert first_payload["next_offset"] == 2
+        snapshot_at = datetime.fromisoformat(first_payload["snapshot_at"])
+
+        delayed = event(
+            captured_at=base + timedelta(seconds=7),
+            metric="electrical.voltage",
+            channel_id="201-voltage",
+            value=227.7,
+        )
+        assert database.persist(delayed, delayed.normalized_payload())
+        with database.engine.begin() as connection:
+            connection.execute(
+                update(TelemetrySample)
+                .where(TelemetrySample.event_id == str(delayed.event_id))
+                .values(received_at=snapshot_at + timedelta(seconds=1))
+            )
 
         second = client.get(
             "/api/v1/telemetry/history",
-            params={**params, "offset": 2},
+            params={
+                **params,
+                "offset": 2,
+                "snapshot_at": first_payload["snapshot_at"],
+            },
         )
         assert second.status_code == 200
         second_payload = second.json()
         assert [item["value"] for item in second_payload["items"]] == [226.1]
         assert second_payload["next_offset"] is None
+        assert second_payload["snapshot_at"] == first_payload["snapshot_at"]
+
+        refreshed = client.get("/api/v1/telemetry/history", params=params)
+        assert refreshed.status_code == 200
+        assert [item["value"] for item in refreshed.json()["items"]] == [
+            228.0,
+            227.7,
+        ]
 
         oversized = client.get(
             "/api/v1/telemetry/history",
