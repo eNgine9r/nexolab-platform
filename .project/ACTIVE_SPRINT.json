@@ -5,7 +5,7 @@
   "sprint": {
     "id": "PRODUCT-PAGES-COMPLETION-1",
     "title": "Complete NEXOLAB operator pages",
-    "goal": "Replace placeholder routes with focused, real operator workflows while reusing the verified local telemetry, security and offline foundations.",
+    "goal": "Replace placeholder routes with focused real operator workflows while reusing the verified local telemetry, security and offline foundations.",
     "status": "in_progress",
     "started_at": "2026-08-03"
   },
@@ -18,33 +18,20 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "completed_baseline": [
-    {
-      "issue": 203,
-      "pull_request": 250,
-      "merge_sha": "c3488d383d7633f40f7a723bb0d1ffd97b492973",
-      "outcome": "focused production dependency maintenance completed"
-    },
-    {
-      "issue": 204,
-      "pull_request": 258,
-      "merge_sha": "72ecc207af528942396054764c0b33a663727de1",
-      "outcome": "toolchain compatibility plan recorded; remaining migrations deferred"
-    },
-    {
-      "issue": 251,
-      "pull_request": 259,
-      "merge_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-      "outcome": "Node developer/CI baseline and Node type declarations aligned with all exact-head gates GREEN"
-    }
-  ],
   "tasks": [
     {
       "id": "NEXOLAB-260",
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "placeholder_routes": ["/live", "/equipment-layouts", "/lockers", "/cameras", "/equipment", "/settings"]
+      "remaining_placeholder_routes": [
+        "/live",
+        "/equipment-layouts",
+        "/lockers",
+        "/cameras",
+        "/equipment",
+        "/settings"
+      ]
     },
     {
       "id": "NEXOLAB-261",
@@ -52,29 +39,31 @@
       "parent_issue": 260,
       "pull_request": 262,
       "title": "Complete the Energy Monitoring operator page",
-      "status": "implementation_complete_pending_exact_head_validation",
+      "status": "exact_head_green_ready_for_merge",
       "branch": "feat/261-energy-monitoring-page",
       "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
+      "verified_head_sha": "3143bf31757b7d866623896c241f695da650944f",
       "route": "/energy",
-      "verified_pre_review_head": "cb4aa8af499d64859df46d8895bd3f07a3b400ac",
-      "verified_runs": {
-        "ci": 30825185567,
-        "authenticated_dashboard": 30825185585
+      "required_runs": {
+        "ci": 30830167308,
+        "authenticated_dashboard": 30830165546
       },
       "review_fixes": [
-        "load every telemetry history page for the requested window before bounded downsampling",
-        "preserve first and last points for each W1-W4 series",
-        "suppress stale secondary meter-card values instead of presenting a mixed-freshness card as live",
-        "synchronize repository source-of-truth state with the completed implementation"
+        "complete paginated history before bounded downsampling",
+        "freshness-safe meter cards and per-metric quality states",
+        "requested-window chart scaling",
+        "incremental WebSocket history-tail merge without periodic full reload",
+        "strict metric-unit validation",
+        "production node scope for latest, history and WebSocket"
       ],
-      "next_action": "Run final exact-head CI and authenticated energy acceptance, resolve review threads and merge only on GREEN."
+      "next_action": "Resolve addressed review threads and merge PR #262 using expected head protection."
     },
     {
       "id": "NEXOLAB-263",
       "issue": 263,
       "parent_issue": 260,
       "title": "Complete the Live Data telemetry explorer",
-      "status": "queued_after_261_merge",
+      "status": "ready_after_262_merge",
       "route": "/live",
       "depends_on": [261]
     },
