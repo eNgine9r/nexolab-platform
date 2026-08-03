@@ -8,7 +8,11 @@ import {
   mergeEnergyHistoryTail,
   selectEnergyHistoryTail,
 } from "./energy-history";
-import { isEnergyHistorySegmentStart } from "./energy-history-segment";
+import {
+  energyHistorySourceEventId,
+  isEnergyHistoryBreakPending,
+  isEnergyHistorySegmentStart,
+} from "./energy-history-segment";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -147,6 +151,31 @@ describe("energy history", () => {
 
     expect(result.length).toBeLessThanOrEqual(4);
     expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(true);
+  });
+
+  it("persists a transient websocket communication error until recovery", () => {
+    const window = {
+      nodeId: "edge-01",
+      metric: "electrical.power.active" as const,
+      from: new Date("2026-08-03T10:00:00Z"),
+      to: new Date("2026-08-03T10:00:20Z"),
+    };
+    const afterError = mergeEnergyHistoryTail(
+      [sample(0), sample(5)],
+      [{ ...sample(10), quality: "communication_error" as const, value: null }],
+      window,
+    );
+
+    expect(isEnergyHistoryBreakPending(afterError.at(-1)!.event_id)).toBe(true);
+
+    const recovered = mergeEnergyHistoryTail(afterError, [sample(15)], window);
+    const recovery = recovered.find(
+      (item) => energyHistorySourceEventId(item.event_id) === "energy-edge-01-200-15",
+    );
+
+    expect(recovery).toBeDefined();
+    expect(isEnergyHistorySegmentStart(recovery!.event_id)).toBe(true);
+    expect(recovered.some((item) => isEnergyHistoryBreakPending(item.event_id))).toBe(false);
   });
 
   it("keeps absolute time buckets stable while appending the newest tail", () => {
