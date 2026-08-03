@@ -7,9 +7,7 @@ export function isEnergyHistorySegmentStart(eventId: string): boolean {
 }
 
 export function energyHistorySourceEventId(eventId: string): string {
-  return isEnergyHistorySegmentStart(eventId)
-    ? eventId.slice(ENERGY_HISTORY_SEGMENT_PREFIX.length)
-    : eventId;
+  return isEnergyHistorySegmentStart(eventId) ? eventId.slice(ENERGY_HISTORY_SEGMENT_PREFIX.length) : eventId;
 }
 
 export function markEnergyHistorySegmentStart(sample: TelemetrySample): TelemetrySample {
