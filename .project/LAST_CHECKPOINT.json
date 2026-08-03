@@ -1,74 +1,101 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
-  "task": "NEXOLAB-203",
-  "issue": 203,
-  "status": "completed_pending_reconciliation_pr",
-  "timestamp": "2026-08-03T15:52:00+03:00",
-  "baseline_main_sha": "cc865098e7d1ffa81313c34c32672276c8bc51a9",
-  "branch": "docs/203-close-production-dependency-review",
-  "summary": "All production dependency compatibility groups are complete in focused merged Pull Requests. This checkpoint reconciles their decisions and merge SHAs before closing parent Issue #203.",
-  "completed_groups": [
+  "sprint": "FRONTEND-TOOLCHAIN-MIGRATION-1",
+  "task": "NEXOLAB-204",
+  "issue": 204,
+  "status": "planning_complete_pending_pr_ci",
+  "timestamp": "2026-08-03T16:02:00+03:00",
+  "baseline_main_sha": "c3488d383d7633f40f7a723bb0d1ffd97b492973",
+  "branch": "maint/204-frontend-toolchain-migration-plan",
+  "summary": "Decomposed superseded grouped Dependabot PR #160 into focused, reversible frontend toolchain Work Packages with an explicit compatibility matrix, execution order and rollback contract. No package or runtime change was performed.",
+  "plan": "docs/maintenance/frontend-toolchain-migration-plan.md",
+  "baseline_versions": {
+    "node_selector": "22",
+    "node_engine": ">=22.0.0",
+    "observed_ci_node": "22.23.1",
+    "types_node": "20.19.43",
+    "typescript": "5.9.3",
+    "eslint": "9.39.5",
+    "eslint_config_next": "16.2.12",
+    "jsdom": "29.1.1",
+    "lint_staged": "16.4.0",
+    "playwright": "1.55.0"
+  },
+  "child_issues": [
     {
-      "issue": 239,
-      "pull_request": 240,
-      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
-      "outcome": "Next.js and React security patch line"
+      "issue": 251,
+      "status": "ready",
+      "outcome": "align Node 22 baseline and Node 22 type definitions"
     },
     {
-      "issue": 241,
-      "pull_request": 244,
-      "merge_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
-      "outcome": "transitive sharp 0.35.3 compatibility control"
+      "issue": 254,
+      "status": "queued_after_251",
+      "outcome": "Playwright 1.62 browser and evidence migration"
     },
     {
-      "issue": 242,
-      "pull_request": 248,
-      "merge_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
-      "outcome": "optional Supabase SDK 2.112.0 with offline-local auth preserved"
+      "issue": 252,
+      "status": "blocked_by_251",
+      "outcome": "lint-staged 17 migration"
     },
     {
-      "issue": 243,
-      "pull_request": 249,
-      "merge_sha": "cc865098e7d1ffa81313c34c32672276c8bc51a9",
-      "outcome": "Lucide 1.26.0 retained with operator-semantics regression coverage"
+      "issue": 253,
+      "status": "queued_after_251",
+      "outcome": "jsdom 30 unit-test DOM migration"
+    },
+    {
+      "issue": 255,
+      "status": "queued",
+      "outcome": "TypeScript 6 transition"
+    },
+    {
+      "issue": 256,
+      "status": "blocked_by_255_and_ecosystem",
+      "outcome": "TypeScript 7 native compiler evaluation"
+    },
+    {
+      "issue": 257,
+      "status": "blocked_by_plugin_peers",
+      "outcome": "ESLint 10 migration"
     }
   ],
-  "acceptance_evidence": [
-    "one focused compatibility group per Issue, branch and Pull Request",
-    "security-relevant framework work completed before optional cloud and icon reviews",
-    "lockfile and dependency graphs reviewed per group",
-    "LOCAL_LAN local authentication remains primary and offline-safe",
-    "Lucide operator meaning and icon-only accessibility are regression protected",
-    "no mandatory online or paid runtime dependency introduced",
-    "exact-head quality and relevant browser gates passed",
-    "disconnected startup and update/rollback volume preservation passed on affected final heads"
+  "key_decisions": [
+    "reject @types/node 26 while runtime remains Node 22",
+    "require Node 22.22.1 or newer before lint-staged 17",
+    "reject direct TypeScript 5.9 to 7 migration",
+    "require TypeScript 6 transition before TypeScript 7",
+    "block ESLint 10 while eslint-plugin-import peer support ends at ESLint 9",
+    "treat Playwright as a browser/evidence migration",
+    "keep jsdom isolated from other test-tool majors"
   ],
   "files_changed": [
+    "docs/maintenance/frontend-toolchain-migration-plan.md",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
+  "files_confirmed_unchanged": [
+    "package.json",
+    "package-lock.json",
+    "all production source and runtime configuration"
+  ],
   "runtime_and_offline_evidence": [
-    "production dependency maintenance does not add an online runtime requirement",
-    "optional Supabase remains inactive when unconfigured",
-    "final dependency heads passed disconnected Offline Bundle acceptance",
-    "persistent data survived update and rollback drills"
+    "planning Work Package introduces no dependency or runtime change",
+    "no mandatory online or paid runtime service added",
+    "future package changes require Offline Bundle verification"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was in scope or performed. Issues #245 and #189 still require actual-host evidence."
+    "note": "No hardware operation was in scope or performed."
   },
   "checks_pending": [
-    "exact-head state-only CI",
+    "exact-head formatting, lint, typecheck, tests and build",
     "review audit",
-    "merge reconciliation PR",
-    "close Issue #203"
+    "merge planning PR"
   ],
   "next_ready_work_package": {
-    "issue": 204,
-    "instruction": "Build the frontend toolchain compatibility matrix and migration order before changing any package."
+    "issue": 251,
+    "instruction": "Align the Node 22 baseline and Node 22 type definitions before any major tool migration."
   }
 }
