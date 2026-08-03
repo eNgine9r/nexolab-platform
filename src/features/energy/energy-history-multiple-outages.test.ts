@@ -42,16 +42,10 @@ function findSample(samples: readonly TelemetrySample[], eventId: string): Telem
 
 describe("energy history repeated outages", () => {
   it("preserves an existing segment marker while queuing the next break", () => {
-    const afterFirstError = mergeEnergyHistoryTail(
-      [sample(0)],
-      [sample(5, "communication_error")],
-      window,
-    );
+    const afterFirstError = mergeEnergyHistoryTail([sample(0)], [sample(5, "communication_error")], window);
     const afterFirstRecovery = mergeEnergyHistoryTail(afterFirstError, [sample(10)], window);
 
-    expect(
-      isEnergyHistorySegmentStart(findSample(afterFirstRecovery, "energy-10").event_id),
-    ).toBe(true);
+    expect(isEnergyHistorySegmentStart(findSample(afterFirstRecovery, "energy-10").event_id)).toBe(true);
 
     const afterSecondError = mergeEnergyHistoryTail(
       afterFirstRecovery,
@@ -65,14 +59,8 @@ describe("energy history repeated outages", () => {
 
     const afterSecondRecovery = mergeEnergyHistoryTail(afterSecondError, [sample(20)], window);
 
-    expect(
-      isEnergyHistorySegmentStart(findSample(afterSecondRecovery, "energy-10").event_id),
-    ).toBe(true);
-    expect(
-      isEnergyHistorySegmentStart(findSample(afterSecondRecovery, "energy-20").event_id),
-    ).toBe(true);
-    expect(
-      afterSecondRecovery.some((item) => isEnergyHistoryBreakPending(item.event_id)),
-    ).toBe(false);
+    expect(isEnergyHistorySegmentStart(findSample(afterSecondRecovery, "energy-10").event_id)).toBe(true);
+    expect(isEnergyHistorySegmentStart(findSample(afterSecondRecovery, "energy-20").event_id)).toBe(true);
+    expect(afterSecondRecovery.some((item) => isEnergyHistoryBreakPending(item.event_id))).toBe(false);
   });
 });
