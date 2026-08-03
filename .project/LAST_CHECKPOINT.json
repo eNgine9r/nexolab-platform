@@ -4,26 +4,42 @@
   "sprint": "FRONTEND-TOOLCHAIN-MIGRATION-1",
   "task": "NEXOLAB-251",
   "issue": 251,
-  "status": "implemented_pending_pr_ci",
-  "timestamp": "2026-08-03T16:28:00+03:00",
+  "pull_request": 259,
+  "status": "offline_failure_corrected_pending_exact_head_ci",
+  "timestamp": "2026-08-03T16:44:00+03:00",
   "baseline_main_sha": "72ecc207af528942396054764c0b33a663727de1",
   "branch": "maint/251-node22-baseline-types",
-  "summary": "Pinned the supported Node 22 LTS developer/CI baseline, aligned the package engine and Node 22 type declarations, refreshed the lockfile deterministically and added exact CI version evidence without changing production runtime behavior.",
+  "summary": "Pinned the exact Node 22 developer/CI baseline, aligned Node 22 type declarations and corrected the package engine to preserve the established Node 24 dashboard container build after Offline Bundle exposed the initial Node 22-only contract error.",
   "decision": {
-    "node_exact": "22.23.1",
-    "node_engine": ">=22.22.1 <23",
+    "developer_ci_node_exact": "22.23.1",
+    "node_engine": ">=22.22.1 <23 || >=24 <25",
+    "container_node_line": "24",
     "types_node_manifest": "^22.20.1",
     "types_node_resolved": "22.20.1",
     "undici_types_resolved": "6.21.0"
   },
+  "failed_candidate": {
+    "head_sha": "ae732e67178bb7bfcd8cca33ec733987ba121b3e",
+    "workflow": "Offline Bundle",
+    "run": 30817017506,
+    "job": 91697161272,
+    "failed_step": "Build linux amd64 bundle on connected builder",
+    "root_cause": "package engine >=22.22.1 <23 rejected Node 24.18.1 in the dashboard image during npm prune --omit=dev",
+    "classification": "valid contract regression"
+  },
+  "correction": [
+    "retain exact Node 22.23.1 for developer machines and GitHub Actions",
+    "admit the existing Node 24 dashboard container line",
+    "reject Node 23 and Node 25",
+    "retain conservative Node 22 source type declarations",
+    "regenerate package-lock.json and remove the temporary workflow from the final diff"
+  ],
   "evidence": [
-    "Node 22.23.1 is the latest published Node 22 LTS patch at review time",
-    "Node 22 remains supported through April 2027",
-    "all searched frontend GitHub workflows use node-version-file: .nvmrc",
-    "package-lock movement is limited to five additions and five deletions",
-    "@types/node 26 was rejected while runtime remains Node 22",
-    "temporary branch-only lockfile workflow was removed from the final diff",
-    "primary CI asserts node --version exactly matches .nvmrc"
+    "Node 22.23.1 exact CI assertion passed on the failed candidate",
+    "deterministic npm install, formatting, lint and typecheck passed before the offline failure",
+    "the dashboard build itself completed on Node 24 before npm prune enforced the incorrect engine range",
+    "the Offline Bundle gate correctly prevented merge",
+    "no production source or runtime service definition changed"
   ],
   "files_changed": [
     ".nvmrc",
@@ -37,20 +53,21 @@
     ".project/LAST_CHECKPOINT.json"
   ],
   "runtime_and_offline_evidence": [
-    "Node and @types/node changes affect development and build tooling only",
-    "no production source, Compose, database or telemetry contract changed",
-    "no mandatory online or paid runtime dependency was introduced"
+    "developer and CI commands remain on exact Node 22.23.1",
+    "the existing Node 24 dashboard image remains supported",
+    "no mandatory online or paid runtime dependency was introduced",
+    "persistent-volume and disconnected runtime contracts are unchanged"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
     "note": "No hardware operation was in scope or performed."
   },
   "checks_pending": [
-    "exact Node baseline assertion",
+    "corrected exact Node baseline assertion",
     "deterministic npm install",
     "formatting, lint, typecheck, full tests and production build",
-    "triggered browser acceptance workflows",
-    "Offline Bundle disconnected startup and update/rollback preservation",
+    "all triggered browser acceptance workflows",
+    "Offline Bundle connected build, disconnected startup and update/rollback preservation",
     "review audit and expected-head merge"
   ],
   "next_ready_work_package": {
