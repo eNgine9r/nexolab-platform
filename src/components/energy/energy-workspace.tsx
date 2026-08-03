@@ -26,10 +26,7 @@ import {
   type EnergyMetricId,
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
-import type {
-  EnergyHistoryRange,
-  EnergyTelemetryModel,
-} from "@/hooks/use-energy-telemetry";
+import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
@@ -96,12 +93,12 @@ function buildHistorySeries(
     )
     .map((sample) => ({ sample, meter: resolveEnergyMeter(sample) }))
     .filter(
-      (item): item is { sample: TelemetrySample & { value: number }; meter: (typeof ENERGY_METERS)[number] } =>
+      (
+        item,
+      ): item is { sample: TelemetrySample & { value: number }; meter: (typeof ENERGY_METERS)[number] } =>
         item.meter !== null && selectedUnitIds.includes(item.meter.unitId),
     )
-    .sort(
-      (left, right) => Date.parse(left.sample.captured_at) - Date.parse(right.sample.captured_at),
-    );
+    .sort((left, right) => Date.parse(left.sample.captured_at) - Date.parse(right.sample.captured_at));
 
   if (accepted.length === 0) return [];
 
@@ -222,29 +219,21 @@ function MeterCard({
 
       <div className="mt-5">
         <p className="text-[10px] text-slate-500">Активна потужність</p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight text-white">
-          {formatEnergyValue(power)}
-        </p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{formatEnergyValue(power)}</p>
       </div>
 
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
         <div>
           <dt className="text-[9px] text-slate-600">U</dt>
-          <dd className="mt-1 text-[11px] font-medium text-slate-200">
-            {formatEnergyValue(voltage)}
-          </dd>
+          <dd className="mt-1 text-[11px] font-medium text-slate-200">{formatEnergyValue(voltage)}</dd>
         </div>
         <div>
           <dt className="text-[9px] text-slate-600">I</dt>
-          <dd className="mt-1 text-[11px] font-medium text-slate-200">
-            {formatEnergyValue(current)}
-          </dd>
+          <dd className="mt-1 text-[11px] font-medium text-slate-200">{formatEnergyValue(current)}</dd>
         </div>
         <div>
           <dt className="text-[9px] text-slate-600">PF</dt>
-          <dd className="mt-1 text-[11px] font-medium text-slate-200">
-            {formatEnergyValue(powerFactor)}
-          </dd>
+          <dd className="mt-1 text-[11px] font-medium text-slate-200">{formatEnergyValue(powerFactor)}</dd>
         </div>
       </dl>
 
@@ -420,9 +409,7 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
   const validSamples = telemetry.freshSamples.filter(
     (sample) => sample.quality === "valid" && sample.value !== null,
   ).length;
-  const problemSamples = telemetry.samples.filter(
-    (sample) => sample.quality !== "valid",
-  ).length;
+  const problemSamples = telemetry.samples.filter((sample) => sample.quality !== "valid").length;
 
   return (
     <div className="space-y-4">
@@ -436,8 +423,8 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             </span>
           </div>
           <p className="mt-2 max-w-3xl text-[12px] leading-5 text-slate-400">
-            Поточні підтверджені параметри чотирьох LE-01MP. Сторінка працює через локальні REST,
-            WebSocket і PostgreSQL history без обов’язкової хмари.
+            Поточні підтверджені параметри чотирьох LE-01MP. Сторінка працює через локальні REST, WebSocket і
+            PostgreSQL history без обов’язкової хмари.
           </p>
         </div>
 
@@ -572,8 +559,8 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             </div>
           </div>
           <p className="mt-4 text-[11px] leading-5 text-slate-400">
-            Значення `kWh` не показується, тому що регістр, масштаб, word order і rollover ще не
-            підтверджені фізичними показами W1–W4. Це окремий hardware Work Package #201.
+            Значення `kWh` не показується, тому що регістр, масштаб, word order і rollover ще не підтверджені
+            фізичними показами W1–W4. Це окремий hardware Work Package #201.
           </p>
           <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3 text-[10px] text-slate-500">
             Дозволено: V, A, Hz, W, var, VA, PF і температура лічильника.

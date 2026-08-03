@@ -99,9 +99,7 @@ export function useEnergyTelemetry({
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(() => Date.now());
   const [generation, setGeneration] = useState(0);
-  const [selectedMetric, setSelectedMetric] = useState<EnergyMetricId>(
-    ENERGY_METRICS[0].id,
-  );
+  const [selectedMetric, setSelectedMetric] = useState<EnergyMetricId>(ENERGY_METRICS[0].id);
   const [historyRange, setHistoryRange] = useState<EnergyHistoryRange>("24h");
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
   const [historyStatus, setHistoryStatus] = useState<EnergyHistoryStatus>(
@@ -110,8 +108,7 @@ export function useEnergyTelemetry({
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
-  const historyKey =
-    scopeKey === null ? null : `${scopeKey}:${selectedMetric}:${historyRange}`;
+  const historyKey = scopeKey === null ? null : `${scopeKey}:${selectedMetric}:${historyRange}`;
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
@@ -190,9 +187,7 @@ export function useEnergyTelemetry({
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
         setHasLoadedSnapshot(true);
-        setError(
-          nextError instanceof Error ? nextError : new Error("Failed to load energy snapshot"),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Failed to load energy snapshot"));
       })
       .finally(() => {
         if (!disposed) connectLive();
@@ -245,9 +240,7 @@ export function useEnergyTelemetry({
         if (controller.signal.aborted || disposed) return;
         setHistorySamples([]);
         setHistoryStatus("error");
-        setHistoryError(
-          nextError instanceof Error ? nextError : new Error("Failed to load energy history"),
-        );
+        setHistoryError(nextError instanceof Error ? nextError : new Error("Failed to load energy history"));
       });
 
     return () => {
@@ -265,12 +258,7 @@ export function useEnergyTelemetry({
   ]);
 
   const view = useMemo(() => {
-    if (
-      runtime.config?.mode !== "live" ||
-      !enabled ||
-      scopeKey === null ||
-      activeScopeKey !== scopeKey
-    ) {
+    if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
       return null;
     }
     return deriveDashboardTelemetry(store, {

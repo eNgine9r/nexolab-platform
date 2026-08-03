@@ -19,14 +19,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "route_audit": {
-    "implemented": [
-      "/",
-      "/nodes",
-      "/sessions",
-      "/refrigeration",
-      "/alerts",
-      "/reports"
-    ],
+    "implemented": ["/", "/nodes", "/sessions", "/refrigeration", "/alerts", "/reports"],
     "placeholder": [
       "/live",
       "/equipment-layouts",
