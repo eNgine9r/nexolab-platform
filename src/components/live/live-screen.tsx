@@ -108,7 +108,8 @@ export function LiveScreen() {
             </div>
           </div>
           <p className="mt-5 text-sm leading-6 text-slate-400">
-            Поточне membership не містить permission `telemetry.read`. REST і WebSocket запити не виконувалися.
+            Поточне membership не містить permission `telemetry.read`. REST і WebSocket запити не
+            виконувалися.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link

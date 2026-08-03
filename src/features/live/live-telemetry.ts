@@ -4,12 +4,7 @@ export const LIVE_SELECTION_LIMIT = 8;
 export const LIVE_STALE_AFTER_MS = 30_000;
 
 export type LiveAlarmFilter = "all" | "active" | "none" | TelemetryAlarm;
-export type LiveTelemetryState =
-  | "live"
-  | "stale"
-  | "sensor_error"
-  | "communication_error"
-  | "unknown";
+export type LiveTelemetryState = "live" | "stale" | "sensor_error" | "communication_error" | "unknown";
 
 export interface LiveTelemetryFilters {
   search: string;
@@ -149,9 +144,7 @@ export function filterLiveTelemetry(
   });
 }
 
-export function liveTelemetryFilterOptions(
-  samples: readonly TelemetrySample[],
-): LiveTelemetryFilterOptions {
+export function liveTelemetryFilterOptions(samples: readonly TelemetrySample[]): LiveTelemetryFilterOptions {
   return {
     nodeIds: sortedUnique(samples.map((sample) => sample.node_id)),
     equipmentIds: sortedUnique(samples.map((sample) => sample.equipment_id)),
@@ -206,9 +199,7 @@ export function selectedLiveSamples(
     );
 }
 
-export function groupLiveSamplesByUnit(
-  samples: readonly TelemetrySample[],
-): Map<string, TelemetrySample[]> {
+export function groupLiveSamplesByUnit(samples: readonly TelemetrySample[]): Map<string, TelemetrySample[]> {
   const groups = new Map<string, TelemetrySample[]>();
   for (const sample of samples) {
     const current = groups.get(sample.unit) ?? [];

@@ -167,9 +167,7 @@ export function downsampleLiveHistory(
     .flatMap(([, channelSamples]) => downsampleChannel(channelSamples, window, maximumPointsPerChannel));
 }
 
-export function seedLiveHistoryOrderingState(
-  samples: readonly TelemetrySample[],
-): LiveHistoryOrderingState {
+export function seedLiveHistoryOrderingState(samples: readonly TelemetrySample[]): LiveHistoryOrderingState {
   const newestCapturedAtByChannel = new Map<string, number>();
   for (const sample of samples) {
     const capturedAt = parsedTimestamp(sample.captured_at);

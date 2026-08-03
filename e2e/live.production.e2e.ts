@@ -194,16 +194,16 @@ test("discovers, filters and compares real telemetry with stable history and rec
     await expect
       .poll(async () =>
         Number(
-          await page
-            .getByRole("img", { name: /Порівняння 1 каналів у degC/ })
-            .getAttribute("data-segments"),
+          await page.getByRole("img", { name: /Порівняння 1 каналів у degC/ }).getAttribute("data-segments"),
         ),
       )
       .toBeGreaterThan(1);
 
     await page.getByRole("button", { name: "6 год" }).click();
     await expect(page).toHaveURL(/range=6h/);
-    await expect.poll(() => requests.filter((request) => request.url.includes("/history")).length).toBeGreaterThan(2);
+    await expect
+      .poll(() => requests.filter((request) => request.url.includes("/history")).length)
+      .toBeGreaterThan(2);
     expect(requests.every((request) => request.authorized)).toBe(true);
     expect(requests.some((request) => request.url.includes("snapshot_at="))).toBe(true);
 

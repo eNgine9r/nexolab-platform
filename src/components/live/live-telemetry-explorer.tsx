@@ -15,10 +15,7 @@ import {
   WifiOff,
 } from "lucide-react";
 
-import {
-  liveHistorySegments,
-  type LiveHistoryWindow,
-} from "@/features/live/live-history";
+import { liveHistorySegments, type LiveHistoryWindow } from "@/features/live/live-history";
 import {
   defaultLiveTelemetryFilters,
   filterLiveTelemetry,
@@ -32,14 +29,19 @@ import {
   type LiveTelemetryFilters,
   type LiveTelemetryState,
 } from "@/features/live/live-telemetry";
-import type {
-  LiveHistoryRange,
-  LiveTelemetryModel,
-  LiveTelemetryStatus,
-} from "@/hooks/use-live-telemetry";
+import type { LiveHistoryRange, LiveTelemetryModel, LiveTelemetryStatus } from "@/hooks/use-live-telemetry";
 import type { TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
 
-const SERIES_COLORS = ["#00C6E0", "#7ED321", "#0077FF", "#A855F7", "#F5B301", "#14B8A6", "#F97316", "#F43F5E"];
+const SERIES_COLORS = [
+  "#00C6E0",
+  "#7ED321",
+  "#0077FF",
+  "#A855F7",
+  "#F5B301",
+  "#14B8A6",
+  "#F97316",
+  "#F43F5E",
+];
 const QUALITY_VALUES: TelemetryQuality[] = ["valid", "sensor_error", "communication_error", "unknown"];
 const ALARM_VALUES: LiveAlarmFilter[] = ["all", "active", "none", "low", "high"];
 const RANGE_LABELS: Record<LiveHistoryRange, string> = {
@@ -62,9 +64,7 @@ function filtersFromParams(searchParams: URLSearchParams): LiveTelemetryFilters 
     equipmentId: queryValue(searchParams.get("equipment")),
     channelId: queryValue(searchParams.get("channel")),
     metric: queryValue(searchParams.get("metric")),
-    quality: queryValue(searchParams.get("quality"), ["all", ...QUALITY_VALUES]) as
-      | "all"
-      | TelemetryQuality,
+    quality: queryValue(searchParams.get("quality"), ["all", ...QUALITY_VALUES]) as "all" | TelemetryQuality,
     alarm: queryValue(searchParams.get("alarm"), ALARM_VALUES) as LiveAlarmFilter,
   };
 }
@@ -176,7 +176,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 min-w-0 rounded-xl border border-white/10 bg-[#081a32] px-3 text-sm text-slate-100 outline-none transition focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
+        className="h-10 min-w-0 rounded-xl border border-white/10 bg-[#081a32] px-3 text-sm text-slate-100 transition outline-none focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
       >
         <option value="all">Усі</option>
         {values.map((item) => (
@@ -223,8 +223,7 @@ function ComparisonChart({
   const valueRange = Math.max(0.000_001, maximum - minimum);
   const from = window.from.getTime();
   const duration = Math.max(1, window.to.getTime() - from);
-  const x = (captured: string) =>
-    padding.left + ((Date.parse(captured) - from) / duration) * plotWidth;
+  const x = (captured: string) => padding.left + ((Date.parse(captured) - from) / duration) * plotWidth;
   const y = (value: number) => padding.top + (1 - (value - minimum) / valueRange) * plotHeight;
   const series = identities.map((identity, index) => {
     const key = liveChannelKey(identity);
@@ -260,9 +259,7 @@ function ComparisonChart({
           onMouseLeave={() => onCursorRatioChange(null)}
           onMouseMove={(event) => {
             const rectangle = event.currentTarget.getBoundingClientRect();
-            onCursorRatioChange(
-              Math.max(0, Math.min(1, (event.clientX - rectangle.left) / rectangle.width)),
-            );
+            onCursorRatioChange(Math.max(0, Math.min(1, (event.clientX - rectangle.left) / rectangle.width)));
           }}
         >
           <rect width={width} height={height} rx="16" fill="#06162b" />
@@ -300,8 +297,9 @@ function ComparisonChart({
             item.segments.map((segment, segmentIndex) => {
               const path = segment
                 .filter((sample) => sample.value !== null)
-                .map((sample, index) =>
-                  `${index === 0 ? "M" : "L"}${x(sample.captured_at).toFixed(2)},${y(sample.value!).toFixed(2)}`,
+                .map(
+                  (sample, index) =>
+                    `${index === 0 ? "M" : "L"}${x(sample.captured_at).toFixed(2)},${y(sample.value!).toFixed(2)}`,
                 )
                 .join(" ");
               return path ? (
@@ -371,10 +369,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
     [telemetry.samples, telemetry.selectedKeys],
   );
   const unitGroups = useMemo(() => groupLiveSamplesByUnit(selected), [selected]);
-  const availableKeys = useMemo(
-    () => new Set(telemetry.samples.map(liveChannelKey)),
-    [telemetry.samples],
-  );
+  const availableKeys = useMemo(() => new Set(telemetry.samples.map(liveChannelKey)), [telemetry.samples]);
   const status = statusMessage(telemetry.status);
   const StatusIcon = status.icon;
 
@@ -451,7 +446,9 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         </div>
       </section>
 
-      <section className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${status.tone}`}>
+      <section
+        className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${status.tone}`}
+      >
         <div className="flex items-start gap-3">
           <StatusIcon className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
@@ -475,7 +472,9 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-white">Пошук і фільтри</h2>
-            <p className="mt-1 text-xs text-slate-500">Усі умови застосовуються одночасно та зберігаються в URL.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Усі умови застосовуються одночасно та зберігаються в URL.
+            </p>
           </div>
           <button
             type="button"
@@ -503,12 +502,42 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               />
             </span>
           </label>
-          <FilterSelect label="Node" value={filters.nodeId} values={options.nodeIds} onChange={(nodeId) => updateFilters({ nodeId })} />
-          <FilterSelect label="Equipment" value={filters.equipmentId} values={options.equipmentIds} onChange={(equipmentId) => updateFilters({ equipmentId })} />
-          <FilterSelect label="Channel" value={filters.channelId} values={options.channelIds} onChange={(channelId) => updateFilters({ channelId })} />
-          <FilterSelect label="Metric" value={filters.metric} values={options.metrics} onChange={(metric) => updateFilters({ metric })} />
-          <FilterSelect label="Quality" value={filters.quality} values={QUALITY_VALUES} onChange={(quality) => updateFilters({ quality: quality as "all" | TelemetryQuality })} />
-          <FilterSelect label="Alarm" value={filters.alarm} values={["active", "none", "low", "high"]} onChange={(alarm) => updateFilters({ alarm: alarm as LiveAlarmFilter })} />
+          <FilterSelect
+            label="Node"
+            value={filters.nodeId}
+            values={options.nodeIds}
+            onChange={(nodeId) => updateFilters({ nodeId })}
+          />
+          <FilterSelect
+            label="Equipment"
+            value={filters.equipmentId}
+            values={options.equipmentIds}
+            onChange={(equipmentId) => updateFilters({ equipmentId })}
+          />
+          <FilterSelect
+            label="Channel"
+            value={filters.channelId}
+            values={options.channelIds}
+            onChange={(channelId) => updateFilters({ channelId })}
+          />
+          <FilterSelect
+            label="Metric"
+            value={filters.metric}
+            values={options.metrics}
+            onChange={(metric) => updateFilters({ metric })}
+          />
+          <FilterSelect
+            label="Quality"
+            value={filters.quality}
+            values={QUALITY_VALUES}
+            onChange={(quality) => updateFilters({ quality: quality as "all" | TelemetryQuality })}
+          />
+          <FilterSelect
+            label="Alarm"
+            value={filters.alarm}
+            values={["active", "none", "low", "high"]}
+            onChange={(alarm) => updateFilters({ alarm: alarm as LiveAlarmFilter })}
+          />
         </div>
       </section>
 
@@ -516,18 +545,24 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
           <div>
             <h2 className="text-base font-semibold text-white">Latest values</h2>
-            <p className="mt-1 text-xs text-slate-500">{filtered.length} каналів відповідають поточному запиту</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {filtered.length} каналів відповідають поточному запиту
+            </p>
           </div>
           {selectionMessage ? <p className="text-xs font-medium text-amber-200">{selectionMessage}</p> : null}
         </div>
         {telemetry.status === "connecting" && telemetry.samples.length === 0 ? (
-          <div className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400">Завантаження реального channel inventory…</div>
+          <div className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400">
+            Завантаження реального channel inventory…
+          </div>
         ) : filtered.length === 0 ? (
           <div className="grid min-h-48 place-items-center p-8 text-center">
             <div>
               <Signal className="mx-auto h-8 w-8 text-slate-600" />
               <p className="mt-3 text-sm font-medium text-slate-200">Каналів не знайдено</p>
-              <p className="mt-1 text-xs text-slate-500">Змініть фільтри або перевірте надходження телеметрії.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Змініть фільтри або перевірте надходження телеметрії.
+              </p>
             </div>
           </div>
         ) : (
@@ -578,7 +613,11 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                       <td className="px-3 py-3 text-slate-300">{sample.metric}</td>
                       <td className="px-3 py-3 font-semibold text-white">{formatValue(sample)}</td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex rounded-lg border px-2 py-1 text-xs ${stateClasses(state)}`}>{stateCopy(state)}</span>
+                        <span
+                          className={`inline-flex rounded-lg border px-2 py-1 text-xs ${stateClasses(state)}`}
+                        >
+                          {stateCopy(state)}
+                        </span>
                       </td>
                       <td className="px-3 py-3">
                         {sample.alarm ? (
@@ -587,10 +626,14 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                             {sample.alarm}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-slate-500"><CheckCircle2 className="h-3 w-3" /> none</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                            <CheckCircle2 className="h-3 w-3" /> none
+                          </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-xs text-slate-400">{formatTimestamp(sample.captured_at)}</td>
+                      <td className="px-3 py-3 text-xs text-slate-400">
+                        {formatTimestamp(sample.captured_at)}
+                      </td>
                       <td className="px-3 py-3 text-xs text-slate-500">{sample.source}</td>
                     </tr>
                   );
@@ -606,7 +649,9 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           <div>
             <p className="text-xs tracking-[0.18em] text-cyan-300 uppercase">Multi-channel comparison</p>
             <h2 className="mt-1 text-lg font-semibold text-white">Синхронізована історія</h2>
-            <p className="mt-1 text-xs text-slate-500">До 8 каналів; несумісні одиниці автоматично розділяються.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              До 8 каналів; несумісні одиниці автоматично розділяються.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(RANGE_LABELS) as LiveHistoryRange[]).map((range) => (
@@ -630,17 +675,29 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
             <div>
               <Activity className="mx-auto h-8 w-8 text-slate-600" />
               <p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали в таблиці</p>
-              <p className="mt-1 text-xs text-slate-500">History requests не виконуються, доки comparison selection порожній.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                History requests не виконуються, доки comparison selection порожній.
+              </p>
             </div>
           </div>
         ) : telemetry.historyStatus === "loading" ? (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">Завантаження повного history window за одним ingestion watermark…</div>
+          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">
+            Завантаження повного history window за одним ingestion watermark…
+          </div>
         ) : telemetry.historyStatus === "error" ? (
           <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-8 text-center">
             <AlertTriangle className="h-8 w-8 text-red-300" />
             <p className="mt-3 text-sm font-medium text-red-100">Не вдалося завантажити історію</p>
-            <p className="mt-1 max-w-xl text-xs text-red-200/60">{telemetry.historyError?.message ?? "Unknown history error"}</p>
-            <button type="button" onClick={telemetry.retryHistory} className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10"><RefreshCw className="h-3.5 w-3.5" /> Повторити history</button>
+            <p className="mt-1 max-w-xl text-xs text-red-200/60">
+              {telemetry.historyError?.message ?? "Unknown history error"}
+            </p>
+            <button
+              type="button"
+              onClick={telemetry.retryHistory}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Повторити history
+            </button>
           </div>
         ) : telemetry.historyWindow && telemetry.historySamples.length > 0 ? (
           <div className="mt-5 space-y-4">
@@ -661,7 +718,9 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
             </div>
           </div>
         ) : (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center text-sm text-slate-400">У вибраному інтервалі немає persisted telemetry.</div>
+          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center text-sm text-slate-400">
+            У вибраному інтервалі немає persisted telemetry.
+          </div>
         )}
       </section>
     </div>

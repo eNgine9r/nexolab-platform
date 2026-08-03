@@ -178,8 +178,8 @@ function deriveStatus(
 } {
   const samples = selectLatestLiveSamples(Object.values(store.samples));
   const freshSamples = samples.filter((sample) => now - capturedAt(sample) <= STALE_AFTER_MS);
-  const lastCapturedAt = [...samples].sort((left, right) => capturedAt(right) - capturedAt(left))[0]
-    ?.captured_at ?? null;
+  const lastCapturedAt =
+    [...samples].sort((left, right) => capturedAt(right) - capturedAt(left))[0]?.captured_at ?? null;
 
   if (connectionState === "unauthorized") {
     return { status: "unauthorized", samples, freshSamples, lastCapturedAt };
@@ -228,7 +228,7 @@ export function useLiveTelemetry({
   initialRange?: LiveHistoryRange;
 } = {}): LiveTelemetryModel {
   const selectedOrganizationId = organizationId?.trim() || null;
-  const scopeKey = enabled ? selectedOrganizationId ?? DEFAULT_SCOPE : null;
+  const scopeKey = enabled ? (selectedOrganizationId ?? DEFAULT_SCOPE) : null;
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<LatestStore>(emptyLatestStore);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
@@ -301,12 +301,7 @@ export function useLiveTelemetry({
       historyWindowRef.current = nextWindow;
       setHistoryWindow(nextWindow);
       setHistorySamples((current) => {
-        const next = mergeLiveHistoryTail(
-          current,
-          [],
-          new Set(selectedKeysRef.current),
-          nextWindow,
-        );
+        const next = mergeLiveHistoryTail(current, [], new Set(selectedKeysRef.current), nextWindow);
         historySamplesRef.current = next;
         return next;
       });
@@ -511,7 +506,9 @@ export function useLiveTelemetry({
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
         setHistoryStatus("error");
-        setHistoryError(nextError instanceof Error ? nextError : new Error("Failed to load telemetry history"));
+        setHistoryError(
+          nextError instanceof Error ? nextError : new Error("Failed to load telemetry history"),
+        );
       });
 
     return () => {
