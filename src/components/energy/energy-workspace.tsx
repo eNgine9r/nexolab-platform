@@ -81,6 +81,7 @@ function buildHistorySeries(
   samples: readonly TelemetrySample[],
   selectedMetric: EnergyMetricId,
   selectedUnitIds: readonly number[],
+  window: EnergyTelemetryModel["historyWindow"],
 ): HistorySeries[] {
   const accepted = samples
     .filter(
@@ -104,8 +105,10 @@ function buildHistorySeries(
 
   const timestamps = accepted.map((item) => Date.parse(item.sample.captured_at));
   const values = accepted.map((item) => item.sample.value);
-  const from = Math.min(...timestamps);
-  const to = Math.max(...timestamps);
+  const requestedFrom = window ? Date.parse(window.from) : Number.NaN;
+  const requestedTo = window ? Date.parse(window.to) : Number.NaN;
+  const from = Number.isFinite(requestedFrom) ? requestedFrom : Math.min(...timestamps);
+  const to = Number.isFinite(requestedTo) ? requestedTo : Math.max(...timestamps);
   const minimum = Math.min(...values);
   const maximum = Math.max(...values);
   const timeSpan = Math.max(1, to - from);
@@ -254,8 +257,14 @@ function HistoryPanel({
 }) {
   const definition = ENERGY_METRICS.find((metric) => metric.id === telemetry.selectedMetric)!;
   const series = useMemo(
-    () => buildHistorySeries(telemetry.historySamples, telemetry.selectedMetric, selectedUnitIds),
-    [selectedUnitIds, telemetry.historySamples, telemetry.selectedMetric],
+    () =>
+      buildHistorySeries(
+        telemetry.historySamples,
+        telemetry.selectedMetric,
+        selectedUnitIds,
+        telemetry.historyWindow,
+      ),
+    [selectedUnitIds, telemetry.historySamples, telemetry.historyWindow, telemetry.selectedMetric],
   );
 
   return (

@@ -69,16 +69,9 @@ export const ENERGY_METRICS = [
 export type EnergyMetricId = (typeof ENERGY_METRICS)[number]["id"];
 export type EnergyMeter = (typeof ENERGY_METERS)[number];
 export type EnergySampleState =
-  | "live"
-  | "stale"
-  | "sensor_error"
-  | "communication_error"
-  | "unknown"
-  | "empty";
+  "live" | "stale" | "sensor_error" | "communication_error" | "unknown" | "empty";
 
-const METRIC_ORDER = new Map<string, number>(
-  ENERGY_METRICS.map((metric, index) => [metric.id, index]),
-);
+const METRIC_ORDER = new Map<string, number>(ENERGY_METRICS.map((metric, index) => [metric.id, index]));
 
 function canonicalUnit(unit: string): string {
   const normalized = unit.trim().toLowerCase();
@@ -92,9 +85,7 @@ function energyMetricDefinition(metric: string) {
 
 function hasExpectedEnergyUnit(sample: TelemetrySample): boolean {
   const definition = energyMetricDefinition(sample.metric);
-  return (
-    definition !== null && canonicalUnit(sample.unit) === canonicalUnit(definition.expectedUnit)
-  );
+  return definition !== null && canonicalUnit(sample.unit) === canonicalUnit(definition.expectedUnit);
 }
 
 function meterByUnitId(unitId: number): EnergyMeter | null {
@@ -165,12 +156,7 @@ export function energySampleState(
 }
 
 export function formatEnergyValue(sample: TelemetrySample | null): string {
-  if (
-    !sample ||
-    sample.quality !== "valid" ||
-    sample.value === null ||
-    !hasExpectedEnergyUnit(sample)
-  ) {
+  if (!sample || sample.quality !== "valid" || sample.value === null || !hasExpectedEnergyUnit(sample)) {
     return "—";
   }
   const definition = energyMetricDefinition(sample.metric);

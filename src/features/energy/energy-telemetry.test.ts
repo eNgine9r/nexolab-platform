@@ -34,26 +34,19 @@ describe("energy telemetry", () => {
   it("maps the four production meters deterministically", () => {
     expect(resolveEnergyMeter(sample())?.label).toBe("W1");
     expect(
-      resolveEnergyMeter(sample({ equipment_id: "unknown", channel_id: "203-power-factor" }))
-        ?.label,
+      resolveEnergyMeter(sample({ equipment_id: "unknown", channel_id: "203-power-factor" }))?.label,
     ).toBe("W4");
     expect(resolveEnergyMeter(sample({ equipment_id: "LE01MP-204" }))).toBeNull();
   });
 
   it("accepts confirmed metrics with compatible units only", () => {
     expect(isEnergySample(sample())).toBe(true);
-    expect(isEnergySample(sample({ metric: "electrical.energy.active", unit: "kWh" }))).toBe(
-      false,
-    );
+    expect(isEnergySample(sample({ metric: "electrical.energy.active", unit: "kWh" }))).toBe(false);
     expect(
-      isEnergySample(
-        sample({ metric: "electrical.voltage", unit: "W", channel_id: "200-voltage" }),
-      ),
+      isEnergySample(sample({ metric: "electrical.voltage", unit: "W", channel_id: "200-voltage" })),
     ).toBe(false);
     expect(
-      isEnergySample(
-        sample({ metric: "temperature.internal", unit: "°C", channel_id: "200-temperature" }),
-      ),
+      isEnergySample(sample({ metric: "temperature.internal", unit: "°C", channel_id: "200-temperature" })),
     ).toBe(true);
   });
 
@@ -95,15 +88,9 @@ describe("energy telemetry", () => {
   it("formats confirmed units without inventing unavailable values", () => {
     expect(formatEnergyValue(sample())).toBe("615 W");
     expect(
-      formatEnergyValue(
-        sample({ metric: "electrical.power_factor", value: 0.955, unit: "ratio" }),
-      ),
+      formatEnergyValue(sample({ metric: "electrical.power_factor", value: 0.955, unit: "ratio" })),
     ).toBe("0,955");
-    expect(
-      formatEnergyValue(
-        sample({ metric: "electrical.voltage", value: 615, unit: "W" }),
-      ),
-    ).toBe("—");
+    expect(formatEnergyValue(sample({ metric: "electrical.voltage", value: 615, unit: "W" }))).toBe("—");
     expect(formatEnergyValue(sample({ quality: "unknown", value: 615 }))).toBe("—");
   });
 });
