@@ -6,71 +6,41 @@
   "issue": 261,
   "parent_issue": 260,
   "pull_request": 262,
-  "status": "implementation_complete_pending_exact_head_validation",
-  "timestamp": "2026-08-03T18:12:00+03:00",
+  "status": "exact_head_green_ready_for_merge",
+  "timestamp": "2026-08-03T19:00:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
+  "verified_head_sha": "3143bf31757b7d866623896c241f695da650944f",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Replaced the Energy Monitoring placeholder with an authenticated LE-01MP operator workspace for W1-W4, added complete paginated history with bounded downsampling, explicit quality/offline states and a focused browser flow while keeping cumulative kWh hardware-unverified.",
-  "decision": {
-    "active_product_epic": 260,
-    "active_work_package": 261,
-    "active_route": "/energy",
-    "next_ready_issue": 263,
-    "maintenance_parent": 204,
-    "maintenance_status": "deferred",
-    "verification_policy": "proportional_to_changed_product_surface"
-  },
+  "summary": "Energy Monitoring is implemented and exact-head verified. The page uses production-node scoped latest, history and WebSocket telemetry, loads complete history once, then advances the rolling plot through bounded WebSocket-tail merges without periodic full-window reloads.",
   "scope_completed": [
-    "replaced src/app/energy placeholder route",
-    "added standard authenticated NEXOLAB shell and telemetry.read permission gate",
+    "replaced the /energy placeholder with the authenticated NEXOLAB operator workspace",
     "added W1-W4 latest cards and confirmed electrical metrics",
-    "added local REST snapshot and WebSocket live updates",
+    "added production edge-01 scope to latest, history and WebSocket",
     "added complete paginated 1h, 6h and 24h history",
-    "added deterministic per-meter downsampling that preserves window endpoints",
-    "added meter and metric comparison controls",
+    "added bounded per-meter downsampling and requested-window chart scaling",
+    "added incremental WebSocket history-tail merge with deduplication and rolling-window pruning",
+    "added metric-unit compatibility validation",
     "added loading, empty, stale, offline, permission and error states",
-    "added focused authenticated browser acceptance and screenshot evidence",
     "kept cumulative energy unavailable pending Issue #201 hardware evidence",
     "created next product Work Package #263 for /live"
   ],
-  "files_changed": [
-    "src/app/energy/page.tsx",
-    "src/components/energy/energy-screen.tsx",
-    "src/components/energy/energy-workspace.tsx",
-    "src/features/energy/energy-telemetry.ts",
-    "src/features/energy/energy-telemetry.test.ts",
-    "src/features/energy/energy-history.ts",
-    "src/features/energy/energy-history.test.ts",
-    "src/hooks/use-energy-telemetry.ts",
-    "e2e/energy.production.e2e.ts",
-    "playwright.dashboard.config.ts",
-    ".github/workflows/authenticated-dashboard-acceptance.yml",
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
+  "checks_actually_run": [
+    "CI 30830167308 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
+    "Authenticated Dashboard Acceptance 30830165546 GREEN: energy latest/history, selection, live WebSocket update and evidence upload"
   ],
-  "verified_pre_review_head": {
-    "sha": "cb4aa8af499d64859df46d8895bd3f07a3b400ac",
-    "checks": [
-      "formatting GREEN",
-      "ESLint GREEN",
-      "strict TypeScript GREEN",
-      "190 unit/component tests GREEN",
-      "production build GREEN",
-      "Authenticated Dashboard Acceptance GREEN with energy latest, history, meter selection, live update and screenshot evidence"
-    ]
-  },
-  "review_fixes_applied": [
-    "equipment identity is authoritative over a conflicting channel fallback",
-    "history loads every API page for the requested window before bounded downsampling",
-    "first and last history points are retained for each meter",
-    "stale secondary values are suppressed from meter cards instead of being presented as live",
-    "source-of-truth state advances to Issue #263 after merge"
+  "review_findings_addressed": [
+    "history pagination and complete-window downsampling",
+    "mixed-freshness meter cards",
+    "requested-window chart scaling",
+    "rolling history updates",
+    "metric-unit mismatch rejection",
+    "production node isolation",
+    "elimination of minute-by-minute full 24-hour history reloads",
+    "repository source-of-truth advancement"
   ],
   "runtime_and_offline_evidence": [
     "uses existing local REST, WebSocket, PostgreSQL and local authentication contracts",
-    "no package, Compose, container or offline bundle contract changed",
+    "no package, Compose, container or offline-delivery contract changed",
     "no mandatory cloud, CDN, remote font or external runtime request introduced",
     "live mode does not silently fall back to demo data"
   ],
@@ -78,14 +48,13 @@
     "hardware_verified": false,
     "note": "No hardware operation was performed. Confirmed read-only metric contracts are used; cumulative active energy remains hardware-unverified under Issue #201."
   },
-  "checks_pending": [
-    "final exact-head formatting, lint, typecheck, tests and production build",
-    "final exact-head authenticated energy browser acceptance",
-    "resolve all review threads",
-    "expected-head merge of PR #262"
+  "remaining_actions": [
+    "resolve addressed PR #262 review threads",
+    "merge PR #262 with expected-head protection",
+    "start Issue #263 on a new focused feature branch"
   ],
   "next_ready_work_package": {
     "issue": 263,
-    "instruction": "After PR #262 merges, replace /live with the universal authenticated telemetry explorer; do not resume deferred toolchain maintenance."
+    "instruction": "After PR #262 merges, replace /live with the universal authenticated telemetry explorer. Do not resume deferred toolchain maintenance."
   }
 }
