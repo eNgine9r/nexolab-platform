@@ -6,7 +6,7 @@
   "issue": 241,
   "parent_issue": 203,
   "pull_request": 244,
-  "status": "final_exact_head_ci_running",
+  "status": "verified_pending_merge",
   "timestamp": "2026-08-03T07:43:00+03:00",
   "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
   "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
@@ -84,11 +84,7 @@
     "previous_clean_head": "48a80b37dc49b0d1825897ebb6a1a25f63a0a807"
   },
   "checks_pending": [
-    "final exact-head CI and browser workflow sweep",
-    "Offline Auth Acceptance",
-    "Offline Bundle disconnected update and rollback proof",
-    "exact six-path diff audit",
-    "review-thread and submitted-review audit",
+    "final state-only exact-head workflow sweep",
     "mark PR #244 ready for review",
     "squash merge PR #244 with expected exact head"
   ],
@@ -100,5 +96,47 @@
   "next_ready_work_package": {
     "issue": 242,
     "instruction": "After PR #244 merges, review the optional Supabase dependency while preserving fail-closed offline local authentication."
+  },
+  "verification_head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
+  "final_verification": {
+    "result": "11_of_11_green",
+    "runs": {
+      "ci": 30786862301,
+      "security_browser": 30786862321,
+      "authenticated_dashboard": 30786862289,
+      "refrigeration_browser": 30786862297,
+      "offline_auth": 30786862303,
+      "offline_bundle": 30786862331,
+      "nodes": 30786862329,
+      "alerts": 30786862328,
+      "test_sessions": 30786862363,
+      "reports": 30786862307,
+      "rendered_reports": 30786862292
+    },
+    "artifacts": {
+      "security_browser": {
+        "id": 8845566996,
+        "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
+      },
+      "authenticated_dashboard": {
+        "id": 8845567008,
+        "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
+      },
+      "refrigeration_browser": {
+        "id": 8845563069,
+        "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
+      },
+      "offline_auth": {
+        "id": 8845627973,
+        "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
+      },
+      "offline_bundle": {
+        "id": 8845690195,
+        "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
+      }
+    },
+    "review_threads": 0,
+    "submitted_reviews": 0,
+    "offline_auth_retry_classification": "first attempt failed before migration due transient container startup; retry passed full migration and disconnected auth"
   }
 }

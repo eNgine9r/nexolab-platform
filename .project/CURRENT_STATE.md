@@ -55,7 +55,7 @@ Clean implementation head `f9594f517b5b9e8a8b94da53da4b36f5a5abec8b` contains ex
 
 ## Open Pull Requests
 
-- #244 — verified `sharp 0.35.3` override candidate; pending final exact-head workflow sweep, review audit and merge.
+- #244 — verified `sharp 0.35.3` override candidate; 11-of-11 workflows and review audit are GREEN on `82c83d5357da62cdb30e9c1f692c750f74da773c`; pending merge.
 
 ## Open risks and blockers
 
@@ -68,4 +68,18 @@ Clean implementation head `f9594f517b5b9e8a8b94da53da4b36f5a5abec8b` contains ex
 
 ## Next Ready Work Package
 
-Finish PR #244 on exact-head GREEN. Then execute Issue #242 as a separate optional-Supabase/offline-auth compatibility review. Issue #243 remains queued independently for Lucide operator semantics.
+Merge PR #244 with expected exact head after the final state-only sweep. Then execute Issue #242 as a separate optional-Supabase/offline-auth compatibility review. Issue #243 remains queued independently for Lucide operator semantics.
+
+## Issue #241 final verification sweep
+
+Verification head `82c83d5357da62cdb30e9c1f692c750f74da773c` completed all 11 permanent workflows GREEN:
+
+- CI `30786862301`;
+- Security Browser `30786862321`, artifact `8845566996`;
+- Authenticated Dashboard `30786862289`, artifact `8845567008`;
+- Refrigeration Browser `30786862297`, artifact `8845563069`;
+- Offline Auth `30786862303`, artifact `8845627973`;
+- Offline Bundle `30786862331`, artifact `8845690195`;
+- Nodes, Alerts, Test Sessions, Reports and Rendered Reports also GREEN.
+
+Review audit: 0 review threads and 0 submitted reviews requiring action. The final state-only commit must repeat exact-head checks before merge.

@@ -4,7 +4,7 @@ Updated: 2026-08-03
 
 ## Hard blockers
 
-No hard blocker prevents completing Issue #241 / PR #244 after final exact-head CI, offline acceptance and review audit.
+No hard blocker prevents merging Issue #241 / PR #244 after the final state-only exact-head sweep.
 
 Stop before:
 
@@ -20,7 +20,7 @@ Stop before:
 
 ### N-037 — Transitive `sharp 0.34.5` advisory
 
-**Status:** Remediation candidate verified; pending PR #244 final exact-head gates and merge.
+**Status:** Remediation and 11-of-11 verification sweep GREEN; pending final state-only checks and merge.
 
 - baseline path: `next@16.2.12 -> sharp@0.34.5`;
 - affected range: `<0.35.0`;

@@ -330,7 +330,7 @@
       "id": "NEXOLAB-241",
       "issue": 241,
       "title": "Resolve transitive sharp security risk without unsupported overrides",
-      "status": "verified_candidate_pending_final_ci",
+      "status": "verified_pending_merge",
       "track": "production-dependency-maintenance",
       "parent_issue": 203,
       "pull_request": 244,
@@ -358,6 +358,47 @@
         "arm64_package_matrix": "present_in_lockfile",
         "quality_gate": "format_lint_typecheck_tests_build_green",
         "hardware": "not_applicable"
+      },
+      "final_verification": {
+        "head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
+        "result": "11_of_11_green",
+        "runs": {
+          "ci": 30786862301,
+          "security_browser": 30786862321,
+          "authenticated_dashboard": 30786862289,
+          "refrigeration_browser": 30786862297,
+          "offline_auth": 30786862303,
+          "offline_bundle": 30786862331,
+          "nodes": 30786862329,
+          "alerts": 30786862328,
+          "test_sessions": 30786862363,
+          "reports": 30786862307,
+          "rendered_reports": 30786862292
+        },
+        "artifacts": {
+          "security_browser": {
+            "id": 8845566996,
+            "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
+          },
+          "authenticated_dashboard": {
+            "id": 8845567008,
+            "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
+          },
+          "refrigeration_browser": {
+            "id": 8845563069,
+            "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
+          },
+          "offline_auth": {
+            "id": 8845627973,
+            "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
+          },
+          "offline_bundle": {
+            "id": 8845690195,
+            "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
+          }
+        },
+        "review_threads": 0,
+        "submitted_reviews": 0
       }
     },
     {
