@@ -4,20 +4,21 @@ Updated: 2026-08-03
 
 ## Issue #261 — Energy Monitoring
 
-No product, software, runtime or hardware blocker prevents merge of PR #262.
+No product, software, runtime or hardware blocker prevents finalization of PR #262.
 
-Verified implementation head `f112d0c861465845cad816b22224f0675ef5b971` passed:
+Verified implementation head `d8b03f6ed496362c7fa4ff0243ec82ed42c16fad` passed:
 
-- CI run `30837611045` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30837611564` — energy latest/history, meter selection, WebSocket update and evidence upload.
+- CI run `30841237042` — formatting, ESLint, strict TypeScript, 201 Vitest tests and production build;
+- Authenticated Dashboard Acceptance run `30841237450` — energy latest/history, meter selection, WebSocket update and evidence upload.
 
 Review corrections include:
 
 - stable captured-time cursor pagination instead of mutable offsets;
 - overlapping page-boundary timestamps so complete capture cycles are retained;
-- renderable-only per-meter downsampling so communication errors cannot displace valid points;
+- renderable-only per-meter downsampling with first/latest endpoint preservation;
 - stable absolute time buckets for incremental live history;
-- cadence-aware SVG segmentation that keeps normal downsampled trends connected and exposes material outages;
+- source-derived outage segments from raw communication-error records and acquisition-cadence gaps;
+- permission gating before telemetry REST and WebSocket traffic starts;
 - requested-window chart scaling;
 - fresh-only compact meter cards and per-metric quality states;
 - strict metric/unit compatibility;
@@ -26,7 +27,7 @@ Review corrections include:
 - wall-clock rolling-window pruning when telemetry stops;
 - future-skew rejection before a sample can move the history window.
 
-Remaining administrative action: resolve addressed review threads and merge PR #262 with expected-head protection.
+Remaining administrative actions: validate the state-only head, resolve addressed review threads and merge PR #262 with expected-head protection.
 
 Cumulative active energy remains blocked under Issue #201 until the physical register, scale, unit, word order and rollover behavior are confirmed. Do not display guessed `kWh`.
 
@@ -67,4 +68,4 @@ Stop before:
 
 ## Next Ready action
 
-Merge PR #262, then start Issue #263. Do not insert deferred dependency migrations between these product pages.
+Finalize and merge PR #262, then start Issue #263. Do not insert deferred dependency migrations between these product pages.
