@@ -80,7 +80,8 @@
       "track": "runtime-reliability",
       "pull_request": 246,
       "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
-      "candidate_head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
+      "candidate_head_sha": "ca845f68fc0d153ee99869908fde932c52fc921c",
+      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
       "runtime_modes": ["lan", "standalone"],
       "standalone_contract": {
         "dashboard": "http://127.0.0.1:3000",
@@ -94,9 +95,9 @@
       },
       "candidate_verification": {
         "result": "3_of_3_green",
-        "ci_run": 30791309275,
-        "telemetry_service_run": 30791309295,
-        "offline_bundle_run": 30791309244,
+        "ci_run": 30792028567,
+        "telemetry_service_run": 30792028512,
+        "offline_bundle_run": 30792028514,
         "format": "green",
         "lint": "green",
         "typecheck": "green",
@@ -116,8 +117,7 @@
           "second Raspberry Pi reboot"
         ]
       },
-      "next_action": "Collect actual Raspberry Pi acceptance separately; do not mark hardware verified.",
-      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
+      "next_action": "Collect actual Raspberry Pi acceptance separately; do not mark hardware verified."
     },
     {
       "id": "NEXOLAB-203",
@@ -129,22 +129,33 @@
     {
       "id": "NEXOLAB-242",
       "issue": 242,
+      "pull_request": 248,
       "title": "Review optional Supabase dependency while preserving offline-local auth",
-      "status": "local_verified_pending_pr_ci",
+      "status": "exact_head_green_ready_for_merge",
       "parent_issue": 203,
       "branch": "maint/242-supabase-offline-compat",
       "baseline_main_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+      "verified_head_sha": "73cf19b2e7191a38290b3dc99fa211bdaf038878",
+      "state_fix_commit_sha": "2d22e0aea40ac31765ee61a06a08296dd2302bb9",
       "decision": "update",
       "resolved_version_before": "2.110.8",
       "resolved_version_after": "2.112.0",
       "local_verification": ["format", "lint", "typecheck", "tests", "build"],
-      "pending_verification": [
-        "Security Browser",
-        "Offline Auth",
-        "Authenticated Dashboard",
-        "Offline Bundle",
-        "update/rollback volume preservation"
-      ]
+      "github_verification": {
+        "ci": 30800858215,
+        "security_browser": 30800857389,
+        "offline_auth": 30800857575,
+        "authenticated_dashboard": 30800857397,
+        "offline_bundle": 30800858287,
+        "refrigeration_browser": 30800857965,
+        "nodes_browser": 30800857446,
+        "alerts_browser": 30800858049,
+        "test_sessions_browser": 30800857431,
+        "reports_browser": 30800857402,
+        "rendered_reports_browser": 30800857520,
+        "result": "all_triggered_green"
+      },
+      "next_action": "Run exact-head workflows for the state-fix commit, resolve review, and merge PR #248."
     },
     {
       "id": "NEXOLAB-243",
