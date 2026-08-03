@@ -2,46 +2,43 @@
 
 Updated: 2026-08-03
 
-## Issue #251 — Node tooling and type definitions
+## Active Work Package — Issue #261
 
-No product, implementation, runtime or hardware blocker is open after correcting the exact Offline Bundle failure.
+No implementation, runtime or hardware blocker prevents software development of the Energy Monitoring page.
 
-Final candidate contract:
+Available confirmed scope:
 
-```text
-Developer/CI Node exact: 22.23.1
-Supported package engine: >=22.22.1 <23 || >=24 <25
-Dashboard container Node line: 24
-@types/node: 22.20.1
-undici-types: 6.21.0
-```
+- KK1 energy meters W1–W4 / Unit IDs 200–203;
+- existing read-only LE-01MP measurements for voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
+- existing local telemetry latest/history and authentication foundations;
+- standard NEXOLAB application shell.
 
-### Resolved CI blocker
+The page must not show cumulative active energy until Issue #201 confirms the register layout, scale, unit and rollover behavior with actual hardware evidence.
 
-Offline Bundle run `30817017506` failed during the connected dashboard image build because the initial Node 22-only package engine rejected the existing Node 24 dashboard image during `npm prune --omit=dev`.
+## Product-page priority correction
 
-Resolution:
+Seven primary routes currently render generic placeholder screens. Product delivery now has priority over optional toolchain maintenance.
 
-- preserve exact Node 22.23.1 for developers and GitHub Actions;
-- admit the established Node 24 dashboard container line;
-- continue rejecting Node 23, Node 25 and Node 26 declarations;
-- regenerate the lockfile and rerun the full exact-head cascade.
+Issues #252–#257 are deferred. They may resume only for:
 
-Merge remains gated by:
+- a relevant security fix;
+- an end-of-support condition;
+- a concrete blocker for an active product Work Package.
 
-- exact Node 22.23.1 evidence in primary CI;
-- deterministic dependency installation;
-- formatting, lint, strict typecheck, full tests and production build;
-- all triggered browser acceptance workflows;
-- Offline Bundle connected Node 24 build, disconnected startup and update/rollback volume preservation;
-- clean review audit and expected-head merge protection.
+A newer dependency version by itself is not a reason to interrupt Product Pages Epic #260.
 
-## Toolchain dependency changes after #251
+## Proportional verification rule
 
-- #254 Playwright becomes the next ordered Ready Work Package after #251 merges.
-- #252 lint-staged becomes technically unblocked because the Node 22 floor satisfies v17, but remains ordered after #254.
-- #253 jsdom remains queued after the Node baseline.
-- #256 TypeScript 7 and #257 ESLint 10 remain blocked by their separate compatibility gates.
+For a focused page change:
+
+- run touched-file and focused tests during implementation;
+- run lint, typecheck and production build at completion;
+- run only the directly affected browser/API workflow;
+- do not run Offline Bundle unless package, container, Compose, runtime or offline-delivery contracts changed.
+
+## Smart Lockers blocker
+
+The `/lockers` page remains blocked until a concrete locker inventory, read-only protocol and operator workflow are defined. Do not invent production device behavior or present demo controls as completed functionality.
 
 ## Hard blockers
 
@@ -55,33 +52,29 @@ Stop before:
 - unresolved materially different product or architecture decisions;
 - any operation that cannot preserve local laboratory data.
 
-## Issue #245 — actual Raspberry Pi standalone acceptance
+## Actual Raspberry Pi and recovery evidence
 
-**Status:** Soft blocker after software merge.
+Issue #245 software is merged, but actual standalone Raspberry Pi acceptance still requires controlled physical evidence.
 
-Software contracts are merged, but actual-host acceptance still requires controlled physical evidence from the Raspberry Pi 5 with no physical uplink IPv4 or default route, local browser verification, advancing telemetry, service restart and repeated reboot recovery.
-
-Until that evidence exists, use:
+Use:
 
 ```text
 software verified; actual standalone Raspberry Pi acceptance pending
 ```
 
-## Issue #189 recovery status
-
-Software recovery evidence is verified. Actual-host reboot, physical power-loss and physical-media restore remain soft-blocked pending controlled access.
+Issue #189 software recovery evidence is verified. Actual-host reboot, physical power-loss and physical-media restore remain soft-blocked pending controlled access.
 
 ## Open operational and hardware risks
 
-- **N-037 — Sharp compatibility override:** reassess when Next.js supports a patched range.
+- **N-037 — Sharp compatibility override:** reassess only when a supported patched range is available.
 - **N-023 — Node health/status durability:** not claimed equal to telemetry process-restart durability.
 - **N-024 — Rollback compatibility:** preserve named volumes and spool compatibility.
 - **N-025 — Spool capacity:** actual-host capacity evidence remains required.
-- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified.
+- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi archive/load/start/update/rollback remains unverified.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked.
-- **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked.
+- **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked; do not show guessed kWh.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked.
 
 ## Next Ready action
 
-Run the corrected exact-head PR #259 cascade, perform review audit and merge only on GREEN. Then start Issue #254.
+Implement Issue #261 on `feat/261-energy-monitoring-page`, replacing the `/energy` placeholder with a real operator workflow using confirmed metrics only.
