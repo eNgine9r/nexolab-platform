@@ -135,6 +135,7 @@ export function useEnergyTelemetry({
   const activeHistoryKeyRef = useRef(activeHistoryKey);
   const historyWindowRef = useRef(historyWindow);
   const pendingHistoryBreakUnitIdsRef = useRef<Set<number>>(new Set());
+  const newestHistoryCapturedAtByUnitIdRef = useRef<Map<number, number>>(new Map());
   const pendingHistoryMetricRef = useRef(selectedMetric);
 
   const retry = useCallback(() => {
@@ -225,6 +226,7 @@ export function useEnergyTelemetry({
       };
     });
     pendingHistoryBreakUnitIdsRef.current = new Set();
+    newestHistoryCapturedAtByUnitIdRef.current = new Map();
     pendingHistoryMetricRef.current = selectedMetricRef.current;
 
     void Promise.resolve().then(() => {
@@ -249,10 +251,16 @@ export function useEnergyTelemetry({
       if (pendingHistoryMetricRef.current !== selectedHistoryMetric) {
         pendingHistoryMetricRef.current = selectedHistoryMetric;
         pendingHistoryBreakUnitIdsRef.current = new Set();
+        newestHistoryCapturedAtByUnitIdRef.current = new Map();
       }
       const selectedTail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
-      const reconciliation = reconcileEnergyLiveHistory(selectedTail, pendingHistoryBreakUnitIdsRef.current);
+      const reconciliation = reconcileEnergyLiveHistory(
+        selectedTail,
+        pendingHistoryBreakUnitIdsRef.current,
+        newestHistoryCapturedAtByUnitIdRef.current,
+      );
       pendingHistoryBreakUnitIdsRef.current = reconciliation.pendingUnitIds;
+      newestHistoryCapturedAtByUnitIdRef.current = reconciliation.newestCapturedAtByUnitId;
       const tail = reconciliation.samples;
       const currentWindow = historyWindowRef.current;
       if (
