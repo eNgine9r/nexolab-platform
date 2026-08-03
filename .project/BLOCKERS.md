@@ -10,6 +10,13 @@ Decision: retain `lucide-react ^1.25.0` with lockfile resolution `1.26.0`.
 
 The published npm candidate `1.27.0` changes the SVG geometry of `Zap`, which NEXOLAB uses for the persistent **Енергомоніторинг** navigation item and its page icon. No security advisory, runtime compatibility fix or product requirement justifies that operator-facing visual change.
 
+A focused regression test now locks:
+
+- `Zap → Енергомоніторинг → /energy`;
+- explicit accessible naming for icon-only refrigeration controls;
+- default `40 px` icon-button sizing;
+- keyboard focus outline behavior.
+
 Merge remains gated only by normal software controls:
 
 - exact-head repository formatting, ESLint, strict TypeScript, Vitest and production build;
@@ -84,4 +91,4 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 
 ## Next Ready action
 
-Publish the Issue #243 state-only no-update PR, run exact-head CI/browser/offline acceptance, perform review audit and merge only on GREEN. Then reconcile parent Issue #203 and select the next independent Ready software Work Package.
+Run the exact-head PR #249 CI/browser/offline cascade, perform review audit and merge only on GREEN. Then reconcile parent Issue #203 and select the next independent Ready software Work Package.
