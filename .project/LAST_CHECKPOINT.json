@@ -1,77 +1,85 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "FRONTEND-TOOLCHAIN-MIGRATION-1",
-  "task": "NEXOLAB-251",
-  "issue": 251,
-  "pull_request": 259,
-  "status": "offline_failure_corrected_pending_exact_head_ci",
-  "timestamp": "2026-08-03T16:44:00+03:00",
-  "baseline_main_sha": "72ecc207af528942396054764c0b33a663727de1",
-  "branch": "maint/251-node22-baseline-types",
-  "summary": "Pinned the exact Node 22 developer/CI baseline, aligned Node 22 type declarations and corrected the package engine to preserve the established Node 24 dashboard container build after Offline Bundle exposed the initial Node 22-only contract error.",
+  "sprint": "PRODUCT-PAGES-COMPLETION-1",
+  "task": "NEXOLAB-261",
+  "issue": 261,
+  "parent_issue": 260,
+  "status": "in_progress",
+  "timestamp": "2026-08-03T17:18:00+03:00",
+  "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
+  "branch": "feat/261-energy-monitoring-page",
+  "summary": "Stopped the optional toolchain queue after a repository-backed route audit showed seven primary placeholder pages. Created Product Pages Epic #260 and selected Energy Monitoring #261 as the first high-value product Work Package because confirmed LE-01MP telemetry already exists.",
   "decision": {
-    "developer_ci_node_exact": "22.23.1",
-    "node_engine": ">=22.22.1 <23 || >=24 <25",
-    "container_node_line": "24",
-    "types_node_manifest": "^22.20.1",
-    "types_node_resolved": "22.20.1",
-    "undici_types_resolved": "6.21.0"
+    "active_product_epic": 260,
+    "active_work_package": 261,
+    "active_route": "/energy",
+    "maintenance_parent": 204,
+    "maintenance_status": "deferred",
+    "verification_policy": "proportional_to_changed_product_surface"
   },
-  "failed_candidate": {
-    "head_sha": "ae732e67178bb7bfcd8cca33ec733987ba121b3e",
-    "workflow": "Offline Bundle",
-    "run": 30817017506,
-    "job": 91697161272,
-    "failed_step": "Build linux amd64 bundle on connected builder",
-    "root_cause": "package engine >=22.22.1 <23 rejected Node 24.18.1 in the dashboard image during npm prune --omit=dev",
-    "classification": "valid contract regression"
+  "route_audit": {
+    "implemented": [
+      "/",
+      "/nodes",
+      "/sessions",
+      "/refrigeration",
+      "/alerts",
+      "/reports"
+    ],
+    "placeholder": [
+      "/live",
+      "/equipment-layouts",
+      "/lockers",
+      "/cameras",
+      "/energy",
+      "/equipment",
+      "/settings"
+    ]
   },
-  "correction": [
-    "retain exact Node 22.23.1 for developer machines and GitHub Actions",
-    "admit the existing Node 24 dashboard container line",
-    "reject Node 23 and Node 25",
-    "retain conservative Node 22 source type declarations",
-    "regenerate package-lock.json and remove the temporary workflow from the final diff"
+  "completed_actions": [
+    "verified PR #259 merged as 47d5124fd96f54800cf7347ff672297a1d421526",
+    "verified Issue #251 closed as completed",
+    "created Product Pages Epic #260",
+    "created focused Energy Monitoring Work Package #261",
+    "created branch feat/261-energy-monitoring-page from current main",
+    "recorded maintenance deferral on Issues #204 and #254",
+    "updated project state, sprint and blockers for product-first execution"
   ],
-  "evidence": [
-    "Node 22.23.1 exact CI assertion passed on the failed candidate",
-    "deterministic npm install, formatting, lint and typecheck passed before the offline failure",
-    "the dashboard build itself completed on Node 24 before npm prune enforced the incorrect engine range",
-    "the Offline Bundle gate correctly prevented merge",
-    "no production source or runtime service definition changed"
+  "confirmed_energy_scope": [
+    "KK1 meters W1-W4 / Unit IDs 200-203",
+    "voltage",
+    "current",
+    "frequency",
+    "active power",
+    "reactive power",
+    "apparent power",
+    "power factor",
+    "meter temperature",
+    "quality and captured_at",
+    "latest and history telemetry contracts"
   ],
-  "files_changed": [
-    ".nvmrc",
-    "package.json",
-    "package-lock.json",
-    ".github/workflows/ci.yml",
-    "docs/maintenance/node22-baseline.md",
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
-  ],
-  "runtime_and_offline_evidence": [
-    "developer and CI commands remain on exact Node 22.23.1",
-    "the existing Node 24 dashboard image remains supported",
-    "no mandatory online or paid runtime dependency was introduced",
-    "persistent-volume and disconnected runtime contracts are unchanged"
+  "excluded_unverified_scope": [
+    "cumulative active energy or kWh before Issue #201 hardware evidence",
+    "tariff and billing",
+    "Modbus writes",
+    "toolchain upgrades",
+    "production or site cutover"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was in scope or performed."
+    "note": "No hardware operation was performed. Existing confirmed read-only metric contracts may be used; cumulative energy remains hardware-unverified."
   },
   "checks_pending": [
-    "corrected exact Node baseline assertion",
-    "deterministic npm install",
-    "formatting, lint, typecheck, full tests and production build",
-    "all triggered browser acceptance workflows",
-    "Offline Bundle connected build, disconnected startup and update/rollback preservation",
+    "inspect existing typed telemetry and history adapters",
+    "implement the Energy Monitoring operator page",
+    "run focused energy tests",
+    "run lint, typecheck and production build",
+    "run one directly affected energy browser acceptance",
     "review audit and expected-head merge"
   ],
   "next_ready_work_package": {
-    "issue": 254,
-    "instruction": "After #251 merges, upgrade Playwright with complete browser-evidence and Offline Bundle verification."
+    "issue": 261,
+    "instruction": "Implement the Energy Monitoring page with confirmed metrics and explicit stale/offline/error states; do not show guessed kWh."
   }
 }
