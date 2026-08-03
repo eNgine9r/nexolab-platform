@@ -174,7 +174,16 @@ api_get http://127.0.0.1:8082/api/v1/auth/session \
 curl -fsS --max-time 15 http://127.0.0.1:8081/health \
   | python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("status") in {"ok","ready","healthy"}'
 
-docker exec "$TELEMETRY_ID" alembic current --check-heads >/dev/null
+CURRENT_REVISIONS="$(docker exec "$TELEMETRY_ID" alembic current \
+  | awk 'NF {print $1}' | sort -u)"
+HEAD_REVISIONS="$(docker exec "$TELEMETRY_ID" alembic heads \
+  | awk 'NF {print $1}' | sort -u)"
+[[ -n "$CURRENT_REVISIONS" && "$CURRENT_REVISIONS" == "$HEAD_REVISIONS" ]] || {
+  echo "ERROR: database revisions do not match Alembic heads" >&2
+  echo "Current revisions: ${CURRENT_REVISIONS:-<none>}" >&2
+  echo "Head revisions: ${HEAD_REVISIONS:-<none>}" >&2
+  exit 1
+}
 docker exec "$CENTRAL_MQTT_ID" sh -ec \
   "mosquitto_sub -h 127.0.0.1 -t '\$SYS/broker/version' -C 1 -W 5 >/dev/null"
 
@@ -266,6 +275,7 @@ chmod 0700 "$EVIDENCE_DIR"
   echo "observation_seconds=$OBSERVATION_SECONDS"
   echo "captured_before=$CAPTURED_BEFORE"
   echo "captured_after=$CAPTURED_AFTER"
+  echo "database_revisions=$(printf '%s' "$CURRENT_REVISIONS" | paste -sd, -)"
   echo "dashboard=http://127.0.0.1:3000"
   echo "api=http://127.0.0.1:8082"
   echo "websocket=ws://127.0.0.1:8082/api/v1/telemetry/live"
