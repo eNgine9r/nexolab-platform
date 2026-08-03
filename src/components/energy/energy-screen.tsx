@@ -55,9 +55,11 @@ export function EnergyScreen() {
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const securityReady = security.mode === "live" && security.state === "ready";
+  const canReadTelemetry =
+    securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
   const organizationId = security.membership?.organizationId ?? null;
   const telemetry = useEnergyTelemetry({
-    enabled: securityReady,
+    enabled: canReadTelemetry,
     organizationId,
   });
 
