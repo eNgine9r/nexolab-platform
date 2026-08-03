@@ -1,16 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  TelemetryAdapter,
-  TelemetryCollectionResponse,
-  TelemetrySample,
-} from "@/lib/telemetry/types";
+import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
-import {
-  downsampleEnergyHistory,
-  loadCompleteEnergyHistory,
-  mergeEnergyHistoryTail,
-} from "./energy-history";
+import { downsampleEnergyHistory, loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "./energy-history";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -123,10 +115,7 @@ describe("energy history", () => {
 
     const result = downsampleEnergyHistory(source, 2);
 
-    expect(result.map((item) => item.event_id)).toEqual([
-      "energy-edge-01-200-20",
-      "energy-edge-01-200-21",
-    ]);
+    expect(result.map((item) => item.event_id)).toEqual(["energy-edge-01-200-20", "energy-edge-01-200-21"]);
   });
 
   it("merges the websocket tail without retaining records outside the rolling window", () => {
@@ -146,10 +135,7 @@ describe("energy history", () => {
       },
     );
 
-    expect(result.map((item) => item.event_id)).toEqual([
-      "energy-edge-01-200-10",
-      "energy-edge-01-201-11",
-    ]);
+    expect(result.map((item) => item.event_id)).toEqual(["energy-edge-01-200-10", "energy-edge-01-201-11"]);
     expect(result[0].value).toBe(999);
   });
 
