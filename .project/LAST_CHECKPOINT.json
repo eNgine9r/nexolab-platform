@@ -7,14 +7,14 @@
   "parent_issue": 260,
   "pull_request": 262,
   "status": "exact_head_green_ready_for_merge",
-  "timestamp": "2026-08-03T20:25:00+03:00",
+  "timestamp": "2026-08-03T20:38:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-  "verified_implementation_head_sha": "688cf14d13c0dc55683138d3e81dbed7b6afedeb",
+  "verified_implementation_head_sha": "f112d0c861465845cad816b22224f0675ef5b971",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Energy Monitoring is implemented and verified with stable captured-time pagination, complete page-boundary capture cycles, absolute-bucket downsampling, outage-visible paths, future-skew-safe WebSocket tails and wall-clock rolling-window pruning.",
+  "summary": "Energy Monitoring is implemented and verified with stable captured-time pagination, complete page-boundary capture cycles, absolute-bucket downsampling, cadence-aware outage segmentation, future-skew-safe WebSocket tails and wall-clock rolling-window pruning.",
   "checks_actually_run": [
-    "CI 30836542345 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
-    "Authenticated Dashboard Acceptance 30836543153 GREEN: energy latest/history, selection, live WebSocket update and evidence upload"
+    "CI 30837611045 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
+    "Authenticated Dashboard Acceptance 30837611564 GREEN: energy latest/history, selection, live WebSocket update and evidence upload"
   ],
   "runtime_and_offline_evidence": [
     "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
