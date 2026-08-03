@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import {
-  reconcileEnergyLiveHistory,
-  seedEnergyLiveHistoryState,
-} from "./energy-live-history";
+import { reconcileEnergyLiveHistory, seedEnergyLiveHistoryState } from "./energy-live-history";
 import { energyHistorySourceEventId, isEnergyHistorySegmentStart } from "./energy-history-segment";
 
 function sample(second: number, quality: TelemetrySample["quality"] = "valid"): TelemetrySample {
