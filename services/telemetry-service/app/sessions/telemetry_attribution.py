@@ -12,6 +12,7 @@ from sqlalchemy import (
     func,
     or_,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -19,7 +20,13 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.contracts import TelemetryEvent
-from app.db import Base, Database, TelemetryQuery, TelemetrySample
+from app.db import (
+    TELEMETRY_HISTORY_ADVISORY_LOCK_ID,
+    Base,
+    Database,
+    TelemetryQuery,
+    TelemetrySample,
+)
 from app.sessions.models import (
     SessionConfigSnapshot,
     SessionStage,
@@ -267,9 +274,13 @@ class SessionAwareDatabase(Database):
         table = TelemetrySample.__table__
         dialect = self.engine.dialect.name
         if dialect == "postgresql":
+            connection.execute(
+                text("SELECT pg_advisory_xact_lock_shared(:lock_id)"),
+                {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+            )
             statement = (
                 postgresql_insert(table)
-                .values(**values)
+                .values(**values, received_at=func.clock_timestamp())
                 .on_conflict_do_nothing(index_elements=["event_id"])
                 .returning(table.c.event_id)
             )
@@ -466,8 +477,6 @@ def _apply_session_filters(
     sample = TelemetrySample.__table__
     context = TelemetrySessionContext.__table__
     filters = [context.c.session_id == session_id]
-    if query.stage_id is not None:
-        filters.append(context.c.stage_id == query.stage_id)
     telemetry_query = TelemetryQuery(
         node_id=query.node_id,
         equipment_id=query.equipment_id,
