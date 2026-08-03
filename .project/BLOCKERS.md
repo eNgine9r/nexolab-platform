@@ -6,19 +6,21 @@ Updated: 2026-08-03
 
 No product, software, runtime or hardware blocker prevents merge of PR #262.
 
-Verified implementation head `3143bf31757b7d866623896c241f695da650944f` passed:
+Verified implementation head `40e2b0897b389a2adcd43903223dc16129e7460d` passed:
 
-- CI run `30830167308` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30830165546` — energy latest/history, meter selection, WebSocket update and evidence upload.
+- CI run `30832280986` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30832281295` — energy latest/history, meter selection, WebSocket update and evidence upload.
 
-Review corrections now include:
+Review corrections include:
 
-- complete pagination before bounded downsampling;
+- stable captured-time cursor pagination instead of mutable offsets;
+- renderable-only per-meter downsampling so communication errors cannot displace valid points;
 - requested-window chart scaling;
 - fresh-only compact meter cards and per-metric quality states;
 - strict metric/unit compatibility;
 - production `edge-01` scope for latest, history and WebSocket;
-- incremental WebSocket history-tail merge instead of reloading the complete 24-hour history every minute.
+- incremental WebSocket history-tail merge instead of periodic complete history reload;
+- wall-clock rolling-window pruning when telemetry stops.
 
 Remaining administrative action: resolve addressed review threads and merge PR #262 with expected-head protection.
 
