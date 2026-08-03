@@ -24,6 +24,11 @@ export function clearEnergyHistoryMarkers(sample: TelemetrySample): TelemetrySam
   return eventId === sample.event_id ? sample : { ...sample, event_id: eventId };
 }
 
+export function clearEnergyHistoryBreakPending(sample: TelemetrySample): TelemetrySample {
+  if (!isEnergyHistoryBreakPending(sample.event_id)) return sample;
+  return { ...sample, event_id: energyHistorySourceEventId(sample.event_id) };
+}
+
 export function markEnergyHistorySegmentStart(sample: TelemetrySample): TelemetrySample {
   const normalized = clearEnergyHistoryMarkers(sample);
   return { ...normalized, event_id: `${ENERGY_HISTORY_SEGMENT_PREFIX}${normalized.event_id}` };
