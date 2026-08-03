@@ -35,16 +35,25 @@
     {
       "id": "NEXOLAB-251",
       "issue": 251,
-      "title": "Align Node 22 developer and CI baseline with Node type definitions",
-      "status": "implemented_pending_pr_ci",
+      "pull_request": 259,
+      "title": "Align Node tooling and type definitions",
+      "status": "offline_failure_corrected_pending_exact_head_ci",
       "branch": "maint/251-node22-baseline-types",
       "baseline_main_sha": "72ecc207af528942396054764c0b33a663727de1",
-      "node_exact": "22.23.1",
-      "node_engine": ">=22.22.1 <23",
+      "node_developer_ci_exact": "22.23.1",
+      "node_engine": ">=22.22.1 <23 || >=24 <25",
+      "container_node_line": "24",
       "types_node_manifest": "^22.20.1",
       "types_node_resolved": "22.20.1",
       "undici_types_resolved": "6.21.0",
-      "next_action": "Open the focused PR, run exact-head CI/browser/offline gates and merge only on GREEN."
+      "failed_candidate": {
+        "head_sha": "ae732e67178bb7bfcd8cca33ec733987ba121b3e",
+        "workflow": "Offline Bundle",
+        "run": 30817017506,
+        "failed_step": "Build linux amd64 bundle on connected builder",
+        "root_cause": "Node 22-only package engine rejected the established Node 24 dashboard image during npm prune"
+      },
+      "next_action": "Run the complete exact-head cascade for the corrected dual-line engine and merge only on GREEN."
     },
     {
       "id": "NEXOLAB-254",
