@@ -1,88 +1,101 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-03
-Verified main baseline: `72ecc207af528942396054764c0b33a663727de1`
-Active Work Package: Issue #251 — Node tooling and type-definition baseline
-Status confidence: high for official release metadata, repository workflow inventory, deterministic lockfile movement and the exact Offline Bundle failure diagnosis; corrected exact-head verification is pending.
+Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
+Active Work Package: Issue #261 — complete the Energy Monitoring operator page
+Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
+Status confidence: high for the main route audit, merged Node/offline baseline and current GitHub Issue/branch state.
 
-## Completed planning baseline
+## Completed baseline
 
-Issue #204 planning PR #258 is merged as `72ecc207af528942396054764c0b33a663727de1`. The parent remains open to track child migrations #251–#257.
+Issue #251 merged through PR #259 as `47d5124fd96f54800cf7347ff672297a1d421526`.
 
-## Issue #251 outcome
+Verified outcomes:
 
-NEXOLAB now has an explicit dual-line Node contract:
+- developer and GitHub Actions Node baseline: `22.23.1`;
+- supported package engine: `>=22.22.1 <23 || >=24 <25`;
+- Node source declarations: `@types/node 22.20.1`;
+- all 11 exact-head workflows GREEN;
+- disconnected startup GREEN;
+- offline update/rollback persistent-volume preservation GREEN;
+- review threads resolved;
+- Issue #251 closed as completed.
 
-```text
-.nvmrc exact developer/CI version: 22.23.1
-package engine: >=22.22.1 <23 || >=24 <25
-@types/node manifest: ^22.20.1
-@types/node resolved: 22.20.1
-undici-types resolved: 6.21.0
-```
+This baseline is sufficient for continued product development. Further toolchain upgrades #252–#257 are deferred unless they become a security, support or concrete product-delivery blocker.
 
-Responsibilities:
+## Product route audit
 
-- Node 22.23.1 is the exact developer and GitHub Actions baseline.
-- Node 22.22.1 is the minimum supported Node 22 patch and satisfies the future lint-staged 17 floor.
-- The existing dashboard offline image uses the Node 24 container line, which remains supported.
-- Node 23 and Node 25 are rejected.
-- Source typechecking remains conservative on Node 22 declarations even when the container build uses Node 24.
-- Node 26 declarations remain rejected.
-- Every searched frontend GitHub workflow uses `node-version-file: .nvmrc`.
-- Primary CI fails if `node --version` does not exactly match `.nvmrc` and records the npm version.
+The main navigation contains 13 routes.
 
-## Offline failure and correction
+Implemented workflow routes:
 
-The first candidate incorrectly restricted the package engine to Node 22 only. Offline Bundle correctly failed during dashboard-image `npm prune --omit=dev` because the established offline Dockerfile uses Node 24.
+- `/` — Overview dashboard;
+- `/nodes` — Nodes;
+- `/sessions` — Test sessions;
+- `/refrigeration` — Refrigeration equipment;
+- `/alerts` — Alerts;
+- `/reports` — Reports.
 
-The failure was not bypassed. The engine contract was corrected to admit supported Node 22 and Node 24 lines, the lockfile was regenerated, and the complete exact-head cascade must rerun.
+Placeholder routes:
 
-## Scope completed
+- `/live` — Live data;
+- `/equipment-layouts` — Equipment layouts;
+- `/lockers` — Smart lockers;
+- `/cameras` — Cameras;
+- `/energy` — Energy monitoring;
+- `/equipment` — Equipment registry;
+- `/settings` — Settings.
 
-- pinned `.nvmrc` from broad `22` to exact `22.23.1`;
-- changed the package engine from `>=22.0.0` to `>=22.22.1 <23 || >=24 <25`;
-- moved `@types/node` from resolved `20.19.43` to `22.20.1`;
-- refreshed `package-lock.json` deterministically;
-- preserved `undici-types 6.21.0`;
-- added exact Node baseline evidence to `.github/workflows/ci.yml`;
-- documented developer, CI, container, verification and rollback procedures in `docs/maintenance/node22-baseline.md`;
-- removed both temporary branch-only lockfile workflows from the final diff.
+Epic #260 owns replacement of all seven placeholder routes with focused product Work Packages.
 
-## Files changed
+## Active outcome — Issue #261
 
-```text
-.nvmrc
-package.json
-package-lock.json
-.github/workflows/ci.yml
-docs/maintenance/node22-baseline.md
-.project/CURRENT_STATE.md
-.project/ACTIVE_SPRINT.json
-.project/BLOCKERS.md
-.project/LAST_CHECKPOINT.json
-```
+Replace the `/energy` placeholder with a real operator workspace for KK1 LE-01MP meters W1–W4.
 
-No production source, browser behavior, backend, Compose, database, telemetry or hardware contract changed. The existing Node 24 dashboard image contract is preserved.
+Confirmed existing data scope:
 
-## Verification pending
+- voltage;
+- current;
+- frequency;
+- active power;
+- reactive power;
+- apparent power;
+- power factor;
+- meter temperature;
+- telemetry quality and capture time;
+- latest and history contracts.
 
-- exact Node 22.23.1 developer/CI assertion;
-- deterministic npm installation;
-- formatting, ESLint, strict TypeScript, full Vitest and production build;
-- all triggered browser acceptance workflows;
-- Offline Bundle connected build on Node 24;
-- disconnected startup and update/rollback volume preservation;
-- review audit and expected-head merge.
+Cumulative active energy remains explicitly unavailable until Issue #201 provides physical register, scale and rollover evidence. No guessed `kWh` value is permitted.
+
+## Verification policy
+
+Tests support product delivery; they are not an independent roadmap.
+
+For page Work Packages:
+
+1. run touched-file checks and focused tests during implementation;
+2. run lint, typecheck and production build at completion;
+3. run only the directly affected browser/API acceptance;
+4. run Offline Bundle only when package, container, Compose, runtime or offline-delivery contracts change.
+
+Do not trigger every browser workflow for a presentation-only page change.
 
 ## Runtime and hardware status
 
 ```text
-developer/CI baseline aligned; existing Node 24 container runtime preserved; no hardware operation performed
+core software and offline baseline verified; active work is product UI; no hardware operation performed
 ```
 
-Actual Raspberry Pi acceptance for Issue #245 and recovery Issue #189 remain pending. Issues #200–#202 remain hardware-blocked. No Modbus or hardware write was performed.
+Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence for #189 and hardware investigations #200–#202 remain soft-blocked by controlled hardware access. No Modbus or hardware write is authorized.
 
-## Next Ready Work Package
+## Next Ready Work Packages
 
-After #251 merges, Issue #254 — Playwright browser/evidence migration — is next in the approved toolchain order. Issue #252 also becomes unblocked but remains ordered after #254.
+Ordered under Epic #260:
+
+1. #261 — Energy Monitoring operator page;
+2. Live Data telemetry explorer;
+3. Equipment Layouts catalog;
+4. Equipment and metrology registry;
+5. Settings;
+6. Cameras;
+7. Smart lockers after concrete hardware/protocol scope exists.
