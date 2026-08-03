@@ -1,0 +1,95 @@
+name: Temporary Apply Energy Gap Fix
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-apply-energy-gap-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+      - name: Apply focused source edits
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          workspace = Path("src/components/energy/energy-workspace.tsx")
+          text = workspace.read_text()
+
+          anchor = 'import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";'
+          if 'buildEnergyHistoryPath' not in text:
+              text = text.replace(
+                  anchor,
+                  'import { buildEnergyHistoryPath } from "@/features/energy/energy-history-path";\n' + anchor,
+              )
+
+          text = text.replace(
+              'points: Array<{ id: string; x: number; y: number; value: number }>;',
+              'points: Array<{ id: string; x: number; y: number; value: number; capturedAt: string }>;',
+          )
+          text = text.replace(
+              '          value: sample.value,\n          x:',
+              '          value: sample.value,\n          capturedAt: sample.captured_at,\n          x:',
+          )
+          text, count = re.subn(
+              r'        path: points\s*\.map\(\(point, index\) => `\$\{index === 0 \? "M" : "L"\}\$\{point\.x\.toFixed\(2\)\} \$\{point\.y\.toFixed\(2\)\}`\)\s*\.join\(" "\),',
+              '        path: buildEnergyHistoryPath(points),',
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f"Expected one inline SVG path expression, found {count}")
+          workspace.write_text(text)
+
+          test_path = Path("src/features/energy/energy-history.test.ts")
+          test_text = test_path.read_text().replace(
+              'to: new Date("2026-08-03T10:00:02.000Z"),',
+              'to: new Date("2026-08-03T10:00:02.001Z"),',
+          )
+          test_path.write_text(test_text)
+          PY
+      - name: Format exact energy files
+        run: |
+          npx prettier --write \
+            src/components/energy/energy-workspace.tsx \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/features/energy/energy-history-path.ts \
+            src/features/energy/energy-history-path.test.ts
+          npm run format:check
+      - name: Commit focused changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/components/energy/energy-workspace.tsx \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/features/energy/energy-history-path.ts \
+            src/features/energy/energy-history-path.test.ts
+          git diff --cached --quiet && { echo 'No focused changes were produced' >&2; exit 1; }
+          git commit -m 'fix(energy): preserve boundaries and outage gaps [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
