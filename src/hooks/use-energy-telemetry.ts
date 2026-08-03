@@ -217,12 +217,7 @@ export function useEnergyTelemetry({
       setStore((current) => mergeDashboardTelemetry(current, accepted, { now }));
 
       const selectedHistoryMetric = selectedMetricRef.current;
-      const tail = selectEnergyHistoryTail(
-        accepted,
-        ENERGY_NODE_ID,
-        selectedHistoryMetric,
-        now,
-      );
+      const tail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
       const currentWindow = historyWindowRef.current;
       if (
         tail.length > 0 &&

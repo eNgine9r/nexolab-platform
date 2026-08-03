@@ -93,9 +93,7 @@ export function downsampleEnergyHistory(
 
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
-    .flatMap(([, meterSamples]) =>
-      bucketDownsample(meterSamples, maximumPointsPerMeter, window),
-    );
+    .flatMap(([, meterSamples]) => bucketDownsample(meterSamples, maximumPointsPerMeter, window));
 }
 
 export function mergeEnergyHistoryTail(
@@ -159,11 +157,7 @@ export async function loadCompleteEnergyHistory(
     }
 
     if (response.next_offset === null) {
-      return downsampleEnergyHistory(
-        [...samples.values()],
-        MAX_HISTORY_POINTS_PER_METER,
-        window,
-      );
+      return downsampleEnergyHistory([...samples.values()], MAX_HISTORY_POINTS_PER_METER, window);
     }
 
     const capturedTimes = response.items
@@ -175,11 +169,7 @@ export async function loadCompleteEnergyHistory(
 
     const oldestCapturedAt = Math.min(...capturedTimes);
     if (oldestCapturedAt <= window.from.getTime()) {
-      return downsampleEnergyHistory(
-        [...samples.values()],
-        MAX_HISTORY_POINTS_PER_METER,
-        window,
-      );
+      return downsampleEnergyHistory([...samples.values()], MAX_HISTORY_POINTS_PER_METER, window);
     }
 
     const boundaryCount = capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length;
