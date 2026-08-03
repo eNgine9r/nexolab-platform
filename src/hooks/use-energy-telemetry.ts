@@ -111,6 +111,7 @@ export function useEnergyTelemetry({
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
+  const [liveCoverageScopeKey, setLiveCoverageScopeKey] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>(() =>
     runtime.config?.mode === "live" ? "connecting" : "idle",
   );
@@ -141,6 +142,7 @@ export function useEnergyTelemetry({
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
     setConnectionState("connecting");
+    setLiveCoverageScopeKey(null);
     setHasLoadedSnapshot(false);
     setError(null);
     setStore(createDashboardTelemetryStore());
@@ -232,6 +234,7 @@ export function useEnergyTelemetry({
     void Promise.resolve().then(() => {
       if (disposed) return;
       setActiveScopeKey(scopeKey);
+      setLiveCoverageScopeKey(null);
       setConnectionState("connecting");
       setHasLoadedSnapshot(false);
       setError(null);
@@ -310,6 +313,7 @@ export function useEnergyTelemetry({
           if (disposed) return;
           setConnectionState(state);
           if (state === "connected") {
+            setLiveCoverageScopeKey(scopeKey);
             resolveLiveReady();
             setError(null);
           } else if (TERMINAL_STARTUP_STATES.has(state)) {
@@ -359,7 +363,16 @@ export function useEnergyTelemetry({
 
   useEffect(() => {
     const config = runtime.config;
-    if (!config || config.mode === "demo" || !enabled || historyKey === null) return;
+    if (
+      !config ||
+      config.mode === "demo" ||
+      !enabled ||
+      historyKey === null ||
+      scopeKey === null ||
+      liveCoverageScopeKey !== scopeKey
+    ) {
+      return;
+    }
 
     const controller = new AbortController();
     const resolvedOrganizationId =
@@ -421,7 +434,9 @@ export function useEnergyTelemetry({
     historyGeneration,
     historyKey,
     historyRange,
+    liveCoverageScopeKey,
     runtime.config,
+    scopeKey,
     selectedMetric,
     selectedOrganizationId,
   ]);
