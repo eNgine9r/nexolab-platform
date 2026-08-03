@@ -7,6 +7,7 @@ import {
   mergeEnergyHistoryTail,
   selectEnergyHistoryTail,
 } from "@/features/energy/energy-history";
+import { reconcileEnergyLiveHistory } from "@/features/energy/energy-live-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -34,6 +35,7 @@ import type {
 
 const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
+const MAX_STARTUP_LIVE_SAMPLES = 2_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
@@ -126,6 +128,8 @@ export function useEnergyTelemetry({
   const historyKeyRef = useRef(historyKey);
   const activeHistoryKeyRef = useRef(activeHistoryKey);
   const historyWindowRef = useRef(historyWindow);
+  const pendingHistoryBreakUnitIdsRef = useRef<Set<number>>(new Set());
+  const pendingHistoryMetricRef = useRef(selectedMetric);
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
@@ -197,6 +201,10 @@ export function useEnergyTelemetry({
     const adapter = securedAdapter(config, resolvedOrganizationId);
     let subscription: TelemetrySubscription | null = null;
     let disposed = false;
+    let snapshotPending = true;
+    let bufferedLiveSamples: TelemetrySample[] = [];
+    pendingHistoryBreakUnitIdsRef.current = new Set();
+    pendingHistoryMetricRef.current = selectedMetricRef.current;
 
     void Promise.resolve().then(() => {
       if (disposed) return;
@@ -217,7 +225,22 @@ export function useEnergyTelemetry({
       setStore((current) => mergeDashboardTelemetry(current, accepted, { now }));
 
       const selectedHistoryMetric = selectedMetricRef.current;
-      const tail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
+      if (pendingHistoryMetricRef.current !== selectedHistoryMetric) {
+        pendingHistoryMetricRef.current = selectedHistoryMetric;
+        pendingHistoryBreakUnitIdsRef.current = new Set();
+      }
+      const selectedTail = selectEnergyHistoryTail(
+        accepted,
+        ENERGY_NODE_ID,
+        selectedHistoryMetric,
+        now,
+      );
+      const reconciliation = reconcileEnergyLiveHistory(
+        selectedTail,
+        pendingHistoryBreakUnitIdsRef.current,
+      );
+      pendingHistoryBreakUnitIdsRef.current = reconciliation.pendingUnitIds;
+      const tail = reconciliation.samples;
       const currentWindow = historyWindowRef.current;
       if (
         tail.length > 0 &&
@@ -253,7 +276,16 @@ export function useEnergyTelemetry({
       subscription = adapter.subscribe(
         { node_id: ENERGY_NODE_ID },
         {
-          onSample: (sample) => commit([sample]),
+          onSample: (sample) => {
+            if (snapshotPending) {
+              bufferedLiveSamples.push(sample);
+              if (bufferedLiveSamples.length > MAX_STARTUP_LIVE_SAMPLES) {
+                bufferedLiveSamples = bufferedLiveSamples.slice(-MAX_STARTUP_LIVE_SAMPLES);
+              }
+              return;
+            }
+            commit([sample]);
+          },
           onStateChange: (state) => {
             if (disposed) return;
             setConnectionState(state);
@@ -267,24 +299,32 @@ export function useEnergyTelemetry({
       );
     };
 
+    connectLive();
+
     void adapter
       .latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal)
       .then((snapshot) => {
-        commit(snapshot.items);
+        if (disposed) return;
+        const buffered = bufferedLiveSamples;
+        bufferedLiveSamples = [];
+        snapshotPending = false;
+        commit([...snapshot.items, ...buffered]);
         setHasLoadedSnapshot(true);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
+        const buffered = bufferedLiveSamples;
+        bufferedLiveSamples = [];
+        snapshotPending = false;
+        commit(buffered);
         setHasLoadedSnapshot(true);
         setError(nextError instanceof Error ? nextError : new Error("Failed to load energy snapshot"));
-      })
-      .finally(() => {
-        if (!disposed) connectLive();
       });
 
     return () => {
       disposed = true;
       controller.abort();
+      bufferedLiveSamples = [];
       subscription?.close();
     };
   }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
