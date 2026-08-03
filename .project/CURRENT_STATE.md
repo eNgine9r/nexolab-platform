@@ -9,21 +9,19 @@ Status confidence: high for repository state, dependency decisions, exact-head q
 
 Parent Issue #203 has completed all focused compatibility groups:
 
-| Group | Issue / PR | Outcome | Merge SHA |
-|---|---|---|---|
-| Next.js + React security line | #239 / #240 | security patch isolated and verified | `3623be1f2778ea283200e6a5d2278c5f1326c434` |
-| Transitive Sharp risk | #241 / #244 | `sharp 0.35.3` compatibility control | `2c00812aed7bc107f191a50e2e0745cb9c091bbd` |
-| Optional Supabase SDK | #242 / #248 | updated to resolved `2.112.0`; local auth remains primary/offline-safe | `33224e148c733e50896fe68c13c53130e0a7afac` |
-| Lucide operator semantics | #243 / #249 | retained resolved `1.26.0`; regression test protects Energy semantics and icon-button accessibility | `cc865098e7d1ffa81313c34c32672276c8bc51a9` |
+- Issue #239 / PR #240 — Next.js and React security patch line, merged as `3623be1f2778ea283200e6a5d2278c5f1326c434`.
+- Issue #241 / PR #244 — transitive `sharp 0.35.3` compatibility control, merged as `2c00812aed7bc107f191a50e2e0745cb9c091bbd`.
+- Issue #242 / PR #248 — optional Supabase SDK updated to resolved `2.112.0` with local authentication remaining primary and offline-safe, merged as `33224e148c733e50896fe68c13c53130e0a7afac`.
+- Issue #243 / PR #249 — Lucide resolved `1.26.0` retained with regression coverage for Energy semantics and icon-button accessibility, merged as `cc865098e7d1ffa81313c34c32672276c8bc51a9`.
 
 ## Acceptance evidence
 
 - Every compatibility group used a separate Issue, branch and focused Pull Request.
-- Framework/security updates were handled before optional cloud and icon-library work.
+- Framework and security updates were handled before optional cloud and icon-library work.
 - Lockfile movement was reviewed per group.
 - Supabase remains optional; missing configuration creates no client or network request.
 - LOCAL_LAN local authentication remains primary and fail-closed.
-- Lucide 1.27.0 was not adopted because it changes the used `Zap` operator icon without a security or runtime requirement.
+- Lucide `1.27.0` was not adopted because it changes the used `Zap` operator icon without a security or runtime requirement.
 - The Lucide regression test fixes `Zap → Енергомоніторинг → /energy` and the accessible refrigeration icon-button contract.
 - No mandatory CDN, external telemetry, cloud API, online license or paid runtime dependency was introduced.
 - Exact-head formatting, ESLint, strict TypeScript, Vitest and production builds passed for each merged group.
@@ -32,7 +30,7 @@ Parent Issue #203 has completed all focused compatibility groups:
 
 ## Remaining dependency risks
 
-- Temporary `sharp 0.35.3` override must be reassessed when Next.js publishes a supported patched optional range.
+- The temporary `sharp 0.35.3` override must be reassessed when Next.js publishes a supported patched optional range.
 - Playwright `1.55.0` remains a development-tool concern under Issue #204; it is not a mandatory runtime dependency.
 - Major TypeScript, ESLint, jsdom, lint-staged and Playwright migrations remain explicitly outside Issue #203.
 
