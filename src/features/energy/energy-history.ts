@@ -50,6 +50,33 @@ export function downsampleEnergyHistory(
     );
 }
 
+export function mergeEnergyHistoryTail(
+  current: readonly TelemetrySample[],
+  incoming: readonly TelemetrySample[],
+  window: EnergyHistoryWindow,
+): TelemetrySample[] {
+  const from = window.from.getTime();
+  const to = window.to.getTime();
+  const merged = new Map<string, TelemetrySample>();
+
+  for (const sample of [...current, ...incoming]) {
+    const capturedAt = Date.parse(sample.captured_at);
+    if (
+      sample.node_id !== window.nodeId ||
+      sample.metric !== window.metric ||
+      !isEnergySample(sample) ||
+      !Number.isFinite(capturedAt) ||
+      capturedAt < from ||
+      capturedAt > to
+    ) {
+      continue;
+    }
+    merged.set(sample.event_id, sample);
+  }
+
+  return downsampleEnergyHistory([...merged.values()]);
+}
+
 export async function loadCompleteEnergyHistory(
   adapter: TelemetryAdapter,
   window: EnergyHistoryWindow,
