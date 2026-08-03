@@ -278,11 +278,7 @@
       "issue": 17,
       "title": "Consolidate versioned device profiles",
       "status": "blocked",
-      "depends_on": [
-        "NEXOLAB-200",
-        "NEXOLAB-201",
-        "NEXOLAB-202"
-      ]
+      "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
     },
     {
       "id": "NEXOLAB-203",
@@ -291,13 +287,8 @@
       "status": "in_progress",
       "active_child_issue": 241,
       "active_pull_request": 244,
-      "remaining_groups": [
-        "optional Supabase",
-        "Lucide icons"
-      ],
-      "completed_groups": [
-        "Next.js and React security patch line"
-      ]
+      "remaining_groups": ["optional Supabase", "Lucide icons"],
+      "completed_groups": ["Next.js and React security patch line"]
     },
     {
       "id": "NEXOLAB-239",
