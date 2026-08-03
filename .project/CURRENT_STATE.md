@@ -2,7 +2,7 @@
 
 Updated: 2026-08-03
 Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Verified implementation head: `dc026b87010e810a3828b8d461d76852d7184d37`
+Verified implementation head: `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d`
 Active Work Package: Issue #261 — Energy Monitoring finalization in progress
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Next Ready Work Package: Issue #263 — Live Data telemetry explorer
@@ -37,35 +37,27 @@ PR #262 replaces `/energy` with an authenticated operator workspace for KK1 LE-0
 
 Delivered behavior:
 
-- deterministic W1–W4 cards for Unit IDs 200–203, scoped to production node `edge-01`;
-- confirmed voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
-- authenticated local REST snapshot and WebSocket live updates;
-- `telemetry.read` permission is checked before REST or WebSocket traffic starts;
-- stable captured-time cursor pagination for complete 1h, 6h and 24h PostgreSQL history windows;
-- overlapping timestamp-boundary pagination so rows sharing the page-edge capture time are retained;
-- bounded renderable-only per-meter downsampling with stable absolute time buckets and preserved first/latest endpoints;
-- raw communication-error records and source-cadence gaps are converted to explicit chart segment boundaries before downsampling, without consuming the renderable point quota;
-- transient WebSocket communication errors persist as a per-meter pending break until the first recovery sample, even when error and recovery arrive in separate callbacks;
-- requested-window chart scaling, including sparse intervals;
-- incremental WebSocket history-tail merge without periodic full-window reload;
-- wall-clock rolling-window advancement and pruning when telemetry stops;
-- future-skew rejection before a live sample can move the chart window;
-- metric/unit compatibility validation;
-- explicit loading, empty, stale, offline, communication-error, permission-denied and configuration states;
-- no silent demo fallback in live mode;
-- cumulative energy/kWh remains unavailable pending hardware Issue #201.
+- authenticated local REST latest/history and WebSocket live telemetry;
+- `telemetry.read` permission gating before network traffic begins;
+- stable captured-time cursor pagination with overlapping page-boundary timestamps;
+- bounded per-meter absolute-bucket downsampling with preserved first/latest endpoints;
+- source-derived outage segments from raw communication errors and cadence gaps;
+- persistent pending outage state across separate WebSocket error/recovery callbacks;
+- first-bucket outage markers transferred to the next retained point without losing the earliest endpoint;
+- requested-window chart scaling, incremental live tails, wall-clock pruning and future-skew rejection;
+- metric/unit compatibility, node `edge-01` scope and explicit stale/offline/error states;
+- no demo fallback and no unverified cumulative `kWh`.
 
 No package, Compose, container, database migration, Modbus write, production deployment or hardware action is part of this Work Package.
 
 ## Verified implementation evidence
 
-Verified on implementation head `dc026b87010e810a3828b8d461d76852d7184d37`:
+Verified on implementation head `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d`:
 
-- CI run `30842429156` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30842429110` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
-- Refrigeration Browser Acceptance run `30842429384` GREEN: existing refrigeration operator flow remains intact;
-- focused tests cover stable pagination, shared timestamp boundaries, absolute-bucket downsampling, source-derived outage path breaks, transient cross-callback communication errors, renderable sample selection, endpoint preservation, node scope, future skew, deduplication and rolling-window pruning;
-- review findings for pagination, permission gating, freshness, window scale, outage visibility, rolling updates, unit compatibility, node scope, query load and long-running history distribution are addressed.
+- CI run `30843193403` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30843193556` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
+- Refrigeration Browser Acceptance run `30843192945` GREEN: existing refrigeration operator flow remains intact;
+- focused coverage includes shared timestamp boundaries, endpoint preservation, source/pending outage markers, first-bucket marker transfer, future skew, deduplication and rolling-window pruning.
 
 This state update records the verified implementation SHA; the state-only commit still requires its own repository checks before protected merge.
 
@@ -79,4 +71,4 @@ Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence f
 
 ## Next Ready Work Package
 
-Complete the state-only gate, resolve the addressed PR #262 review threads and merge with expected-head protection. Then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
+Complete the state-only gate, resolve addressed PR #262 review threads and merge with expected-head protection. Then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
