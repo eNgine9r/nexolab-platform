@@ -2,88 +2,73 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
-  "task": "NEXOLAB-243",
-  "issue": 243,
-  "pull_request": 249,
-  "status": "focused_test_added_pending_exact_head_ci",
-  "timestamp": "2026-08-03T15:26:00+03:00",
-  "baseline_main_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
-  "branch": "maint/243-lucide-operator-semantics",
-  "decision": "retain",
-  "dependency": {
-    "name": "lucide-react",
-    "manifest_range": "^1.25.0",
-    "resolved_version": "1.26.0",
-    "published_candidate_reviewed": "1.27.0",
-    "runtime_dependencies": 0,
-    "package_files_changed": false
-  },
-  "inventory": {
-    "source_import_files": 52,
-    "distinct_icon_exports": 103,
-    "release_sensitive_intersection": ["Zap"],
-    "zap_operator_surfaces": ["sidebar energy navigation", "energy page icon"],
-    "other_1_27_changed_icons_imported": []
-  },
-  "focused_regression_test": {
-    "path": "src/components/dashboard/lucide-operator-semantics.test.tsx",
-    "commit": "b116d9a8ed64d5b86dc4c79d830565f8f53636c1",
-    "assertions": [
-      "Zap remains mapped to Енергомоніторинг and /energy",
-      "icon-only refrigeration control has an accessible name",
-      "icon-only refrigeration control has a matching title",
-      "button type remains button",
-      "default size remains 40 by 40 pixels",
-      "focus-visible outline remains present"
-    ]
-  },
-  "accessibility_evidence": [
-    "Topbar icon-only menu, notification and sign-out controls have explicit aria-label values",
-    "RefrigerationIconButton requires a label and applies aria-label plus title",
-    "Refrigeration icon-button sizes remain 32, 40 and 44 pixels",
-    "Refrigeration icon buttons preserve focus-visible outlines",
-    "Session, alert, node, security and report actions retain visible labels or accessible names",
-    "status meaning is not carried by icon or color alone"
+  "task": "NEXOLAB-203",
+  "issue": 203,
+  "status": "completed_pending_reconciliation_pr",
+  "timestamp": "2026-08-03T15:52:00+03:00",
+  "baseline_main_sha": "cc865098e7d1ffa81313c34c32672276c8bc51a9",
+  "branch": "docs/203-close-production-dependency-review",
+  "summary": "All production dependency compatibility groups are complete in focused merged Pull Requests. This checkpoint reconciles their decisions and merge SHAs before closing parent Issue #203.",
+  "completed_groups": [
+    {
+      "issue": 239,
+      "pull_request": 240,
+      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
+      "outcome": "Next.js and React security patch line"
+    },
+    {
+      "issue": 241,
+      "pull_request": 244,
+      "merge_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
+      "outcome": "transitive sharp 0.35.3 compatibility control"
+    },
+    {
+      "issue": 242,
+      "pull_request": 248,
+      "merge_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
+      "outcome": "optional Supabase SDK 2.112.0 with offline-local auth preserved"
+    },
+    {
+      "issue": 243,
+      "pull_request": 249,
+      "merge_sha": "cc865098e7d1ffa81313c34c32672276c8bc51a9",
+      "outcome": "Lucide 1.26.0 retained with operator-semantics regression coverage"
+    }
   ],
-  "rationale": [
-    "no published Lucide security advisory was identified",
-    "no required React 19 or runtime compatibility fix was identified",
-    "npm 1.27.0 changes the SVG geometry of an operator-facing icon used by NEXOLAB",
-    "updating would create visual regression risk without product or security benefit",
-    "retaining the exact manifest and lockfile is the lowest-risk reversible decision"
+  "acceptance_evidence": [
+    "one focused compatibility group per Issue, branch and Pull Request",
+    "security-relevant framework work completed before optional cloud and icon reviews",
+    "lockfile and dependency graphs reviewed per group",
+    "LOCAL_LAN local authentication remains primary and offline-safe",
+    "Lucide operator meaning and icon-only accessibility are regression protected",
+    "no mandatory online or paid runtime dependency introduced",
+    "exact-head quality and relevant browser gates passed",
+    "disconnected startup and update/rollback volume preservation passed on affected final heads"
   ],
   "files_changed": [
-    "src/components/dashboard/lucide-operator-semantics.test.tsx",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
-  "production_files_confirmed_unchanged": [
-    "package.json",
-    "package-lock.json",
-    "all production UI components"
+  "runtime_and_offline_evidence": [
+    "production dependency maintenance does not add an online runtime requirement",
+    "optional Supabase remains inactive when unconfigured",
+    "final dependency heads passed disconnected Offline Bundle acceptance",
+    "persistent data survived update and rollback drills"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was in scope or performed."
+    "note": "No hardware operation was in scope or performed. Issues #245 and #189 still require actual-host evidence."
   },
   "checks_pending": [
-    "focused Lucide operator-semantics test",
-    "exact-head CI",
-    "Refrigeration Browser",
-    "Security Browser",
-    "Authenticated Dashboard",
-    "Nodes Browser",
-    "Test Sessions Browser",
-    "Alerts Browser",
-    "Reports Browser",
-    "Rendered Reports Browser",
-    "Offline Bundle disconnected startup and update/rollback volume preservation",
-    "review audit and expected-head merge"
+    "exact-head state-only CI",
+    "review audit",
+    "merge reconciliation PR",
+    "close Issue #203"
   ],
   "next_ready_work_package": {
-    "issue": 203,
-    "instruction": "After Issue #243 merges, close the parent dependency review and select the next independent Ready software Work Package."
+    "issue": 204,
+    "instruction": "Build the frontend toolchain compatibility matrix and migration order before changing any package."
   }
 }
