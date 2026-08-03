@@ -2,31 +2,30 @@
 
 Updated: 2026-08-03
 
-## Issue #243 — Lucide operator-semantics compatibility
+## Issue #203 — production dependency maintenance
 
-No product, implementation, security, accessibility, offline-runtime or hardware blocker is open.
+No dependency-maintenance blocker remains.
 
-Decision: retain `lucide-react ^1.25.0` with lockfile resolution `1.26.0`.
+Completed focused groups:
 
-The published npm candidate `1.27.0` changes the SVG geometry of `Zap`, which NEXOLAB uses for the persistent **Енергомоніторинг** navigation item and its page icon. No security advisory, runtime compatibility fix or product requirement justifies that operator-facing visual change.
+- #239 / PR #240 — Next.js and React security line;
+- #241 / PR #244 — transitive Sharp risk;
+- #242 / PR #248 — optional Supabase compatibility with offline-local auth preserved;
+- #243 / PR #249 — Lucide operator-semantics review and no-update decision.
 
-A focused regression test now locks:
+Only the state-only reconciliation PR and parent Issue closure remain.
 
-- `Zap → Енергомоніторинг → /energy`;
-- explicit accessible naming for icon-only refrigeration controls;
-- default `40 px` icon-button sizing;
-- keyboard focus outline behavior.
+## Issue #204 — major frontend toolchain migrations
 
-Merge remains gated only by normal software controls:
+No hard blocker prevents planning. Package changes must not begin until a compatibility matrix and migration order exist.
 
-- exact-head repository formatting, ESLint, strict TypeScript, Vitest and production build;
-- relevant browser acceptance for refrigeration, security, dashboard, nodes, sessions, alerts and reports;
-- Offline Bundle disconnected startup and update/rollback volume preservation;
-- clean review audit and expected-head merge protection.
+Open dev-tool risk:
+
+- Playwright `1.55.0` advisory remains isolated here and is not a mandatory runtime dependency.
+
+Do not bundle TypeScript, ESLint, Next.js ESLint config, jsdom, lint-staged, Playwright or Node types blindly. Each migration group requires its own Issue, branch, PR and rollback.
 
 ## Hard blockers
-
-No hard blocker prevents completing Issue #243.
 
 Stop before:
 
@@ -38,23 +37,11 @@ Stop before:
 - unresolved materially different product or architecture decisions;
 - any operation that cannot preserve local laboratory data.
 
-## Issue #245 — standalone offline Raspberry Pi runtime
-
-### N-039 — Actual Raspberry Pi loopback-only acceptance
+## Issue #245 — actual Raspberry Pi standalone acceptance
 
 **Status:** Soft blocker after software merge.
 
-Software contracts are verified and merged in PR #246, but actual-host acceptance still requires controlled physical evidence from the intended Raspberry Pi 5:
-
-- deploy `main` with `--runtime-mode standalone`;
-- disconnect Ethernet and Wi-Fi;
-- confirm no default route and no IPv4 on physical uplinks;
-- reboot without reconnecting networking;
-- open `http://127.0.0.1:3000` in the locally attached browser;
-- verify Security Gate, REST, WebSocket, Device Agent, MQTT, PostgreSQL and MinIO;
-- prove real telemetry advances for at least 15 minutes;
-- restart Telemetry Service and verify no silent loss;
-- reboot again and verify runtime and persistent data recover.
+Software contracts are merged, but actual-host acceptance still requires controlled physical evidence from the Raspberry Pi 5 with no physical uplink IPv4 or default route, local browser verification, advancing telemetry, service restart and repeated reboot recovery.
 
 Until that evidence exists, use:
 
@@ -62,28 +49,17 @@ Until that evidence exists, use:
 software verified; actual standalone Raspberry Pi acceptance pending
 ```
 
-## Active production dependency risks
-
-### N-037 — Temporary `sharp 0.35.3` compatibility control
-
-**Status:** Merged in PR #244.
-
-The production advisory path is removed, but the override exceeds the Next.js 16.2.12 declared optional range. Reassess or remove it when Next.js publishes a supported patched range.
-
-### N-038 — Playwright `1.55.0` dev-tool advisory
-
-**Status:** Open and isolated under Issue #204. It is not a mandatory runtime dependency.
-
 ## Issue #189 recovery status
 
 Software recovery evidence is verified. Actual-host reboot, physical power-loss and physical-media restore remain soft-blocked pending controlled access.
 
 ## Open operational and hardware risks
 
+- **N-037 — Sharp compatibility override:** reassess when Next.js supports a patched range.
 - **N-023 — Node health/status durability:** not claimed equal to telemetry process-restart durability.
 - **N-024 — Rollback compatibility:** preserve named volumes and spool compatibility.
 - **N-025 — Spool capacity:** actual-host capacity evidence remains required.
-- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified and is outside Issue #245.
+- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked.
@@ -91,4 +67,4 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 
 ## Next Ready action
 
-Run the exact-head PR #249 CI/browser/offline cascade, perform review audit and merge only on GREEN. Then reconcile parent Issue #203 and select the next independent Ready software Work Package.
+Merge the Issue #203 state reconciliation, close the parent Issue, then begin Issue #204 with planning only: current package inventory, compatibility matrix, migration order and focused child Issues.

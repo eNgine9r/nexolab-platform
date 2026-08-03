@@ -1,104 +1,47 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-03
-Verified main baseline: `33224e148c733e50896fe68c13c53130e0a7afac`
-Active Work Package: Issue #243 / PR #249 — Lucide operator-semantics compatibility review
-Status confidence: high for repository inventory, package metadata, release-impact analysis and accessibility contracts; exact-head GitHub workflows are pending for the final focused-test head.
+Verified main baseline: `cc865098e7d1ffa81313c34c32672276c8bc51a9`
+Active Work Package: Issue #203 — close focused production dependency maintenance
+Status confidence: high for repository state, dependency decisions, exact-head quality gates and disconnected runtime evidence; physical Raspberry Pi acceptance remains separate and pending.
 
-## Completed dependency baseline
+## Production dependency maintenance outcome
 
-- Issue #242 / PR #248 is merged as `33224e148c733e50896fe68c13c53130e0a7afac`.
-- Optional Supabase resolved graph is `2.112.0` and LOCAL_LAN local authentication remains primary and fail-closed.
+Parent Issue #203 has completed all focused compatibility groups:
 
-## Issue #243 decision
+- Issue #239 / PR #240 — Next.js and React security patch line, merged as `3623be1f2778ea283200e6a5d2278c5f1326c434`.
+- Issue #241 / PR #244 — transitive `sharp 0.35.3` compatibility control, merged as `2c00812aed7bc107f191a50e2e0745cb9c091bbd`.
+- Issue #242 / PR #248 — optional Supabase SDK updated to resolved `2.112.0` with local authentication remaining primary and offline-safe, merged as `33224e148c733e50896fe68c13c53130e0a7afac`.
+- Issue #243 / PR #249 — Lucide resolved `1.26.0` retained with regression coverage for Energy semantics and icon-button accessibility, merged as `cc865098e7d1ffa81313c34c32672276c8bc51a9`.
 
-Decision: **retain the current Lucide manifest/lockfile pair; no dependency update**.
+## Acceptance evidence
 
-Current dependency state:
+- Every compatibility group used a separate Issue, branch and focused Pull Request.
+- Framework and security updates were handled before optional cloud and icon-library work.
+- Lockfile movement was reviewed per group.
+- Supabase remains optional; missing configuration creates no client or network request.
+- LOCAL_LAN local authentication remains primary and fail-closed.
+- Lucide `1.27.0` was not adopted because it changes the used `Zap` operator icon without a security or runtime requirement.
+- The Lucide regression test fixes `Zap → Енергомоніторинг → /energy` and the accessible refrigeration icon-button contract.
+- No mandatory CDN, external telemetry, cloud API, online license or paid runtime dependency was introduced.
+- Exact-head formatting, ESLint, strict TypeScript, Vitest and production builds passed for each merged group.
+- Relevant browser acceptances passed where affected.
+- Disconnected Offline Bundle startup and update/rollback volume-preservation evidence passed on the final Supabase and Lucide heads.
 
-```text
-package.json: lucide-react ^1.25.0
-package-lock.json resolved: lucide-react 1.26.0
-runtime dependencies: none
-peer compatibility: React 16.5.1 through React 19
-```
+## Remaining dependency risks
 
-Published npm candidate reviewed: `1.27.0`.
+- The temporary `sharp 0.35.3` override must be reassessed when Next.js publishes a supported patched optional range.
+- Playwright `1.55.0` remains a development-tool concern under Issue #204; it is not a mandatory runtime dependency.
+- Major TypeScript, ESLint, jsdom, lint-staged and Playwright migrations remain explicitly outside Issue #203.
 
-Rationale:
-
-- no published Lucide security advisory or required React 19/runtime compatibility fix was identified;
-- the 1.27.0 release primarily adds icons and changes selected SVG geometry;
-- NEXOLAB imports `Zap`, whose SVG changed in 1.27.0;
-- `Zap` is the persistent navigation symbol for **Енергомоніторинг** and the page-level energy icon;
-- changing that operator-facing symbol without a security, runtime or product requirement creates visual regression risk with no compensating benefit;
-- the repository lockfile remains deterministic at 1.26.0, so no online runtime dependency or package delivery change is needed.
-
-## Import and operator-control inventory
-
-Repository search captured **52 source files** importing Lucide and **103 distinct icon exports**:
+## Runtime and hardware status
 
 ```text
-Activity, AlertCircle, AlertTriangle, Archive, ArrowLeft, ArrowRight, ArrowUpRight,
-BadgeCheck, Ban, Bell, BellRing, Bolt, Box, Boxes, CalendarDays, Camera,
-ChartNoAxesCombined, Check, CheckCircle2, ChevronDown, ChevronRight, CircleCheck,
-CircleDashed, CircleDot, CircleOff, ClipboardCheck, Clock3, Cloud, Construction,
-Copy, CopyPlus, Cpu, Database, Download, Expand, Eye, FileCheck2, FileClock,
-FileJson2, FileOutput, FileSpreadsheet, FileText, Fingerprint, Gauge, Grid3X3,
-History, Home, ImageIcon, ImagePlus, Info, KeyRound, Layers3, Link2, LoaderCircle,
-LockKeyhole, LogIn, LogOut, Maximize2, Menu, MessageSquarePlus, Minimize2, Minus,
-MousePointer2, Network, Pause, PauseCircle, Pencil, Play, PlayCircle, Plus, Radio,
-RadioTower, Redo2, RefreshCcw, RefreshCw, RotateCcw, RotateCw, Save, Scan, Search,
-Server, ServerCog, Settings, Settings2, ShieldAlert, ShieldCheck, Shrink, Siren,
-SlidersHorizontal, Snowflake, Square, Thermometer, Timer, Trash2, TriangleAlert,
-Undo2, Upload, UploadCloud, Wifi, WifiOff, Wrench, X, Zap
+software dependency maintenance verified; no hardware operation performed
 ```
 
-Release-sensitive intersection for npm 1.27.0:
+Actual Raspberry Pi evidence remains pending for Issue #245 and recovery Issue #189. Issues #200–#202 remain blocked on controlled read-only physical evidence. No Modbus or hardware write was performed.
 
-```text
-Zap
-```
+## Next Ready Work Package
 
-No NEXOLAB import was found for the other changed 1.27.0 icons such as `ZapOff`, `Toolbox`, `SquareScissors`, `Feather`, `Barrel`, `Trophy` or `Podcast`.
-
-## Accessibility and regression evidence
-
-- Topbar icon-only controls have explicit labels: menu, notifications and sign-out.
-- Refrigeration icon-only controls use `RefrigerationIconButton`, which requires a non-optional `label` and applies both `aria-label` and `title`.
-- Refrigeration icon-button size tokens remain deterministic at `32 px`, `40 px` and `44 px` with `focus-visible` outlines.
-- Session, alert, node, security and report actions retain visible action text or explicit accessible names.
-- Status meaning is not carried by icon or color alone.
-- `lucide-operator-semantics.test.tsx` locks the `Zap → Енергомоніторинг → /energy` mapping.
-- The focused test also proves the icon-only refrigeration button retains its accessible name, title, button type, `40 px` default size and keyboard focus outline.
-- No production component, import, layout, styling or operator meaning changed.
-
-## Files changed
-
-```text
-src/components/dashboard/lucide-operator-semantics.test.tsx
-.project/CURRENT_STATE.md
-.project/ACTIVE_SPRINT.json
-.project/BLOCKERS.md
-.project/LAST_CHECKPOINT.json
-```
-
-`package.json`, `package-lock.json` and all production UI components remain byte-for-byte unchanged from main.
-
-## Verification and next action
-
-Pending on the final branch head:
-
-- focused Lucide operator-semantics Vitest;
-- repository formatting, ESLint, strict TypeScript, full Vitest and production build;
-- Refrigeration Browser;
-- Security Browser;
-- Authenticated Dashboard;
-- Nodes Browser;
-- Test Sessions Browser;
-- Alerts Browser;
-- Reports and Rendered Reports Browser;
-- Offline Bundle disconnected startup and update/rollback volume preservation;
-- review audit and expected-head merge.
-
-After GREEN, merge PR #249, close Issue #243, reconcile parent Issue #203 and resume the next Ready software Work Package. Actual Raspberry Pi acceptance for Issue #245 remains separate and hardware-unverified.
+Issue #204 — plan and split major frontend toolchain migrations into focused compatibility Work Packages. First action: build the compatibility matrix and migration order before changing any package.
