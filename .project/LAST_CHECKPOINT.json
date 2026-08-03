@@ -6,10 +6,11 @@
   "issue": 241,
   "parent_issue": 203,
   "pull_request": 244,
-  "status": "verified_candidate_pending_final_ci",
+  "status": "final_exact_head_ci_running",
   "timestamp": "2026-08-03T07:43:00+03:00",
   "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
   "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
+  "clean_state_head_sha": "437686a09bfdc1067e88cf0326bc914569d3d612",
   "summary": "Verified an evidence-backed sharp 0.35.3 override candidate that removes the actionable production sharp/next audit path while preserving native linux/x64 behavior and ARM64 package availability.",
   "scope_completed": [
     "captured exact next to sharp production dependency path",
@@ -20,7 +21,8 @@
     "proved linux/x64 native image processing with libvips 8.18.3",
     "proved linux/arm64 glibc and musl packages exist in the lockfile",
     "ran formatting, lint, typecheck, Vitest and production build",
-    "published a clean implementation commit without temporary workflows"
+    "published a clean implementation commit without temporary workflows",
+    "published clean project state without temporary workflows"
   ],
   "files_changed": [
     "package.json",
@@ -74,8 +76,13 @@
     "hardware_verified": false,
     "note": "No Raspberry Pi, Modbus, physical device, production/site or persistent production-data operation was performed."
   },
+  "final_sweep_trigger": {
+    "method": "github_connector_commit",
+    "reason": "GitHub Actions suppresses recursive workflow execution for GITHUB_TOKEN-created commits",
+    "previous_clean_head": "437686a09bfdc1067e88cf0326bc914569d3d612"
+  },
   "checks_pending": [
-    "final exact-head CI and browser workflow sweep after state update",
+    "final exact-head CI and browser workflow sweep",
     "Offline Auth Acceptance",
     "Offline Bundle disconnected update and rollback proof",
     "exact six-path diff audit",
