@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  loadCompleteEnergyHistory,
-  mergeEnergyHistoryTail,
-} from "@/features/energy/energy-history";
+import { loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "@/features/energy/energy-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -192,9 +189,7 @@ export function useEnergyTelemetry({
         activeHistoryKeyRef.current === historyKeyRef.current
       ) {
         const currentTo = Date.parse(currentWindow.to);
-        const capturedTimes = tail
-          .map((sample) => Date.parse(sample.captured_at))
-          .filter(Number.isFinite);
+        const capturedTimes = tail.map((sample) => Date.parse(sample.captured_at)).filter(Number.isFinite);
         const latestCapturedAt = capturedTimes.length > 0 ? Math.max(...capturedTimes) : currentTo;
         const nextTo = Math.max(currentTo, latestCapturedAt);
         const rangeMs = HISTORY_HOURS[historyRangeRef.current] * 60 * 60 * 1000;

@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
-import {
-  downsampleEnergyHistory,
-  loadCompleteEnergyHistory,
-  mergeEnergyHistoryTail,
-} from "./energy-history";
+import { downsampleEnergyHistory, loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "./energy-history";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -113,10 +109,7 @@ describe("energy history", () => {
       },
     );
 
-    expect(result.map((item) => item.event_id)).toEqual([
-      "energy-edge-01-200-10",
-      "energy-edge-01-201-11",
-    ]);
+    expect(result.map((item) => item.event_id)).toEqual(["energy-edge-01-200-10", "energy-edge-01-201-11"]);
     expect(result[0].value).toBe(999);
   });
 
