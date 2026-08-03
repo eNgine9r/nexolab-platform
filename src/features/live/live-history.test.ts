@@ -12,6 +12,8 @@ import {
   isLiveHistorySegmentStart,
   liveHistorySegments,
   loadCompleteLiveHistory,
+  reconcileLiveHistoryEvents,
+  seedLiveHistoryOrderingState,
 } from "./live-history";
 
 function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
@@ -150,5 +152,24 @@ describe("live history downsampling", () => {
     expect(result).toHaveLength(2);
     expect(isLiveHistorySegmentStart(result[1])).toBe(true);
     expect(liveHistorySegments(result)).toHaveLength(2);
+  });
+
+  it("does not let delayed replay close a newer pending outage", () => {
+    const latest = sample({ event_id: "latest", captured_at: "2026-08-04T00:00:20.000Z" });
+    const failure = sample({
+      event_id: "failure",
+      captured_at: "2026-08-04T00:00:25.000Z",
+      quality: "communication_error",
+      value: null,
+    });
+    const delayed = sample({ event_id: "delayed", captured_at: "2026-08-04T00:00:10.000Z" });
+    const recovery = sample({ event_id: "recovery", captured_at: "2026-08-04T00:00:30.000Z" });
+    const afterFailure = reconcileLiveHistoryEvents([failure], seedLiveHistoryOrderingState([latest]));
+    const afterDelayed = reconcileLiveHistoryEvents([delayed], afterFailure.state);
+    const afterRecovery = reconcileLiveHistoryEvents([recovery], afterDelayed.state);
+
+    expect(afterDelayed.samples).toEqual([]);
+    expect(afterRecovery.samples).toHaveLength(1);
+    expect(isLiveHistorySegmentStart(afterRecovery.samples[0])).toBe(true);
   });
 });
