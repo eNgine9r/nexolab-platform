@@ -30,7 +30,11 @@ describe("energy live history reconciliation", () => {
     expect(errorBatch.pendingUnitIds.has(200)).toBe(true);
     expect(errorBatch.samples).toHaveLength(1);
 
-    const recoveryBatch = reconcileEnergyLiveHistory([sample(10)], errorBatch.pendingUnitIds);
+    const recoveryBatch = reconcileEnergyLiveHistory(
+      [sample(10)],
+      errorBatch.pendingUnitIds,
+      errorBatch.newestCapturedAtByUnitId,
+    );
 
     expect(recoveryBatch.pendingUnitIds.size).toBe(0);
     expect(isEnergyHistorySegmentStart(recoveryBatch.samples[0].event_id)).toBe(true);
@@ -46,5 +50,37 @@ describe("energy live history reconciliation", () => {
     ]);
     expect(isEnergyHistorySegmentStart(result.samples[2].event_id)).toBe(true);
     expect(result.pendingUnitIds.size).toBe(0);
+  });
+
+  it("does not let a delayed valid replay resolve a newer outage", () => {
+    const outage = reconcileEnergyLiveHistory([sample(20, "communication_error")]);
+    const delayed = reconcileEnergyLiveHistory(
+      [sample(10)],
+      outage.pendingUnitIds,
+      outage.newestCapturedAtByUnitId,
+    );
+
+    expect(delayed.pendingUnitIds.has(200)).toBe(true);
+    expect(isEnergyHistorySegmentStart(delayed.samples[0].event_id)).toBe(false);
+
+    const recovery = reconcileEnergyLiveHistory(
+      [sample(25)],
+      delayed.pendingUnitIds,
+      delayed.newestCapturedAtByUnitId,
+    );
+
+    expect(recovery.pendingUnitIds.size).toBe(0);
+    expect(isEnergyHistorySegmentStart(recovery.samples[0].event_id)).toBe(true);
+  });
+
+  it("does not let a delayed error create a break behind the newest sample", () => {
+    const current = reconcileEnergyLiveHistory([sample(25)]);
+    const delayed = reconcileEnergyLiveHistory(
+      [sample(10, "communication_error")],
+      current.pendingUnitIds,
+      current.newestCapturedAtByUnitId,
+    );
+
+    expect(delayed.pendingUnitIds.size).toBe(0);
   });
 });
