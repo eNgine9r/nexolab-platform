@@ -2,7 +2,7 @@
 
 Updated: 2026-08-03
 Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Verified implementation head: `d8b03f6ed496362c7fa4ff0243ec82ed42c16fad`
+Verified implementation head: `dc026b87010e810a3828b8d461d76852d7184d37`
 Active Work Package: Issue #261 — Energy Monitoring finalization in progress
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Next Ready Work Package: Issue #263 — Live Data telemetry explorer
@@ -45,6 +45,7 @@ Delivered behavior:
 - overlapping timestamp-boundary pagination so rows sharing the page-edge capture time are retained;
 - bounded renderable-only per-meter downsampling with stable absolute time buckets and preserved first/latest endpoints;
 - raw communication-error records and source-cadence gaps are converted to explicit chart segment boundaries before downsampling, without consuming the renderable point quota;
+- transient WebSocket communication errors persist as a per-meter pending break until the first recovery sample, even when error and recovery arrive in separate callbacks;
 - requested-window chart scaling, including sparse intervals;
 - incremental WebSocket history-tail merge without periodic full-window reload;
 - wall-clock rolling-window advancement and pruning when telemetry stops;
@@ -58,11 +59,12 @@ No package, Compose, container, database migration, Modbus write, production dep
 
 ## Verified implementation evidence
 
-Verified on implementation head `d8b03f6ed496362c7fa4ff0243ec82ed42c16fad`:
+Verified on implementation head `dc026b87010e810a3828b8d461d76852d7184d37`:
 
-- CI run `30841237042` GREEN: formatting, ESLint, strict TypeScript, 201 Vitest tests and production build;
-- Authenticated Dashboard Acceptance run `30841237450` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
-- focused tests cover stable pagination, shared timestamp boundaries, absolute-bucket downsampling, source-derived outage path breaks, renderable sample selection, endpoint preservation, node scope, future skew, deduplication and rolling-window pruning;
+- CI run `30842429156` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30842429110` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
+- Refrigeration Browser Acceptance run `30842429384` GREEN: existing refrigeration operator flow remains intact;
+- focused tests cover stable pagination, shared timestamp boundaries, absolute-bucket downsampling, source-derived outage path breaks, transient cross-callback communication errors, renderable sample selection, endpoint preservation, node scope, future skew, deduplication and rolling-window pruning;
 - review findings for pagination, permission gating, freshness, window scale, outage visibility, rolling updates, unit compatibility, node scope, query load and long-running history distribution are addressed.
 
 This state update records the verified implementation SHA; the state-only commit still requires its own repository checks before protected merge.
