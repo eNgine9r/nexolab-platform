@@ -89,41 +89,45 @@ function seedLiveEvidence(): void {
   const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
 
   publishSample({
-    equipmentId: "DIXELL-106",
+    nodeId: "edge-live-01",
+    equipmentId: "K106",
     channelId: "106-03",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: 3.8,
     unit: "degC",
     capturedAt: ago(45),
-    source: "xjp60d",
+    source: "dixell-xjp60d",
   });
   publishSample({
-    equipmentId: "DIXELL-106",
+    nodeId: "edge-live-01",
+    equipmentId: "K106",
     channelId: "106-03",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: null,
     unit: "degC",
     quality: "communication_error",
     capturedAt: ago(20),
-    source: "xjp60d",
+    source: "dixell-xjp60d",
   });
   publishSample({
-    equipmentId: "DIXELL-106",
+    nodeId: "edge-live-01",
+    equipmentId: "K106",
     channelId: "106-03",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: 4.4,
     unit: "degC",
     capturedAt: ago(10),
-    source: "xjp60d",
+    source: "dixell-xjp60d",
   });
   publishSample({
-    equipmentId: "DIXELL-115",
+    nodeId: "edge-live-01",
+    equipmentId: "K115",
     channelId: "115-04",
-    metric: "temperature",
+    metric: "temperature.probe",
     value: 5.7,
     unit: "degC",
     capturedAt: ago(10),
-    source: "xjp60d",
+    source: "dixell-xjp60d",
   });
   publishSample({
     equipmentId: "LE01MP-200",
@@ -184,21 +188,23 @@ test("discovers, filters and compares real telemetry with stable history and rec
     await expect(page.getByRole("heading", { name: "Live дані" })).toBeVisible();
     const staleRow = page
       .locator("tbody tr")
-      .filter({ hasText: "DIXELL-115" })
+      .filter({ hasText: "K115" })
       .filter({ hasText: "115-04" })
-      .filter({ hasText: "temperature" });
+      .filter({ hasText: "temperature.probe" });
     await expect(staleRow).toHaveCount(1);
     await expect(staleRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
 
     await page.getByLabel("Пошук").fill("106-03");
-    await page.getByLabel("Node").selectOption("edge-01");
-    await page.getByLabel("Metric").selectOption("temperature");
+    await page.getByLabel("Node").selectOption("edge-live-01");
+    await page.getByLabel("Metric").selectOption("temperature.probe");
     await page.getByLabel("Quality").selectOption("valid");
     await page.getByLabel("Alarm").selectOption("none");
     await expect(page.getByText("1 каналів відповідають поточному запиту")).toBeVisible();
 
     await page
-      .getByRole("checkbox", { name: /Додати канал edge-01 · DIXELL-106 · 106-03 · temperature/ })
+      .getByRole("checkbox", {
+        name: /Додати канал edge-live-01 · K106 · 106-03 · temperature.probe/,
+      })
       .check();
     await page.getByRole("button", { name: "Очистити" }).click();
     await page
@@ -240,13 +246,14 @@ test("discovers, filters and compares real telemetry with stable history and rec
     await expect(page.getByRole("img", { name: /Порівняння 1 каналів у degC/ })).toBeVisible();
 
     publishSample({
-      equipmentId: "DIXELL-106",
+      nodeId: "edge-live-01",
+      equipmentId: "K106",
       channelId: "106-03",
-      metric: "temperature",
+      metric: "temperature.probe",
       value: 5.1,
       unit: "degC",
       capturedAt: new Date().toISOString(),
-      source: "xjp60d",
+      source: "dixell-xjp60d",
     });
     await expect(page.getByText("5,1 degC", { exact: true })).toBeVisible();
 
