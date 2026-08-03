@@ -34,7 +34,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: authenticated-dashboard-acceptance-${{ github.ref }}
@@ -52,10 +52,11 @@ jobs:
       HUSKY: "0"
 
     steps:
-      - name: Checkout
+      - name: Checkout exact pull request head
         uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -66,7 +67,9 @@ jobs:
       - name: Install dependencies for focused formatter
         run: npm ci --ignore-scripts
 
-      - name: Format focused live files in checkout
+      - name: Format and publish focused live files once
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
         run: |
           npx prettier --write \
             e2e/live.production.e2e.ts \
@@ -77,22 +80,30 @@ jobs:
             src/features/live/live-telemetry.ts \
             src/features/live/live-telemetry.test.ts \
             src/hooks/use-live-telemetry.ts
-
-      - name: Upload focused formatter output
-        uses: actions/upload-artifact@v7
-        with:
-          name: formatted-live-files-${{ github.sha }}
-          path: |
-            e2e/live.production.e2e.ts
-            src/components/live/live-screen.tsx
-            src/components/live/live-telemetry-explorer.tsx
-            src/features/live/live-history.ts
-            src/features/live/live-history.test.ts
-            src/features/live/live-telemetry.ts
-            src/features/live/live-telemetry.test.ts
+          if git diff --quiet -- \
+            e2e/live.production.e2e.ts \
+            src/components/live/live-screen.tsx \
+            src/components/live/live-telemetry-explorer.tsx \
+            src/features/live/live-history.ts \
+            src/features/live/live-history.test.ts \
+            src/features/live/live-telemetry.ts \
+            src/features/live/live-telemetry.test.ts \
+            src/hooks/use-live-telemetry.ts; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/live.production.e2e.ts \
+            src/components/live/live-screen.tsx \
+            src/components/live/live-telemetry-explorer.tsx \
+            src/features/live/live-history.ts \
+            src/features/live/live-history.test.ts \
+            src/features/live/live-telemetry.ts \
+            src/features/live/live-telemetry.test.ts \
             src/hooks/use-live-telemetry.ts
-          if-no-files-found: error
-          retention-days: 1
+          git commit -m "style(live): apply canonical formatting"
+          git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Run authenticated dashboard acceptance
         run: bash scripts/run-authenticated-dashboard-acceptance.sh
