@@ -5,74 +5,87 @@
   "task": "NEXOLAB-261",
   "issue": 261,
   "parent_issue": 260,
-  "status": "in_progress",
-  "timestamp": "2026-08-03T17:18:00+03:00",
+  "pull_request": 262,
+  "status": "implementation_complete_pending_exact_head_validation",
+  "timestamp": "2026-08-03T18:12:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Stopped the optional toolchain queue after a repository-backed route audit showed seven primary placeholder pages. Created Product Pages Epic #260 and selected Energy Monitoring #261 as the first high-value product Work Package because confirmed LE-01MP telemetry already exists.",
+  "summary": "Replaced the Energy Monitoring placeholder with an authenticated LE-01MP operator workspace for W1-W4, added complete paginated history with bounded downsampling, explicit quality/offline states and a focused browser flow while keeping cumulative kWh hardware-unverified.",
   "decision": {
     "active_product_epic": 260,
     "active_work_package": 261,
     "active_route": "/energy",
+    "next_ready_issue": 263,
     "maintenance_parent": 204,
     "maintenance_status": "deferred",
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "route_audit": {
-    "implemented": ["/", "/nodes", "/sessions", "/refrigeration", "/alerts", "/reports"],
-    "placeholder": [
-      "/live",
-      "/equipment-layouts",
-      "/lockers",
-      "/cameras",
-      "/energy",
-      "/equipment",
-      "/settings"
+  "scope_completed": [
+    "replaced src/app/energy placeholder route",
+    "added standard authenticated NEXOLAB shell and telemetry.read permission gate",
+    "added W1-W4 latest cards and confirmed electrical metrics",
+    "added local REST snapshot and WebSocket live updates",
+    "added complete paginated 1h, 6h and 24h history",
+    "added deterministic per-meter downsampling that preserves window endpoints",
+    "added meter and metric comparison controls",
+    "added loading, empty, stale, offline, permission and error states",
+    "added focused authenticated browser acceptance and screenshot evidence",
+    "kept cumulative energy unavailable pending Issue #201 hardware evidence",
+    "created next product Work Package #263 for /live"
+  ],
+  "files_changed": [
+    "src/app/energy/page.tsx",
+    "src/components/energy/energy-screen.tsx",
+    "src/components/energy/energy-workspace.tsx",
+    "src/features/energy/energy-telemetry.ts",
+    "src/features/energy/energy-telemetry.test.ts",
+    "src/features/energy/energy-history.ts",
+    "src/features/energy/energy-history.test.ts",
+    "src/hooks/use-energy-telemetry.ts",
+    "e2e/energy.production.e2e.ts",
+    "playwright.dashboard.config.ts",
+    ".github/workflows/authenticated-dashboard-acceptance.yml",
+    ".project/CURRENT_STATE.md",
+    ".project/ACTIVE_SPRINT.json",
+    ".project/BLOCKERS.md",
+    ".project/LAST_CHECKPOINT.json"
+  ],
+  "verified_pre_review_head": {
+    "sha": "cb4aa8af499d64859df46d8895bd3f07a3b400ac",
+    "checks": [
+      "formatting GREEN",
+      "ESLint GREEN",
+      "strict TypeScript GREEN",
+      "190 unit/component tests GREEN",
+      "production build GREEN",
+      "Authenticated Dashboard Acceptance GREEN with energy latest, history, meter selection, live update and screenshot evidence"
     ]
   },
-  "completed_actions": [
-    "verified PR #259 merged as 47d5124fd96f54800cf7347ff672297a1d421526",
-    "verified Issue #251 closed as completed",
-    "created Product Pages Epic #260",
-    "created focused Energy Monitoring Work Package #261",
-    "created branch feat/261-energy-monitoring-page from current main",
-    "recorded maintenance deferral on Issues #204 and #254",
-    "updated project state, sprint and blockers for product-first execution"
+  "review_fixes_applied": [
+    "equipment identity is authoritative over a conflicting channel fallback",
+    "history loads every API page for the requested window before bounded downsampling",
+    "first and last history points are retained for each meter",
+    "stale secondary values are suppressed from meter cards instead of being presented as live",
+    "source-of-truth state advances to Issue #263 after merge"
   ],
-  "confirmed_energy_scope": [
-    "KK1 meters W1-W4 / Unit IDs 200-203",
-    "voltage",
-    "current",
-    "frequency",
-    "active power",
-    "reactive power",
-    "apparent power",
-    "power factor",
-    "meter temperature",
-    "quality and captured_at",
-    "latest and history telemetry contracts"
-  ],
-  "excluded_unverified_scope": [
-    "cumulative active energy or kWh before Issue #201 hardware evidence",
-    "tariff and billing",
-    "Modbus writes",
-    "toolchain upgrades",
-    "production or site cutover"
+  "runtime_and_offline_evidence": [
+    "uses existing local REST, WebSocket, PostgreSQL and local authentication contracts",
+    "no package, Compose, container or offline bundle contract changed",
+    "no mandatory cloud, CDN, remote font or external runtime request introduced",
+    "live mode does not silently fall back to demo data"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was performed. Existing confirmed read-only metric contracts may be used; cumulative energy remains hardware-unverified."
+    "note": "No hardware operation was performed. Confirmed read-only metric contracts are used; cumulative active energy remains hardware-unverified under Issue #201."
   },
   "checks_pending": [
-    "inspect existing typed telemetry and history adapters",
-    "implement the Energy Monitoring operator page",
-    "run focused energy tests",
-    "run lint, typecheck and production build",
-    "run one directly affected energy browser acceptance",
-    "review audit and expected-head merge"
+    "final exact-head formatting, lint, typecheck, tests and production build",
+    "final exact-head authenticated energy browser acceptance",
+    "resolve all review threads",
+    "expected-head merge of PR #262"
   ],
   "next_ready_work_package": {
-    "issue": 261,
-    "instruction": "Implement the Energy Monitoring page with confirmed metrics and explicit stale/offline/error states; do not show guessed kWh."
+    "issue": 263,
+    "instruction": "After PR #262 merges, replace /live with the universal authenticated telemetry explorer; do not resume deferred toolchain maintenance."
   }
 }
