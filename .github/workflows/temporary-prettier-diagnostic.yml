@@ -1,6 +1,12 @@
 name: Temporary Prettier Diagnostic
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/temporary-prettier-diagnostic.yml"
+      - "src/features/energy/energy-history-multiple-outages.test.ts"
   push:
     branches:
       - feat/261-energy-monitoring-page
