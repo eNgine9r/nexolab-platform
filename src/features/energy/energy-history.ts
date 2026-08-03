@@ -125,12 +125,28 @@ function bucketDownsampleAnnotated(
   const last = sorted.at(-1)!;
   const firstBucket = Math.floor(Date.parse(first.captured_at) / bucketMs);
   const lastBucket = Math.floor(Date.parse(last.captured_at) / bucketMs);
+  const firstBucketSample = buckets.get(firstBucket);
+  const firstBucketContainsLaterSegment =
+    firstBucketSample !== undefined &&
+    isEnergyHistorySegmentStart(firstBucketSample.event_id) &&
+    energyHistorySourceEventId(firstBucketSample.event_id) !== energyHistorySourceEventId(first.event_id);
   buckets.set(firstBucket, first);
   buckets.set(lastBucket, mergeBucketSample(buckets.get(lastBucket), last));
 
-  return [...buckets.values()]
+  const sampled = [...buckets.values()]
     .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at))
     .slice(-maximumPoints);
+
+  if (firstBucketContainsLaterSegment) {
+    const firstIndex = sampled.findIndex(
+      (sample) => energyHistorySourceEventId(sample.event_id) === energyHistorySourceEventId(first.event_id),
+    );
+    if (firstIndex >= 0 && firstIndex + 1 < sampled.length) {
+      sampled[firstIndex + 1] = markEnergyHistorySegmentStart(sampled[firstIndex + 1]);
+    }
+  }
+
+  return sampled;
 }
 
 export function selectEnergyHistoryTail(
