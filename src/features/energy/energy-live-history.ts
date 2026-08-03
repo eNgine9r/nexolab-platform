@@ -20,9 +20,7 @@ function isRenderable(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
 
-export function seedEnergyLiveHistoryState(
-  samples: readonly TelemetrySample[],
-): EnergyLiveHistorySeed {
+export function seedEnergyLiveHistoryState(samples: readonly TelemetrySample[]): EnergyLiveHistorySeed {
   const latestByUnitId = new Map<number, { sample: TelemetrySample; capturedAt: number }>();
 
   for (const sample of samples) {
