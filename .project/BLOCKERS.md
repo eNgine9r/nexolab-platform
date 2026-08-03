@@ -1,47 +1,38 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-03
+Updated: 2026-08-04
 
-## Issue #251 — Node tooling and type definitions
+## Issue #261 — Energy Monitoring
 
-No product, implementation, runtime or hardware blocker is open after correcting the exact Offline Bundle failure.
+No product, software, runtime, offline or hardware blocker prevents protected merge of PR #262.
 
-Final candidate contract:
+Exact implementation head `c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7` is GREEN across CI, Telemetry Service, authenticated/security/refrigeration/test-session/report browser gates, Offline Auth, disconnected Offline Bundle, capacity, fleet, MQTT TLS, broker control, supply-chain and disaster-recovery workflows.
 
-```text
-Developer/CI Node exact: 22.23.1
-Supported package engine: >=22.22.1 <23 || >=24 <25
-Dashboard container Node line: 24
-@types/node: 22.20.1
-undici-types: 6.21.0
-```
+The production fixes include:
 
-### Resolved CI blocker
+- authenticated WebSocket coverage before latest and history snapshots;
+- bounded startup event reconciliation;
+- commit-stable history watermark with the barrier applied to `SessionAwareDatabase`;
+- complete pagination and bounded renderable-only downsampling;
+- source-derived outage segmentation and cross-callback ordering protection;
+- ordering cursor seeded when changing metrics;
+- explicit history error for terminal WebSocket startup states;
+- permission gating, stale-value retention, metric/unit validation and production node scope;
+- restoration of the stage telemetry filter in session attribution.
 
-Offline Bundle run `30817017506` failed during the connected dashboard image build because the initial Node 22-only package engine rejected the existing Node 24 dashboard image during `npm prune --omit=dev`.
+Remaining administrative actions are limited to the exact-head state-only gate, review hygiene and expected-head merge.
 
-Resolution:
+Cumulative active energy remains blocked under Issue #201 until the physical register, scale, unit, word order and rollover behavior are confirmed. Do not display guessed `kWh`.
 
-- preserve exact Node 22.23.1 for developers and GitHub Actions;
-- admit the established Node 24 dashboard container line;
-- continue rejecting Node 23, Node 25 and Node 26 declarations;
-- regenerate the lockfile and rerun the full exact-head cascade.
+## Product-page priority
 
-Merge remains gated by:
+After PR #262, Issue #263 is Ready and replaces `/live` with the universal authenticated telemetry explorer.
 
-- exact Node 22.23.1 evidence in primary CI;
-- deterministic dependency installation;
-- formatting, lint, strict typecheck, full tests and production build;
-- all triggered browser acceptance workflows;
-- Offline Bundle connected Node 24 build, disconnected startup and update/rollback volume preservation;
-- clean review audit and expected-head merge protection.
+Deferred toolchain Issues #252–#257 may resume only for a relevant security fix, end-of-support condition or concrete blocker for an active product Work Package.
 
-## Toolchain dependency changes after #251
+## Smart Lockers blocker
 
-- #254 Playwright becomes the next ordered Ready Work Package after #251 merges.
-- #252 lint-staged becomes technically unblocked because the Node 22 floor satisfies v17, but remains ordered after #254.
-- #253 jsdom remains queued after the Node baseline.
-- #256 TypeScript 7 and #257 ESLint 10 remain blocked by their separate compatibility gates.
+The `/lockers` page remains blocked until a concrete locker inventory, read-only protocol and operator workflow are defined. Do not invent production device behavior or present demo controls as completed functionality.
 
 ## Hard blockers
 
@@ -55,33 +46,19 @@ Stop before:
 - unresolved materially different product or architecture decisions;
 - any operation that cannot preserve local laboratory data.
 
-## Issue #245 — actual Raspberry Pi standalone acceptance
+## Hardware and operational risks
 
-**Status:** Soft blocker after software merge.
-
-Software contracts are merged, but actual-host acceptance still requires controlled physical evidence from the Raspberry Pi 5 with no physical uplink IPv4 or default route, local browser verification, advancing telemetry, service restart and repeated reboot recovery.
-
-Until that evidence exists, use:
-
-```text
-software verified; actual standalone Raspberry Pi acceptance pending
-```
-
-## Issue #189 recovery status
-
-Software recovery evidence is verified. Actual-host reboot, physical power-loss and physical-media restore remain soft-blocked pending controlled access.
-
-## Open operational and hardware risks
-
-- **N-037 — Sharp compatibility override:** reassess when Next.js supports a patched range.
-- **N-023 — Node health/status durability:** not claimed equal to telemetry process-restart durability.
-- **N-024 — Rollback compatibility:** preserve named volumes and spool compatibility.
-- **N-025 — Spool capacity:** actual-host capacity evidence remains required.
-- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified.
-- **N-014 / #200 — Physical RS-485 topology:** hardware blocked.
-- **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked.
-- **N-016 / #202 — Extended XJP60D semantics:** hardware blocked.
+- **#245:** software merged; actual standalone Raspberry Pi acceptance pending.
+- **#189:** software recovery evidence verified; physical reboot, power-loss and media restore pending controlled access.
+- **N-037:** Sharp compatibility override remains monitored.
+- **N-023:** node health durability is not claimed equal to telemetry process-restart durability.
+- **N-024:** rollback must preserve named volumes and spool compatibility.
+- **N-025:** actual-host spool capacity evidence remains required.
+- **N-032:** actual Raspberry Pi ARM64 archive/load/start/update/rollback remains unverified.
+- **#200:** physical RS-485 topology hardware-blocked.
+- **#201:** cumulative LE-01MP energy hardware-blocked.
+- **#202:** extended XJP60D semantics hardware-blocked.
 
 ## Next Ready action
 
-Run the corrected exact-head PR #259 cascade, perform review audit and merge only on GREEN. Then start Issue #254.
+Complete the state-only gate and merge PR #262. Then create `feat/263-live-telemetry-explorer` from updated `main` and implement Issue #263 without dependency migrations.

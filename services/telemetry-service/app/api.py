@@ -37,6 +37,7 @@ class TelemetryCollectionResponse(BaseModel):
     limit: int
     offset: int
     next_offset: int | None
+    snapshot_at: datetime | None = None
 
 
 def _collection(
@@ -44,6 +45,7 @@ def _collection(
     *,
     limit: int,
     offset: int,
+    snapshot_at: datetime | None = None,
 ) -> TelemetryCollectionResponse:
     has_more = len(rows) > limit
     page = rows[:limit]
@@ -53,6 +55,7 @@ def _collection(
         limit=limit,
         offset=offset,
         next_offset=offset + limit if has_more else None,
+        snapshot_at=snapshot_at,
     )
 
 
@@ -112,6 +115,7 @@ def create_api_router(
         metric: str | None = None,
         quality: Quality | None = None,
         alarm: Alarm | None = None,
+        snapshot_at: datetime | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
@@ -120,6 +124,11 @@ def create_api_router(
             raise HTTPException(
                 status_code=422,
                 detail="from and to must be timezone-aware timestamps",
+            )
+        if snapshot_at is not None and snapshot_at.tzinfo is None:
+            raise HTTPException(
+                status_code=422,
+                detail="snapshot_at must be a timezone-aware timestamp",
             )
         if from_at >= to_at:
             raise HTTPException(status_code=422, detail="from must be earlier than to")
@@ -139,12 +148,18 @@ def create_api_router(
             from_at=from_at,
             to_at=to_at,
         )
-        rows = database.history_samples(
+        rows, resolved_snapshot_at = database.history_snapshot_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
+            snapshot_at=snapshot_at,
         )
-        return _collection(rows, limit=limit, offset=offset)
+        return _collection(
+            rows,
+            limit=limit,
+            offset=offset,
+            snapshot_at=resolved_snapshot_at,
+        )
 
     return router
 

@@ -7,6 +7,7 @@ on:
       - ".github/workflows/authenticated-dashboard-acceptance.yml"
       - "docs/authenticated-live-telemetry.md"
       - "e2e/authenticated-dashboard.production.e2e.ts"
+      - "e2e/energy.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
@@ -16,10 +17,14 @@ on:
       - "services/telemetry-service/app/**"
       - "services/telemetry-service/migrations/**"
       - "services/telemetry-service/requirements.txt"
+      - "src/app/energy/**"
       - "src/components/dashboard/**"
+      - "src/components/energy/**"
+      - "src/features/energy/**"
       - "src/features/security/**"
       - "src/hooks/use-dashboard-security*"
       - "src/hooks/use-dashboard-telemetry*"
+      - "src/hooks/use-energy-telemetry*"
       - "src/lib/telemetry/**"
   workflow_dispatch:
 

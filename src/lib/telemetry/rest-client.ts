@@ -114,6 +114,9 @@ export class TelemetryRestClient {
     appendPage(params, query);
     params.set("from", timestamp(query.from));
     params.set("to", timestamp(query.to));
+    if (query.snapshot_at !== undefined) {
+      params.set("snapshot_at", timestamp(query.snapshot_at));
+    }
     return this.request(pathWithQuery("/api/v1/telemetry/history", params), parseTelemetryCollection, signal);
   }
 

@@ -39,6 +39,7 @@ describe("TelemetryRestClient", () => {
       metric: "temperature",
       from: new Date("2026-07-23T17:00:00Z"),
       to: "2026-07-23T18:00:00Z",
+      snapshot_at: new Date("2026-07-23T18:00:05Z"),
       limit: 10,
     });
 
@@ -49,7 +50,7 @@ describe("TelemetryRestClient", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "http://127.0.0.1:8082/api/v1/telemetry/history?node_id=edge-01&metric=temperature&limit=10&from=2026-07-23T17%3A00%3A00.000Z&to=2026-07-23T18%3A00%3A00Z",
+      "http://127.0.0.1:8082/api/v1/telemetry/history?node_id=edge-01&metric=temperature&limit=10&from=2026-07-23T17%3A00%3A00.000Z&to=2026-07-23T18%3A00%3A00Z&snapshot_at=2026-07-23T18%3A00%3A05.000Z",
       expect.objectContaining({ method: "GET" }),
     );
   });

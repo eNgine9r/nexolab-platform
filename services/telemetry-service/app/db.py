@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import (
@@ -26,6 +26,9 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.contracts import TelemetryEvent
+
+
+TELEMETRY_HISTORY_ADVISORY_LOCK_ID = 263_000_001
 
 
 class Base(DeclarativeBase):
@@ -127,6 +130,7 @@ class TelemetryQuery:
     alarm: str | None = None
     from_at: datetime | None = None
     to_at: datetime | None = None
+    received_before: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -198,9 +202,13 @@ class Database:
 
         with self.engine.begin() as connection:
             if dialect == "postgresql":
+                connection.execute(
+                    text("SELECT pg_advisory_xact_lock_shared(:lock_id)"),
+                    {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+                )
                 statement = (
                     postgresql_insert(table)
-                    .values(**values)
+                    .values(**values, received_at=func.clock_timestamp())
                     .on_conflict_do_nothing(index_elements=["event_id"])
                     .returning(table.c.event_id)
                 )
@@ -267,6 +275,8 @@ class Database:
             filters.append(TelemetrySample.captured_at >= query.from_at)
         if query.to_at is not None:
             filters.append(TelemetrySample.captured_at < query.to_at)
+        if query.received_before is not None:
+            filters.append(TelemetrySample.received_at <= query.received_before)
         if filters:
             statement = statement.where(*filters)
         return statement
@@ -311,16 +321,16 @@ class Database:
         with self._sessions() as session:
             return list(session.scalars(statement))
 
-    def history_samples(
+    def _history_statement(
         self,
         *,
         query: TelemetryQuery,
         limit: int,
         offset: int,
-    ) -> list[TelemetrySample]:
+    ) -> Any:
         statement = select(TelemetrySample)
         statement = self._apply_filters(statement, query)
-        statement = (
+        return (
             statement.order_by(
                 TelemetrySample.captured_at.desc(),
                 TelemetrySample.event_id.desc(),
@@ -328,8 +338,60 @@ class Database:
             .limit(limit)
             .offset(offset)
         )
+
+    def history_samples(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+    ) -> list[TelemetrySample]:
+        statement = self._history_statement(
+            query=query,
+            limit=limit,
+            offset=offset,
+        )
         with self._sessions() as session:
             return list(session.scalars(statement))
+
+    def history_snapshot_samples(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+        snapshot_at: datetime | None = None,
+    ) -> tuple[list[TelemetrySample], datetime]:
+        with self._sessions() as session:
+            with session.begin():
+                resolved_snapshot_at = snapshot_at
+                if resolved_snapshot_at is None:
+                    if self.engine.dialect.name == "postgresql":
+                        session.execute(
+                            text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                            {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+                        )
+                        resolved_snapshot_at = session.scalar(
+                            select(func.clock_timestamp())
+                        )
+                    else:
+                        resolved_snapshot_at = datetime.now(UTC)
+
+                if not isinstance(resolved_snapshot_at, datetime):
+                    raise RuntimeError("Unable to establish telemetry history snapshot")
+
+                snapshot_query = replace(
+                    query,
+                    received_before=resolved_snapshot_at,
+                )
+                statement = self._history_statement(
+                    query=snapshot_query,
+                    limit=limit,
+                    offset=offset,
+                )
+                rows = list(session.scalars(statement))
+
+        return rows, resolved_snapshot_at
 
     def cleanup_retention(
         self,

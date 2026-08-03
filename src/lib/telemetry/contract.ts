@@ -128,12 +128,16 @@ export function parseTelemetryCollection(value: unknown): TelemetryCollectionRes
   }
 
   const nextOffset = record.next_offset;
+  const snapshotAt = record.snapshot_at;
   return {
     items: record.items.map((item, index) => parseTelemetrySample(item, `collection.items[${index}]`)),
     count: asInteger(record.count, "collection.count"),
     limit: asInteger(record.limit, "collection.limit"),
     offset: asInteger(record.offset, "collection.offset"),
     next_offset: nextOffset === null ? null : asInteger(nextOffset, "collection.next_offset"),
+    ...(snapshotAt === undefined
+      ? {}
+      : { snapshot_at: asNullableTimestamp(snapshotAt, "collection.snapshot_at") }),
   };
 }
 

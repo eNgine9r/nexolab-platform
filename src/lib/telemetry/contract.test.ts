@@ -33,17 +33,19 @@ const readiness = {
 };
 
 describe("telemetry contract parsers", () => {
-  it("parses a valid latest/history collection", () => {
+  it("parses a valid latest/history collection with an ingestion snapshot", () => {
     const response = parseTelemetryCollection({
       items: [{ ...sample, received_at: "2026-07-23T18:00:01Z" }],
       count: 1,
       limit: 200,
       offset: 0,
       next_offset: null,
+      snapshot_at: "2026-07-23T18:00:02Z",
     });
 
     expect(response.items[0]).toMatchObject(sample);
     expect(response.items[0].received_at).toBe("2026-07-23T18:00:01Z");
+    expect(response.snapshot_at).toBe("2026-07-23T18:00:02Z");
   });
 
   it("accepts a partial live sample without received_at", () => {
@@ -102,6 +104,17 @@ describe("telemetry contract parsers", () => {
     [{ ...sample, quality: "good" }, "quality"],
     [{ ...sample, value: Number.NaN }, "value"],
     [{ items: {}, count: 0, limit: 1, offset: 0, next_offset: null }, "items"],
+    [
+      {
+        items: [],
+        count: 0,
+        limit: 1,
+        offset: 0,
+        next_offset: null,
+        snapshot_at: "not-a-date",
+      },
+      "snapshot_at",
+    ],
   ])("rejects malformed payloads", (payload, path) => {
     const parse = "items" in payload ? parseTelemetryCollection : parseTelemetryLiveMessage;
     expect(() => parse(payload)).toThrowError(
