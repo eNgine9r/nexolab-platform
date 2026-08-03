@@ -16,23 +16,48 @@ function isRenderableEnergyHistorySample(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
 
-function evenlyDownsample(samples: readonly TelemetrySample[], maximumPoints: number): TelemetrySample[] {
-  if (samples.length <= maximumPoints) return [...samples];
-  if (maximumPoints <= 1) return [samples[0]];
+function bucketDownsample(
+  samples: readonly TelemetrySample[],
+  maximumPoints: number,
+  window?: Pick<EnergyHistoryWindow, "from" | "to">,
+): TelemetrySample[] {
+  const sorted = [...samples].sort(
+    (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
+  );
+  if (sorted.length <= maximumPoints) return sorted;
+  if (maximumPoints <= 1) return [sorted.at(-1)!];
+  if (maximumPoints === 2) return [sorted[0], sorted.at(-1)!];
 
-  const sampled: TelemetrySample[] = [];
-  const lastIndex = samples.length - 1;
-  for (let index = 0; index < maximumPoints; index += 1) {
-    const sourceIndex = Math.round((index * lastIndex) / (maximumPoints - 1));
-    const sample = samples[sourceIndex];
-    if (sampled.at(-1)?.event_id !== sample.event_id) sampled.push(sample);
+  const sampleFrom = Date.parse(sorted[0].captured_at);
+  const sampleTo = Date.parse(sorted.at(-1)!.captured_at);
+  const from = window?.from.getTime() ?? sampleFrom;
+  const to = window?.to.getTime() ?? sampleTo;
+  const rangeMs = Math.max(1, to - from);
+  const bucketMs = Math.max(1, Math.ceil(rangeMs / (maximumPoints - 2)));
+  const buckets = new Map<number, TelemetrySample>();
+
+  for (const sample of sorted) {
+    const capturedAt = Date.parse(sample.captured_at);
+    if (!Number.isFinite(capturedAt)) continue;
+    const bucket = Math.floor(capturedAt / bucketMs);
+    const current = buckets.get(bucket);
+    if (!current || Date.parse(current.captured_at) <= capturedAt) buckets.set(bucket, sample);
   }
-  return sampled;
+
+  const first = sorted[0];
+  const last = sorted.at(-1)!;
+  buckets.set(Math.floor(Date.parse(first.captured_at) / bucketMs), first);
+  buckets.set(Math.floor(Date.parse(last.captured_at) / bucketMs), last);
+
+  return [...buckets.values()]
+    .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at))
+    .slice(-maximumPoints);
 }
 
 export function downsampleEnergyHistory(
   samples: readonly TelemetrySample[],
   maximumPointsPerMeter = MAX_HISTORY_POINTS_PER_METER,
+  window?: Pick<EnergyHistoryWindow, "from" | "to">,
 ): TelemetrySample[] {
   const byMeter = new Map<number, TelemetrySample[]>();
 
@@ -48,10 +73,7 @@ export function downsampleEnergyHistory(
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) =>
-      evenlyDownsample(
-        meterSamples.sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at)),
-        maximumPointsPerMeter,
-      ),
+      bucketDownsample(meterSamples, maximumPointsPerMeter, window),
     );
 }
 
@@ -80,7 +102,7 @@ export function mergeEnergyHistoryTail(
     merged.set(sample.event_id, sample);
   }
 
-  return downsampleEnergyHistory([...merged.values()]);
+  return downsampleEnergyHistory([...merged.values()], MAX_HISTORY_POINTS_PER_METER, window);
 }
 
 export async function loadCompleteEnergyHistory(
@@ -116,7 +138,11 @@ export async function loadCompleteEnergyHistory(
     }
 
     if (response.next_offset === null) {
-      return downsampleEnergyHistory([...samples.values()]);
+      return downsampleEnergyHistory(
+        [...samples.values()],
+        MAX_HISTORY_POINTS_PER_METER,
+        window,
+      );
     }
 
     const capturedTimes = response.items
@@ -128,7 +154,11 @@ export async function loadCompleteEnergyHistory(
 
     const oldestCapturedAt = Math.min(...capturedTimes);
     if (oldestCapturedAt <= window.from.getTime()) {
-      return downsampleEnergyHistory([...samples.values()]);
+      return downsampleEnergyHistory(
+        [...samples.values()],
+        MAX_HISTORY_POINTS_PER_METER,
+        window,
+      );
     }
 
     const boundaryCount = capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length;
