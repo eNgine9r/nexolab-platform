@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "FRONTEND-TOOLCHAIN-MIGRATION-1",
-    "title": "Focused frontend toolchain migrations",
-    "goal": "Migrate development tools in isolated, reversible Work Packages without weakening quality gates or offline runtime behavior.",
+    "id": "PRODUCT-PAGES-COMPLETION-1",
+    "title": "Complete NEXOLAB operator pages",
+    "goal": "Replace placeholder routes with focused, real operator workflows while reusing the verified local telemetry, security and offline foundations.",
     "status": "in_progress",
     "started_at": "2026-08-03"
   },
@@ -15,7 +15,8 @@
     "continue_after_soft_failure": true,
     "skip_blocked_tasks": true,
     "stop_on_hard_blocker": true,
-    "max_parallel_implementation_tasks": 1
+    "max_parallel_implementation_tasks": 1,
+    "verification_policy": "proportional_to_changed_product_surface"
   },
   "completed_baseline": [
     {
@@ -28,81 +29,88 @@
       "issue": 204,
       "pull_request": 258,
       "merge_sha": "72ecc207af528942396054764c0b33a663727de1",
-      "outcome": "frontend toolchain compatibility matrix and child migration plan"
+      "outcome": "toolchain compatibility plan recorded; remaining migrations deferred"
+    },
+    {
+      "issue": 251,
+      "pull_request": 259,
+      "merge_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
+      "outcome": "Node developer/CI baseline and Node type declarations aligned with all exact-head gates GREEN"
     }
   ],
   "tasks": [
     {
-      "id": "NEXOLAB-251",
-      "issue": 251,
-      "pull_request": 259,
-      "title": "Align Node tooling and type definitions",
-      "status": "offline_failure_corrected_pending_exact_head_ci",
-      "branch": "maint/251-node22-baseline-types",
-      "baseline_main_sha": "72ecc207af528942396054764c0b33a663727de1",
-      "node_developer_ci_exact": "22.23.1",
-      "node_engine": ">=22.22.1 <23 || >=24 <25",
-      "container_node_line": "24",
-      "types_node_manifest": "^22.20.1",
-      "types_node_resolved": "22.20.1",
-      "undici_types_resolved": "6.21.0",
-      "failed_candidate": {
-        "head_sha": "ae732e67178bb7bfcd8cca33ec733987ba121b3e",
-        "workflow": "Offline Bundle",
-        "run": 30817017506,
-        "failed_step": "Build linux amd64 bundle on connected builder",
-        "root_cause": "Node 22-only package engine rejected the established Node 24 dashboard image during npm prune"
-      },
-      "next_action": "Run the complete exact-head cascade for the corrected dual-line engine and merge only on GREEN."
+      "id": "NEXOLAB-260",
+      "issue": 260,
+      "title": "Complete all NEXOLAB operator pages",
+      "status": "tracking_children",
+      "placeholder_routes": [
+        "/live",
+        "/equipment-layouts",
+        "/lockers",
+        "/cameras",
+        "/energy",
+        "/equipment",
+        "/settings"
+      ]
     },
     {
-      "id": "NEXOLAB-254",
-      "issue": 254,
-      "title": "Upgrade Playwright 1.55 to 1.62 with browser evidence preservation",
-      "status": "queued_after_251",
-      "depends_on": [251]
+      "id": "NEXOLAB-261",
+      "issue": 261,
+      "parent_issue": 260,
+      "title": "Complete the Energy Monitoring operator page",
+      "status": "in_progress",
+      "branch": "feat/261-energy-monitoring-page",
+      "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
+      "route": "/energy",
+      "next_action": "Inspect existing telemetry contracts and implement the focused energy page without package or unrelated runtime changes."
     },
     {
-      "id": "NEXOLAB-252",
-      "issue": 252,
-      "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-      "status": "blocked",
-      "depends_on": [251]
+      "id": "NEXOLAB-PAGE-LIVE",
+      "title": "Complete the Live Data telemetry explorer",
+      "status": "queued_after_261",
+      "route": "/live"
     },
     {
-      "id": "NEXOLAB-253",
-      "issue": 253,
-      "title": "Migrate jsdom 29 to 30 without changing unit-test semantics",
-      "status": "queued_after_251",
-      "depends_on": [251]
-    },
-    {
-      "id": "NEXOLAB-255",
-      "issue": 255,
-      "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
+      "id": "NEXOLAB-PAGE-LAYOUTS",
+      "title": "Complete the Equipment Layouts catalog",
       "status": "queued",
-      "depends_on": [251, 254, 252, 253]
+      "route": "/equipment-layouts"
     },
     {
-      "id": "NEXOLAB-256",
-      "issue": 256,
-      "title": "Evaluate TypeScript 7 native compiler after the TypeScript 6 transition",
-      "status": "blocked",
-      "depends_on": [255, "confirmed Next/Vitest/ESLint TypeScript 7 support"]
+      "id": "NEXOLAB-PAGE-EQUIPMENT",
+      "title": "Complete the Equipment and metrology registry",
+      "status": "queued",
+      "route": "/equipment"
     },
     {
-      "id": "NEXOLAB-257",
-      "issue": 257,
-      "title": "Upgrade ESLint 9 to 10 only with a compatible Next plugin graph",
+      "id": "NEXOLAB-PAGE-SETTINGS",
+      "title": "Complete operator-safe Settings",
+      "status": "queued",
+      "route": "/settings"
+    },
+    {
+      "id": "NEXOLAB-PAGE-CAMERAS",
+      "title": "Complete local Cameras monitoring",
+      "status": "queued",
+      "route": "/cameras"
+    },
+    {
+      "id": "NEXOLAB-PAGE-LOCKERS",
+      "title": "Complete Smart Lockers",
       "status": "blocked",
-      "depends_on": ["eslint-config-next plugin graph with ESLint 10 peer support"]
+      "route": "/lockers",
+      "depends_on": [
+        "concrete locker inventory and read-only protocol scope"
+      ]
     },
     {
       "id": "NEXOLAB-204",
       "issue": 204,
-      "title": "Plan and execute major frontend toolchain migrations separately",
-      "status": "tracking_children",
-      "child_issues": [251, 252, 253, 254, 255, 256, 257]
+      "title": "Frontend toolchain migrations",
+      "status": "deferred",
+      "child_issues": [252, 253, 254, 255, 256, 257],
+      "resume_when": "security, support or concrete active-product blocker"
     },
     {
       "id": "NEXOLAB-245",
