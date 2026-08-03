@@ -1,15 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  TelemetryAdapter,
-  TelemetryCollectionResponse,
-  TelemetrySample,
-} from "@/lib/telemetry/types";
+import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
-import {
-  downsampleEnergyHistory,
-  loadCompleteEnergyHistory,
-} from "./energy-history";
+import { downsampleEnergyHistory, loadCompleteEnergyHistory } from "./energy-history";
 
 function sample(index: number, unitId = 200): TelemetrySample {
   return {

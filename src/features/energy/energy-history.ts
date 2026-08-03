@@ -1,8 +1,4 @@
-import {
-  isEnergySample,
-  resolveEnergyMeter,
-  type EnergyMetricId,
-} from "@/features/energy/energy-telemetry";
+import { isEnergySample, resolveEnergyMeter, type EnergyMetricId } from "@/features/energy/energy-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_PAGE_SIZE = 1_000;
@@ -15,10 +11,7 @@ export interface EnergyHistoryWindow {
   to: Date;
 }
 
-function evenlyDownsample(
-  samples: readonly TelemetrySample[],
-  maximumPoints: number,
-): TelemetrySample[] {
+function evenlyDownsample(samples: readonly TelemetrySample[], maximumPoints: number): TelemetrySample[] {
   if (samples.length <= maximumPoints) return [...samples];
   if (maximumPoints <= 1) return [samples[0]];
 
@@ -50,9 +43,7 @@ export function downsampleEnergyHistory(
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) =>
       evenlyDownsample(
-        meterSamples.sort(
-          (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
-        ),
+        meterSamples.sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at)),
         maximumPointsPerMeter,
       ),
     );

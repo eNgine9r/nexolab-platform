@@ -451,7 +451,7 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             key={meter.unitId}
             unitId={meter.unitId}
             selected={selectedUnitIds.includes(meter.unitId)}
-            samples={telemetry.samples}
+            samples={telemetry.freshSamples}
             onToggle={() => toggleMeter(meter.unitId)}
           />
         ))}

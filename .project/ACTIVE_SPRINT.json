@@ -44,14 +44,7 @@
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "placeholder_routes": [
-        "/live",
-        "/equipment-layouts",
-        "/lockers",
-        "/cameras",
-        "/equipment",
-        "/settings"
-      ]
+      "placeholder_routes": ["/live", "/equipment-layouts", "/lockers", "/cameras", "/equipment", "/settings"]
     },
     {
       "id": "NEXOLAB-261",
@@ -114,9 +107,7 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": [
-        "concrete locker inventory and read-only protocol scope"
-      ]
+      "depends_on": ["concrete locker inventory and read-only protocol scope"]
     },
     {
       "id": "NEXOLAB-204",
