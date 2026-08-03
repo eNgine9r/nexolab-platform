@@ -12,6 +12,7 @@
   "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
   "clean_state_head_sha": "437686a09bfdc1067e88cf0326bc914569d3d612",
   "formatted_state_head_sha": "48a80b37dc49b0d1825897ebb6a1a25f63a0a807",
+  "final_state_head_sha": "01850316c162f50f64e649a98937926cd1f8b571",
   "summary": "Verified an evidence-backed sharp 0.35.3 override candidate that removes the actionable production sharp/next audit path while preserving native linux/x64 behavior and ARM64 package availability.",
   "scope_completed": [
     "captured exact next to sharp production dependency path",
@@ -81,7 +82,7 @@
   "final_sweep_trigger": {
     "method": "github_connector_commit",
     "reason": "GitHub Actions suppresses recursive workflow execution for GITHUB_TOKEN-created commits",
-    "previous_clean_head": "48a80b37dc49b0d1825897ebb6a1a25f63a0a807"
+    "previous_clean_head": "01850316c162f50f64e649a98937926cd1f8b571"
   },
   "checks_pending": [
     "final state-only exact-head workflow sweep",
