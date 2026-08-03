@@ -6,37 +6,60 @@
   "issue": 261,
   "parent_issue": 260,
   "pull_request": 262,
-  "status": "implementation_green_finalization_in_progress",
-  "timestamp": "2026-08-03T22:20:00+03:00",
+  "status": "verified_ready_for_merge",
+  "timestamp": "2026-08-04T00:54:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-  "verified_implementation_head_sha": "6738277080db3388ef241468c0a28e3204ac7f98",
+  "verified_implementation_head_sha": "c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Energy Monitoring is implemented and verified with subscribe-before-snapshot startup reconciliation, startup-safe pending outage state, stable pagination, absolute-bucket downsampling, source-derived outage segments, permission-gated telemetry traffic, future-skew-safe live tails and wall-clock pruning.",
+  "summary": "Energy Monitoring is complete and exact-source-head verified, including authenticated WebSocket-before-snapshot coverage, commit-stable history pagination, production SessionAwareDatabase barrier, metric-switch ordering seed, explicit terminal WebSocket history error, stale-value retention and restored session stage filtering.",
   "checks_actually_run": [
-    "CI 30844693579 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
-    "Authenticated Dashboard Acceptance 30844693548 GREEN: energy latest/history, selection, live WebSocket update and evidence upload",
-    "Refrigeration Browser Acceptance 30844693576 GREEN: existing refrigeration operator flow preserved"
+    "CI 30851054746 GREEN",
+    "Telemetry Service 30851054848 GREEN",
+    "Authenticated Dashboard Acceptance 30851054739 GREEN",
+    "Refrigeration Browser Acceptance 30851054803 GREEN",
+    "Security Browser Acceptance 30851054878 GREEN",
+    "Test Sessions Browser Acceptance 30851054753 GREEN",
+    "Reports Browser Acceptance 30851054966 GREEN",
+    "Offline Auth Acceptance 30851054770 GREEN",
+    "Offline Bundle 30851054862 GREEN",
+    "Capacity Release Gate 30851054836 GREEN",
+    "Device Agent Fleet Acceptance 30851054875 GREEN",
+    "MQTT TLS Fleet Acceptance 30851054783 GREEN",
+    "Broker Control Acceptance 30851054893 GREEN",
+    "Container Supply Chain 30851054778 GREEN",
+    "Disaster Recovery Domain Completeness 30851054789 GREEN",
+    "Disaster Recovery TLS Fleet 30851054810 GREEN",
+    "Disaster Recovery Browser 30851054866 GREEN"
   ],
+  "verification_scope": {
+    "executable_source_head": "c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7",
+    "state_only_changes": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ],
+    "state_gate_requirement": "The final PR head changes only the four source-of-truth files and must pass its own exact-head repository checks before merge."
+  },
   "runtime_and_offline_evidence": [
-    "WebSocket subscribes before the initial latest snapshot",
-    "a bounded startup buffer preserves events emitted during snapshot loading",
-    "startup communication errors persist as pending chart breaks until recovery",
-    "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
-    "no package, Compose, container or offline-delivery contract changed",
-    "no mandatory online runtime dependency introduced"
+    "local REST, authenticated WebSocket, PostgreSQL and browser operator flows verified",
+    "commit-stable history snapshot verified against real PostgreSQL integration",
+    "disconnected Offline Bundle load/start/update/rollback acceptance verified",
+    "no package, dependency, Compose, container schema or mandatory online runtime dependency introduced"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
     "note": "No hardware operation was performed; cumulative active energy remains unverified under Issue #201."
   },
   "remaining_actions": [
-    "validate the state-only head",
-    "resolve addressed PR review threads",
+    "complete exact-head checks for the state-only PR head",
+    "resolve remaining addressed review threads",
     "merge PR #262 with expected-head protection",
-    "start Issue #263"
+    "create feat/263-live-telemetry-explorer from updated main"
   ],
   "next_ready_work_package": {
     "issue": 263,
-    "instruction": "Replace /live with the universal authenticated telemetry explorer."
+    "branch": "feat/263-live-telemetry-explorer",
+    "instruction": "Replace /live with the universal authenticated telemetry explorer without dependency migrations."
   }
 }
