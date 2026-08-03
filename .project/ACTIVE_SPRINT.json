@@ -42,11 +42,12 @@
       "status": "implementation_green_finalization_in_progress",
       "branch": "feat/261-energy-monitoring-page",
       "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-      "verified_implementation_head_sha": "d8b03f6ed496362c7fa4ff0243ec82ed42c16fad",
+      "verified_implementation_head_sha": "dc026b87010e810a3828b8d461d76852d7184d37",
       "route": "/energy",
       "required_runs": {
-        "ci": 30841237042,
-        "authenticated_dashboard": 30841237450
+        "ci": 30842429156,
+        "authenticated_dashboard": 30842429110,
+        "refrigeration_browser": 30842429384
       },
       "review_fixes": [
         "stable captured-time cursor pagination before bounded downsampling",
@@ -54,6 +55,7 @@
         "renderable-only downsampling that preserves valid chart points and first/latest endpoints",
         "stable absolute time buckets for incremental live history",
         "source-derived outage segments from communication errors and raw cadence gaps",
+        "persistent pending break state across separate WebSocket error and recovery callbacks",
         "permission gating before telemetry REST and WebSocket traffic",
         "freshness-safe meter cards and per-metric quality states",
         "requested-window chart scaling",
