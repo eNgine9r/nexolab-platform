@@ -4,13 +4,19 @@
   "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
   "task": "NEXOLAB-242",
   "issue": 242,
-  "status": "local_verified_pending_pr_ci",
-  "timestamp": "2026-08-03T08:30:00Z",
+  "pull_request": 248,
+  "status": "exact_head_green_pending_state_fix_ci",
+  "timestamp": "2026-08-03T14:46:00+03:00",
   "baseline_main_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+  "verified_candidate_head_sha": "73cf19b2e7191a38290b3dc99fa211bdaf038878",
+  "state_fix_commits": [
+    "2d22e0aea40ac31765ee61a06a08296dd2302bb9",
+    "e50d10657c3e3cbd5b3a8013081eff54de72bf55"
+  ],
   "decision": "update",
   "resolved_version_before": "2.110.8",
   "resolved_version_after": "2.112.0",
-  "summary": "Updated only the optional Supabase SDK graph and added regression proof that unconfigured Supabase performs no initialization or fetch and cannot displace LOCAL_LAN local authentication.",
+  "summary": "Updated only the optional Supabase SDK graph, proved unconfigured Supabase performs no initialization or request, proved LOCAL_LAN local authentication remains primary, and recorded all exact-head GitHub acceptance workflows as GREEN.",
   "files_changed": [
     "package.json",
     "package-lock.json",
@@ -31,7 +37,7 @@
     ],
     "unchanged": ["phoenix 0.4.5", "iceberg-js 0.8.1", "tslib 2.8.1"]
   },
-  "checks_passed": [
+  "local_checks_passed": [
     "targeted Supabase and local-auth Vitest",
     "npm run format:check",
     "npm run lint",
@@ -39,19 +45,37 @@
     "npm test",
     "npm run build"
   ],
-  "checks_pending_ci": [
-    "Security Browser",
-    "Offline Auth",
-    "Authenticated Dashboard",
-    "Offline Bundle disconnected startup with --pull never",
-    "update and rollback volume preservation"
+  "github_checks_passed": {
+    "ci": 30800858215,
+    "security_browser": 30800857389,
+    "offline_auth": 30800857575,
+    "authenticated_dashboard": 30800857397,
+    "offline_bundle": 30800858287,
+    "refrigeration_browser": 30800857965,
+    "nodes_browser": 30800857446,
+    "alerts_browser": 30800858049,
+    "test_sessions_browser": 30800857431,
+    "reports_browser": 30800857402,
+    "rendered_reports_browser": 30800857520
+  },
+  "runtime_and_offline_evidence": [
+    "missing Supabase configuration creates no client and performs no fetch",
+    "local authentication remains primary even when invalid Supabase values are present",
+    "disconnected Offline Bundle startup passed",
+    "update and rollback preserved persistent volumes",
+    "no mandatory cloud or paid runtime dependency was introduced"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
-    "note": "No hardware operation was in scope or performed."
+    "note": "No hardware operation was in scope or performed. Actual Raspberry Pi acceptance for Issue #245 remains pending."
   },
+  "checks_pending": [
+    "exact-head workflows for the state-only commits",
+    "resolve the review thread",
+    "merge PR #248 with expected head protection"
+  ],
   "next_ready_work_package": {
     "issue": 243,
-    "instruction": "Begin only after Issue #242 required CI is green and its PR is merged."
+    "instruction": "After PR #248 merges, record its actual merge SHA and begin the focused Lucide dependency review."
   }
 }
