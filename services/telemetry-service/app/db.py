@@ -127,6 +127,7 @@ class TelemetryQuery:
     alarm: str | None = None
     from_at: datetime | None = None
     to_at: datetime | None = None
+    received_before: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -267,6 +268,8 @@ class Database:
             filters.append(TelemetrySample.captured_at >= query.from_at)
         if query.to_at is not None:
             filters.append(TelemetrySample.captured_at < query.to_at)
+        if query.received_before is not None:
+            filters.append(TelemetrySample.received_at <= query.received_before)
         if filters:
             statement = statement.where(*filters)
         return statement
