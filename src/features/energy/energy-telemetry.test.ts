@@ -1,0 +1,88 @@
+import { describe, expect, it } from "vitest";
+
+import type { TelemetrySample } from "@/lib/telemetry/types";
+
+import {
+  energySampleState,
+  findEnergySample,
+  formatEnergyValue,
+  isEnergySample,
+  resolveEnergyMeter,
+  selectLatestEnergySamples,
+} from "./energy-telemetry";
+
+function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
+  return {
+    event_id: "energy-1",
+    node_id: "edge-01",
+    captured_at: "2026-08-03T14:00:00Z",
+    metric: "electrical.power.active",
+    value: 615,
+    unit: "W",
+    quality: "valid",
+    source: "f-and-f-le-01mp",
+    equipment_id: "LE01MP-200",
+    channel_id: "200-active-power",
+    alarm: null,
+    raw_value: 615,
+    raw_status: null,
+    ...overrides,
+  };
+}
+
+describe("energy telemetry", () => {
+  it("maps the four production meters deterministically", () => {
+    expect(resolveEnergyMeter(sample())?.label).toBe("W1");
+    expect(
+      resolveEnergyMeter(
+        sample({ equipment_id: "unknown", channel_id: "203-power-factor" }),
+      )?.label,
+    ).toBe("W4");
+    expect(resolveEnergyMeter(sample({ equipment_id: "LE01MP-204" }))).toBeNull();
+  });
+
+  it("accepts confirmed metrics only", () => {
+    expect(isEnergySample(sample())).toBe(true);
+    expect(isEnergySample(sample({ metric: "electrical.energy.active", unit: "kWh" }))).toBe(
+      false,
+    );
+  });
+
+  it("keeps the newest sample for every meter and metric", () => {
+    const latest = selectLatestEnergySamples([
+      sample({ event_id: "old", value: 100 }),
+      sample({ event_id: "new", captured_at: "2026-08-03T14:00:05Z", value: 200 }),
+      sample({
+        event_id: "voltage",
+        metric: "electrical.voltage",
+        channel_id: "200-voltage",
+        value: 230.1,
+        unit: "V",
+      }),
+    ]);
+
+    expect(latest).toHaveLength(2);
+    expect(findEnergySample(latest, 200, "electrical.power.active")?.value).toBe(200);
+    expect(findEnergySample(latest, 200, "electrical.voltage")?.value).toBe(230.1);
+  });
+
+  it("distinguishes live, stale and communication failures", () => {
+    const now = Date.parse("2026-08-03T14:00:20Z");
+    expect(energySampleState(sample(), now)).toBe("live");
+    expect(energySampleState(sample(), now + 60_000)).toBe("stale");
+    expect(energySampleState(sample({ quality: "communication_error", value: null }), now)).toBe(
+      "communication_error",
+    );
+    expect(energySampleState(null, now)).toBe("empty");
+  });
+
+  it("formats confirmed units without inventing unavailable values", () => {
+    expect(formatEnergyValue(sample())).toBe("615 W");
+    expect(
+      formatEnergyValue(
+        sample({ metric: "electrical.power_factor", value: 0.955, unit: "ratio" }),
+      ),
+    ).toBe("0,955");
+    expect(formatEnergyValue(sample({ quality: "unknown", value: 615 }))).toBe("—");
+  });
+});
