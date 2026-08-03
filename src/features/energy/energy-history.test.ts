@@ -1,13 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
+import type {
+  TelemetryAdapter,
+  TelemetryCollectionResponse,
+  TelemetrySample,
+} from "@/lib/telemetry/types";
 
 import { downsampleEnergyHistory, loadCompleteEnergyHistory } from "./energy-history";
 
-function sample(index: number, unitId = 200): TelemetrySample {
+function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
-    event_id: `energy-${unitId}-${index}`,
-    node_id: "edge-01",
+    event_id: `energy-${nodeId}-${unitId}-${index}`,
+    node_id: nodeId,
     captured_at: new Date(Date.UTC(2026, 7, 3, 10, 0, index)).toISOString(),
     metric: "electrical.power.active",
     value: index,
@@ -35,25 +39,26 @@ function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapte
 }
 
 describe("energy history", () => {
-  it("loads every page before returning the selected window", async () => {
+  it("loads every production-node page before returning the selected window", async () => {
     const adapter = adapterWithPages([
       {
-        items: [sample(3), sample(2)],
-        count: 2,
-        limit: 2,
+        items: [sample(3), sample(2), sample(99, 200, "edge-02")],
+        count: 3,
+        limit: 3,
         offset: 0,
-        next_offset: 2,
+        next_offset: 3,
       },
       {
         items: [sample(1), sample(0)],
         count: 2,
         limit: 2,
-        offset: 2,
+        offset: 3,
         next_offset: null,
       },
     ]);
 
     const result = await loadCompleteEnergyHistory(adapter, {
+      nodeId: "edge-01",
       metric: "electrical.power.active",
       from: new Date("2026-08-03T09:00:00Z"),
       to: new Date("2026-08-03T11:00:00Z"),
@@ -62,14 +67,14 @@ describe("energy history", () => {
     expect(adapter.history).toHaveBeenCalledTimes(2);
     expect(adapter.history).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ offset: 2, limit: 1000 }),
+      expect.objectContaining({ node_id: "edge-01", offset: 3, limit: 1000 }),
       undefined,
     );
     expect(result.map((item) => item.event_id)).toEqual([
-      "energy-200-0",
-      "energy-200-1",
-      "energy-200-2",
-      "energy-200-3",
+      "energy-edge-01-200-0",
+      "energy-edge-01-200-1",
+      "energy-edge-01-200-2",
+      "energy-edge-01-200-3",
     ]);
   });
 
@@ -85,10 +90,10 @@ describe("energy history", () => {
 
     expect(w1).toHaveLength(4);
     expect(w2).toHaveLength(4);
-    expect(w1[0].event_id).toBe("energy-200-0");
-    expect(w1.at(-1)?.event_id).toBe("energy-200-9");
-    expect(w2[0].event_id).toBe("energy-201-0");
-    expect(w2.at(-1)?.event_id).toBe("energy-201-9");
+    expect(w1[0].event_id).toBe("energy-edge-01-200-0");
+    expect(w1.at(-1)?.event_id).toBe("energy-edge-01-200-9");
+    expect(w2[0].event_id).toBe("energy-edge-01-201-0");
+    expect(w2.at(-1)?.event_id).toBe("energy-edge-01-201-9");
   });
 
   it("rejects non-advancing pagination", async () => {
@@ -104,6 +109,7 @@ describe("energy history", () => {
 
     await expect(
       loadCompleteEnergyHistory(adapter, {
+        nodeId: "edge-01",
         metric: "electrical.power.active",
         from: new Date("2026-08-03T09:00:00Z"),
         to: new Date("2026-08-03T11:00:00Z"),
