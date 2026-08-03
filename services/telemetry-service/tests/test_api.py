@@ -160,7 +160,13 @@ def test_history_is_bounded_filtered_and_deterministically_paginated(
         assert second_payload["next_offset"] is None
         assert second_payload["snapshot_at"] == first_payload["snapshot_at"]
 
-        refreshed = client.get("/api/v1/telemetry/history", params=params)
+        refreshed = client.get(
+            "/api/v1/telemetry/history",
+            params={
+                **params,
+                "snapshot_at": (snapshot_at + timedelta(seconds=2)).isoformat(),
+            },
+        )
         assert refreshed.status_code == 200
         assert [item["value"] for item in refreshed.json()["items"]] == [
             228.0,
