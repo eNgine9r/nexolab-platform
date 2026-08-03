@@ -35,7 +35,7 @@ function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapte
 }
 
 describe("energy history", () => {
-  it("loads every production-node page before returning the selected window", async () => {
+  it("uses an overlapping captured-at cursor instead of mutable offsets", async () => {
     const adapter = adapterWithPages([
       {
         items: [sample(3), sample(2), sample(99, 200, "edge-02")],
@@ -45,10 +45,10 @@ describe("energy history", () => {
         next_offset: 3,
       },
       {
-        items: [sample(1), sample(0)],
-        count: 2,
-        limit: 2,
-        offset: 3,
+        items: [sample(2), sample(1), sample(0)],
+        count: 3,
+        limit: 3,
+        offset: 0,
         next_offset: null,
       },
     ]);
@@ -62,8 +62,18 @@ describe("energy history", () => {
 
     expect(adapter.history).toHaveBeenCalledTimes(2);
     expect(adapter.history).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ node_id: "edge-01", offset: 0, limit: 1000 }),
+      undefined,
+    );
+    expect(adapter.history).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ node_id: "edge-01", offset: 3, limit: 1000 }),
+      expect.objectContaining({
+        node_id: "edge-01",
+        offset: 0,
+        limit: 1000,
+        to: new Date("2026-08-03T10:00:02.000Z"),
+      }),
       undefined,
     );
     expect(result.map((item) => item.event_id)).toEqual([
@@ -92,6 +102,25 @@ describe("energy history", () => {
     expect(w2.at(-1)?.event_id).toBe("energy-edge-01-201-9");
   });
 
+  it("does not let communication errors displace renderable history", () => {
+    const source = [
+      ...Array.from({ length: 10 }, (_, index) => ({
+        ...sample(index),
+        quality: "communication_error" as const,
+        value: null,
+      })),
+      sample(20),
+      sample(21),
+    ];
+
+    const result = downsampleEnergyHistory(source, 2);
+
+    expect(result.map((item) => item.event_id)).toEqual([
+      "energy-edge-01-200-20",
+      "energy-edge-01-200-21",
+    ]);
+  });
+
   it("merges the websocket tail without retaining records outside the rolling window", () => {
     const result = mergeEnergyHistoryTail(
       [sample(0), sample(10)],
@@ -113,14 +142,15 @@ describe("energy history", () => {
     expect(result[0].value).toBe(999);
   });
 
-  it("rejects non-advancing pagination", async () => {
+  it("rejects a page that cannot provide a stable cursor", async () => {
+    const invalid = { ...sample(1), captured_at: "not-a-timestamp" };
     const adapter = adapterWithPages([
       {
-        items: [sample(1)],
+        items: [invalid],
         count: 1,
         limit: 1000,
         offset: 0,
-        next_offset: 0,
+        next_offset: 1,
       },
     ]);
 
@@ -131,6 +161,6 @@ describe("energy history", () => {
         from: new Date("2026-08-03T09:00:00Z"),
         to: new Date("2026-08-03T11:00:00Z"),
       }),
-    ).rejects.toThrow("pagination did not advance");
+    ).rejects.toThrow("stable cursor");
   });
 });
