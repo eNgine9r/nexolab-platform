@@ -148,7 +148,7 @@ def create_api_router(
             from_at=from_at,
             to_at=to_at,
         )
-        rows, resolved_snapshot_at = database.history_samples(
+        rows, resolved_snapshot_at = database.history_snapshot_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
