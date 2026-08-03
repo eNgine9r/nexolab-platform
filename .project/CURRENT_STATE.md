@@ -1,110 +1,58 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-03
-Verified main baseline: `2c00812aed7bc107f191a50e2e0745cb9c091bbd`
-Active Work Package: Issue #245 / PR #246 — standalone offline Raspberry Pi 5 runtime
-Status confidence: high for repository state, runtime contracts, GitHub-hosted quality checks, Telemetry Service regression and linux/amd64 disconnected delivery; partial for actual Raspberry Pi 5 reboot, loopback-only browser use and physical telemetry acceptance.
+Verified main baseline: `83b161ca7e26580c46789e76a7bbdc0d5e434c21`
+Active Work Package: Issue #242 / PR #248 — optional Supabase dependency compatibility
+Status confidence: high for dependency scope, adapter behavior, local software checks and exact-head GitHub acceptance workflows.
 
-## Profile
+## Issue #242 outcome
 
-- Project type: `LOCAL_LAN` with an explicit same-host `standalone` runtime mode.
-- Development and connected deployment may use the internet; core runtime must not require it.
-- Local PostgreSQL, MQTT, MinIO, edge SQLite, logs, backup and restore remain first-class.
-- No Modbus write, hardware write or production/site cutover is authorized.
+- `@supabase/supabase-js` moved from resolved `2.110.8` to `2.112.0`.
+- Its five direct Supabase packages (`auth-js`, `functions-js`, `postgrest-js`, `realtime-js` and `storage-js`) moved together to `2.112.0`; `phoenix 0.4.5`, `iceberg-js 0.8.1` and `tslib 2.8.1` did not change.
+- The only SDK import remains `src/features/security/supabase-auth.ts`.
+- Client creation remains browser-only and requires both public Supabase configuration values.
+- Regression coverage proves missing configuration creates no client and performs no fetch.
+- Regression coverage proves `local` authentication remains primary and fail-closed even when invalid Supabase values are present.
+- No authentication architecture, UI, schema, Compose, telemetry, hardware, Lucide, Sharp, Next.js, React, secrets or production configuration changed.
 
-## Completed maintenance baseline
+## Checks actually completed
 
-- PR #184 — AI Development Operating Standard.
-- PR #190 — verified architecture and offline boundary.
-- PR #206 — tracker and Pull Request reconciliation.
-- PR #207 — durable MQTT-to-PostgreSQL ingestion.
-- PR #209 — Device Agent supply-chain hardening.
-- PR #213 — dashboard security diagnostics.
-- PR #214 — WebSocket lifecycle stabilization.
-- PR #215 — offline installation/update bundle.
-- PR #216 — offline operator authentication.
-- PR #224 — encrypted local-auth disaster recovery.
-- PR #225–#229 and #233 — controlled Prettier baseline.
-- PR #234 — GitHub Actions runtime compatibility.
-- PR #238 — argument-safe disaster-recovery credentials.
-- PR #240 — Next.js and React security patch line.
-- PR #244 / Issue #241 — `sharp 0.35.3` compatibility control, merged as `2c00812aed7bc107f191a50e2e0745cb9c091bbd`.
+Local checks on Node `22.23.2`:
 
-## Issue #245 / PR #246 software outcome
+- targeted Supabase and local-auth Vitest coverage;
+- `npm run format:check`;
+- `npm run lint`;
+- `npm run typecheck`;
+- `npm test`;
+- `npm run build`.
 
-The implementation adds two explicit deployment modes:
+Exact-head GitHub workflows for `73cf19b2e7191a38290b3dc99fa211bdaf038878` are GREEN:
 
-```text
-lan
-standalone
-```
+- CI `30800858215`;
+- Security Browser Acceptance `30800857389`;
+- Offline Auth Acceptance `30800857575`;
+- Authenticated Dashboard Acceptance `30800857397`;
+- Offline Bundle `30800858287`;
+- Refrigeration Browser Acceptance `30800857965`;
+- Nodes Browser Acceptance `30800857446`;
+- Alerts Browser Acceptance `30800858049`;
+- Test Sessions Browser Acceptance `30800857431`;
+- Reports Browser Acceptance `30800857402`;
+- Rendered Reports Browser Acceptance `30800857520`.
 
-`lan` remains the default and preserves trusted-LAN behavior. `standalone` compiles and exposes the same-host operator path through:
+The disconnected Offline Bundle workflow includes image load/start with blocked container egress and update/rollback volume-preservation evidence.
 
-```text
-Dashboard: http://127.0.0.1:3000
-API:       http://127.0.0.1:8082
-WebSocket: ws://127.0.0.1:8082/api/v1/telemetry/live
-```
+## Runtime, offline and hardware evidence
 
-The standalone contract:
+- Supabase remains optional and unconfigured LOCAL_LAN operation performs no Supabase request.
+- Local authentication remains the primary runtime path.
+- No mandatory cloud, CDN, remote font, analytics or paid runtime dependency was introduced.
+- No hardware operation was in scope or performed.
+- Actual Raspberry Pi acceptance for Issue #245 remains separate and must not be marked hardware verified.
 
-- uses exact loopback CORS origins;
-- preserves the configured authentication mode and Security Gate;
-- rejects remote-JWKS-only authentication in standalone mode;
-- removes the dashboard dependency on `network-online.target`;
-- connects the edge broker to the central broker through an isolated Docker bridge and the unambiguous alias `central-mqtt:1883`;
-- keeps Telemetry Service on the private central network so the edge broker cannot shadow the central `mqtt` DNS name;
-- preserves PostgreSQL, central MQTT, MinIO, telemetry-ingestion and edge SQLite volume identities;
-- adds `scripts/verify-standalone-offline-raspberry-pi.sh` and a dedicated operator runbook;
-- does not add demo fallback, wildcard CORS, dependency upgrades, Modbus writes or hardware writes.
+## Review and next action
 
-## Candidate verification
-
-Candidate head `d4ff514e1448454d90fb53ac4e4e049cc81f225e` completed all triggered workflows GREEN:
-
-- CI `30791309275` — standalone/LAN contract test, repository formatting, ESLint, strict typecheck, Vitest and production build;
-- Telemetry Service `30791309295` — migrations, MQTT/REST/WebSocket/object-storage tests, PostgreSQL outage recovery, offline migration SQL and container build;
-- Offline Bundle `30791309244` — disconnected image load/start, blocked container egress, smoke verification and update/rollback volume preservation.
-
-The contract test proves that:
-
-- invalid runtime modes fail before mutation;
-- standalone frontend/API/WebSocket/CORS values are loopback-only;
-- LAN mode remains backward compatible;
-- central MQTT and the edge bridge use a dedicated shared runtime network;
-- Telemetry Service cannot resolve the edge broker as its `mqtt` dependency.
-
-## Open Pull Requests
-
-- #246 — standalone offline Raspberry Pi runtime; state update and final exact-head sweep pending.
-
-## Runtime and hardware evidence
-
-Software status:
-
-```text
-software verified; actual standalone Raspberry Pi acceptance pending
-```
-
-Not yet verified on the physical Raspberry Pi 5:
-
-- reboot with Ethernet and Wi-Fi unavailable;
-- no default route and no IPv4 on physical uplinks;
-- local browser opening `http://127.0.0.1:3000`;
-- Security Gate, REST and WebSocket behavior on the actual host;
-- continued real RS-485 telemetry for at least 15 minutes;
-- telemetry preservation across Telemetry Service restart and a second reboot.
-
-## Open risks and blockers
-
-- No hard blocker prevents the final software sweep and merge of PR #246.
-- Actual Raspberry Pi acceptance remains a soft blocker before Issue #245 can be closed.
-- Issue #189 actual-host recovery and power-loss evidence remains incomplete.
-- Issues #200–#202 remain blocked pending controlled read-only hardware evidence.
-- Actual ARM64 offline bundle installation/update/rollback remains separate from this runtime Work Package.
-- The temporary `sharp` override must be reassessed when Next.js publishes a supported patched range.
-
-## Next Ready action
-
-Complete the state-only exact-head checks, review PR #246 and merge it. Then deploy `main` on the Raspberry Pi with `--runtime-mode standalone` and collect the required loopback-only actual-host evidence before closing Issue #245.
+- PR #248 head is mergeable and exact-head workflows are GREEN.
+- Project state now records completed CI rather than the obsolete `pending_pr_ci` state.
+- Resolve the state-review thread, merge PR #248 with expected head `73cf19b2e7191a38290b3dc99fa211bdaf038878`, then begin Issue #243.
+- The resulting merge SHA must be recorded in the next state checkpoint because it does not exist until GitHub completes the merge.

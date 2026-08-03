@@ -2,9 +2,21 @@
 
 Updated: 2026-08-03
 
+## Issue #242 — optional Supabase compatibility
+
+No product, implementation, offline-runtime or hardware blocker is open for this Work Package.
+
+The required exact-head workflows for candidate `73cf19b2e7191a38290b3dc99fa211bdaf038878` completed GREEN, including CI, Security Browser, Offline Auth, Authenticated Dashboard and disconnected Offline Bundle with update/rollback volume preservation.
+
+A state-only follow-up commit records the completed checks. Merge remains gated only by:
+
+- exact-head GREEN workflows for the state-only commit;
+- resolution of the review thread;
+- expected-head merge protection.
+
 ## Hard blockers
 
-No hard blocker prevents completing the final software sweep and merging Issue #245 / PR #246.
+No hard blocker prevents completing PR #248 or beginning the next independent software Work Package after merge.
 
 Stop before:
 
@@ -22,7 +34,7 @@ Stop before:
 
 **Status:** Soft blocker after software merge.
 
-Software contracts are verified on PR #246, but actual-host acceptance still requires controlled physical evidence from the intended Raspberry Pi 5:
+Software contracts are verified and merged in PR #246, but actual-host acceptance still requires controlled physical evidence from the intended Raspberry Pi 5:
 
 - deploy `main` with `--runtime-mode standalone`;
 - disconnect Ethernet and Wi-Fi;
@@ -69,4 +81,4 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 
 ## Next Ready action
 
-Run the final exact-head checks and merge PR #246. Then perform the controlled standalone deployment and physical offline acceptance on the Raspberry Pi before closing Issue #245. Issue #242 resumes only after the critical runtime acceptance path is stable.
+Complete the state-only exact-head checks, resolve the PR #248 review thread and merge with expected-head protection. Then record the actual merge SHA and begin Issue #243.

@@ -1,91 +1,81 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "RUNTIME-RELIABILITY-1",
-  "task": "NEXOLAB-245",
-  "issue": 245,
-  "pull_request": 246,
-  "status": "software_verified_pending_final_state_sweep",
-  "timestamp": "2026-08-03T09:30:00+03:00",
-  "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
-  "candidate_head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
-  "summary": "Implemented explicit LAN and standalone Raspberry Pi runtime modes. Standalone uses loopback browser/API/WebSocket origins, exact CORS, an isolated Docker broker bridge and no dashboard dependency on network-online.target.",
-  "scope_completed": [
-    "added explicit lan and standalone deployment modes with lan as the default",
-    "compiled standalone dashboard for loopback REST and WebSocket origins",
-    "bound standalone dashboard, API, MQTT and MinIO host ports to loopback",
-    "preserved the configured authentication mode and fail-closed Security Gate",
-    "rejected remote-JWKS-only authentication in standalone mode",
-    "isolated the edge-to-central MQTT bridge from the Telemetry Service DNS namespace",
-    "preserved named-volume identities and durable telemetry contracts",
-    "removed network-online.target from the standalone dashboard unit",
-    "added standalone verification and LAN regression contracts",
-    "added the standalone Raspberry Pi operator runbook"
+  "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
+  "task": "NEXOLAB-242",
+  "issue": 242,
+  "pull_request": 248,
+  "status": "exact_head_green_pending_state_fix_ci",
+  "timestamp": "2026-08-03T14:46:00+03:00",
+  "baseline_main_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+  "verified_candidate_head_sha": "73cf19b2e7191a38290b3dc99fa211bdaf038878",
+  "state_fix_commits": [
+    "2d22e0aea40ac31765ee61a06a08296dd2302bb9",
+    "e50d10657c3e3cbd5b3a8013081eff54de72bf55"
   ],
+  "decision": "update",
+  "resolved_version_before": "2.110.8",
+  "resolved_version_after": "2.112.0",
+  "summary": "Updated only the optional Supabase SDK graph, proved unconfigured Supabase performs no initialization or request, proved LOCAL_LAN local authentication remains primary, and recorded all exact-head GitHub acceptance workflows as GREEN.",
   "files_changed": [
-    ".github/workflows/ci.yml",
-    "docs/operations/raspberry-pi-standalone-offline-runtime.md",
-    "infrastructure/compose/compose.central-standalone.yaml",
-    "infrastructure/compose/compose.edge-standalone.yaml",
-    "scripts/deploy-current-head-raspberry-pi.sh",
-    "scripts/lib/raspberry-pi-runtime-mode.sh",
-    "scripts/tests/standalone-offline-runtime-contract.sh",
-    "scripts/verify-standalone-offline-raspberry-pi.sh",
+    "package.json",
+    "package-lock.json",
+    "src/features/security/supabase-auth.test.ts",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
-  "candidate_verification": {
-    "head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
-    "result": "3_of_3_green",
-    "runs": {
-      "ci": 30791309275,
-      "telemetry_service": 30791309295,
-      "offline_bundle": 30791309244
-    },
-    "checks": [
-      "standalone and LAN shell contract tests passed",
-      "Compose model and isolated network assertions passed",
-      "repository-wide formatting passed",
-      "ESLint passed",
-      "strict TypeScript passed",
-      "Vitest passed",
-      "production build passed",
-      "Telemetry Service migrations and integration tests passed",
-      "PostgreSQL outage recovery passed",
-      "disconnected image load and startup passed",
-      "disconnected update and rollback preserved persistent data"
-    ]
+  "dependency_graph": {
+    "updated_to_2_112_0": [
+      "supabase-js",
+      "auth-js",
+      "functions-js",
+      "postgrest-js",
+      "realtime-js",
+      "storage-js"
+    ],
+    "unchanged": ["phoenix 0.4.5", "iceberg-js 0.8.1", "tslib 2.8.1"]
+  },
+  "local_checks_passed": [
+    "targeted Supabase and local-auth Vitest",
+    "npm run format:check",
+    "npm run lint",
+    "npm run typecheck",
+    "npm test",
+    "npm run build"
+  ],
+  "github_checks_passed": {
+    "ci": 30800858215,
+    "security_browser": 30800857389,
+    "offline_auth": 30800857575,
+    "authenticated_dashboard": 30800857397,
+    "offline_bundle": 30800858287,
+    "refrigeration_browser": 30800857965,
+    "nodes_browser": 30800857446,
+    "alerts_browser": 30800858049,
+    "test_sessions_browser": 30800857431,
+    "reports_browser": 30800857402,
+    "rendered_reports_browser": 30800857520
   },
   "runtime_and_offline_evidence": [
-    "standalone host endpoints are 127.0.0.1:3000, 127.0.0.1:8082 and loopback WebSocket",
-    "edge broker reaches central broker through central-mqtt:1883 on nexolab-standalone-runtime",
-    "Telemetry Service remains only on the private central network",
-    "no mandatory cloud, CDN, remote font, analytics or paid runtime dependency was introduced",
-    "no demo fallback or wildcard CORS was introduced",
-    "linux/amd64 disconnected bundle and update/rollback gate passed"
+    "missing Supabase configuration creates no client and performs no fetch",
+    "local authentication remains primary even when invalid Supabase values are present",
+    "disconnected Offline Bundle startup passed",
+    "update and rollback preserved persistent volumes",
+    "no mandatory cloud or paid runtime dependency was introduced"
   ],
   "hardware_evidence": {
-    "status": "pending",
     "hardware_verified": false,
-    "note": "No actual Raspberry Pi reboot, physical network removal, RS-485 observation or hardware write was performed."
+    "note": "No hardware operation was in scope or performed. Actual Raspberry Pi acceptance for Issue #245 remains pending."
   },
   "checks_pending": [
-    "final exact-head workflow sweep after project state update",
-    "review audit and mark PR #246 ready",
-    "merge PR #246",
-    "deploy standalone mode on the actual Raspberry Pi 5",
-    "collect loopback-only runtime, telemetry restart and reboot evidence"
-  ],
-  "open_risks": [
-    "actual Raspberry Pi 5 standalone behavior remains unverified",
-    "actual ARM64 offline bundle installation and rollback remain outside this Work Package",
-    "physical power-loss recovery remains unverified",
-    "temporary sharp override requires future Next.js compatibility review"
+    "exact-head workflows for the state-only commits",
+    "resolve the review thread",
+    "merge PR #248 with expected head protection"
   ],
   "next_ready_work_package": {
-    "issue": 245,
-    "instruction": "After PR #246 merges, deploy main with --runtime-mode standalone and complete the physical Raspberry Pi acceptance checklist before closing the Issue."
+    "issue": 243,
+    "instruction": "After PR #248 merges, record its actual merge SHA and begin the focused Lucide dependency review."
   }
 }
