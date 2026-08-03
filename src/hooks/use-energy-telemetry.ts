@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "@/features/energy/energy-history";
+import {
+  loadCompleteEnergyHistory,
+  mergeEnergyHistoryTail,
+  selectEnergyHistoryTail,
+} from "@/features/energy/energy-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -209,10 +213,16 @@ export function useEnergyTelemetry({
         (sample) => sample.node_id === ENERGY_NODE_ID && isEnergySample(sample),
       );
       if (disposed || accepted.length === 0) return;
-      setStore((current) => mergeDashboardTelemetry(current, accepted, { now: Date.now() }));
+      const now = Date.now();
+      setStore((current) => mergeDashboardTelemetry(current, accepted, { now }));
 
       const selectedHistoryMetric = selectedMetricRef.current;
-      const tail = accepted.filter((sample) => sample.metric === selectedHistoryMetric);
+      const tail = selectEnergyHistoryTail(
+        accepted,
+        ENERGY_NODE_ID,
+        selectedHistoryMetric,
+        now,
+      );
       const currentWindow = historyWindowRef.current;
       if (
         tail.length > 0 &&
@@ -241,7 +251,7 @@ export function useEnergyTelemetry({
       }
 
       setError(null);
-      setClock(Date.now());
+      setClock(now);
     };
 
     const connectLive = () => {
