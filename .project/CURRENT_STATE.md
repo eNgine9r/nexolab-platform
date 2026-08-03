@@ -2,11 +2,11 @@
 
 Updated: 2026-08-03
 Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Verified implementation head: `3143bf31757b7d866623896c241f695da650944f`
+Verified implementation head: `40e2b0897b389a2adcd43903223dc16129e7460d`
 Active Work Package: Issue #261 — Energy Monitoring verified and ready for protected merge
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Next Ready Work Package: Issue #263 — Live Data telemetry explorer
-Status confidence: high for repository state, exact-head CI, authenticated browser evidence and resolved product review findings.
+Status confidence: high for repository state, exact-head CI, authenticated browser evidence and addressed review findings.
 
 ## Product route status
 
@@ -40,10 +40,11 @@ Delivered behavior:
 - deterministic W1–W4 cards for Unit IDs 200–203, scoped to production node `edge-01`;
 - confirmed voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
 - authenticated local REST snapshot and WebSocket live updates;
-- complete paginated PostgreSQL history for 1h, 6h and 24h windows;
-- bounded per-meter downsampling after the complete window is loaded;
+- stable captured-time cursor pagination for complete 1h, 6h and 24h PostgreSQL history windows;
+- bounded renderable-only per-meter downsampling after the complete window is loaded;
 - requested-window chart scaling, including sparse intervals;
 - incremental WebSocket history-tail merge without periodic full-window reload;
+- wall-clock rolling-window advancement and pruning when telemetry stops;
 - metric/unit compatibility validation;
 - explicit loading, empty, stale, offline, communication-error, permission-denied and configuration states;
 - no silent demo fallback in live mode;
@@ -53,14 +54,14 @@ No package, Compose, container, database migration, Modbus write, production dep
 
 ## Exact-head verification
 
-Verified on `3143bf31757b7d866623896c241f695da650944f`:
+Verified on implementation head `40e2b0897b389a2adcd43903223dc16129e7460d`:
 
-- CI run `30830167308` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30830165546` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
-- focused history tests cover pagination, downsampling, node scope, deduplication, rolling-window pruning and WebSocket-tail merge;
+- CI run `30832280986` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30832281295` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
+- focused tests cover stable pagination, downsampling, renderable sample selection, node scope, deduplication and rolling-window pruning;
 - review findings for pagination, freshness, window scale, rolling updates, unit compatibility, node scope and query load are addressed.
 
-Broad path filters also launched unrelated workflows; they do not expand this focused page merge gate.
+Broad path filters may launch unrelated workflows; they do not expand this focused page merge gate.
 
 ## Runtime and hardware evidence
 
@@ -72,4 +73,4 @@ Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence f
 
 ## Next Ready Work Package
 
-Merge PR #262 with expected-head protection, then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
+Resolve addressed PR #262 review threads and merge with expected-head protection. Then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
