@@ -29,12 +29,17 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
+const HISTORY_REFRESH_MS = 60_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
 
 export type EnergyHistoryRange = keyof typeof HISTORY_HOURS;
 export type EnergyHistoryStatus = "idle" | "loading" | "ready" | "error";
+export interface EnergyHistoryWindow {
+  from: string;
+  to: string;
+}
 
 interface RuntimeConfigResult {
   config: TelemetryRuntimeConfig | null;
@@ -52,6 +57,7 @@ export interface EnergyTelemetryModel {
   setSelectedMetric: (metric: EnergyMetricId) => void;
   historyRange: EnergyHistoryRange;
   setHistoryRange: (range: EnergyHistoryRange) => void;
+  historyWindow: EnergyHistoryWindow | null;
   historySamples: TelemetrySample[];
   historyStatus: EnergyHistoryStatus;
   historyError: Error | null;
@@ -102,6 +108,7 @@ export function useEnergyTelemetry({
   const [generation, setGeneration] = useState(0);
   const [selectedMetric, setSelectedMetric] = useState<EnergyMetricId>(ENERGY_METRICS[0].id);
   const [historyRange, setHistoryRange] = useState<EnergyHistoryRange>("24h");
+  const [historyWindow, setHistoryWindow] = useState<EnergyHistoryWindow | null>(null);
   const [historySamples, setHistorySamples] = useState<TelemetrySample[]>([]);
   const [historyStatus, setHistoryStatus] = useState<EnergyHistoryStatus>(
     runtime.config?.mode === "live" ? "loading" : "idle",
@@ -110,6 +117,7 @@ export function useEnergyTelemetry({
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const historyKey = scopeKey === null ? null : `${scopeKey}:${selectedMetric}:${historyRange}`;
+  const historyRefreshBucket = Math.floor(clock / HISTORY_REFRESH_MS);
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
@@ -211,13 +219,14 @@ export function useEnergyTelemetry({
     const adapter = securedAdapter(config, resolvedOrganizationId);
     const to = new Date();
     const from = new Date(to.getTime() - HISTORY_HOURS[historyRange] * 60 * 60 * 1000);
+    const requestedWindow = { from: from.toISOString(), to: to.toISOString() };
     let disposed = false;
 
     void Promise.resolve().then(() => {
       if (disposed) return;
       setActiveHistoryKey(historyKey);
+      setHistoryWindow(requestedWindow);
       setHistoryStatus("loading");
-      setHistorySamples([]);
       setHistoryError(null);
     });
 
@@ -252,6 +261,7 @@ export function useEnergyTelemetry({
     historyGeneration,
     historyKey,
     historyRange,
+    historyRefreshBucket,
     runtime.config,
     selectedMetric,
     selectedOrganizationId,
@@ -292,6 +302,7 @@ export function useEnergyTelemetry({
       setSelectedMetric,
       historyRange,
       setHistoryRange,
+      historyWindow: null,
       historySamples: [],
       historyStatus: "error",
       historyError: runtime.error,
@@ -313,6 +324,7 @@ export function useEnergyTelemetry({
       setSelectedMetric,
       historyRange,
       setHistoryRange,
+      historyWindow: null,
       historySamples: [],
       historyStatus: "idle",
       historyError: null,
@@ -342,6 +354,7 @@ export function useEnergyTelemetry({
     setSelectedMetric,
     historyRange,
     setHistoryRange,
+    historyWindow: activeHistoryKey === historyKey ? historyWindow : null,
     historySamples: activeHistoryKey === historyKey ? historySamples : [],
     historyStatus: activeHistoryKey === historyKey ? historyStatus : "loading",
     historyError: activeHistoryKey === historyKey ? historyError : null,
