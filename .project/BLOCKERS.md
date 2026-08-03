@@ -1,30 +1,26 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-03
+Updated: 2026-08-04
 
 ## Issue #261 — Energy Monitoring
 
-No product, software, runtime or hardware blocker prevents finalization of PR #262.
+No product, software, runtime, offline or hardware blocker prevents protected merge of PR #262.
 
-Verified implementation head `6738277080db3388ef241468c0a28e3204ac7f98` passed:
+Exact implementation head `c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7` is GREEN across CI, Telemetry Service, authenticated/security/refrigeration/test-session/report browser gates, Offline Auth, disconnected Offline Bundle, capacity, fleet, MQTT TLS, broker control, supply-chain and disaster-recovery workflows.
 
-- CI run `30844693579` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30844693548` — energy latest/history, meter selection, WebSocket update and evidence upload;
-- Refrigeration Browser Acceptance run `30844693576` — existing refrigeration operator flow remains intact.
+The production fixes include:
 
-Review corrections include:
+- authenticated WebSocket coverage before latest and history snapshots;
+- bounded startup event reconciliation;
+- commit-stable history watermark with the barrier applied to `SessionAwareDatabase`;
+- complete pagination and bounded renderable-only downsampling;
+- source-derived outage segmentation and cross-callback ordering protection;
+- ordering cursor seeded when changing metrics;
+- explicit history error for terminal WebSocket startup states;
+- permission gating, stale-value retention, metric/unit validation and production node scope;
+- restoration of the stage telemetry filter in session attribution.
 
-- WebSocket subscription established before the initial REST latest snapshot;
-- bounded startup buffer reconciled with snapshot data so no capture cycle is lost in the startup gap;
-- startup communication errors retained as pending per-meter outage boundaries without prior history;
-- stable captured-time pagination with overlapping page-boundary timestamps;
-- renderable-only absolute-bucket downsampling with first/latest endpoint preservation;
-- source-derived, cross-callback and first-bucket outage segmentation;
-- permission gating before telemetry network traffic;
-- requested-window scaling, per-metric freshness, metric/unit validation and production node scope;
-- incremental WebSocket history, wall-clock pruning and future-skew rejection.
-
-Remaining administrative actions: validate the state-only head, resolve addressed review threads and merge PR #262 with expected-head protection.
+Remaining administrative actions are limited to the exact-head state-only gate, review hygiene and expected-head merge.
 
 Cumulative active energy remains blocked under Issue #201 until the physical register, scale, unit, word order and rollover behavior are confirmed. Do not display guessed `kWh`.
 
@@ -65,4 +61,4 @@ Stop before:
 
 ## Next Ready action
 
-Finalize and merge PR #262, then start Issue #263. Do not insert deferred dependency migrations between these product pages.
+Complete the state-only gate and merge PR #262. Then create `feat/263-live-telemetry-explorer` from updated `main` and implement Issue #263 without dependency migrations.
