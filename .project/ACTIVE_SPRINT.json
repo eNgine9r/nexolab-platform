@@ -230,7 +230,7 @@
       "id": "NEXOLAB-237",
       "issue": 237,
       "title": "Make generated DR object-storage credentials argument-safe",
-      "status": "verified_pending_merge",
+      "status": "done",
       "track": "recovery-reliability",
       "pull_request": 238,
       "baseline_main_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114",
@@ -248,7 +248,9 @@
         "evidence_artifact_digest": "sha256:3c4f07f86c704db683c7ddce1397858ed08b6d696cbc73398a4f6d5a09a6c8d1",
         "shared_compose_contract_changed": false,
         "hardware": "not_applicable"
-      }
+      },
+      "merge_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
+      "final_head_sha": "ef8b171d7789c9b14f3bf01d2512f35d57d34036"
     },
     {
       "id": "NEXOLAB-200",
@@ -282,7 +284,45 @@
       "id": "NEXOLAB-203",
       "issue": 203,
       "title": "Review production dependency updates",
-      "status": "ready_after_237_merge"
+      "status": "in_progress",
+      "active_child_issue": 239,
+      "active_pull_request": 240,
+      "remaining_groups": ["transitive sharp risk", "optional Supabase", "Lucide icons"]
+    },
+    {
+      "id": "NEXOLAB-239",
+      "issue": 239,
+      "title": "Upgrade Next.js and React security patch line",
+      "status": "verified_pending_merge",
+      "track": "production-dependency-maintenance",
+      "parent_issue": 203,
+      "pull_request": 240,
+      "baseline_main_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
+      "implementation_head_sha": "814fc1d46003c2b786e5bb73723b654ce5e3fffe",
+      "files_changed_before_state": 2,
+      "versions": {
+        "next": "16.2.12",
+        "eslint-config-next": "16.2.12",
+        "react": "19.2.8",
+        "react-dom": "19.2.8"
+      },
+      "verification": {
+        "result": "green_software_only",
+        "dependency_evidence_run": 30762557284,
+        "dependency_evidence_artifact_id": 8837927439,
+        "dependency_evidence_digest": "sha256:79caeea78bfb8a4b1e212a2a31abd9d4259113966cfc11fe930c11de023eebfd",
+        "ci_run": 30764056361,
+        "security_browser_run": 30764056348,
+        "authenticated_dashboard_run": 30764056342,
+        "refrigeration_browser_run": 30764056354,
+        "offline_bundle_run": 30764056351,
+        "all_triggered_workflows": "11_of_11_green",
+        "offline_bundle_artifact_id": 8838464830,
+        "offline_bundle_digest": "sha256:4fb9e27a84ecc42fea42a4f8269a5b6a464f51c4a1fb46d786560877a2272730",
+        "direct_next_advisories": "removed",
+        "remaining_sharp_risk": "separate_focused_work_package_required",
+        "hardware": "not_applicable"
+      }
     },
     {
       "id": "NEXOLAB-204",

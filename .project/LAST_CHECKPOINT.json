@@ -1,59 +1,87 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "RECOVERY-RELIABILITY-1",
-  "task": "NEXOLAB-237",
-  "issue": 237,
-  "pull_request": 238,
+  "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
+  "task": "NEXOLAB-239",
+  "issue": 239,
+  "parent_issue": 203,
+  "pull_request": 240,
   "status": "verified_pending_merge",
-  "timestamp": "2026-08-02T21:25:12+03:00",
-  "baseline_main_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114",
-  "implementation_head_sha": "1ddd0bf128aed310596b05b0a3da2f150b54ed91",
-  "summary": "Localized the nondeterministic leading-hyphen MinIO credential failure to the DR generator, preserved the shared Compose contract, added a deterministic self-test and completed CI plus encrypted recovery on the first attempt.",
+  "timestamp": "2026-08-02T22:56:00+03:00",
+  "baseline_main_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
+  "implementation_head_sha": "814fc1d46003c2b786e5bb73723b654ce5e3fffe",
+  "summary": "Isolated and verified the Next.js 16.2 / React 19.2 security patch group, regenerated the lockfile deterministically, removed direct Next.js advisories and proved all triggered browser plus disconnected runtime workflows GREEN.",
   "scope_completed": [
-    "restored infrastructure/compose/compose.disaster-recovery.yaml to the unchanged main contract",
-    "added an argument-safe nxl_ prefix at the generated MinIO credential boundary",
-    "preserved the full token_urlsafe(36) random payload and secret non-persistence",
-    "added a self-test using -leading-option-like and asserted the result cannot begin with a hyphen",
-    "invoked the self-test from Disaster Recovery Acceptance before runtime verification",
-    "kept product source, dependencies, production data, deployment, hardware and Modbus operations out of scope"
+    "updated next and eslint-config-next to 16.2.12",
+    "updated react and react-dom to 19.2.8",
+    "regenerated package-lock.json with Node 22 and npm 10.9.8",
+    "proved no Supabase, Lucide or unrelated direct dependency changed",
+    "captured before/after production trees and audit JSON",
+    "classified sharp and Playwright advisories without broadening the PR",
+    "proved all triggered browser workflows",
+    "proved disconnected load/start and update/rollback persistence"
   ],
   "files_changed": [
-    ".github/workflows/disaster-recovery-acceptance.yml",
-    "scripts/run-disaster-recovery-acceptance.sh",
+    "package.json",
+    "package-lock.json",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
   "exact_file_evidence": {
-    "generator_script_git_blob": "98a337fdb88c402365ed35fbaea06d0a18d8ae1b",
-    "generator_script_sha256": "8c389b3b0848314d6f38cc5ac5286c3d3e8a9cf72b51b0fad394f47b6bc6d51f",
-    "workflow_git_blob": "e8dbe1cf338ee78c50c4c4fb907d74af71ec4d80",
-    "workflow_sha256": "312a5546c286a7786dd70d1fd78d2069d324075e59c6d93ad0af3af1cfe920d6",
-    "generation_artifact_run": 30759997368,
-    "generation_artifact_id": 8837146504,
-    "generation_artifact_digest": "sha256:8094bbc92944133b76c767e720223ac904a086ddb6da94181d1688f66c5e78bb"
+    "package_json_sha256": "70b43835bd19f3c0f405430680494651a18f8b32d54ac4c69bafaf3d350d5556",
+    "package_lock_sha256": "cc3746f2e95fc449350bd2e92d65754f1b9b8e9acb2f12b1a08cb41572d813d7",
+    "dependency_generation_run": 30762557284,
+    "dependency_artifact_id": 8837927439,
+    "dependency_artifact_digest": "sha256:79caeea78bfb8a4b1e212a2a31abd9d4259113966cfc11fe930c11de023eebfd"
+  },
+  "audit_classification": {
+    "direct_next_advisories_before": 9,
+    "direct_next_advisories_after": 0,
+    "remaining_production_risk": "sharp 0.34.5 affected by <0.35.0 advisory",
+    "next_sharp_constraint": "^0.34.5",
+    "playwright_advisory": "dev-only and out of scope",
+    "action": "create a separate sharp compatibility Work Package after merge"
   },
   "checks_actually_run": [
-    "bash syntax validation passed for the changed DR script",
-    "deterministic self-test converted -leading-option-like to nxl_-leading-option-like",
-    "repository-wide formatting, ESLint, strict TypeScript, full Vitest and production build passed in CI run 30760710838",
-    "DR policy, recovery inventory, bundle tests, secret scan and destructive-operation scan passed in run 30760710828",
-    "encrypted source-to-restore platform acceptance passed in the first attempt of run 30760710828 without rerun"
+    "artifact-verified package generation passed in 30762557284",
+    "formatting, ESLint, TypeScript, 181 Vitest tests and build passed in 30764056361",
+    "Security Browser 30764056348 passed",
+    "Authenticated Dashboard 30764056342 passed",
+    "Refrigeration Browser 30764056354 passed",
+    "reports, rendered reports, alerts, sessions, nodes and offline-auth passed",
+    "Offline Bundle 30764056351 passed disconnected startup and update/rollback persistence"
   ],
   "runtime_and_offline_evidence": [
-    "encrypted PostgreSQL, MinIO, MQTT and local-auth recovery remained GREEN",
-    "shared Compose credentials and restored object access retained their existing semantics",
-    "no mandatory internet, cloud, CDN, remote font, telemetry or paid runtime dependency was introduced",
-    "sanitized evidence artifact 8837371547 passed the built-in secret leakage scan"
+    "self-hosted Next.js 16.2.12 production build completed",
+    "JWT/RBAC/audit and authenticated REST/WebSocket flows remained GREEN",
+    "PostgreSQL/MinIO refrigeration flow remained GREEN",
+    "no mandatory internet was used during disconnected runtime proof",
+    "no CDN, remote font, telemetry, cloud or paid runtime dependency was introduced"
   ],
   "evidence": {
-    "ci_run": 30760710838,
-    "disaster_recovery_acceptance_run": 30760710828,
-    "disaster_recovery_attempt": 1,
-    "disaster_recovery_artifact_id": 8837371547,
-    "disaster_recovery_artifact_digest": "sha256:3c4f07f86c704db683c7ddce1397858ed08b6d696cbc73398a4f6d5a09a6c8d1"
+    "ci_run": 30764056361,
+    "security_browser": {
+      "run": 30764056348,
+      "artifact_id": 8838386715,
+      "digest": "sha256:0904ac5269fbb49aee58096be97236b258d615aba74ae96f828ab02491295692"
+    },
+    "authenticated_dashboard": {
+      "run": 30764056342,
+      "artifact_id": 8838388043,
+      "digest": "sha256:6674f3a2402ce008813ff193cca55dafc47cf55cc38dde942f1021f815b91b20"
+    },
+    "refrigeration_browser": {
+      "run": 30764056354,
+      "artifact_id": 8838383301,
+      "digest": "sha256:e103e86fc620fcf8349ee76e86a03ece195601ac67e9907be8031cd8fd59fecb"
+    },
+    "offline_bundle": {
+      "run": 30764056351,
+      "artifact_id": 8838464830,
+      "digest": "sha256:4fb9e27a84ecc42fea42a4f8269a5b6a464f51c4a1fb46d786560877a2272730"
+    }
   },
   "hardware_evidence": {
     "status": "not_applicable",
@@ -61,19 +89,20 @@
     "note": "No Raspberry Pi, Modbus, physical device, production/site or persistent production-data operation was performed."
   },
   "checks_pending": [
-    "final exact-head CI after project-state update",
-    "changed-path audit",
+    "final exact-head workflow sweep after state update",
+    "exact six-path diff audit",
     "review-thread and submitted-review audit",
-    "mark PR #238 ready for review",
-    "squash merge PR #238 with expected exact head"
+    "mark PR #240 ready for review",
+    "squash merge PR #240 with expected exact head"
   ],
   "open_risks": [
-    "Issue #189 physical recovery evidence remains unverified",
-    "actual Raspberry Pi 5 arm64 offline update and rollback remain unverified",
-    "pre-existing frontend test warnings remain outside this Work Package"
+    "sharp advisory requires a separate focused Issue",
+    "Playwright dev advisory remains outside this Work Package",
+    "actual Raspberry Pi 5 ARM64 update and rollback remain unverified",
+    "pre-existing non-failing frontend warnings remain outside this Work Package"
   ],
   "next_ready_work_package": {
-    "issue": 203,
-    "instruction": "After PR #238 merges, perform a focused production dependency review without mixing major frontend migrations from Issue #204."
+    "parent_issue": 203,
+    "instruction": "After PR #240 merges, create a focused sharp Issue, then review Supabase and Lucide in separate branches and Pull Requests."
   }
 }
