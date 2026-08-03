@@ -4,8 +4,9 @@
   "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
   "task": "NEXOLAB-243",
   "issue": 243,
-  "status": "no_update_decision_pending_pr_ci",
-  "timestamp": "2026-08-03T15:12:00+03:00",
+  "pull_request": 249,
+  "status": "focused_test_added_pending_exact_head_ci",
+  "timestamp": "2026-08-03T15:26:00+03:00",
   "baseline_main_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
   "branch": "maint/243-lucide-operator-semantics",
   "decision": "retain",
@@ -24,6 +25,18 @@
     "zap_operator_surfaces": ["sidebar energy navigation", "energy page icon"],
     "other_1_27_changed_icons_imported": []
   },
+  "focused_regression_test": {
+    "path": "src/components/dashboard/lucide-operator-semantics.test.tsx",
+    "commit": "b116d9a8ed64d5b86dc4c79d830565f8f53636c1",
+    "assertions": [
+      "Zap remains mapped to Енергомоніторинг and /energy",
+      "icon-only refrigeration control has an accessible name",
+      "icon-only refrigeration control has a matching title",
+      "button type remains button",
+      "default size remains 40 by 40 pixels",
+      "focus-visible outline remains present"
+    ]
+  },
   "accessibility_evidence": [
     "Topbar icon-only menu, notification and sign-out controls have explicit aria-label values",
     "RefrigerationIconButton requires a label and applies aria-label plus title",
@@ -40,21 +53,23 @@
     "retaining the exact manifest and lockfile is the lowest-risk reversible decision"
   ],
   "files_changed": [
+    "src/components/dashboard/lucide-operator-semantics.test.tsx",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
-  "files_confirmed_unchanged": [
+  "production_files_confirmed_unchanged": [
     "package.json",
     "package-lock.json",
-    "all UI components and tests"
+    "all production UI components"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
     "note": "No hardware operation was in scope or performed."
   },
   "checks_pending": [
+    "focused Lucide operator-semantics test",
     "exact-head CI",
     "Refrigeration Browser",
     "Security Browser",
