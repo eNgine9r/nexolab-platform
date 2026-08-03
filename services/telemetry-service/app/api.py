@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -37,6 +37,7 @@ class TelemetryCollectionResponse(BaseModel):
     limit: int
     offset: int
     next_offset: int | None
+    snapshot_at: datetime | None = None
 
 
 def _collection(
@@ -44,6 +45,7 @@ def _collection(
     *,
     limit: int,
     offset: int,
+    snapshot_at: datetime | None = None,
 ) -> TelemetryCollectionResponse:
     has_more = len(rows) > limit
     page = rows[:limit]
@@ -53,6 +55,7 @@ def _collection(
         limit=limit,
         offset=offset,
         next_offset=offset + limit if has_more else None,
+        snapshot_at=snapshot_at,
     )
 
 
@@ -112,6 +115,7 @@ def create_api_router(
         metric: str | None = None,
         quality: Quality | None = None,
         alarm: Alarm | None = None,
+        snapshot_at: datetime | None = None,
         limit: Annotated[int, Query(ge=1, le=1000)] = 200,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> TelemetryCollectionResponse:
@@ -121,6 +125,11 @@ def create_api_router(
                 status_code=422,
                 detail="from and to must be timezone-aware timestamps",
             )
+        if snapshot_at is not None and snapshot_at.tzinfo is None:
+            raise HTTPException(
+                status_code=422,
+                detail="snapshot_at must be a timezone-aware timestamp",
+            )
         if from_at >= to_at:
             raise HTTPException(status_code=422, detail="from must be earlier than to")
         if to_at - from_at > timedelta(days=max_history_days):
@@ -129,6 +138,7 @@ def create_api_router(
                 detail=f"history range must not exceed {max_history_days} days",
             )
 
+        resolved_snapshot_at = snapshot_at or datetime.now(UTC)
         query = TelemetryQuery(
             node_id=node_id,
             equipment_id=equipment_id,
@@ -138,13 +148,19 @@ def create_api_router(
             alarm=alarm,
             from_at=from_at,
             to_at=to_at,
+            received_before=resolved_snapshot_at,
         )
         rows = database.history_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
         )
-        return _collection(rows, limit=limit, offset=offset)
+        return _collection(
+            rows,
+            limit=limit,
+            offset=offset,
+            snapshot_at=resolved_snapshot_at,
+        )
 
     return router
 
