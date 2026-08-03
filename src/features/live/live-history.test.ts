@@ -123,7 +123,7 @@ describe("live history downsampling", () => {
     const samples = Array.from({ length: 20 }, (_, index) =>
       sample({
         event_id: `event-${index}`,
-        captured_at: new Date(window.from.getTime() + index * 60_000).toISOString(),
+        captured_at: new Date(window.from.getTime() + index * 5_000).toISOString(),
         value: index,
       }),
     );
