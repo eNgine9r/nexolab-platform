@@ -2,24 +2,30 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
-  "task": "NEXOLAB-239",
-  "issue": 239,
+  "task": "NEXOLAB-241",
+  "issue": 241,
   "parent_issue": 203,
-  "pull_request": 240,
+  "pull_request": 244,
   "status": "verified_pending_merge",
-  "timestamp": "2026-08-02T22:56:00+03:00",
-  "baseline_main_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
-  "implementation_head_sha": "814fc1d46003c2b786e5bb73723b654ce5e3fffe",
-  "summary": "Isolated and verified the Next.js 16.2 / React 19.2 security patch group, regenerated the lockfile deterministically, removed direct Next.js advisories and proved all triggered browser plus disconnected runtime workflows GREEN.",
+  "timestamp": "2026-08-03T07:43:00+03:00",
+  "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
+  "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
+  "clean_state_head_sha": "437686a09bfdc1067e88cf0326bc914569d3d612",
+  "formatted_state_head_sha": "48a80b37dc49b0d1825897ebb6a1a25f63a0a807",
+  "final_state_head_sha": "01850316c162f50f64e649a98937926cd1f8b571",
+  "summary": "Verified an evidence-backed sharp 0.35.3 override candidate that removes the actionable production sharp/next audit path while preserving native linux/x64 behavior and ARM64 package availability.",
   "scope_completed": [
-    "updated next and eslint-config-next to 16.2.12",
-    "updated react and react-dom to 19.2.8",
-    "regenerated package-lock.json with Node 22 and npm 10.9.8",
-    "proved no Supabase, Lucide or unrelated direct dependency changed",
-    "captured before/after production trees and audit JSON",
-    "classified sharp and Playwright advisories without broadening the PR",
-    "proved all triggered browser workflows",
-    "proved disconnected load/start and update/rollback persistence"
+    "captured exact next to sharp production dependency path",
+    "confirmed no direct application sharp import",
+    "recorded advisory affected range and patched floor",
+    "generated deterministic sharp 0.35.3 override lockfile",
+    "proved production audit has no sharp or next entry",
+    "proved linux/x64 native image processing with libvips 8.18.3",
+    "proved linux/arm64 glibc and musl packages exist in the lockfile",
+    "ran formatting, lint, typecheck, Vitest and production build",
+    "published a clean implementation commit without temporary workflows",
+    "published clean project state without temporary workflows",
+    "formatted ACTIVE_SPRINT.json with the repository Prettier contract"
   ],
   "files_changed": [
     "package.json",
@@ -30,79 +36,108 @@
     ".project/LAST_CHECKPOINT.json"
   ],
   "exact_file_evidence": {
-    "package_json_sha256": "70b43835bd19f3c0f405430680494651a18f8b32d54ac4c69bafaf3d350d5556",
-    "package_lock_sha256": "cc3746f2e95fc449350bd2e92d65754f1b9b8e9acb2f12b1a08cb41572d813d7",
-    "dependency_generation_run": 30762557284,
-    "dependency_artifact_id": 8837927439,
-    "dependency_artifact_digest": "sha256:79caeea78bfb8a4b1e212a2a31abd9d4259113966cfc11fe930c11de023eebfd"
+    "package_json_sha256": "370a941f8b8995b59fe6f8199c5a6b9e0ad1085f03d4a0f14e3f698ac5432e06",
+    "package_lock_sha256": "302c4cd59a40dd4462e51d2eb251519929d80d9fb5d614b3dc409142477e5350",
+    "baseline_evidence_run": 30782736886,
+    "baseline_artifact_id": 8844227708,
+    "baseline_artifact_digest": "sha256:97a7780a9738776a1cd31fe8859eed5830695d438921e25843fc3be7b47c71ca",
+    "candidate_run": 30785495411,
+    "candidate_artifact_id": 8845125944,
+    "candidate_artifact_digest": "sha256:a5d82492f62c95240df61e00992dc66f162cc0563ed860339a896b14e0f1ed81"
   },
   "audit_classification": {
-    "direct_next_advisories_before": 9,
-    "direct_next_advisories_after": 0,
-    "remaining_production_risk": "sharp 0.34.5 affected by <0.35.0 advisory",
-    "next_sharp_constraint": "^0.34.5",
-    "playwright_advisory": "dev-only and out of scope",
-    "action": "create a separate sharp compatibility Work Package after merge"
+    "advisory": "GHSA-f88m-g3jw-g9cj",
+    "affected_range": "<0.35.0",
+    "patched_floor": "0.35.0",
+    "selected_version": "0.35.3",
+    "sharp_next_entries_after": 0,
+    "remaining_playwright_entries": "dev-tool only; Issue #204",
+    "override_disposition": "temporary evidence-backed compatibility control pending an official Next.js supported range"
   },
   "checks_actually_run": [
-    "artifact-verified package generation passed in 30762557284",
-    "formatting, ESLint, TypeScript, 181 Vitest tests and build passed in 30764056361",
-    "Security Browser 30764056348 passed",
-    "Authenticated Dashboard 30764056342 passed",
-    "Refrigeration Browser 30764056354 passed",
-    "reports, rendered reports, alerts, sessions, nodes and offline-auth passed",
-    "Offline Bundle 30764056351 passed disconnected startup and update/rollback persistence"
+    "baseline dependency evidence workflow 30782736886 passed",
+    "candidate workflow 30785495411 passed",
+    "npm ci passed",
+    "npm ls sharp resolved only 0.35.3",
+    "production audit removed sharp and next entries",
+    "linux/x64 sharp SVG-to-PNG smoke passed",
+    "ARM64 glibc and musl lockfile package matrix passed",
+    "repository-wide format check passed",
+    "ESLint passed",
+    "strict TypeScript passed",
+    "Vitest passed",
+    "production build passed"
   ],
   "runtime_and_offline_evidence": [
-    "self-hosted Next.js 16.2.12 production build completed",
-    "JWT/RBAC/audit and authenticated REST/WebSocket flows remained GREEN",
-    "PostgreSQL/MinIO refrigeration flow remained GREEN",
-    "no mandatory internet was used during disconnected runtime proof",
-    "no CDN, remote font, telemetry, cloud or paid runtime dependency was introduced"
+    "no new mandatory network call, CDN, remote font, telemetry, cloud or paid runtime dependency introduced",
+    "native linux/x64 sharp runtime loaded and processed an image",
+    "linux/arm64 native package integrity recorded at build/lockfile level",
+    "offline bundle and disconnected runtime remain pending on final exact head"
   ],
-  "evidence": {
-    "ci_run": 30764056361,
-    "security_browser": {
-      "run": 30764056348,
-      "artifact_id": 8838386715,
-      "digest": "sha256:0904ac5269fbb49aee58096be97236b258d615aba74ae96f828ab02491295692"
-    },
-    "authenticated_dashboard": {
-      "run": 30764056342,
-      "artifact_id": 8838388043,
-      "digest": "sha256:6674f3a2402ce008813ff193cca55dafc47cf55cc38dde942f1021f815b91b20"
-    },
-    "refrigeration_browser": {
-      "run": 30764056354,
-      "artifact_id": 8838383301,
-      "digest": "sha256:e103e86fc620fcf8349ee76e86a03ece195601ac67e9907be8031cd8fd59fecb"
-    },
-    "offline_bundle": {
-      "run": 30764056351,
-      "artifact_id": 8838464830,
-      "digest": "sha256:4fb9e27a84ecc42fea42a4f8269a5b6a464f51c4a1fb46d786560877a2272730"
-    }
-  },
   "hardware_evidence": {
     "status": "not_applicable",
     "hardware_verified": false,
     "note": "No Raspberry Pi, Modbus, physical device, production/site or persistent production-data operation was performed."
   },
+  "final_sweep_trigger": {
+    "method": "github_connector_commit",
+    "reason": "GitHub Actions suppresses recursive workflow execution for GITHUB_TOKEN-created commits",
+    "previous_clean_head": "01850316c162f50f64e649a98937926cd1f8b571"
+  },
   "checks_pending": [
-    "final exact-head workflow sweep after state update",
-    "exact six-path diff audit",
-    "review-thread and submitted-review audit",
-    "mark PR #240 ready for review",
-    "squash merge PR #240 with expected exact head"
+    "final state-only exact-head workflow sweep",
+    "mark PR #244 ready for review",
+    "squash merge PR #244 with expected exact head"
   ],
   "open_risks": [
-    "sharp advisory requires a separate focused Issue",
-    "Playwright dev advisory remains outside this Work Package",
-    "actual Raspberry Pi 5 ARM64 update and rollback remain unverified",
-    "pre-existing non-failing frontend warnings remain outside this Work Package"
+    "override exceeds the Next.js declared sharp semver range and requires ongoing review",
+    "actual Raspberry Pi 5 ARM64 execution remains unverified",
+    "Playwright dev advisory remains outside this Work Package"
   ],
   "next_ready_work_package": {
-    "parent_issue": 203,
-    "instruction": "After PR #240 merges, create a focused sharp Issue, then review Supabase and Lucide in separate branches and Pull Requests."
+    "issue": 242,
+    "instruction": "After PR #244 merges, review the optional Supabase dependency while preserving fail-closed offline local authentication."
+  },
+  "verification_head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
+  "final_verification": {
+    "result": "11_of_11_green",
+    "runs": {
+      "ci": 30786862301,
+      "security_browser": 30786862321,
+      "authenticated_dashboard": 30786862289,
+      "refrigeration_browser": 30786862297,
+      "offline_auth": 30786862303,
+      "offline_bundle": 30786862331,
+      "nodes": 30786862329,
+      "alerts": 30786862328,
+      "test_sessions": 30786862363,
+      "reports": 30786862307,
+      "rendered_reports": 30786862292
+    },
+    "artifacts": {
+      "security_browser": {
+        "id": 8845566996,
+        "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
+      },
+      "authenticated_dashboard": {
+        "id": 8845567008,
+        "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
+      },
+      "refrigeration_browser": {
+        "id": 8845563069,
+        "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
+      },
+      "offline_auth": {
+        "id": 8845627973,
+        "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
+      },
+      "offline_bundle": {
+        "id": 8845690195,
+        "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
+      }
+    },
+    "review_threads": 0,
+    "submitted_reviews": 0,
+    "offline_auth_retry_classification": "first attempt failed before migration due transient container startup; retry passed full migration and disconnected auth"
   }
 }

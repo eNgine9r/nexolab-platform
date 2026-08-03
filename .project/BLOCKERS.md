@@ -1,10 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 ## Hard blockers
 
-No hard blocker prevents completing Issue #239 / PR #240 after final exact-head CI and review audit.
+No hard blocker prevents merging Issue #241 / PR #244 after the final state-only exact-head sweep.
 
 Stop before:
 
@@ -16,29 +16,24 @@ Stop before:
 - unresolved materially different product or architecture decisions;
 - any operation that cannot preserve local laboratory data.
 
-## Resolved reliability defect
-
-### N-036 — Generated DR credential can begin with `-` — resolved
-
-PR #238 merged as `36b63cd6aba96c0fcb0e7f8649496e0207840cf3`. The generator adds `nxl_`, preserves entropy and passed first-attempt encrypted restore.
-
 ## Active production dependency risks
 
 ### N-037 — Transitive `sharp 0.34.5` advisory
 
-**Status:** Open risk; separate focused Work Package required after PR #240.
+**Status:** Remediation and 11-of-11 verification sweep GREEN; pending final state-only checks and merge.
 
-- artifact `8837927439` resolves `sharp` to `0.34.5`;
-- the advisory affects `<0.35.0`;
-- Next.js `16.2.12` declares optional `sharp` as `^0.34.5`;
-- direct Next.js advisories affecting `<16.2.11` are removed;
-- do not force an unsupported override inside PR #240.
+- baseline path: `next@16.2.12 -> sharp@0.34.5`;
+- affected range: `<0.35.0`;
+- candidate: evidence-backed npm override to `sharp 0.35.3`;
+- production audit no longer contains `sharp` or `next` entries;
+- linux/x64 native processing passed with libvips `8.18.3`;
+- linux/arm64 glibc/musl package integrity is present in the lockfile;
+- actual Raspberry Pi execution remains unverified;
+- reassess and remove the override when a supported Next.js range is available.
 
 ### N-038 — Playwright `1.55.0` dev-tool advisory
 
-**Status:** Open but out of scope for Issue #239.
-
-It is not a mandatory runtime dependency and belongs to the separate toolchain track.
+**Status:** Open and isolated under Issue #204. It is not a mandatory runtime dependency and is out of scope for PR #244.
 
 ## Issue #189 recovery status
 
@@ -57,4 +52,4 @@ Software recovery evidence is verified. Actual-host and physical recovery remain
 
 ## Next Ready Work Package
 
-Merge PR #240 after exact-head GREEN. Create a separate focused Issue for N-037 (`sharp`). Then review Supabase and Lucide independently under parent Issue #203. Keep Issue #204 isolated.
+Merge PR #244 after exact-head GREEN. Continue Issue #203 with Issue #242 (optional Supabase isolation), followed independently by Issue #243 (Lucide operator semantics). Keep Issue #204 isolated.

@@ -285,15 +285,16 @@
       "issue": 203,
       "title": "Review production dependency updates",
       "status": "in_progress",
-      "active_child_issue": 239,
-      "active_pull_request": 240,
-      "remaining_groups": ["transitive sharp risk", "optional Supabase", "Lucide icons"]
+      "active_child_issue": 241,
+      "active_pull_request": 244,
+      "remaining_groups": ["optional Supabase", "Lucide icons"],
+      "completed_groups": ["Next.js and React security patch line"]
     },
     {
       "id": "NEXOLAB-239",
       "issue": 239,
       "title": "Upgrade Next.js and React security patch line",
-      "status": "verified_pending_merge",
+      "status": "done",
       "track": "production-dependency-maintenance",
       "parent_issue": 203,
       "pull_request": 240,
@@ -307,28 +308,112 @@
         "react-dom": "19.2.8"
       },
       "verification": {
-        "result": "green_software_only",
-        "dependency_evidence_run": 30762557284,
-        "dependency_evidence_artifact_id": 8837927439,
-        "dependency_evidence_digest": "sha256:79caeea78bfb8a4b1e212a2a31abd9d4259113966cfc11fe930c11de023eebfd",
-        "ci_run": 30764056361,
-        "security_browser_run": 30764056348,
-        "authenticated_dashboard_run": 30764056342,
-        "refrigeration_browser_run": 30764056354,
-        "offline_bundle_run": 30764056351,
-        "all_triggered_workflows": "11_of_11_green",
-        "offline_bundle_artifact_id": 8838464830,
-        "offline_bundle_digest": "sha256:4fb9e27a84ecc42fea42a4f8269a5b6a464f51c4a1fb46d786560877a2272730",
-        "direct_next_advisories": "removed",
-        "remaining_sharp_risk": "separate_focused_work_package_required",
+        "result": "11_of_11_green",
+        "ci_run": 30781671279,
+        "security_browser_run": 30781671294,
+        "authenticated_dashboard_run": 30781671291,
+        "refrigeration_browser_run": 30781671313,
+        "offline_auth_run": 30781671273,
+        "offline_bundle_run": 30781671302,
         "hardware": "not_applicable"
-      }
+      },
+      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
+      "final_head_sha": "e960a9208a5f90dfde2189e48b7ee0c5b67f2de7"
     },
     {
       "id": "NEXOLAB-204",
       "issue": 204,
       "title": "Plan major frontend toolchain migrations",
       "status": "queued"
+    },
+    {
+      "id": "NEXOLAB-241",
+      "issue": 241,
+      "title": "Resolve transitive sharp security risk without unsupported overrides",
+      "status": "verified_pending_merge",
+      "track": "production-dependency-maintenance",
+      "parent_issue": 203,
+      "pull_request": 244,
+      "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
+      "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
+      "files_changed_before_state": 2,
+      "remediation": {
+        "strategy": "evidence-backed npm override",
+        "sharp_before": "0.34.5",
+        "sharp_after": "0.35.3",
+        "libvips_after": "8.18.3",
+        "next_declared_range": "^0.34.5"
+      },
+      "verification": {
+        "baseline_evidence_run": 30782736886,
+        "baseline_artifact_id": 8844227708,
+        "baseline_artifact_digest": "sha256:97a7780a9738776a1cd31fe8859eed5830695d438921e25843fc3be7b47c71ca",
+        "candidate_run": 30785495411,
+        "candidate_artifact_id": 8845125944,
+        "candidate_artifact_digest": "sha256:a5d82492f62c95240df61e00992dc66f162cc0563ed860339a896b14e0f1ed81",
+        "package_json_sha256": "370a941f8b8995b59fe6f8199c5a6b9e0ad1085f03d4a0f14e3f698ac5432e06",
+        "package_lock_sha256": "302c4cd59a40dd4462e51d2eb251519929d80d9fb5d614b3dc409142477e5350",
+        "sharp_next_production_audit_entries": 0,
+        "x64_native_smoke": "passed",
+        "arm64_package_matrix": "present_in_lockfile",
+        "quality_gate": "format_lint_typecheck_tests_build_green",
+        "hardware": "not_applicable"
+      },
+      "final_verification": {
+        "head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
+        "result": "11_of_11_green",
+        "runs": {
+          "ci": 30786862301,
+          "security_browser": 30786862321,
+          "authenticated_dashboard": 30786862289,
+          "refrigeration_browser": 30786862297,
+          "offline_auth": 30786862303,
+          "offline_bundle": 30786862331,
+          "nodes": 30786862329,
+          "alerts": 30786862328,
+          "test_sessions": 30786862363,
+          "reports": 30786862307,
+          "rendered_reports": 30786862292
+        },
+        "artifacts": {
+          "security_browser": {
+            "id": 8845566996,
+            "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
+          },
+          "authenticated_dashboard": {
+            "id": 8845567008,
+            "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
+          },
+          "refrigeration_browser": {
+            "id": 8845563069,
+            "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
+          },
+          "offline_auth": {
+            "id": 8845627973,
+            "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
+          },
+          "offline_bundle": {
+            "id": 8845690195,
+            "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
+          }
+        },
+        "review_threads": 0,
+        "submitted_reviews": 0
+      }
+    },
+    {
+      "id": "NEXOLAB-242",
+      "issue": 242,
+      "title": "Review optional Supabase dependency while preserving offline-local auth",
+      "status": "queued_after_241",
+      "parent_issue": 203
+    },
+    {
+      "id": "NEXOLAB-243",
+      "issue": 243,
+      "title": "Review Lucide icon dependency without changing operator semantics",
+      "status": "queued_after_242",
+      "parent_issue": 203
     }
   ]
 }
