@@ -63,20 +63,6 @@ jobs:
           package-manager-cache: false
           node-version-file: .nvmrc
 
-      - name: Install locked formatting dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Format focused live acceptance file
-        run: npx prettier --write e2e/live.production.e2e.ts
-
-      - name: Upload canonical live acceptance file
-        uses: actions/upload-artifact@v7
-        with:
-          name: formatted-live-persisted-fixture-${{ github.sha }}
-          path: e2e/live.production.e2e.ts
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Run authenticated dashboard acceptance
         run: bash scripts/run-authenticated-dashboard-acceptance.sh
 
