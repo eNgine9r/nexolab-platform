@@ -1,4 +1,4 @@
-# NEXOLAB Node 22 Baseline
+# NEXOLAB Node Tooling and Container Baseline
 
 Updated: 2026-08-03
 Issue: #251
@@ -7,24 +7,24 @@ Baseline main: `72ecc207af528942396054764c0b33a663727de1`
 
 ## Decision
 
-NEXOLAB frontend development and GitHub Actions use:
+NEXOLAB uses two explicit supported Node lines for different responsibilities:
 
 ```text
-Recommended exact Node: 22.23.1
-Supported engine range: >=22.22.1 <23
+Developer and GitHub Actions baseline: Node 22.23.1
+Supported Node 22 floor: >=22.22.1 <23
+Dashboard container build/runtime line: >=24 <25
 Node type declarations: @types/node 22.20.1
 npm engine floor: >=10.0.0
 ```
 
 ## Rationale
 
-- Node 22 is an LTS line in Maintenance status and remains supported through April 2027.
-- Node 22.23.1 is the latest published Node 22 LTS patch at review time.
-- The exact `.nvmrc` value makes developer and CI resolution reproducible.
-- The package engine floor rejects older Node 22 patches that do not satisfy the planned lint-staged 17 migration requirement.
-- The `<23` upper bound prevents accidental use of unsupported odd/current majors.
-- `@types/node` remains on the Node 22 declaration line. The proposed Node 26 types are not accepted while the runtime contract is Node 22.
-- The latest published Node 22 declarations at review time are `22.20.1`.
+- Node 22.23.1 is the exact developer and GitHub Actions baseline.
+- The Node 22 floor satisfies the planned lint-staged 17 requirement while preventing accidental Node 23 use.
+- The offline dashboard Dockerfile already uses the supported Node 24 container line. The package engine must preserve that production build contract.
+- The package engine therefore admits supported even-numbered Node 22 and Node 24 lines while rejecting Node 23 and Node 25.
+- `@types/node` remains on Node 22 so strict typechecking cannot silently depend on Node 24- or Node 26-only APIs.
+- The proposed Node 26 type declarations are rejected while the developer and CI compatibility floor remains Node 22.
 
 Primary references:
 
@@ -35,15 +35,15 @@ Primary references:
 
 ## Repository contract
 
-### Developer selector
+### Developer and CI selector
 
-`.nvmrc` contains the exact supported version:
+`.nvmrc` contains:
 
 ```text
 22.23.1
 ```
 
-Recommended setup:
+Recommended developer setup:
 
 ```bash
 nvm install
@@ -58,22 +58,37 @@ Expected Node output:
 v22.23.1
 ```
 
+All searched frontend workflows use:
+
+```yaml
+node-version-file: .nvmrc
+```
+
+The primary CI workflow also fails if `node --version` differs from `.nvmrc` and records the npm version in job evidence.
+
 ### Package engine
 
-`package.json` rejects unsupported runtime majors:
+`package.json` describes the actual supported build lines:
 
 ```json
 {
   "engines": {
-    "node": ">=22.22.1 <23",
+    "node": ">=22.22.1 <23 || >=24 <25",
     "npm": ">=10.0.0"
   }
 }
 ```
 
+This range deliberately distinguishes two responsibilities:
+
+- Node 22.23.1 for developer machines and GitHub Actions;
+- Node 24 for the existing dashboard container build/runtime.
+
+It does not authorize an automatic Node 24 developer migration or Node 26 runtime change.
+
 ### Type declarations
 
-The development dependency and lockfile remain on Node 22:
+The manifest and lockfile use:
 
 ```text
 manifest: @types/node ^22.20.1
@@ -81,24 +96,29 @@ resolved: @types/node 22.20.1
 undici-types: 6.21.0
 ```
 
-This prevents Node 26-only APIs from appearing valid during strict typechecking.
+Keeping Node 22 declarations is conservative: application source must remain valid on the lowest supported Node line even when a container build runs on Node 24.
 
-### GitHub Actions
+## Offline failure discovered and resolved
 
-NEXOLAB workflows use:
+The first candidate engine range admitted only Node 22:
 
-```yaml
-node-version-file: .nvmrc
+```text
+>=22.22.1 <23
 ```
 
-The primary CI workflow additionally verifies that `node --version` exactly matches `.nvmrc` before dependency installation and records the npm version in job evidence.
+Offline Bundle correctly failed during `npm prune --omit=dev` because the dashboard image uses Node 24. The corrected dual-line engine preserves both:
+
+- exact Node 22 developer/CI verification;
+- the established Node 24 offline image build.
+
+This failure was not bypassed or reclassified. The package contract was corrected and the complete exact-head cascade must rerun.
 
 ## Verification
 
 Required exact-head checks:
 
 ```text
-Node baseline assertion
+Node 22.23.1 baseline assertion
 npm install --no-audit
 npm run format:check
 npm run lint
@@ -107,23 +127,24 @@ npm test
 npm run build
 ```
 
-Because package and lockfile metadata change, also require:
+Because package/lockfile metadata and container engine compatibility are affected, also require:
 
-- all triggered browser acceptance workflows;
-- Offline Bundle disconnected load/start;
+- every triggered browser acceptance workflow;
+- Offline Bundle connected build;
+- disconnected archive load/start with pull disabled;
 - update/rollback persistent-volume preservation;
 - review audit and expected-head merge.
 
 ## Runtime and offline impact
 
-- Node and `@types/node` remain development/build dependencies.
-- No production browser API, backend API, Compose service or hardware contract changes.
+- No production browser API, backend API, database, telemetry or hardware contract changes.
+- The existing Node 24 dashboard image remains supported.
 - No CDN, external telemetry, cloud API, online license or paid runtime dependency is added.
-- Existing offline runtime images and persistent-volume identities remain unchanged.
+- Persistent-volume names and disconnected installation behavior remain unchanged.
 
 ## Rollback
 
-Restore the previous exact metadata pair:
+Restore the previous metadata pair:
 
 ```text
 .nvmrc: 22
@@ -132,6 +153,6 @@ package engine: >=22.0.0
 @types/node lock: 20.19.43
 ```
 
-Then regenerate `package-lock.json` using the previous repository baseline and rerun the complete quality/build and Offline Bundle gates.
+Regenerate `package-lock.json` from the previous repository baseline and rerun the complete quality/build, browser and Offline Bundle gates.
 
 Rollback does not require database migration, persistent-volume deletion, hardware action or production cutover.
