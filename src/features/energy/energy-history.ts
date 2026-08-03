@@ -1,7 +1,10 @@
 import {
-  clearEnergyHistorySegmentStart,
+  clearEnergyHistoryBreakPending,
+  clearEnergyHistoryMarkers,
   energyHistorySourceEventId,
+  isEnergyHistoryBreakPending,
   isEnergyHistorySegmentStart,
+  markEnergyHistoryBreakPending,
   markEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
 import { isEnergySample, resolveEnergyMeter, type EnergyMetricId } from "@/features/energy/energy-telemetry";
@@ -20,6 +23,11 @@ export interface EnergyHistoryWindow {
   to: Date;
 }
 
+interface EnergyHistorySegmentAnnotation {
+  samples: TelemetrySample[];
+  breakPending: boolean;
+}
+
 function isRenderableEnergyHistorySample(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
 }
@@ -31,16 +39,19 @@ function isAcceptedEnergyHistorySample(sample: TelemetrySample): boolean {
 function annotateSourceSegments(
   samples: readonly TelemetrySample[],
   previousRenderableAt: number | null = null,
-): TelemetrySample[] {
+  initialBreakPending = false,
+): EnergyHistorySegmentAnnotation {
   const sorted = [...samples].sort(
     (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
   );
   const annotated: TelemetrySample[] = [];
   let previousAt = previousRenderableAt;
-  let breakPending = false;
+  let breakPending = initialBreakPending;
 
   for (const sourceSample of sorted) {
-    const sample = clearEnergyHistorySegmentStart(sourceSample);
+    const explicitSegment = isEnergyHistorySegmentStart(sourceSample.event_id);
+    const pendingAfterSample = isEnergyHistoryBreakPending(sourceSample.event_id);
+    const sample = clearEnergyHistoryMarkers(sourceSample);
     const capturedAt = Date.parse(sample.captured_at);
     if (!Number.isFinite(capturedAt)) continue;
 
@@ -49,7 +60,6 @@ function annotateSourceSegments(
       continue;
     }
 
-    const explicitSegment = isEnergyHistorySegmentStart(sourceSample.event_id);
     const startsSegment =
       explicitSegment ||
       (previousAt !== null &&
@@ -58,10 +68,10 @@ function annotateSourceSegments(
 
     annotated.push(startsSegment ? markEnergyHistorySegmentStart(sample) : sample);
     if (previousAt === null || capturedAt >= previousAt) previousAt = capturedAt;
-    breakPending = false;
+    breakPending = pendingAfterSample;
   }
 
-  return annotated;
+  return { samples: annotated, breakPending };
 }
 
 function mergeBucketSample(
@@ -73,8 +83,18 @@ function mergeBucketSample(
   const selected = Date.parse(current.captured_at) <= Date.parse(candidate.captured_at) ? candidate : current;
   const startsSegment =
     isEnergyHistorySegmentStart(current.event_id) || isEnergyHistorySegmentStart(candidate.event_id);
-  const normalized = clearEnergyHistorySegmentStart(selected);
+  const normalized = clearEnergyHistoryMarkers(selected);
   return startsSegment ? markEnergyHistorySegmentStart(normalized) : normalized;
+}
+
+function applyPendingBreak(
+  samples: readonly TelemetrySample[],
+  breakPending: boolean,
+): TelemetrySample[] {
+  if (!breakPending || samples.length === 0) return [...samples];
+  const marked = [...samples];
+  marked[marked.length - 1] = markEnergyHistoryBreakPending(marked[marked.length - 1]);
+  return marked;
 }
 
 function bucketDownsampleAnnotated(
@@ -116,27 +136,6 @@ function bucketDownsampleAnnotated(
     .slice(-maximumPoints);
 }
 
-function downsampleAnnotatedEnergyHistory(
-  samples: readonly TelemetrySample[],
-  maximumPointsPerMeter: number,
-  window?: Pick<EnergyHistoryWindow, "from" | "to">,
-): TelemetrySample[] {
-  const byMeter = new Map<number, TelemetrySample[]>();
-
-  for (const sample of samples) {
-    if (!isRenderableEnergyHistorySample(sample)) continue;
-    const meter = resolveEnergyMeter(sample);
-    if (!meter) continue;
-    const current = byMeter.get(meter.unitId) ?? [];
-    current.push(sample);
-    byMeter.set(meter.unitId, current);
-  }
-
-  return [...byMeter.entries()]
-    .sort(([left], [right]) => left - right)
-    .flatMap(([, meterSamples]) => bucketDownsampleAnnotated(meterSamples, maximumPointsPerMeter, window));
-}
-
 export function selectEnergyHistoryTail(
   samples: readonly TelemetrySample[],
   nodeId: string,
@@ -173,9 +172,15 @@ export function downsampleEnergyHistory(
 
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
-    .flatMap(([, meterSamples]) =>
-      bucketDownsampleAnnotated(annotateSourceSegments(meterSamples), maximumPointsPerMeter, window),
-    );
+    .flatMap(([, meterSamples]) => {
+      const annotation = annotateSourceSegments(meterSamples);
+      const sampled = bucketDownsampleAnnotated(
+        annotation.samples,
+        maximumPointsPerMeter,
+        window,
+      );
+      return applyPendingBreak(sampled, annotation.breakPending);
+    });
 }
 
 export function mergeEnergyHistoryTail(
@@ -217,23 +222,36 @@ export function mergeEnergyHistoryTail(
     const existing = [...(currentByMeter.get(unitId) ?? [])].sort(
       (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
     );
+    const latestExisting = existing.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
+    const existingBreakPending =
+      latestExisting !== null && isEnergyHistoryBreakPending(latestExisting.event_id);
+    const normalizedExisting = existing.map(clearEnergyHistoryBreakPending);
     const lastExistingAt =
-      existing
+      normalizedExisting
         .filter(isRenderableEnergyHistorySample)
         .map((sample) => Date.parse(sample.captured_at))
         .filter(Number.isFinite)
         .at(-1) ?? null;
-    const annotatedIncoming = annotateSourceSegments(incomingByMeter.get(unitId) ?? [], lastExistingAt);
+    const annotation = annotateSourceSegments(
+      incomingByMeter.get(unitId) ?? [],
+      lastExistingAt,
+      existingBreakPending,
+    );
     const byEventId = new Map<string, TelemetrySample>();
 
-    for (const sample of [...existing, ...annotatedIncoming]) {
+    for (const sample of [...normalizedExisting, ...annotation.samples]) {
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
-    merged.push(...bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window));
+    const sampled = bucketDownsampleAnnotated(
+      [...byEventId.values()],
+      MAX_HISTORY_POINTS_PER_METER,
+      window,
+    );
+    merged.push(...applyPendingBreak(sampled, annotation.breakPending));
   }
 
-  return downsampleAnnotatedEnergyHistory(merged, MAX_HISTORY_POINTS_PER_METER, window);
+  return merged;
 }
 
 export async function loadCompleteEnergyHistory(
