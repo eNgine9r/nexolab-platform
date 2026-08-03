@@ -26,6 +26,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Validate standalone Raspberry Pi runtime contracts
+        shell: bash
+        run: bash scripts/tests/standalone-offline-runtime-contract.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:

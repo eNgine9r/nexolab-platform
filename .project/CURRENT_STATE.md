@@ -1,16 +1,15 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-03
-Verified main baseline: `3623be1f2778ea283200e6a5d2278c5f1326c434`
-Active Work Package: Issue #241 / PR #244 — resolve the transitive `sharp` production advisory
-Parent maintenance track: Issue #203 — focused production dependency updates
-Status confidence: high for repository state, dependency evidence, linux/amd64 native runtime, GitHub-hosted quality checks and lockfile ARM64 package metadata; partial for actual Raspberry Pi 5 execution, reboot, power-loss and physical hardware acceptance.
+Verified main baseline: `2c00812aed7bc107f191a50e2e0745cb9c091bbd`
+Active Work Package: Issue #245 / PR #246 — standalone offline Raspberry Pi 5 runtime
+Status confidence: high for repository state, runtime contracts, GitHub-hosted quality checks, Telemetry Service regression and linux/amd64 disconnected delivery; partial for actual Raspberry Pi 5 reboot, loopback-only browser use and physical telemetry acceptance.
 
 ## Profile
 
-- Project type: `LOCAL_LAN`.
-- Development internet is allowed; core runtime internet and paid cloud services are not required.
-- Local PostgreSQL, MQTT, edge SQLite, logs, backup and restore remain first-class.
+- Project type: `LOCAL_LAN` with an explicit same-host `standalone` runtime mode.
+- Development and connected deployment may use the internet; core runtime must not require it.
+- Local PostgreSQL, MQTT, MinIO, edge SQLite, logs, backup and restore remain first-class.
 - No Modbus write, hardware write or production/site cutover is authorized.
 
 ## Completed maintenance baseline
@@ -28,58 +27,84 @@ Status confidence: high for repository state, dependency evidence, linux/amd64 n
 - PR #225–#229 and #233 — controlled Prettier baseline.
 - PR #234 — GitHub Actions runtime compatibility.
 - PR #238 — argument-safe disaster-recovery credentials.
-- PR #240 / Issue #239 — Next.js 16.2.12 and React 19.2.8 security patch line, merged as `3623be1f2778ea283200e6a5d2278c5f1326c434` after 11-of-11 exact-head GREEN workflows.
+- PR #240 — Next.js and React security patch line.
+- PR #244 / Issue #241 — `sharp 0.35.3` compatibility control, merged as `2c00812aed7bc107f191a50e2e0745cb9c091bbd`.
 
-## Issue #241 / PR #244 candidate outcome
+## Issue #245 / PR #246 software outcome
 
-Baseline evidence proved the production path is `next@16.2.12 -> sharp@0.34.5`; NEXOLAB application source has no direct `sharp` import. GitHub advisory `GHSA-f88m-g3jw-g9cj` affects `sharp <0.35.0`, while the current Next.js 16.2 line still declares optional `sharp` as `^0.34.5`.
+The implementation adds two explicit deployment modes:
 
-The smallest remediation candidate adds only:
+```text
+lan
+standalone
+```
 
-- `overrides.sharp = 0.35.3` in `package.json`;
-- the deterministic `package-lock.json` graph for `sharp 0.35.3` and libvips `8.18.3`.
+`lan` remains the default and preserves trusted-LAN behavior. `standalone` compiles and exposes the same-host operator path through:
 
-Evidence:
+```text
+Dashboard: http://127.0.0.1:3000
+API:       http://127.0.0.1:8082
+WebSocket: ws://127.0.0.1:8082/api/v1/telemetry/live
+```
 
-- baseline run `30782736886`, artifact `8844227708`, digest `sha256:97a7780a9738776a1cd31fe8859eed5830695d438921e25843fc3be7b47c71ca`;
-- candidate run `30785495411`, artifact `8845125944`, digest `sha256:a5d82492f62c95240df61e00992dc66f162cc0563ed860339a896b14e0f1ed81`;
-- candidate `package.json` SHA-256 `370a941f8b8995b59fe6f8199c5a6b9e0ad1085f03d4a0f14e3f698ac5432e06`;
-- candidate `package-lock.json` SHA-256 `302c4cd59a40dd4462e51d2eb251519929d80d9fb5d614b3dc409142477e5350`;
-- `npm ls sharp --omit=dev` resolves only `sharp 0.35.3`;
-- production audit has no `sharp` or `next` advisory entry;
-- linux/x64 native SVG-to-PNG smoke passed with libvips `8.18.3`;
-- linux/arm64 glibc and musl native packages are present with integrity metadata in the lockfile;
-- repository-wide formatting, ESLint, strict typecheck, Vitest and production build passed in the candidate workflow.
+The standalone contract:
 
-Clean implementation head `f9594f517b5b9e8a8b94da53da4b36f5a5abec8b` contains exactly `package.json` and `package-lock.json`. Temporary evidence/publisher workflows are absent from its history and diff.
+- uses exact loopback CORS origins;
+- preserves the configured authentication mode and Security Gate;
+- rejects remote-JWKS-only authentication in standalone mode;
+- removes the dashboard dependency on `network-online.target`;
+- connects the edge broker to the central broker through an isolated Docker bridge and the unambiguous alias `central-mqtt:1883`;
+- keeps Telemetry Service on the private central network so the edge broker cannot shadow the central `mqtt` DNS name;
+- preserves PostgreSQL, central MQTT, MinIO, telemetry-ingestion and edge SQLite volume identities;
+- adds `scripts/verify-standalone-offline-raspberry-pi.sh` and a dedicated operator runbook;
+- does not add demo fallback, wildcard CORS, dependency upgrades, Modbus writes or hardware writes.
+
+## Candidate verification
+
+Candidate head `d4ff514e1448454d90fb53ac4e4e049cc81f225e` completed all triggered workflows GREEN:
+
+- CI `30791309275` — standalone/LAN contract test, repository formatting, ESLint, strict typecheck, Vitest and production build;
+- Telemetry Service `30791309295` — migrations, MQTT/REST/WebSocket/object-storage tests, PostgreSQL outage recovery, offline migration SQL and container build;
+- Offline Bundle `30791309244` — disconnected image load/start, blocked container egress, smoke verification and update/rollback volume preservation.
+
+The contract test proves that:
+
+- invalid runtime modes fail before mutation;
+- standalone frontend/API/WebSocket/CORS values are loopback-only;
+- LAN mode remains backward compatible;
+- central MQTT and the edge bridge use a dedicated shared runtime network;
+- Telemetry Service cannot resolve the edge broker as its `mqtt` dependency.
 
 ## Open Pull Requests
 
-- #244 — verified `sharp 0.35.3` override candidate; 11-of-11 workflows and review audit are GREEN on `82c83d5357da62cdb30e9c1f692c750f74da773c`; pending merge.
+- #246 — standalone offline Raspberry Pi runtime; state update and final exact-head sweep pending.
+
+## Runtime and hardware evidence
+
+Software status:
+
+```text
+software verified; actual standalone Raspberry Pi acceptance pending
+```
+
+Not yet verified on the physical Raspberry Pi 5:
+
+- reboot with Ethernet and Wi-Fi unavailable;
+- no default route and no IPv4 on physical uplinks;
+- local browser opening `http://127.0.0.1:3000`;
+- Security Gate, REST and WebSocket behavior on the actual host;
+- continued real RS-485 telemetry for at least 15 minutes;
+- telemetry preservation across Telemetry Service restart and a second reboot.
 
 ## Open risks and blockers
 
-- No hard blocker prevents completing PR #244.
-- The override intentionally exceeds Next.js 16.2.12's declared `^0.34.5` range; compatibility is evidence-backed and must be removed or reassessed when Next.js publishes a supported patched range.
-- Playwright `1.55.0` remains a separate dev-tool advisory under Issue #204.
-- Actual Raspberry Pi 5 ARM64 execution remains unverified; only package/build metadata is verified.
-- Issue #189 actual-host recovery evidence remains unverified.
-- Hardware Issues #200–#202 remain blocked pending controlled read-only evidence.
+- No hard blocker prevents the final software sweep and merge of PR #246.
+- Actual Raspberry Pi acceptance remains a soft blocker before Issue #245 can be closed.
+- Issue #189 actual-host recovery and power-loss evidence remains incomplete.
+- Issues #200–#202 remain blocked pending controlled read-only hardware evidence.
+- Actual ARM64 offline bundle installation/update/rollback remains separate from this runtime Work Package.
+- The temporary `sharp` override must be reassessed when Next.js publishes a supported patched range.
 
-## Next Ready Work Package
+## Next Ready action
 
-Merge PR #244 with expected exact head after the final state-only sweep. Then execute Issue #242 as a separate optional-Supabase/offline-auth compatibility review. Issue #243 remains queued independently for Lucide operator semantics.
-
-## Issue #241 final verification sweep
-
-Verification head `82c83d5357da62cdb30e9c1f692c750f74da773c` completed all 11 permanent workflows GREEN:
-
-- CI `30786862301`;
-- Security Browser `30786862321`, artifact `8845566996`;
-- Authenticated Dashboard `30786862289`, artifact `8845567008`;
-- Refrigeration Browser `30786862297`, artifact `8845563069`;
-- Offline Auth `30786862303`, artifact `8845627973`;
-- Offline Bundle `30786862331`, artifact `8845690195`;
-- Nodes, Alerts, Test Sessions, Reports and Rendered Reports also GREEN.
-
-Review audit: 0 review threads and 0 submitted reviews requiring action. The final state-only commit must repeat exact-head checks before merge.
+Complete the state-only exact-head checks, review PR #246 and merge it. Then deploy `main` on the Raspberry Pi with `--runtime-mode standalone` and collect the required loopback-only actual-host evidence before closing Issue #245.

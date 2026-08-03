@@ -4,7 +4,7 @@ Updated: 2026-08-03
 
 ## Hard blockers
 
-No hard blocker prevents merging Issue #241 / PR #244 after the final state-only exact-head sweep.
+No hard blocker prevents completing the final software sweep and merging Issue #245 / PR #246.
 
 Stop before:
 
@@ -16,40 +16,57 @@ Stop before:
 - unresolved materially different product or architecture decisions;
 - any operation that cannot preserve local laboratory data.
 
+## Issue #245 — standalone offline Raspberry Pi runtime
+
+### N-039 — Actual Raspberry Pi loopback-only acceptance
+
+**Status:** Soft blocker after software merge.
+
+Software contracts are verified on PR #246, but actual-host acceptance still requires controlled physical evidence from the intended Raspberry Pi 5:
+
+- deploy `main` with `--runtime-mode standalone`;
+- disconnect Ethernet and Wi-Fi;
+- confirm no default route and no IPv4 on physical uplinks;
+- reboot without reconnecting networking;
+- open `http://127.0.0.1:3000` in the locally attached browser;
+- verify Security Gate, REST, WebSocket, Device Agent, MQTT, PostgreSQL and MinIO;
+- prove real telemetry advances for at least 15 minutes;
+- restart Telemetry Service and verify no silent loss;
+- reboot again and verify runtime and persistent data recover.
+
+Until that evidence exists, use:
+
+```text
+software verified; actual standalone Raspberry Pi acceptance pending
+```
+
 ## Active production dependency risks
 
-### N-037 — Transitive `sharp 0.34.5` advisory
+### N-037 — Temporary `sharp 0.35.3` compatibility control
 
-**Status:** Remediation and 11-of-11 verification sweep GREEN; pending final state-only checks and merge.
+**Status:** Merged in PR #244.
 
-- baseline path: `next@16.2.12 -> sharp@0.34.5`;
-- affected range: `<0.35.0`;
-- candidate: evidence-backed npm override to `sharp 0.35.3`;
-- production audit no longer contains `sharp` or `next` entries;
-- linux/x64 native processing passed with libvips `8.18.3`;
-- linux/arm64 glibc/musl package integrity is present in the lockfile;
-- actual Raspberry Pi execution remains unverified;
-- reassess and remove the override when a supported Next.js range is available.
+The production advisory path is removed, but the override exceeds the Next.js 16.2.12 declared optional range. Reassess or remove it when Next.js publishes a supported patched range.
 
 ### N-038 — Playwright `1.55.0` dev-tool advisory
 
-**Status:** Open and isolated under Issue #204. It is not a mandatory runtime dependency and is out of scope for PR #244.
+**Status:** Open and isolated under Issue #204. It is not a mandatory runtime dependency.
 
 ## Issue #189 recovery status
 
-Software recovery evidence is verified. Actual-host and physical recovery remain soft-blocked pending controlled central-host and Raspberry Pi access.
+Software recovery evidence is verified. Actual-host reboot, physical power-loss and physical-media restore remain soft-blocked pending controlled access.
 
 ## Open operational and hardware risks
 
 - **N-023 — Node health/status durability:** not claimed equal to telemetry process-restart durability.
 - **N-024 — Rollback compatibility:** preserve named volumes and spool compatibility.
 - **N-025 — Spool capacity:** actual-host capacity evidence remains required.
-- **N-032 — ARM64 offline evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified.
+- **N-032 — ARM64 offline bundle evidence:** actual Raspberry Pi 5 archive/load/start/update/rollback remains unverified and is outside Issue #245.
 - **N-014 / #200 — Physical RS-485 topology:** hardware blocked.
 - **N-015 / #201 — LE-01MP cumulative energy:** hardware blocked.
 - **N-016 / #202 — Extended XJP60D semantics:** hardware blocked.
 - **N-017 / #17 — Versioned profiles:** blocked until #200–#202 evidence exists.
 
-## Next Ready Work Package
+## Next Ready action
 
-Merge PR #244 after exact-head GREEN. Continue Issue #203 with Issue #242 (optional Supabase isolation), followed independently by Issue #243 (Lucide operator semantics). Keep Issue #204 isolated.
+Run the final exact-head checks and merge PR #246. Then perform the controlled standalone deployment and physical offline acceptance on the Raspberry Pi before closing Issue #245. Issue #242 resumes only after the critical runtime acceptance path is stable.

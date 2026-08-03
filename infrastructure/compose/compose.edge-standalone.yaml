@@ -1,0 +1,10 @@
+services:
+  mqtt:
+    networks:
+      default: {}
+      standalone-runtime: {}
+
+networks:
+  standalone-runtime:
+    external: true
+    name: ${STANDALONE_RUNTIME_NETWORK:-nexolab-standalone-runtime}

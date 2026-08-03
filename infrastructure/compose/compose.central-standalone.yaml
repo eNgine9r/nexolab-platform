@@ -1,0 +1,12 @@
+services:
+  mqtt:
+    networks:
+      central: {}
+      standalone-runtime:
+        aliases:
+          - central-mqtt
+
+networks:
+  standalone-runtime:
+    name: ${STANDALONE_RUNTIME_NETWORK:-nexolab-standalone-runtime}
+    driver: bridge
