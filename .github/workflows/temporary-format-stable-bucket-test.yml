@@ -1,0 +1,43 @@
+name: Temporary Format Stable Bucket Test
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-format-stable-bucket-test.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+      - name: Format exact test
+        run: |
+          npx prettier --write src/features/energy/energy-history.test.ts
+          npx prettier --check src/features/energy/energy-history.test.ts
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = "src/features/energy/energy-history.test.ts"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/features/energy/energy-history.test.ts
+          git commit -m 'style(energy): format stable bucket assertion [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
