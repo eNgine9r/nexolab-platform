@@ -7,12 +7,15 @@
   "parent_issue": 260,
   "pull_request": 262,
   "status": "exact_head_green_ready_for_merge",
-  "timestamp": "2026-08-03T19:30:00+03:00",
+  "timestamp": "2026-08-03T19:58:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-  "verified_implementation_head_sha": "40e2b0897b389a2adcd43903223dc16129e7460d",
+  "verified_implementation_head_sha": "ec273056c2686d1ac65a702a5831e3abb5c25189",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Energy Monitoring is implemented and verified with stable captured-time history pagination, renderable-only downsampling, WebSocket tail updates and wall-clock rolling-window pruning.",
-  "checks_actually_run": ["CI 30832280986 GREEN", "Authenticated Dashboard Acceptance 30832281295 GREEN"],
+  "summary": "Energy Monitoring is implemented and verified with stable captured-time pagination, renderable-only absolute-bucket downsampling, future-skew-safe WebSocket tail updates and wall-clock rolling-window pruning.",
+  "checks_actually_run": [
+    "CI 30834722682 GREEN: formatting, ESLint, strict TypeScript, 197 tests and production build",
+    "Authenticated Dashboard Acceptance 30834721743 GREEN: energy latest/history, selection, live WebSocket update and evidence upload"
+  ],
   "runtime_and_offline_evidence": [
     "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
     "no package, Compose, container or offline-delivery contract changed",
