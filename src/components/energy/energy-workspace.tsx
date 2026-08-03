@@ -26,6 +26,7 @@ import {
   type EnergyMetricId,
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
+import { buildEnergyHistoryPath } from "@/features/energy/energy-history-path";
 import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -74,7 +75,7 @@ type HistorySeries = {
   label: string;
   color: string;
   path: string;
-  points: Array<{ id: string; x: number; y: number; value: number }>;
+  points: Array<{ id: string; x: number; y: number; value: number; capturedAt: string }>;
 };
 
 function buildHistorySeries(
@@ -121,6 +122,7 @@ function buildHistorySeries(
         .map(({ sample }) => ({
           id: sample.event_id,
           value: sample.value,
+          capturedAt: sample.captured_at,
           x: 38 + ((Date.parse(sample.captured_at) - from) / timeSpan) * 712,
           y: 24 + (1 - (sample.value - minimum) / valueSpan) * 176,
         }));
@@ -128,9 +130,7 @@ function buildHistorySeries(
         unitId: meter.unitId,
         label: meter.label,
         color: METER_COLORS[meter.unitId],
-        path: points
-          .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-          .join(" "),
+        path: buildEnergyHistoryPath(points),
         points,
       };
     })

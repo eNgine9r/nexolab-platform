@@ -13,8 +13,7 @@ export function buildEnergyHistoryPath(
   return points
     .map((point, index) => {
       const capturedAt = Date.parse(point.capturedAt);
-      const previousCapturedAt =
-        index === 0 ? Number.NaN : Date.parse(points[index - 1].capturedAt);
+      const previousCapturedAt = index === 0 ? Number.NaN : Date.parse(points[index - 1].capturedAt);
       const startsSegment =
         index === 0 ||
         !Number.isFinite(capturedAt) ||

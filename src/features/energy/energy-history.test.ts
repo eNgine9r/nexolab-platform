@@ -77,7 +77,7 @@ describe("energy history", () => {
         node_id: "edge-01",
         offset: 0,
         limit: 1000,
-        to: new Date("2026-08-03T10:00:02.000Z"),
+        to: new Date("2026-08-03T10:00:02.001Z"),
       }),
       undefined,
     );
