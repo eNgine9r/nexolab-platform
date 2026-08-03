@@ -87,10 +87,7 @@ function mergeBucketSample(
   return startsSegment ? markEnergyHistorySegmentStart(normalized) : normalized;
 }
 
-function applyPendingBreak(
-  samples: readonly TelemetrySample[],
-  breakPending: boolean,
-): TelemetrySample[] {
+function applyPendingBreak(samples: readonly TelemetrySample[], breakPending: boolean): TelemetrySample[] {
   if (!breakPending || samples.length === 0) return [...samples];
   const marked = [...samples];
   marked[marked.length - 1] = markEnergyHistoryBreakPending(marked[marked.length - 1]);
@@ -174,11 +171,7 @@ export function downsampleEnergyHistory(
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) => {
       const annotation = annotateSourceSegments(meterSamples);
-      const sampled = bucketDownsampleAnnotated(
-        annotation.samples,
-        maximumPointsPerMeter,
-        window,
-      );
+      const sampled = bucketDownsampleAnnotated(annotation.samples, maximumPointsPerMeter, window);
       return applyPendingBreak(sampled, annotation.breakPending);
     });
 }
@@ -243,11 +236,7 @@ export function mergeEnergyHistoryTail(
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
-    const sampled = bucketDownsampleAnnotated(
-      [...byEventId.values()],
-      MAX_HISTORY_POINTS_PER_METER,
-      window,
-    );
+    const sampled = bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window);
     merged.push(...applyPendingBreak(sampled, annotation.breakPending));
   }
 
