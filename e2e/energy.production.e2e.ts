@@ -174,18 +174,12 @@ test("renders confirmed LE-01MP latest, history and live updates without fabrica
     await expect(page.getByText("230,1 V", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("0,955", { exact: true }).first()).toBeVisible();
 
-    await expect(
-      page.getByRole("heading", { name: "Накопичена енергія недоступна" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Накопичена енергія недоступна" })).toBeVisible();
     await expect(page.getByText(/\d[\d\s,.]*\s*kWh/i)).toHaveCount(0);
 
-    await expect(
-      page.getByRole("img", { name: /Історія показника Активна потужність/ }),
-    ).toBeVisible();
+    await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();
     await page.getByRole("button", { name: "Виключити лічильник W4 з порівняння" }).click();
-    await expect(
-      page.getByRole("button", { name: "Додати лічильник W4 з порівняння" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Додати лічильник W4 з порівняння" })).toBeVisible();
 
     await expect.poll(() => requests.some((item) => item.url.includes("/latest"))).toBe(true);
     await expect.poll(() => requests.some((item) => item.url.includes("/history"))).toBe(true);
