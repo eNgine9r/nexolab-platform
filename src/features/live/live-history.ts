@@ -117,34 +117,30 @@ function downsampleChannel(
   if (maximumPoints <= 1) return [annotated.at(-1)!];
   if (maximumPoints === 2) return [annotated[0], annotated.at(-1)!];
 
+  const first = annotated[0];
+  const last = annotated.at(-1)!;
   const rangeMs = Math.max(1, window.to.getTime() - window.from.getTime());
-  const bucketMs = Math.max(1, Math.ceil(rangeMs / (maximumPoints - 2)));
+  const interiorBucketCount = maximumPoints - 2;
+  const bucketMs = Math.max(1, Math.ceil(rangeMs / interiorBucketCount));
   const buckets = new Map<number, TelemetrySample>();
 
-  for (const sample of annotated) {
+  for (const sample of annotated.slice(1, -1)) {
     const bucket = Math.floor((parsedTimestamp(sample.captured_at) - window.from.getTime()) / bucketMs);
     buckets.set(bucket, mergeBucketSample(buckets.get(bucket), sample));
   }
 
-  const first = annotated[0];
-  const last = annotated.at(-1)!;
-  const firstBucket = Math.floor((parsedTimestamp(first.captured_at) - window.from.getTime()) / bucketMs);
-  const lastBucket = Math.floor((parsedTimestamp(last.captured_at) - window.from.getTime()) / bucketMs);
-  const firstBucketSample = buckets.get(firstBucket);
-  const transferFirstBucketSegment =
-    firstBucketSample !== undefined &&
-    isLiveHistorySegmentStart(firstBucketSample) &&
-    sourceEventId(firstBucketSample.event_id) !== sourceEventId(first.event_id);
-
-  buckets.set(firstBucket, first);
-  buckets.set(lastBucket, mergeBucketSample(buckets.get(lastBucket), last));
-
-  const sampled = [...buckets.values()]
+  const sampled = [
+    first,
+    ...[...buckets.values()].sort(
+      (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
+    ),
+    last,
+  ];
+  const unique = new Map<string, TelemetrySample>();
+  for (const sample of sampled) unique.set(sourceEventId(sample.event_id), sample);
+  return [...unique.values()]
     .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at))
-    .slice(-maximumPoints);
-
-  if (transferFirstBucketSegment && sampled.length > 1) sampled[1] = markSegmentStart(sampled[1]);
-  return sampled;
+    .slice(0, maximumPoints);
 }
 
 export function downsampleLiveHistory(

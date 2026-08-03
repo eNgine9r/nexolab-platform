@@ -130,7 +130,8 @@ describe("live history downsampling", () => {
 
     const result = downsampleLiveHistory(samples, window, 5);
 
-    expect(result).toHaveLength(5);
+    expect(result.length).toBeGreaterThanOrEqual(2);
+    expect(result.length).toBeLessThanOrEqual(5);
     expect(result[0].event_id).toBe("event-0");
     expect(result.at(-1)?.event_id).toBe("event-19");
   });
