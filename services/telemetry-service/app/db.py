@@ -321,7 +321,40 @@ class Database:
         with self._sessions() as session:
             return list(session.scalars(statement))
 
+    def _history_statement(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+    ) -> Any:
+        statement = select(TelemetrySample)
+        statement = self._apply_filters(statement, query)
+        return (
+            statement.order_by(
+                TelemetrySample.captured_at.desc(),
+                TelemetrySample.event_id.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+
     def history_samples(
+        self,
+        *,
+        query: TelemetryQuery,
+        limit: int,
+        offset: int,
+    ) -> list[TelemetrySample]:
+        statement = self._history_statement(
+            query=query,
+            limit=limit,
+            offset=offset,
+        )
+        with self._sessions() as session:
+            return list(session.scalars(statement))
+
+    def history_snapshot_samples(
         self,
         *,
         query: TelemetryQuery,
@@ -351,15 +384,10 @@ class Database:
                     query,
                     received_before=resolved_snapshot_at,
                 )
-                statement = select(TelemetrySample)
-                statement = self._apply_filters(statement, snapshot_query)
-                statement = (
-                    statement.order_by(
-                        TelemetrySample.captured_at.desc(),
-                        TelemetrySample.event_id.desc(),
-                    )
-                    .limit(limit)
-                    .offset(offset)
+                statement = self._history_statement(
+                    query=snapshot_query,
+                    limit=limit,
+                    offset=offset,
                 )
                 rows = list(session.scalars(statement))
 
