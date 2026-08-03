@@ -1,0 +1,78 @@
+name: Temporary Node 22 lockfile refresh
+
+on:
+  push:
+    branches:
+      - maint/251-node22-baseline-types
+    paths:
+      - .nvmrc
+      - package.json
+      - .github/workflows/temporary-node22-lockfile-refresh.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-node22-lockfile-refresh-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-lockfile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+        with:
+          ref: maint/251-node22-baseline-types
+          persist-credentials: true
+
+      - name: Setup exact Node baseline
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Refresh package lock only
+        env:
+          HUSKY: 0
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
+      - name: Validate focused lockfile movement
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only)"
+          if [[ "$changed" != "package-lock.json" ]]; then
+            printf 'Unexpected generated files:\n%s\n' "$changed" >&2
+            exit 1
+          fi
+          node - <<'NODE'
+          const lock = require('./package-lock.json');
+          const root = lock.packages[''];
+          const nodeTypes = lock.packages['node_modules/@types/node'];
+          if (root.devDependencies['@types/node'] !== '^22.20.1') {
+            throw new Error(`Unexpected root @types/node range: ${root.devDependencies['@types/node']}`);
+          }
+          if (root.engines.node !== '>=22.22.1 <23') {
+            throw new Error(`Unexpected Node engine: ${root.engines.node}`);
+          }
+          if (nodeTypes.version !== '22.20.1') {
+            throw new Error(`Unexpected resolved @types/node: ${nodeTypes.version}`);
+          }
+          if (nodeTypes.dependencies['undici-types'] !== '~6.21.0') {
+            throw new Error(`Unexpected undici-types range: ${nodeTypes.dependencies['undici-types']}`);
+          }
+          NODE
+
+      - name: Commit deterministic lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git commit -m 'chore(toolchain): refresh Node 22 lockfile [skip ci]'
+          git push origin HEAD:maint/251-node22-baseline-types
