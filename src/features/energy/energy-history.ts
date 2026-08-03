@@ -266,6 +266,7 @@ export async function loadCompleteEnergyHistory(
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
+  let snapshotAt: string | undefined;
 
   for (let page = 0; page < MAX_HISTORY_PAGES; page += 1) {
     const response = await adapter.history(
@@ -274,11 +275,22 @@ export async function loadCompleteEnergyHistory(
         metric: window.metric,
         from: window.from,
         to: cursorTo,
+        snapshot_at: snapshotAt,
         limit: HISTORY_PAGE_SIZE,
         offset: 0,
       },
       signal,
     );
+
+    const responseSnapshotAt = response.snapshot_at;
+    if (!responseSnapshotAt || Number.isNaN(Date.parse(responseSnapshotAt))) {
+      throw new Error("Telemetry history page did not provide an ingestion snapshot watermark");
+    }
+    if (snapshotAt === undefined) {
+      snapshotAt = responseSnapshotAt;
+    } else if (responseSnapshotAt !== snapshotAt) {
+      throw new Error("Telemetry history ingestion snapshot changed during pagination");
+    }
 
     for (const sample of response.items) {
       if (
