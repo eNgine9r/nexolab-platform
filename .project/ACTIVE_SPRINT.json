@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "BASELINE-RECONCILIATION-1",
-    "title": "Verified source-of-truth and risk sequencing",
-    "goal": "Keep repository state, data-integrity risks, offline readiness and maintenance work aligned.",
+    "id": "RUNTIME-RELIABILITY-1",
+    "title": "Standalone offline Raspberry Pi runtime",
+    "goal": "Make the locally attached NEXOLAB dashboard and telemetry pipeline usable without Ethernet, Wi-Fi, LAN IPv4, a default route, DNS or internet.",
     "status": "in_progress",
-    "started_at": "2026-07-31"
+    "started_at": "2026-08-03"
   },
   "execution_policy": {
     "autonomous": true,
@@ -17,94 +17,128 @@
     "stop_on_hard_blocker": true,
     "max_parallel_implementation_tasks": 1
   },
+  "completed_baseline": [
+    {
+      "issue": 182,
+      "pull_request": 184,
+      "outcome": "AI Development Operating Standard"
+    },
+    {
+      "issue": 183,
+      "pull_request": 190,
+      "outcome": "verified architecture and offline boundary"
+    },
+    {
+      "issue": 198,
+      "pull_request": 207,
+      "outcome": "durable MQTT-to-PostgreSQL ingestion"
+    },
+    {
+      "issue": 199,
+      "pull_request": 214,
+      "outcome": "stable WebSocket lifecycle"
+    },
+    {
+      "issue": 187,
+      "pull_request": 215,
+      "outcome": "verified offline installation bundle for linux/amd64"
+    },
+    {
+      "issue": 188,
+      "pull_request": 216,
+      "outcome": "offline local operator authentication"
+    },
+    {
+      "issue": 189,
+      "pull_request": 224,
+      "outcome": "software backup and restore proof; actual-host evidence pending"
+    },
+    {
+      "issue": 205,
+      "pull_request": 234,
+      "outcome": "GitHub Actions runtime compatibility"
+    },
+    {
+      "issue": 239,
+      "pull_request": 240,
+      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
+      "outcome": "Next.js and React security patch line"
+    },
+    {
+      "issue": 241,
+      "pull_request": 244,
+      "merge_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
+      "outcome": "transitive sharp 0.35.3 compatibility control"
+    }
+  ],
   "tasks": [
     {
-      "id": "NEXOLAB-182",
-      "issue": 182,
-      "title": "Adopt AI Development Operating Standard",
-      "status": "done",
-      "pull_request": 184,
-      "merge_sha": "8371ee59e76e64963405706be79fc4a909f9fac9"
+      "id": "NEXOLAB-245",
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "status": "software_verified_pending_actual_pi",
+      "track": "runtime-reliability",
+      "pull_request": 246,
+      "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
+      "candidate_head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
+      "runtime_modes": ["lan", "standalone"],
+      "standalone_contract": {
+        "dashboard": "http://127.0.0.1:3000",
+        "api": "http://127.0.0.1:8082",
+        "websocket": "ws://127.0.0.1:8082/api/v1/telemetry/live",
+        "central_mqtt_alias": "central-mqtt:1883",
+        "network_online_dependency": false,
+        "wildcard_cors": false,
+        "demo_fallback": false,
+        "modbus_writes": false
+      },
+      "candidate_verification": {
+        "result": "3_of_3_green",
+        "ci_run": 30791309275,
+        "telemetry_service_run": 30791309295,
+        "offline_bundle_run": 30791309244,
+        "format": "green",
+        "lint": "green",
+        "typecheck": "green",
+        "tests": "green",
+        "build": "green",
+        "disconnected_runtime": "green",
+        "update_rollback_volume_preservation": "green"
+      },
+      "hardware_verification": {
+        "status": "pending",
+        "required_host": "Raspberry Pi 5",
+        "required_network_state": "no physical uplink IPv4 and no default route",
+        "required_observation_minutes": 15,
+        "required_restart_checks": [
+          "Telemetry Service restart",
+          "Raspberry Pi reboot",
+          "second Raspberry Pi reboot"
+        ]
+      },
+      "next_action": "Complete exact-head state sweep, merge PR #246, deploy standalone mode on the Raspberry Pi and collect actual-host evidence."
     },
     {
-      "id": "NEXOLAB-183",
-      "issue": 183,
-      "title": "Reconcile architecture and offline boundary",
-      "status": "done",
-      "pull_request": 190,
-      "merge_sha": "01f2a5fcfc929127d4a7b3d9c068944cd65d8636"
+      "id": "NEXOLAB-203",
+      "issue": 203,
+      "title": "Review production dependency updates",
+      "status": "in_progress_paused_for_critical_runtime_issue",
+      "paused_for_issue": 245,
+      "remaining_groups": ["optional Supabase", "Lucide icons"]
     },
     {
-      "id": "NEXOLAB-186",
-      "issue": 186,
-      "title": "Reconcile stale trackers and Pull Requests",
-      "status": "done",
-      "pull_request": 206,
-      "merge_sha": "bd286690f94bdf06adf3fc630bdee69c5019ebce"
+      "id": "NEXOLAB-242",
+      "issue": 242,
+      "title": "Review optional Supabase dependency while preserving offline-local auth",
+      "status": "queued_after_245",
+      "parent_issue": 203
     },
     {
-      "id": "NEXOLAB-198",
-      "issue": 198,
-      "title": "Close MQTT-to-PostgreSQL durability gap",
-      "status": "done",
-      "pull_request": 207,
-      "merge_sha": "5851955ea9a38a9068bbab1eb0c9701722c028c5"
-    },
-    {
-      "id": "NEXOLAB-208",
-      "issue": 208,
-      "title": "Harden Device Agent supply-chain evidence",
-      "status": "done",
-      "pull_request": 209,
-      "merge_sha": "ee950e632702135231f1f4349e87529b39d16181"
-    },
-    {
-      "id": "NEXOLAB-210",
-      "issue": 210,
-      "title": "Restore dashboard security bootstrap diagnostics",
-      "status": "done",
-      "pull_request": 213,
-      "merge_sha": "729139a20b2bd5464aca2291dc4002f514896eee"
-    },
-    {
-      "id": "NEXOLAB-199",
-      "issue": 199,
-      "title": "Stabilize live WebSocket lifecycle",
-      "status": "done",
-      "pull_request": 214,
-      "merge_sha": "8bcf67131ce6900b3513e840661d3cf82934c7eb",
-      "verification": {
-        "result": "green",
-        "hardware": "unverified"
-      }
-    },
-    {
-      "id": "NEXOLAB-187",
-      "issue": 187,
-      "title": "Build verified offline installation bundle",
-      "status": "done",
-      "pull_request": 215,
-      "merge_sha": "4c980781ff1beb0afb89f1779c82750a06e8eb7e",
-      "verification": {
-        "result": "green",
-        "platform": "linux/amd64",
-        "arm64_actual_host": "unverified",
-        "hardware": "unverified"
-      }
-    },
-    {
-      "id": "NEXOLAB-188",
-      "issue": 188,
-      "title": "Define and prove offline operator authentication",
-      "status": "done",
-      "pull_request": 216,
-      "merge_sha": "94d111855e727fd0a74af0618c099b11123348cf",
-      "verification": {
-        "result": "green",
-        "disconnected_browser_auth": "passed",
-        "container_egress": "blocked",
-        "hardware": "unverified"
-      }
+      "id": "NEXOLAB-243",
+      "issue": 243,
+      "title": "Review Lucide icon dependency without changing operator semantics",
+      "status": "queued_after_242",
+      "parent_issue": 203
     },
     {
       "id": "NEXOLAB-189",
@@ -112,145 +146,7 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "software_verified_hardware_blocked",
       "pull_request": 224,
-      "merge_sha": "f54cd7b6f6db580f3931a40889f5b4e33af3cc30",
-      "verification": {
-        "result": "green_software_only",
-        "software_rpo_seconds": 0,
-        "post_restore_exactly_once_rows": 1,
-        "source_volumes_mutated": false,
-        "hardware": "unverified"
-      },
-      "soft_blocker": "Central-host reboot, Raspberry Pi reboot, edge power interruption, physical power-loss and physical-media restore require controlled actual-host access."
-    },
-    {
-      "id": "NEXOLAB-185",
-      "issue": 185,
-      "title": "Establish controlled Prettier baseline",
-      "status": "done",
-      "track": "formatting-maintenance",
-      "inventory_files": 46,
-      "remaining_inventory_files": 0,
-      "final_pull_request": 233,
-      "merge_sha": "e1e0e2311d1818157e3326ae9ca67adbf24813d5"
-    },
-    {
-      "id": "NEXOLAB-191",
-      "issue": 191,
-      "title": "Inventory and partition historical Prettier debt",
-      "status": "done",
-      "pull_request": 192,
-      "merge_sha": "16f1c04616541e7d2391a13eb9eb6b8fb955567c",
-      "verification": {
-        "prettier_version": "3.9.6",
-        "inventory_files": 46,
-        "workflow_run": 30742515790,
-        "artifact_id": 8831767220
-      }
-    },
-    {
-      "id": "NEXOLAB-193",
-      "issue": 193,
-      "title": "Format historical documentation files",
-      "status": "done",
-      "pull_request": 225,
-      "merge_sha": "75fb9f2921053d39187bbf216057913be2c7fe43",
-      "file_count": 3
-    },
-    {
-      "id": "NEXOLAB-194",
-      "issue": 194,
-      "title": "Format E2E tests and root tooling configuration",
-      "status": "done",
-      "pull_request": 226,
-      "merge_sha": "cb8f4b21d24c00f1d6a501b69ed8af4db55f353e",
-      "file_count": 6
-    },
-    {
-      "id": "NEXOLAB-195",
-      "issue": 195,
-      "title": "Format telemetry and dashboard frontend files",
-      "status": "done",
-      "pull_request": 227,
-      "merge_sha": "c5fa0fdcca6d86f54ba7430b5ca8efd7ffc39f8c",
-      "file_count": 10
-    },
-    {
-      "id": "NEXOLAB-196",
-      "issue": 196,
-      "title": "Format refrigeration domain and repository files",
-      "status": "done",
-      "pull_request": 228,
-      "merge_sha": "402df05d516af08f1d001e3b80bcb174c33197e0",
-      "file_count": 10
-    },
-    {
-      "id": "NEXOLAB-197",
-      "issue": 197,
-      "title": "Format refrigeration UI component files",
-      "status": "done",
-      "pull_request": 229,
-      "merge_sha": "786f4568650f5a8bbb3efa5e22445d3f88b706b0",
-      "file_count": 17
-    },
-    {
-      "id": "NEXOLAB-230",
-      "issue": 230,
-      "title": "Close controlled Prettier baseline with repository-wide zero-difference gate",
-      "status": "done",
-      "pull_request": 233,
-      "merge_sha": "e1e0e2311d1818157e3326ae9ca67adbf24813d5",
-      "verification": {
-        "prettier_version": "3.9.6",
-        "initial_ci_run": 30751629252,
-        "final_ci_run": 30751859586,
-        "repository_wide_format_check": "green",
-        "lint": "green",
-        "typecheck": "green",
-        "tests": "green",
-        "build": "green"
-      }
-    },
-    {
-      "id": "NEXOLAB-205",
-      "issue": 205,
-      "title": "Upgrade GitHub Actions runtime dependencies",
-      "status": "done",
-      "track": "ci-maintenance",
-      "pull_request": 234,
-      "verification": {
-        "result": "26_of_26_green",
-        "final_head_sha": "4ac78378a6e7ef1343eae7dbb7aac05ed271a544",
-        "checkout_credentials_persisted": false,
-        "setup_node_implicit_cache": false,
-        "temporary_workflows_removed": true
-      },
-      "merge_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114"
-    },
-    {
-      "id": "NEXOLAB-237",
-      "issue": 237,
-      "title": "Make generated DR object-storage credentials argument-safe",
-      "status": "done",
-      "track": "recovery-reliability",
-      "pull_request": 238,
-      "baseline_main_sha": "99c3785f073f37e9c4c131ca68b4c6df3c219114",
-      "implementation_head_sha": "1ddd0bf128aed310596b05b0a3da2f150b54ed91",
-      "files_changed": 2,
-      "verification": {
-        "result": "green_software_only",
-        "deterministic_payload": "-leading-option-like",
-        "safe_result": "nxl_-leading-option-like",
-        "ci_run": 30760710838,
-        "disaster_recovery_acceptance_run": 30760710828,
-        "disaster_recovery_attempt": 1,
-        "encrypted_restore": "passed_without_retry",
-        "evidence_artifact_id": 8837371547,
-        "evidence_artifact_digest": "sha256:3c4f07f86c704db683c7ddce1397858ed08b6d696cbc73398a4f6d5a09a6c8d1",
-        "shared_compose_contract_changed": false,
-        "hardware": "not_applicable"
-      },
-      "merge_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
-      "final_head_sha": "ef8b171d7789c9b14f3bf01d2512f35d57d34036"
+      "soft_blocker": "Actual-host reboot, physical power-loss and physical-media restore require controlled hardware access."
     },
     {
       "id": "NEXOLAB-200",
@@ -281,139 +177,10 @@
       "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
     },
     {
-      "id": "NEXOLAB-203",
-      "issue": 203,
-      "title": "Review production dependency updates",
-      "status": "in_progress",
-      "active_child_issue": 241,
-      "active_pull_request": 244,
-      "remaining_groups": ["optional Supabase", "Lucide icons"],
-      "completed_groups": ["Next.js and React security patch line"]
-    },
-    {
-      "id": "NEXOLAB-239",
-      "issue": 239,
-      "title": "Upgrade Next.js and React security patch line",
-      "status": "done",
-      "track": "production-dependency-maintenance",
-      "parent_issue": 203,
-      "pull_request": 240,
-      "baseline_main_sha": "36b63cd6aba96c0fcb0e7f8649496e0207840cf3",
-      "implementation_head_sha": "814fc1d46003c2b786e5bb73723b654ce5e3fffe",
-      "files_changed_before_state": 2,
-      "versions": {
-        "next": "16.2.12",
-        "eslint-config-next": "16.2.12",
-        "react": "19.2.8",
-        "react-dom": "19.2.8"
-      },
-      "verification": {
-        "result": "11_of_11_green",
-        "ci_run": 30781671279,
-        "security_browser_run": 30781671294,
-        "authenticated_dashboard_run": 30781671291,
-        "refrigeration_browser_run": 30781671313,
-        "offline_auth_run": 30781671273,
-        "offline_bundle_run": 30781671302,
-        "hardware": "not_applicable"
-      },
-      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
-      "final_head_sha": "e960a9208a5f90dfde2189e48b7ee0c5b67f2de7"
-    },
-    {
       "id": "NEXOLAB-204",
       "issue": 204,
       "title": "Plan major frontend toolchain migrations",
       "status": "queued"
-    },
-    {
-      "id": "NEXOLAB-241",
-      "issue": 241,
-      "title": "Resolve transitive sharp security risk without unsupported overrides",
-      "status": "verified_pending_merge",
-      "track": "production-dependency-maintenance",
-      "parent_issue": 203,
-      "pull_request": 244,
-      "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
-      "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
-      "files_changed_before_state": 2,
-      "remediation": {
-        "strategy": "evidence-backed npm override",
-        "sharp_before": "0.34.5",
-        "sharp_after": "0.35.3",
-        "libvips_after": "8.18.3",
-        "next_declared_range": "^0.34.5"
-      },
-      "verification": {
-        "baseline_evidence_run": 30782736886,
-        "baseline_artifact_id": 8844227708,
-        "baseline_artifact_digest": "sha256:97a7780a9738776a1cd31fe8859eed5830695d438921e25843fc3be7b47c71ca",
-        "candidate_run": 30785495411,
-        "candidate_artifact_id": 8845125944,
-        "candidate_artifact_digest": "sha256:a5d82492f62c95240df61e00992dc66f162cc0563ed860339a896b14e0f1ed81",
-        "package_json_sha256": "370a941f8b8995b59fe6f8199c5a6b9e0ad1085f03d4a0f14e3f698ac5432e06",
-        "package_lock_sha256": "302c4cd59a40dd4462e51d2eb251519929d80d9fb5d614b3dc409142477e5350",
-        "sharp_next_production_audit_entries": 0,
-        "x64_native_smoke": "passed",
-        "arm64_package_matrix": "present_in_lockfile",
-        "quality_gate": "format_lint_typecheck_tests_build_green",
-        "hardware": "not_applicable"
-      },
-      "final_verification": {
-        "head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
-        "result": "11_of_11_green",
-        "runs": {
-          "ci": 30786862301,
-          "security_browser": 30786862321,
-          "authenticated_dashboard": 30786862289,
-          "refrigeration_browser": 30786862297,
-          "offline_auth": 30786862303,
-          "offline_bundle": 30786862331,
-          "nodes": 30786862329,
-          "alerts": 30786862328,
-          "test_sessions": 30786862363,
-          "reports": 30786862307,
-          "rendered_reports": 30786862292
-        },
-        "artifacts": {
-          "security_browser": {
-            "id": 8845566996,
-            "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
-          },
-          "authenticated_dashboard": {
-            "id": 8845567008,
-            "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
-          },
-          "refrigeration_browser": {
-            "id": 8845563069,
-            "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
-          },
-          "offline_auth": {
-            "id": 8845627973,
-            "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
-          },
-          "offline_bundle": {
-            "id": 8845690195,
-            "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
-          }
-        },
-        "review_threads": 0,
-        "submitted_reviews": 0
-      }
-    },
-    {
-      "id": "NEXOLAB-242",
-      "issue": 242,
-      "title": "Review optional Supabase dependency while preserving offline-local auth",
-      "status": "queued_after_241",
-      "parent_issue": 203
-    },
-    {
-      "id": "NEXOLAB-243",
-      "issue": 243,
-      "title": "Review Lucide icon dependency without changing operator semantics",
-      "status": "queued_after_242",
-      "parent_issue": 203
     }
   ]
 }
