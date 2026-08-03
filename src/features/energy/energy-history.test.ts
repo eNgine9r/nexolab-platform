@@ -137,7 +137,7 @@ describe("energy history", () => {
     expect(initial.length).toBeLessThanOrEqual(240);
     expect(merged.length).toBeLessThanOrEqual(240);
     expect(merged.slice(0, -1).map((item) => item.event_id)).toEqual(
-      initial.slice(0, -1).map((item) => item.event_id),
+      initial.map((item) => item.event_id),
     );
     expect(merged.at(-1)?.event_id).toBe("energy-edge-01-200-86395");
   });
