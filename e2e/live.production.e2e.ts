@@ -105,10 +105,17 @@ VALUES (
 );
 SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)};
 `;
-  const output = composeExec(
-    "postgres",
-    ["psql", "-U", postgresUser, "-d", postgresDatabase, "-v", "ON_ERROR_STOP=1", "-tAc", sql],
-  );
+  const output = composeExec("postgres", [
+    "psql",
+    "-U",
+    postgresUser,
+    "-d",
+    postgresDatabase,
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-tAc",
+    sql,
+  ]);
   if (!output.includes(eventId)) {
     throw new Error(`Persisted telemetry fixture ${eventId} was not committed`);
   }
@@ -131,17 +138,7 @@ function publishSample(seed: LiveSeed): void {
     raw_status: null,
   });
 
-  composeExec("mqtt", [
-    "mosquitto_pub",
-    "-h",
-    "127.0.0.1",
-    "-t",
-    mqttTopic,
-    "-q",
-    "1",
-    "-m",
-    payload,
-  ]);
+  composeExec("mqtt", ["mosquitto_pub", "-h", "127.0.0.1", "-t", mqttTopic, "-q", "1", "-m", payload]);
 }
 
 function seedLiveEvidence(): void {
