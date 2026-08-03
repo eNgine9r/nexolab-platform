@@ -1,0 +1,91 @@
+name: Temporary Finalize Energy Buckets
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-finalize-energy-buckets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+      - name: Apply future-skew-safe tail selection
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/hooks/use-energy-telemetry.ts")
+          text = path.read_text()
+          old_import = 'import { loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "@/features/energy/energy-history";'
+          new_import = '''import {
+            loadCompleteEnergyHistory,
+            mergeEnergyHistoryTail,
+            selectEnergyHistoryTail,
+          } from "@/features/energy/energy-history";'''.replace("          ", "")
+          if text.count(old_import) != 1:
+              raise SystemExit("Expected one energy history import")
+          text = text.replace(old_import, new_import)
+
+          old_block = '''      if (disposed || accepted.length === 0) return;
+                setStore((current) => mergeDashboardTelemetry(current, accepted, { now: Date.now() }));
+          
+                const selectedHistoryMetric = selectedMetricRef.current;
+                const tail = accepted.filter((sample) => sample.metric === selectedHistoryMetric);'''.replace("                ", "      ").replace("          \n", "\n")
+          new_block = '''      if (disposed || accepted.length === 0) return;
+                const now = Date.now();
+                setStore((current) => mergeDashboardTelemetry(current, accepted, { now }));
+          
+                const selectedHistoryMetric = selectedMetricRef.current;
+                const tail = selectEnergyHistoryTail(
+                  accepted,
+                  ENERGY_NODE_ID,
+                  selectedHistoryMetric,
+                  now,
+                );'''.replace("                ", "      ").replace("          \n", "\n")
+          if text.count(old_block) != 1:
+              raise SystemExit(f"Expected one tail block, found {text.count(old_block)}")
+          path.write_text(text.replace(old_block, new_block))
+          PY
+      - name: Format and verify exact files
+        run: |
+          npx prettier --write \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/hooks/use-energy-telemetry.ts
+          npm run format:check
+      - name: Commit exact changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -Ev '^(src/features/energy/energy-history(.test)?.ts|src/hooks/use-energy-telemetry.ts)$' || true)"
+          if [[ -n "$unexpected" ]]; then
+            printf 'Unexpected files:\n%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/hooks/use-energy-telemetry.ts
+          git commit -m 'fix(energy): stabilize bucketed live history [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
