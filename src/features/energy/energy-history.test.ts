@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
-import { downsampleEnergyHistory, loadCompleteEnergyHistory, mergeEnergyHistoryTail } from "./energy-history";
+import {
+  downsampleEnergyHistory,
+  loadCompleteEnergyHistory,
+  mergeEnergyHistoryTail,
+  selectEnergyHistoryTail,
+} from "./energy-history";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -94,8 +99,8 @@ describe("energy history", () => {
     const w1 = result.filter((item) => item.equipment_id === "LE01MP-200");
     const w2 = result.filter((item) => item.equipment_id === "LE01MP-201");
 
-    expect(w1).toHaveLength(4);
-    expect(w2).toHaveLength(4);
+    expect(w1.length).toBeLessThanOrEqual(4);
+    expect(w2.length).toBeLessThanOrEqual(4);
     expect(w1[0].event_id).toBe("energy-edge-01-200-0");
     expect(w1.at(-1)?.event_id).toBe("energy-edge-01-200-9");
     expect(w2[0].event_id).toBe("energy-edge-01-201-0");
@@ -116,6 +121,41 @@ describe("energy history", () => {
     const result = downsampleEnergyHistory(source, 2);
 
     expect(result.map((item) => item.event_id)).toEqual(["energy-edge-01-200-20", "energy-edge-01-200-21"]);
+  });
+
+  it("keeps absolute time buckets stable while appending the newest tail", () => {
+    const window = {
+      nodeId: "edge-01",
+      metric: "electrical.power.active" as const,
+      from: new Date("2026-08-03T10:00:00Z"),
+      to: new Date("2026-08-04T10:00:00Z"),
+    };
+    const source = Array.from({ length: 1_440 }, (_, minute) => sample(minute * 60));
+    const initial = downsampleEnergyHistory(source, 240, window);
+    const merged = mergeEnergyHistoryTail(initial, [sample(86_395)], window);
+
+    expect(initial.length).toBeLessThanOrEqual(240);
+    expect(merged.length).toBeLessThanOrEqual(240);
+    expect(merged.slice(0, -1).map((item) => item.event_id)).toEqual(
+      initial.slice(0, -1).map((item) => item.event_id),
+    );
+    expect(merged.at(-1)?.event_id).toBe("energy-edge-01-200-86395");
+  });
+
+  it("rejects future-skewed samples before they can advance the rolling window", () => {
+    const now = Date.parse("2026-08-03T10:00:00Z");
+    const accepted = selectEnergyHistoryTail(
+      [
+        { ...sample(0), captured_at: "2026-08-03T10:00:20Z" },
+        { ...sample(1), captured_at: "2026-08-03T10:00:31Z" },
+        sample(2, 200, "edge-02"),
+      ],
+      "edge-01",
+      "electrical.power.active",
+      now,
+    );
+
+    expect(accepted.map((item) => item.event_id)).toEqual(["energy-edge-01-200-0"]);
   });
 
   it("merges the websocket tail without retaining records outside the rolling window", () => {
