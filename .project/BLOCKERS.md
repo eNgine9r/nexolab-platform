@@ -6,20 +6,21 @@ Updated: 2026-08-03
 
 No product, software, runtime or hardware blocker prevents finalization of PR #262.
 
-Verified implementation head `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d` passed:
+Verified implementation head `6738277080db3388ef241468c0a28e3204ac7f98` passed:
 
-- CI run `30843193403` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30843193556` — energy latest/history, meter selection, WebSocket update and evidence upload;
-- Refrigeration Browser Acceptance run `30843192945` — existing refrigeration operator flow remains intact.
+- CI run `30844693579` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30844693548` — energy latest/history, meter selection, WebSocket update and evidence upload;
+- Refrigeration Browser Acceptance run `30844693576` — existing refrigeration operator flow remains intact.
 
 Review corrections include:
 
-- stable captured-time cursor pagination with overlapping page-boundary timestamps;
+- WebSocket subscription established before the initial REST latest snapshot;
+- bounded startup buffer reconciled with snapshot data so no capture cycle is lost in the startup gap;
+- startup communication errors retained as pending per-meter outage boundaries without prior history;
+- stable captured-time pagination with overlapping page-boundary timestamps;
 - renderable-only absolute-bucket downsampling with first/latest endpoint preservation;
-- source-derived outage segments from raw communication-error records and cadence gaps;
-- persistent pending break state across separate WebSocket error and recovery callbacks;
-- transfer of a first-bucket outage marker to the next retained point without losing the earliest endpoint;
-- permission gating before telemetry REST and WebSocket traffic starts;
+- source-derived, cross-callback and first-bucket outage segmentation;
+- permission gating before telemetry network traffic;
 - requested-window scaling, per-metric freshness, metric/unit validation and production node scope;
 - incremental WebSocket history, wall-clock pruning and future-skew rejection.
 
