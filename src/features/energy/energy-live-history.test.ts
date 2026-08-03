@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { reconcileEnergyLiveHistory } from "./energy-live-history";
+import {
+  reconcileEnergyLiveHistory,
+  seedEnergyLiveHistoryState,
+} from "./energy-live-history";
 import { energyHistorySourceEventId, isEnergyHistorySegmentStart } from "./energy-history-segment";
 
 function sample(second: number, quality: TelemetrySample["quality"] = "valid"): TelemetrySample {
@@ -82,5 +85,24 @@ describe("energy live history reconciliation", () => {
     );
 
     expect(delayed.pendingUnitIds.size).toBe(0);
+  });
+
+  it("seeds a metric switch from retained samples before delayed replay", () => {
+    const seed = seedEnergyLiveHistoryState([sample(25)]);
+    const delayed = reconcileEnergyLiveHistory(
+      [sample(10, "communication_error")],
+      seed.pendingUnitIds,
+      seed.newestCapturedAtByUnitId,
+    );
+
+    expect(seed.newestCapturedAtByUnitId.get(200)).toBe(Date.parse(sample(25).captured_at));
+    expect(delayed.pendingUnitIds.size).toBe(0);
+  });
+
+  it("preserves a retained latest communication error as pending", () => {
+    const seed = seedEnergyLiveHistoryState([sample(10), sample(20, "communication_error")]);
+
+    expect(seed.newestCapturedAtByUnitId.get(200)).toBe(Date.parse(sample(20).captured_at));
+    expect(seed.pendingUnitIds.has(200)).toBe(true);
   });
 });
