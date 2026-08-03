@@ -1,143 +1,91 @@
 {
   "schema_version": 1,
   "project": "NEXOLAB",
-  "sprint": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
-  "task": "NEXOLAB-241",
-  "issue": 241,
-  "parent_issue": 203,
-  "pull_request": 244,
-  "status": "verified_pending_merge",
-  "timestamp": "2026-08-03T07:43:00+03:00",
-  "baseline_main_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
-  "implementation_head_sha": "f9594f517b5b9e8a8b94da53da4b36f5a5abec8b",
-  "clean_state_head_sha": "437686a09bfdc1067e88cf0326bc914569d3d612",
-  "formatted_state_head_sha": "48a80b37dc49b0d1825897ebb6a1a25f63a0a807",
-  "final_state_head_sha": "01850316c162f50f64e649a98937926cd1f8b571",
-  "summary": "Verified an evidence-backed sharp 0.35.3 override candidate that removes the actionable production sharp/next audit path while preserving native linux/x64 behavior and ARM64 package availability.",
+  "sprint": "RUNTIME-RELIABILITY-1",
+  "task": "NEXOLAB-245",
+  "issue": 245,
+  "pull_request": 246,
+  "status": "software_verified_pending_final_state_sweep",
+  "timestamp": "2026-08-03T09:30:00+03:00",
+  "baseline_main_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
+  "candidate_head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
+  "summary": "Implemented explicit LAN and standalone Raspberry Pi runtime modes. Standalone uses loopback browser/API/WebSocket origins, exact CORS, an isolated Docker broker bridge and no dashboard dependency on network-online.target.",
   "scope_completed": [
-    "captured exact next to sharp production dependency path",
-    "confirmed no direct application sharp import",
-    "recorded advisory affected range and patched floor",
-    "generated deterministic sharp 0.35.3 override lockfile",
-    "proved production audit has no sharp or next entry",
-    "proved linux/x64 native image processing with libvips 8.18.3",
-    "proved linux/arm64 glibc and musl packages exist in the lockfile",
-    "ran formatting, lint, typecheck, Vitest and production build",
-    "published a clean implementation commit without temporary workflows",
-    "published clean project state without temporary workflows",
-    "formatted ACTIVE_SPRINT.json with the repository Prettier contract"
+    "added explicit lan and standalone deployment modes with lan as the default",
+    "compiled standalone dashboard for loopback REST and WebSocket origins",
+    "bound standalone dashboard, API, MQTT and MinIO host ports to loopback",
+    "preserved the configured authentication mode and fail-closed Security Gate",
+    "rejected remote-JWKS-only authentication in standalone mode",
+    "isolated the edge-to-central MQTT bridge from the Telemetry Service DNS namespace",
+    "preserved named-volume identities and durable telemetry contracts",
+    "removed network-online.target from the standalone dashboard unit",
+    "added standalone verification and LAN regression contracts",
+    "added the standalone Raspberry Pi operator runbook"
   ],
   "files_changed": [
-    "package.json",
-    "package-lock.json",
+    ".github/workflows/ci.yml",
+    "docs/operations/raspberry-pi-standalone-offline-runtime.md",
+    "infrastructure/compose/compose.central-standalone.yaml",
+    "infrastructure/compose/compose.edge-standalone.yaml",
+    "scripts/deploy-current-head-raspberry-pi.sh",
+    "scripts/lib/raspberry-pi-runtime-mode.sh",
+    "scripts/tests/standalone-offline-runtime-contract.sh",
+    "scripts/verify-standalone-offline-raspberry-pi.sh",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
-  "exact_file_evidence": {
-    "package_json_sha256": "370a941f8b8995b59fe6f8199c5a6b9e0ad1085f03d4a0f14e3f698ac5432e06",
-    "package_lock_sha256": "302c4cd59a40dd4462e51d2eb251519929d80d9fb5d614b3dc409142477e5350",
-    "baseline_evidence_run": 30782736886,
-    "baseline_artifact_id": 8844227708,
-    "baseline_artifact_digest": "sha256:97a7780a9738776a1cd31fe8859eed5830695d438921e25843fc3be7b47c71ca",
-    "candidate_run": 30785495411,
-    "candidate_artifact_id": 8845125944,
-    "candidate_artifact_digest": "sha256:a5d82492f62c95240df61e00992dc66f162cc0563ed860339a896b14e0f1ed81"
+  "candidate_verification": {
+    "head_sha": "d4ff514e1448454d90fb53ac4e4e049cc81f225e",
+    "result": "3_of_3_green",
+    "runs": {
+      "ci": 30791309275,
+      "telemetry_service": 30791309295,
+      "offline_bundle": 30791309244
+    },
+    "checks": [
+      "standalone and LAN shell contract tests passed",
+      "Compose model and isolated network assertions passed",
+      "repository-wide formatting passed",
+      "ESLint passed",
+      "strict TypeScript passed",
+      "Vitest passed",
+      "production build passed",
+      "Telemetry Service migrations and integration tests passed",
+      "PostgreSQL outage recovery passed",
+      "disconnected image load and startup passed",
+      "disconnected update and rollback preserved persistent data"
+    ]
   },
-  "audit_classification": {
-    "advisory": "GHSA-f88m-g3jw-g9cj",
-    "affected_range": "<0.35.0",
-    "patched_floor": "0.35.0",
-    "selected_version": "0.35.3",
-    "sharp_next_entries_after": 0,
-    "remaining_playwright_entries": "dev-tool only; Issue #204",
-    "override_disposition": "temporary evidence-backed compatibility control pending an official Next.js supported range"
-  },
-  "checks_actually_run": [
-    "baseline dependency evidence workflow 30782736886 passed",
-    "candidate workflow 30785495411 passed",
-    "npm ci passed",
-    "npm ls sharp resolved only 0.35.3",
-    "production audit removed sharp and next entries",
-    "linux/x64 sharp SVG-to-PNG smoke passed",
-    "ARM64 glibc and musl lockfile package matrix passed",
-    "repository-wide format check passed",
-    "ESLint passed",
-    "strict TypeScript passed",
-    "Vitest passed",
-    "production build passed"
-  ],
   "runtime_and_offline_evidence": [
-    "no new mandatory network call, CDN, remote font, telemetry, cloud or paid runtime dependency introduced",
-    "native linux/x64 sharp runtime loaded and processed an image",
-    "linux/arm64 native package integrity recorded at build/lockfile level",
-    "offline bundle and disconnected runtime remain pending on final exact head"
+    "standalone host endpoints are 127.0.0.1:3000, 127.0.0.1:8082 and loopback WebSocket",
+    "edge broker reaches central broker through central-mqtt:1883 on nexolab-standalone-runtime",
+    "Telemetry Service remains only on the private central network",
+    "no mandatory cloud, CDN, remote font, analytics or paid runtime dependency was introduced",
+    "no demo fallback or wildcard CORS was introduced",
+    "linux/amd64 disconnected bundle and update/rollback gate passed"
   ],
   "hardware_evidence": {
-    "status": "not_applicable",
+    "status": "pending",
     "hardware_verified": false,
-    "note": "No Raspberry Pi, Modbus, physical device, production/site or persistent production-data operation was performed."
-  },
-  "final_sweep_trigger": {
-    "method": "github_connector_commit",
-    "reason": "GitHub Actions suppresses recursive workflow execution for GITHUB_TOKEN-created commits",
-    "previous_clean_head": "01850316c162f50f64e649a98937926cd1f8b571"
+    "note": "No actual Raspberry Pi reboot, physical network removal, RS-485 observation or hardware write was performed."
   },
   "checks_pending": [
-    "final state-only exact-head workflow sweep",
-    "mark PR #244 ready for review",
-    "squash merge PR #244 with expected exact head"
+    "final exact-head workflow sweep after project state update",
+    "review audit and mark PR #246 ready",
+    "merge PR #246",
+    "deploy standalone mode on the actual Raspberry Pi 5",
+    "collect loopback-only runtime, telemetry restart and reboot evidence"
   ],
   "open_risks": [
-    "override exceeds the Next.js declared sharp semver range and requires ongoing review",
-    "actual Raspberry Pi 5 ARM64 execution remains unverified",
-    "Playwright dev advisory remains outside this Work Package"
+    "actual Raspberry Pi 5 standalone behavior remains unverified",
+    "actual ARM64 offline bundle installation and rollback remain outside this Work Package",
+    "physical power-loss recovery remains unverified",
+    "temporary sharp override requires future Next.js compatibility review"
   ],
   "next_ready_work_package": {
-    "issue": 242,
-    "instruction": "After PR #244 merges, review the optional Supabase dependency while preserving fail-closed offline local authentication."
-  },
-  "verification_head_sha": "82c83d5357da62cdb30e9c1f692c750f74da773c",
-  "final_verification": {
-    "result": "11_of_11_green",
-    "runs": {
-      "ci": 30786862301,
-      "security_browser": 30786862321,
-      "authenticated_dashboard": 30786862289,
-      "refrigeration_browser": 30786862297,
-      "offline_auth": 30786862303,
-      "offline_bundle": 30786862331,
-      "nodes": 30786862329,
-      "alerts": 30786862328,
-      "test_sessions": 30786862363,
-      "reports": 30786862307,
-      "rendered_reports": 30786862292
-    },
-    "artifacts": {
-      "security_browser": {
-        "id": 8845566996,
-        "digest": "sha256:cdfd1cf03675c5ceab18c041ebf5af281ef38a1cbf387857d47f798345976dc0"
-      },
-      "authenticated_dashboard": {
-        "id": 8845567008,
-        "digest": "sha256:f049b1f75ddc6497ac944d101ffdc6aa094086a8e49da9bb8cd55a85d98621c3"
-      },
-      "refrigeration_browser": {
-        "id": 8845563069,
-        "digest": "sha256:f75c3f50c0448032744d73a9ac50c85f1f709243ea3e75f5500975f171de678c"
-      },
-      "offline_auth": {
-        "id": 8845627973,
-        "digest": "sha256:7c74f8f8fab8f118e437e90b25fe89b03d43807a70f6f5c238eed0e4eb2d2aef"
-      },
-      "offline_bundle": {
-        "id": 8845690195,
-        "digest": "sha256:ca137c2ae22e29a349c607c6b20e636a41a96eebb856ff834790201d55ffec2e"
-      }
-    },
-    "review_threads": 0,
-    "submitted_reviews": 0,
-    "offline_auth_retry_classification": "first attempt failed before migration due transient container startup; retry passed full migration and disconnected auth"
+    "issue": 245,
+    "instruction": "After PR #246 merges, deploy main with --runtime-mode standalone and complete the physical Raspberry Pi acceptance checklist before closing the Issue."
   }
 }
