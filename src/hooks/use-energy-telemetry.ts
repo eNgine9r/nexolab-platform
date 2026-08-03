@@ -39,6 +39,12 @@ const MAX_STARTUP_LIVE_SAMPLES = 2_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
+const TERMINAL_STARTUP_STATES = new Set<TelemetryConnectionState>([
+  "offline",
+  "unauthorized",
+  "forbidden",
+  "configuration_error",
+]);
 
 export type EnergyHistoryRange = keyof typeof HISTORY_HOURS;
 export type EnergyHistoryStatus = "idle" | "loading" | "ready" | "error";
@@ -203,6 +209,21 @@ export function useEnergyTelemetry({
     let disposed = false;
     let snapshotPending = true;
     let bufferedLiveSamples: TelemetrySample[] = [];
+    let liveReadySettled = false;
+    let resolveLiveReady: () => void = () => undefined;
+    let rejectLiveReady: (error: Error) => void = () => undefined;
+    const liveReady = new Promise<void>((resolve, reject) => {
+      resolveLiveReady = () => {
+        if (liveReadySettled) return;
+        liveReadySettled = true;
+        resolve();
+      };
+      rejectLiveReady = (nextError) => {
+        if (liveReadySettled) return;
+        liveReadySettled = true;
+        reject(nextError);
+      };
+    });
     pendingHistoryBreakUnitIdsRef.current = new Set();
     pendingHistoryMetricRef.current = selectedMetricRef.current;
 
@@ -264,37 +285,43 @@ export function useEnergyTelemetry({
       setClock(now);
     };
 
-    const connectLive = () => {
-      subscription = adapter.subscribe(
-        { node_id: ENERGY_NODE_ID },
-        {
-          onSample: (sample) => {
-            if (snapshotPending) {
-              bufferedLiveSamples.push(sample);
-              if (bufferedLiveSamples.length > MAX_STARTUP_LIVE_SAMPLES) {
-                bufferedLiveSamples = bufferedLiveSamples.slice(-MAX_STARTUP_LIVE_SAMPLES);
-              }
-              return;
+    subscription = adapter.subscribe(
+      { node_id: ENERGY_NODE_ID },
+      {
+        onSample: (sample) => {
+          if (snapshotPending) {
+            bufferedLiveSamples.push(sample);
+            if (bufferedLiveSamples.length > MAX_STARTUP_LIVE_SAMPLES) {
+              bufferedLiveSamples = bufferedLiveSamples.slice(-MAX_STARTUP_LIVE_SAMPLES);
             }
-            commit([sample]);
-          },
-          onStateChange: (state) => {
-            if (disposed) return;
-            setConnectionState(state);
-            if (state === "connected") setError(null);
-          },
-          onError: (nextError) => {
-            if (!disposed) setError(nextError);
-          },
-          onHeartbeat: () => setClock(Date.now()),
+            return;
+          }
+          commit([sample]);
         },
-      );
-    };
+        onStateChange: (state) => {
+          if (disposed) return;
+          setConnectionState(state);
+          if (state === "connected") {
+            resolveLiveReady();
+            setError(null);
+          } else if (TERMINAL_STARTUP_STATES.has(state)) {
+            rejectLiveReady(new Error(`Energy telemetry WebSocket entered terminal state: ${state}`));
+          }
+        },
+        onError: (nextError) => {
+          if (!disposed) setError(nextError);
+        },
+        onHeartbeat: () => setClock(Date.now()),
+      },
+    );
 
-    connectLive();
-
-    void adapter
-      .latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal)
+    void liveReady
+      .then(() => {
+        if (disposed || controller.signal.aborted) {
+          throw new Error("Energy telemetry startup was cancelled");
+        }
+        return adapter.latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal);
+      })
       .then((snapshot) => {
         if (disposed) return;
         const buffered = bufferedLiveSamples;
@@ -316,6 +343,7 @@ export function useEnergyTelemetry({
     return () => {
       disposed = true;
       controller.abort();
+      rejectLiveReady(new Error("Energy telemetry startup was cancelled"));
       bufferedLiveSamples = [];
       subscription?.close();
     };
