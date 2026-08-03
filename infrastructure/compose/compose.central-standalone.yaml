@@ -1,0 +1,6 @@
+services:
+  mqtt:
+    networks:
+      central:
+        aliases:
+          - central-mqtt
