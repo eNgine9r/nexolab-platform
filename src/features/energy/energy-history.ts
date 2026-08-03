@@ -70,11 +70,9 @@ function mergeBucketSample(
 ): TelemetrySample {
   if (!current) return candidate;
 
-  const selected =
-    Date.parse(current.captured_at) <= Date.parse(candidate.captured_at) ? candidate : current;
+  const selected = Date.parse(current.captured_at) <= Date.parse(candidate.captured_at) ? candidate : current;
   const startsSegment =
-    isEnergyHistorySegmentStart(current.event_id) ||
-    isEnergyHistorySegmentStart(candidate.event_id);
+    isEnergyHistorySegmentStart(current.event_id) || isEnergyHistorySegmentStart(candidate.event_id);
   const normalized = clearEnergyHistorySegmentStart(selected);
   return startsSegment ? markEnergyHistorySegmentStart(normalized) : normalized;
 }
@@ -178,11 +176,7 @@ export function downsampleEnergyHistory(
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) =>
-      bucketDownsampleAnnotated(
-        annotateSourceSegments(meterSamples),
-        maximumPointsPerMeter,
-        window,
-      ),
+      bucketDownsampleAnnotated(annotateSourceSegments(meterSamples), maximumPointsPerMeter, window),
     );
 }
 
@@ -225,15 +219,13 @@ export function mergeEnergyHistoryTail(
     const existing = [...(currentByMeter.get(unitId) ?? [])].sort(
       (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
     );
-    const lastExistingAt = existing
-      .filter(isRenderableEnergyHistorySample)
-      .map((sample) => Date.parse(sample.captured_at))
-      .filter(Number.isFinite)
-      .at(-1) ?? null;
-    const annotatedIncoming = annotateSourceSegments(
-      incomingByMeter.get(unitId) ?? [],
-      lastExistingAt,
-    );
+    const lastExistingAt =
+      existing
+        .filter(isRenderableEnergyHistorySample)
+        .map((sample) => Date.parse(sample.captured_at))
+        .filter(Number.isFinite)
+        .at(-1) ?? null;
+    const annotatedIncoming = annotateSourceSegments(incomingByMeter.get(unitId) ?? [], lastExistingAt);
     const byEventId = new Map<string, TelemetrySample>();
 
     for (const sample of [...existing, ...annotatedIncoming]) {
@@ -241,11 +233,7 @@ export function mergeEnergyHistoryTail(
     }
 
     merged.push(
-      ...bucketDownsampleAnnotated(
-        [...byEventId.values()],
-        MAX_HISTORY_POINTS_PER_METER,
-        window,
-      ),
+      ...bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window),
     );
   }
 
