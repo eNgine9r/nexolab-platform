@@ -1,0 +1,43 @@
+name: Temporary Format Energy Checkpoint
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-format-energy-checkpoint.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+      - name: Format checkpoint
+        run: |
+          npx prettier --write .project/LAST_CHECKPOINT.json
+          npx prettier --check .project/LAST_CHECKPOINT.json
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = ".project/LAST_CHECKPOINT.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .project/LAST_CHECKPOINT.json
+          git commit -m 'style(project): format energy checkpoint [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
