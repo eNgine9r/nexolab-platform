@@ -6,28 +6,22 @@ Updated: 2026-08-03
 
 No product, software, runtime or hardware blocker prevents finalization of PR #262.
 
-Verified implementation head `dc026b87010e810a3828b8d461d76852d7184d37` passed:
+Verified implementation head `0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d` passed:
 
-- CI run `30842429156` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
-- Authenticated Dashboard Acceptance run `30842429110` — energy latest/history, meter selection, WebSocket update and evidence upload;
-- Refrigeration Browser Acceptance run `30842429384` — existing refrigeration operator flow remains intact.
+- CI run `30843193403` — formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30843193556` — energy latest/history, meter selection, WebSocket update and evidence upload;
+- Refrigeration Browser Acceptance run `30843192945` — existing refrigeration operator flow remains intact.
 
 Review corrections include:
 
-- stable captured-time cursor pagination instead of mutable offsets;
-- overlapping page-boundary timestamps so complete capture cycles are retained;
-- renderable-only per-meter downsampling with first/latest endpoint preservation;
-- stable absolute time buckets for incremental live history;
-- source-derived outage segments from raw communication-error records and acquisition-cadence gaps;
-- persistent per-meter pending break state across separate WebSocket error and recovery callbacks;
+- stable captured-time cursor pagination with overlapping page-boundary timestamps;
+- renderable-only absolute-bucket downsampling with first/latest endpoint preservation;
+- source-derived outage segments from raw communication-error records and cadence gaps;
+- persistent pending break state across separate WebSocket error and recovery callbacks;
+- transfer of a first-bucket outage marker to the next retained point without losing the earliest endpoint;
 - permission gating before telemetry REST and WebSocket traffic starts;
-- requested-window chart scaling;
-- fresh-only compact meter cards and per-metric quality states;
-- strict metric/unit compatibility;
-- production `edge-01` scope for latest, history and WebSocket;
-- incremental WebSocket history-tail merge instead of periodic complete history reload;
-- wall-clock rolling-window pruning when telemetry stops;
-- future-skew rejection before a sample can move the history window.
+- requested-window scaling, per-metric freshness, metric/unit validation and production node scope;
+- incremental WebSocket history, wall-clock pruning and future-skew rejection.
 
 Remaining administrative actions: validate the state-only head, resolve addressed review threads and merge PR #262 with expected-head protection.
 
