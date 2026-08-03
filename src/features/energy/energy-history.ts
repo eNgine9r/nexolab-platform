@@ -4,6 +4,7 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
+export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
 export interface EnergyHistoryWindow {
   nodeId: string;
@@ -14,6 +15,26 @@ export interface EnergyHistoryWindow {
 
 function isRenderableEnergyHistorySample(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
+}
+
+export function selectEnergyHistoryTail(
+  samples: readonly TelemetrySample[],
+  nodeId: string,
+  metric: EnergyMetricId,
+  now: number = Date.now(),
+  maximumFutureSkewMs = ENERGY_HISTORY_MAX_FUTURE_SKEW_MS,
+): TelemetrySample[] {
+  return samples.filter((sample) => {
+    const capturedAt = Date.parse(sample.captured_at);
+    return (
+      sample.node_id === nodeId &&
+      sample.metric === metric &&
+      isEnergySample(sample) &&
+      isRenderableEnergyHistorySample(sample) &&
+      Number.isFinite(capturedAt) &&
+      capturedAt <= now + maximumFutureSkewMs
+    );
+  });
 }
 
 function bucketDownsample(
