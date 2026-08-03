@@ -1,0 +1,36 @@
+name: Temporary Energy Test Format
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/temporary-energy-test-format.yml"
+      - "src/hooks/use-energy-telemetry.test.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  format-target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - name: Print canonical target
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="src/hooks/use-energy-telemetry.test.ts"
+          npx prettier --write "$target"
+          printf '%s\n' '---BEGIN_CANONICAL_FILE---'
+          cat "$target"
+          printf '%s\n' '---END_CANONICAL_FILE---'
