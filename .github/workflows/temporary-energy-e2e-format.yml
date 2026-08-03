@@ -1,0 +1,47 @@
+name: Temporary Energy E2E Formatter
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-energy-e2e-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+
+      - name: Setup exact Node baseline
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install repository dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+
+      - name: Format and validate exact E2E file
+        run: |
+          npx prettier --write e2e/energy.production.e2e.ts
+          test "$(git diff --name-only)" = "e2e/energy.production.e2e.ts"
+          npx prettier --check e2e/energy.production.e2e.ts
+
+      - name: Commit formatting
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add e2e/energy.production.e2e.ts
+          git commit -m 'style(energy): format browser acceptance [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
