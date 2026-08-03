@@ -477,6 +477,8 @@ def _apply_session_filters(
     sample = TelemetrySample.__table__
     context = TelemetrySessionContext.__table__
     filters = [context.c.session_id == session_id]
+    if query.stage_id is not None:
+        filters.append(context.c.stage_id == query.stage_id)
     telemetry_query = TelemetryQuery(
         node_id=query.node_id,
         equipment_id=query.equipment_id,
