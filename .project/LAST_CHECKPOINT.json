@@ -7,21 +7,21 @@
   "parent_issue": 260,
   "pull_request": 262,
   "status": "implementation_green_finalization_in_progress",
-  "timestamp": "2026-08-03T22:00:00+03:00",
+  "timestamp": "2026-08-03T22:20:00+03:00",
   "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-  "verified_implementation_head_sha": "0f2cf40dbb0a4d7763cf2ee8948770910fbbb03d",
+  "verified_implementation_head_sha": "6738277080db3388ef241468c0a28e3204ac7f98",
   "branch": "feat/261-energy-monitoring-page",
-  "summary": "Energy Monitoring is implemented and verified with stable captured-time pagination, absolute-bucket downsampling, source-derived and persistent outage segments, first-bucket marker transfer, permission-gated telemetry traffic, future-skew-safe WebSocket tails and wall-clock pruning.",
+  "summary": "Energy Monitoring is implemented and verified with subscribe-before-snapshot startup reconciliation, startup-safe pending outage state, stable pagination, absolute-bucket downsampling, source-derived outage segments, permission-gated telemetry traffic, future-skew-safe live tails and wall-clock pruning.",
   "checks_actually_run": [
-    "CI 30843193403 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
-    "Authenticated Dashboard Acceptance 30843193556 GREEN: energy latest/history, selection, live WebSocket update and evidence upload",
-    "Refrigeration Browser Acceptance 30843192945 GREEN: existing refrigeration operator flow preserved"
+    "CI 30844693579 GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build",
+    "Authenticated Dashboard Acceptance 30844693548 GREEN: energy latest/history, selection, live WebSocket update and evidence upload",
+    "Refrigeration Browser Acceptance 30844693576 GREEN: existing refrigeration operator flow preserved"
   ],
   "runtime_and_offline_evidence": [
+    "WebSocket subscribes before the initial latest snapshot",
+    "a bounded startup buffer preserves events emitted during snapshot loading",
+    "startup communication errors persist as pending chart breaks until recovery",
     "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
-    "telemetry.read permission is enforced before network traffic begins",
-    "transient communication errors persist as pending chart breaks until recovery",
-    "first-bucket outage markers survive endpoint preservation",
     "no package, Compose, container or offline-delivery contract changed",
     "no mandatory online runtime dependency introduced"
   ],
