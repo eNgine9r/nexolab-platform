@@ -63,6 +63,37 @@ jobs:
           package-manager-cache: false
           node-version-file: .nvmrc
 
+      - name: Install dependencies for focused formatter
+        run: npm ci --ignore-scripts
+
+      - name: Format focused live files in checkout
+        run: |
+          npx prettier --write \
+            e2e/live.production.e2e.ts \
+            src/components/live/live-screen.tsx \
+            src/components/live/live-telemetry-explorer.tsx \
+            src/features/live/live-history.ts \
+            src/features/live/live-history.test.ts \
+            src/features/live/live-telemetry.ts \
+            src/features/live/live-telemetry.test.ts \
+            src/hooks/use-live-telemetry.ts
+
+      - name: Upload focused formatter output
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatted-live-files-${{ github.sha }}
+          path: |
+            e2e/live.production.e2e.ts
+            src/components/live/live-screen.tsx
+            src/components/live/live-telemetry-explorer.tsx
+            src/features/live/live-history.ts
+            src/features/live/live-history.test.ts
+            src/features/live/live-telemetry.ts
+            src/features/live/live-telemetry.test.ts
+            src/hooks/use-live-telemetry.ts
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Run authenticated dashboard acceptance
         run: bash scripts/run-authenticated-dashboard-acceptance.sh
 
