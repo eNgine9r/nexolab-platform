@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
-import { downsampleEnergyHistory, loadCompleteEnergyHistory } from "./energy-history";
+import {
+  downsampleEnergyHistory,
+  loadCompleteEnergyHistory,
+  mergeEnergyHistoryTail,
+} from "./energy-history";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -90,6 +94,30 @@ describe("energy history", () => {
     expect(w1.at(-1)?.event_id).toBe("energy-edge-01-200-9");
     expect(w2[0].event_id).toBe("energy-edge-01-201-0");
     expect(w2.at(-1)?.event_id).toBe("energy-edge-01-201-9");
+  });
+
+  it("merges the websocket tail without retaining records outside the rolling window", () => {
+    const result = mergeEnergyHistoryTail(
+      [sample(0), sample(10)],
+      [
+        { ...sample(10), value: 999 },
+        sample(11, 201),
+        sample(12, 200, "edge-02"),
+        { ...sample(13), metric: "electrical.voltage", unit: "V" },
+      ],
+      {
+        nodeId: "edge-01",
+        metric: "electrical.power.active",
+        from: new Date("2026-08-03T10:00:05Z"),
+        to: new Date("2026-08-03T10:00:15Z"),
+      },
+    );
+
+    expect(result.map((item) => item.event_id)).toEqual([
+      "energy-edge-01-200-10",
+      "energy-edge-01-201-11",
+    ]);
+    expect(result[0].value).toBe(999);
   });
 
   it("rejects non-advancing pagination", async () => {
