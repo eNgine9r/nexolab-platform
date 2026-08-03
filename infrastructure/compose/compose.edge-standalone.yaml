@@ -1,0 +1,14 @@
+services:
+  mqtt:
+    networks:
+      default: {}
+      central-runtime: {}
+  device-agent:
+    networks:
+      default: {}
+      central-runtime: {}
+
+networks:
+  central-runtime:
+    external: true
+    name: ${CENTRAL_RUNTIME_NETWORK:-nexolab-central}
