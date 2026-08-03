@@ -12,10 +12,7 @@
   "verified_implementation_head_sha": "40e2b0897b389a2adcd43903223dc16129e7460d",
   "branch": "feat/261-energy-monitoring-page",
   "summary": "Energy Monitoring is implemented and verified with stable captured-time history pagination, renderable-only downsampling, WebSocket tail updates and wall-clock rolling-window pruning.",
-  "checks_actually_run": [
-    "CI 30832280986 GREEN",
-    "Authenticated Dashboard Acceptance 30832281295 GREEN"
-  ],
+  "checks_actually_run": ["CI 30832280986 GREEN", "Authenticated Dashboard Acceptance 30832281295 GREEN"],
   "runtime_and_offline_evidence": [
     "local REST, WebSocket, PostgreSQL and local authentication contracts retained",
     "no package, Compose, container or offline-delivery contract changed",
