@@ -2,13 +2,9 @@ services:
   mqtt:
     networks:
       default: {}
-      central-runtime: {}
-  device-agent:
-    networks:
-      default: {}
-      central-runtime: {}
+      standalone-runtime: {}
 
 networks:
-  central-runtime:
+  standalone-runtime:
     external: true
-    name: ${CENTRAL_RUNTIME_NETWORK:-nexolab-central}
+    name: ${STANDALONE_RUNTIME_NETWORK:-nexolab-standalone-runtime}
