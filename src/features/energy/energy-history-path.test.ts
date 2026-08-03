@@ -1,38 +1,32 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEnergyHistoryPath, resolveEnergyHistoryGapMs } from "./energy-history-path";
+import { markEnergyHistorySegmentStart } from "./energy-history-segment";
+import { buildEnergyHistoryPath } from "./energy-history-path";
+import type { TelemetrySample } from "@/lib/telemetry/types";
+
+function point(index: number, eventId = `event-${index}`) {
+  return {
+    id: eventId,
+    x: index * 10,
+    y: index * 5,
+    capturedAt: new Date(Date.parse("2026-08-03T10:00:00Z") + index * 363_000).toISOString(),
+  };
+}
 
 describe("energy history path", () => {
-  it("breaks the SVG path across telemetry outages", () => {
-    const path = buildEnergyHistoryPath([
-      { x: 10, y: 20, capturedAt: "2026-08-03T10:00:00Z" },
-      { x: 20, y: 30, capturedAt: "2026-08-03T10:00:05Z" },
-      { x: 30, y: 40, capturedAt: "2026-08-03T10:01:00Z" },
-    ]);
-
-    expect(path).toBe("M10.00 20.00 L20.00 30.00 M30.00 40.00");
-  });
-
   it("keeps normal downsampled 24-hour points connected", () => {
-    const points = Array.from({ length: 6 }, (_, index) => ({
-      x: index * 10,
-      y: index * 5,
-      capturedAt: new Date(Date.parse("2026-08-03T10:00:00Z") + index * 363_000).toISOString(),
-    }));
+    const points = Array.from({ length: 6 }, (_, index) => point(index));
 
-    expect(resolveEnergyHistoryGapMs(points)).toBe(1_089_000);
     expect(buildEnergyHistoryPath(points).match(/M/g)).toHaveLength(1);
   });
 
-  it("still breaks a long outage relative to the sampled cadence", () => {
-    const start = Date.parse("2026-08-03T10:00:00Z");
-    const offsets = [0, 363_000, 726_000, 1_089_000, 1_452_000, 3_000_000];
-    const points = offsets.map((offset, index) => ({
-      x: index * 10,
-      y: index * 5,
-      capturedAt: new Date(start + offset).toISOString(),
-    }));
+  it("breaks only at a source-preserved telemetry outage", () => {
+    const marker = markEnergyHistorySegmentStart({
+      event_id: "event-4",
+    } as TelemetrySample).event_id;
+    const points = [point(0), point(1), point(2), point(3), point(4, marker), point(5)];
 
+    expect(buildEnergyHistoryPath(points)).toContain("M40.00 20.00");
     expect(buildEnergyHistoryPath(points).match(/M/g)).toHaveLength(2);
   });
 });
