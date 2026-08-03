@@ -1,0 +1,185 @@
+name: Temporary Apply Energy Startup Race Fix
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-apply-energy-startup-race-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+      - name: Apply focused hook edits
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/hooks/use-energy-telemetry.ts")
+          text = path.read_text()
+
+          import_anchor = '''import {
+            loadCompleteEnergyHistory,
+            mergeEnergyHistoryTail,
+            selectEnergyHistoryTail,
+          } from "@/features/energy/energy-history";'''
+          import_replacement = import_anchor + '\nimport { reconcileEnergyLiveHistory } from "@/features/energy/energy-live-history";'
+          if text.count(import_anchor) != 1:
+              raise SystemExit("Expected one energy history import")
+          text = text.replace(import_anchor, import_replacement)
+
+          ref_anchor = '''  const activeHistoryKeyRef = useRef(activeHistoryKey);
+          const historyWindowRef = useRef(historyWindow);'''
+          ref_replacement = '''  const activeHistoryKeyRef = useRef(activeHistoryKey);
+          const historyWindowRef = useRef(historyWindow);
+          const pendingHistoryBreakUnitIdsRef = useRef<Set<number>>(new Set());
+          const pendingHistoryMetricRef = useRef(selectedMetric);'''
+          if text.count(ref_anchor) != 1:
+              raise SystemExit("Expected one history ref anchor")
+          text = text.replace(ref_anchor, ref_replacement)
+
+          setup_anchor = '''    let subscription: TelemetrySubscription | null = null;
+            let disposed = false;'''
+          setup_replacement = '''    let subscription: TelemetrySubscription | null = null;
+            let disposed = false;
+            let snapshotPending = true;
+            let bufferedLiveSamples: TelemetrySample[] = [];
+            pendingHistoryBreakUnitIdsRef.current = new Set();
+            pendingHistoryMetricRef.current = selectedMetricRef.current;'''
+          if text.count(setup_anchor) != 1:
+              raise SystemExit("Expected one subscription setup anchor")
+          text = text.replace(setup_anchor, setup_replacement)
+
+          tail_anchor = '''      const selectedHistoryMetric = selectedMetricRef.current;
+              const tail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
+              const currentWindow = historyWindowRef.current;'''
+          tail_replacement = '''      const selectedHistoryMetric = selectedMetricRef.current;
+              if (pendingHistoryMetricRef.current !== selectedHistoryMetric) {
+                pendingHistoryMetricRef.current = selectedHistoryMetric;
+                pendingHistoryBreakUnitIdsRef.current = new Set();
+              }
+              const selectedTail = selectEnergyHistoryTail(
+                accepted,
+                ENERGY_NODE_ID,
+                selectedHistoryMetric,
+                now,
+              );
+              const reconciliation = reconcileEnergyLiveHistory(
+                selectedTail,
+                pendingHistoryBreakUnitIdsRef.current,
+              );
+              pendingHistoryBreakUnitIdsRef.current = reconciliation.pendingUnitIds;
+              const tail = reconciliation.samples;
+              const currentWindow = historyWindowRef.current;'''
+          if text.count(tail_anchor) != 1:
+              raise SystemExit("Expected one tail selection anchor")
+          text = text.replace(tail_anchor, tail_replacement)
+
+          callback_anchor = '''          onSample: (sample) => commit([sample]),'''
+          callback_replacement = '''          onSample: (sample) => {
+                    if (snapshotPending) {
+                      bufferedLiveSamples.push(sample);
+                      return;
+                    }
+                    commit([sample]);
+                  },'''
+          if text.count(callback_anchor) != 1:
+              raise SystemExit("Expected one onSample callback")
+          text = text.replace(callback_anchor, callback_replacement)
+
+          latest_anchor = '''    void adapter
+              .latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal)
+              .then((snapshot) => {
+                commit(snapshot.items);
+                setHasLoadedSnapshot(true);
+              })
+              .catch((nextError: unknown) => {
+                if (controller.signal.aborted || disposed) return;
+                setHasLoadedSnapshot(true);
+                setError(nextError instanceof Error ? nextError : new Error("Failed to load energy snapshot"));
+              })
+              .finally(() => {
+                if (!disposed) connectLive();
+              });'''
+          latest_replacement = '''    connectLive();
+
+            void adapter
+              .latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal)
+              .then((snapshot) => {
+                if (disposed) return;
+                const buffered = bufferedLiveSamples;
+                bufferedLiveSamples = [];
+                snapshotPending = false;
+                commit([...snapshot.items, ...buffered]);
+                setHasLoadedSnapshot(true);
+              })
+              .catch((nextError: unknown) => {
+                if (controller.signal.aborted || disposed) return;
+                const buffered = bufferedLiveSamples;
+                bufferedLiveSamples = [];
+                snapshotPending = false;
+                commit(buffered);
+                setHasLoadedSnapshot(true);
+                setError(nextError instanceof Error ? nextError : new Error("Failed to load energy snapshot"));
+              });'''
+          if text.count(latest_anchor) != 1:
+              raise SystemExit("Expected one latest-before-subscribe block")
+          text = text.replace(latest_anchor, latest_replacement)
+
+          cleanup_anchor = '''      subscription?.close();
+            };'''
+          cleanup_replacement = '''      bufferedLiveSamples = [];
+              subscription?.close();
+            };'''
+          if text.count(cleanup_anchor) != 1:
+              raise SystemExit("Expected one subscription cleanup")
+          text = text.replace(cleanup_anchor, cleanup_replacement)
+
+          path.write_text(text)
+          PY
+      - name: Format and verify exact files
+        run: |
+          npx prettier --write \
+            src/hooks/use-energy-telemetry.ts \
+            src/features/energy/energy-live-history.ts \
+            src/features/energy/energy-live-history.test.ts
+          npx prettier --check \
+            src/hooks/use-energy-telemetry.ts \
+            src/features/energy/energy-live-history.ts \
+            src/features/energy/energy-live-history.test.ts
+      - name: Commit focused correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -Ev '^(src/hooks/use-energy-telemetry.ts|src/features/energy/energy-live-history.ts|src/features/energy/energy-live-history.test.ts)$' || true)"
+          if [[ -n "$unexpected" ]]; then
+            printf 'Unexpected files:\n%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/hooks/use-energy-telemetry.ts \
+            src/features/energy/energy-live-history.ts \
+            src/features/energy/energy-live-history.test.ts
+          git diff --cached --quiet && { echo 'No startup race changes produced' >&2; exit 1; }
+          git commit -m 'fix(energy): subscribe before latest snapshot [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
