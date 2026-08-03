@@ -2,16 +2,11 @@
 
 Updated: 2026-08-03
 Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Active Work Package: Issue #261 — Energy Monitoring implementation complete, exact-head validation pending
+Verified implementation head: `3143bf31757b7d866623896c241f695da650944f`
+Active Work Package: Issue #261 — Energy Monitoring verified and ready for protected merge
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Next Ready Work Package: Issue #263 — Live Data telemetry explorer
-Status confidence: high for repository route inventory, implemented energy scope, focused CI/browser evidence and review findings.
-
-## Completed baseline
-
-Issue #251 merged through PR #259 as `47d5124fd96f54800cf7347ff672297a1d421526` with all exact-head quality, browser and offline gates GREEN.
-
-This baseline is sufficient for product delivery. Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
+Status confidence: high for repository state, exact-head CI, authenticated browser evidence and resolved product review findings.
 
 ## Product route status
 
@@ -23,77 +18,58 @@ Implemented workflow routes:
 - `/refrigeration` — Refrigeration equipment;
 - `/alerts` — Alerts;
 - `/reports` — Reports;
-- `/energy` — LE-01MP Energy Monitoring candidate in PR #262.
+- `/energy` — verified LE-01MP Energy Monitoring implementation in PR #262.
 
 Remaining placeholder routes:
 
-- `/live` — Live data, tracked by Issue #263;
+- `/live` — next Work Package #263;
 - `/equipment-layouts` — Equipment layouts;
-- `/lockers` — Smart lockers, blocked pending inventory/protocol scope;
+- `/lockers` — Smart lockers, blocked pending inventory and read-only protocol scope;
 - `/cameras` — Cameras;
-- `/equipment` — Equipment registry;
+- `/equipment` — Equipment and metrology registry;
 - `/settings` — Settings.
 
-Epic #260 owns focused replacement of the remaining six placeholder routes.
+Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #261 implementation outcome
+## Issue #261 outcome
 
-PR #262 replaces the `/energy` placeholder with an authenticated operator workspace for KK1 LE-01MP meters W1–W4.
+PR #262 replaces `/energy` with an authenticated operator workspace for KK1 LE-01MP meters W1–W4.
 
 Delivered behavior:
 
-- deterministic W1–W4 cards for Unit IDs 200–203;
-- confirmed latest values for voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
+- deterministic W1–W4 cards for Unit IDs 200–203, scoped to production node `edge-01`;
+- confirmed voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
 - authenticated local REST snapshot and WebSocket live updates;
-- complete paginated PostgreSQL history for the selected 1h/6h/24h window;
-- bounded per-meter downsampling that preserves the first and last points of the complete window;
-- meter and metric comparison controls;
+- complete paginated PostgreSQL history for 1h, 6h and 24h windows;
+- bounded per-meter downsampling after the complete window is loaded;
+- requested-window chart scaling, including sparse intervals;
+- incremental WebSocket history-tail merge without periodic full-window reload;
+- metric/unit compatibility validation;
 - explicit loading, empty, stale, offline, communication-error, permission-denied and configuration states;
-- stale card readings are suppressed while the detailed table retains per-metric quality labels;
 - no silent demo fallback in live mode;
-- explicit evidence boundary: cumulative energy/kWh remains unavailable pending hardware Issue #201.
+- cumulative energy/kWh remains unavailable pending hardware Issue #201.
 
-No package, Compose, container, database migration, Modbus, production deployment or hardware action is part of the Work Package.
+No package, Compose, container, database migration, Modbus write, production deployment or hardware action is part of this Work Package.
 
-## Verification evidence
+## Exact-head verification
 
-Confirmed on pre-review-fix head `cb4aa8af499d64859df46d8895bd3f07a3b400ac`:
+Verified on `3143bf31757b7d866623896c241f695da650944f`:
 
-- formatting GREEN;
-- ESLint GREEN;
-- strict TypeScript GREEN;
-- 190 unit/component tests GREEN;
-- production build GREEN;
-- Authenticated Dashboard Acceptance GREEN with energy latest, history, meter selection, live WebSocket update and screenshot evidence.
+- CI run `30830167308` GREEN: formatting, ESLint, strict TypeScript, full Vitest suite and production build;
+- Authenticated Dashboard Acceptance run `30830165546` GREEN: energy latest/history, meter selection, WebSocket update and evidence upload;
+- focused history tests cover pagination, downsampling, node scope, deduplication, rolling-window pruning and WebSocket-tail merge;
+- review findings for pagination, freshness, window scale, rolling updates, unit compatibility, node scope and query load are addressed.
 
-Review then identified two product defects:
+Broad path filters also launched unrelated workflows; they do not expand this focused page merge gate.
 
-- incomplete first-page-only history;
-- mixed-freshness meter cards labelled Live.
-
-Both defects are corrected in the current branch. Final exact-head quality and authenticated browser validation remain required before merge.
-
-## Verification policy
-
-Tests support product delivery; they are not an independent roadmap.
-
-For page Work Packages:
-
-1. touched-file checks and focused tests during implementation;
-2. lint, typecheck and production build at completion;
-3. only the directly affected browser/API acceptance;
-4. Offline Bundle only when package, container, Compose, runtime or offline-delivery contracts change.
-
-Broad existing path filters may start unrelated workflows, but they do not expand the Work Package merge gate.
-
-## Runtime and hardware status
+## Runtime and hardware evidence
 
 ```text
-energy page software implemented; exact-head validation pending; hardware unchanged and unverified for cumulative energy
+energy page software verified; no hardware operation performed; cumulative energy remains hardware-unverified
 ```
 
 Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence for #189 and hardware investigations #200–#202 remain soft-blocked by controlled hardware access. No Modbus or hardware write is authorized.
 
 ## Next Ready Work Package
 
-After PR #262 merges, start Issue #263 — replace `/live` with the universal authenticated telemetry explorer. Do not resume deferred toolchain maintenance between product pages.
+Merge PR #262 with expected-head protection, then start Issue #263 and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
