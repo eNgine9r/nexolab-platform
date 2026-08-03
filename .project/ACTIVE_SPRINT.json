@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "PRODUCTION-DEPENDENCY-MAINTENANCE-1",
-    "title": "Focused production dependency maintenance",
-    "goal": "Review production dependencies without weakening operator semantics or the LOCAL_LAN offline runtime.",
-    "status": "completion_pending_reconciliation_pr",
+    "id": "FRONTEND-TOOLCHAIN-MIGRATION-1",
+    "title": "Focused frontend toolchain migrations",
+    "goal": "Migrate development tools in isolated, reversible Work Packages without weakening quality gates or offline runtime behavior.",
+    "status": "in_progress",
     "started_at": "2026-08-03"
   },
   "execution_policy": {
@@ -19,54 +19,77 @@
   },
   "completed_baseline": [
     {
-      "issue": 239,
-      "pull_request": 240,
-      "merge_sha": "3623be1f2778ea283200e6a5d2278c5f1326c434",
-      "outcome": "Next.js and React security patch line"
-    },
-    {
-      "issue": 241,
-      "pull_request": 244,
-      "merge_sha": "2c00812aed7bc107f191a50e2e0745cb9c091bbd",
-      "outcome": "transitive sharp 0.35.3 compatibility control"
-    },
-    {
-      "issue": 242,
-      "pull_request": 248,
-      "merge_sha": "33224e148c733e50896fe68c13c53130e0a7afac",
-      "outcome": "optional Supabase SDK 2.112.0 with offline-local auth preserved"
-    },
-    {
-      "issue": 243,
-      "pull_request": 249,
-      "merge_sha": "cc865098e7d1ffa81313c34c32672276c8bc51a9",
-      "outcome": "Lucide 1.26.0 retained with operator-semantics regression proof"
+      "issue": 203,
+      "pull_request": 250,
+      "merge_sha": "c3488d383d7633f40f7a723bb0d1ffd97b492973",
+      "outcome": "focused production dependency maintenance completed"
     }
   ],
   "tasks": [
     {
-      "id": "NEXOLAB-203",
-      "issue": 203,
-      "title": "Review and stage production dependency updates",
-      "status": "completed_pending_reconciliation_merge",
-      "branch": "docs/203-close-production-dependency-review",
-      "remaining_groups": [],
-      "next_action": "Merge the state-only reconciliation PR and close Issue #203."
-    },
-    {
       "id": "NEXOLAB-204",
       "issue": 204,
       "title": "Plan and execute major frontend toolchain migrations separately",
+      "status": "planning_complete_pending_pr_ci",
+      "branch": "maint/204-frontend-toolchain-migration-plan",
+      "plan": "docs/maintenance/frontend-toolchain-migration-plan.md",
+      "child_issues": [251, 252, 253, 254, 255, 256, 257],
+      "next_action": "Merge the planning PR after exact-head CI and review. Keep Issue #204 open as the child-tracking parent."
+    },
+    {
+      "id": "NEXOLAB-251",
+      "issue": 251,
+      "title": "Align Node 22 developer and CI baseline with Node type definitions",
       "status": "ready",
-      "first_action": "Create a compatibility matrix and migration order before changing any dependency."
+      "depends_on": []
+    },
+    {
+      "id": "NEXOLAB-254",
+      "issue": 254,
+      "title": "Upgrade Playwright 1.55 to 1.62 with browser evidence preservation",
+      "status": "queued",
+      "depends_on": [251]
+    },
+    {
+      "id": "NEXOLAB-252",
+      "issue": 252,
+      "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
+      "status": "blocked",
+      "depends_on": [251]
+    },
+    {
+      "id": "NEXOLAB-253",
+      "issue": 253,
+      "title": "Migrate jsdom 29 to 30 without changing unit-test semantics",
+      "status": "queued",
+      "depends_on": [251]
+    },
+    {
+      "id": "NEXOLAB-255",
+      "issue": 255,
+      "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
+      "status": "queued",
+      "depends_on": [251, 254, 252, 253]
+    },
+    {
+      "id": "NEXOLAB-256",
+      "issue": 256,
+      "title": "Evaluate TypeScript 7 native compiler after the TypeScript 6 transition",
+      "status": "blocked",
+      "depends_on": [255, "confirmed Next/Vitest/ESLint TypeScript 7 support"]
+    },
+    {
+      "id": "NEXOLAB-257",
+      "issue": 257,
+      "title": "Upgrade ESLint 9 to 10 only with a compatible Next plugin graph",
+      "status": "blocked",
+      "depends_on": ["eslint-config-next plugin graph with ESLint 10 peer support"]
     },
     {
       "id": "NEXOLAB-245",
       "issue": 245,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "software_merged_pending_actual_pi",
-      "pull_request": 246,
-      "merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
+      "status": "software_merged_pending_actual_pi"
     },
     {
       "id": "NEXOLAB-189",
@@ -91,13 +114,6 @@
       "issue": 202,
       "title": "Validate extended XJP60D semantics",
       "status": "blocked"
-    },
-    {
-      "id": "NEXOLAB-17",
-      "issue": 17,
-      "title": "Consolidate versioned device profiles",
-      "status": "blocked",
-      "depends_on": ["NEXOLAB-200", "NEXOLAB-201", "NEXOLAB-202"]
     }
   ]
 }
