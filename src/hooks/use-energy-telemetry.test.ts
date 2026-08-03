@@ -58,12 +58,10 @@ describe("useEnergyTelemetry startup coverage", () => {
       next_offset: null,
       snapshot_at: SNAPSHOT_AT,
     });
-    adapterState.subscribe.mockImplementation(
-      (_filters: unknown, handlers: TelemetryLiveHandlers) => {
-        adapterState.handlers = handlers;
-        return { close: vi.fn() };
-      },
-    );
+    adapterState.subscribe.mockImplementation((_filters: unknown, handlers: TelemetryLiveHandlers) => {
+      adapterState.handlers = handlers;
+      return { close: vi.fn() };
+    });
   });
 
   it("does not load history before authenticated WebSocket coverage", async () => {
