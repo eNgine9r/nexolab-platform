@@ -1,0 +1,90 @@
+name: Temporary Energy Review Finalizer
+
+on:
+  push:
+    branches:
+      - feat/261-energy-monitoring-page
+    paths:
+      - .github/workflows/temporary-energy-review-finalizer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/261-energy-monitoring-page
+          persist-credentials: true
+
+      - name: Setup exact Node baseline
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install repository dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit --no-fund
+
+      - name: Apply mixed-freshness card correction
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/energy/energy-workspace.tsx")
+          text = path.read_text()
+          old = "samples={telemetry.samples}"
+          new = "samples={telemetry.freshSamples}"
+          if text.count(old) != 1:
+              raise SystemExit(f"Expected one meter-card sample binding, found {text.count(old)}")
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Format exact review-fix files
+        run: |
+          npx prettier --write \
+            .project/CURRENT_STATE.md \
+            .project/ACTIVE_SPRINT.json \
+            .project/BLOCKERS.md \
+            .project/LAST_CHECKPOINT.json \
+            src/components/energy/energy-workspace.tsx \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/hooks/use-energy-telemetry.ts
+          npm run format:check
+
+      - name: Validate focused movement
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -Ev '^(.project/(CURRENT_STATE.md|ACTIVE_SPRINT.json|BLOCKERS.md|LAST_CHECKPOINT.json)|src/components/energy/energy-workspace.tsx|src/features/energy/energy-history(.test)?.ts|src/hooks/use-energy-telemetry.ts)$' || true)"
+          if [[ -n "$unexpected" ]]; then
+            printf 'Unexpected finalizer files:\n%s\n' "$unexpected" >&2
+            exit 1
+          fi
+          test -n "$(git diff --name-only)"
+
+      - name: Commit final review fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            .project/CURRENT_STATE.md \
+            .project/ACTIVE_SPRINT.json \
+            .project/BLOCKERS.md \
+            .project/LAST_CHECKPOINT.json \
+            src/components/energy/energy-workspace.tsx \
+            src/features/energy/energy-history.ts \
+            src/features/energy/energy-history.test.ts \
+            src/hooks/use-energy-telemetry.ts
+          git commit -m 'fix(energy): complete history and freshness review fixes [skip ci]'
+          git push origin HEAD:feat/261-energy-monitoring-page
