@@ -108,7 +108,7 @@ function bucketDownsampleAnnotated(
   const last = sorted.at(-1)!;
   const firstBucket = Math.floor(Date.parse(first.captured_at) / bucketMs);
   const lastBucket = Math.floor(Date.parse(last.captured_at) / bucketMs);
-  buckets.set(firstBucket, mergeBucketSample(buckets.get(firstBucket), first));
+  buckets.set(firstBucket, first);
   buckets.set(lastBucket, mergeBucketSample(buckets.get(lastBucket), last));
 
   return [...buckets.values()]
