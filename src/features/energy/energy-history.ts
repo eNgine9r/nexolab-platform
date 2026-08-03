@@ -178,7 +178,10 @@ export async function loadCompleteEnergyHistory(
     }
 
     const currentCursor = cursorTo.getTime();
-    cursorTo = new Date(oldestCapturedAt < currentCursor ? oldestCapturedAt : currentCursor - 1);
+    const overlappingBoundaryCursor = oldestCapturedAt + 1;
+    cursorTo = new Date(
+      overlappingBoundaryCursor < currentCursor ? overlappingBoundaryCursor : currentCursor - 1,
+    );
   }
 
   throw new Error("Telemetry history exceeded the supported pagination window");
