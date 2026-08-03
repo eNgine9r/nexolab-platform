@@ -2,100 +2,76 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "FRONTEND-TOOLCHAIN-MIGRATION-1",
-  "task": "NEXOLAB-204",
-  "issue": 204,
-  "status": "planning_complete_pending_pr_ci",
-  "timestamp": "2026-08-03T16:02:00+03:00",
-  "baseline_main_sha": "c3488d383d7633f40f7a723bb0d1ffd97b492973",
-  "branch": "maint/204-frontend-toolchain-migration-plan",
-  "summary": "Decomposed superseded grouped Dependabot PR #160 into focused, reversible frontend toolchain Work Packages with an explicit compatibility matrix, execution order and rollback contract. No package or runtime change was performed.",
-  "plan": "docs/maintenance/frontend-toolchain-migration-plan.md",
-  "baseline_versions": {
-    "node_selector": "22",
-    "node_engine": ">=22.0.0",
-    "observed_ci_node": "22.23.1",
-    "types_node": "20.19.43",
-    "typescript": "5.9.3",
-    "eslint": "9.39.5",
-    "eslint_config_next": "16.2.12",
-    "jsdom": "29.1.1",
-    "lint_staged": "16.4.0",
-    "playwright": "1.55.0"
+  "task": "NEXOLAB-251",
+  "issue": 251,
+  "pull_request": 259,
+  "status": "offline_failure_corrected_pending_exact_head_ci",
+  "timestamp": "2026-08-03T16:44:00+03:00",
+  "baseline_main_sha": "72ecc207af528942396054764c0b33a663727de1",
+  "branch": "maint/251-node22-baseline-types",
+  "summary": "Pinned the exact Node 22 developer/CI baseline, aligned Node 22 type declarations and corrected the package engine to preserve the established Node 24 dashboard container build after Offline Bundle exposed the initial Node 22-only contract error.",
+  "decision": {
+    "developer_ci_node_exact": "22.23.1",
+    "node_engine": ">=22.22.1 <23 || >=24 <25",
+    "container_node_line": "24",
+    "types_node_manifest": "^22.20.1",
+    "types_node_resolved": "22.20.1",
+    "undici_types_resolved": "6.21.0"
   },
-  "child_issues": [
-    {
-      "issue": 251,
-      "status": "ready",
-      "outcome": "align Node 22 baseline and Node 22 type definitions"
-    },
-    {
-      "issue": 254,
-      "status": "queued_after_251",
-      "outcome": "Playwright 1.62 browser and evidence migration"
-    },
-    {
-      "issue": 252,
-      "status": "blocked_by_251",
-      "outcome": "lint-staged 17 migration"
-    },
-    {
-      "issue": 253,
-      "status": "queued_after_251",
-      "outcome": "jsdom 30 unit-test DOM migration"
-    },
-    {
-      "issue": 255,
-      "status": "queued",
-      "outcome": "TypeScript 6 transition"
-    },
-    {
-      "issue": 256,
-      "status": "blocked_by_255_and_ecosystem",
-      "outcome": "TypeScript 7 native compiler evaluation"
-    },
-    {
-      "issue": 257,
-      "status": "blocked_by_plugin_peers",
-      "outcome": "ESLint 10 migration"
-    }
+  "failed_candidate": {
+    "head_sha": "ae732e67178bb7bfcd8cca33ec733987ba121b3e",
+    "workflow": "Offline Bundle",
+    "run": 30817017506,
+    "job": 91697161272,
+    "failed_step": "Build linux amd64 bundle on connected builder",
+    "root_cause": "package engine >=22.22.1 <23 rejected Node 24.18.1 in the dashboard image during npm prune --omit=dev",
+    "classification": "valid contract regression"
+  },
+  "correction": [
+    "retain exact Node 22.23.1 for developer machines and GitHub Actions",
+    "admit the existing Node 24 dashboard container line",
+    "reject Node 23 and Node 25",
+    "retain conservative Node 22 source type declarations",
+    "regenerate package-lock.json and remove the temporary workflow from the final diff"
   ],
-  "key_decisions": [
-    "reject @types/node 26 while runtime remains Node 22",
-    "require Node 22.22.1 or newer before lint-staged 17",
-    "reject direct TypeScript 5.9 to 7 migration",
-    "require TypeScript 6 transition before TypeScript 7",
-    "block ESLint 10 while eslint-plugin-import peer support ends at ESLint 9",
-    "treat Playwright as a browser/evidence migration",
-    "keep jsdom isolated from other test-tool majors"
+  "evidence": [
+    "Node 22.23.1 exact CI assertion passed on the failed candidate",
+    "deterministic npm install, formatting, lint and typecheck passed before the offline failure",
+    "the dashboard build itself completed on Node 24 before npm prune enforced the incorrect engine range",
+    "the Offline Bundle gate correctly prevented merge",
+    "no production source or runtime service definition changed"
   ],
   "files_changed": [
-    "docs/maintenance/frontend-toolchain-migration-plan.md",
+    ".nvmrc",
+    "package.json",
+    "package-lock.json",
+    ".github/workflows/ci.yml",
+    "docs/maintenance/node22-baseline.md",
     ".project/CURRENT_STATE.md",
     ".project/ACTIVE_SPRINT.json",
     ".project/BLOCKERS.md",
     ".project/LAST_CHECKPOINT.json"
   ],
-  "files_confirmed_unchanged": [
-    "package.json",
-    "package-lock.json",
-    "all production source and runtime configuration"
-  ],
   "runtime_and_offline_evidence": [
-    "planning Work Package introduces no dependency or runtime change",
-    "no mandatory online or paid runtime service added",
-    "future package changes require Offline Bundle verification"
+    "developer and CI commands remain on exact Node 22.23.1",
+    "the existing Node 24 dashboard image remains supported",
+    "no mandatory online or paid runtime dependency was introduced",
+    "persistent-volume and disconnected runtime contracts are unchanged"
   ],
   "hardware_evidence": {
     "hardware_verified": false,
     "note": "No hardware operation was in scope or performed."
   },
   "checks_pending": [
-    "exact-head formatting, lint, typecheck, tests and build",
-    "review audit",
-    "merge planning PR"
+    "corrected exact Node baseline assertion",
+    "deterministic npm install",
+    "formatting, lint, typecheck, full tests and production build",
+    "all triggered browser acceptance workflows",
+    "Offline Bundle connected build, disconnected startup and update/rollback preservation",
+    "review audit and expected-head merge"
   ],
   "next_ready_work_package": {
-    "issue": 251,
-    "instruction": "Align the Node 22 baseline and Node 22 type definitions before any major tool migration."
+    "issue": 254,
+    "instruction": "After #251 merges, upgrade Playwright with complete browser-evidence and Offline Bundle verification."
   }
 }

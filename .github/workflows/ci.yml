@@ -36,6 +36,19 @@ jobs:
           package-manager-cache: false
           node-version-file: .nvmrc
 
+      - name: Verify exact Node baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="v$(tr -d '[:space:]' < .nvmrc)"
+          actual="$(node --version)"
+          if [[ "$actual" != "$expected" ]]; then
+            printf 'Expected Node %s from .nvmrc, got %s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          printf 'Verified Node baseline: %s\n' "$actual"
+          printf 'npm version: %s\n' "$(npm --version)"
+
       - name: Install dependencies
         env:
           HUSKY: 0

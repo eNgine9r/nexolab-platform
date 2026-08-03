@@ -2,38 +2,46 @@
 
 Updated: 2026-08-03
 
-## Issue #204 — frontend toolchain migration planning
+## Issue #251 — Node tooling and type definitions
 
-No hard blocker prevents completing the planning Pull Request.
+No product, implementation, runtime or hardware blocker is open after correcting the exact Offline Bundle failure.
 
-The grouped Dependabot PR #160 is superseded by focused child Issues #251–#257.
+Final candidate contract:
 
-## Ready and queued toolchain work
+```text
+Developer/CI Node exact: 22.23.1
+Supported package engine: >=22.22.1 <23 || >=24 <25
+Dashboard container Node line: 24
+@types/node: 22.20.1
+undici-types: 6.21.0
+```
 
-- **#251 — Ready:** align Node 22 developer/CI baseline and Node 22 type definitions.
-- **#254 — Queued after #251:** Playwright browser/evidence migration.
-- **#253 — Queued after #251:** jsdom unit-test DOM migration.
-- **#255 — Queued after independent tool migrations:** TypeScript 6 transition.
+### Resolved CI blocker
 
-## Toolchain blockers
+Offline Bundle run `30817017506` failed during the connected dashboard image build because the initial Node 22-only package engine rejected the existing Node 24 dashboard image during `npm prune --omit=dev`.
 
-### #252 — lint-staged 17
+Resolution:
 
-Blocked by #251.
+- preserve exact Node 22.23.1 for developers and GitHub Actions;
+- admit the established Node 24 dashboard container line;
+- continue rejecting Node 23, Node 25 and Node 26 declarations;
+- regenerate the lockfile and rerun the full exact-head cascade.
 
-Reason: lint-staged 17 requires Node 22.22.1 or newer, while the repository currently declares `node >=22.0.0` and uses a broad `.nvmrc` selector.
+Merge remains gated by:
 
-### #256 — TypeScript 7
+- exact Node 22.23.1 evidence in primary CI;
+- deterministic dependency installation;
+- formatting, lint, strict typecheck, full tests and production build;
+- all triggered browser acceptance workflows;
+- Offline Bundle connected Node 24 build, disconnected startup and update/rollback volume preservation;
+- clean review audit and expected-head merge protection.
 
-Blocked by #255 and confirmed ecosystem support.
+## Toolchain dependency changes after #251
 
-Reason: direct `5.9.3 → 7.0.2` migration is not accepted. TypeScript 6 must provide a verified transition baseline, and Next.js, Vitest/Vite and ESLint integrations must support the chosen TypeScript 7 line.
-
-### #257 — ESLint 10
-
-Blocked by the current resolved Next plugin graph.
-
-Reason: `eslint-plugin-import 2.32.0` declares peer compatibility only through ESLint 9. Do not install ESLint 10 until every resolved plugin declares support.
+- #254 Playwright becomes the next ordered Ready Work Package after #251 merges.
+- #252 lint-staged becomes technically unblocked because the Node 22 floor satisfies v17, but remains ordered after #254.
+- #253 jsdom remains queued after the Node baseline.
+- #256 TypeScript 7 and #257 ESLint 10 remain blocked by their separate compatibility gates.
 
 ## Hard blockers
 
@@ -76,4 +84,4 @@ Software recovery evidence is verified. Actual-host reboot, physical power-loss 
 
 ## Next Ready action
 
-Merge the Issue #204 planning PR after exact-head CI and review, keep #204 open as the tracking parent, then start Issue #251 on its own feature branch.
+Run the corrected exact-head PR #259 cascade, perform review audit and merge only on GREEN. Then start Issue #254.

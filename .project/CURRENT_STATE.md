@@ -1,71 +1,88 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-03
-Verified main baseline: `c3488d383d7633f40f7a723bb0d1ffd97b492973`
-Active Work Package: Issue #204 — frontend toolchain migration planning
-Status confidence: high for repository package inventory, superseded Dependabot targets, current config coupling and migration dependencies; no toolchain package has changed in this Work Package.
+Verified main baseline: `72ecc207af528942396054764c0b33a663727de1`
+Active Work Package: Issue #251 — Node tooling and type-definition baseline
+Status confidence: high for official release metadata, repository workflow inventory, deterministic lockfile movement and the exact Offline Bundle failure diagnosis; corrected exact-head verification is pending.
 
-## Completed parent maintenance
+## Completed planning baseline
 
-Issue #203 / PR #250 is merged as `c3488d383d7633f40f7a723bb0d1ffd97b492973` and closed.
+Issue #204 planning PR #258 is merged as `72ecc207af528942396054764c0b33a663727de1`. The parent remains open to track child migrations #251–#257.
 
-## Issue #204 outcome
+## Issue #251 outcome
 
-The grouped Dependabot PR #160 has been decomposed into focused Work Packages with an explicit migration order and rollback contract.
-
-Current exact development-tool baseline:
-
-- Node selector: `.nvmrc` = `22`;
-- declared Node engine: `>=22.0.0`;
-- CI observed Node: `22.23.1`;
-- `@types/node 20.19.43`;
-- TypeScript `5.9.3`;
-- ESLint `9.39.5`;
-- eslint-config-next `16.2.12`;
-- jsdom `29.1.1`;
-- lint-staged `16.4.0`;
-- Playwright Test `1.55.0`.
-
-The migration matrix is stored in:
+NEXOLAB now has an explicit dual-line Node contract:
 
 ```text
-docs/maintenance/frontend-toolchain-migration-plan.md
+.nvmrc exact developer/CI version: 22.23.1
+package engine: >=22.22.1 <23 || >=24 <25
+@types/node manifest: ^22.20.1
+@types/node resolved: 22.20.1
+undici-types resolved: 6.21.0
 ```
 
-## Focused child Work Packages
+Responsibilities:
 
-- #251 — align the Node 22 developer/CI baseline and Node 22 type definitions; **Ready first**.
-- #254 — upgrade Playwright 1.55 to 1.62 with browser evidence preservation; queued after #251.
-- #252 — upgrade lint-staged 16 to 17; blocked by #251 because v17 requires Node 22.22.1 or newer.
-- #253 — migrate jsdom 29 to 30 without changing unit-test semantics; queued after the Node baseline.
-- #255 — migrate TypeScript 5.9 to the TypeScript 6 transition line.
-- #256 — evaluate TypeScript 7 native compiler only after #255 and confirmed Next/Vitest/ESLint support.
-- #257 — upgrade ESLint 9 to 10 only after the resolved Next plugin graph supports ESLint 10.
+- Node 22.23.1 is the exact developer and GitHub Actions baseline.
+- Node 22.22.1 is the minimum supported Node 22 patch and satisfies the future lint-staged 17 floor.
+- The existing dashboard offline image uses the Node 24 container line, which remains supported.
+- Node 23 and Node 25 are rejected.
+- Source typechecking remains conservative on Node 22 declarations even when the container build uses Node 24.
+- Node 26 declarations remain rejected.
+- Every searched frontend GitHub workflow uses `node-version-file: .nvmrc`.
+- Primary CI fails if `node --version` does not exactly match `.nvmrc` and records the npm version.
 
-## Key compatibility decisions
+## Offline failure and correction
 
-- The proposed `@types/node 26.1.2` is rejected while the supported runtime remains Node 22.
-- A direct TypeScript `5.9.3 → 7.0.2` migration is rejected; TypeScript 6 is the mandatory transition gate.
-- ESLint 10 is currently blocked because resolved `eslint-plugin-import 2.32.0` declares peer support only through ESLint 9.
-- Playwright is treated as a browser-runtime and evidence migration because browser revisions and CI installation are part of acceptance reproducibility.
-- jsdom and lint-staged remain separate because they affect different failure domains: unit-test DOM behavior versus Git index/worktree safety.
+The first candidate incorrectly restricted the package engine to Node 22 only. Offline Bundle correctly failed during dashboard-image `npm prune --omit=dev` because the established offline Dockerfile uses Node 24.
+
+The failure was not bypassed. The engine contract was corrected to admit supported Node 22 and Node 24 lines, the lockfile was regenerated, and the complete exact-head cascade must rerun.
 
 ## Scope completed
 
-- reviewed package manifest, lockfile, `.nvmrc`, TypeScript, ESLint, Vitest and Playwright configuration;
-- captured Dependabot PR #160 current/target versions;
-- created professional child Issues #251–#257;
-- defined migration order, blockers, permitted directories, verification and rollback;
-- made no package, lockfile, production source, runtime or hardware change.
+- pinned `.nvmrc` from broad `22` to exact `22.23.1`;
+- changed the package engine from `>=22.0.0` to `>=22.22.1 <23 || >=24 <25`;
+- moved `@types/node` from resolved `20.19.43` to `22.20.1`;
+- refreshed `package-lock.json` deterministically;
+- preserved `undici-types 6.21.0`;
+- added exact Node baseline evidence to `.github/workflows/ci.yml`;
+- documented developer, CI, container, verification and rollback procedures in `docs/maintenance/node22-baseline.md`;
+- removed both temporary branch-only lockfile workflows from the final diff.
+
+## Files changed
+
+```text
+.nvmrc
+package.json
+package-lock.json
+.github/workflows/ci.yml
+docs/maintenance/node22-baseline.md
+.project/CURRENT_STATE.md
+.project/ACTIVE_SPRINT.json
+.project/BLOCKERS.md
+.project/LAST_CHECKPOINT.json
+```
+
+No production source, browser behavior, backend, Compose, database, telemetry or hardware contract changed. The existing Node 24 dashboard image contract is preserved.
+
+## Verification pending
+
+- exact Node 22.23.1 developer/CI assertion;
+- deterministic npm installation;
+- formatting, ESLint, strict TypeScript, full Vitest and production build;
+- all triggered browser acceptance workflows;
+- Offline Bundle connected build on Node 24;
+- disconnected startup and update/rollback volume preservation;
+- review audit and expected-head merge.
 
 ## Runtime and hardware status
 
 ```text
-planning verified; runtime unchanged; no hardware operation performed
+developer/CI baseline aligned; existing Node 24 container runtime preserved; no hardware operation performed
 ```
 
-Actual Raspberry Pi acceptance for Issue #245 and physical recovery evidence for Issue #189 remain pending. Issues #200–#202 remain hardware-blocked. No Modbus or hardware write was performed.
+Actual Raspberry Pi acceptance for Issue #245 and recovery Issue #189 remain pending. Issues #200–#202 remain hardware-blocked. No Modbus or hardware write was performed.
 
 ## Next Ready Work Package
 
-Issue #251 — align the Node 22 baseline and `@types/node` before any major tool migration.
+After #251 merges, Issue #254 — Playwright browser/evidence migration — is next in the approved toolchain order. Issue #252 also becomes unblocked but remains ordered after #254.
