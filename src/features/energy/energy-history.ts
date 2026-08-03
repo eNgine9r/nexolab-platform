@@ -134,9 +134,7 @@ function downsampleAnnotatedEnergyHistory(
 
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
-    .flatMap(([, meterSamples]) =>
-      bucketDownsampleAnnotated(meterSamples, maximumPointsPerMeter, window),
-    );
+    .flatMap(([, meterSamples]) => bucketDownsampleAnnotated(meterSamples, maximumPointsPerMeter, window));
 }
 
 export function selectEnergyHistoryTail(
@@ -232,9 +230,7 @@ export function mergeEnergyHistoryTail(
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
-    merged.push(
-      ...bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window),
-    );
+    merged.push(...bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window));
   }
 
   return downsampleAnnotatedEnergyHistory(merged, MAX_HISTORY_POINTS_PER_METER, window);
