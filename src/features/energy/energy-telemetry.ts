@@ -69,17 +69,10 @@ export const ENERGY_METRICS = [
 export type EnergyMetricId = (typeof ENERGY_METRICS)[number]["id"];
 export type EnergyMeter = (typeof ENERGY_METERS)[number];
 export type EnergySampleState =
-  | "live"
-  | "stale"
-  | "sensor_error"
-  | "communication_error"
-  | "unknown"
-  | "empty";
+  "live" | "stale" | "sensor_error" | "communication_error" | "unknown" | "empty";
 
 const ENERGY_METRIC_IDS = new Set<string>(ENERGY_METRICS.map((metric) => metric.id));
-const METRIC_ORDER = new Map<string, number>(
-  ENERGY_METRICS.map((metric, index) => [metric.id, index]),
-);
+const METRIC_ORDER = new Map<string, number>(ENERGY_METRICS.map((metric, index) => [metric.id, index]));
 
 function meterByUnitId(unitId: number): EnergyMeter | null {
   return ENERGY_METERS.find((meter) => meter.unitId === unitId) ?? null;
