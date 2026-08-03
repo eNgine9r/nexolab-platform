@@ -229,16 +229,8 @@ export function useEnergyTelemetry({
         pendingHistoryMetricRef.current = selectedHistoryMetric;
         pendingHistoryBreakUnitIdsRef.current = new Set();
       }
-      const selectedTail = selectEnergyHistoryTail(
-        accepted,
-        ENERGY_NODE_ID,
-        selectedHistoryMetric,
-        now,
-      );
-      const reconciliation = reconcileEnergyLiveHistory(
-        selectedTail,
-        pendingHistoryBreakUnitIdsRef.current,
-      );
+      const selectedTail = selectEnergyHistoryTail(accepted, ENERGY_NODE_ID, selectedHistoryMetric, now);
+      const reconciliation = reconcileEnergyLiveHistory(selectedTail, pendingHistoryBreakUnitIdsRef.current);
       pendingHistoryBreakUnitIdsRef.current = reconciliation.pendingUnitIds;
       const tail = reconciliation.samples;
       const currentWindow = historyWindowRef.current;

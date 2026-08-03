@@ -37,11 +37,7 @@ describe("energy live history reconciliation", () => {
   });
 
   it("orders buffered snapshot-window events and preserves the outage boundary", () => {
-    const result = reconcileEnergyLiveHistory([
-      sample(15),
-      sample(5),
-      sample(10, "communication_error"),
-    ]);
+    const result = reconcileEnergyLiveHistory([sample(15), sample(5), sample(10, "communication_error")]);
 
     expect(result.samples.map((item) => energyHistorySourceEventId(item.event_id))).toEqual([
       "energy-5",
