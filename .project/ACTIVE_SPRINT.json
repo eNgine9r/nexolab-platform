@@ -42,21 +42,23 @@
       "status": "exact_head_green_ready_for_merge",
       "branch": "feat/261-energy-monitoring-page",
       "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-      "verified_head_sha": "3143bf31757b7d866623896c241f695da650944f",
+      "verified_implementation_head_sha": "40e2b0897b389a2adcd43903223dc16129e7460d",
       "route": "/energy",
       "required_runs": {
-        "ci": 30830167308,
-        "authenticated_dashboard": 30830165546
+        "ci": 30832280986,
+        "authenticated_dashboard": 30832281295
       },
       "review_fixes": [
-        "complete paginated history before bounded downsampling",
+        "stable captured-time cursor pagination before bounded downsampling",
+        "renderable-only downsampling that preserves valid chart points",
         "freshness-safe meter cards and per-metric quality states",
         "requested-window chart scaling",
         "incremental WebSocket history-tail merge without periodic full reload",
+        "wall-clock rolling-window pruning when telemetry stops",
         "strict metric-unit validation",
         "production node scope for latest, history and WebSocket"
       ],
-      "next_action": "Resolve addressed review threads and merge PR #262 using expected head protection."
+      "next_action": "Resolve addressed review threads and merge PR #262 using expected-head protection."
     },
     {
       "id": "NEXOLAB-263",
