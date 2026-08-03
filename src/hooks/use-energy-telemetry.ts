@@ -32,6 +32,7 @@ const CLOCK_TICK_MS = 5_000;
 const HISTORY_REFRESH_MS = 60_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
+const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
 
 export type EnergyHistoryRange = keyof typeof HISTORY_HOURS;
@@ -95,7 +96,7 @@ export function useEnergyTelemetry({
   organizationId?: string | null;
 } = {}): EnergyTelemetryModel {
   const selectedOrganizationId = organizationId?.trim() || null;
-  const scopeKey = enabled ? (selectedOrganizationId ?? DEFAULT_SCOPE) : null;
+  const scopeKey = enabled ? `${selectedOrganizationId ?? DEFAULT_SCOPE}:${ENERGY_NODE_ID}` : null;
   const [runtime] = useState<RuntimeConfigResult>(loadRuntimeConfig);
   const [store, setStore] = useState<DashboardTelemetryStore>(createDashboardTelemetryStore);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(scopeKey);
@@ -162,7 +163,9 @@ export function useEnergyTelemetry({
     });
 
     const commit = (samples: readonly TelemetrySample[]) => {
-      const accepted = samples.filter(isEnergySample);
+      const accepted = samples.filter(
+        (sample) => sample.node_id === ENERGY_NODE_ID && isEnergySample(sample),
+      );
       if (disposed || accepted.length === 0) return;
       setStore((current) => mergeDashboardTelemetry(current, accepted, { now: Date.now() }));
       setError(null);
@@ -171,7 +174,7 @@ export function useEnergyTelemetry({
 
     const connectLive = () => {
       subscription = adapter.subscribe(
-        {},
+        { node_id: ENERGY_NODE_ID },
         {
           onSample: (sample) => commit([sample]),
           onStateChange: (state) => {
@@ -188,7 +191,7 @@ export function useEnergyTelemetry({
     };
 
     void adapter
-      .latest({ limit: 1000 }, controller.signal)
+      .latest({ node_id: ENERGY_NODE_ID, limit: 1000 }, controller.signal)
       .then((snapshot) => {
         commit(snapshot.items);
         setHasLoadedSnapshot(true);
@@ -233,6 +236,7 @@ export function useEnergyTelemetry({
     void loadCompleteEnergyHistory(
       adapter,
       {
+        nodeId: ENERGY_NODE_ID,
         metric: selectedMetric,
         from,
         to,

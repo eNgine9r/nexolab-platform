@@ -38,7 +38,7 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
 function publishEnergySample(unitId: number, sample: EnergyMetric): void {
   const payload = JSON.stringify({
     event_id: randomUUID(),
-    node_id: "edge-live-01",
+    node_id: "edge-01",
     captured_at: sample.capturedAt ?? new Date().toISOString(),
     metric: sample.metric,
     value: sample.value,

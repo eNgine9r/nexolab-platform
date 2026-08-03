@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  TelemetryAdapter,
-  TelemetryCollectionResponse,
-  TelemetrySample,
-} from "@/lib/telemetry/types";
+import type { TelemetryAdapter, TelemetryCollectionResponse, TelemetrySample } from "@/lib/telemetry/types";
 
 import { downsampleEnergyHistory, loadCompleteEnergyHistory } from "./energy-history";
 
