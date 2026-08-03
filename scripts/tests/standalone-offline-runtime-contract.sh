@@ -69,6 +69,7 @@ CENTRAL_API_PORT=8082
 CENTRAL_MQTT_PORT=1884
 CENTRAL_OBJECT_STORAGE_PORT=9000
 CENTRAL_OBJECT_STORAGE_CONSOLE_PORT=9001
+STANDALONE_RUNTIME_NETWORK=nexolab-standalone-runtime
 POSTGRES_DB=nexolab
 POSTGRES_USER=nexolab
 POSTGRES_PASSWORD=test_database_password
@@ -90,7 +91,7 @@ NEXOLAB_NODE_ID=edge-01
 DEVICE_AGENT_IMAGE=nexolab-device-agent:local
 RS485_HOST_DEVICE=/dev/null
 RS485_GROUP_GID=20
-CENTRAL_RUNTIME_NETWORK=nexolab-central
+STANDALONE_RUNTIME_NETWORK=nexolab-standalone-runtime
 CENTRAL_MQTT_HOST=central-mqtt
 CENTRAL_MQTT_PORT=1883
 CENTRAL_MQTT_TOPIC=nexolab/telemetry
@@ -112,22 +113,42 @@ docker compose --env-file "$EDGE_ENV" \
   -f "$REPO_ROOT/infrastructure/compose/compose.edge-standalone.yaml" \
   config --quiet
 
-CENTRAL_RENDERED="$TEMP_ROOT/central.yaml"
-EDGE_RENDERED="$TEMP_ROOT/edge.yaml"
+CENTRAL_JSON="$TEMP_ROOT/central.json"
+EDGE_JSON="$TEMP_ROOT/edge.json"
 docker compose --env-file "$CENTRAL_ENV" \
   -f "$REPO_ROOT/infrastructure/compose/compose.central.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.central-standalone.yaml" \
-  config > "$CENTRAL_RENDERED"
+  config --format json > "$CENTRAL_JSON"
 docker compose --env-file "$EDGE_ENV" \
   -f "$REPO_ROOT/infrastructure/compose/compose.edge.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.hardware.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.edge-central-bridge.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.edge-standalone.yaml" \
-  config > "$EDGE_RENDERED"
+  config --format json > "$EDGE_JSON"
 
-grep -q 'central-mqtt' "$CENTRAL_RENDERED" || fail "central MQTT standalone alias is missing"
-grep -q 'name: nexolab-central' "$EDGE_RENDERED" || fail "edge standalone external network is missing"
-grep -q 'CENTRAL_MQTT_HOST: central-mqtt' "$EDGE_RENDERED" || fail "edge bridge does not use central-mqtt service discovery"
-grep -q 'CENTRAL_MQTT_PORT: "1883"' "$EDGE_RENDERED" || fail "edge bridge does not use the internal MQTT port"
+python3 - "$CENTRAL_JSON" "$EDGE_JSON" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    central = json.load(handle)
+with open(sys.argv[2], encoding="utf-8") as handle:
+    edge = json.load(handle)
+
+central_services = central["services"]
+edge_services = edge["services"]
+
+assert set(central_services["telemetry-service"]["networks"]) == {"central"}
+assert set(central_services["mqtt"]["networks"]) == {"central", "standalone-runtime"}
+assert central_services["mqtt"]["networks"]["standalone-runtime"]["aliases"] == ["central-mqtt"]
+assert central["networks"]["standalone-runtime"]["name"] == "nexolab-standalone-runtime"
+
+assert set(edge_services["mqtt"]["networks"]) == {"default", "standalone-runtime"}
+assert set(edge_services["device-agent"]["networks"]) == {"default"}
+assert edge["networks"]["standalone-runtime"]["external"] is True
+assert edge["networks"]["standalone-runtime"]["name"] == "nexolab-standalone-runtime"
+assert edge_services["mqtt"]["environment"]["CENTRAL_MQTT_HOST"] == "central-mqtt"
+assert str(edge_services["mqtt"]["environment"]["CENTRAL_MQTT_PORT"]) == "1883"
+PY
 
 printf 'Standalone offline runtime contract checks passed.\n'
