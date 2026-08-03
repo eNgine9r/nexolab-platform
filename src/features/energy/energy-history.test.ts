@@ -8,6 +8,7 @@ import {
   mergeEnergyHistoryTail,
   selectEnergyHistoryTail,
 } from "./energy-history";
+import { isEnergyHistorySegmentStart } from "./energy-history-segment";
 
 function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySample {
   return {
@@ -121,6 +122,31 @@ describe("energy history", () => {
     const result = downsampleEnergyHistory(source, 2);
 
     expect(result.map((item) => item.event_id)).toEqual(["energy-edge-01-200-20", "energy-edge-01-200-21"]);
+  });
+
+  it("preserves a communication-error boundary without spending a chart point on the error", () => {
+    const source = [
+      sample(0),
+      sample(5),
+      { ...sample(10), quality: "communication_error" as const, value: null },
+      sample(15),
+      sample(20),
+    ];
+
+    const result = downsampleEnergyHistory(source, 4);
+
+    expect(result).toHaveLength(4);
+    expect(result.some((item) => item.quality !== "valid")).toBe(false);
+    expect(isEnergyHistorySegmentStart(result[2].event_id)).toBe(true);
+  });
+
+  it("carries a raw source-cadence gap through bounded downsampling", () => {
+    const source = [sample(0), sample(5), sample(10), sample(50), sample(55)];
+
+    const result = downsampleEnergyHistory(source, 4);
+
+    expect(result.length).toBeLessThanOrEqual(4);
+    expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(true);
   });
 
   it("keeps absolute time buckets stable while appending the newest tail", () => {
