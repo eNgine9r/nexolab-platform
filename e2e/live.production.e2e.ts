@@ -170,9 +170,12 @@ test("discovers, filters and compares real telemetry with stable history and rec
   try {
     await page.goto("/live", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live дані" })).toBeVisible();
-    const temperatureRow = page.getByRole("row", {
-      name: /DIXELL-106 · 106-03 · temperature/,
-    });
+    const temperatureRow = page
+      .locator("tbody tr")
+      .filter({ hasText: "DIXELL-106" })
+      .filter({ hasText: "106-03" })
+      .filter({ hasText: "temperature" });
+    await expect(temperatureRow).toHaveCount(1);
     await expect(temperatureRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
 
     await page.getByLabel("Пошук").fill("106-03");
