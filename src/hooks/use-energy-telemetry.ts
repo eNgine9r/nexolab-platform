@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { loadCompleteEnergyHistory } from "@/features/energy/energy-history";
+import {
+  loadCompleteEnergyHistory,
+  mergeEnergyHistoryTail,
+} from "@/features/energy/energy-history";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 import {
@@ -29,7 +32,6 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
-const HISTORY_REFRESH_MS = 60_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
@@ -118,7 +120,11 @@ export function useEnergyTelemetry({
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
   const historyKey = scopeKey === null ? null : `${scopeKey}:${selectedMetric}:${historyRange}`;
-  const historyRefreshBucket = Math.floor(clock / HISTORY_REFRESH_MS);
+  const selectedMetricRef = useRef(selectedMetric);
+  const historyRangeRef = useRef(historyRange);
+  const historyKeyRef = useRef(historyKey);
+  const activeHistoryKeyRef = useRef(activeHistoryKey);
+  const historyWindowRef = useRef(historyWindow);
 
   const retry = useCallback(() => {
     if (runtime.config?.mode !== "live") return;
@@ -135,6 +141,14 @@ export function useEnergyTelemetry({
     if (runtime.config?.mode !== "live") return;
     setHistoryGeneration((value) => value + 1);
   }, [runtime.config]);
+
+  useEffect(() => {
+    selectedMetricRef.current = selectedMetric;
+    historyRangeRef.current = historyRange;
+    historyKeyRef.current = historyKey;
+    activeHistoryKeyRef.current = activeHistoryKey;
+    historyWindowRef.current = historyWindow;
+  }, [activeHistoryKey, historyKey, historyRange, historyWindow, selectedMetric]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
@@ -168,6 +182,38 @@ export function useEnergyTelemetry({
       );
       if (disposed || accepted.length === 0) return;
       setStore((current) => mergeDashboardTelemetry(current, accepted, { now: Date.now() }));
+
+      const selectedHistoryMetric = selectedMetricRef.current;
+      const tail = accepted.filter((sample) => sample.metric === selectedHistoryMetric);
+      const currentWindow = historyWindowRef.current;
+      if (
+        tail.length > 0 &&
+        currentWindow !== null &&
+        activeHistoryKeyRef.current === historyKeyRef.current
+      ) {
+        const currentTo = Date.parse(currentWindow.to);
+        const capturedTimes = tail
+          .map((sample) => Date.parse(sample.captured_at))
+          .filter(Number.isFinite);
+        const latestCapturedAt = capturedTimes.length > 0 ? Math.max(...capturedTimes) : currentTo;
+        const nextTo = Math.max(currentTo, latestCapturedAt);
+        const rangeMs = HISTORY_HOURS[historyRangeRef.current] * 60 * 60 * 1000;
+        const nextWindow = {
+          from: new Date(nextTo - rangeMs).toISOString(),
+          to: new Date(nextTo).toISOString(),
+        };
+        historyWindowRef.current = nextWindow;
+        setHistoryWindow(nextWindow);
+        setHistorySamples((current) =>
+          mergeEnergyHistoryTail(current, tail, {
+            nodeId: ENERGY_NODE_ID,
+            metric: selectedHistoryMetric,
+            from: new Date(nextWindow.from),
+            to: new Date(nextWindow.to),
+          }),
+        );
+      }
+
       setError(null);
       setClock(Date.now());
     };
@@ -225,10 +271,14 @@ export function useEnergyTelemetry({
     const requestedWindow = { from: from.toISOString(), to: to.toISOString() };
     let disposed = false;
 
+    activeHistoryKeyRef.current = historyKey;
+    historyWindowRef.current = requestedWindow;
+
     void Promise.resolve().then(() => {
       if (disposed) return;
       setActiveHistoryKey(historyKey);
       setHistoryWindow(requestedWindow);
+      setHistorySamples([]);
       setHistoryStatus("loading");
       setHistoryError(null);
     });
@@ -245,13 +295,20 @@ export function useEnergyTelemetry({
     )
       .then((samples) => {
         if (disposed) return;
-        setHistorySamples(samples);
+        const currentWindow = historyWindowRef.current ?? requestedWindow;
+        setHistorySamples((current) =>
+          mergeEnergyHistoryTail(samples, current, {
+            nodeId: ENERGY_NODE_ID,
+            metric: selectedMetric,
+            from: new Date(currentWindow.from),
+            to: new Date(currentWindow.to),
+          }),
+        );
         setHistoryStatus("ready");
         setHistoryError(null);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
-        setHistorySamples([]);
         setHistoryStatus("error");
         setHistoryError(nextError instanceof Error ? nextError : new Error("Failed to load energy history"));
       });
@@ -265,7 +322,6 @@ export function useEnergyTelemetry({
     historyGeneration,
     historyKey,
     historyRange,
-    historyRefreshBucket,
     runtime.config,
     selectedMetric,
     selectedOrganizationId,
