@@ -158,12 +158,12 @@ describe("energy history", () => {
     };
     const source = Array.from({ length: 1_440 }, (_, minute) => sample(minute * 60));
     const initial = downsampleEnergyHistory(source, 240, window);
-    const merged = mergeEnergyHistoryTail(initial, [sample(86_395)], window);
+    const merged = mergeEnergyHistoryTail(initial, [sample(86_345)], window);
 
     expect(initial.length).toBeLessThanOrEqual(240);
     expect(merged.length).toBeLessThanOrEqual(240);
     expect(merged.slice(0, -1).map((item) => item.event_id)).toEqual(initial.map((item) => item.event_id));
-    expect(merged.at(-1)?.event_id).toBe("energy-edge-01-200-86395");
+    expect(merged.at(-1)?.event_id).toBe("energy-edge-01-200-86345");
   });
 
   it("rejects future-skewed samples before they can advance the rolling window", () => {
