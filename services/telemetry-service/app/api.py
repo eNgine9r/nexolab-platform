@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Annotated, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -138,7 +138,6 @@ def create_api_router(
                 detail=f"history range must not exceed {max_history_days} days",
             )
 
-        resolved_snapshot_at = snapshot_at or datetime.now(UTC)
         query = TelemetryQuery(
             node_id=node_id,
             equipment_id=equipment_id,
@@ -148,12 +147,12 @@ def create_api_router(
             alarm=alarm,
             from_at=from_at,
             to_at=to_at,
-            received_before=resolved_snapshot_at,
         )
-        rows = database.history_samples(
+        rows, resolved_snapshot_at = database.history_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
+            snapshot_at=snapshot_at,
         )
         return _collection(
             rows,
