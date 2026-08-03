@@ -69,10 +69,33 @@ export const ENERGY_METRICS = [
 export type EnergyMetricId = (typeof ENERGY_METRICS)[number]["id"];
 export type EnergyMeter = (typeof ENERGY_METERS)[number];
 export type EnergySampleState =
-  "live" | "stale" | "sensor_error" | "communication_error" | "unknown" | "empty";
+  | "live"
+  | "stale"
+  | "sensor_error"
+  | "communication_error"
+  | "unknown"
+  | "empty";
 
-const ENERGY_METRIC_IDS = new Set<string>(ENERGY_METRICS.map((metric) => metric.id));
-const METRIC_ORDER = new Map<string, number>(ENERGY_METRICS.map((metric, index) => [metric.id, index]));
+const METRIC_ORDER = new Map<string, number>(
+  ENERGY_METRICS.map((metric, index) => [metric.id, index]),
+);
+
+function canonicalUnit(unit: string): string {
+  const normalized = unit.trim().toLowerCase();
+  if (normalized === "°c" || normalized === "degc") return "degc";
+  return normalized;
+}
+
+function energyMetricDefinition(metric: string) {
+  return ENERGY_METRICS.find((definition) => definition.id === metric) ?? null;
+}
+
+function hasExpectedEnergyUnit(sample: TelemetrySample): boolean {
+  const definition = energyMetricDefinition(sample.metric);
+  return (
+    definition !== null && canonicalUnit(sample.unit) === canonicalUnit(definition.expectedUnit)
+  );
+}
 
 function meterByUnitId(unitId: number): EnergyMeter | null {
   return ENERGY_METERS.find((meter) => meter.unitId === unitId) ?? null;
@@ -88,7 +111,7 @@ export function resolveEnergyMeter(sample: TelemetrySample): EnergyMeter | null 
 }
 
 export function isEnergySample(sample: TelemetrySample): boolean {
-  return ENERGY_METRIC_IDS.has(sample.metric) && resolveEnergyMeter(sample) !== null;
+  return hasExpectedEnergyUnit(sample) && resolveEnergyMeter(sample) !== null;
 }
 
 export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): TelemetrySample[] {
@@ -96,7 +119,7 @@ export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): 
 
   for (const sample of samples) {
     const meter = resolveEnergyMeter(sample);
-    if (!meter || !ENERGY_METRIC_IDS.has(sample.metric)) continue;
+    if (!meter || !hasExpectedEnergyUnit(sample)) continue;
     const key = `${meter.unitId}:${sample.metric}`;
     const current = latest.get(key);
     if (!current || Date.parse(current.captured_at) <= Date.parse(sample.captured_at)) {
@@ -142,15 +165,22 @@ export function energySampleState(
 }
 
 export function formatEnergyValue(sample: TelemetrySample | null): string {
-  if (!sample || sample.quality !== "valid" || sample.value === null) return "—";
-  const definition = ENERGY_METRICS.find((metric) => metric.id === sample.metric);
+  if (
+    !sample ||
+    sample.quality !== "valid" ||
+    sample.value === null ||
+    !hasExpectedEnergyUnit(sample)
+  ) {
+    return "—";
+  }
+  const definition = energyMetricDefinition(sample.metric);
   const digits = definition?.digits ?? 2;
   const value = new Intl.NumberFormat("uk-UA", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(sample.value);
-  const unit = sample.unit.trim().toLowerCase() === "degc" ? "°C" : sample.unit;
-  return unit.trim().toLowerCase() === "ratio" ? value : `${value} ${unit}`;
+  const unit = canonicalUnit(sample.unit) === "degc" ? "°C" : sample.unit;
+  return canonicalUnit(unit) === "ratio" ? value : `${value} ${unit}`;
 }
 
 export function formatCapturedAt(sample: TelemetrySample | null): string {
