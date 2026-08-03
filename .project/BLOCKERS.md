@@ -4,20 +4,37 @@ Updated: 2026-08-03
 
 ## Active Work Package — Issue #261
 
-No implementation, runtime or hardware blocker prevents software development of the Energy Monitoring page.
+The Energy Monitoring implementation is complete in PR #262. No product, runtime or hardware blocker prevents final software validation and merge.
 
-Available confirmed scope:
+Remaining merge gates:
 
-- KK1 energy meters W1–W4 / Unit IDs 200–203;
-- existing read-only LE-01MP measurements for voltage, current, frequency, active/reactive/apparent power, power factor and meter temperature;
-- existing local telemetry latest/history and authentication foundations;
-- standard NEXOLAB application shell.
+- final exact-head formatting, ESLint, strict TypeScript, unit/component tests and production build;
+- final exact-head Authenticated Dashboard Acceptance including the energy operator flow;
+- resolved review threads;
+- expected-head merge protection.
 
-The page must not show cumulative active energy until Issue #201 confirms the register layout, scale, unit and rollover behavior with actual hardware evidence.
+The complete energy page uses confirmed read-only LE-01MP metrics for KK1 meters W1-W4. It must not show cumulative active energy until Issue #201 confirms the register layout, scale, unit and rollover behavior with actual hardware evidence.
+
+## Review corrections
+
+PR #262 review identified and corrected:
+
+- first-page-only telemetry history, which could misrepresent 1h, 6h and 24h windows;
+- mixed-freshness meter cards, which could remain labelled Live while a secondary value was stale;
+- stale project state that did not advance the Product Pages Sprint.
+
+History now follows every `next_offset`, deduplicates samples and downsamples each meter only after the complete selected window is loaded. Meter cards use fresh samples only; the detailed matrix retains per-metric quality labels.
 
 ## Product-page priority correction
 
-Seven primary routes currently render generic placeholder screens. Product delivery now has priority over optional toolchain maintenance.
+Six primary routes remain placeholders after `/energy`:
+
+- `/live` — next Ready Work Package #263;
+- `/equipment-layouts`;
+- `/lockers`;
+- `/cameras`;
+- `/equipment`;
+- `/settings`.
 
 Issues #252–#257 are deferred. They may resume only for:
 
@@ -34,7 +51,9 @@ For a focused page change:
 - run touched-file and focused tests during implementation;
 - run lint, typecheck and production build at completion;
 - run only the directly affected browser/API workflow;
-- do not run Offline Bundle unless package, container, Compose, runtime or offline-delivery contracts changed.
+- do not require Offline Bundle unless package, container, Compose, runtime or offline-delivery contracts changed.
+
+Existing broad path filters may start unrelated workflows. Those runs are CI-policy debt and do not expand the product Work Package merge gate unless they reveal an actual regression in changed code.
 
 ## Smart Lockers blocker
 
@@ -77,4 +96,4 @@ Issue #189 software recovery evidence is verified. Actual-host reboot, physical 
 
 ## Next Ready action
 
-Implement Issue #261 on `feat/261-energy-monitoring-page`, replacing the `/energy` placeholder with a real operator workflow using confirmed metrics only.
+Finish the exact-head merge gates for PR #262. After merge, start Issue #263 and replace `/live` with the universal authenticated telemetry explorer.
