@@ -11,6 +11,8 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
 const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
+const postgresUser = requiredEnvironment("POSTGRES_USER");
+const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 
 type LiveSeed = {
@@ -39,6 +41,79 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
+function composeExec(service: string, command: string[], input?: string): string {
+  return execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      service,
+      ...command,
+    ],
+    { encoding: "utf8", input, stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] },
+  );
+}
+
+function sqlString(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function persistSample(seed: LiveSeed): void {
+  const eventId = randomUUID();
+  const value = seed.value === null ? "NULL" : String(seed.value);
+  const alarm = seed.alarm == null ? "NULL" : sqlString(seed.alarm);
+  const rawValue = seed.value === null ? "NULL" : String(seed.value);
+  const sql = `
+INSERT INTO telemetry_samples (
+  event_id,
+  node_id,
+  captured_at,
+  metric,
+  value,
+  unit,
+  quality,
+  source,
+  equipment_id,
+  channel_id,
+  alarm,
+  raw_value,
+  raw_status,
+  raw_payload
+)
+VALUES (
+  ${sqlString(eventId)},
+  ${sqlString(seed.nodeId ?? "edge-01")},
+  ${sqlString(seed.capturedAt)}::timestamptz,
+  ${sqlString(seed.metric)},
+  ${value},
+  ${sqlString(seed.unit)},
+  ${sqlString(seed.quality ?? "valid")},
+  ${sqlString(seed.source)},
+  ${sqlString(seed.equipmentId)},
+  ${sqlString(seed.channelId)},
+  ${alarm},
+  ${rawValue},
+  NULL,
+  '{}'::json
+);
+SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)};
+`;
+  const output = composeExec(
+    "postgres",
+    ["psql", "-U", postgresUser, "-d", postgresDatabase, "-v", "ON_ERROR_STOP=1", "-tAc", sql],
+  );
+  if (!output.includes(eventId)) {
+    throw new Error(`Persisted telemetry fixture ${eventId} was not committed`);
+  }
+}
+
 function publishSample(seed: LiveSeed): void {
   const payload = JSON.stringify({
     event_id: randomUUID(),
@@ -56,39 +131,24 @@ function publishSample(seed: LiveSeed): void {
     raw_status: null,
   });
 
-  execFileSync(
-    "docker",
-    [
-      "compose",
-      "--project-name",
-      composeProject,
-      "--file",
-      baseCompose,
-      "--file",
-      acceptanceCompose,
-      "exec",
-      "-T",
-      "mqtt",
-      "mosquitto_pub",
-      "-h",
-      "127.0.0.1",
-      "-t",
-      mqttTopic,
-      "-q",
-      "1",
-      "-m",
-      payload,
-    ],
-    { stdio: "pipe" },
-  );
-  execFileSync("sleep", ["0.5"]);
+  composeExec("mqtt", [
+    "mosquitto_pub",
+    "-h",
+    "127.0.0.1",
+    "-t",
+    mqttTopic,
+    "-q",
+    "1",
+    "-m",
+    payload,
+  ]);
 }
 
 function seedLiveEvidence(): void {
   const now = Date.now();
   const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
 
-  publishSample({
+  persistSample({
     nodeId: "edge-live-01",
     equipmentId: "K106",
     channelId: "106-03",
@@ -98,7 +158,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(45),
     source: "dixell-xjp60d",
   });
-  publishSample({
+  persistSample({
     nodeId: "edge-live-01",
     equipmentId: "K106",
     channelId: "106-03",
@@ -109,7 +169,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(20),
     source: "dixell-xjp60d",
   });
-  publishSample({
+  persistSample({
     nodeId: "edge-live-01",
     equipmentId: "K106",
     channelId: "106-03",
@@ -119,7 +179,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(10),
     source: "dixell-xjp60d",
   });
-  publishSample({
+  persistSample({
     nodeId: "edge-live-01",
     equipmentId: "K115",
     channelId: "115-04",
@@ -129,7 +189,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(10),
     source: "dixell-xjp60d",
   });
-  publishSample({
+  persistSample({
     equipmentId: "LE01MP-200",
     channelId: "200-active-power",
     metric: "electrical.power.active",
@@ -138,7 +198,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(2),
     source: "f-and-f-le-01mp",
   });
-  publishSample({
+  persistSample({
     equipmentId: "LE01MP-200",
     channelId: "200-voltage",
     metric: "electrical.voltage",
@@ -147,7 +207,7 @@ function seedLiveEvidence(): void {
     capturedAt: ago(2),
     source: "f-and-f-le-01mp",
   });
-  publishSample({
+  persistSample({
     nodeId: "edge-02",
     equipmentId: "CLIMATE-01",
     channelId: "rh-01",
@@ -177,7 +237,6 @@ test("discovers, filters and compares real telemetry with stable history and rec
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   seedLiveEvidence();
-  await new Promise((resolve) => setTimeout(resolve, 2_000));
 
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
