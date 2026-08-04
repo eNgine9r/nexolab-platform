@@ -29,22 +29,30 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path("e2e/equipment-registry.production.e2e.ts")
           text = path.read_text()
+
+          if text.count("const expectedAssetCount = 10;") != 1:
+              raise SystemExit("expectedAssetCount declaration count is not one")
           text = text.replace(
               "const expectedAssetCount = 10;",
               "const minimumFixtureAssetCount = 10;",
           )
+
+          if text.count("  let injectedFailureCount = 0;") != 1:
+              raise SystemExit("injected failure declaration count is not one")
           text = text.replace(
               "  let injectedFailureCount = 0;",
               "  let injectedFailureCount = 0;\n  let globalAssetCount = 0;",
           )
-          old = '''      await expect(
-                page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
-              ).toBeVisible();'''
-          new = '''      const resultCount = page.getByText(/Показано \\d+ із \\d+/, { exact: true });
+
+          pattern = re.compile(
+              r'''      await expect\(\n\s*page\.getByText\(`Показано \$\{expectedAssetCount\} із \$\{expectedAssetCount\}`, \{ exact: true \}\),\n\s*\)\.toBeVisible\(\);'''
+          )
+          replacement = '''      const resultCount = page.getByText(/Показано \\d+ із \\d+/, { exact: true });
               await expect(resultCount).toBeVisible();
               const resultCountText = await resultCount.textContent();
               const countMatch = resultCountText?.match(/Показано (\\d+) із (\\d+)/);
@@ -53,15 +61,24 @@ jobs:
               globalAssetCount = Number(countMatch?.[2]);
               expect(visibleCount).toBe(globalAssetCount);
               expect(globalAssetCount).toBeGreaterThanOrEqual(minimumFixtureAssetCount);'''
-          if old not in text:
-              raise SystemExit("initial exact count assertion not found")
-          text = text.replace(old, new, 1)
+          text, replacements = pattern.subn(replacement, text, count=1)
+          if replacements != 1:
+              raise SystemExit(f"initial count assertion replacements={replacements}")
+
+          remaining_templates = text.count("${expectedAssetCount}")
+          if remaining_templates < 1:
+              raise SystemExit("no remaining filtered count templates found")
           text = text.replace("${expectedAssetCount}", "${globalAssetCount}")
-          old = "          expectedAssetCount,"
-          new = "          globalAssetCount,\n          minimumFixtureAssetCount,"
-          if old not in text:
-              raise SystemExit("summary count field not found")
-          text = text.replace(old, new, 1)
+
+          if text.count("          expectedAssetCount,") != 1:
+              raise SystemExit("summary expectedAssetCount field count is not one")
+          text = text.replace(
+              "          expectedAssetCount,",
+              "          globalAssetCount,\n          minimumFixtureAssetCount,",
+          )
+
+          if "expectedAssetCount" in text:
+              raise SystemExit("expectedAssetCount remains after patch")
           path.write_text(text)
           PY
           npm ci --ignore-scripts
