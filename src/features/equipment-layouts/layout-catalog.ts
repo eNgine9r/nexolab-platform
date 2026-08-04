@@ -8,12 +8,7 @@ import type {
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 
 export type LayoutCatalogState =
-  | "published-current"
-  | "published-with-draft"
-  | "draft-only"
-  | "no-image"
-  | "empty"
-  | "failed";
+  "published-current" | "published-with-draft" | "draft-only" | "no-image" | "empty" | "failed";
 
 export type LayoutCatalogFilters = {
   search: string;
@@ -80,10 +75,7 @@ export function deriveLayoutCatalogState(
   return "draft-only";
 }
 
-export function layoutsMatch(
-  draft: RefrigerationLayoutDraft,
-  published: PublishedLayoutRevision,
-): boolean {
+export function layoutsMatch(draft: RefrigerationLayoutDraft, published: PublishedLayoutRevision): boolean {
   if (draft.imageId !== published.imageId) return false;
   if (draft.placements.length !== published.placements.length) return false;
 
@@ -187,9 +179,7 @@ export async function loadLayoutCatalog({
           kind: "failed",
           equipment: current,
           layoutState: "failed",
-          error: layoutRepositoryErrorMessage(
-            !draftResult.ok ? draftResult.error : publishedResult.error,
-          ),
+          error: layoutRepositoryErrorMessage(!draftResult.ok ? draftResult.error : publishedResult.error),
         };
         continue;
       }
@@ -236,8 +226,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 }
 
 function uniqueSorted(values: readonly (string | null)[]): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))]
-    .sort(compareText);
+  return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))].sort(compareText);
 }
 
 function compareText(first: string, second: string): number {
