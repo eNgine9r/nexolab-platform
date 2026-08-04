@@ -61,9 +61,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(page.getByText("Viewer Acceptance", { exact: true }).first()).toBeVisible();
       await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
       const operatorContext = page.getByRole("region", { name: "Організація та оператор" });
-      await expect(
-        operatorContext.getByText("NEXOLAB Dashboard Acceptance", { exact: true }),
-      ).toBeVisible();
+      await expect(operatorContext.getByText("NEXOLAB Dashboard Acceptance", { exact: true })).toBeVisible();
       await expect(operatorContext.getByText("Спостерігач", { exact: true })).toBeVisible();
       await expect(page.getByText("LOCAL_LAN", { exact: true })).toBeVisible();
       await expect(page.getByText("Live mode", { exact: true })).toBeVisible();
