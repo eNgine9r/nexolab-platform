@@ -21,7 +21,6 @@ import {
   Refrigerator,
   Settings2,
   ShieldCheck,
-  SlidersHorizontal,
   TriangleAlert,
   UsersRound,
 } from "lucide-react";
