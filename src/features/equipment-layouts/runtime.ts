@@ -34,14 +34,14 @@ export function createEquipmentLayoutsRuntime(
         mode: "demo",
         equipmentRepository: null,
         layoutRepository: null,
-        error:
-          "Каталог схем доступний лише в live mode і не підміняє відсутній API демонстраційними даними.",
+        error: "Каталог схем доступний лише в live mode і не підміняє відсутній API демонстраційними даними.",
       };
     }
 
     const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
     const credentialProvider =
-      input.credentialProvider ?? createRuntimeCredentialProvider(normalizeOrganizationId(input.organizationId));
+      input.credentialProvider ??
+      createRuntimeCredentialProvider(normalizeOrganizationId(input.organizationId));
     const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
 
     return {
