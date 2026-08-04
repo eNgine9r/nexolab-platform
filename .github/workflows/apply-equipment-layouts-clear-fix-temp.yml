@@ -1,0 +1,58 @@
+name: Temporary Equipment Layouts Clear Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-equipment-layouts-clear-fix-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply focused clear-filter fix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Apply and commit focused fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/equipment-layouts/equipment-layouts-catalog.tsx")
+          content = path.read_text()
+          old = '  const clearFilters = () => router.replace(pathname, { scroll: false });\n'
+          new = '''  const clearFilters = () => {
+            const next = new URLSearchParams(searchParams.toString());
+            for (const parameter of ["q", "lab", "zone", "chamber", "lifecycle", "layout"]) {
+              next.delete(parameter);
+            }
+            const href = next.size > 0 ? `${pathname}?${next.toString()}` : pathname;
+            window.history.replaceState(window.history.state, "", href);
+          };
+          '''
+          if content.count(old) != 1:
+              raise SystemExit("Expected clearFilters implementation was not found exactly once")
+          path.write_text(content.replace(old, new))
+          PY
+
+          rm .github/workflows/apply-equipment-layouts-clear-fix-temp.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/equipment-layouts/equipment-layouts-catalog.tsx \
+            .github/workflows/apply-equipment-layouts-clear-fix-temp.yml
+          git commit -m "fix(layouts): clear URL-backed filters"
+          git push origin "HEAD:${HEAD_BRANCH}"
