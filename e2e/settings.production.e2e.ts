@@ -110,16 +110,34 @@ test("renders operator-safe Settings without backend mutations or secret exposur
     });
 
     await test.step("expose only canonical navigation instead of duplicate administration", async () => {
-      await expect(page.getByRole("link", { name: /Вузли/ })).toHaveAttribute("href", "/nodes");
-      await expect(page.getByRole("link", { name: /^Обладнання/ })).toHaveAttribute("href", "/equipment");
-      await expect(page.getByRole("link", { name: /Холодильне обладнання/ })).toHaveAttribute(
-        "href",
-        "/refrigeration",
-      );
-      await expect(page.getByRole("link", { name: /Тривоги/ })).toHaveAttribute("href", "/alerts");
-      await expect(page.getByRole("link", { name: /Звіти/ })).toHaveAttribute("href", "/reports");
+      const nodesLink = page.getByRole("link", {
+        name: "Вузли Інвентар, стан і канонічні node workflows.",
+        exact: true,
+      });
+      const equipmentLink = page.getByRole("link", {
+        name: "Обладнання Read-only asset та metrology registry.",
+        exact: true,
+      });
+      const refrigerationLink = page.getByRole("link", {
+        name: "Холодильне обладнання Підтримувані passport і layout mutations.",
+        exact: true,
+      });
+      const alertsLink = page.getByRole("link", {
+        name: "Тривоги Перегляд і дозволені alarm operations.",
+        exact: true,
+      });
+      const reportsLink = page.getByRole("link", {
+        name: "Звіти Формування, погодження та експорт доказів.",
+        exact: true,
+      });
 
-      await page.getByRole("link", { name: /^Обладнання/ }).click();
+      await expect(nodesLink).toHaveAttribute("href", "/nodes");
+      await expect(equipmentLink).toHaveAttribute("href", "/equipment");
+      await expect(refrigerationLink).toHaveAttribute("href", "/refrigeration");
+      await expect(alertsLink).toHaveAttribute("href", "/alerts");
+      await expect(reportsLink).toHaveAttribute("href", "/reports");
+
+      await equipmentLink.click();
       await expect(page).toHaveURL(/\/equipment$/);
       await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
       await page.goBack({ waitUntil: "domcontentloaded" });
