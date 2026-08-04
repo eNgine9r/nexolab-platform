@@ -104,9 +104,7 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": [
-        "concrete locker inventory and read-only protocol scope"
-      ]
+      "depends_on": ["concrete locker inventory and read-only protocol scope"]
     },
     {
       "id": "NEXOLAB-204",
