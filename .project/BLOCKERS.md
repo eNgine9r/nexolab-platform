@@ -2,33 +2,39 @@
 
 Updated: 2026-08-04
 
-## Issue #261 — Energy Monitoring
+## Issue #263 — Live Data telemetry explorer
 
-No product, software, runtime, offline or hardware blocker prevents protected merge of PR #262.
+No product, software, browser-runtime or offline blocker prevents PR #264 from leaving draft after the state-only exact-head gate.
 
-Exact implementation head `c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7` is GREEN across CI, Telemetry Service, authenticated/security/refrigeration/test-session/report browser gates, Offline Auth, disconnected Offline Bundle, capacity, fleet, MQTT TLS, broker control, supply-chain and disaster-recovery workflows.
+Verified executable head `de80cf689fc8829fdf325f8991de9e7d3533ee3e` is GREEN across:
 
-The production fixes include:
+- CI `30880961470`;
+- Authenticated Dashboard Acceptance `30880961490`;
+- Refrigeration Browser Acceptance `30880961482`;
+- Offline Bundle `30880961442`.
 
-- authenticated WebSocket coverage before latest and history snapshots;
-- bounded startup event reconciliation;
-- commit-stable history watermark with the barrier applied to `SessionAwareDatabase`;
-- complete pagination and bounded renderable-only downsampling;
-- source-derived outage segmentation and cross-callback ordering protection;
-- ordering cursor seeded when changing metrics;
-- explicit history error for terminal WebSocket startup states;
-- permission gating, stale-value retention, metric/unit validation and production node scope;
-- restoration of the stage telemetry filter in session attribution.
+The final browser acceptance proves:
 
-Remaining administrative actions are limited to the exact-head state-only gate, review hygiene and expected-head merge.
+- deterministic PostgreSQL latest/history fixtures;
+- stale, filter and selection behavior;
+- separate charts for incompatible units;
+- outage boundaries and stable watermark history;
+- retry after an injected history failure;
+- MQTT QoS 1 publication with a known `event_id`;
+- commit of that exact event in PostgreSQL;
+- authenticated WebSocket propagation into the `/live` latest table.
 
-Cumulative active energy remains blocked under Issue #201 until the physical register, scale, unit, word order and rollover behavior are confirmed. Do not display guessed `kWh`.
+The MQTT acceptance payload now conforms to the canonical telemetry contract: XJP60D `raw_value` is integer evidence and `raw_status` is explicit. The persistence barrier is retained so future schema, authorization or ingestion regressions fail at their real boundary instead of timing out only at the UI.
+
+Review audit is clean: no inline review threads and no submitted reviews.
+
+Remaining administrative action: pass the final state-only repository gate, update the PR description and mark PR #264 ready for review.
 
 ## Product-page priority
 
-After PR #262, Issue #263 is Ready and replaces `/live` with the universal authenticated telemetry explorer.
+The next queued operator page is `/equipment-layouts`. It requires a focused GitHub Issue before implementation.
 
-Deferred toolchain Issues #252–#257 may resume only for a relevant security fix, end-of-support condition or concrete blocker for an active product Work Package.
+Deferred toolchain Issues #252–#257 remain out of the page-completion sequence unless a security, support or concrete product blocker appears.
 
 ## Smart Lockers blocker
 
@@ -61,4 +67,4 @@ Stop before:
 
 ## Next Ready action
 
-Complete the state-only gate and merge PR #262. Then create `feat/263-live-telemetry-explorer` from updated `main` and implement Issue #263 without dependency migrations.
+Complete the state-only exact-head gate and mark PR #264 ready. After merge, create the focused Work Package for `/equipment-layouts`.
