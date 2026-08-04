@@ -16,7 +16,10 @@ export function EquipmentAssetDetails({
   const CategoryIcon = categoryIcon(asset.category);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#020817]/80 p-3 backdrop-blur-sm" role="presentation">
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[#020817]/80 p-3 backdrop-blur-sm"
+      role="presentation"
+    >
       <section
         role="dialog"
         aria-modal="true"
@@ -54,7 +57,7 @@ export function EquipmentAssetDetails({
                 <dt className="text-[9px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
                   {item.label}
                 </dt>
-                <dd className="mt-1.5 break-words text-sm text-slate-100">{item.value}</dd>
+                <dd className="mt-1.5 text-sm break-words text-slate-100">{item.value}</dd>
               </div>
             ))}
           </dl>
@@ -64,8 +67,8 @@ export function EquipmentAssetDetails({
               <h3 className="text-sm font-semibold text-amber-100">Межа metrology contract</h3>
               <p className="mt-2 text-xs leading-5 text-amber-100/75">
                 Поточне локальне сховище містить лише статус калібрування. Дата калібрування, наступний
-                термін, номер сертифіката, файл документа, лабораторія та невизначеність ще не
-                відстежуються і тут не вигадуються.
+                термін, номер сертифіката, файл документа, лабораторія та невизначеність ще не відстежуються і
+                тут не вигадуються.
               </p>
             </section>
           ) : null}

@@ -72,11 +72,7 @@ export function useEquipmentRegistry({
     };
   }, [climateCatalogRepository, enabled, epoch, equipmentRepository]);
 
-  const effectiveState: EquipmentRegistryState = !enabled
-    ? "idle"
-    : runtimeUnavailable
-      ? "error"
-      : state;
+  const effectiveState: EquipmentRegistryState = !enabled ? "idle" : runtimeUnavailable ? "error" : state;
   const effectiveError = runtimeUnavailable
     ? (runtime.error ?? "Сховище реєстру обладнання не налаштоване.")
     : error;

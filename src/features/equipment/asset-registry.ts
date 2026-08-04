@@ -10,17 +10,9 @@ import type {
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 
 export type EquipmentAssetCategory =
-  | "refrigeration-equipment"
-  | "temperature-controller"
-  | "energy-meter"
-  | "physical-sensor";
+  "refrigeration-equipment" | "temperature-controller" | "energy-meter" | "physical-sensor";
 
-export type EquipmentCalibrationStatus =
-  | "not-applicable"
-  | "untracked"
-  | "current"
-  | "due"
-  | "expired";
+export type EquipmentCalibrationStatus = "not-applicable" | "untracked" | "current" | "due" | "expired";
 
 export type EquipmentRegistryFilters = {
   search: string;
@@ -73,9 +65,7 @@ export type PhysicalSensorRegistryAsset = EquipmentRegistryCommon & {
 };
 
 export type EquipmentRegistryAsset =
-  | RefrigerationRegistryAsset
-  | MeasurementDeviceRegistryAsset
-  | PhysicalSensorRegistryAsset;
+  RefrigerationRegistryAsset | MeasurementDeviceRegistryAsset | PhysicalSensorRegistryAsset;
 
 export type EquipmentRegistryFailure = {
   chamberId: string;
@@ -196,7 +186,9 @@ export function normalizeEquipmentRegistry(
   for (const catalog of climateCatalogs) {
     const chamber = catalog.climateChamber;
     const deviceById = new Map(
-      [...catalog.temperatureControllers, ...catalog.energyMeters].map((device) => [device.id, device] as const),
+      [...catalog.temperatureControllers, ...catalog.energyMeters].map(
+        (device) => [device.id, device] as const,
+      ),
     );
 
     for (const device of catalog.temperatureControllers) {
@@ -207,7 +199,9 @@ export function normalizeEquipmentRegistry(
     }
     for (const channel of catalog.temperatureChannels) {
       for (const sensor of channel.physicalSensors) {
-        assets.push(normalizePhysicalSensorAsset(sensor, channel, chamber, deviceById.get(channel.deviceId) ?? null));
+        assets.push(
+          normalizePhysicalSensorAsset(sensor, channel, chamber, deviceById.get(channel.deviceId) ?? null),
+        );
       }
     }
   }

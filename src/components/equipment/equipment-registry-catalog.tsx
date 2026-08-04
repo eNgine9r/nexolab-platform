@@ -99,8 +99,8 @@ export function EquipmentRegistryCatalog({
             </div>
             <h1 className="mt-2 text-2xl font-semibold text-white">Обладнання та метрологія</h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-              Єдиний read-only реєстр холодильного обладнання, вимірювальних пристроїв і фізичних
-              датчиків. Відображаються лише дані, які фактично зберігає локальна NEXOLAB система.
+              Єдиний read-only реєстр холодильного обладнання, вимірювальних пристроїв і фізичних датчиків.
+              Відображаються лише дані, які фактично зберігає локальна NEXOLAB система.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -247,7 +247,11 @@ export function EquipmentRegistryCatalog({
         <section className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-8 text-center">
           <CircleDashed className="mx-auto h-8 w-8 text-slate-500" />
           <h2 className="mt-3 font-semibold text-white">За фільтрами активів не знайдено</h2>
-          <button type="button" onClick={clearFilters} className="mt-3 text-sm text-cyan-300 hover:text-cyan-200">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-3 text-sm text-cyan-300 hover:text-cyan-200"
+          >
             Очистити фільтри
           </button>
         </section>
@@ -283,7 +287,9 @@ export function EquipmentRegistryCatalog({
         </section>
       ) : null}
 
-      {selectedAsset ? <EquipmentAssetDetails asset={selectedAsset} onClose={() => setSelectedKey(null)} /> : null}
+      {selectedAsset ? (
+        <EquipmentAssetDetails asset={selectedAsset} onClose={() => setSelectedKey(null)} />
+      ) : null}
     </div>
   );
 }
@@ -312,8 +318,12 @@ function RegistryRow({ asset, onDetails }: { asset: EquipmentRegistryAsset; onDe
         <span className="block truncate">{asset.chamberLabel ?? "Не прив’язано"}</span>
         <span className="block truncate text-[10px] text-slate-500">{asset.locationLabel ?? "—"}</span>
       </td>
-      <td className="px-4 py-3"><StatusSummary asset={asset} /></td>
-      <td className="px-4 py-3"><CalibrationBadge value={asset.calibrationStatus} /></td>
+      <td className="px-4 py-3">
+        <StatusSummary asset={asset} />
+      </td>
+      <td className="px-4 py-3">
+        <CalibrationBadge value={asset.calibrationStatus} />
+      </td>
       <td className="px-4 py-3">
         <div className="flex justify-end gap-2">
           <button
@@ -388,13 +398,19 @@ function RegistryCard({ asset, onDetails }: { asset: EquipmentRegistryAsset; onD
 }
 
 function StatusSummary({ asset }: { asset: EquipmentRegistryAsset }) {
-  const values = [asset.lifecycleStatus, asset.healthStatus, asset.connectionStatus, asset.catalogStatus].filter(
-    (value): value is string => Boolean(value),
-  );
+  const values = [
+    asset.lifecycleStatus,
+    asset.healthStatus,
+    asset.connectionStatus,
+    asset.catalogStatus,
+  ].filter((value): value is string => Boolean(value));
   return (
     <div className="flex max-w-[180px] flex-wrap gap-1">
       {values.map((value) => (
-        <span key={value} className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[9px] text-slate-300">
+        <span
+          key={value}
+          className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[9px] text-slate-300"
+        >
           {statusLabel(value)}
         </span>
       ))}
@@ -404,7 +420,12 @@ function StatusSummary({ asset }: { asset: EquipmentRegistryAsset }) {
 
 function CalibrationBadge({ value }: { value: EquipmentRegistryAsset["calibrationStatus"] }) {
   return (
-    <span className={clsx("inline-flex rounded-full border px-2 py-1 text-[9px] font-semibold", calibrationClass(value))}>
+    <span
+      className={clsx(
+        "inline-flex rounded-full border px-2 py-1 text-[9px] font-semibold",
+        calibrationClass(value),
+      )}
+    >
       {calibrationLabel(value)}
     </span>
   );
@@ -424,7 +445,12 @@ function SummaryMetric({
   emphasis?: boolean;
 }) {
   return (
-    <div className={clsx("rounded-2xl border p-3", emphasis ? "border-amber-300/15 bg-amber-400/[0.06]" : "border-white/[0.07] bg-white/[0.025]")}>
+    <div
+      className={clsx(
+        "rounded-2xl border p-3",
+        emphasis ? "border-amber-300/15 bg-amber-400/[0.06]" : "border-white/[0.07] bg-white/[0.025]",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[9px] tracking-[0.12em] text-slate-500 uppercase">{label}</p>
@@ -454,7 +480,9 @@ function FilterSelect({
       <select value={value} onChange={(event) => onChange(event.target.value)} className={selectClass}>
         <option value="all">{label}: усі</option>
         {values.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
         ))}
       </select>
     </label>
@@ -472,9 +500,15 @@ function CardMetadata({ label, value }: { label: string; value: string }) {
 
 function RegistryLoading() {
   return (
-    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Завантаження реєстру обладнання">
+    <section
+      className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+      aria-label="Завантаження реєстру обладнання"
+    >
       {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="h-52 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]" />
+        <div
+          key={index}
+          className="h-52 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+        />
       ))}
     </section>
   );
@@ -488,7 +522,11 @@ function RegistryError({ message, onRetry }: { message: string; onRetry: () => v
         <div>
           <h2 className="font-semibold">Реєстр обладнання недоступний</h2>
           <p className="mt-1 text-sm text-rose-100/80">{message}</p>
-          <button type="button" onClick={onRetry} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-200 px-3 py-2 text-xs font-semibold text-rose-950">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-200 px-3 py-2 text-xs font-semibold text-rose-950"
+          >
             <RefreshCcw className="h-4 w-4" />
             Повторити
           </button>
@@ -518,14 +556,19 @@ function readFilters(searchParams: Pick<URLSearchParams, "get">): EquipmentRegis
     chamber: searchParams.get("chamber") ?? "all",
     manufacturer: searchParams.get("manufacturer") ?? "all",
     status: searchParams.get("status") ?? "all",
-    calibration: calibrations.has(calibration)
-      ? (calibration as EquipmentCalibrationStatus | "all")
-      : "all",
+    calibration: calibrations.has(calibration) ? (calibration as EquipmentCalibrationStatus | "all") : "all",
   };
 }
 
 function filterParameter(key: keyof EquipmentRegistryFilters): string {
-  return { search: "q", category: "category", chamber: "chamber", manufacturer: "manufacturer", status: "status", calibration: "calibration" }[key];
+  return {
+    search: "q",
+    category: "category",
+    chamber: "chamber",
+    manufacturer: "manufacturer",
+    status: "status",
+    calibration: "calibration",
+  }[key];
 }
 
 function countActiveFilters(filters: EquipmentRegistryFilters): number {
@@ -533,7 +576,9 @@ function countActiveFilters(filters: EquipmentRegistryFilters): number {
 }
 
 function primaryStatus(asset: EquipmentRegistryAsset): string {
-  return statusLabel(asset.lifecycleStatus ?? asset.connectionStatus ?? asset.catalogStatus ?? asset.healthStatus ?? "unknown");
+  return statusLabel(
+    asset.lifecycleStatus ?? asset.connectionStatus ?? asset.catalogStatus ?? asset.healthStatus ?? "unknown",
+  );
 }
 
 function assetIcon(category: EquipmentRegistryAsset["category"]) {
@@ -555,5 +600,7 @@ function calibrationClass(value: EquipmentRegistryAsset["calibrationStatus"]): s
   }[value];
 }
 
-const inputClass = "h-11 w-full rounded-xl border border-white/[0.08] bg-[#06142a] pr-3 pl-10 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
-const selectClass = "h-11 w-full rounded-xl border border-white/[0.08] bg-[#06142a] px-3 text-xs text-slate-200 outline-none focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
+const inputClass =
+  "h-11 w-full rounded-xl border border-white/[0.08] bg-[#06142a] pr-3 pl-10 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
+const selectClass =
+  "h-11 w-full rounded-xl border border-white/[0.08] bg-[#06142a] px-3 text-xs text-slate-200 outline-none focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/10";
