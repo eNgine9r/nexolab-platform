@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { RotateCcw, Settings2 } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
@@ -15,6 +15,18 @@ import {
 } from "@/features/settings/runtime-diagnostics";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useSettingsPreferences } from "@/hooks/use-settings-preferences";
+
+function subscribeBrowserOrigin(): () => void {
+  return () => undefined;
+}
+
+function readBrowserOrigin(): string {
+  return window.location.origin;
+}
+
+function readServerBrowserOrigin(): null {
+  return null;
+}
 
 function SettingsModeGate({ title, message, retry }: { title: string; message: string; retry?: () => void }) {
   return (
@@ -58,11 +70,11 @@ export function SettingsScreen() {
   const security = useDashboardSecurity();
   const localPreferences = useSettingsPreferences();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [browserOrigin, setBrowserOrigin] = useState<string | null>(null);
-
-  useEffect(() => {
-    setBrowserOrigin(window.location.origin);
-  }, []);
+  const browserOrigin = useSyncExternalStore(
+    subscribeBrowserOrigin,
+    readBrowserOrigin,
+    readServerBrowserOrigin,
+  );
 
   const diagnostics = useMemo(
     () => buildSettingsRuntimeDiagnostics(readSettingsRuntimeInput(browserOrigin)),
