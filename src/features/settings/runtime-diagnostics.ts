@@ -93,7 +93,14 @@ export function buildSettingsRuntimeDiagnostics(input: SettingsRuntimeInput): Se
     });
   }
 
-  if (auth.provider === "missing") {
+  if (!auth.valid) {
+    issues.push({
+      code: "INVALID_AUTH_PROVIDER",
+      severity: "critical",
+      title: "Некоректний auth provider",
+      message: "Provider має містити лише безпечний короткий identifier без URL або secret material.",
+    });
+  } else if (auth.provider === "missing") {
     issues.push({
       code: "MISSING_AUTH_PROVIDER",
       severity: "warning",
@@ -248,16 +255,17 @@ function normalizeDataMode(value: string | undefined): SettingsDataMode {
 function normalizeAuthProvider(value: string | undefined): {
   provider: SettingsAuthProvider;
   label: string;
+  valid: boolean;
 } {
   const normalized = value?.trim().toLowerCase();
-  if (!normalized) return { provider: "missing", label: "Не вказано" };
-  if (normalized === "local") return { provider: "local", label: "Local" };
-  if (normalized === "supabase") return { provider: "supabase", label: "Supabase" };
-  if (normalized === "disabled") return { provider: "disabled", label: "Вимкнено" };
+  if (!normalized) return { provider: "missing", label: "Не вказано", valid: true };
+  if (normalized === "local") return { provider: "local", label: "Local", valid: true };
+  if (normalized === "supabase") return { provider: "supabase", label: "Supabase", valid: true };
+  if (normalized === "disabled") return { provider: "disabled", label: "Вимкнено", valid: true };
   if (SAFE_PROVIDER_PATTERN.test(normalized)) {
-    return { provider: "custom", label: normalized };
+    return { provider: "custom", label: normalized, valid: true };
   }
-  return { provider: "custom", label: "Некоректне значення" };
+  return { provider: "custom", label: "Некоректне значення", valid: false };
 }
 
 function appendEndpointIssues(
