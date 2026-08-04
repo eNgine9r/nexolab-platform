@@ -1,0 +1,51 @@
+name: Temporary Equipment Registry Formatter
+
+on:
+  push:
+    branches:
+      - feat/267-equipment-metrology-registry
+    paths:
+      - "src/components/equipment/equipment-asset-details.tsx"
+      - "src/components/equipment/equipment-registry-catalog.tsx"
+      - "src/features/equipment/asset-registry.ts"
+      - "src/hooks/use-equipment-registry.ts"
+      - ".github/workflows/temporary-equipment-registry-formatter.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Format focused files and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npx prettier --write \
+            src/components/equipment/equipment-asset-details.tsx \
+            src/components/equipment/equipment-registry-catalog.tsx \
+            src/features/equipment/asset-registry.ts \
+            src/hooks/use-equipment-registry.ts
+          rm .github/workflows/temporary-equipment-registry-formatter.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/equipment/equipment-asset-details.tsx \
+            src/components/equipment/equipment-registry-catalog.tsx \
+            src/features/equipment/asset-registry.ts \
+            src/hooks/use-equipment-registry.ts \
+            .github/workflows/temporary-equipment-registry-formatter.yml
+          git commit -m "style(equipment): format registry source"
+          git push origin HEAD:feat/267-equipment-metrology-registry
