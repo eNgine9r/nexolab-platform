@@ -4,35 +4,35 @@ Updated: 2026-08-04
 
 ## Issue #265 — Equipment Layouts catalog
 
-No product, repository-access, architecture or hardware blocker prevents implementation from starting in PR #266.
+No product, architecture, repository-access or hardware blocker prevents continuation in PR #266.
 
-Verified repository basis:
+The first executable implementation slice is verified on source head `f61d6de5231ab9326901c0bc005e572ae1735bf2`:
 
-- PR #264 merged into `main` as `249a271b4d67dc87c8fa28b81a76027274b07e28`;
-- Issue #265 contains the complete product outcome, acceptance criteria, scope, out-of-scope boundaries and verification plan;
-- branch `feat/265-equipment-layouts-catalog` exists from the exact post-merge main head;
-- draft PR #266 is the single focused Pull Request for the Work Package;
-- the existing equipment repository provides organization-scoped inventory;
-- the existing layout repository provides draft, active publication, immutable history and signed image metadata;
-- the existing refrigeration detail route remains the canonical editor and mutation surface.
+- CI `30892831371` GREEN;
+- formatting, ESLint, strict TypeScript, full Vitest and production build passed;
+- focused tests verify explicit layout-state derivation, combined filtering, bounded concurrency, partial failure preservation and cancellation;
+- `/equipment-layouts` is wired to an authenticated live runtime and never silently falls back to demo data;
+- the preview is read-only and all mutations remain in `/refrigeration/[equipmentId]`;
+- temporary formatter workflows were removed and are absent from the branch diff.
 
-The initial implementation must not introduce a duplicate editor, new persistence model or dependency migration.
+Browser/API/MinIO acceptance has not run yet, so PR #266 must remain draft and the Work Package is not complete.
 
-## Soft risks to manage inside Issue #265
+## Remaining verification risks inside Issue #265
 
-- Per-equipment draft/publication requests can become an N+1 pattern. Use bounded concurrency, cancellation and partial-result preservation before considering a new backend endpoint.
-- Signed image URLs can expire or fail independently. Keep image failures local to the affected preview/card and expose retry without collapsing the catalog.
-- Draft and publication versions represent different lifecycle concepts. Derive layout state explicitly and cover the version comparison with focused tests.
-- Retired equipment is read-only and must not expose mutation affordances through the catalog.
-- Live mode must fail explicitly and never silently substitute demo fixtures.
+- Prove the catalog against production Next.js, authenticated FastAPI, PostgreSQL layout records and MinIO signed images.
+- Prove URL-backed filter reload and canonical navigation in Chromium.
+- Seed published-current, newer unpublished draft, draft-only/no-image and partial-summary-failure cases without adding demo fallback.
+- Confirm a broken or expired signed image affects only the preview and remains retryable.
+- The existing repository interfaces do not accept an external AbortSignal. The catalog cancels stale orchestration, stops scheduling new summaries and suppresses stale state commits, while already-started repository requests complete under their existing bounded timeout. This is acceptable for the current read-only slice but must be observed during browser acceptance.
+- Retired equipment remains read-only and must expose no catalog mutation controls.
 
-These are implementation risks, not blockers. A narrow read-only summary endpoint may be considered only if measured evidence proves the current contracts insufficient; no database migration is authorized by default.
+These are verification risks, not blockers. A narrow read-only summary endpoint remains unauthorized unless measured browser/runtime evidence proves the current contracts insufficient.
 
 ## Product-page priority
 
-Issue #265 is the active page-completion Work Package. After it merges, the next queued route is `/equipment`.
+Issue #265 remains the active page-completion Work Package. After it merges, the next queued route is `/equipment`.
 
-Deferred toolchain Issues #252–#257 remain out of the page-completion sequence unless a security, support or concrete product blocker appears.
+Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a security, support or concrete product blocker appears.
 
 ## Smart Lockers blocker
 
@@ -65,4 +65,4 @@ Stop before:
 
 ## Next Ready action
 
-Implement the Issue #265 catalog domain loader and status derivation first, add focused unit tests, then wire the authenticated `/equipment-layouts` screen and read-only preview in PR #266.
+Add a focused Equipment Layouts browser acceptance in PR #266, prove the authenticated read-only catalog and signed-image preview against the real local stack, then complete final exact-head and state-only verification.
