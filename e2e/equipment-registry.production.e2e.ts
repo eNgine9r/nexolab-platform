@@ -437,7 +437,9 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(meterDialog).toBeVisible();
       await expect(meterDialog.getByText("Modbus unit id", { exact: true })).toBeVisible();
       await expect(meterDialog.getByText("Відключено", { exact: true })).toBeVisible();
-      await expect(meterDialog.getByText("Редагування для цього типу не реалізоване", { exact: true })).toBeVisible();
+      await expect(
+        meterDialog.getByText("Редагування для цього типу не реалізоване", { exact: true }),
+      ).toBeVisible();
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
       await expect(meterDialog).toBeHidden();
 
@@ -445,10 +447,9 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       const refrigerationDialog = page.getByRole("dialog", { name: "Паспорт REG-REF-ACTIVE" });
       await expect(refrigerationDialog).toBeVisible();
       await expect(refrigerationDialog.getByText("Активне", { exact: true })).toBeVisible();
-      await expect(refrigerationDialog.getByRole("link", { name: "Відкрити канонічну картку" })).toHaveAttribute(
-        "href",
-        `/refrigeration/${activeEquipmentId}`,
-      );
+      await expect(
+        refrigerationDialog.getByRole("link", { name: "Відкрити канонічну картку" }),
+      ).toHaveAttribute("href", `/refrigeration/${activeEquipmentId}`);
       await page.screenshot({
         path: path.join(evidenceDirectory, "equipment-registry-read-only-details.png"),
         fullPage: true,
