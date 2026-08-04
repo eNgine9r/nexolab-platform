@@ -28,14 +28,16 @@ export function useEquipmentLayoutsCatalog({
   organizationId: string | null;
 }): UseEquipmentLayoutsCatalogResult {
   const runtime = useMemo(() => createEquipmentLayoutsRuntime({ organizationId }), [organizationId]);
+  const equipmentRepository = runtime.equipmentRepository;
+  const layoutRepository = runtime.layoutRepository;
   const [items, setItems] = useState<LayoutCatalogItem[]>([]);
   const [state, setState] = useState<EquipmentLayoutsCatalogState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [epoch, setEpoch] = useState(0);
-  const runtimeUnavailable = !runtime.equipmentRepository || !runtime.layoutRepository;
+  const runtimeUnavailable = !equipmentRepository || !layoutRepository;
 
   useEffect(() => {
-    if (!enabled || runtimeUnavailable) return;
+    if (!enabled || !equipmentRepository || !layoutRepository) return;
 
     const controller = new AbortController();
     const startId = window.setTimeout(() => {
@@ -43,8 +45,8 @@ export function useEquipmentLayoutsCatalog({
       setError(null);
 
       void loadLayoutCatalog({
-        equipmentRepository: runtime.equipmentRepository,
-        layoutRepository: runtime.layoutRepository,
+        equipmentRepository,
+        layoutRepository,
         concurrency: 4,
         signal: controller.signal,
       })
@@ -64,7 +66,7 @@ export function useEquipmentLayoutsCatalog({
       window.clearTimeout(startId);
       controller.abort();
     };
-  }, [enabled, epoch, runtime, runtimeUnavailable]);
+  }, [enabled, epoch, equipmentRepository, layoutRepository]);
 
   const effectiveState: EquipmentLayoutsCatalogState = !enabled
     ? "idle"
