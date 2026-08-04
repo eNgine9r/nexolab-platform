@@ -157,8 +157,8 @@ function publishSample(seed: LiveSeed, eventId: string): void {
     equipment_id: seed.equipmentId,
     channel_id: seed.channelId,
     alarm: seed.alarm ?? null,
-    raw_value: seed.value,
-    raw_status: null,
+    raw_value: seed.value === null ? null : Math.round(seed.value * 10),
+    raw_status: 4354,
   });
 
   composeExec("mqtt", ["mosquitto_pub", "-h", "127.0.0.1", "-t", mqttTopic, "-q", "1", "-m", payload]);
