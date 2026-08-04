@@ -15,6 +15,12 @@ The first executable implementation slice is verified on source head `f61d6de523
 - the preview is read-only and all mutations remain in `/refrigeration/[equipmentId]`;
 - temporary formatter workflows were removed and are absent from the branch diff.
 
+State and checkpoint verification are also GREEN:
+
+- CI `30893471962` GREEN on the four-file state-only checkpoint;
+- CI `30893835781` GREEN after recording state-gate evidence;
+- CI `30894064784` GREEN on final metadata head `b7af7086ffe9b74a0deca70c46a86aebe1850f14`.
+
 Browser/API/MinIO acceptance has not run yet, so PR #266 must remain draft and the Work Package is not complete.
 
 ## Remaining verification risks inside Issue #265
