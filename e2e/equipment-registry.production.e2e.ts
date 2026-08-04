@@ -359,7 +359,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         "MET-SENSOR-EXP",
         "MET-SENSOR-UNT",
       ]) {
-        await expect(page.getByText(identifier, { exact: true })).toBeVisible();
+        await expect(page.getByText(identifier, { exact: true }).first()).toBeVisible();
       }
 
       await expect(page.getByText("Підключено", { exact: true }).first()).toBeVisible();
