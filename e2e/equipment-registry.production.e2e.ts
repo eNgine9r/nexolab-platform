@@ -333,13 +333,19 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
       const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
       await expect(resultCount).toBeVisible();
-      const countText = await resultCount.textContent();
-      const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
-      expect(countMatch).not.toBeNull();
-      const visibleCount = Number(countMatch?.[1]);
-      expectedAssetCount = Number(countMatch?.[2]);
-      expect(visibleCount).toBe(expectedAssetCount);
-      expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);
+      await expect
+        .poll(
+          async () => {
+            const countText = await resultCount.textContent();
+            const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+            if (!countMatch) return 0;
+            const visibleCount = Number(countMatch[1]);
+            expectedAssetCount = Number(countMatch[2]);
+            return visibleCount === expectedAssetCount ? expectedAssetCount : 0;
+          },
+          { message: "Wait for the complete organization-wide registry total" },
+        )
+        .toBeGreaterThanOrEqual(minimumFocusedFixtureCount);
 
       for (const identifier of [
         "REG-REF-ACTIVE",
