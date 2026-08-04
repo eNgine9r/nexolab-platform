@@ -6,7 +6,7 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 const webPort = new URL(webUrl).port || "13020";
 
-// Equipment Layouts runs in the same authenticated production stack as dashboard, energy, and live telemetry.
+// Four authenticated operator flows share one production Next.js, API, database, MQTT, and MinIO stack.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
