@@ -6,7 +6,7 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 const webPort = new URL(webUrl).port || "13020";
 
-// The focused registry flow runs first against the seeded organization and derives its real global total.
+// The focused registry flow runs first against the seeded organization and waits for its settled global total.
 // Four existing authenticated regressions then reuse the same production stack and database.
 export default defineConfig({
   testDir: "./e2e",
