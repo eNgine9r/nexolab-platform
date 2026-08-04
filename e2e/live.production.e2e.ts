@@ -121,9 +121,32 @@ SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)};
   }
 }
 
-function publishSample(seed: LiveSeed): void {
+function waitForPersistedEvent(eventId: string, timeoutMs = 20_000): void {
+  const deadline = Date.now() + timeoutMs;
+  const sql = `SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)} LIMIT 1;`;
+
+  while (Date.now() < deadline) {
+    const output = composeExec("postgres", [
+      "psql",
+      "-U",
+      postgresUser,
+      "-d",
+      postgresDatabase,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-tAc",
+      sql,
+    ]);
+    if (output.includes(eventId)) return;
+    execFileSync("sleep", ["0.25"]);
+  }
+
+  throw new Error(`MQTT telemetry event ${eventId} was not committed within ${timeoutMs} ms`);
+}
+
+function publishSample(seed: LiveSeed, eventId: string): void {
   const payload = JSON.stringify({
-    event_id: randomUUID(),
+    event_id: eventId,
     node_id: seed.nodeId ?? "edge-01",
     captured_at: seed.capturedAt,
     metric: seed.metric,
@@ -301,16 +324,21 @@ test("discovers, filters and compares real telemetry with stable history and rec
     await page.getByRole("button", { name: "Повторити history" }).click();
     await expect(page.getByRole("img", { name: /Порівняння 1 каналів у degC/ })).toBeVisible();
 
-    publishSample({
-      nodeId: "edge-live-01",
-      equipmentId: "K106",
-      channelId: "106-03",
-      metric: "temperature.probe",
-      value: 5.1,
-      unit: "degC",
-      capturedAt: new Date().toISOString(),
-      source: "dixell-xjp60d",
-    });
+    const liveEventId = randomUUID();
+    publishSample(
+      {
+        nodeId: "edge-live-01",
+        equipmentId: "K106",
+        channelId: "106-03",
+        metric: "temperature.probe",
+        value: 5.1,
+        unit: "degC",
+        capturedAt: new Date().toISOString(),
+        source: "dixell-xjp60d",
+      },
+      liveEventId,
+    );
+    waitForPersistedEvent(liveEventId);
     await expect(page.getByText("5,1 degC", { exact: true })).toBeVisible();
 
     await page.screenshot({
