@@ -7,8 +7,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from "@pla
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
-const evidenceDirectory =
-  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
 const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
@@ -92,28 +91,16 @@ function observeSignedImageResponses(page: Page): SignedImageResponse[] {
 }
 
 function composeBaseArguments(): string[] {
-  return [
-    "compose",
-    "--project-name",
-    composeProject,
-    "--file",
-    baseCompose,
-    "--file",
-    acceptanceCompose,
-  ];
+  return ["compose", "--project-name", composeProject, "--file", baseCompose, "--file", acceptanceCompose];
 }
 
 function composeExec(service: string, args: string[], input?: string): string {
-  return execFileSync(
-    "docker",
-    [...composeBaseArguments(), "exec", "-T", service, ...args],
-    {
-      input,
-      encoding: "utf8",
-      env: process.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    },
-  );
+  return execFileSync("docker", [...composeBaseArguments(), "exec", "-T", service, ...args], {
+    input,
+    encoding: "utf8",
+    env: process.env,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
 }
 
 function putFixtureObject(storageKey: string): void {
@@ -472,9 +459,7 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
     });
 
     await test.step("render a signed read-only image with normalized sensor markers", async () => {
-      await page
-        .getByRole("button", { name: "Переглянути опубліковану схему LAY-CURRENT-01" })
-        .click();
+      await page.getByRole("button", { name: "Переглянути опубліковану схему LAY-CURRENT-01" }).click();
       const dialog = page.getByRole("dialog", { name: /LAY-CURRENT-01/ });
       await expect(dialog).toBeVisible();
       await expect(dialog.getByText("Опублікована схема · r1", { exact: true })).toBeVisible();
@@ -490,9 +475,7 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
       await expect.poll(() => signedImageResponses.some((response) => response.status === 200)).toBe(true);
       const signedResponse = signedImageResponses.find((response) => response.status === 200);
       expect(signedResponse).toBeDefined();
-      expect(signedResponse?.queryKeys.some((key) => key.toLowerCase() === "x-amz-signature")).toBe(
-        true,
-      );
+      expect(signedResponse?.queryKeys.some((key) => key.toLowerCase() === "x-amz-signature")).toBe(true);
 
       await page.screenshot({
         path: path.join(evidenceDirectory, "equipment-layouts-published-preview.png"),
