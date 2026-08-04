@@ -67,7 +67,6 @@
       "title": "Complete the Equipment and metrology registry",
       "status": "merged",
       "branch": "feat/267-equipment-metrology-registry",
-      "baseline_main_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
       "verified_source_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
       "verified_state_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
       "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
@@ -78,7 +77,6 @@
         "final_refrigeration_browser": 30929890463,
         "final_offline_bundle": 30929890230
       },
-      "browser_evidence_artifact": 8899868692,
       "review_audit": {
         "inline_threads": 0,
         "submitted_reviews": 0,
@@ -89,9 +87,11 @@
       "id": "NEXOLAB-269",
       "issue": 269,
       "parent_issue": 260,
+      "pull_request": 270,
       "title": "Complete operator-safe Settings workspace",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "feat/269-operator-safe-settings",
+      "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
       "route": "/settings",
       "product_outcome": "Authenticated organization/session context, sanitized runtime diagnostics and browser-local presentation preferences without secrets or unsafe system mutations.",
       "architecture_decisions": [
@@ -109,7 +109,7 @@
         "no dependency migration or unrelated refactor",
         "no production or site cutover"
       ],
-      "next_action": "Create the feature branch and one focused draft Pull Request, then implement the typed settings diagnostics and local-preference vertical slice."
+      "next_action": "Implement the typed diagnostics and preference domain with focused tests, then integrate the authenticated settings shell and browser acceptance."
     },
     {
       "id": "NEXOLAB-PAGE-CAMERAS",
