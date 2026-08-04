@@ -398,7 +398,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await search.fill("MET-SENSOR-EXP");
       await page.getByLabel("Категорія активу").selectOption("physical-sensor");
       await page.getByLabel("Кліматична камера").selectOption(chamberAId);
-      await page.getByLabel("Статус").selectOption("connected");
+      await page.getByLabel("Статус", { exact: true }).selectOption("connected");
       await page.getByLabel("Статус калібрування").selectOption("expired");
 
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
@@ -428,7 +428,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(search).toHaveValue("MET-SENSOR-EXP");
       await expect(page.getByLabel("Категорія активу")).toHaveValue("physical-sensor");
       await expect(page.getByLabel("Кліматична камера")).toHaveValue(chamberAId);
-      await expect(page.getByLabel("Статус")).toHaveValue("connected");
+      await expect(page.getByLabel("Статус", { exact: true })).toHaveValue("connected");
       await expect(page.getByLabel("Статус калібрування")).toHaveValue("expired");
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
 
@@ -441,7 +441,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
     await test.step("combine manufacturer, device class and connection filters", async () => {
       await page.getByLabel("Категорія активу").selectOption("energy-meter");
       await page.getByLabel("Виробник").selectOption("TOMZN");
-      await page.getByLabel("Статус").selectOption("disconnected");
+      await page.getByLabel("Статус", { exact: true }).selectOption("disconnected");
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
       await expect(
         page.getByText("reg-le01mp:12", { exact: true }).filter({ visible: true }).first(),
