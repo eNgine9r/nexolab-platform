@@ -6,7 +6,10 @@ export default function EquipmentPage() {
   return (
     <Suspense
       fallback={
-        <main className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400">
+        <main
+          aria-live="polite"
+          className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400"
+        >
           Підготовка реєстру обладнання…
         </main>
       }
