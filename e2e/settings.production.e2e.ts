@@ -60,14 +60,19 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await page.goto("/settings", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true }).first()).toBeVisible();
       await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
-      await expect(page.getByText("NEXOLAB Dashboard Acceptance", { exact: true })).toBeVisible();
-      await expect(page.getByText("Спостерігач", { exact: true })).toBeVisible();
+      const operatorContext = page.getByRole("region", { name: "Організація та оператор" });
+      await expect(
+        operatorContext.getByText("NEXOLAB Dashboard Acceptance", { exact: true }),
+      ).toBeVisible();
+      await expect(operatorContext.getByText("Спостерігач", { exact: true })).toBeVisible();
       await expect(page.getByText("LOCAL_LAN", { exact: true })).toBeVisible();
       await expect(page.getByText("Live mode", { exact: true })).toBeVisible();
       await expect(page.getByText(expectedAuthProvider, { exact: true })).toBeVisible();
       await expect(page.getByText(expectedApi, { exact: true })).toBeVisible();
       await expect(page.getByText(expectedWebsocket, { exact: true })).toBeVisible();
-      await expect(page.getByText("Конфігурація готова", { exact: true })).toBeVisible();
+      const readyStatus = page.getByText("Конфігурація готова", { exact: true });
+      await expect(readyStatus).toHaveCount(2);
+      await expect(readyStatus.first()).toBeVisible();
 
       const bodyText = await page.locator("body").innerText();
       expect(bodyText).not.toContain(viewerToken);
