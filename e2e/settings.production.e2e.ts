@@ -26,7 +26,9 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
       if (window.location.protocol === "about:") return;
       window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
       window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
-      window.localStorage.setItem(storageKey, "{malformed-settings-json");
+      if (window.localStorage.getItem(storageKey) === null) {
+        window.localStorage.setItem(storageKey, "{malformed-settings-json");
+      }
     },
     { accessToken: viewerToken, organization: organizationId, storageKey: preferenceStorageKey },
   );
