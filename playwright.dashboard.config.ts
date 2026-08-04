@@ -7,7 +7,7 @@ const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020"
 const webPort = new URL(webUrl).port || "13020";
 
 // The focused registry flow runs first against the seeded organization and waits for its settled global total.
-// Responsive asset representations are validated before four authenticated regressions reuse the same stack.
+// Visible responsive asset and status representations are checked before four regressions reuse the same stack.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
