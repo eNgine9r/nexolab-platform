@@ -1,12 +1,13 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `56b4c2ab307a621ac3e77adb2f4c2eec70ae842f`
-Verified executable source head: `de80cf689fc8829fdf325f8991de9e7d3533ee3e`
-Active Work Package: Issue #263 — Live Data telemetry explorer
-Pull Request: #264 — verified and ready to leave draft after the state-only gate
+Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
+Previous Work Package: Issue #263 merged through PR #264
+Active Work Package: Issue #265 — Equipment Layouts catalog
+Branch: `feat/265-equipment-layouts-catalog`
+Pull Request: pending draft creation from this activation checkpoint
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for repository state, real PostgreSQL REST/history, authenticated WebSocket live updates, browser acceptance and disconnected offline evidence.
+Status confidence: high for the post-merge repository baseline and Work Package definition; implementation and verification for #265 have not started yet.
 
 ## Product route status
 
@@ -15,15 +16,15 @@ Implemented operator routes:
 - `/` — Overview dashboard;
 - `/nodes` — Nodes;
 - `/sessions` — Test sessions;
-- `/refrigeration` — Refrigeration equipment;
+- `/refrigeration` — Refrigeration equipment and canonical layout editor;
 - `/alerts` — Alerts;
 - `/reports` — Reports;
 - `/energy` — verified LE-01MP Energy Monitoring;
-- `/live` — verified universal telemetry explorer in PR #264.
+- `/live` — verified universal telemetry explorer, merged through PR #264.
 
 Remaining placeholder routes:
 
-- `/equipment-layouts` — next queued product page;
+- `/equipment-layouts` — active Work Package #265;
 - `/equipment` — equipment and metrology registry;
 - `/settings` — operator-safe Settings;
 - `/cameras` — local Cameras monitoring;
@@ -31,47 +32,41 @@ Remaining placeholder routes:
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #263 outcome
+## Issue #265 product decision
 
-PR #264 replaces the `/live` placeholder with the authenticated operator telemetry explorer.
+`/equipment-layouts` will become a cross-asset catalog and read-only preview surface. It will not duplicate the existing refrigeration layout editor.
 
-Delivered behavior:
+The catalog will reuse:
 
-- real latest-state inventory using stable `node_id + equipment_id + channel_id + metric + unit` identities;
-- URL-backed free-text search and node, equipment, channel, metric, quality and alarm filters;
-- deterministic latest table with units, timestamps, alarm and explicit live, stale, sensor-error, communication-error and unknown states;
-- selection of up to eight channels without duplicates;
-- separate synchronized comparison charts for incompatible units;
-- authenticated WebSocket coverage before REST snapshots;
-- startup event buffering, newest-captured-at reconciliation and duplicate suppression;
-- complete history pagination against one commit-stable ingestion watermark;
-- bounded downsampling after the complete requested window with first/last and outage-boundary preservation;
-- delayed replay and recovery ordering protection;
-- explicit loading, empty, reconnecting, offline, auth, configuration, REST and history retry states;
-- deterministic browser evidence for persisted stale state, search/filtering, selection, unit-separated charts, outage gaps, range changes, history failure recovery and MQTT-to-PostgreSQL-to-WebSocket live update;
-- no demo fallback, dependency migration, telemetry schema migration, Modbus write or hardware action.
+- `RefrigerationEquipmentRepository.list()` for organization-scoped equipment inventory;
+- `RefrigerationLayoutRepository.getDraft()` for mutable draft version and geometry;
+- `RefrigerationLayoutRepository.getPublished()` for the active immutable publication;
+- `RefrigerationLayoutRepository.listHistory()` only where publication history metadata is required;
+- `/refrigeration/[equipmentId]` as the single edit, upload, publish, restore and conflict-recovery entry point.
 
-## Exact executable-head verification
+The catalog must distinguish published-current, newer unpublished draft changes, draft-only, no-image, empty, retired and failed-summary states. It must use bounded concurrent summary loading, preserve partial successes and never silently fall back to demo data in live mode.
 
-Verified on source head `de80cf689fc8829fdf325f8991de9e7d3533ee3e`:
+No dependency upgrade, database migration, new persistence model, Modbus write, hardware action or production/site cutover is part of this Work Package.
 
-- CI `30880961470` GREEN — standalone contracts, format, lint, strict typecheck, Vitest and production build;
-- Authenticated Dashboard Acceptance `30880961490` GREEN — real Next.js, FastAPI, PostgreSQL, MQTT and authenticated WebSocket operator flow;
-- Refrigeration Browser Acceptance `30880961482` GREEN;
-- Offline Bundle `30880961442` GREEN — archive build, clean-host simulation, blocked egress, `--pull never` startup and update/rollback volume preservation.
+## Verified repository basis
 
-Review audit for PR #264 is clean: no inline review threads and no submitted reviews.
+The post-merge `main` baseline `249a271b4d67dc87c8fa28b81a76027274b07e28` contains:
 
-The current state update changes only the four `.project` source-of-truth files. Executable source remains the verified `de80cf6…` tree; the final state-only head requires its own exact-head repository gate before PR #264 leaves draft.
+- the existing authenticated refrigeration equipment repository and live HTTP adapter;
+- the versioned layout repository with draft, publish, history, restore and signed image metadata;
+- the canonical refrigeration layout workspace and security-aware editor flow;
+- the `/equipment-layouts` placeholder that Issue #265 will replace.
+
+Issue #265 defines the complete product outcome, scope, out-of-scope boundaries, permitted directories, acceptance criteria and proportional verification plan.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-/live software verified; PostgreSQL REST/history and authenticated MQTT/WebSocket browser flow verified; disconnected offline bundle update/rollback verified; physical hardware unverified
+post-#264 main verified; Issue #265 planning and branch setup verified; no #265 executable implementation or runtime evidence yet; physical hardware unverified
 ```
 
-No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used. Hardware investigations #200–#202 and actual Raspberry Pi acceptance #245 remain separate evidence requirements.
+No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
-## Next Ready Work Package
+## Next action
 
-After PR #264 review/merge, create a focused GitHub Issue and feature branch for the queued `/equipment-layouts` catalog. Preserve the page-by-page product priority and do not insert deferred dependency migrations unless they become a concrete blocker.
+Create one draft Pull Request from `feat/265-equipment-layouts-catalog`, record the PR number in project state, then implement the catalog as one focused vertical slice without dependency migrations or a duplicate editor.
