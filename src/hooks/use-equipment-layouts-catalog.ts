@@ -27,10 +27,7 @@ export function useEquipmentLayoutsCatalog({
   enabled: boolean;
   organizationId: string | null;
 }): UseEquipmentLayoutsCatalogResult {
-  const runtime = useMemo(
-    () => createEquipmentLayoutsRuntime({ organizationId }),
-    [organizationId],
-  );
+  const runtime = useMemo(() => createEquipmentLayoutsRuntime({ organizationId }), [organizationId]);
   const [items, setItems] = useState<LayoutCatalogItem[]>([]);
   const [state, setState] = useState<EquipmentLayoutsCatalogState>("idle");
   const [error, setError] = useState<string | null>(runtime.error);
@@ -82,7 +79,5 @@ export function useEquipmentLayoutsCatalog({
 
 function catalogErrorMessage(error: unknown): string {
   if (error instanceof RefrigerationEquipmentRepositoryError) return error.message;
-  return error instanceof Error
-    ? error.message
-    : "Не вдалося завантажити каталог схем обладнання.";
+  return error instanceof Error ? error.message : "Не вдалося завантажити каталог схем обладнання.";
 }
