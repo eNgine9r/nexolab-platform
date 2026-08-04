@@ -5,9 +5,9 @@ Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
 Previous Work Package: Issue #263 merged through PR #264
 Active Work Package: Issue #265 — Equipment Layouts catalog
 Branch: `feat/265-equipment-layouts-catalog`
-Pull Request: pending draft creation from this activation checkpoint
+Pull Request: #266 — draft implementation PR
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for the post-merge repository baseline and Work Package definition; implementation and verification for #265 have not started yet.
+Status confidence: high for the post-merge repository baseline, Work Package definition, branch and PR control state; executable implementation and verification for #265 have not started yet.
 
 ## Product route status
 
@@ -24,7 +24,7 @@ Implemented operator routes:
 
 Remaining placeholder routes:
 
-- `/equipment-layouts` — active Work Package #265;
+- `/equipment-layouts` — active Work Package #265 in draft PR #266;
 - `/equipment` — equipment and metrology registry;
 - `/settings` — operator-safe Settings;
 - `/cameras` — local Cameras monitoring;
@@ -59,14 +59,16 @@ The post-merge `main` baseline `249a271b4d67dc87c8fa28b81a76027274b07e28` contai
 
 Issue #265 defines the complete product outcome, scope, out-of-scope boundaries, permitted directories, acceptance criteria and proportional verification plan.
 
+Draft PR #266 is the only Pull Request for this Work Package. Its current commits update repository control state only; no executable feature behavior is claimed yet.
+
 ## Runtime, offline and hardware evidence
 
 ```text
-post-#264 main verified; Issue #265 planning and branch setup verified; no #265 executable implementation or runtime evidence yet; physical hardware unverified
+post-#264 main verified; Issue #265, feature branch and draft PR #266 verified; no #265 executable implementation or runtime evidence yet; physical hardware unverified
 ```
 
 No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
 ## Next action
 
-Create one draft Pull Request from `feat/265-equipment-layouts-catalog`, record the PR number in project state, then implement the catalog as one focused vertical slice without dependency migrations or a duplicate editor.
+Implement the catalog domain loader and explicit layout-state derivation with focused tests. Then wire the authenticated `/equipment-layouts` screen, URL-backed filters and read-only published-layout preview in PR #266 without dependency migrations or a duplicate editor.
