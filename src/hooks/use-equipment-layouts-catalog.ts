@@ -30,49 +30,56 @@ export function useEquipmentLayoutsCatalog({
   const runtime = useMemo(() => createEquipmentLayoutsRuntime({ organizationId }), [organizationId]);
   const [items, setItems] = useState<LayoutCatalogItem[]>([]);
   const [state, setState] = useState<EquipmentLayoutsCatalogState>("idle");
-  const [error, setError] = useState<string | null>(runtime.error);
+  const [error, setError] = useState<string | null>(null);
   const [epoch, setEpoch] = useState(0);
+  const runtimeUnavailable = !runtime.equipmentRepository || !runtime.layoutRepository;
 
   useEffect(() => {
-    if (!enabled) {
-      setState("idle");
-      return;
-    }
-    if (!runtime.equipmentRepository || !runtime.layoutRepository) {
-      setState("error");
-      setError(runtime.error ?? "Сховище схем обладнання не налаштоване.");
-      return;
-    }
+    if (!enabled || runtimeUnavailable) return;
 
     const controller = new AbortController();
-    setState((current) => (current === "ready" ? "refreshing" : "loading"));
-    setError(null);
+    const startId = window.setTimeout(() => {
+      setState((current) => (current === "ready" ? "refreshing" : "loading"));
+      setError(null);
 
-    void loadLayoutCatalog({
-      equipmentRepository: runtime.equipmentRepository,
-      layoutRepository: runtime.layoutRepository,
-      concurrency: 4,
-      signal: controller.signal,
-    })
-      .then((loadedItems) => {
-        if (controller.signal.aborted) return;
-        setItems(loadedItems);
-        setState("ready");
+      void loadLayoutCatalog({
+        equipmentRepository: runtime.equipmentRepository,
+        layoutRepository: runtime.layoutRepository,
+        concurrency: 4,
+        signal: controller.signal,
       })
-      .catch((loadError: unknown) => {
-        if (isLayoutCatalogAbort(loadError)) return;
-        setState("error");
-        setError(catalogErrorMessage(loadError));
-      });
+        .then((loadedItems) => {
+          if (controller.signal.aborted) return;
+          setItems(loadedItems);
+          setState("ready");
+        })
+        .catch((loadError: unknown) => {
+          if (isLayoutCatalogAbort(loadError)) return;
+          setState("error");
+          setError(catalogErrorMessage(loadError));
+        });
+    }, 0);
 
-    return () => controller.abort();
-  }, [enabled, epoch, runtime]);
+    return () => {
+      window.clearTimeout(startId);
+      controller.abort();
+    };
+  }, [enabled, epoch, runtime, runtimeUnavailable]);
+
+  const effectiveState: EquipmentLayoutsCatalogState = !enabled
+    ? "idle"
+    : runtimeUnavailable
+      ? "error"
+      : state;
+  const effectiveError = runtimeUnavailable
+    ? (runtime.error ?? "Сховище схем обладнання не налаштоване.")
+    : error;
 
   return {
     mode: runtime.mode,
-    state,
+    state: effectiveState,
     items,
-    error,
+    error: effectiveError,
     retry: () => setEpoch((current) => current + 1),
   };
 }
