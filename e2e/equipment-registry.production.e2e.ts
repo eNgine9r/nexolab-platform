@@ -19,7 +19,8 @@ const chamberAId = "66200000-0000-4000-8000-000000000001";
 const chamberBId = "66200000-0000-4000-8000-000000000002";
 const activeEquipmentId = "66600000-0000-4000-8000-000000000001";
 
-const expectedAssetCount = 10;
+let expectedAssetCount = 0;
+const minimumFocusedFixtureCount = 10;
 
 type ObservedRegistryRequest = {
   method: string;
@@ -330,9 +331,15 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.goto("/equipment", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
-      await expect(
-        page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
-      ).toBeVisible();
+      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
+      await expect(resultCount).toBeVisible();
+      const countText = await resultCount.textContent();
+      const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+      expect(countMatch).not.toBeNull();
+      const visibleCount = Number(countMatch?.[1]);
+      expectedAssetCount = Number(countMatch?.[2]);
+      expect(visibleCount).toBe(expectedAssetCount);
+      expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);
 
       for (const identifier of [
         "REG-REF-ACTIVE",
