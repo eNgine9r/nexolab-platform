@@ -2,54 +2,55 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-263",
-  "issue": 263,
+  "task": "NEXOLAB-265",
+  "issue": 265,
   "parent_issue": 260,
-  "pull_request": 264,
-  "status": "verified_ready_for_review",
-  "timestamp": "2026-08-04T08:42:37+03:00",
-  "baseline_main_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
-  "verified_executable_head_sha": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
-  "branch": "feat/263-live-telemetry-explorer",
-  "summary": "The /live placeholder is replaced by a real authenticated telemetry explorer with stable inventory identities, combined URL-backed filters, latest-state diagnostics, up to eight selected channels, unit-separated synchronized charts, complete watermark-stable history, bounded downsampling with outage preservation, startup reconciliation and deterministic MQTT-to-PostgreSQL-to-WebSocket browser evidence.",
+  "pull_request": 266,
+  "status": "work_package_ready",
+  "timestamp": "2026-08-04T10:19:26+03:00",
+  "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
+  "branch": "feat/265-equipment-layouts-catalog",
+  "summary": "Issue #265, branch and draft PR #266 are prepared for the Equipment Layouts catalog. The product boundary is a cross-asset read-only catalog and published-layout preview that reuses existing equipment/layout repositories and keeps all mutations in /refrigeration/[equipmentId].",
   "checks_actually_run": [
-    "CI 30880961470 GREEN",
-    "Authenticated Dashboard Acceptance 30880961490 GREEN",
-    "Refrigeration Browser Acceptance 30880961482 GREEN",
-    "Offline Bundle 30880961442 GREEN",
-    "PR #264 inline review thread audit: zero threads",
-    "PR #264 submitted review audit: zero reviews"
+    "PR #264 exact head 89e8a347705d1588cd33d8b5e5c4900b5e1c506a verified GREEN across CI 30881835623, Authenticated Dashboard 30881835679, Refrigeration Browser 30881835601 and Offline Bundle 30881835683",
+    "PR #264 review thread audit returned zero threads",
+    "PR #264 squash-merged with expected-head protection as 249a271b4d67dc87c8fa28b81a76027274b07e28",
+    "Issue #265 created with acceptance criteria, scope, permitted directories and verification plan",
+    "branch feat/265-equipment-layouts-catalog created from exact main SHA 249a271b4d67dc87c8fa28b81a76027274b07e28",
+    "draft PR #266 opened against main",
+    "repository inspection confirmed the /equipment-layouts placeholder, authenticated equipment list adapter, versioned layout repository and canonical refrigeration editor boundary"
   ],
-  "verification_scope": {
-    "executable_source_head": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
-    "state_only_changes": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "state_gate_requirement": "The final PR head changes the four source-of-truth files after the verified executable source. It must pass its own exact-head repository checks before PR #264 is marked ready."
+  "implementation_status": {
+    "started": false,
+    "tests_run_for_issue_265": false,
+    "runtime_evidence_for_issue_265": false,
+    "note": "This checkpoint prepares the focused Work Package and control plane. No executable #265 feature code is claimed yet."
   },
-  "runtime_and_offline_evidence": [
-    "real Next.js, FastAPI, PostgreSQL, MQTT and authenticated WebSocket operator flow verified",
-    "known MQTT event_id committed before the WebSocket latest-table assertion",
-    "complete history pagination and recovery verified against real PostgreSQL",
-    "disconnected archive load/start with blocked egress and --pull never verified",
-    "update and rollback preserved persistent data and named volumes",
-    "no dependency, telemetry schema, database migration or mandatory online runtime dependency introduced"
+  "architecture_decisions": [
+    "catalog and read-only published preview only",
+    "no duplicate upload/edit/save/publish/restore controls",
+    "reuse RefrigerationEquipmentRepository and RefrigerationLayoutRepository",
+    "bounded concurrent per-equipment summary loading",
+    "partial failures remain isolated and retryable",
+    "live mode never silently falls back to demo data",
+    "no dependency or database migration by default"
   ],
   "hardware_evidence": {
-    "software_verified": true,
+    "software_verified": false,
     "hardware_verified": false,
-    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
+    "note": "No Issue #265 runtime or hardware acceptance has been performed. No Raspberry Pi, RS-485, Modbus or site action is required for implementation."
   },
   "remaining_actions": [
-    "complete exact-head repository checks for the state-only checkpoint",
-    "update PR #264 verification summary",
-    "mark PR #264 ready for review"
+    "implement layout-state derivation and bounded summary loading with focused tests",
+    "replace the /equipment-layouts placeholder with the authenticated catalog",
+    "add read-only published-layout preview and canonical editor navigation",
+    "run proportional frontend and browser verification",
+    "update the four project state files with exact completion evidence",
+    "complete review audit and merge PR #266 only on GREEN"
   ],
-  "next_ready_work_package": {
-    "route": "/equipment-layouts",
-    "instruction": "After PR #264 merge, create one focused GitHub Issue and feature branch for the Equipment Layouts catalog without inserting deferred dependency migrations."
+  "next_ready_work_package_step": {
+    "issue": 265,
+    "pull_request": 266,
+    "instruction": "Implement the catalog domain loader and status derivation first, then wire URL-backed filters and the read-only preview without introducing a second editor."
   }
 }
