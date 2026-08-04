@@ -7,6 +7,7 @@ Branch: `feat/265-equipment-layouts-catalog`
 Pull Request: #266 — draft implementation PR
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Verified executable source head: `f61d6de5231ab9326901c0bc005e572ae1735bf2`
+Verified checkpoint head: `dd73c253b8cb5822f2c5b6c8dd7b23a675c7cb95`
 Status confidence: high for the implemented catalog domain, focused tests, authenticated frontend wiring and repository CI; browser/API/MinIO acceptance remains pending.
 
 ## Product route status
@@ -58,7 +59,7 @@ Delivered behavior:
 
 Focused unit tests cover state derivation, combined filters, bounded concurrency, partial failure preservation and cancellation.
 
-## Exact source verification
+## Exact verification
 
 Verified on executable source head `f61d6de5231ab9326901c0bc005e572ae1735bf2`:
 
@@ -70,7 +71,11 @@ Verified on executable source head `f61d6de5231ab9326901c0bc005e572ae1735bf2`:
 - complete Vitest suite GREEN, including the focused Equipment Layouts tests;
 - production Next.js build GREEN.
 
-Temporary read-only formatter workflows were removed completely and are absent from the final branch diff.
+Checkpoint verification:
+
+- CI `30893471962` GREEN on the four-file state-only checkpoint;
+- CI `30893835781` GREEN on final checkpoint head `dd73c253b8cb5822f2c5b6c8dd7b23a675c7cb95`;
+- temporary read-only formatter workflows were removed completely and are absent from the final branch diff.
 
 ## Runtime, offline and hardware evidence
 
