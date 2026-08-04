@@ -12,6 +12,7 @@ export default defineConfig({
     "authenticated-dashboard.production.e2e.ts",
     "energy.production.e2e.ts",
     "live.production.e2e.ts",
+    "equipment-layouts.production.e2e.ts",
   ],
   fullyParallel: false,
   workers: 1,
