@@ -77,6 +77,22 @@ describe("settings runtime diagnostics", () => {
     expect(diagnostics.websocket.displayValue).toBe("ws://127.0.0.1:18102/api/v1/telemetry/live");
   });
 
+  it("rejects auth provider values that could contain URL or secret material", () => {
+    const diagnostics = buildSettingsRuntimeDiagnostics({
+      profile: "LOCAL_LAN",
+      dataMode: "live",
+      authProvider: "https://identity.local?token=secret",
+      apiBaseUrl: "http://127.0.0.1:18102",
+      websocketUrl: "ws://127.0.0.1:18102/api/v1/telemetry/live",
+      browserOrigin: "http://127.0.0.1:13020",
+    });
+
+    expect(diagnostics.status).toBe("unsafe");
+    expect(diagnostics.authProviderLabel).toBe("Некоректне значення");
+    expect(diagnostics.issues.map((issue) => issue.code)).toContain("INVALID_AUTH_PROVIDER");
+    expect(JSON.stringify(diagnostics)).not.toContain("token=secret");
+  });
+
   it("marks secret material in public runtime URLs as unsafe while keeping output sanitized", () => {
     const diagnostics = buildSettingsRuntimeDiagnostics({
       profile: "LOCAL_LAN",
