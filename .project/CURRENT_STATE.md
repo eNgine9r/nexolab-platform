@@ -1,14 +1,13 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
-Active Work Package: Issue #265 — Equipment Layouts catalog
-Branch: `feat/265-equipment-layouts-catalog`
-Pull Request: #266 — verified ready for review
+Verified main baseline: `d70030dd17cde1031291e9725096a0f3d292192b`
+Active Work Package: Issue #267 — Equipment and metrology registry
+Branch: `feat/267-equipment-metrology-registry`
+Pull Request: #268 — executable scope verified; state-only exact-head gate required before ready transition
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`
-Verified state-only head: `08fd834f564480a83c2207eba4f356fb520a2f6c`
-Status confidence: high for repository, browser, object-storage, review and disconnected-runtime evidence; physical hardware remains explicitly unverified.
+Verified executable source head: `ad3aae9d8419d21082aabc8c19565953848671cb`
+Status confidence: high for repository, authenticated browser/API/PostgreSQL, regression, review-scope and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
 ## Product route status
 
@@ -17,88 +16,78 @@ Implemented on merged `main`:
 - `/` — Overview dashboard;
 - `/nodes` — Nodes;
 - `/sessions` — Test sessions;
-- `/refrigeration` — Refrigeration equipment and canonical layout editor;
+- `/refrigeration` — Refrigeration equipment and canonical mutation workflows;
 - `/alerts` — Alerts;
 - `/reports` — Reports;
 - `/energy` — verified LE-01MP Energy Monitoring;
-- `/live` — verified universal telemetry explorer, merged through PR #264.
+- `/live` — verified universal telemetry explorer;
+- `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview, merged through PR #266.
 
-Implemented and verified in PR #266:
+Implemented and executable-verified in PR #268:
 
-- `/equipment-layouts` — authenticated cross-asset catalog and read-only published-layout preview.
+- `/equipment` — authenticated organization-wide Equipment and metrology registry.
 
 Remaining placeholder routes on `main`:
 
-- `/equipment-layouts` until PR #266 merges;
-- `/equipment` — equipment and metrology registry;
+- `/equipment` until PR #268 merges;
 - `/settings` — operator-safe Settings;
 - `/cameras` — local Cameras monitoring;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #265 completed product scope
+## Issue #267 completed product scope
 
-PR #266 provides:
+PR #268 provides:
 
-- explicit `published-current`, `published-with-draft`, `draft-only`, `no-image`, `empty` and `failed` catalog states;
-- immutable publication-versus-current-draft image and normalized geometry comparison;
-- deterministic equipment ordering by code and then name;
-- combined URL-backed search, laboratory, zone, chamber, equipment-lifecycle and layout-state filters;
-- deterministic clear-filter reload that removes filter query keys and does not retain stale filtered browser history;
-- bounded concurrent per-equipment summary loading with cancellation, stale-result suppression and partial-failure preservation;
-- authenticated organization-scoped equipment and layout HTTP repositories with no silent live-to-demo fallback;
-- responsive cards with lifecycle, draft version, publication revision, placement count, publisher and timestamps;
-- read-only signed-image preview with normalized sensor markers and isolated image failure state;
-- canonical navigation to `/refrigeration/[equipmentId]` for every mutation workflow;
-- no duplicate editor, dependency upgrade, database migration, backend schema change, Modbus write or hardware path.
+- one normalized read model for refrigeration equipment, temperature controllers, energy meters and physical sensors;
+- deterministic category, identifier and name ordering;
+- summary counters for all assets, refrigeration equipment, measurement devices, physical sensors and due/expired calibration risk;
+- combined URL-backed search, asset-class, climate-chamber, manufacturer, lifecycle/connection and calibration filters;
+- deterministic filter persistence through reload and clear navigation;
+- bounded climate-chamber summary loading with cancellation, stale-result suppression and partial-failure preservation;
+- category-aware read-only details without duplicating refrigeration mutation workflows;
+- canonical navigation to `/refrigeration/[equipmentId]` for supported refrigeration mutations;
+- authenticated organization-scoped runtime with no silent live-to-demo fallback;
+- explicit loading, authentication, configuration, empty, error and retry states;
+- truthful metrology boundary: the repository does not currently store calibration dates, next-due dates, certificate numbers/files, calibration laboratory or uncertainty;
+- no universal asset table, dependency upgrade, database migration, backend schema change, Modbus write or hardware path.
 
 ## Exact executable verification
 
-Verified on source head `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`:
+Verified on source head `ad3aae9d8419d21082aabc8c19565953848671cb`:
 
-- CI `30901392247` GREEN;
-- Authenticated Dashboard Acceptance `30901391302` GREEN;
-- Refrigeration Browser Acceptance `30901391433` GREEN;
-- Offline Bundle `30901391342` GREEN;
-- browser evidence artifact `8889283540` captured.
+- CI `30927620394` GREEN;
+- Authenticated Dashboard Acceptance `30927615108` GREEN with all five production browser flows passing;
+- Refrigeration Browser Acceptance `30927615177` GREEN;
+- Offline Bundle `30927620159` GREEN;
+- browser evidence artifact `8899868692` captured.
 
-The authenticated browser gate used production Next.js, FastAPI, PostgreSQL and MinIO and proved:
+The authenticated browser gate used production Next.js, FastAPI and PostgreSQL and proved:
 
-- real organization-scoped fixtures for published-current, newer unpublished draft, draft-only, no-image/retired and partial-summary-failure states;
-- URL filters survive reload and clear deterministically;
-- one injected summary failure remains local while successful catalog items stay available;
-- every observed equipment/layout API request was authenticated, organization-scoped and read-only;
-- the published image loaded from a signed MinIO URL with HTTP 200;
-- normalized markers rendered at 25%/40% and 75%/65%;
-- canonical navigation reached `/refrigeration/50000000-0000-4000-8000-000000000001`;
-- zero catalog mutations were observed.
+- organization-wide total of 287 visible registry assets;
+- three refrigeration lifecycle fixtures: active, maintenance and retired;
+- connected, disconnected and unknown measurement-device states;
+- current, due, expired and untracked physical-sensor calibration states;
+- four injected failed-chamber requests remained isolated while successful assets stayed usable;
+- URL-backed combined filters persisted through reload and cleared deterministically;
+- read-only category-specific details rendered without fabricated metrology fields;
+- canonical navigation reached `/refrigeration/66600000-0000-4000-8000-000000000001`;
+- every observed registry request was authenticated, organization-scoped and GET-only;
+- zero registry mutation requests were observed.
 
-## Final state and review verification
-
-Verified on state-only head `08fd834f564480a83c2207eba4f356fb520a2f6c`:
-
-- CI `30902446556` GREEN;
-- Authenticated Dashboard Acceptance `30902446578` GREEN;
-- Refrigeration Browser Acceptance `30902446647` GREEN;
-- Offline Bundle `30902446601` GREEN;
-- exactly four `.project` files changed after the verified executable source;
-- PR #266 inline review threads: zero;
-- PR #266 submitted reviews: zero;
-- final diff: 15 focused files with no temporary workflow, dependency, backend or migration changes.
-
-The disconnected Offline Bundle proved archive load/start with egress blocked and `--pull never`, followed by update/rollback persistence preservation without deleting named volumes.
-
-Temporary formatter/fix workflows removed themselves and are absent from the final PR diff.
+The same five-flow gate also re-verified dashboard, energy, live telemetry and Equipment Layouts. Equipment Layouts correctly derived the shared organization total of eight equipment records while retaining all five focused layout lifecycle assertions.
 
 ## Runtime, offline and hardware evidence
 
+The disconnected Offline Bundle loaded and started the archive with container egress blocked and `--pull never`, then proved update/rollback persistence preservation without deleting named volumes.
+
 ```text
-software verified; authenticated browser/API/PostgreSQL/MinIO verified; disconnected runtime verified; review audit clean; physical Raspberry Pi and RS-485 hardware unverified
+software verified; authenticated browser/API/PostgreSQL verified; disconnected runtime verified; physical Raspberry Pi and RS-485 hardware unverified
 ```
 
 No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
 ## Next action
 
-Complete the final exact-head repository gate for this factual readiness update, mark PR #266 ready for review without merging it, then wait for the post-ready merge decision. After PR #266 merges, create the next focused Work Package for `/equipment`.
+Validate the exact state-only checkpoint head, perform the final review and focused-diff audit, update PR #268 verification metadata and mark PR #268 ready for review without merging it. After merge, the next queued product route is `/settings`.
