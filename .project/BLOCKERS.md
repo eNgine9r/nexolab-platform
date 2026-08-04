@@ -4,48 +4,65 @@ Updated: 2026-08-04
 
 ## Issue #267 — Equipment and metrology registry
 
-No product, architecture, repository-access, authenticated-browser, regression, offline or hardware blocker prevents PR #268 from being marked ready for review after its exact state-only checkpoint gate and final review audit.
+PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after a clean final audit.
 
-Verified executable source head: `ad3aae9d8419d21082aabc8c19565953848671cb`.
+Final verified head `b40faeb7999acea0f3e3ae2105bbd77b122add2d`:
 
-Executable evidence is GREEN:
+- CI `30929890208` GREEN;
+- Authenticated Dashboard Acceptance `30929890332` GREEN;
+- Refrigeration Browser Acceptance `30929890463` GREEN;
+- Offline Bundle `30929890230` GREEN;
+- inline review threads: zero;
+- submitted reviews: zero;
+- focused files: 15;
+- branch behind `main`: zero commits.
 
-- CI `30927620394`;
-- Authenticated Dashboard Acceptance `30927615108` — five of five production browser flows passed;
-- Refrigeration Browser Acceptance `30927615177`;
-- Offline Bundle `30927620159`;
-- browser evidence artifact `8899868692`.
+Issue #267 has no remaining software blocker. Physical Raspberry Pi and RS-485 acceptance remains separate and explicitly unverified.
 
-The focused authenticated browser gate proved:
+## Issue #269 — operator-safe Settings workspace
 
-- 287 organization-scoped registry assets loaded from the authenticated local contracts;
-- active, maintenance and retired refrigeration lifecycle states;
-- connected, disconnected and unknown measurement-device states;
-- current, due, expired and untracked physical-sensor calibration states;
-- combined URL filters persisted through reload and cleared deterministically;
-- four injected chamber-summary failures remained isolated while successful assets stayed usable;
-- read-only details did not fabricate unsupported calibration dates, certificates, laboratory or uncertainty;
-- canonical navigation reached `/refrigeration/66600000-0000-4000-8000-000000000001`;
-- all observed registry API requests were authenticated, organization-scoped and GET-only;
-- zero registry mutations were observed.
+No product, architecture or repository-access blocker prevents implementation from starting.
 
-The five-flow gate also re-verified dashboard, Energy Monitoring, Live Data and Equipment Layouts. Equipment Layouts derived the shared total of eight equipment records while retaining all five focused layout lifecycle assertions.
+Verified repository boundary:
 
-The disconnected Offline Bundle proved archive load/start with egress blocked and `--pull never`, plus update/rollback persistence preservation without deleting named volumes.
+- `/settings` is currently a pure placeholder;
+- authenticated identity, organization, roles and permissions are available from the existing session contract;
+- client-visible data/auth mode and API/WebSocket configuration already exist in runtime modules;
+- no `/api/v1/settings` endpoint exists;
+- no persisted universal settings table exists;
+- no safe generic mutation contract exists for organization, memberships, nodes, devices, retention, security or deployment.
 
-Temporary formatter and focused-fix workflows removed themselves and are absent from the executable Pull Request diff.
+The Ready slice is therefore constrained to:
+
+- read-only organization and operator context;
+- sanitized runtime/deployment diagnostics;
+- explicit ready, incomplete and unsafe configuration states;
+- versioned browser-local presentation preferences;
+- canonical links to existing workflows;
+- honest unsupported-configuration messaging.
 
 ## Residual risks, not blockers
 
-- The registry composes existing refrigeration and per-chamber measurement APIs. Request volume grows with chamber count; bounded concurrency limits pressure but does not replace a future dedicated summary endpoint if measured scale requires one.
-- Existing repositories own bounded request timeouts and do not accept an external `AbortSignal`. Registry orchestration suppresses stale commits and stops new scheduling, while already-started requests complete under repository timeout.
-- Calibration status is not a complete metrology record. Dates, next-due dates, certificate metadata/files, calibration laboratory and uncertainty remain unsupported and are shown honestly as unavailable.
-- Physical Raspberry Pi and RS-485 acceptance is not inferred from browser, container or disconnected bundle evidence.
-- Squash merge remains appropriate because PR #268 contains multiple recoverable implementation and verification commits.
+- Public runtime variables are client-visible by design, but displayed URLs still require sanitization to remove credentials, query strings, fragments and secret-like values.
+- Runtime configuration modules were created per feature; Issue #269 may need a narrow shared read-only adapter, but must not trigger a broad runtime-config refactor.
+- Browser-local preferences must recover deterministically from malformed or obsolete storage without affecting acquisition, alarms, security or device behavior.
+- Auth provider `disabled` may exist in development/demo contexts; the page must represent it honestly and must not silently downgrade a live authenticated deployment.
+- Physical hardware evidence is not relevant to the software-only settings workspace and must not be inferred.
+
+## Explicitly unsupported and out of scope for Issue #269
+
+- organization or membership CRUD;
+- node provisioning, credentials or deployment changes;
+- Modbus/RS-485 parameters or device writes;
+- alarm-rule, retention, backup or restore mutation;
+- CORS, TLS, DNS, VPN or secret rotation;
+- database migration or universal settings API;
+- dependency upgrade or unrelated design-system refactor;
+- production/site cutover.
 
 ## Product-page priority
 
-Issue #267 remains the active Work Package until PR #268 is merged. After merge, the next queued route is `/settings`, followed by `/cameras`.
+Issue #269 is the active Ready Work Package. After it merges, `/cameras` is next. `/lockers` remains blocked pending a concrete inventory, read-only protocol and operator workflow.
 
 Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a security, support or concrete product blocker appears.
 
@@ -80,4 +97,4 @@ Stop before:
 
 ## Next Ready action
 
-Validate the exact state-only checkpoint, complete the PR review and focused-diff audit, mark PR #268 ready for review without merging it and retain `/settings` as the next queued product-page Work Package after merge.
+Create `feat/269-operator-safe-settings` from the updated `main`, open one focused draft Pull Request and implement the typed settings diagnostics and browser-local preference vertical slice under Issue #269.
