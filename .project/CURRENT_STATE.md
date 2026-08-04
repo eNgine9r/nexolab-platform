@@ -1,13 +1,11 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `d70030dd17cde1031291e9725096a0f3d292192b`
-Active Work Package: Issue #267 — Equipment and metrology registry
-Branch: `feat/267-equipment-metrology-registry`
-Pull Request: #268 — executable scope verified; state-only exact-head gate required before ready transition
+Verified main baseline: `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae`
+Active Work Package: Issue #269 — operator-safe Settings workspace
+Planned branch: `feat/269-operator-safe-settings`
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Verified executable source head: `ad3aae9d8419d21082aabc8c19565953848671cb`
-Status confidence: high for repository, authenticated browser/API/PostgreSQL, regression, review-scope and disconnected-runtime evidence; physical hardware remains explicitly unverified.
+Status confidence: high for merged repository, authenticated browser/API/PostgreSQL and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
 ## Product route status
 
@@ -21,73 +19,70 @@ Implemented on merged `main`:
 - `/reports` — Reports;
 - `/energy` — verified LE-01MP Energy Monitoring;
 - `/live` — verified universal telemetry explorer;
-- `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview, merged through PR #266.
-
-Implemented and executable-verified in PR #268:
-
-- `/equipment` — authenticated organization-wide Equipment and metrology registry.
+- `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview;
+- `/equipment` — authenticated organization-wide Equipment and metrology registry, merged through PR #268.
 
 Remaining placeholder routes on `main`:
 
-- `/equipment` until PR #268 merges;
-- `/settings` — operator-safe Settings;
-- `/cameras` — local Cameras monitoring;
+- `/settings` — active Issue #269;
+- `/cameras` — queued local Cameras monitoring;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #267 completed product scope
+## Issue #267 merged outcome
 
-PR #268 provides:
+PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after the final audit confirmed:
 
-- one normalized read model for refrigeration equipment, temperature controllers, energy meters and physical sensors;
-- deterministic category, identifier and name ordering;
-- summary counters for all assets, refrigeration equipment, measurement devices, physical sensors and due/expired calibration risk;
-- combined URL-backed search, asset-class, climate-chamber, manufacturer, lifecycle/connection and calibration filters;
-- deterministic filter persistence through reload and clear navigation;
-- bounded climate-chamber summary loading with cancellation, stale-result suppression and partial-failure preservation;
-- category-aware read-only details without duplicating refrigeration mutation workflows;
-- canonical navigation to `/refrigeration/[equipmentId]` for supported refrigeration mutations;
-- authenticated organization-scoped runtime with no silent live-to-demo fallback;
-- explicit loading, authentication, configuration, empty, error and retry states;
-- truthful metrology boundary: the repository does not currently store calibration dates, next-due dates, certificate numbers/files, calibration laboratory or uncertainty;
-- no universal asset table, dependency upgrade, database migration, backend schema change, Modbus write or hardware path.
+- exact head `b40faeb7999acea0f3e3ae2105bbd77b122add2d`;
+- branch not behind `main`;
+- 15 focused files;
+- zero inline review threads;
+- zero submitted reviews;
+- CI `30929890208` GREEN;
+- Authenticated Dashboard Acceptance `30929890332` GREEN;
+- Refrigeration Browser Acceptance `30929890463` GREEN;
+- Offline Bundle `30929890230` GREEN.
 
-## Exact executable verification
+The merged `/equipment` route provides:
 
-Verified on source head `ad3aae9d8419d21082aabc8c19565953848671cb`:
+- normalized refrigeration equipment, temperature-controller, energy-meter and physical-sensor asset classes;
+- deterministic sorting, aggregate counters and URL-backed filters;
+- bounded per-chamber loading with stale-result suppression and partial-failure isolation;
+- authenticated organization-scoped runtime without silent demo fallback;
+- category-aware read-only details and canonical refrigeration navigation;
+- explicit absence of unsupported calibration dates, certificates, laboratory and uncertainty;
+- browser evidence for 287 organization-scoped assets and zero mutation requests;
+- no backend schema, dependency, Modbus or hardware change.
 
-- CI `30927620394` GREEN;
-- Authenticated Dashboard Acceptance `30927615108` GREEN with all five production browser flows passing;
-- Refrigeration Browser Acceptance `30927615177` GREEN;
-- Offline Bundle `30927620159` GREEN;
-- browser evidence artifact `8899868692` captured.
+## Active Issue #269 boundary
 
-The authenticated browser gate used production Next.js, FastAPI and PostgreSQL and proved:
+The `/settings` route is currently a pure `PlatformPlaceholderScreen`. Repository inventory confirms:
 
-- organization-wide total of 287 visible registry assets;
-- three refrigeration lifecycle fixtures: active, maintenance and retired;
-- connected, disconnected and unknown measurement-device states;
-- current, due, expired and untracked physical-sensor calibration states;
-- four injected failed-chamber requests remained isolated while successful assets stayed usable;
-- URL-backed combined filters persisted through reload and cleared deterministically;
-- read-only category-specific details rendered without fabricated metrology fields;
-- canonical navigation reached `/refrigeration/66600000-0000-4000-8000-000000000001`;
-- every observed registry request was authenticated, organization-scoped and GET-only;
-- zero registry mutation requests were observed.
+- the existing authenticated session contract provides identity, organizations, roles and permissions;
+- client-visible runtime configuration already provides data mode, auth provider and API/WebSocket endpoints;
+- no `/api/v1/settings` endpoint or persisted universal settings model exists;
+- no safe generic mutation contract exists for organization, nodes, devices, retention, security or deployment.
 
-The same five-flow gate also re-verified dashboard, energy, live telemetry and Equipment Layouts. Equipment Layouts correctly derived the shared organization total of eight equipment records while retaining all five focused layout lifecycle assertions.
+Issue #269 will therefore deliver an operator-safe workspace composed from existing read-only contracts:
+
+- active organization and operator context;
+- sanitized runtime/deployment diagnostics;
+- explicit ready/incomplete/unsafe configuration states;
+- versioned browser-local presentation preferences only;
+- canonical links to existing operational workflows;
+- honest unsupported-configuration boundaries.
+
+It must not expose secrets or add node/device/Modbus, retention, backup, TLS, DNS, VPN, membership or production mutations.
 
 ## Runtime, offline and hardware evidence
-
-The disconnected Offline Bundle loaded and started the archive with container egress blocked and `--pull never`, then proved update/rollback persistence preservation without deleting named volumes.
 
 ```text
 software verified; authenticated browser/API/PostgreSQL verified; disconnected runtime verified; physical Raspberry Pi and RS-485 hardware unverified
 ```
 
-No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
+No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used for Issue #267.
 
 ## Next action
 
-Validate the exact state-only checkpoint head, perform the final review and focused-diff audit, update PR #268 verification metadata and mark PR #268 ready for review without merging it. After merge, the next queued product route is `/settings`.
+Create `feat/269-operator-safe-settings` from the updated `main`, open one focused draft Pull Request and implement Issue #269 through the standard targeted-test, CI and authenticated-browser acceptance sequence.
