@@ -1,14 +1,17 @@
-import { Cpu } from "lucide-react";
+import { Suspense } from "react";
 
-import { PlatformPlaceholderScreen } from "@/components/dashboard/platform-placeholder-screen";
+import { EquipmentRegistryScreen } from "@/components/equipment/equipment-registry-screen";
 
 export default function EquipmentPage() {
   return (
-    <PlatformPlaceholderScreen
-      title="Обладнання"
-      eyebrow="Asset registry"
-      description="Паспорти та життєвий цикл обладнання відкриваються у спільному shell платформи, без переходу в окреме вікно."
-      icon={<Cpu className="h-7 w-7" />}
-    />
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400">
+          Підготовка реєстру обладнання…
+        </main>
+      }
+    >
+      <EquipmentRegistryScreen />
+    </Suspense>
   );
 }
