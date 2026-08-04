@@ -67,10 +67,26 @@
       "parent_issue": 260,
       "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "in_progress",
+      "status": "implementation_slice_verified",
       "branch": "feat/265-equipment-layouts-catalog",
       "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
+      "verified_source_head_sha": "f61d6de5231ab9326901c0bc005e572ae1735bf2",
       "route": "/equipment-layouts",
+      "verified_runs": {
+        "ci": 30892831371
+      },
+      "completed_scope": [
+        "explicit layout catalog domain states",
+        "published-versus-draft geometry comparison",
+        "deterministic sorting and combined URL-backed filters",
+        "bounded concurrent summary loading",
+        "stale-load cancellation and partial failure preservation",
+        "authenticated live runtime without demo fallback",
+        "catalog loading, empty, configuration and retry states",
+        "read-only signed-image preview with normalized markers",
+        "canonical navigation to /refrigeration/[equipmentId]",
+        "focused unit tests and production build"
+      ],
       "architecture_decisions": [
         "cross-asset catalog and read-only published preview",
         "reuse existing equipment and layout repositories",
@@ -86,7 +102,7 @@
         "no Modbus or hardware write",
         "no production or site cutover"
       ],
-      "next_action": "Implement the catalog domain loader, URL-backed filters, lifecycle-state derivation and read-only preview with focused tests."
+      "next_action": "Add focused production browser acceptance for URL filters, lifecycle states, partial failure, signed-image preview and canonical navigation, then complete final state-only verification."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",
