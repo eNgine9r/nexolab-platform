@@ -67,25 +67,31 @@
       "parent_issue": 260,
       "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "implementation_slice_verified",
+      "status": "verified_ready_for_review_pending_state_gate",
       "branch": "feat/265-equipment-layouts-catalog",
       "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
-      "verified_source_head_sha": "f61d6de5231ab9326901c0bc005e572ae1735bf2",
+      "verified_source_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
       "route": "/equipment-layouts",
-      "verified_runs": {
-        "ci": 30892831371
+      "required_runs": {
+        "ci": 30901392247,
+        "authenticated_dashboard": 30901391302,
+        "refrigeration_browser": 30901391433,
+        "offline_bundle": 30901391342
       },
+      "browser_evidence_artifact": 8889283540,
       "completed_scope": [
         "explicit layout catalog domain states",
-        "published-versus-draft geometry comparison",
+        "published-versus-draft image and normalized geometry comparison",
         "deterministic sorting and combined URL-backed filters",
+        "deterministic clear-filter navigation",
         "bounded concurrent summary loading",
         "stale-load cancellation and partial failure preservation",
         "authenticated live runtime without demo fallback",
         "catalog loading, empty, configuration and retry states",
         "read-only signed-image preview with normalized markers",
         "canonical navigation to /refrigeration/[equipmentId]",
-        "focused unit tests and production build"
+        "focused unit tests and production browser acceptance",
+        "disconnected runtime and rollback persistence verification"
       ],
       "architecture_decisions": [
         "cross-asset catalog and read-only published preview",
@@ -102,7 +108,7 @@
         "no Modbus or hardware write",
         "no production or site cutover"
       ],
-      "next_action": "Add focused production browser acceptance for URL filters, lifecycle states, partial failure, signed-image preview and canonical navigation, then complete final state-only verification."
+      "next_action": "Complete state-only CI, review audit and final focused diff audit, then mark PR #266 ready without merging it."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",
