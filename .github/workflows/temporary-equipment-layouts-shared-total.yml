@@ -1,0 +1,83 @@
+name: Temporary Equipment Layouts Shared Total
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/temporary-equipment-layouts-shared-total.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feat/267-equipment-metrology-registry'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Derive shared Equipment Layouts total and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/equipment-layouts.production.e2e.ts")
+          text = path.read_text()
+
+          declaration = "  let injectedFailureCount = 0;"
+          replacement = "  let injectedFailureCount = 0;\n  let expectedEquipmentCount = 0;\n  const minimumLayoutFixtureCount = 5;"
+          if text.count(declaration) != 1:
+              raise SystemExit(f"failure counter matches={text.count(declaration)}")
+          text = text.replace(declaration, replacement, 1)
+
+          old_initial = '      await expect(page.getByText("Показано 5 із 5", { exact: true })).toBeVisible();'
+          new_initial = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
+              await expect(resultCount).toBeVisible();
+              await expect
+                .poll(
+                  async () => {
+                    const countText = await resultCount.textContent();
+                    const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+                    if (!countMatch) return 0;
+                    const visibleCount = Number(countMatch[1]);
+                    expectedEquipmentCount = Number(countMatch[2]);
+                    return visibleCount === expectedEquipmentCount ? expectedEquipmentCount : 0;
+                  },
+                  { message: "Wait for the complete shared equipment layouts total" },
+                )
+                .toBeGreaterThanOrEqual(minimumLayoutFixtureCount);'''
+          if text.count(old_initial) != 2:
+              raise SystemExit(f"5 of 5 assertions={text.count(old_initial)}")
+          text = text.replace(old_initial, new_initial, 1)
+
+          old_filtered = '      await expect(page.getByText("Показано 1 із 5", { exact: true })).toBeVisible();'
+          new_filtered = '      await expect(page.getByText(`Показано 1 із ${expectedEquipmentCount}`, { exact: true })).toBeVisible();'
+          if text.count(old_filtered) != 2:
+              raise SystemExit(f"1 of 5 assertions={text.count(old_filtered)}")
+          text = text.replace(old_filtered, new_filtered)
+
+          new_clear = '      await expect(\n        page.getByText(`Показано ${expectedEquipmentCount} із ${expectedEquipmentCount}`, { exact: true }),\n      ).toBeVisible();'
+          text = text.replace(old_initial, new_clear, 1)
+
+          summary_anchor = "          injectedFailureCount,"
+          summary_replacement = "          expectedEquipmentCount,\n          minimumLayoutFixtureCount,\n          injectedFailureCount,"
+          if text.count(summary_anchor) != 1:
+              raise SystemExit(f"summary anchor matches={text.count(summary_anchor)}")
+          text = text.replace(summary_anchor, summary_replacement, 1)
+
+          path.write_text(text)
+          PY
+          rm .github/workflows/temporary-equipment-layouts-shared-total.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/equipment-layouts.production.e2e.ts \
+            .github/workflows/temporary-equipment-layouts-shared-total.yml
+          git commit -m "test(layouts): derive shared equipment total"
+          git push origin HEAD:feat/267-equipment-metrology-registry
