@@ -13,8 +13,6 @@ export function EquipmentAssetDetails({
   onClose: () => void;
 }) {
   const metadata = detailsFor(asset);
-  const CategoryIcon = categoryIcon(asset.category);
-
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-[#020817]/80 p-3 backdrop-blur-sm"
@@ -29,7 +27,7 @@ export function EquipmentAssetDetails({
         <header className="flex items-start justify-between gap-4 border-b border-white/[0.07] p-5 sm:p-6">
           <div className="flex min-w-0 items-start gap-3">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/10">
-              <CategoryIcon className="h-6 w-6 text-cyan-300" />
+              {renderCategoryIcon(asset.category, "h-6 w-6 text-cyan-300")}
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
@@ -200,13 +198,17 @@ export function statusLabel(value: string): string {
   );
 }
 
-function categoryIcon(category: EquipmentRegistryAsset["category"]) {
-  return {
-    "refrigeration-equipment": Refrigerator,
-    "temperature-controller": Cpu,
-    "energy-meter": Gauge,
-    "physical-sensor": Thermometer,
-  }[category];
+function renderCategoryIcon(category: EquipmentRegistryAsset["category"], className: string) {
+  switch (category) {
+    case "refrigeration-equipment":
+      return <Refrigerator className={className} />;
+    case "temperature-controller":
+      return <Cpu className={className} />;
+    case "energy-meter":
+      return <Gauge className={className} />;
+    case "physical-sensor":
+      return <Thermometer className={className} />;
+  }
 }
 
 function formatDate(value: string): string {

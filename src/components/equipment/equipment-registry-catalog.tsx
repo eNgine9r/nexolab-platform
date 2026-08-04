@@ -295,13 +295,12 @@ export function EquipmentRegistryCatalog({
 }
 
 function RegistryRow({ asset, onDetails }: { asset: EquipmentRegistryAsset; onDetails: () => void }) {
-  const CategoryIcon = assetIcon(asset.category);
   return (
     <tr className="hover:bg-white/[0.025]">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.06]">
-            <CategoryIcon className="h-4 w-4 text-cyan-300" />
+            {renderAssetIcon(asset.category, "h-4 w-4 text-cyan-300")}
           </div>
           <div className="min-w-0">
             <p className="truncate font-semibold text-slate-100">{asset.displayName}</p>
@@ -352,13 +351,12 @@ function RegistryRow({ asset, onDetails }: { asset: EquipmentRegistryAsset; onDe
 }
 
 function RegistryCard({ asset, onDetails }: { asset: EquipmentRegistryAsset; onDetails: () => void }) {
-  const CategoryIcon = assetIcon(asset.category);
   return (
     <article className="rounded-2xl border border-white/[0.07] bg-[#091a31]/90 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.06]">
-            <CategoryIcon className="h-4 w-4 text-cyan-300" />
+            {renderAssetIcon(asset.category, "h-4 w-4 text-cyan-300")}
           </div>
           <div className="min-w-0">
             <p className="truncate font-semibold text-white">{asset.displayName}</p>
@@ -581,13 +579,17 @@ function primaryStatus(asset: EquipmentRegistryAsset): string {
   );
 }
 
-function assetIcon(category: EquipmentRegistryAsset["category"]) {
-  return {
-    "refrigeration-equipment": Refrigerator,
-    "temperature-controller": Cpu,
-    "energy-meter": Gauge,
-    "physical-sensor": Thermometer,
-  }[category];
+function renderAssetIcon(category: EquipmentRegistryAsset["category"], className: string) {
+  switch (category) {
+    case "refrigeration-equipment":
+      return <Refrigerator className={className} />;
+    case "temperature-controller":
+      return <Cpu className={className} />;
+    case "energy-meter":
+      return <Gauge className={className} />;
+    case "physical-sensor":
+      return <Thermometer className={className} />;
+  }
 }
 
 function calibrationClass(value: EquipmentRegistryAsset["calibrationStatus"]): string {
