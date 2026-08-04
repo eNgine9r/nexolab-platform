@@ -15,6 +15,7 @@ export type EquipmentRegistryRuntime = {
 export function createEquipmentRegistryRuntime(
   input: RefrigerationEquipmentRuntimeInput = {},
 ): EquipmentRegistryRuntime {
+  // Reuse the proven authentication and organization-scoping boundary instead of creating a parallel client.
   const runtime = createRefrigerationEquipmentRuntime(input);
   return {
     mode: runtime.mode,
