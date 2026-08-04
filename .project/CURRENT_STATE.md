@@ -1,9 +1,10 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae`
+Verified main baseline: `da9bda46c320e2de6fd52e2136fdcfa368f00982`
 Active Work Package: Issue #269 — operator-safe Settings workspace
-Planned branch: `feat/269-operator-safe-settings`
+Branch: `feat/269-operator-safe-settings`
+Pull Request: pending draft creation
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Status confidence: high for merged repository, authenticated browser/API/PostgreSQL and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
@@ -22,9 +23,9 @@ Implemented on merged `main`:
 - `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview;
 - `/equipment` — authenticated organization-wide Equipment and metrology registry, merged through PR #268.
 
-Remaining placeholder routes on `main`:
+Remaining placeholder routes on merged `main`:
 
-- `/settings` — active Issue #269;
+- `/settings` — active Issue #269 and feature branch started;
 - `/cameras` — queued local Cameras monitoring;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
@@ -32,28 +33,9 @@ Optional toolchain migrations #252–#257 remain deferred unless they become a s
 
 ## Issue #267 merged outcome
 
-PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after the final audit confirmed:
+PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after the final audit confirmed exact-head GREEN CI, authenticated browser, refrigeration browser and disconnected Offline Bundle checks, a 15-file focused diff and zero review threads/reviews.
 
-- exact head `b40faeb7999acea0f3e3ae2105bbd77b122add2d`;
-- branch not behind `main`;
-- 15 focused files;
-- zero inline review threads;
-- zero submitted reviews;
-- CI `30929890208` GREEN;
-- Authenticated Dashboard Acceptance `30929890332` GREEN;
-- Refrigeration Browser Acceptance `30929890463` GREEN;
-- Offline Bundle `30929890230` GREEN.
-
-The merged `/equipment` route provides:
-
-- normalized refrigeration equipment, temperature-controller, energy-meter and physical-sensor asset classes;
-- deterministic sorting, aggregate counters and URL-backed filters;
-- bounded per-chamber loading with stale-result suppression and partial-failure isolation;
-- authenticated organization-scoped runtime without silent demo fallback;
-- category-aware read-only details and canonical refrigeration navigation;
-- explicit absence of unsupported calibration dates, certificates, laboratory and uncertainty;
-- browser evidence for 287 organization-scoped assets and zero mutation requests;
-- no backend schema, dependency, Modbus or hardware change.
+The merged `/equipment` route provides a normalized authenticated read-only equipment/metrology registry without backend schema, dependency, Modbus or hardware changes.
 
 ## Active Issue #269 boundary
 
@@ -64,7 +46,7 @@ The `/settings` route is currently a pure `PlatformPlaceholderScreen`. Repositor
 - no `/api/v1/settings` endpoint or persisted universal settings model exists;
 - no safe generic mutation contract exists for organization, nodes, devices, retention, security or deployment.
 
-Issue #269 will therefore deliver an operator-safe workspace composed from existing read-only contracts:
+Issue #269 will deliver an operator-safe workspace composed from existing read-only contracts:
 
 - active organization and operator context;
 - sanitized runtime/deployment diagnostics;
@@ -78,11 +60,11 @@ It must not expose secrets or add node/device/Modbus, retention, backup, TLS, DN
 ## Runtime, offline and hardware evidence
 
 ```text
-software verified; authenticated browser/API/PostgreSQL verified; disconnected runtime verified; physical Raspberry Pi and RS-485 hardware unverified
+software verified for merged Issue #267; Issue #269 implementation not yet verified; physical Raspberry Pi and RS-485 hardware unverified
 ```
 
-No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used for Issue #267.
+No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover is permitted for Issue #269.
 
 ## Next action
 
-Create `feat/269-operator-safe-settings` from the updated `main`, open one focused draft Pull Request and implement Issue #269 through the standard targeted-test, CI and authenticated-browser acceptance sequence.
+Open one focused draft Pull Request for `feat/269-operator-safe-settings`, then implement the typed runtime-diagnostics and browser-local preference vertical slice with focused tests and authenticated browser acceptance.
