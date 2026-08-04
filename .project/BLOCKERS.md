@@ -4,17 +4,34 @@ Updated: 2026-08-04
 
 ## Issue #265 — Equipment Layouts catalog
 
-No product, architecture, repository-access, browser, offline or hardware blocker prevents PR #266 from being marked ready for review after its final state-only gate.
+No product, architecture, repository-access, browser, review, offline or hardware blocker prevents PR #266 from being marked ready for review after its final exact-head gate.
 
 Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`.
 
-Required executable evidence is GREEN:
+Executable evidence is GREEN:
 
 - CI `30901392247`;
 - Authenticated Dashboard Acceptance `30901391302`;
 - Refrigeration Browser Acceptance `30901391433`;
 - Offline Bundle `30901391342`;
 - browser evidence artifact `8889283540`.
+
+Verified state-only head: `08fd834f564480a83c2207eba4f356fb520a2f6c`.
+
+State-head evidence is GREEN:
+
+- CI `30902446556`;
+- Authenticated Dashboard Acceptance `30902446578`;
+- Refrigeration Browser Acceptance `30902446647`;
+- Offline Bundle `30902446601`.
+
+Review and scope audit:
+
+- inline review threads: zero;
+- submitted reviews: zero;
+- exactly four `.project` files changed after the executable source head;
+- final Pull Request diff contains 15 focused files;
+- no temporary workflow, package/lockfile, backend, database migration or unrelated page change remains.
 
 The focused authenticated browser gate proved:
 
@@ -75,4 +92,4 @@ Stop before:
 
 ## Next Ready action
 
-Complete the four-file state-only exact-head CI, audit PR #266 review threads and final diff, update the PR verification summary and mark it ready for review without merging it.
+Complete the final exact-head gate for this factual readiness update, mark PR #266 ready for review without merging it and retain `/equipment` as the next queued product-page Work Package after merge.
