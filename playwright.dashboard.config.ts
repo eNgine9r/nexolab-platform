@@ -6,7 +6,8 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 const webPort = new URL(webUrl).port || "13020";
 
-// Five authenticated operator flows share one production Next.js, API, database, MQTT, and MinIO stack.
+// The focused registry flow runs first so its global inventory fixture count is deterministic.
+// Four existing authenticated regressions then reuse the same production stack and database.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
@@ -43,7 +44,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "equipment-registry-production",
+      testMatch: "equipment-registry.production.e2e.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "chromium-authenticated-dashboard",
+      testIgnore: "equipment-registry.production.e2e.ts",
+      dependencies: ["equipment-registry-production"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],
