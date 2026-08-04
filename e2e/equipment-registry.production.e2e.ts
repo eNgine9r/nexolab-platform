@@ -362,13 +362,27 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         await expect(page.getByText(identifier, { exact: true }).first()).toBeVisible();
       }
 
-      await expect(page.getByText("Підключено", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Відключено", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Невідомо", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Актуальне", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Наближається термін", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Прострочене", { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("Не відстежується", { exact: true }).first()).toBeVisible();
+      await expect(
+        page.getByText("Підключено", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Відключено", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Невідомо", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Актуальне", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Наближається термін", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Прострочене", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Не відстежується", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
       await expect(page.getByText("Частина chamber catalog недоступна", { exact: true })).toBeVisible();
       await expect(page.getByText("REG-B · Registry Chamber B", { exact: false })).toBeVisible();
       expect(injectedFailureCount).toBeGreaterThan(0);
@@ -388,7 +402,9 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.getByLabel("Статус калібрування").selectOption("expired");
 
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
-      await expect(page.getByText("MET-SENSOR-EXP", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText("MET-SENSOR-EXP", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
       await expect
         .poll(() => {
           const url = new URL(page.url());
@@ -427,7 +443,9 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.getByLabel("Виробник").selectOption("TOMZN");
       await page.getByLabel("Статус").selectOption("disconnected");
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
-      await expect(page.getByText("reg-le01mp:12", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText("reg-le01mp:12", { exact: true }).filter({ visible: true }).first(),
+      ).toBeVisible();
       await page.getByRole("button", { name: "Очистити" }).click();
       await expect(
         page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
