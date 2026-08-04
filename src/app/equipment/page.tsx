@@ -7,6 +7,7 @@ export default function EquipmentPage() {
     <Suspense
       fallback={
         <main
+          role="status"
           aria-live="polite"
           className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400"
         >
