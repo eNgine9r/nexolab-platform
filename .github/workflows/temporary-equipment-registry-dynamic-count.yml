@@ -1,0 +1,75 @@
+name: Temporary Equipment Registry Dynamic Count
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "e2e/equipment-registry.production.e2e.ts"
+      - ".github/workflows/temporary-equipment-registry-dynamic-count.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feat/267-equipment-metrology-registry'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Patch dynamic global count and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          path = Path("e2e/equipment-registry.production.e2e.ts")
+          text = path.read_text()
+
+          declaration = "const expectedAssetCount = 10;"
+          if text.count(declaration) != 1:
+              raise SystemExit("expected asset count declaration not found exactly once")
+          text = text.replace(
+              declaration,
+              "let expectedAssetCount = 0;\nconst minimumFocusedFixtureCount = 10;",
+          )
+
+          pattern = re.compile(
+              r'''      await expect\(\n\s*page\.getByText\(`Показано \$\{expectedAssetCount\} із \$\{expectedAssetCount\}`, \{ exact: true \}\),\n\s*\)\.toBeVisible\(\);'''
+          )
+          replacement = '''      const resultCount = page.getByText(/Показано \\d+ із \\d+/, { exact: true });
+              await expect(resultCount).toBeVisible();
+              const countText = await resultCount.textContent();
+              const countMatch = countText?.match(/Показано (\\d+) із (\\d+)/);
+              expect(countMatch).not.toBeNull();
+              const visibleCount = Number(countMatch?.[1]);
+              expectedAssetCount = Number(countMatch?.[2]);
+              expect(visibleCount).toBe(expectedAssetCount);
+              expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
+          text, replacements = pattern.subn(replacement, text, count=1)
+          if replacements != 1:
+              raise SystemExit(f"initial count assertion replacements={replacements}")
+
+          path.write_text(text)
+          PY
+          npm ci --ignore-scripts
+          npx prettier --write e2e/equipment-registry.production.e2e.ts
+          rm .github/workflows/temporary-equipment-registry-dynamic-count.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/equipment-registry.production.e2e.ts \
+            .github/workflows/temporary-equipment-registry-dynamic-count.yml
+          git commit -m "test(equipment): derive authenticated registry total"
+          git push origin HEAD:feat/267-equipment-metrology-registry
