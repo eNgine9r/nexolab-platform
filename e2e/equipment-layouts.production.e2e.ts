@@ -406,20 +406,20 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Схеми обладнання" })).toBeVisible();
       const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
-    await expect(resultCount).toBeVisible();
-    await expect
-      .poll(
-        async () => {
-          const countText = await resultCount.textContent();
-          const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
-          if (!countMatch) return 0;
-          const visibleCount = Number(countMatch[1]);
-          expectedEquipmentCount = Number(countMatch[2]);
-          return visibleCount === expectedEquipmentCount ? expectedEquipmentCount : 0;
-        },
-        { message: "Wait for the complete shared equipment layouts total" },
-      )
-      .toBeGreaterThanOrEqual(minimumLayoutFixtureCount);
+      await expect(resultCount).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            const countText = await resultCount.textContent();
+            const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+            if (!countMatch) return 0;
+            const visibleCount = Number(countMatch[1]);
+            expectedEquipmentCount = Number(countMatch[2]);
+            return visibleCount === expectedEquipmentCount ? expectedEquipmentCount : 0;
+          },
+          { message: "Wait for the complete shared equipment layouts total" },
+        )
+        .toBeGreaterThanOrEqual(minimumLayoutFixtureCount);
 
       await expect(cardFor(page, "LAY-CURRENT-01")).toContainText("Опублікована · актуальна");
       await expect(cardFor(page, "LAY-CHANGED-02")).toContainText("Є нові зміни");
