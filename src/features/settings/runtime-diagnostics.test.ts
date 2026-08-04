@@ -77,6 +77,20 @@ describe("settings runtime diagnostics", () => {
     expect(diagnostics.websocket.displayValue).toBe("ws://127.0.0.1:18102/api/v1/telemetry/live");
   });
 
+  it("rejects disabled authentication in live mode", () => {
+    const diagnostics = buildSettingsRuntimeDiagnostics({
+      profile: "LOCAL_LAN",
+      dataMode: "live",
+      authProvider: "disabled",
+      apiBaseUrl: "http://127.0.0.1:18102",
+      websocketUrl: "ws://127.0.0.1:18102/api/v1/telemetry/live",
+      browserOrigin: "http://127.0.0.1:13020",
+    });
+
+    expect(diagnostics.status).toBe("unsafe");
+    expect(diagnostics.issues.map((issue) => issue.code)).toContain("LIVE_AUTH_DISABLED");
+  });
+
   it("rejects auth provider values that could contain URL or secret material", () => {
     const diagnostics = buildSettingsRuntimeDiagnostics({
       profile: "LOCAL_LAN",
