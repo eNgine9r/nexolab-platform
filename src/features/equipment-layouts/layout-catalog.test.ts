@@ -112,9 +112,7 @@ describe("equipment layout catalog state", () => {
     ).toBe("published-with-draft");
     expect(deriveLayoutCatalogState(currentDraft, null)).toBe("draft-only");
     expect(deriveLayoutCatalogState(draft("eq-1", { imageId: null }), null)).toBe("no-image");
-    expect(
-      deriveLayoutCatalogState(draft("eq-1", { imageId: null, placements: [] }), null),
-    ).toBe("empty");
+    expect(deriveLayoutCatalogState(draft("eq-1", { imageId: null, placements: [] }), null)).toBe("empty");
   });
 
   it("applies search and all structured filters together", () => {
@@ -201,9 +199,7 @@ describe("equipment layout catalog loader", () => {
   });
 });
 
-function equipmentRepositoryWith(
-  items: RefrigerationEquipment[],
-): RefrigerationEquipmentRepository {
+function equipmentRepositoryWith(items: RefrigerationEquipment[]): RefrigerationEquipmentRepository {
   return {
     list: async () => items,
     get: async (equipmentId) => items.find((item) => item.id === equipmentId) ?? items[0],
