@@ -3,106 +3,82 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-267",
-  "issue": 267,
+  "task": "NEXOLAB-269",
+  "issue": 269,
   "parent_issue": 260,
-  "pull_request": 268,
-  "status": "state_checkpoint_candidate",
-  "timestamp": "2026-08-04T19:28:00+03:00",
-  "baseline_main_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
-  "verified_executable_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
-  "verified_state_parent_sha": "519e702e140ff8223eb3cd59abc59398f9ad9163",
-  "branch": "feat/267-equipment-metrology-registry",
-  "summary": "The Equipment and metrology registry replaces the /equipment placeholder with an authenticated organization-wide read-only workflow composed from existing refrigeration, climate measurement-device and physical-sensor contracts. The executable source, five-flow production browser stack, PostgreSQL fixtures, refrigeration regression and disconnected runtime are GREEN. This checkpoint records the readiness candidate without fabricating unsupported metrology data or introducing a duplicate mutation surface.",
-  "checks_actually_run": [
-    "CI 30927620394 GREEN on executable head ad3aae9d8419d21082aabc8c19565953848671cb",
-    "Authenticated Dashboard Acceptance 30927615108 GREEN with five of five production browser flows on executable head ad3aae9d8419d21082aabc8c19565953848671cb",
-    "Refrigeration Browser Acceptance 30927615177 GREEN on executable head ad3aae9d8419d21082aabc8c19565953848671cb",
-    "Offline Bundle 30927620159 GREEN on executable head ad3aae9d8419d21082aabc8c19565953848671cb",
-    "browser evidence artifact 8899868692 captured",
-    "CI 30928763713 GREEN on state parent 519e702e140ff8223eb3cd59abc59398f9ad9163",
-    "Authenticated Dashboard Acceptance 30928767405 GREEN on state parent 519e702e140ff8223eb3cd59abc59398f9ad9163",
-    "Refrigeration Browser Acceptance 30928767833 GREEN on state parent 519e702e140ff8223eb3cd59abc59398f9ad9163",
-    "Offline Bundle 30928762939 GREEN on state parent 519e702e140ff8223eb3cd59abc59398f9ad9163",
-    "pre-checkpoint PR #268 inline review thread audit returned zero threads",
-    "pre-checkpoint PR #268 submitted review audit returned zero reviews",
-    "pre-checkpoint focused diff audit returned 14 files with no temporary workflow, package, lockfile, backend or migration change"
-  ],
-  "implementation_status": {
-    "started": true,
-    "normalized_asset_model_implemented": true,
-    "aggregate_counters_implemented": true,
-    "bounded_chamber_loader_implemented": true,
-    "cancellation_and_partial_failure_implemented": true,
-    "focused_tests_green": true,
-    "url_filters_implemented": true,
-    "filter_reload_and_clear_verified": true,
-    "authenticated_registry_ui_implemented": true,
-    "read_only_details_implemented": true,
-    "canonical_refrigeration_navigation_verified": true,
-    "unsupported_metrology_boundary_explicit": true,
-    "browser_runtime_evidence": true,
-    "postgresql_evidence": true,
-    "offline_runtime_evidence": true,
-    "hardware_verified": false,
-    "ready_transition_pending_exact_checkpoint_gate": true
-  },
-  "verified_scope": [
-    "refrigeration equipment, temperature controller, energy meter and physical sensor asset classes",
-    "deterministic category, identifier and name ordering",
-    "organization-wide aggregate counters including calibration risk",
-    "combined URL-backed search, asset-class, chamber, manufacturer, lifecycle/connection and calibration filters",
-    "deterministic filter reload and clear navigation",
-    "bounded per-chamber loading with stale-result suppression and partial-failure isolation",
-    "authenticated organization-scoped live runtime without demo fallback",
-    "category-aware read-only details",
-    "explicit absence of calibration dates, next-due dates, certificates, laboratory and uncertainty",
-    "canonical navigation to /refrigeration/[equipmentId]",
-    "287 organization-scoped assets in the browser fixture stack",
-    "active, maintenance and retired refrigeration lifecycle evidence",
-    "connected, disconnected and unknown measurement-device evidence",
-    "current, due, expired and untracked physical-sensor calibration evidence",
-    "four injected chamber failures isolated without collapsing successful registry data",
-    "all observed registry requests authenticated, organization-scoped and GET-only",
-    "zero registry mutation requests observed",
-    "five-flow production browser regression",
-    "disconnected archive load/start and update/rollback persistence preservation",
-    "no dependency, database schema, backend migration, Modbus or hardware change"
-  ],
-  "runtime_and_offline_evidence": {
-    "source_and_production_build_verified": true,
-    "browser_stack_verified": true,
-    "postgresql_fixtures_verified": true,
-    "five_flow_gate_passed": true,
-    "organization_asset_total": 287,
-    "injected_failed_chamber_requests": 4,
-    "mutations_observed": 0,
-    "canonical_detail_path": "/refrigeration/66600000-0000-4000-8000-000000000001",
-    "disconnected_runtime_verified": true,
-    "browser_evidence_artifact": 8899868692,
-    "note": "Production Next.js, authenticated FastAPI and PostgreSQL were verified. The offline bundle loaded and started with blocked egress and pull disabled, and update/rollback preserved persistent data and named volumes."
-  },
-  "hardware_evidence": {
-    "software_verified": true,
-    "hardware_verified": false,
-    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
-  },
-  "residual_risks": [
-    "request volume grows with climate-chamber count because the registry composes existing per-chamber contracts",
-    "already-started repository requests complete under their bounded timeout because repository interfaces do not accept an external AbortSignal",
-    "calibration status is not a complete metrology record and unsupported fields must remain explicitly unavailable",
-    "physical Raspberry Pi and RS-485 acceptance remains separate from browser, container and disconnected-runtime evidence"
-  ],
-  "remaining_actions": [
-    "validate all required workflows on the exact checkpoint commit produced by this file update",
-    "repeat the PR review-thread and submitted-review audit",
-    "verify the final focused diff contains exactly 15 files and no temporary workflow or unrelated scope",
-    "update PR #268 verification summary",
-    "mark PR #268 ready for review without merging it"
-  ],
-  "next_ready_work_package_step": {
+  "status": "ready_for_implementation",
+  "timestamp": "2026-08-04T21:06:00+03:00",
+  "main_sha_after_previous_merge": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
+  "previous_task": {
     "issue": 267,
     "pull_request": 268,
-    "instruction": "Complete the exact checkpoint gate and final audit, then mark PR #268 ready without merging it. After merge, prepare the focused /settings Work Package."
+    "status": "merged",
+    "verified_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
+    "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
+    "final_runs": {
+      "ci": 30929890208,
+      "authenticated_dashboard": 30929890332,
+      "refrigeration_browser": 30929890463,
+      "offline_bundle": 30929890230
+    },
+    "review_audit": {
+      "inline_threads": 0,
+      "submitted_reviews": 0,
+      "focused_files": 15
+    }
+  },
+  "branch": "feat/269-operator-safe-settings",
+  "route": "/settings",
+  "summary": "Issue #269 replaces the /settings placeholder with an authenticated operator-safe configuration and diagnostics workspace composed from existing session and client-safe runtime contracts. The slice exposes sanitized organization, role and deployment context plus versioned browser-local presentation preferences without adding a universal settings API, backend schema, secrets or unsafe system mutations.",
+  "repository_inventory": {
+    "placeholder_route_confirmed": true,
+    "security_session_contract_available": true,
+    "runtime_auth_provider_available": true,
+    "client_runtime_endpoints_available": true,
+    "settings_api_available": false,
+    "universal_settings_table_available": false,
+    "safe_generic_backend_mutation_contract_available": false
+  },
+  "planned_scope": [
+    "authenticated operator identity and organization context",
+    "roles and effective permissions grouped for operator comprehension",
+    "sanitized API, WebSocket and browser-origin diagnostics",
+    "LOCAL_LAN, data-mode and auth-provider visibility",
+    "ready, incomplete and unsafe configuration states",
+    "versioned validated browser-local presentation preferences",
+    "malformed preference recovery and reset-to-default",
+    "canonical navigation to existing operational workflows",
+    "explicit unsupported-configuration boundary",
+    "focused tests and authenticated browser acceptance with zero backend mutations"
+  ],
+  "guardrails": [
+    "no secret, token, password, cookie or opaque credential exposure",
+    "no organization or membership administration",
+    "no node, device, Modbus or hardware write",
+    "no alarm-rule, retention, backup, restore, TLS, DNS, VPN or deployment mutation",
+    "no database migration or universal settings API",
+    "no dependency migration or unrelated refactor",
+    "no production or site cutover"
+  ],
+  "verification_plan": [
+    "focused unit tests for URL sanitization and configuration-state derivation",
+    "focused tests for versioned preference parsing, malformed recovery and reset",
+    "permission-aware component verification",
+    "format, lint, strict TypeScript, relevant Vitest and production build",
+    "authenticated browser proof for organization/session context and sanitized diagnostics",
+    "browser proof for preference persistence and reset",
+    "canonical navigation proof",
+    "zero backend mutation-request proof",
+    "secret-like value audit",
+    "offline dependency review proportional to changed runtime surface"
+  ],
+  "hardware_evidence": {
+    "software_verified_for_previous_task": true,
+    "hardware_verified": false,
+    "note": "Issue #269 is software-only. No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover is permitted."
+  },
+  "next_ready_work_package_step": {
+    "issue": 269,
+    "instruction": "Create the feature branch from updated main, open one focused draft Pull Request and begin the typed settings diagnostics and local-preference vertical slice."
   }
 }
