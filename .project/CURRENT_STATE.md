@@ -1,29 +1,35 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `56b4c2ab307a621ac3e77adb2f4c2eec70ae842f`
-Verified executable source head: `de80cf689fc8829fdf325f8991de9e7d3533ee3e`
-Active Work Package: Issue #263 — Live Data telemetry explorer
-Pull Request: #264 — verified and ready to leave draft after the state-only gate
+Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
+Active Work Package: Issue #265 — Equipment Layouts catalog
+Branch: `feat/265-equipment-layouts-catalog`
+Pull Request: #266 — verified ready for review
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for repository state, real PostgreSQL REST/history, authenticated WebSocket live updates, browser acceptance and disconnected offline evidence.
+Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`
+Verified state-only head: `08fd834f564480a83c2207eba4f356fb520a2f6c`
+Status confidence: high for repository, browser, object-storage, review and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
 ## Product route status
 
-Implemented operator routes:
+Implemented on merged `main`:
 
 - `/` — Overview dashboard;
 - `/nodes` — Nodes;
 - `/sessions` — Test sessions;
-- `/refrigeration` — Refrigeration equipment;
+- `/refrigeration` — Refrigeration equipment and canonical layout editor;
 - `/alerts` — Alerts;
 - `/reports` — Reports;
 - `/energy` — verified LE-01MP Energy Monitoring;
-- `/live` — verified universal telemetry explorer in PR #264.
+- `/live` — verified universal telemetry explorer, merged through PR #264.
 
-Remaining placeholder routes:
+Implemented and verified in PR #266:
 
-- `/equipment-layouts` — next queued product page;
+- `/equipment-layouts` — authenticated cross-asset catalog and read-only published-layout preview.
+
+Remaining placeholder routes on `main`:
+
+- `/equipment-layouts` until PR #266 merges;
 - `/equipment` — equipment and metrology registry;
 - `/settings` — operator-safe Settings;
 - `/cameras` — local Cameras monitoring;
@@ -31,47 +37,68 @@ Remaining placeholder routes:
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #263 outcome
+## Issue #265 completed product scope
 
-PR #264 replaces the `/live` placeholder with the authenticated operator telemetry explorer.
+PR #266 provides:
 
-Delivered behavior:
+- explicit `published-current`, `published-with-draft`, `draft-only`, `no-image`, `empty` and `failed` catalog states;
+- immutable publication-versus-current-draft image and normalized geometry comparison;
+- deterministic equipment ordering by code and then name;
+- combined URL-backed search, laboratory, zone, chamber, equipment-lifecycle and layout-state filters;
+- deterministic clear-filter reload that removes filter query keys and does not retain stale filtered browser history;
+- bounded concurrent per-equipment summary loading with cancellation, stale-result suppression and partial-failure preservation;
+- authenticated organization-scoped equipment and layout HTTP repositories with no silent live-to-demo fallback;
+- responsive cards with lifecycle, draft version, publication revision, placement count, publisher and timestamps;
+- read-only signed-image preview with normalized sensor markers and isolated image failure state;
+- canonical navigation to `/refrigeration/[equipmentId]` for every mutation workflow;
+- no duplicate editor, dependency upgrade, database migration, backend schema change, Modbus write or hardware path.
 
-- real latest-state inventory using stable `node_id + equipment_id + channel_id + metric + unit` identities;
-- URL-backed free-text search and node, equipment, channel, metric, quality and alarm filters;
-- deterministic latest table with units, timestamps, alarm and explicit live, stale, sensor-error, communication-error and unknown states;
-- selection of up to eight channels without duplicates;
-- separate synchronized comparison charts for incompatible units;
-- authenticated WebSocket coverage before REST snapshots;
-- startup event buffering, newest-captured-at reconciliation and duplicate suppression;
-- complete history pagination against one commit-stable ingestion watermark;
-- bounded downsampling after the complete requested window with first/last and outage-boundary preservation;
-- delayed replay and recovery ordering protection;
-- explicit loading, empty, reconnecting, offline, auth, configuration, REST and history retry states;
-- deterministic browser evidence for persisted stale state, search/filtering, selection, unit-separated charts, outage gaps, range changes, history failure recovery and MQTT-to-PostgreSQL-to-WebSocket live update;
-- no demo fallback, dependency migration, telemetry schema migration, Modbus write or hardware action.
+## Exact executable verification
 
-## Exact executable-head verification
+Verified on source head `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`:
 
-Verified on source head `de80cf689fc8829fdf325f8991de9e7d3533ee3e`:
+- CI `30901392247` GREEN;
+- Authenticated Dashboard Acceptance `30901391302` GREEN;
+- Refrigeration Browser Acceptance `30901391433` GREEN;
+- Offline Bundle `30901391342` GREEN;
+- browser evidence artifact `8889283540` captured.
 
-- CI `30880961470` GREEN — standalone contracts, format, lint, strict typecheck, Vitest and production build;
-- Authenticated Dashboard Acceptance `30880961490` GREEN — real Next.js, FastAPI, PostgreSQL, MQTT and authenticated WebSocket operator flow;
-- Refrigeration Browser Acceptance `30880961482` GREEN;
-- Offline Bundle `30880961442` GREEN — archive build, clean-host simulation, blocked egress, `--pull never` startup and update/rollback volume preservation.
+The authenticated browser gate used production Next.js, FastAPI, PostgreSQL and MinIO and proved:
 
-Review audit for PR #264 is clean: no inline review threads and no submitted reviews.
+- real organization-scoped fixtures for published-current, newer unpublished draft, draft-only, no-image/retired and partial-summary-failure states;
+- URL filters survive reload and clear deterministically;
+- one injected summary failure remains local while successful catalog items stay available;
+- every observed equipment/layout API request was authenticated, organization-scoped and read-only;
+- the published image loaded from a signed MinIO URL with HTTP 200;
+- normalized markers rendered at 25%/40% and 75%/65%;
+- canonical navigation reached `/refrigeration/50000000-0000-4000-8000-000000000001`;
+- zero catalog mutations were observed.
 
-The current state update changes only the four `.project` source-of-truth files. Executable source remains the verified `de80cf6…` tree; the final state-only head requires its own exact-head repository gate before PR #264 leaves draft.
+## Final state and review verification
+
+Verified on state-only head `08fd834f564480a83c2207eba4f356fb520a2f6c`:
+
+- CI `30902446556` GREEN;
+- Authenticated Dashboard Acceptance `30902446578` GREEN;
+- Refrigeration Browser Acceptance `30902446647` GREEN;
+- Offline Bundle `30902446601` GREEN;
+- exactly four `.project` files changed after the verified executable source;
+- PR #266 inline review threads: zero;
+- PR #266 submitted reviews: zero;
+- final diff: 15 focused files with no temporary workflow, dependency, backend or migration changes.
+
+The disconnected Offline Bundle proved archive load/start with egress blocked and `--pull never`, followed by update/rollback persistence preservation without deleting named volumes.
+
+Temporary formatter/fix workflows removed themselves and are absent from the final PR diff.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-/live software verified; PostgreSQL REST/history and authenticated MQTT/WebSocket browser flow verified; disconnected offline bundle update/rollback verified; physical hardware unverified
+software verified; authenticated browser/API/PostgreSQL/MinIO verified; disconnected runtime verified; review audit clean; physical Raspberry Pi and RS-485 hardware unverified
 ```
 
-No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used. Hardware investigations #200–#202 and actual Raspberry Pi acceptance #245 remain separate evidence requirements.
+No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
-## Next Ready Work Package
+## Next action
 
-After PR #264 review/merge, create a focused GitHub Issue and feature branch for the queued `/equipment-layouts` catalog. Preserve the page-by-page product priority and do not insert deferred dependency migrations unless they become a concrete blocker.
+Complete the final exact-head repository gate for this factual readiness update, mark PR #266 ready for review without merging it, then wait for the post-ready merge decision. After PR #266 merges, create the next focused Work Package for `/equipment`.

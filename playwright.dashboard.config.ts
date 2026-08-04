@@ -6,12 +6,14 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 const webPort = new URL(webUrl).port || "13020";
 
+// The four authenticated operator flows share one production Next.js, API, database, MQTT, and MinIO stack.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
     "authenticated-dashboard.production.e2e.ts",
     "energy.production.e2e.ts",
     "live.production.e2e.ts",
+    "equipment-layouts.production.e2e.ts",
   ],
   fullyParallel: false,
   workers: 1,

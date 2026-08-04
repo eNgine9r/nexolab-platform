@@ -49,37 +49,75 @@
       "parent_issue": 260,
       "pull_request": 264,
       "title": "Complete the Live Data telemetry explorer",
-      "status": "verified_ready_for_review",
+      "status": "merged",
       "branch": "feat/263-live-telemetry-explorer",
-      "baseline_main_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
-      "verified_executable_head_sha": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
+      "merge_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
       "route": "/live",
+      "verified_final_head_sha": "89e8a347705d1588cd33d8b5e5c4900b5e1c506a",
       "required_runs": {
-        "ci": 30880961470,
-        "authenticated_dashboard": 30880961490,
-        "refrigeration_browser": 30880961482,
-        "offline_bundle": 30880961442
-      },
-      "verified_scope": [
-        "real channel inventory without a frontend allowlist",
-        "URL-backed combined search and filters",
-        "latest table with explicit quality, alarm and stale states",
-        "maximum eight selected channels",
-        "separate synchronized charts for incompatible units",
-        "complete history window before bounded downsampling",
-        "first/last and outage-boundary preservation",
-        "authenticated WebSocket coverage before snapshots",
-        "MQTT known-event persistence barrier and live UI assertion",
-        "no dependency or telemetry schema migration"
-      ],
-      "next_action": "Pass the exact-head repository gate for the four-file state-only checkpoint, then mark PR #264 ready for review."
+        "ci": 30881835623,
+        "authenticated_dashboard": 30881835679,
+        "refrigeration_browser": 30881835601,
+        "offline_bundle": 30881835683
+      }
     },
     {
-      "id": "NEXOLAB-PAGE-LAYOUTS",
+      "id": "NEXOLAB-265",
+      "issue": 265,
+      "parent_issue": 260,
+      "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "next_ready_issue_required",
+      "status": "verified_ready_for_review",
+      "branch": "feat/265-equipment-layouts-catalog",
+      "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
+      "verified_source_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+      "verified_state_head_sha": "08fd834f564480a83c2207eba4f356fb520a2f6c",
       "route": "/equipment-layouts",
-      "next_action": "Create one focused GitHub Issue, acceptance criteria and feature branch after PR #264 merge."
+      "required_runs": {
+        "source_ci": 30901392247,
+        "source_authenticated_dashboard": 30901391302,
+        "source_refrigeration_browser": 30901391433,
+        "source_offline_bundle": 30901391342,
+        "state_ci": 30902446556,
+        "state_authenticated_dashboard": 30902446578,
+        "state_refrigeration_browser": 30902446647,
+        "state_offline_bundle": 30902446601
+      },
+      "browser_evidence_artifact": 8889283540,
+      "review_audit": {
+        "inline_threads": 0,
+        "submitted_reviews": 0
+      },
+      "completed_scope": [
+        "explicit layout catalog domain states",
+        "published-versus-draft image and normalized geometry comparison",
+        "deterministic sorting and combined URL-backed filters",
+        "deterministic clear-filter navigation",
+        "bounded concurrent summary loading",
+        "stale-load cancellation and partial failure preservation",
+        "authenticated live runtime without demo fallback",
+        "catalog loading, empty, configuration and retry states",
+        "read-only signed-image preview with normalized markers",
+        "canonical navigation to /refrigeration/[equipmentId]",
+        "focused unit tests and production browser acceptance",
+        "disconnected runtime and rollback persistence verification"
+      ],
+      "architecture_decisions": [
+        "cross-asset catalog and read-only published preview",
+        "reuse existing equipment and layout repositories",
+        "canonical mutations remain under /refrigeration/[equipmentId]",
+        "bounded concurrent per-equipment summary loading",
+        "partial summary failures do not collapse the catalog",
+        "no silent live-to-demo fallback"
+      ],
+      "guardrails": [
+        "no duplicate layout editor",
+        "no dependency migrations",
+        "no database migration without a verified blocker",
+        "no Modbus or hardware write",
+        "no production or site cutover"
+      ],
+      "next_action": "Complete the final exact-head gate for the factual readiness update, then mark PR #266 ready without merging it."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",

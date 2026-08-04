@@ -2,54 +2,87 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-263",
-  "issue": 263,
+  "task": "NEXOLAB-265",
+  "issue": 265,
   "parent_issue": 260,
-  "pull_request": 264,
+  "pull_request": 266,
   "status": "verified_ready_for_review",
-  "timestamp": "2026-08-04T08:42:37+03:00",
-  "baseline_main_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
-  "verified_executable_head_sha": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
-  "branch": "feat/263-live-telemetry-explorer",
-  "summary": "The /live placeholder is replaced by a real authenticated telemetry explorer with stable inventory identities, combined URL-backed filters, latest-state diagnostics, up to eight selected channels, unit-separated synchronized charts, complete watermark-stable history, bounded downsampling with outage preservation, startup reconciliation and deterministic MQTT-to-PostgreSQL-to-WebSocket browser evidence.",
+  "timestamp": "2026-08-04T13:55:00+03:00",
+  "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
+  "verified_executable_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+  "verified_state_head_sha": "08fd834f564480a83c2207eba4f356fb520a2f6c",
+  "branch": "feat/265-equipment-layouts-catalog",
+  "summary": "The Equipment Layouts catalog replaces the placeholder with an authenticated cross-asset read-only workflow, derives explicit publication/draft states, preserves partial successes under bounded loading, persists and clears URL-backed filters, previews signed immutable layout images with normalized markers, and navigates to the canonical refrigeration editor. Production browser, object-storage, repository, review and disconnected-runtime gates are GREEN.",
   "checks_actually_run": [
-    "CI 30880961470 GREEN",
-    "Authenticated Dashboard Acceptance 30880961490 GREEN",
-    "Refrigeration Browser Acceptance 30880961482 GREEN",
-    "Offline Bundle 30880961442 GREEN",
-    "PR #264 inline review thread audit: zero threads",
-    "PR #264 submitted review audit: zero reviews"
+    "CI 30901392247 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Authenticated Dashboard Acceptance 30901391302 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Refrigeration Browser Acceptance 30901391433 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Offline Bundle 30901391342 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "browser evidence artifact 8889283540 captured",
+    "CI 30902446556 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Authenticated Dashboard Acceptance 30902446578 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Refrigeration Browser Acceptance 30902446647 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Offline Bundle 30902446601 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "PR #266 inline review thread audit returned zero threads",
+    "PR #266 submitted review audit returned zero reviews",
+    "final diff audit returned 15 focused files and no temporary workflow, dependency or backend migration"
   ],
-  "verification_scope": {
-    "executable_source_head": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
-    "state_only_changes": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "state_gate_requirement": "The final PR head changes the four source-of-truth files after the verified executable source. It must pass its own exact-head repository checks before PR #264 is marked ready."
+  "implementation_status": {
+    "started": true,
+    "domain_model_implemented": true,
+    "layout_state_derivation_implemented": true,
+    "bounded_summary_loader_implemented": true,
+    "cancellation_and_partial_failure_implemented": true,
+    "focused_tests_green": true,
+    "url_filters_implemented": true,
+    "clear_filter_navigation_verified": true,
+    "authenticated_catalog_ui_implemented": true,
+    "read_only_preview_implemented": true,
+    "browser_runtime_evidence": true,
+    "offline_runtime_evidence": true,
+    "review_audit_clean": true,
+    "ready_for_review": true
   },
-  "runtime_and_offline_evidence": [
-    "real Next.js, FastAPI, PostgreSQL, MQTT and authenticated WebSocket operator flow verified",
-    "known MQTT event_id committed before the WebSocket latest-table assertion",
-    "complete history pagination and recovery verified against real PostgreSQL",
-    "disconnected archive load/start with blocked egress and --pull never verified",
-    "update and rollback preserved persistent data and named volumes",
-    "no dependency, telemetry schema, database migration or mandatory online runtime dependency introduced"
+  "verified_scope": [
+    "published-current, published-with-draft, draft-only, no-image, empty and failed states",
+    "image and normalized geometry comparison instead of naive version comparison",
+    "deterministic code/name sorting",
+    "combined URL-backed search and structured filters",
+    "URL filter reload and deterministic clear navigation",
+    "default concurrency four with hard maximum eight",
+    "stale orchestration cancellation and stale state suppression",
+    "per-item failure isolation and retry",
+    "authenticated organization-scoped equipment and layout HTTP repositories",
+    "explicit demo/configuration/auth/loading/empty/error states",
+    "signed MinIO image preview with normalized markers",
+    "canonical navigation to /refrigeration/[equipmentId]",
+    "zero catalog mutation requests observed",
+    "disconnected archive load/start and update/rollback persistence preservation",
+    "clean review and focused diff audit",
+    "no dependency, database schema, backend migration or hardware change"
   ],
+  "runtime_and_offline_evidence": {
+    "source_and_production_build_verified": true,
+    "browser_stack_verified": true,
+    "postgresql_fixtures_verified": true,
+    "signed_object_storage_verified": true,
+    "disconnected_runtime_verified": true,
+    "browser_evidence_artifact": 8889283540,
+    "note": "Production Next.js, authenticated FastAPI, PostgreSQL and MinIO were verified. The offline bundle loaded and started with blocked egress and pull disabled, and update/rollback preserved persistent data and named volumes."
+  },
   "hardware_evidence": {
     "software_verified": true,
     "hardware_verified": false,
     "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
   },
   "remaining_actions": [
-    "complete exact-head repository checks for the state-only checkpoint",
-    "update PR #264 verification summary",
-    "mark PR #264 ready for review"
+    "complete the final exact-head gate for this factual readiness update",
+    "update the PR verification summary",
+    "mark PR #266 ready for review without merging it"
   ],
-  "next_ready_work_package": {
-    "route": "/equipment-layouts",
-    "instruction": "After PR #264 merge, create one focused GitHub Issue and feature branch for the Equipment Layouts catalog without inserting deferred dependency migrations."
+  "next_ready_work_package_step": {
+    "issue": 265,
+    "pull_request": 266,
+    "instruction": "Complete the final exact-head gate and mark PR #266 ready without merging it. After merge, prepare the /equipment Work Package."
   }
 }
