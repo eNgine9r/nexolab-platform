@@ -57,7 +57,7 @@ jobs:
               expectedAssetCount = Number(countMatch?.[2]);
               expect(visibleCount).toBe(expectedAssetCount);
               expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
-          text, replacements = pattern.subn(replacement, text, count=1)
+          text, replacements = pattern.subn(lambda _match: replacement, text, count=1)
           if replacements != 1:
               raise SystemExit(f"initial count assertion replacements={replacements}")
 
