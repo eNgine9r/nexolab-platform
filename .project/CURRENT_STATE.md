@@ -4,10 +4,11 @@ Updated: 2026-08-04
 Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
 Active Work Package: Issue #265 — Equipment Layouts catalog
 Branch: `feat/265-equipment-layouts-catalog`
-Pull Request: #266 — final readiness checkpoint
+Pull Request: #266 — verified ready for review
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`
-Status confidence: high for repository, browser, object-storage and disconnected-runtime evidence; physical hardware remains explicitly unverified.
+Verified state-only head: `08fd834f564480a83c2207eba4f356fb520a2f6c`
+Status confidence: high for repository, browser, object-storage, review and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
 ## Product route status
 
@@ -38,13 +39,13 @@ Optional toolchain migrations #252–#257 remain deferred unless they become a s
 
 ## Issue #265 completed product scope
 
-PR #266 now provides:
+PR #266 provides:
 
 - explicit `published-current`, `published-with-draft`, `draft-only`, `no-image`, `empty` and `failed` catalog states;
 - immutable publication-versus-current-draft image and normalized geometry comparison;
 - deterministic equipment ordering by code and then name;
 - combined URL-backed search, laboratory, zone, chamber, equipment-lifecycle and layout-state filters;
-- a deterministic clear-filter reload that removes filter query keys and does not retain stale filtered browser history;
+- deterministic clear-filter reload that removes filter query keys and does not retain stale filtered browser history;
 - bounded concurrent per-equipment summary loading with cancellation, stale-result suppression and partial-failure preservation;
 - authenticated organization-scoped equipment and layout HTTP repositories with no silent live-to-demo fallback;
 - responsive cards with lifecycle, draft version, publication revision, placement count, publisher and timestamps;
@@ -73,18 +74,31 @@ The authenticated browser gate used production Next.js, FastAPI, PostgreSQL and 
 - canonical navigation reached `/refrigeration/50000000-0000-4000-8000-000000000001`;
 - zero catalog mutations were observed.
 
-The disconnected Offline Bundle additionally proved archive load/start with egress blocked and `--pull never`, followed by update/rollback persistence preservation without deleting named volumes.
+## Final state and review verification
+
+Verified on state-only head `08fd834f564480a83c2207eba4f356fb520a2f6c`:
+
+- CI `30902446556` GREEN;
+- Authenticated Dashboard Acceptance `30902446578` GREEN;
+- Refrigeration Browser Acceptance `30902446647` GREEN;
+- Offline Bundle `30902446601` GREEN;
+- exactly four `.project` files changed after the verified executable source;
+- PR #266 inline review threads: zero;
+- PR #266 submitted reviews: zero;
+- final diff: 15 focused files with no temporary workflow, dependency, backend or migration changes.
+
+The disconnected Offline Bundle proved archive load/start with egress blocked and `--pull never`, followed by update/rollback persistence preservation without deleting named volumes.
 
 Temporary formatter/fix workflows removed themselves and are absent from the final PR diff.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-software verified; authenticated browser/API/PostgreSQL/MinIO verified; disconnected runtime verified; physical Raspberry Pi and RS-485 hardware unverified
+software verified; authenticated browser/API/PostgreSQL/MinIO verified; disconnected runtime verified; review audit clean; physical Raspberry Pi and RS-485 hardware unverified
 ```
 
 No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
 ## Next action
 
-Complete the state-only exact-head repository gate, audit PR #266 review threads/reviews and final focused diff, then mark PR #266 ready for review without merging it.
+Complete the final exact-head repository gate for this factual readiness update, mark PR #266 ready for review without merging it, then wait for the post-ready merge decision. After PR #266 merges, create the next focused Work Package for `/equipment`.
