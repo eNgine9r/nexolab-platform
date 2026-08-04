@@ -6,51 +6,72 @@
   "issue": 265,
   "parent_issue": 260,
   "pull_request": 266,
-  "status": "work_package_ready",
-  "timestamp": "2026-08-04T10:19:26+03:00",
+  "status": "implementation_slice_verified",
+  "timestamp": "2026-08-04T10:47:00+03:00",
   "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
+  "verified_executable_head_sha": "f61d6de5231ab9326901c0bc005e572ae1735bf2",
   "branch": "feat/265-equipment-layouts-catalog",
-  "summary": "Issue #265, branch and draft PR #266 are prepared for the Equipment Layouts catalog. The product boundary is a cross-asset read-only catalog and published-layout preview that reuses existing equipment/layout repositories and keeps all mutations in /refrigeration/[equipmentId].",
+  "summary": "The first Equipment Layouts implementation slice replaces the placeholder with an authenticated read-only catalog, derives explicit published/draft lifecycle states, loads summaries with bounded concurrency and partial-failure isolation, preserves URL-backed filters, and previews immutable published image geometry without duplicating the refrigeration editor.",
   "checks_actually_run": [
-    "PR #264 exact head 89e8a347705d1588cd33d8b5e5c4900b5e1c506a verified GREEN across CI 30881835623, Authenticated Dashboard 30881835679, Refrigeration Browser 30881835601 and Offline Bundle 30881835683",
-    "PR #264 review thread audit returned zero threads",
-    "PR #264 squash-merged with expected-head protection as 249a271b4d67dc87c8fa28b81a76027274b07e28",
-    "Issue #265 created with acceptance criteria, scope, permitted directories and verification plan",
-    "branch feat/265-equipment-layouts-catalog created from exact main SHA 249a271b4d67dc87c8fa28b81a76027274b07e28",
-    "draft PR #266 opened against main",
-    "repository inspection confirmed the /equipment-layouts placeholder, authenticated equipment list adapter, versioned layout repository and canonical refrigeration editor boundary"
+    "CI 30892831371 GREEN on executable source head f61d6de5231ab9326901c0bc005e572ae1735bf2",
+    "standalone Raspberry Pi runtime contract validation GREEN",
+    "repository Prettier check GREEN",
+    "ESLint GREEN",
+    "strict TypeScript GREEN",
+    "complete Vitest suite GREEN including focused Equipment Layouts tests",
+    "production Next.js build GREEN",
+    "temporary read-only formatter workflows removed from the branch diff"
   ],
   "implementation_status": {
-    "started": false,
-    "tests_run_for_issue_265": false,
-    "runtime_evidence_for_issue_265": false,
-    "note": "This checkpoint prepares the focused Work Package and control plane. No executable #265 feature code is claimed yet."
+    "started": true,
+    "domain_model_implemented": true,
+    "layout_state_derivation_implemented": true,
+    "bounded_summary_loader_implemented": true,
+    "cancellation_and_partial_failure_implemented": true,
+    "focused_tests_green": true,
+    "url_filters_implemented": true,
+    "authenticated_catalog_ui_implemented": true,
+    "read_only_preview_implemented": true,
+    "browser_runtime_evidence": false,
+    "ready_for_review": false
   },
-  "architecture_decisions": [
-    "catalog and read-only published preview only",
-    "no duplicate upload/edit/save/publish/restore controls",
-    "reuse RefrigerationEquipmentRepository and RefrigerationLayoutRepository",
-    "bounded concurrent per-equipment summary loading",
-    "partial failures remain isolated and retryable",
-    "live mode never silently falls back to demo data",
-    "no dependency or database migration by default"
+  "verified_scope": [
+    "published-current, published-with-draft, draft-only, no-image, empty and failed states",
+    "image and normalized geometry comparison instead of naive version comparison",
+    "deterministic code/name sorting",
+    "combined URL-backed search and structured filters",
+    "default concurrency four with hard maximum eight",
+    "stale orchestration cancellation and stale state suppression",
+    "per-item failure isolation and retry",
+    "authenticated equipment and layout HTTP repositories",
+    "explicit demo/configuration/auth/loading/empty/error states",
+    "read-only signed-image preview with normalized markers",
+    "canonical navigation to /refrigeration/[equipmentId]",
+    "no dependency, database schema, backend migration or hardware change"
   ],
+  "runtime_and_offline_evidence": {
+    "source_and_production_build_verified": true,
+    "browser_stack_verified": false,
+    "offline_contract_changed": false,
+    "note": "This slice changes frontend source only. Focused browser acceptance against production Next.js, FastAPI, PostgreSQL and MinIO remains required before PR readiness."
+  },
   "hardware_evidence": {
-    "software_verified": false,
+    "software_verified": true,
     "hardware_verified": false,
-    "note": "No Issue #265 runtime or hardware acceptance has been performed. No Raspberry Pi, RS-485, Modbus or site action is required for implementation."
+    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
   },
   "remaining_actions": [
-    "implement layout-state derivation and bounded summary loading with focused tests",
-    "replace the /equipment-layouts placeholder with the authenticated catalog",
-    "add read-only published-layout preview and canonical editor navigation",
-    "run proportional frontend and browser verification",
-    "update the four project state files with exact completion evidence",
-    "complete review audit and merge PR #266 only on GREEN"
+    "add focused Equipment Layouts production browser acceptance",
+    "seed published-current, unpublished-draft, draft-only/no-image and partial failure cases",
+    "prove URL filter reload and canonical refrigeration navigation",
+    "prove signed-image preview and isolated broken-image behavior",
+    "run final executable-head gates",
+    "complete final state-only checkpoint and review audit",
+    "mark PR #266 ready only after required acceptance is GREEN"
   ],
   "next_ready_work_package_step": {
     "issue": 265,
     "pull_request": 266,
-    "instruction": "Implement the catalog domain loader and status derivation first, then wire URL-backed filters and the read-only preview without introducing a second editor."
+    "instruction": "Add the focused production browser acceptance and prove the authenticated read-only catalog against FastAPI, PostgreSQL and MinIO before final PR readiness."
   }
 }
