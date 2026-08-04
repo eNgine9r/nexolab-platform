@@ -200,11 +200,14 @@ describe("equipment layout catalog loader", () => {
 });
 
 function equipmentRepositoryWith(items: RefrigerationEquipment[]): RefrigerationEquipmentRepository {
+  const fallback = items[0];
+  if (!fallback) throw new Error("Equipment repository fixture requires at least one item.");
+
   return {
     list: async () => items,
-    get: async (equipmentId) => items.find((item) => item.id === equipmentId) ?? items[0],
-    create: async () => items[0],
-    update: async () => items[0],
+    get: async (equipmentId) => items.find((item) => item.id === equipmentId) ?? fallback,
+    create: async () => fallback,
+    update: async () => fallback,
     remove: async () => undefined,
   };
 }
