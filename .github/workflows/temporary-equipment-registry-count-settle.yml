@@ -1,0 +1,74 @@
+name: Temporary Equipment Registry Count Settle
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/temporary-equipment-registry-count-settle.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feat/267-equipment-metrology-registry'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Wait for settled registry count and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/equipment-registry.production.e2e.ts")
+          text = path.read_text()
+          old = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
+              await expect(resultCount).toBeVisible();
+              const countText = await resultCount.textContent();
+              const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+              expect(countMatch).not.toBeNull();
+              const visibleCount = Number(countMatch?.[1]);
+              expectedAssetCount = Number(countMatch?.[2]);
+              expect(visibleCount).toBe(expectedAssetCount);
+              expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
+          new = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
+              await expect(resultCount).toBeVisible();
+              await expect
+                .poll(
+                  async () => {
+                    const countText = await resultCount.textContent();
+                    const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
+                    if (!countMatch) return 0;
+                    const visibleCount = Number(countMatch[1]);
+                    expectedAssetCount = Number(countMatch[2]);
+                    return visibleCount === expectedAssetCount ? expectedAssetCount : 0;
+                  },
+                  { message: "Wait for the complete organization-wide registry total" },
+                )
+                .toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
+          if text.count(old) != 1:
+              raise SystemExit(f"settled count block matches={text.count(old)}")
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npm ci --ignore-scripts
+          npx prettier --write e2e/equipment-registry.production.e2e.ts
+          rm .github/workflows/temporary-equipment-registry-count-settle.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/equipment-registry.production.e2e.ts \
+            .github/workflows/temporary-equipment-registry-count-settle.yml
+          git commit -m "test(equipment): wait for settled registry total"
+          git push origin HEAD:feat/267-equipment-metrology-registry
