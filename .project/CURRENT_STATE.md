@@ -4,11 +4,10 @@ Updated: 2026-08-04
 Verified main baseline: `249a271b4d67dc87c8fa28b81a76027274b07e28`
 Active Work Package: Issue #265 — Equipment Layouts catalog
 Branch: `feat/265-equipment-layouts-catalog`
-Pull Request: #266 — draft implementation PR
+Pull Request: #266 — final readiness checkpoint
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Verified executable source head: `f61d6de5231ab9326901c0bc005e572ae1735bf2`
-Verified checkpoint head: `dd73c253b8cb5822f2c5b6c8dd7b23a675c7cb95`
-Status confidence: high for the implemented catalog domain, focused tests, authenticated frontend wiring and repository CI; browser/API/MinIO acceptance remains pending.
+Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`
+Status confidence: high for repository, browser, object-storage and disconnected-runtime evidence; physical hardware remains explicitly unverified.
 
 ## Product route status
 
@@ -23,9 +22,9 @@ Implemented on merged `main`:
 - `/energy` — verified LE-01MP Energy Monitoring;
 - `/live` — verified universal telemetry explorer, merged through PR #264.
 
-Active branch implementation:
+Implemented and verified in PR #266:
 
-- `/equipment-layouts` — placeholder replaced in PR #266 by the authenticated catalog and read-only published-layout preview.
+- `/equipment-layouts` — authenticated cross-asset catalog and read-only published-layout preview.
 
 Remaining placeholder routes on `main`:
 
@@ -37,56 +36,55 @@ Remaining placeholder routes on `main`:
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #265 implementation slice
+## Issue #265 completed product scope
 
-The first vertical slice is implemented on source head `f61d6de5231ab9326901c0bc005e572ae1735bf2`.
+PR #266 now provides:
 
-Delivered behavior:
+- explicit `published-current`, `published-with-draft`, `draft-only`, `no-image`, `empty` and `failed` catalog states;
+- immutable publication-versus-current-draft image and normalized geometry comparison;
+- deterministic equipment ordering by code and then name;
+- combined URL-backed search, laboratory, zone, chamber, equipment-lifecycle and layout-state filters;
+- a deterministic clear-filter reload that removes filter query keys and does not retain stale filtered browser history;
+- bounded concurrent per-equipment summary loading with cancellation, stale-result suppression and partial-failure preservation;
+- authenticated organization-scoped equipment and layout HTTP repositories with no silent live-to-demo fallback;
+- responsive cards with lifecycle, draft version, publication revision, placement count, publisher and timestamps;
+- read-only signed-image preview with normalized sensor markers and isolated image failure state;
+- canonical navigation to `/refrigeration/[equipmentId]` for every mutation workflow;
+- no duplicate editor, dependency upgrade, database migration, backend schema change, Modbus write or hardware path.
 
-- explicit catalog states: `published-current`, `published-with-draft`, `draft-only`, `no-image`, `empty` and `failed`;
-- state derivation compares the immutable published image and normalized sensor geometry with the current draft instead of assuming draft and publication version numbers are directly comparable;
-- deterministic equipment sorting by code and then name;
-- combined search plus laboratory, zone, climate chamber, equipment lifecycle and layout-state filters;
-- URL-backed filter parameters with reload/share continuity;
-- bounded per-equipment summary loading with a default concurrency of four and a hard maximum of eight;
-- stale-load cancellation at the catalog orchestration boundary and suppression of stale state commits;
-- per-equipment failure isolation so successful summaries remain visible and failed items remain retryable;
-- authenticated live runtime that reuses the existing equipment and layout HTTP repositories;
-- explicit demo-mode/configuration/auth/error/empty/loading/refresh states with no silent live-to-demo fallback;
-- read-only signed-image preview with normalized sensor markers and local broken-image handling;
-- canonical navigation to `/refrigeration/[equipmentId]` for upload, edit, save, publish, restore and conflict recovery;
-- no duplicate editor, dependency upgrade, database migration, backend schema change or hardware path.
+## Exact executable verification
 
-Focused unit tests cover state derivation, combined filters, bounded concurrency, partial failure preservation and cancellation.
+Verified on source head `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`:
 
-## Exact verification
+- CI `30901392247` GREEN;
+- Authenticated Dashboard Acceptance `30901391302` GREEN;
+- Refrigeration Browser Acceptance `30901391433` GREEN;
+- Offline Bundle `30901391342` GREEN;
+- browser evidence artifact `8889283540` captured.
 
-Verified on executable source head `f61d6de5231ab9326901c0bc005e572ae1735bf2`:
+The authenticated browser gate used production Next.js, FastAPI, PostgreSQL and MinIO and proved:
 
-- CI `30892831371` GREEN;
-- standalone Raspberry Pi runtime contracts GREEN;
-- repository Prettier check GREEN;
-- ESLint GREEN;
-- strict TypeScript GREEN;
-- complete Vitest suite GREEN, including the focused Equipment Layouts tests;
-- production Next.js build GREEN.
+- real organization-scoped fixtures for published-current, newer unpublished draft, draft-only, no-image/retired and partial-summary-failure states;
+- URL filters survive reload and clear deterministically;
+- one injected summary failure remains local while successful catalog items stay available;
+- every observed equipment/layout API request was authenticated, organization-scoped and read-only;
+- the published image loaded from a signed MinIO URL with HTTP 200;
+- normalized markers rendered at 25%/40% and 75%/65%;
+- canonical navigation reached `/refrigeration/50000000-0000-4000-8000-000000000001`;
+- zero catalog mutations were observed.
 
-Checkpoint verification:
+The disconnected Offline Bundle additionally proved archive load/start with egress blocked and `--pull never`, followed by update/rollback persistence preservation without deleting named volumes.
 
-- CI `30893471962` GREEN on the four-file state-only checkpoint;
-- CI `30893835781` GREEN on final checkpoint head `dd73c253b8cb5822f2c5b6c8dd7b23a675c7cb95`;
-- temporary read-only formatter workflows were removed completely and are absent from the final branch diff.
+Temporary formatter/fix workflows removed themselves and are absent from the final PR diff.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-Equipment Layouts domain and frontend source verified; production build verified; browser-to-FastAPI/PostgreSQL/MinIO acceptance pending; physical hardware unverified
+software verified; authenticated browser/API/PostgreSQL/MinIO verified; disconnected runtime verified; physical Raspberry Pi and RS-485 hardware unverified
 ```
-
-The implementation introduces no package, Compose, container, database migration or offline-delivery change. GitHub may run the repository Offline Bundle automatically, but this slice does not rely on that result as its acceptance evidence.
 
 No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
 
 ## Next action
 
-Add the focused Equipment Layouts browser acceptance against production Next.js, authenticated FastAPI, PostgreSQL and MinIO. Prove URL filter reload, published-current versus unpublished-draft states, partial item failure, read-only signed-image preview and canonical navigation. Then run the final executable-head gates, update state-only evidence and keep PR #266 draft until all required acceptance is GREEN.
+Complete the state-only exact-head repository gate, audit PR #266 review threads/reviews and final focused diff, then mark PR #266 ready for review without merging it.
