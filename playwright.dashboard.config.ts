@@ -7,7 +7,7 @@ const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020"
 const webPort = new URL(webUrl).port || "13020";
 
 // The focused registry flow runs first against the seeded organization and waits for its settled global total.
-// Role-based filter controls, visible assets and partial-failure context are checked before four regressions reuse the stack.
+// Shared-stack totals, role-based filters and partial failures are verified before four regressions reuse the stack.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
