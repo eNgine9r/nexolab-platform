@@ -1,16 +1,16 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-04
-Verified main baseline: `47d5124fd96f54800cf7347ff672297a1d421526`
-Verified implementation head: `c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7`
-Active Work Package: Issue #261 — Energy Monitoring verified and ready for protected merge
+Verified main baseline: `56b4c2ab307a621ac3e77adb2f4c2eec70ae842f`
+Verified executable source head: `de80cf689fc8829fdf325f8991de9e7d3533ee3e`
+Active Work Package: Issue #263 — Live Data telemetry explorer
+Pull Request: #264 — verified and ready to leave draft after the state-only gate
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Next Ready Work Package: Issue #263 — Live Data telemetry explorer
-Status confidence: high for repository state, exact-source-head CI, PostgreSQL telemetry integration, browser acceptance and disconnected offline evidence.
+Status confidence: high for repository state, real PostgreSQL REST/history, authenticated WebSocket live updates, browser acceptance and disconnected offline evidence.
 
 ## Product route status
 
-Implemented workflow routes:
+Implemented operator routes:
 
 - `/` — Overview dashboard;
 - `/nodes` — Nodes;
@@ -18,73 +18,60 @@ Implemented workflow routes:
 - `/refrigeration` — Refrigeration equipment;
 - `/alerts` — Alerts;
 - `/reports` — Reports;
-- `/energy` — verified LE-01MP Energy Monitoring implementation in PR #262.
+- `/energy` — verified LE-01MP Energy Monitoring;
+- `/live` — verified universal telemetry explorer in PR #264.
 
 Remaining placeholder routes:
 
-- `/live` — next Work Package #263;
-- `/equipment-layouts` — Equipment layouts;
-- `/lockers` — Smart lockers, blocked pending inventory and read-only protocol scope;
-- `/cameras` — Cameras;
-- `/equipment` — Equipment and metrology registry;
-- `/settings` — Settings.
+- `/equipment-layouts` — next queued product page;
+- `/equipment` — equipment and metrology registry;
+- `/settings` — operator-safe Settings;
+- `/cameras` — local Cameras monitoring;
+- `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #261 outcome
+## Issue #263 outcome
 
-PR #262 replaces `/energy` with an authenticated operator workspace for KK1 LE-01MP meters W1–W4.
+PR #264 replaces the `/live` placeholder with the authenticated operator telemetry explorer.
 
 Delivered behavior:
 
-- authenticated local REST latest/history and WebSocket live telemetry;
-- `telemetry.read` permission gating before network traffic begins;
-- authenticated WebSocket coverage before latest and history snapshots;
-- bounded startup event reconciliation;
-- complete history pagination against a commit-stable ingestion watermark;
-- production `SessionAwareDatabase` insertion barrier and `clock_timestamp()` receipt time;
-- bounded renderable-only downsampling with source-derived outage boundaries;
-- metric-switch ordering state seeded from retained latest/history samples;
-- explicit history error when WebSocket startup reaches a terminal state;
-- stale values retained and labelled instead of being converted to empty data;
-- requested-window scaling, live tails, wall-clock pruning and future-skew rejection;
-- strict metric/unit validation and production node scope;
-- no demo fallback and no unverified cumulative `kWh`.
+- real latest-state inventory using stable `node_id + equipment_id + channel_id + metric + unit` identities;
+- URL-backed free-text search and node, equipment, channel, metric, quality and alarm filters;
+- deterministic latest table with units, timestamps, alarm and explicit live, stale, sensor-error, communication-error and unknown states;
+- selection of up to eight channels without duplicates;
+- separate synchronized comparison charts for incompatible units;
+- authenticated WebSocket coverage before REST snapshots;
+- startup event buffering, newest-captured-at reconciliation and duplicate suppression;
+- complete history pagination against one commit-stable ingestion watermark;
+- bounded downsampling after the complete requested window with first/last and outage-boundary preservation;
+- delayed replay and recovery ordering protection;
+- explicit loading, empty, reconnecting, offline, auth, configuration, REST and history retry states;
+- deterministic browser evidence for persisted stale state, search/filtering, selection, unit-separated charts, outage gaps, range changes, history failure recovery and MQTT-to-PostgreSQL-to-WebSocket live update;
+- no demo fallback, dependency migration, telemetry schema migration, Modbus write or hardware action.
 
-No package, dependency, Compose, container schema migration, Modbus write, production deployment or hardware action is part of this Work Package.
+## Exact executable-head verification
 
-## Exact-source-head verification
+Verified on source head `de80cf689fc8829fdf325f8991de9e7d3533ee3e`:
 
-Verified on source head `c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7`:
+- CI `30880961470` GREEN — standalone contracts, format, lint, strict typecheck, Vitest and production build;
+- Authenticated Dashboard Acceptance `30880961490` GREEN — real Next.js, FastAPI, PostgreSQL, MQTT and authenticated WebSocket operator flow;
+- Refrigeration Browser Acceptance `30880961482` GREEN;
+- Offline Bundle `30880961442` GREEN — archive build, clean-host simulation, blocked egress, `--pull never` startup and update/rollback volume preservation.
 
-- CI `30851054746` GREEN;
-- Telemetry Service `30851054848` GREEN;
-- Authenticated Dashboard Acceptance `30851054739` GREEN;
-- Refrigeration Browser Acceptance `30851054803` GREEN;
-- Security Browser Acceptance `30851054878` GREEN;
-- Test Sessions Browser Acceptance `30851054753` GREEN;
-- Reports Browser Acceptance `30851054966` GREEN;
-- Offline Auth Acceptance `30851054770` GREEN;
-- Offline Bundle `30851054862` GREEN;
-- Capacity Release Gate `30851054836` GREEN;
-- Device Agent Fleet Acceptance `30851054875` GREEN;
-- MQTT TLS Fleet Acceptance `30851054783` GREEN;
-- Broker Control Acceptance `30851054893` GREEN;
-- Container Supply Chain `30851054778` GREEN;
-- Disaster Recovery Domain Completeness `30851054789` GREEN;
-- Disaster Recovery TLS Fleet `30851054810` GREEN;
-- Disaster Recovery Browser `30851054866` GREEN.
+Review audit for PR #264 is clean: no inline review threads and no submitted reviews.
 
-The current commit changes only `.project` source-of-truth files. It requires its own exact-head repository gate before merge; executable source remains the verified `c8dc696…` tree.
+The current state update changes only the four `.project` source-of-truth files. Executable source remains the verified `de80cf6…` tree; the final state-only head requires its own exact-head repository gate before PR #264 leaves draft.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-energy page software verified; PostgreSQL/REST/WebSocket/browser/offline bundle verified; no hardware operation performed; cumulative energy remains hardware-unverified
+/live software verified; PostgreSQL REST/history and authenticated MQTT/WebSocket browser flow verified; disconnected offline bundle update/rollback verified; physical hardware unverified
 ```
 
-Actual Raspberry Pi standalone acceptance for #245, physical recovery evidence for #189 and hardware investigations #200–#202 remain soft-blocked by controlled hardware access. No Modbus or hardware write is authorized.
+No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used. Hardware investigations #200–#202 and actual Raspberry Pi acceptance #245 remain separate evidence requirements.
 
 ## Next Ready Work Package
 
-After protected merge of PR #262, create `feat/263-live-telemetry-explorer` from updated `main` and replace `/live` with the universal authenticated telemetry explorer. Do not insert deferred dependency migrations between product pages.
+After PR #264 review/merge, create a focused GitHub Issue and feature branch for the queued `/equipment-layouts` catalog. Preserve the page-by-page product priority and do not insert deferred dependency migrations unless they become a concrete blocker.
