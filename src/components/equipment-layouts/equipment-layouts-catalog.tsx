@@ -86,8 +86,8 @@ export function EquipmentLayoutsCatalog({
             </div>
             <h1 className="mt-2 text-2xl font-semibold text-white">Схеми обладнання</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-              Організаційний каталог опублікованих схем і чернеток. Редагування залишається в
-              канонічній картці холодильного обладнання.
+              Організаційний каталог опублікованих схем і чернеток. Редагування залишається в канонічній
+              картці холодильного обладнання.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -190,7 +190,11 @@ export function EquipmentLayoutsCatalog({
         <section className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-8 text-center">
           <CircleDashed className="mx-auto h-8 w-8 text-slate-500" />
           <h2 className="mt-3 font-semibold text-white">За фільтрами нічого не знайдено</h2>
-          <button type="button" onClick={clearFilters} className="mt-3 text-sm text-cyan-300 hover:text-cyan-200">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-3 text-sm text-cyan-300 hover:text-cyan-200"
+          >
             Очистити фільтри
           </button>
         </section>
@@ -238,7 +242,12 @@ function LayoutCatalogCard({
           <h2 className="mt-1 truncate text-base font-semibold text-white">{equipment.name}</h2>
           <p className="mt-1 truncate text-xs text-slate-500">{equipment.location}</p>
         </div>
-        <span className={clsx("shrink-0 rounded-full border px-2 py-1 text-[9px] font-semibold", stateMeta.className)}>
+        <span
+          className={clsx(
+            "shrink-0 rounded-full border px-2 py-1 text-[9px] font-semibold",
+            stateMeta.className,
+          )}
+        >
           {stateMeta.label}
         </span>
       </div>
@@ -251,11 +260,18 @@ function LayoutCatalogCard({
       </dl>
 
       {item.kind === "failed" ? (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/15 bg-rose-400/10 p-3 text-xs text-rose-100" role="alert">
+        <div
+          className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/15 bg-rose-400/10 p-3 text-xs text-rose-100"
+          role="alert"
+        >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p>{item.error}</p>
-            <button type="button" onClick={onRetry} className="mt-2 font-semibold text-rose-200 underline underline-offset-4">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-2 font-semibold text-rose-200 underline underline-offset-4"
+            >
               Повторити завантаження
             </button>
           </div>
@@ -284,9 +300,13 @@ function LayoutCatalogCard({
           title="Read-only preview"
           disabled={item.kind !== "ready" || !item.published}
           onClick={onPreview}
-          className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-slate-300 enabled:hover:bg-cyan-400/10 enabled:hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-35 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+          className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-slate-300 focus:ring-2 focus:ring-cyan-300 focus:outline-none enabled:hover:bg-cyan-400/10 enabled:hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-35"
         >
-          {item.kind === "ready" && item.published ? <Eye className="h-4 w-4" /> : <ImageOff className="h-4 w-4" />}
+          {item.kind === "ready" && item.published ? (
+            <Eye className="h-4 w-4" />
+          ) : (
+            <ImageOff className="h-4 w-4" />
+          )}
         </button>
         <Link
           href={`/refrigeration/${encodeURIComponent(equipment.id)}`}
@@ -350,7 +370,10 @@ function CatalogLoading() {
   return (
     <section className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3" aria-label="Завантаження каталогу">
       {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="h-64 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]" />
+        <div
+          key={index}
+          className="h-64 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+        />
       ))}
     </section>
   );
@@ -364,7 +387,11 @@ function CatalogError({ message, onRetry }: { message: string; onRetry: () => vo
         <div>
           <h2 className="font-semibold">Каталог схем недоступний</h2>
           <p className="mt-1 text-sm text-rose-100/80">{message}</p>
-          <button type="button" onClick={onRetry} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-200 px-3 py-2 text-xs font-semibold text-rose-950">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-200 px-3 py-2 text-xs font-semibold text-rose-950"
+          >
             <RefreshCcw className="h-4 w-4" />
             Повторити
           </button>
@@ -393,9 +420,7 @@ function readFilters(searchParams: URLSearchParams | ReadonlyURLSearchParamsLike
     laboratory: searchParams.get("lab") ?? "all",
     zone: searchParams.get("zone") ?? "all",
     chamber: searchParams.get("chamber") ?? "all",
-    lifecycle: lifecycleValues.has(lifecycle)
-      ? (lifecycle as LayoutCatalogFilters["lifecycle"])
-      : "all",
+    lifecycle: lifecycleValues.has(lifecycle) ? (lifecycle as LayoutCatalogFilters["lifecycle"]) : "all",
     layout: layoutValues.has(layout) ? (layout as LayoutCatalogFilters["layout"]) : "all",
   };
 }
@@ -418,11 +443,13 @@ function countActiveFilters(filters: LayoutCatalogFilters): number {
 }
 
 function lifecycleLabel(value: string): string {
-  return {
-    active: "Активне",
-    maintenance: "Обслуговування",
-    retired: "Виведене",
-  }[value] ?? value;
+  return (
+    {
+      active: "Активне",
+      maintenance: "Обслуговування",
+      retired: "Виведене",
+    }[value] ?? value
+  );
 }
 
 function formatDateTime(value: string): string {
