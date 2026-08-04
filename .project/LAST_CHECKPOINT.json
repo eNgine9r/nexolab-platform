@@ -6,23 +6,25 @@
   "issue": 265,
   "parent_issue": 260,
   "pull_request": 266,
-  "status": "implementation_slice_verified",
-  "timestamp": "2026-08-04T10:47:00+03:00",
+  "status": "verified_ready_for_review_pending_state_gate",
+  "timestamp": "2026-08-04T13:47:00+03:00",
   "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
-  "verified_executable_head_sha": "f61d6de5231ab9326901c0bc005e572ae1735bf2",
-  "state_only_head_sha": "62641c2bbcedc9e3a8a7ebfc1c0e8e7b5efffc1f",
+  "verified_executable_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
   "branch": "feat/265-equipment-layouts-catalog",
-  "summary": "The first Equipment Layouts implementation slice replaces the placeholder with an authenticated read-only catalog, derives explicit published/draft lifecycle states, loads summaries with bounded concurrency and partial-failure isolation, preserves URL-backed filters, and previews immutable published image geometry without duplicating the refrigeration editor.",
+  "summary": "The Equipment Layouts catalog replaces the placeholder with an authenticated cross-asset read-only workflow, derives explicit publication/draft states, preserves partial successes under bounded loading, persists and clears URL-backed filters, previews signed immutable layout images with normalized markers, and navigates to the canonical refrigeration editor. Production browser, object-storage, repository and disconnected-runtime gates are GREEN.",
   "checks_actually_run": [
-    "CI 30892831371 GREEN on executable source head f61d6de5231ab9326901c0bc005e572ae1735bf2",
-    "CI 30893471962 GREEN on the four-file state-only checkpoint head 62641c2bbcedc9e3a8a7ebfc1c0e8e7b5efffc1f",
+    "CI 30901392247 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Authenticated Dashboard Acceptance 30901391302 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Refrigeration Browser Acceptance 30901391433 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "Offline Bundle 30901391342 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+    "browser evidence artifact 8889283540 captured",
     "standalone Raspberry Pi runtime contract validation GREEN",
     "repository Prettier check GREEN",
     "ESLint GREEN",
     "strict TypeScript GREEN",
     "complete Vitest suite GREEN including focused Equipment Layouts tests",
     "production Next.js build GREEN",
-    "temporary read-only formatter workflows removed from the branch diff"
+    "temporary formatter and focused-fix workflows absent from the final diff"
   ],
   "implementation_status": {
     "started": true,
@@ -32,9 +34,11 @@
     "cancellation_and_partial_failure_implemented": true,
     "focused_tests_green": true,
     "url_filters_implemented": true,
+    "clear_filter_navigation_verified": true,
     "authenticated_catalog_ui_implemented": true,
     "read_only_preview_implemented": true,
-    "browser_runtime_evidence": false,
+    "browser_runtime_evidence": true,
+    "offline_runtime_evidence": true,
     "ready_for_review": false
   },
   "verified_scope": [
@@ -42,20 +46,26 @@
     "image and normalized geometry comparison instead of naive version comparison",
     "deterministic code/name sorting",
     "combined URL-backed search and structured filters",
+    "URL filter reload and deterministic clear navigation",
     "default concurrency four with hard maximum eight",
     "stale orchestration cancellation and stale state suppression",
     "per-item failure isolation and retry",
-    "authenticated equipment and layout HTTP repositories",
+    "authenticated organization-scoped equipment and layout HTTP repositories",
     "explicit demo/configuration/auth/loading/empty/error states",
-    "read-only signed-image preview with normalized markers",
+    "signed MinIO image preview with normalized markers",
     "canonical navigation to /refrigeration/[equipmentId]",
+    "zero catalog mutation requests observed",
+    "disconnected archive load/start and update/rollback persistence preservation",
     "no dependency, database schema, backend migration or hardware change"
   ],
   "runtime_and_offline_evidence": {
     "source_and_production_build_verified": true,
-    "browser_stack_verified": false,
-    "offline_contract_changed": false,
-    "note": "This slice changes frontend source only. Focused browser acceptance against production Next.js, FastAPI, PostgreSQL and MinIO remains required before PR readiness."
+    "browser_stack_verified": true,
+    "postgresql_fixtures_verified": true,
+    "signed_object_storage_verified": true,
+    "disconnected_runtime_verified": true,
+    "browser_evidence_artifact": 8889283540,
+    "note": "Production Next.js, authenticated FastAPI, PostgreSQL and MinIO were verified. The offline bundle loaded and started with blocked egress and pull disabled, and update/rollback preserved persistent data and named volumes."
   },
   "hardware_evidence": {
     "software_verified": true,
@@ -63,17 +73,15 @@
     "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
   },
   "remaining_actions": [
-    "add focused Equipment Layouts production browser acceptance",
-    "seed published-current, unpublished-draft, draft-only/no-image and partial failure cases",
-    "prove URL filter reload and canonical refrigeration navigation",
-    "prove signed-image preview and isolated broken-image behavior",
-    "run final executable-head gates",
-    "complete final state-only checkpoint and review audit",
-    "mark PR #266 ready only after required acceptance is GREEN"
+    "complete the four-file state-only exact-head repository gate",
+    "audit PR #266 review threads and submitted reviews",
+    "confirm the final focused diff contains no temporary workflow, dependency or backend migration",
+    "update the PR verification summary",
+    "mark PR #266 ready for review without merging it"
   ],
   "next_ready_work_package_step": {
     "issue": 265,
     "pull_request": 266,
-    "instruction": "Add the focused production browser acceptance and prove the authenticated read-only catalog against FastAPI, PostgreSQL and MinIO before final PR readiness."
+    "instruction": "Complete state-only CI and review audit, then mark PR #266 ready without merging it."
   }
 }
