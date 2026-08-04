@@ -1,14 +1,17 @@
-import { Boxes } from "lucide-react";
+import { Suspense } from "react";
 
-import { PlatformPlaceholderScreen } from "@/components/dashboard/platform-placeholder-screen";
+import { EquipmentLayoutsScreen } from "@/components/equipment-layouts/equipment-layouts-screen";
 
 export default function EquipmentLayoutsPage() {
   return (
-    <PlatformPlaceholderScreen
-      title="Схеми обладнання"
-      eyebrow="Digital layouts"
-      description="Каталог цифрових схем обладнання відкривається як внутрішній маршрут платформи, без окремого вікна та втрати бокової панелі."
-      icon={<Boxes className="h-7 w-7" />}
-    />
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-[#06142a] text-sm text-slate-400">
+          Підготовка каталогу схем обладнання…
+        </main>
+      }
+    >
+      <EquipmentLayoutsScreen />
+    </Suspense>
   );
 }
