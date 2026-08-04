@@ -24,7 +24,7 @@
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "remaining_placeholder_routes": ["/equipment", "/settings", "/cameras", "/lockers"]
+      "remaining_placeholder_routes": ["/settings", "/cameras", "/lockers"]
     },
     {
       "id": "NEXOLAB-261",
@@ -65,59 +65,51 @@
       "parent_issue": 260,
       "pull_request": 268,
       "title": "Complete the Equipment and metrology registry",
-      "status": "verified_ready_for_review",
+      "status": "merged",
       "branch": "feat/267-equipment-metrology-registry",
       "baseline_main_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
       "verified_source_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
+      "verified_state_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
+      "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
       "route": "/equipment",
       "required_runs": {
-        "source_ci": 30927620394,
-        "source_authenticated_dashboard": 30927615108,
-        "source_refrigeration_browser": 30927615177,
-        "source_offline_bundle": 30927620159
+        "final_ci": 30929890208,
+        "final_authenticated_dashboard": 30929890332,
+        "final_refrigeration_browser": 30929890463,
+        "final_offline_bundle": 30929890230
       },
       "browser_evidence_artifact": 8899868692,
-      "browser_evidence": {
-        "organization_asset_total": 287,
-        "injected_failed_chamber_requests": 4,
-        "mutations_observed": 0,
-        "canonical_detail_path": "/refrigeration/66600000-0000-4000-8000-000000000001",
-        "five_flow_gate_passed": true
-      },
-      "completed_scope": [
-        "normalized refrigeration, controller, energy-meter and physical-sensor read model",
-        "deterministic sorting and aggregate counters",
-        "combined URL-backed registry filters",
-        "filter reload and deterministic clear navigation",
-        "bounded chamber loading with cancellation and partial-failure preservation",
-        "authenticated organization-scoped live runtime without demo fallback",
-        "category-aware read-only details",
-        "truthful unsupported-metrology boundary",
-        "canonical refrigeration navigation",
-        "focused domain tests and five-flow production browser acceptance",
-        "disconnected runtime and rollback persistence verification"
-      ],
-      "architecture_decisions": [
-        "compose existing refrigeration and climate measurement APIs",
-        "do not introduce a universal asset table or duplicate editor",
-        "canonical refrigeration mutations remain under /refrigeration/[equipmentId]",
-        "do not fabricate calibration dates, certificates, laboratory or uncertainty",
-        "partial chamber failures do not collapse the organization registry",
-        "no silent live-to-demo fallback"
-      ],
-      "guardrails": [
-        "no dependency migrations",
-        "no database migration or backend schema expansion",
-        "no Modbus or hardware write",
-        "no production or site cutover"
-      ],
-      "next_action": "Validate the exact state-only checkpoint, complete review audit and mark PR #268 ready without merging it."
+      "review_audit": {
+        "inline_threads": 0,
+        "submitted_reviews": 0,
+        "focused_files": 15
+      }
     },
     {
-      "id": "NEXOLAB-PAGE-SETTINGS",
-      "title": "Complete operator-safe Settings",
-      "status": "queued",
-      "route": "/settings"
+      "id": "NEXOLAB-269",
+      "issue": 269,
+      "parent_issue": 260,
+      "title": "Complete operator-safe Settings workspace",
+      "status": "ready",
+      "branch": "feat/269-operator-safe-settings",
+      "route": "/settings",
+      "product_outcome": "Authenticated organization/session context, sanitized runtime diagnostics and browser-local presentation preferences without secrets or unsafe system mutations.",
+      "architecture_decisions": [
+        "compose existing security-session and client-safe runtime configuration contracts",
+        "do not add a universal settings API or database table",
+        "sanitize all displayed origins and configuration diagnostics",
+        "allow only versioned browser-local non-critical presentation preferences",
+        "use canonical links instead of duplicate administration surfaces"
+      ],
+      "guardrails": [
+        "no secret or credential exposure",
+        "no organization or membership CRUD",
+        "no node, device or Modbus write",
+        "no retention, backup, restore, TLS, DNS, VPN or deployment mutation",
+        "no dependency migration or unrelated refactor",
+        "no production or site cutover"
+      ],
+      "next_action": "Create the feature branch and one focused draft Pull Request, then implement the typed settings diagnostics and local-preference vertical slice."
     },
     {
       "id": "NEXOLAB-PAGE-CAMERAS",
