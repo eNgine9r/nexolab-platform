@@ -79,7 +79,7 @@ export function EquipmentLayoutsCatalog({
       next.delete(parameter);
     }
     const href = next.size > 0 ? `${pathname}?${next.toString()}` : pathname;
-    window.history.replaceState(window.history.state, "", href);
+    window.location.replace(href);
   };
 
   return (
