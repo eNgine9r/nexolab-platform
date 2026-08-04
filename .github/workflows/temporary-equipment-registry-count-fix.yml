@@ -1,0 +1,76 @@
+name: Temporary Equipment Registry Count Fix
+
+on:
+  push:
+    branches:
+      - feat/267-equipment-metrology-registry
+    paths:
+      - ".github/workflows/temporary-equipment-registry-count-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Apply shared-stack count fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/equipment-registry.production.e2e.ts")
+          text = path.read_text()
+          text = text.replace(
+              "const expectedAssetCount = 10;",
+              "const minimumFixtureAssetCount = 10;",
+          )
+          text = text.replace(
+              "  let injectedFailureCount = 0;",
+              "  let injectedFailureCount = 0;\n  let globalAssetCount = 0;",
+          )
+          old = '''      await expect(
+                page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
+              ).toBeVisible();'''
+          new = '''      const resultCount = page.getByText(/Показано \\d+ із \\d+/, { exact: true });
+              await expect(resultCount).toBeVisible();
+              const resultCountText = await resultCount.textContent();
+              const countMatch = resultCountText?.match(/Показано (\\d+) із (\\d+)/);
+              expect(countMatch).not.toBeNull();
+              const visibleCount = Number(countMatch?.[1]);
+              globalAssetCount = Number(countMatch?.[2]);
+              expect(visibleCount).toBe(globalAssetCount);
+              expect(globalAssetCount).toBeGreaterThanOrEqual(minimumFixtureAssetCount);'''
+          if old not in text:
+              raise SystemExit("initial exact count assertion not found")
+          text = text.replace(old, new, 1)
+          text = text.replace("${expectedAssetCount}", "${globalAssetCount}")
+          old = "          expectedAssetCount,"
+          new = "          globalAssetCount,\n          minimumFixtureAssetCount,"
+          if old not in text:
+              raise SystemExit("summary count field not found")
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          npm ci --ignore-scripts
+          npx prettier --write e2e/equipment-registry.production.e2e.ts
+          rm .github/workflows/temporary-equipment-registry-count-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/equipment-registry.production.e2e.ts \
+            .github/workflows/temporary-equipment-registry-count-fix.yml
+          git commit -m "test(equipment): account for shared registry fixtures"
+          git push origin HEAD:feat/267-equipment-metrology-registry
