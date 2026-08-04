@@ -56,7 +56,7 @@ describe("SettingsWorkspace", () => {
     expect(screen.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
     expect(screen.getByText("NEXOLAB Dashboard Acceptance", { exact: true })).toBeVisible();
     expect(screen.getByText("Спостерігач", { exact: true })).toBeVisible();
-    expect(screen.getByText("Конфігурація готова", { exact: true })).toBeVisible();
+    expect(screen.getAllByText("Конфігурація готова", { exact: true })).toHaveLength(2);
     expect(screen.getByText("http://127.0.0.1:18102", { exact: true })).toBeVisible();
     expect(screen.getByText("ws://127.0.0.1:18102/api/v1/telemetry/live", { exact: true })).toBeVisible();
     expect(screen.queryByText("opaque-subject-that-must-not-render")).not.toBeInTheDocument();
