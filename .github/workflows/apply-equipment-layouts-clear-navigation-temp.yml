@@ -1,0 +1,50 @@
+name: Temporary Equipment Layouts Clear Navigation Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-equipment-layouts-clear-navigation-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply deterministic clear navigation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Apply and commit navigation fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/components/equipment-layouts/equipment-layouts-catalog.tsx")
+          content = path.read_text()
+          old = '    window.history.replaceState(window.history.state, "", href);\n'
+          new = '    window.location.replace(href);\n'
+          if content.count(old) != 1:
+              raise SystemExit("Expected native history clear implementation was not found exactly once")
+          path.write_text(content.replace(old, new))
+          PY
+
+          rm .github/workflows/apply-equipment-layouts-clear-navigation-temp.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/equipment-layouts/equipment-layouts-catalog.tsx \
+            .github/workflows/apply-equipment-layouts-clear-navigation-temp.yml
+          git commit -m "fix(layouts): reload after clearing filters"
+          git push origin "HEAD:${HEAD_BRANCH}"
