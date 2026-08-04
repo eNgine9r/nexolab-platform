@@ -73,11 +73,7 @@ describe("settings preferences", () => {
   });
 
   it("updates one approved local preference without changing the schema", () => {
-    const updated = withSettingsPreference(
-      createDefaultSettingsPreferences(),
-      "telemetryWindow",
-      "1h",
-    );
+    const updated = withSettingsPreference(createDefaultSettingsPreferences(), "telemetryWindow", "1h");
 
     expect(updated).toEqual({
       schemaVersion: 1,

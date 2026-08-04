@@ -48,10 +48,7 @@ type SettingsWorkspaceProps = {
   preferencesLoaded: boolean;
   preferencesRecovered: boolean;
   preferenceRecoveryReason: string | null;
-  onPreferenceChange: (
-    key: EditablePreference,
-    value: SettingsPreferences[EditablePreference],
-  ) => void;
+  onPreferenceChange: (key: EditablePreference, value: SettingsPreferences[EditablePreference]) => void;
   onPreferencesReset: () => void;
 };
 
@@ -190,8 +187,7 @@ export function SettingsWorkspace({
 }: SettingsWorkspaceProps) {
   const status = statusCopy[diagnostics.status];
   const StatusIcon = status.icon;
-  const identityName =
-    session.identity.displayName ?? session.identity.email ?? "Автентифікований оператор";
+  const identityName = session.identity.displayName ?? session.identity.email ?? "Автентифікований оператор";
 
   return (
     <div className="space-y-5 pb-8">
@@ -208,15 +204,13 @@ export function SettingsWorkspace({
                   <p className="text-xs tracking-[0.22em] text-cyan-300 uppercase">
                     Operator-safe configuration
                   </p>
-                  <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
-                    Налаштування
-                  </h1>
+                  <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">Налаштування</h1>
                 </div>
               </div>
               <p className="mt-5 text-sm leading-6 text-slate-400 sm:text-base">
-                Перевірений контекст організації, очищена runtime-діагностика та локальні
-                presentation preferences. Ця сторінка не є прихованим administration backend і не
-                виконує device або deployment writes.
+                Перевірений контекст організації, очищена runtime-діагностика та локальні presentation
+                preferences. Ця сторінка не є прихованим administration backend і не виконує device або
+                deployment writes.
               </p>
             </div>
 
@@ -370,8 +364,8 @@ export function SettingsWorkspace({
               <div>
                 <h3 className="text-sm font-medium text-slate-100">Offline-first boundary</h3>
                 <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Основний runtime працює в LOCAL_LAN без mandatory cloud, CDN, remote fonts або
-                  paid services. Ця сторінка не змінює delivery, database чи hardware configuration.
+                  Основний runtime працює в LOCAL_LAN без mandatory cloud, CDN, remote fonts або paid
+                  services. Ця сторінка не змінює delivery, database чи hardware configuration.
                 </p>
               </div>
             </div>
@@ -456,7 +450,9 @@ export function SettingsWorkspace({
             description="Лише спосіб відображення часу."
             value={preferences.timeDisplay}
             disabled={!preferencesLoaded}
-            onChange={(value) => onPreferenceChange("timeDisplay", value as SettingsPreferences["timeDisplay"])}
+            onChange={(value) =>
+              onPreferenceChange("timeDisplay", value as SettingsPreferences["timeDisplay"])
+            }
             options={[
               { value: "local", label: "Локальний час" },
               { value: "utc", label: "UTC" },
@@ -629,18 +625,12 @@ function Fact({ label, value, mono = false }: { label: string; value: string; mo
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-black/10 p-4">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1 break-words text-sm text-slate-200 ${mono ? "font-mono" : ""}`}>{value}</p>
+      <p className={`mt-1 text-sm break-words text-slate-200 ${mono ? "font-mono" : ""}`}>{value}</p>
     </div>
   );
 }
 
-function EndpointRow({
-  label,
-  endpoint,
-}: {
-  label: string;
-  endpoint: SanitizedSettingsEndpoint;
-}) {
+function EndpointRow({ label, endpoint }: { label: string; endpoint: SanitizedSettingsEndpoint }) {
   const value = endpoint.valid
     ? endpoint.displayValue
     : endpoint.configured
@@ -651,7 +641,7 @@ function EndpointRow({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs text-slate-500">{label}</p>
-          <p className="mt-1 break-all font-mono text-xs leading-5 text-slate-200">{value}</p>
+          <p className="mt-1 font-mono text-xs leading-5 break-all text-slate-200">{value}</p>
         </div>
         <span
           className={`w-fit rounded-full border px-2.5 py-1 text-[11px] ${
@@ -700,7 +690,7 @@ function PreferenceSelect({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-3 w-full rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 w-full rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-slate-200 transition outline-none focus:border-cyan-300/30 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

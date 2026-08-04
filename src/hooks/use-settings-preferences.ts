@@ -27,19 +27,14 @@ export type SettingsPreferencesModel = {
 
 function persist(preferences: SettingsPreferences): void {
   try {
-    window.localStorage.setItem(
-      SETTINGS_PREFERENCES_STORAGE_KEY,
-      serializeSettingsPreferences(preferences),
-    );
+    window.localStorage.setItem(SETTINGS_PREFERENCES_STORAGE_KEY, serializeSettingsPreferences(preferences));
   } catch {
     // Local preferences are optional and never affect laboratory runtime behavior.
   }
 }
 
 export function useSettingsPreferences(): SettingsPreferencesModel {
-  const [preferences, setPreferences] = useState<SettingsPreferences>(
-    createDefaultSettingsPreferences,
-  );
+  const [preferences, setPreferences] = useState<SettingsPreferences>(createDefaultSettingsPreferences);
   const [loaded, setLoaded] = useState(false);
   const [recovered, setRecovered] = useState(false);
   const [recoveryReason, setRecoveryReason] = useState<string | null>(null);
@@ -65,10 +60,7 @@ export function useSettingsPreferences(): SettingsPreferencesModel {
   }, []);
 
   const updatePreference = useCallback(
-    (
-      key: EditableSettingsPreference,
-      value: SettingsPreferences[EditableSettingsPreference],
-    ) => {
+    (key: EditableSettingsPreference, value: SettingsPreferences[EditableSettingsPreference]) => {
       setPreferences((current) => {
         const next = withSettingsPreference(current, key, value);
         persist(next);

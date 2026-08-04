@@ -74,9 +74,7 @@ describe("settings runtime diagnostics", () => {
     expect(diagnostics.authProvider).toBe("custom");
     expect(diagnostics.authProviderLabel).toBe("acceptance");
     expect(diagnostics.api.displayValue).toBe("http://127.0.0.1:18102");
-    expect(diagnostics.websocket.displayValue).toBe(
-      "ws://127.0.0.1:18102/api/v1/telemetry/live",
-    );
+    expect(diagnostics.websocket.displayValue).toBe("ws://127.0.0.1:18102/api/v1/telemetry/live");
   });
 
   it("marks secret material in public runtime URLs as unsafe while keeping output sanitized", () => {

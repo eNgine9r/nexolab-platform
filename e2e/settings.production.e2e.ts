@@ -9,9 +9,7 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const preferenceStorageKey = "nexolab.settings.preferences.v1";
 
 const expectedApi = sanitizePublicUrl(requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL"));
-const expectedWebsocket = sanitizePublicUrl(
-  requiredEnvironment("NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL"),
-);
+const expectedWebsocket = sanitizePublicUrl(requiredEnvironment("NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL"));
 const expectedAuthProvider = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER").toLowerCase();
 
 type ObservedApiRequest = {
@@ -51,9 +49,7 @@ function observeApiRequests(page: Page): ObservedApiRequest[] {
   return requests;
 }
 
-test("renders operator-safe Settings without backend mutations or secret exposure", async ({
-  browser,
-}) => {
+test("renders operator-safe Settings without backend mutations or secret exposure", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
@@ -110,10 +106,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
 
     await test.step("expose only canonical navigation instead of duplicate administration", async () => {
       await expect(page.getByRole("link", { name: /Вузли/ })).toHaveAttribute("href", "/nodes");
-      await expect(page.getByRole("link", { name: /^Обладнання/ })).toHaveAttribute(
-        "href",
-        "/equipment",
-      );
+      await expect(page.getByRole("link", { name: /^Обладнання/ })).toHaveAttribute("href", "/equipment");
       await expect(page.getByRole("link", { name: /Холодильне обладнання/ })).toHaveAttribute(
         "href",
         "/refrigeration",

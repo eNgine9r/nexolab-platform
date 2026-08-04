@@ -16,15 +16,7 @@ import {
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useSettingsPreferences } from "@/hooks/use-settings-preferences";
 
-function SettingsModeGate({
-  title,
-  message,
-  retry,
-}: {
-  title: string;
-  message: string;
-  retry?: () => void;
-}) {
+function SettingsModeGate({ title, message, retry }: { title: string; message: string; retry?: () => void }) {
   return (
     <main className="grid min-h-screen place-items-center bg-[#06142a] p-4 text-slate-100">
       <section className="w-full max-w-lg rounded-3xl border border-cyan-400/15 bg-[#091a31]/95 p-6 shadow-2xl shadow-black/30">

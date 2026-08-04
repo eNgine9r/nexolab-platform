@@ -59,9 +59,7 @@ export function readSettingsRuntimeInput(browserOrigin: string | null): Settings
   };
 }
 
-export function buildSettingsRuntimeDiagnostics(
-  input: SettingsRuntimeInput,
-): SettingsRuntimeDiagnostics {
+export function buildSettingsRuntimeDiagnostics(input: SettingsRuntimeInput): SettingsRuntimeDiagnostics {
   const profile = input.profile?.trim() || "LOCAL_LAN";
   const dataMode = normalizeDataMode(input.dataMode);
   const auth = normalizeAuthProvider(input.authProvider);
