@@ -412,7 +412,7 @@ export function SettingsWorkspace({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <SectionHeading
             id="local-preferences-heading"
-            icon={SlidersHorizontal}
+            icon={Clock3}
             title="Локальні presentation preferences"
             description="Зберігаються лише в цьому браузері та не впливають на acquisition, alarms, retention, auth або devices."
           />
