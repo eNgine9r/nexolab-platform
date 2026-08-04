@@ -34,15 +34,14 @@ jobs:
 
           path = Path("e2e/equipment-registry.production.e2e.ts")
           text = path.read_text()
-          old = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
-              await expect(resultCount).toBeVisible();
-              const countText = await resultCount.textContent();
-              const countMatch = countText?.match(/Показано (\d+) із (\d+)/);
-              expect(countMatch).not.toBeNull();
-              const visibleCount = Number(countMatch?.[1]);
-              expectedAssetCount = Number(countMatch?.[2]);
-              expect(visibleCount).toBe(expectedAssetCount);
-              expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
+          start_marker = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });'''
+          end_marker = '''      expect(expectedAssetCount).toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
+          if text.count(start_marker) != 1:
+              raise SystemExit(f"count block start matches={text.count(start_marker)}")
+          if text.count(end_marker) != 1:
+              raise SystemExit(f"count block end matches={text.count(end_marker)}")
+          start = text.index(start_marker)
+          end = text.index(end_marker, start) + len(end_marker)
           new = r'''      const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
               await expect(resultCount).toBeVisible();
               await expect
@@ -58,9 +57,7 @@ jobs:
                   { message: "Wait for the complete organization-wide registry total" },
                 )
                 .toBeGreaterThanOrEqual(minimumFocusedFixtureCount);'''
-          if text.count(old) != 1:
-              raise SystemExit(f"settled count block matches={text.count(old)}")
-          path.write_text(text.replace(old, new, 1))
+          path.write_text(text[:start] + new + text[end:])
           PY
           npm ci --ignore-scripts
           npx prettier --write e2e/equipment-registry.production.e2e.ts
