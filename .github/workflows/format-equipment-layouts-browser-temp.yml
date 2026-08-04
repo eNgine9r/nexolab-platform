@@ -1,0 +1,41 @@
+name: Temporary Equipment Layouts Browser Formatter
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Format Equipment Layouts browser acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format focused browser file
+        run: npx prettier --write e2e/equipment-layouts.production.e2e.ts
+
+      - name: Upload formatted browser file
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatted-equipment-layouts-browser-${{ github.sha }}
+          path: e2e/equipment-layouts.production.e2e.ts
+          if-no-files-found: error
+          retention-days: 1
