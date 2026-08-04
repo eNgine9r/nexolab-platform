@@ -24,13 +24,7 @@
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "remaining_placeholder_routes": [
-        "/equipment-layouts",
-        "/equipment",
-        "/settings",
-        "/cameras",
-        "/lockers"
-      ]
+      "remaining_placeholder_routes": ["/equipment", "/settings", "/cameras", "/lockers"]
     },
     {
       "id": "NEXOLAB-261",
@@ -52,14 +46,7 @@
       "status": "merged",
       "branch": "feat/263-live-telemetry-explorer",
       "merge_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
-      "route": "/live",
-      "verified_final_head_sha": "89e8a347705d1588cd33d8b5e5c4900b5e1c506a",
-      "required_runs": {
-        "ci": 30881835623,
-        "authenticated_dashboard": 30881835679,
-        "refrigeration_browser": 30881835601,
-        "offline_bundle": 30881835683
-      }
+      "route": "/live"
     },
     {
       "id": "NEXOLAB-265",
@@ -67,63 +54,64 @@
       "parent_issue": 260,
       "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "verified_ready_for_review",
+      "status": "merged",
       "branch": "feat/265-equipment-layouts-catalog",
-      "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
-      "verified_source_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
-      "verified_state_head_sha": "08fd834f564480a83c2207eba4f356fb520a2f6c",
-      "route": "/equipment-layouts",
+      "merge_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
+      "route": "/equipment-layouts"
+    },
+    {
+      "id": "NEXOLAB-267",
+      "issue": 267,
+      "parent_issue": 260,
+      "pull_request": 268,
+      "title": "Complete the Equipment and metrology registry",
+      "status": "verified_ready_for_review",
+      "branch": "feat/267-equipment-metrology-registry",
+      "baseline_main_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
+      "verified_source_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
+      "route": "/equipment",
       "required_runs": {
-        "source_ci": 30901392247,
-        "source_authenticated_dashboard": 30901391302,
-        "source_refrigeration_browser": 30901391433,
-        "source_offline_bundle": 30901391342,
-        "state_ci": 30902446556,
-        "state_authenticated_dashboard": 30902446578,
-        "state_refrigeration_browser": 30902446647,
-        "state_offline_bundle": 30902446601
+        "source_ci": 30927620394,
+        "source_authenticated_dashboard": 30927615108,
+        "source_refrigeration_browser": 30927615177,
+        "source_offline_bundle": 30927620159
       },
-      "browser_evidence_artifact": 8889283540,
-      "review_audit": {
-        "inline_threads": 0,
-        "submitted_reviews": 0
+      "browser_evidence_artifact": 8899868692,
+      "browser_evidence": {
+        "organization_asset_total": 287,
+        "injected_failed_chamber_requests": 4,
+        "mutations_observed": 0,
+        "canonical_detail_path": "/refrigeration/66600000-0000-4000-8000-000000000001",
+        "five_flow_gate_passed": true
       },
       "completed_scope": [
-        "explicit layout catalog domain states",
-        "published-versus-draft image and normalized geometry comparison",
-        "deterministic sorting and combined URL-backed filters",
-        "deterministic clear-filter navigation",
-        "bounded concurrent summary loading",
-        "stale-load cancellation and partial failure preservation",
-        "authenticated live runtime without demo fallback",
-        "catalog loading, empty, configuration and retry states",
-        "read-only signed-image preview with normalized markers",
-        "canonical navigation to /refrigeration/[equipmentId]",
-        "focused unit tests and production browser acceptance",
+        "normalized refrigeration, controller, energy-meter and physical-sensor read model",
+        "deterministic sorting and aggregate counters",
+        "combined URL-backed registry filters",
+        "filter reload and deterministic clear navigation",
+        "bounded chamber loading with cancellation and partial-failure preservation",
+        "authenticated organization-scoped live runtime without demo fallback",
+        "category-aware read-only details",
+        "truthful unsupported-metrology boundary",
+        "canonical refrigeration navigation",
+        "focused domain tests and five-flow production browser acceptance",
         "disconnected runtime and rollback persistence verification"
       ],
       "architecture_decisions": [
-        "cross-asset catalog and read-only published preview",
-        "reuse existing equipment and layout repositories",
-        "canonical mutations remain under /refrigeration/[equipmentId]",
-        "bounded concurrent per-equipment summary loading",
-        "partial summary failures do not collapse the catalog",
+        "compose existing refrigeration and climate measurement APIs",
+        "do not introduce a universal asset table or duplicate editor",
+        "canonical refrigeration mutations remain under /refrigeration/[equipmentId]",
+        "do not fabricate calibration dates, certificates, laboratory or uncertainty",
+        "partial chamber failures do not collapse the organization registry",
         "no silent live-to-demo fallback"
       ],
       "guardrails": [
-        "no duplicate layout editor",
         "no dependency migrations",
-        "no database migration without a verified blocker",
+        "no database migration or backend schema expansion",
         "no Modbus or hardware write",
         "no production or site cutover"
       ],
-      "next_action": "Complete the final exact-head gate for the factual readiness update, then mark PR #266 ready without merging it."
-    },
-    {
-      "id": "NEXOLAB-PAGE-EQUIPMENT",
-      "title": "Complete the Equipment and metrology registry",
-      "status": "queued",
-      "route": "/equipment"
+      "next_action": "Validate the exact state-only checkpoint, complete review audit and mark PR #268 ready without merging it."
     },
     {
       "id": "NEXOLAB-PAGE-SETTINGS",

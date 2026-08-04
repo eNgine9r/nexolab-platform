@@ -2,62 +2,50 @@
 
 Updated: 2026-08-04
 
-## Issue #265 — Equipment Layouts catalog
+## Issue #267 — Equipment and metrology registry
 
-No product, architecture, repository-access, browser, review, offline or hardware blocker prevents PR #266 from being marked ready for review after its final exact-head gate.
+No product, architecture, repository-access, authenticated-browser, regression, offline or hardware blocker prevents PR #268 from being marked ready for review after its exact state-only checkpoint gate and final review audit.
 
-Verified executable source head: `ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2`.
+Verified executable source head: `ad3aae9d8419d21082aabc8c19565953848671cb`.
 
 Executable evidence is GREEN:
 
-- CI `30901392247`;
-- Authenticated Dashboard Acceptance `30901391302`;
-- Refrigeration Browser Acceptance `30901391433`;
-- Offline Bundle `30901391342`;
-- browser evidence artifact `8889283540`.
-
-Verified state-only head: `08fd834f564480a83c2207eba4f356fb520a2f6c`.
-
-State-head evidence is GREEN:
-
-- CI `30902446556`;
-- Authenticated Dashboard Acceptance `30902446578`;
-- Refrigeration Browser Acceptance `30902446647`;
-- Offline Bundle `30902446601`.
-
-Review and scope audit:
-
-- inline review threads: zero;
-- submitted reviews: zero;
-- exactly four `.project` files changed after the executable source head;
-- final Pull Request diff contains 15 focused files;
-- no temporary workflow, package/lockfile, backend, database migration or unrelated page change remains.
+- CI `30927620394`;
+- Authenticated Dashboard Acceptance `30927615108` — five of five production browser flows passed;
+- Refrigeration Browser Acceptance `30927615177`;
+- Offline Bundle `30927620159`;
+- browser evidence artifact `8899868692`.
 
 The focused authenticated browser gate proved:
 
-- real PostgreSQL fixtures for published-current, newer unpublished draft, draft-only, no-image/retired and partial-summary-failure states;
-- authenticated and organization-scoped read-only equipment/layout requests;
-- URL filter reload and deterministic clear-filter navigation;
-- successful signed MinIO image loading;
-- normalized sensor markers at the expected percentages;
-- canonical navigation to `/refrigeration/[equipmentId]`;
-- zero catalog mutation requests;
-- one injected summary failure remained local while successful catalog items stayed visible.
+- 287 organization-scoped registry assets loaded from the authenticated local contracts;
+- active, maintenance and retired refrigeration lifecycle states;
+- connected, disconnected and unknown measurement-device states;
+- current, due, expired and untracked physical-sensor calibration states;
+- combined URL filters persisted through reload and cleared deterministically;
+- four injected chamber-summary failures remained isolated while successful assets stayed usable;
+- read-only details did not fabricate unsupported calibration dates, certificates, laboratory or uncertainty;
+- canonical navigation reached `/refrigeration/66600000-0000-4000-8000-000000000001`;
+- all observed registry API requests were authenticated, organization-scoped and GET-only;
+- zero registry mutations were observed.
+
+The five-flow gate also re-verified dashboard, Energy Monitoring, Live Data and Equipment Layouts. Equipment Layouts derived the shared total of eight equipment records while retaining all five focused layout lifecycle assertions.
 
 The disconnected Offline Bundle proved archive load/start with egress blocked and `--pull never`, plus update/rollback persistence preservation without deleting named volumes.
 
-Temporary formatter and focused-fix workflows removed themselves and are absent from the final Pull Request diff.
+Temporary formatter and focused-fix workflows removed themselves and are absent from the executable Pull Request diff.
 
 ## Residual risks, not blockers
 
-- The existing layout repository methods own their bounded request timeouts and do not accept an external `AbortSignal`. Catalog orchestration stops scheduling new summaries and suppresses stale commits; already-started requests complete under the repository timeout.
-- Signed image URLs can expire independently. The preview keeps this failure local and exposes an explicit image error state.
+- The registry composes existing refrigeration and per-chamber measurement APIs. Request volume grows with chamber count; bounded concurrency limits pressure but does not replace a future dedicated summary endpoint if measured scale requires one.
+- Existing repositories own bounded request timeouts and do not accept an external `AbortSignal`. Registry orchestration suppresses stale commits and stops new scheduling, while already-started requests complete under repository timeout.
+- Calibration status is not a complete metrology record. Dates, next-due dates, certificate metadata/files, calibration laboratory and uncertainty remain unsupported and are shown honestly as unavailable.
 - Physical Raspberry Pi and RS-485 acceptance is not inferred from browser, container or disconnected bundle evidence.
-- Squash merge remains appropriate because PR #266 contains multiple recoverable implementation and verification commits.
+- Squash merge remains appropriate because PR #268 contains multiple recoverable implementation and verification commits.
 
 ## Product-page priority
 
-Issue #265 remains the active Work Package until PR #266 is merged. After merge, the next queued route is `/equipment`.
+Issue #267 remains the active Work Package until PR #268 is merged. After merge, the next queued route is `/settings`, followed by `/cameras`.
 
 Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a security, support or concrete product blocker appears.
 
@@ -92,4 +80,4 @@ Stop before:
 
 ## Next Ready action
 
-Complete the final exact-head gate for this factual readiness update, mark PR #266 ready for review without merging it and retain `/equipment` as the next queued product-page Work Package after merge.
+Validate the exact state-only checkpoint, complete the PR review and focused-diff audit, mark PR #268 ready for review without merging it and retain `/settings` as the next queued product-page Work Package after merge.

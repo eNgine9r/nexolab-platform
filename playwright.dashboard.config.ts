@@ -6,7 +6,8 @@ const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboa
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 const webPort = new URL(webUrl).port || "13020";
 
-// The four authenticated operator flows share one production Next.js, API, database, MQTT, and MinIO stack.
+// The focused registry flow runs first against the seeded organization and waits for its settled global total.
+// Canonical shared-stack totals, role-based filters and partial failures are verified before four regressions reuse the stack.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
@@ -14,6 +15,7 @@ export default defineConfig({
     "energy.production.e2e.ts",
     "live.production.e2e.ts",
     "equipment-layouts.production.e2e.ts",
+    "equipment-registry.production.e2e.ts",
   ],
   fullyParallel: false,
   workers: 1,
@@ -42,7 +44,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "equipment-registry-production",
+      testMatch: "equipment-registry.production.e2e.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "chromium-authenticated-dashboard",
+      testIgnore: "equipment-registry.production.e2e.ts",
+      dependencies: ["equipment-registry-production"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],
