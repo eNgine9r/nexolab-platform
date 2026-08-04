@@ -73,7 +73,14 @@ export function EquipmentLayoutsCatalog({
     router.replace(next.size > 0 ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   };
 
-  const clearFilters = () => router.replace(pathname, { scroll: false });
+  const clearFilters = () => {
+  const next = new URLSearchParams(searchParams.toString());
+  for (const parameter of ["q", "lab", "zone", "chamber", "lifecycle", "layout"]) {
+    next.delete(parameter);
+  }
+  const href = next.size > 0 ? `${pathname}?${next.toString()}` : pathname;
+  window.history.replaceState(window.history.state, "", href);
+};
 
   return (
     <div className="space-y-4">
