@@ -67,18 +67,27 @@
       "parent_issue": 260,
       "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "verified_ready_for_review_pending_state_gate",
+      "status": "verified_ready_for_review",
       "branch": "feat/265-equipment-layouts-catalog",
       "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
       "verified_source_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+      "verified_state_head_sha": "08fd834f564480a83c2207eba4f356fb520a2f6c",
       "route": "/equipment-layouts",
       "required_runs": {
-        "ci": 30901392247,
-        "authenticated_dashboard": 30901391302,
-        "refrigeration_browser": 30901391433,
-        "offline_bundle": 30901391342
+        "source_ci": 30901392247,
+        "source_authenticated_dashboard": 30901391302,
+        "source_refrigeration_browser": 30901391433,
+        "source_offline_bundle": 30901391342,
+        "state_ci": 30902446556,
+        "state_authenticated_dashboard": 30902446578,
+        "state_refrigeration_browser": 30902446647,
+        "state_offline_bundle": 30902446601
       },
       "browser_evidence_artifact": 8889283540,
+      "review_audit": {
+        "inline_threads": 0,
+        "submitted_reviews": 0
+      },
       "completed_scope": [
         "explicit layout catalog domain states",
         "published-versus-draft image and normalized geometry comparison",
@@ -108,7 +117,7 @@
         "no Modbus or hardware write",
         "no production or site cutover"
       ],
-      "next_action": "Complete state-only CI, review audit and final focused diff audit, then mark PR #266 ready without merging it."
+      "next_action": "Complete the final exact-head gate for the factual readiness update, then mark PR #266 ready without merging it."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",
