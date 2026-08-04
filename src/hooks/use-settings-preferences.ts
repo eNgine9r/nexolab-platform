@@ -40,23 +40,27 @@ export function useSettingsPreferences(): SettingsPreferencesModel {
   const [recoveryReason, setRecoveryReason] = useState<string | null>(null);
 
   useEffect(() => {
-    let raw: string | null = null;
-    try {
-      raw = window.localStorage.getItem(SETTINGS_PREFERENCES_STORAGE_KEY);
-    } catch {
-      setPreferences(createDefaultSettingsPreferences());
-      setRecovered(true);
-      setRecoveryReason("Browser storage недоступний; використано безпечні локальні defaults.");
-      setLoaded(true);
-      return;
-    }
+    const timeoutId = window.setTimeout(() => {
+      let raw: string | null = null;
+      try {
+        raw = window.localStorage.getItem(SETTINGS_PREFERENCES_STORAGE_KEY);
+      } catch {
+        setPreferences(createDefaultSettingsPreferences());
+        setRecovered(true);
+        setRecoveryReason("Browser storage недоступний; використано безпечні локальні defaults.");
+        setLoaded(true);
+        return;
+      }
 
-    const parsed = parseSettingsPreferences(raw);
-    setPreferences(parsed.preferences);
-    setRecovered(parsed.recovered);
-    setRecoveryReason(parsed.reason);
-    if (parsed.recovered) persist(parsed.preferences);
-    setLoaded(true);
+      const parsed = parseSettingsPreferences(raw);
+      setPreferences(parsed.preferences);
+      setRecovered(parsed.recovered);
+      setRecoveryReason(parsed.reason);
+      if (parsed.recovered) persist(parsed.preferences);
+      setLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const updatePreference = useCallback(
