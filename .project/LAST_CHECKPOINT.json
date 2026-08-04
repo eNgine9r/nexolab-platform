@@ -10,10 +10,12 @@
   "timestamp": "2026-08-04T10:47:00+03:00",
   "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
   "verified_executable_head_sha": "f61d6de5231ab9326901c0bc005e572ae1735bf2",
+  "state_only_head_sha": "62641c2bbcedc9e3a8a7ebfc1c0e8e7b5efffc1f",
   "branch": "feat/265-equipment-layouts-catalog",
   "summary": "The first Equipment Layouts implementation slice replaces the placeholder with an authenticated read-only catalog, derives explicit published/draft lifecycle states, loads summaries with bounded concurrency and partial-failure isolation, preserves URL-backed filters, and previews immutable published image geometry without duplicating the refrigeration editor.",
   "checks_actually_run": [
     "CI 30892831371 GREEN on executable source head f61d6de5231ab9326901c0bc005e572ae1735bf2",
+    "CI 30893471962 GREEN on the four-file state-only checkpoint head 62641c2bbcedc9e3a8a7ebfc1c0e8e7b5efffc1f",
     "standalone Raspberry Pi runtime contract validation GREEN",
     "repository Prettier check GREEN",
     "ESLint GREEN",
