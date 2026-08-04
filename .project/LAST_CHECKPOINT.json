@@ -6,25 +6,26 @@
   "issue": 265,
   "parent_issue": 260,
   "pull_request": 266,
-  "status": "verified_ready_for_review_pending_state_gate",
-  "timestamp": "2026-08-04T13:47:00+03:00",
+  "status": "verified_ready_for_review",
+  "timestamp": "2026-08-04T13:55:00+03:00",
   "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
   "verified_executable_head_sha": "ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
+  "verified_state_head_sha": "08fd834f564480a83c2207eba4f356fb520a2f6c",
   "branch": "feat/265-equipment-layouts-catalog",
-  "summary": "The Equipment Layouts catalog replaces the placeholder with an authenticated cross-asset read-only workflow, derives explicit publication/draft states, preserves partial successes under bounded loading, persists and clears URL-backed filters, previews signed immutable layout images with normalized markers, and navigates to the canonical refrigeration editor. Production browser, object-storage, repository and disconnected-runtime gates are GREEN.",
+  "summary": "The Equipment Layouts catalog replaces the placeholder with an authenticated cross-asset read-only workflow, derives explicit publication/draft states, preserves partial successes under bounded loading, persists and clears URL-backed filters, previews signed immutable layout images with normalized markers, and navigates to the canonical refrigeration editor. Production browser, object-storage, repository, review and disconnected-runtime gates are GREEN.",
   "checks_actually_run": [
     "CI 30901392247 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
     "Authenticated Dashboard Acceptance 30901391302 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
     "Refrigeration Browser Acceptance 30901391433 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
     "Offline Bundle 30901391342 GREEN on executable head ac0e02f9911e3b299a21931315d6ff5a8d3cf0a2",
     "browser evidence artifact 8889283540 captured",
-    "standalone Raspberry Pi runtime contract validation GREEN",
-    "repository Prettier check GREEN",
-    "ESLint GREEN",
-    "strict TypeScript GREEN",
-    "complete Vitest suite GREEN including focused Equipment Layouts tests",
-    "production Next.js build GREEN",
-    "temporary formatter and focused-fix workflows absent from the final diff"
+    "CI 30902446556 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Authenticated Dashboard Acceptance 30902446578 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Refrigeration Browser Acceptance 30902446647 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "Offline Bundle 30902446601 GREEN on state-only head 08fd834f564480a83c2207eba4f356fb520a2f6c",
+    "PR #266 inline review thread audit returned zero threads",
+    "PR #266 submitted review audit returned zero reviews",
+    "final diff audit returned 15 focused files and no temporary workflow, dependency or backend migration"
   ],
   "implementation_status": {
     "started": true,
@@ -39,7 +40,8 @@
     "read_only_preview_implemented": true,
     "browser_runtime_evidence": true,
     "offline_runtime_evidence": true,
-    "ready_for_review": false
+    "review_audit_clean": true,
+    "ready_for_review": true
   },
   "verified_scope": [
     "published-current, published-with-draft, draft-only, no-image, empty and failed states",
@@ -56,6 +58,7 @@
     "canonical navigation to /refrigeration/[equipmentId]",
     "zero catalog mutation requests observed",
     "disconnected archive load/start and update/rollback persistence preservation",
+    "clean review and focused diff audit",
     "no dependency, database schema, backend migration or hardware change"
   ],
   "runtime_and_offline_evidence": {
@@ -73,15 +76,13 @@
     "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
   },
   "remaining_actions": [
-    "complete the four-file state-only exact-head repository gate",
-    "audit PR #266 review threads and submitted reviews",
-    "confirm the final focused diff contains no temporary workflow, dependency or backend migration",
+    "complete the final exact-head gate for this factual readiness update",
     "update the PR verification summary",
     "mark PR #266 ready for review without merging it"
   ],
   "next_ready_work_package_step": {
     "issue": 265,
     "pull_request": 266,
-    "instruction": "Complete state-only CI and review audit, then mark PR #266 ready without merging it."
+    "instruction": "Complete the final exact-head gate and mark PR #266 ready without merging it. After merge, prepare the /equipment Work Package."
   }
 }
