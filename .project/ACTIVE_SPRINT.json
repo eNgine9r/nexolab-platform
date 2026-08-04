@@ -25,12 +25,11 @@
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
       "remaining_placeholder_routes": [
-        "/live",
         "/equipment-layouts",
-        "/lockers",
-        "/cameras",
         "/equipment",
-        "/settings"
+        "/settings",
+        "/cameras",
+        "/lockers"
       ]
     },
     {
@@ -39,55 +38,48 @@
       "parent_issue": 260,
       "pull_request": 262,
       "title": "Complete the Energy Monitoring operator page",
-      "status": "verified_ready_for_merge",
+      "status": "merged",
       "branch": "feat/261-energy-monitoring-page",
-      "baseline_main_sha": "47d5124fd96f54800cf7347ff672297a1d421526",
-      "verified_implementation_head_sha": "c8dc696f2b344a6c412e4cbc2a4fddd24a6fccd7",
-      "route": "/energy",
-      "required_runs": {
-        "ci": 30851054746,
-        "telemetry_service": 30851054848,
-        "authenticated_dashboard": 30851054739,
-        "refrigeration_browser": 30851054803,
-        "security_browser": 30851054878,
-        "test_sessions_browser": 30851054753,
-        "reports_browser": 30851054966,
-        "offline_auth": 30851054770,
-        "offline_bundle": 30851054862,
-        "capacity_release": 30851054836,
-        "device_agent_fleet": 30851054875,
-        "mqtt_tls_fleet": 30851054783,
-        "broker_control": 30851054893,
-        "container_supply_chain": 30851054778,
-        "disaster_recovery_domain": 30851054789,
-        "disaster_recovery_tls": 30851054810,
-        "disaster_recovery_browser": 30851054866
-      },
-      "next_action": "Run exact-head checks for the state-only changes, complete review hygiene and merge PR #262 with expected-head protection."
+      "merge_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
+      "route": "/energy"
     },
     {
       "id": "NEXOLAB-263",
       "issue": 263,
       "parent_issue": 260,
+      "pull_request": 264,
       "title": "Complete the Live Data telemetry explorer",
-      "status": "ready_after_262_merge",
+      "status": "verified_ready_for_review",
       "branch": "feat/263-live-telemetry-explorer",
+      "baseline_main_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
+      "verified_executable_head_sha": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
       "route": "/live",
-      "depends_on": [261],
-      "guardrails": [
+      "required_runs": {
+        "ci": 30880961470,
+        "authenticated_dashboard": 30880961490,
+        "refrigeration_browser": 30880961482,
+        "offline_bundle": 30880961442
+      },
+      "verified_scope": [
         "real channel inventory without a frontend allowlist",
+        "URL-backed combined search and filters",
+        "latest table with explicit quality, alarm and stale states",
         "maximum eight selected channels",
-        "separate charts for incompatible units",
+        "separate synchronized charts for incompatible units",
         "complete history window before bounded downsampling",
+        "first/last and outage-boundary preservation",
         "authenticated WebSocket coverage before snapshots",
-        "no dependency migrations between Issues 261 and 263"
-      ]
+        "MQTT known-event persistence barrier and live UI assertion",
+        "no dependency or telemetry schema migration"
+      ],
+      "next_action": "Pass the exact-head repository gate for the four-file state-only checkpoint, then mark PR #264 ready for review."
     },
     {
       "id": "NEXOLAB-PAGE-LAYOUTS",
       "title": "Complete the Equipment Layouts catalog",
-      "status": "queued",
-      "route": "/equipment-layouts"
+      "status": "next_ready_issue_required",
+      "route": "/equipment-layouts",
+      "next_action": "Create one focused GitHub Issue, acceptance criteria and feature branch after PR #264 merge."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",
@@ -112,7 +104,9 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory and read-only protocol scope"]
+      "depends_on": [
+        "concrete locker inventory and read-only protocol scope"
+      ]
     },
     {
       "id": "NEXOLAB-204",
