@@ -8,7 +8,12 @@ import type {
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 
 export type LayoutCatalogState =
-  "published-current" | "published-with-draft" | "draft-only" | "no-image" | "empty" | "failed";
+  | "published-current"
+  | "published-with-draft"
+  | "draft-only"
+  | "no-image"
+  | "empty"
+  | "failed";
 
 export type LayoutCatalogFilters = {
   search: string;
@@ -75,7 +80,10 @@ export function deriveLayoutCatalogState(
   return "draft-only";
 }
 
-export function layoutsMatch(draft: RefrigerationLayoutDraft, published: PublishedLayoutRevision): boolean {
+export function layoutsMatch(
+  draft: RefrigerationLayoutDraft,
+  published: PublishedLayoutRevision,
+): boolean {
   if (draft.imageId !== published.imageId) return false;
   if (draft.placements.length !== published.placements.length) return false;
 
@@ -174,13 +182,12 @@ export async function loadLayoutCatalog({
       ]);
       throwIfAborted(signal);
 
-      if (!draftResult.ok || !publishedResult.ok) {
-        items[index] = {
-          kind: "failed",
-          equipment: current,
-          layoutState: "failed",
-          error: layoutRepositoryErrorMessage(!draftResult.ok ? draftResult.error : publishedResult.error),
-        };
+      if (!draftResult.ok) {
+        items[index] = failedCatalogItem(current, draftResult.error);
+        continue;
+      }
+      if (!publishedResult.ok) {
+        items[index] = failedCatalogItem(current, publishedResult.error);
         continue;
       }
 
@@ -214,6 +221,18 @@ export function layoutRepositoryErrorMessage(error: LayoutRepositoryError): stri
     case "LAYOUT_VALIDATION_FAILED":
       return error.issues[0]?.message ?? "Сервер схем повернув помилку перевірки.";
   }
+}
+
+function failedCatalogItem(
+  equipment: RefrigerationEquipment,
+  error: LayoutRepositoryError,
+): LayoutCatalogFailedItem {
+  return {
+    kind: "failed",
+    equipment,
+    layoutState: "failed",
+    error: layoutRepositoryErrorMessage(error),
+  };
 }
 
 function normalizeConcurrency(value: number): number {
