@@ -1,0 +1,45 @@
+name: Temporary Equipment Registry Status Combobox
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/temporary-equipment-registry-status-combobox.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'feat/267-equipment-metrology-registry'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/267-equipment-metrology-registry
+          fetch-depth: 0
+      - name: Use role-based lifecycle status combobox and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/equipment-registry.production.e2e.ts")
+          text = path.read_text()
+          old = 'page.getByLabel("Статус", { exact: true })'
+          new = 'page.getByRole("combobox", { name: "Статус", exact: true })'
+          if text.count(old) != 3:
+              raise SystemExit(f"exact status label matches={text.count(old)}")
+          path.write_text(text.replace(old, new))
+          PY
+          rm .github/workflows/temporary-equipment-registry-status-combobox.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            e2e/equipment-registry.production.e2e.ts \
+            .github/workflows/temporary-equipment-registry-status-combobox.yml
+          git commit -m "test(equipment): target lifecycle status combobox"
+          git push origin HEAD:feat/267-equipment-metrology-registry
