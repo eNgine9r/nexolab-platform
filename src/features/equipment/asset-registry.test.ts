@@ -208,7 +208,7 @@ describe("equipment asset registry", () => {
   });
 
   it("suppresses stale results after orchestration cancellation", async () => {
-    let resolveCatalog: ((value: ClimateChamberEquipment) => void) | null = null;
+    let resolveCatalog!: (value: ClimateChamberEquipment) => void;
     const pendingCatalog = new Promise<ClimateChamberEquipment>((resolve) => {
       resolveCatalog = resolve;
     });
@@ -226,7 +226,7 @@ describe("equipment asset registry", () => {
 
     await Promise.resolve();
     controllerAbort.abort();
-    resolveCatalog?.(emptyCatalog(chamberTwo));
+    resolveCatalog(emptyCatalog(chamberTwo));
 
     await expect(loading).rejects.toSatisfy(isEquipmentRegistryAbort);
   });

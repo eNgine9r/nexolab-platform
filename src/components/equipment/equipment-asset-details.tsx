@@ -121,23 +121,23 @@ function detailsFor(asset: EquipmentRegistryAsset): Array<{ label: string; value
     ];
   }
 
-  if (asset.category === "temperature-controller" || asset.category === "energy-meter") {
+  if (asset.category === "physical-sensor") {
     const item = asset.source;
     return [
       ...common,
-      { label: "Business key", value: item.businessKey },
-      { label: "Виробник", value: item.manufacturer },
-      { label: "Модель", value: item.model },
-      { label: "Modbus unit id", value: String(item.unitId) },
-      { label: "Позначення", value: item.designation ?? "Не задано" },
-      { label: "Підключення", value: statusLabel(item.connectionStatus) },
+      { label: "Inventory number", value: item.inventoryNumber },
+      { label: "Серійний номер", value: item.serialNumber ?? "Не задано" },
+      { label: "Позиція сенсора", value: item.sensorPosition },
+      { label: "Калібрування", value: calibrationLabel(item.calibrationStatus) },
       { label: "Catalog status", value: statusLabel(item.status) },
+      { label: "Канал", value: asset.channel.displayName },
+      { label: "Channel id", value: asset.channel.channelId },
+      { label: "Source channel", value: asset.channel.sourceChannelId },
+      { label: "Параметр", value: `${asset.channel.metricType} · ${asset.channel.unit}` },
+      { label: "Контролер", value: asset.controller?.displayName ?? "Не визначено" },
       {
-        label: "Вимірювані параметри",
-        value:
-          item.measuredParameters.length > 0
-            ? item.measuredParameters.map((parameter) => `${parameter.metric} · ${parameter.unit}`).join(", ")
-            : "Не задано",
+        label: "Підключення контролера",
+        value: statusLabel(asset.controller?.connectionStatus ?? "unknown"),
       },
     ];
   }
@@ -145,17 +145,20 @@ function detailsFor(asset: EquipmentRegistryAsset): Array<{ label: string; value
   const item = asset.source;
   return [
     ...common,
-    { label: "Inventory number", value: item.inventoryNumber },
-    { label: "Серійний номер", value: item.serialNumber ?? "Не задано" },
-    { label: "Позиція сенсора", value: item.sensorPosition },
-    { label: "Калібрування", value: calibrationLabel(item.calibrationStatus) },
+    { label: "Business key", value: item.businessKey },
+    { label: "Виробник", value: item.manufacturer },
+    { label: "Модель", value: item.model },
+    { label: "Modbus unit id", value: String(item.unitId) },
+    { label: "Позначення", value: item.designation ?? "Не задано" },
+    { label: "Підключення", value: statusLabel(item.connectionStatus) },
     { label: "Catalog status", value: statusLabel(item.status) },
-    { label: "Канал", value: asset.channel.displayName },
-    { label: "Channel id", value: asset.channel.channelId },
-    { label: "Source channel", value: asset.channel.sourceChannelId },
-    { label: "Параметр", value: `${asset.channel.metricType} · ${asset.channel.unit}` },
-    { label: "Контролер", value: asset.controller?.displayName ?? "Не визначено" },
-    { label: "Підключення контролера", value: statusLabel(asset.controller?.connectionStatus ?? "unknown") },
+    {
+      label: "Вимірювані параметри",
+      value:
+        item.measuredParameters.length > 0
+          ? item.measuredParameters.map((parameter) => `${parameter.metric} · ${parameter.unit}`).join(", ")
+          : "Не задано",
+    },
   ];
 }
 

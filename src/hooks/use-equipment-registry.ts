@@ -29,7 +29,10 @@ export function useEquipmentRegistry({
   enabled: boolean;
   organizationId: string | null;
 }): UseEquipmentRegistryResult {
-  const runtime = useMemo(() => createEquipmentRegistryRuntime({ organizationId }), [organizationId]);
+  const runtime = useMemo(
+    () => createEquipmentRegistryRuntime({ organizationId: organizationId ?? undefined }),
+    [organizationId],
+  );
   const equipmentRepository = runtime.equipmentRepository;
   const climateCatalogRepository = runtime.climateCatalogRepository;
   const [assets, setAssets] = useState<EquipmentRegistryAsset[]>([]);
