@@ -46,6 +46,19 @@ describe("settings runtime diagnostics", () => {
     );
   });
 
+  it("keeps demo mode explicitly incomplete instead of treating it as live fallback", () => {
+    const diagnostics = buildSettingsRuntimeDiagnostics({
+      profile: "LOCAL_LAN",
+      dataMode: "demo",
+      authProvider: "local",
+      browserOrigin: "http://127.0.0.1:3000",
+    });
+
+    expect(diagnostics.status).toBe("incomplete");
+    expect(diagnostics.issues.map((issue) => issue.code)).toContain("DEMO_MODE");
+    expect(diagnostics.issues.map((issue) => issue.code)).not.toContain("MISSING_API_URL");
+  });
+
   it("detects HTTPS dashboard mixed content", () => {
     const diagnostics = buildSettingsRuntimeDiagnostics({
       profile: "LOCAL_LAN",
