@@ -48,7 +48,7 @@ export function useEquipmentLayoutsCatalog({
     }
 
     const controller = new AbortController();
-    setState((current) => (current === "ready" || items.length > 0 ? "refreshing" : "loading"));
+    setState((current) => (current === "ready" ? "refreshing" : "loading"));
     setError(null);
 
     void loadLayoutCatalog({
@@ -69,7 +69,7 @@ export function useEquipmentLayoutsCatalog({
       });
 
     return () => controller.abort();
-  }, [enabled, epoch, runtime, items.length]);
+  }, [enabled, epoch, runtime]);
 
   return {
     mode: runtime.mode,
