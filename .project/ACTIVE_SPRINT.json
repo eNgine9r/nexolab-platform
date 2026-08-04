@@ -49,37 +49,44 @@
       "parent_issue": 260,
       "pull_request": 264,
       "title": "Complete the Live Data telemetry explorer",
-      "status": "verified_ready_for_review",
+      "status": "merged",
       "branch": "feat/263-live-telemetry-explorer",
-      "baseline_main_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
-      "verified_executable_head_sha": "de80cf689fc8829fdf325f8991de9e7d3533ee3e",
+      "merge_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
       "route": "/live",
+      "verified_final_head_sha": "89e8a347705d1588cd33d8b5e5c4900b5e1c506a",
       "required_runs": {
-        "ci": 30880961470,
-        "authenticated_dashboard": 30880961490,
-        "refrigeration_browser": 30880961482,
-        "offline_bundle": 30880961442
-      },
-      "verified_scope": [
-        "real channel inventory without a frontend allowlist",
-        "URL-backed combined search and filters",
-        "latest table with explicit quality, alarm and stale states",
-        "maximum eight selected channels",
-        "separate synchronized charts for incompatible units",
-        "complete history window before bounded downsampling",
-        "first/last and outage-boundary preservation",
-        "authenticated WebSocket coverage before snapshots",
-        "MQTT known-event persistence barrier and live UI assertion",
-        "no dependency or telemetry schema migration"
-      ],
-      "next_action": "Pass the exact-head repository gate for the four-file state-only checkpoint, then mark PR #264 ready for review."
+        "ci": 30881835623,
+        "authenticated_dashboard": 30881835679,
+        "refrigeration_browser": 30881835601,
+        "offline_bundle": 30881835683
+      }
     },
     {
-      "id": "NEXOLAB-PAGE-LAYOUTS",
+      "id": "NEXOLAB-265",
+      "issue": 265,
+      "parent_issue": 260,
+      "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
-      "status": "next_ready_issue_required",
+      "status": "in_progress",
+      "branch": "feat/265-equipment-layouts-catalog",
+      "baseline_main_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
       "route": "/equipment-layouts",
-      "next_action": "Create one focused GitHub Issue, acceptance criteria and feature branch after PR #264 merge."
+      "architecture_decisions": [
+        "cross-asset catalog and read-only published preview",
+        "reuse existing equipment and layout repositories",
+        "canonical mutations remain under /refrigeration/[equipmentId]",
+        "bounded concurrent per-equipment summary loading",
+        "partial summary failures do not collapse the catalog",
+        "no silent live-to-demo fallback"
+      ],
+      "guardrails": [
+        "no duplicate layout editor",
+        "no dependency migrations",
+        "no database migration without a verified blocker",
+        "no Modbus or hardware write",
+        "no production or site cutover"
+      ],
+      "next_action": "Implement the catalog domain loader, URL-backed filters, lifecycle-state derivation and read-only preview with focused tests."
     },
     {
       "id": "NEXOLAB-PAGE-EQUIPMENT",
@@ -104,7 +111,9 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory and read-only protocol scope"]
+      "depends_on": [
+        "concrete locker inventory and read-only protocol scope"
+      ]
     },
     {
       "id": "NEXOLAB-204",
