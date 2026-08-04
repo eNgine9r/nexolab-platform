@@ -4,9 +4,9 @@ Updated: 2026-08-04
 Verified main baseline: `da9bda46c320e2de6fd52e2136fdcfa368f00982`
 Active Work Package: Issue #269 — operator-safe Settings workspace
 Branch: `feat/269-operator-safe-settings`
-Pull Request: pending draft creation
+Pull Request: #270 — draft implementation Work Package
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for merged repository, authenticated browser/API/PostgreSQL and disconnected-runtime evidence; physical hardware remains explicitly unverified.
+Status confidence: high for merged repository state and previous authenticated/offline evidence; Issue #269 implementation is not yet verified; physical hardware remains explicitly unverified.
 
 ## Product route status
 
@@ -25,7 +25,7 @@ Implemented on merged `main`:
 
 Remaining placeholder routes on merged `main`:
 
-- `/settings` — active Issue #269 and feature branch started;
+- `/settings` — active Issue #269 / draft PR #270;
 - `/cameras` — queued local Cameras monitoring;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
@@ -33,29 +33,29 @@ Optional toolchain migrations #252–#257 remain deferred unless they become a s
 
 ## Issue #267 merged outcome
 
-PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after the final audit confirmed exact-head GREEN CI, authenticated browser, refrigeration browser and disconnected Offline Bundle checks, a 15-file focused diff and zero review threads/reviews.
-
-The merged `/equipment` route provides a normalized authenticated read-only equipment/metrology registry without backend schema, dependency, Modbus or hardware changes.
+PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after exact-head GREEN CI, authenticated browser, refrigeration browser and disconnected Offline Bundle checks, a 15-file focused diff and zero review threads/reviews.
 
 ## Active Issue #269 boundary
 
-The `/settings` route is currently a pure `PlatformPlaceholderScreen`. Repository inventory confirms:
+Repository inventory confirms:
 
-- the existing authenticated session contract provides identity, organizations, roles and permissions;
-- client-visible runtime configuration already provides data mode, auth provider and API/WebSocket endpoints;
-- no `/api/v1/settings` endpoint or persisted universal settings model exists;
-- no safe generic mutation contract exists for organization, nodes, devices, retention, security or deployment.
+- `/settings` currently renders `PlatformPlaceholderScreen`;
+- `GET /api/v1/auth/session` already provides identity, organizations, roles and permissions;
+- existing client runtime modules provide data mode, auth provider and API/WebSocket endpoints;
+- no `/api/v1/settings` endpoint, persisted universal settings table or safe generic settings mutation contract exists.
 
-Issue #269 will deliver an operator-safe workspace composed from existing read-only contracts:
+PR #270 will therefore implement:
 
 - active organization and operator context;
-- sanitized runtime/deployment diagnostics;
-- explicit ready/incomplete/unsafe configuration states;
-- versioned browser-local presentation preferences only;
+- sanitized `LOCAL_LAN`, data/auth-mode, API/WebSocket and browser-origin diagnostics;
+- ready, incomplete and unsafe configuration states;
+- versioned browser-local non-critical presentation preferences;
+- malformed-storage recovery and reset;
 - canonical links to existing operational workflows;
-- honest unsupported-configuration boundaries.
+- explicit unsupported-configuration boundaries;
+- focused tests and authenticated browser evidence with zero backend mutations.
 
-It must not expose secrets or add node/device/Modbus, retention, backup, TLS, DNS, VPN, membership or production mutations.
+It must not expose secrets or add organization/member, node/device/Modbus, retention, backup, TLS, DNS, VPN, deployment or production mutations.
 
 ## Runtime, offline and hardware evidence
 
@@ -67,4 +67,4 @@ No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or produ
 
 ## Next action
 
-Open one focused draft Pull Request for `feat/269-operator-safe-settings`, then implement the typed runtime-diagnostics and browser-local preference vertical slice with focused tests and authenticated browser acceptance.
+Implement the typed settings diagnostics and preference domain first, add focused tests, then integrate the authenticated shell and production browser acceptance in the same focused PR #270.
