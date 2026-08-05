@@ -1,37 +1,50 @@
-import { Camera, Maximize2 } from "lucide-react";
+import { ArrowUpRight, Camera, VideoOff } from "lucide-react";
+import Link from "next/link";
 
-const cameras = [
-  { id: "CAM-01", name: "Зона складу", variant: 1 },
-  { id: "CAM-02", name: "Вхідні двері", variant: 2 },
-  { id: "CAM-03", name: "Лабораторія 1", variant: 3 },
-  { id: "CAM-04", name: "Лабораторія 2", variant: 4 },
-  { id: "CAM-05", name: "Клімат. камера", variant: 5 },
-  { id: "CAM-06", name: "Поштомат зона", variant: 6 },
-];
+import { readCameraInventory } from "@/features/cameras/domain";
 
 export function CamerasPanel() {
+  const inventory = readCameraInventory();
+
   return (
-    <div className="grid grid-cols-2 gap-2 p-3 sm:p-4">
-      {cameras.map((camera) => (
-        <button
-          key={camera.id}
-          className="group relative aspect-[1.75] overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b2749] text-left"
-        >
-          <div className={`camera-scene absolute inset-0 camera-scene-${camera.variant}`} />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#041226]/95 via-transparent to-cyan-300/[0.04]" />
-          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/35 px-1.5 py-1 text-[7px] font-semibold text-emerald-300 backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            LIVE
+    <div className="p-3 sm:p-4">
+      {inventory.items.length === 0 ? (
+        <div className="grid min-h-48 place-items-center rounded-xl border border-dashed border-cyan-300/20 bg-[#0b2749]/65 p-5 text-center">
+          <div>
+            <VideoOff className="mx-auto h-7 w-7 text-cyan-300" />
+            <p className="mt-3 text-sm font-medium text-slate-100">Камери не налаштовані</p>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-400">
+              Декоративні сцени не показуються як LIVE. Потрібен перевірений локальний inventory і безпечний
+              media contract.
+            </p>
+            <Link
+              href="/cameras"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-cyan-200 hover:border-cyan-300/30"
+            >
+              Відкрити стан камер
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <Maximize2 className="absolute top-2 right-2 h-3 w-3 text-white/0 transition group-hover:text-white/80" />
-          <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 px-2 py-1.5">
-            <Camera className="h-2.5 w-2.5 text-cyan-300" />
-            <span className="truncate text-[7px] font-medium text-slate-200">
-              {camera.id} · {camera.name}
-            </span>
-          </div>
-        </button>
-      ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {inventory.items.slice(0, 6).map((camera) => (
+            <Link
+              key={camera.id}
+              href="/cameras"
+              className="rounded-xl border border-white/[0.07] bg-[#0b2749] p-3 text-left hover:border-cyan-300/25"
+            >
+              <div className="flex items-center gap-2">
+                <Camera className="h-3.5 w-3.5 text-cyan-300" />
+                <span className="truncate text-xs font-medium text-slate-200">{camera.name}</span>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-500">
+                {camera.id} · {camera.state}
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

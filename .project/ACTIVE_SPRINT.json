@@ -24,93 +24,84 @@
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "remaining_placeholder_routes": ["/cameras", "/lockers"]
+      "remaining_placeholder_routes": ["/lockers"]
     },
     {
       "id": "NEXOLAB-261",
       "issue": 261,
-      "parent_issue": 260,
       "pull_request": 262,
       "title": "Complete the Energy Monitoring operator page",
       "status": "merged",
-      "branch": "feat/261-energy-monitoring-page",
       "merge_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
       "route": "/energy"
     },
     {
       "id": "NEXOLAB-263",
       "issue": 263,
-      "parent_issue": 260,
       "pull_request": 264,
       "title": "Complete the Live Data telemetry explorer",
       "status": "merged",
-      "branch": "feat/263-live-telemetry-explorer",
       "merge_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
       "route": "/live"
     },
     {
       "id": "NEXOLAB-265",
       "issue": 265,
-      "parent_issue": 260,
       "pull_request": 266,
       "title": "Complete the Equipment Layouts catalog",
       "status": "merged",
-      "branch": "feat/265-equipment-layouts-catalog",
       "merge_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
       "route": "/equipment-layouts"
     },
     {
       "id": "NEXOLAB-267",
       "issue": 267,
-      "parent_issue": 260,
       "pull_request": 268,
       "title": "Complete the Equipment and metrology registry",
       "status": "merged",
-      "branch": "feat/267-equipment-metrology-registry",
-      "verified_source_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
-      "verified_state_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
       "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
       "route": "/equipment"
     },
     {
       "id": "NEXOLAB-269",
       "issue": 269,
-      "parent_issue": 260,
       "pull_request": 270,
       "title": "Complete operator-safe Settings workspace",
-      "status": "ready_audit",
-      "branch": "feat/269-operator-safe-settings",
-      "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
-      "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
-      "route": "/settings",
-      "required_runs": {
-        "final_ci": 30953948950,
-        "final_authenticated_dashboard": 30953948970,
-        "final_refrigeration_browser": 30953948956,
-        "final_offline_bundle": 30953948928
-      },
-      "review_audit": {
-        "inline_threads": 0,
-        "submitted_reviews": 0,
-        "focused_source_files": 13
-      },
-      "product_outcome": "Authenticated organization/session context, sanitized runtime diagnostics and browser-local presentation preferences without secrets or unsafe system mutations.",
-      "guardrails_verified": [
-        "no secret or credential exposure",
-        "zero backend mutation requests from settings acceptance",
-        "no organization or membership CRUD",
-        "no node, device or Modbus write",
-        "no retention, backup, restore, TLS, DNS, VPN or deployment mutation",
-        "no dependency migration or unrelated refactor",
-        "no production or site cutover"
-      ],
-      "next_action": "Validate the state-only head, repeat final review and diff audit, update PR #270 summary and mark Ready without merge."
+      "status": "merged",
+      "merge_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+      "route": "/settings"
     },
     {
-      "id": "NEXOLAB-PAGE-CAMERAS",
-      "title": "Complete local Cameras monitoring",
-      "status": "queued",
-      "route": "/cameras"
+      "id": "NEXOLAB-273",
+      "issue": 273,
+      "parent_issue": 260,
+      "pull_request": 274,
+      "title": "Complete operator-safe local Cameras workspace",
+      "status": "ready_audit",
+      "branch": "feat/273-local-cameras-workspace",
+      "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+      "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
+      "route": "/cameras",
+      "required_runs": {
+        "final_ci": 30973348158,
+        "final_authenticated_dashboard": 30973348163,
+        "final_refrigeration_browser": 30973348162,
+        "final_offline_bundle": 30973348151
+      },
+      "review_audit": {
+        "focused_source_files": 8,
+        "state_files": 4,
+        "temporary_workflow_present": false
+      },
+      "guardrails_verified": [
+        "no camera credentials or raw RTSP URI in client-visible state",
+        "no fabricated LIVE state",
+        "no camera CRUD, recording, PTZ or hardware write",
+        "no mandatory cloud, CDN or paid runtime service",
+        "no dependency or lockfile change",
+        "no production or site cutover"
+      ],
+      "next_action": "Validate the state-only head, repeat review and focused-diff audit, update PR #274 summary and mark Ready without merge."
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
@@ -124,8 +115,7 @@
       "issue": 204,
       "title": "Frontend toolchain migrations",
       "status": "deferred",
-      "child_issues": [252, 253, 254, 255, 256, 257],
-      "resume_when": "security, support or concrete active-product blocker"
+      "child_issues": [252, 253, 254, 255, 256, 257]
     },
     {
       "id": "NEXOLAB-245",

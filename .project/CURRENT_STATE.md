@@ -1,71 +1,58 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-05
-Verified main baseline: `da9bda46c320e2de6fd52e2136fdcfa368f00982`
-Active Work Package: Issue #269 — operator-safe Settings workspace
-Branch: `feat/269-operator-safe-settings`
-Pull Request: #270 — ready-transition checkpoint
-Verified source head: `434224191f914e5ca884ac838a2ce66e4a30f6ea`
+Verified main baseline: `5aa2252a6c20874dcc3d975c19fee441d20600a8`
+Active Work Package: Issue #273 — operator-safe local Cameras workspace
+Branch: `feat/273-local-cameras-workspace`
+Pull Request: #274 — readiness checkpoint
+Verified source head: `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b`
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for source implementation, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi and RS-485 hardware remain explicitly unverified.
+Status confidence: high for software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485 and camera hardware remain explicitly unverified.
 
 ## Product route status
 
-Implemented on merged `main`:
+Implemented on merged `main`: Overview, Nodes, Sessions, Refrigeration, Alerts, Reports, Energy, Live Data, Equipment Layouts, Equipment registry and Settings.
 
-- `/` — Overview dashboard;
-- `/nodes` — Nodes;
-- `/sessions` — Test sessions;
-- `/refrigeration` — Refrigeration equipment and canonical mutation workflows;
-- `/alerts` — Alerts;
-- `/reports` — Reports;
-- `/energy` — verified LE-01MP Energy Monitoring;
-- `/live` — verified universal telemetry explorer;
-- `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview;
-- `/equipment` — authenticated organization-wide Equipment and metrology registry.
+Verified in PR #274 and pending merge:
 
-Verified in PR #270 and pending merge:
+- `/cameras` — authenticated truthful local camera readiness workspace;
+- Overview camera panel — fabricated six-scene `LIVE` presentation removed and replaced with canonical unconfigured/configured summaries.
 
-- `/settings` — authenticated operator-safe organization context, sanitized runtime diagnostics, explicit configuration states, versioned browser-local presentation preferences and canonical operational navigation.
+Remaining placeholder route on merged `main`:
 
-Remaining placeholder routes on merged `main`:
-
-- `/cameras` — queued local Cameras monitoring;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
-Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
+## Issue #273 verified outcome
 
-## Issue #269 verified outcome
+The source implementation on `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b` provides:
 
-The source implementation on `434224191f914e5ca884ac838a2ce66e4a30f6ea` provides:
-
-- active organization, identity, roles and effective permissions from the existing security-session contract;
-- sanitized `LOCAL_LAN`, data/auth-mode, API, WebSocket and browser-origin diagnostics;
-- ready, incomplete and unsafe configuration states without page crashes;
-- versioned validated browser-local presentation preferences with malformed-storage recovery and reset;
-- canonical links to Nodes, Equipment, Refrigeration, Alerts and Reports;
-- explicit unsupported-configuration boundaries;
-- zero backend mutation requests in focused authenticated browser acceptance;
-- no universal settings API, database migration, dependency upgrade, device write or production cutover.
+- typed validated camera records and bounded source/state/capability values;
+- local endpoint sanitization that removes query strings/fragments and rejects credentials or public hosts;
+- explicit configured, online, offline, unavailable and invalid states;
+- no production inventory fallback: the runtime honestly renders `unconfigured` until a real safe contract exists;
+- authenticated `/cameras` shell with deterministic search and state filtering;
+- removal of fabricated Overview camera scenes and animated `LIVE` badges;
+- focused unit tests for sanitization, invalid entries and raw RTSP browser boundaries;
+- focused production browser acceptance for `/cameras`, Overview navigation, zero non-GET requests and no secret/fake-LIVE evidence;
+- no camera API, database migration, dependency change, credential path, device write or production cutover.
 
 Exact-source verification:
 
-- CI `30953948950` GREEN;
-- Authenticated Dashboard Acceptance `30953948970` GREEN;
-- Refrigeration Browser Acceptance `30953948956` GREEN;
-- Offline Bundle `30953948928` GREEN;
-- focused source diff: 13 files;
-- inline review threads: zero;
-- submitted reviews: zero.
+- CI `30973348158` GREEN;
+- Authenticated Dashboard Acceptance `30973348163` GREEN;
+- Refrigeration Browser Acceptance `30973348162` GREEN;
+- Offline Bundle `30973348151` GREEN;
+- focused source files: 8 plus four `.project/**` state files;
+- temporary formatting workflow removed from final diff.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-software verified; authenticated browser verified; disconnected bundle startup/update/rollback verified; physical Raspberry Pi and RS-485 hardware unverified
+software verified; authenticated seven-flow browser stack verified; disconnected bundle startup/update/rollback verified; physical Raspberry Pi, RS-485, cameras, ONVIF, RTSP media and NVR unverified
 ```
 
-The Offline Bundle proved clean-host archive loading, container egress blocking, disconnected startup with pulls disabled, persistent-data preservation through update/rollback and evidence capture. No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
+The Offline Bundle proved connected linux/amd64 build, clean-host simulation, runtime-image removal, blocked container egress, disconnected load/start with pulls disabled and persistent-data preservation through update/rollback.
 
 ## Next action
 
-Validate the state-only head, confirm it changes only `.project/**`, repeat the review and focused-diff audit, update PR #270 summary and mark the PR Ready without merging.
+Validate the state-only head, repeat review and focused-diff audit, update PR #274 summary and mark Ready without merging.

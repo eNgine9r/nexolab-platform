@@ -3,72 +3,81 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-269",
-  "issue": 269,
+  "task": "NEXOLAB-273",
+  "issue": 273,
   "parent_issue": 260,
-  "pull_request": 270,
+  "pull_request": 274,
   "status": "ready_audit",
-  "timestamp": "2026-08-05T00:57:00+03:00",
-  "branch": "feat/269-operator-safe-settings",
-  "route": "/settings",
-  "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
-  "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
-  "summary": "Issue #269 replaces the Settings placeholder with an authenticated operator-safe workspace composed from the existing security-session and client-safe runtime contracts. It provides sanitized runtime diagnostics, explicit configuration states, versioned browser-local presentation preferences and canonical navigation without secrets, backend mutation APIs, hardware writes or production cutover.",
+  "timestamp": "2026-08-05T06:58:00+03:00",
+  "branch": "feat/273-local-cameras-workspace",
+  "route": "/cameras",
+  "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+  "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
+  "summary": "Issue #273 replaces the Cameras placeholder and fabricated Overview LIVE scenes with an authenticated truthful local-first camera readiness workspace. The implementation exposes only validated browser-safe metadata and explicit availability states, intentionally renders unconfigured until a real safe inventory contract exists, and introduces no credentials, camera mutations, cloud dependency or physical acceptance claim.",
   "verified_scope": [
-    "authenticated identity, organization, roles and effective permissions",
-    "sanitized API, WebSocket and browser-origin diagnostics",
-    "LOCAL_LAN, data-mode and auth-provider visibility",
-    "ready, incomplete and unsafe configuration states",
-    "versioned validated browser-local preferences",
-    "malformed preference recovery, persistence and reset",
-    "canonical navigation to existing operator workflows",
-    "explicit unsupported-configuration boundary",
-    "zero backend mutation requests from focused Settings acceptance"
+    "typed bounded camera records, source kinds, capabilities and states",
+    "local endpoint sanitization with credential and public-host rejection",
+    "query-string and fragment removal from displayed endpoints",
+    "raw RTSP online claims downgraded to explicit browser-unavailable state",
+    "authenticated cameras shell with standard Sidebar and Topbar",
+    "deterministic camera search and state filter",
+    "truthful unconfigured state without demo fallback",
+    "fabricated Overview camera scenes and animated LIVE labels removed",
+    "canonical Overview navigation to /cameras",
+    "focused unit tests and production browser acceptance",
+    "zero non-GET camera requests observed",
+    "no secret or fabricated LIVE evidence observed"
   ],
   "verification": {
     "ci": {
-      "run_id": 30953948950,
+      "run_id": 30973348158,
       "conclusion": "success"
     },
     "authenticated_dashboard": {
-      "run_id": 30953948970,
-      "conclusion": "success"
+      "run_id": 30973348163,
+      "conclusion": "success",
+      "flows": 7
     },
     "refrigeration_browser": {
-      "run_id": 30953948956,
+      "run_id": 30973348162,
       "conclusion": "success"
     },
     "offline_bundle": {
-      "run_id": 30953948928,
+      "run_id": 30973348151,
       "conclusion": "success",
       "evidence": [
         "linux/amd64 bundle built",
         "clean transferred host simulated",
         "runtime images removed before load",
         "container egress blocked",
-        "disconnected stack started with pull disabled",
+        "disconnected stack started with pulls disabled",
         "update and rollback preserved persistent data",
         "final disconnected evidence captured"
       ]
     }
   },
   "review_audit": {
-    "inline_threads": 0,
-    "submitted_reviews": 0,
-    "focused_source_files": 13,
-    "secret_exposure_observed": false,
-    "backend_mutations_observed": 0,
+    "focused_source_files": 8,
+    "state_files": 4,
+    "temporary_workflow_present": false,
     "dependency_or_lockfile_change": false,
     "backend_schema_change": false,
-    "hardware_or_modbus_write": false
+    "camera_or_hardware_write": false,
+    "backend_mutations_observed": 0,
+    "secret_exposure_observed": false,
+    "fabricated_live_evidence_observed": false
   },
   "hardware_evidence": {
     "software_verified": true,
-    "hardware_verified": false,
-    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
+    "camera_hardware_verified": false,
+    "onvif_verified": false,
+    "rtsp_media_verified": false,
+    "nvr_verified": false,
+    "note": "No physical camera, ONVIF discovery, RTSP media session, NVR, camera write, Modbus command or production/site cutover was used."
   },
   "next_ready_work_package_step": {
-    "issue": 269,
-    "instruction": "Validate the state-only head against verified source head, repeat final review and focused-diff audit, update PR #270 summary and mark Ready without merge."
+    "issue": 273,
+    "pull_request": 274,
+    "instruction": "Validate the state-only head, repeat final review and focused-diff audit, update PR #274 summary and mark Ready without merge."
   }
 }
