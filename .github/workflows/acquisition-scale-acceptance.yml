@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/acquisition-scale-acceptance.yml"
       - "docs/operations/acquisition-scale-acceptance.md"
+      - "scripts/acquisition_hardware_acceptance.py"
       - "scripts/run-acquisition-scale-acceptance.py"
       - "services/device-agent/acquisition_registry.py"
       - "services/device-agent/adaptive_scheduler.py"
@@ -16,11 +17,20 @@ on:
       - "services/device-agent/xjp60d.py"
       - "services/device-agent/le01mp.py"
       - "services/device-agent/requirements.txt"
+      - "services/device-agent/tests/test_acquisition_hardware_acceptance.py"
+      - "services/device-agent/tests/test_mqtt_backlog_order.py"
+      - "src/lib/telemetry/dashboard-state.test.ts"
+      - "src/lib/telemetry/live-adapter.test.ts"
+      - "src/lib/telemetry/request-coordinator.test.ts"
+      - "src/lib/telemetry/route-persistent-cache.test.ts"
+      - "src/lib/telemetry/route-persistent-client.test.ts"
+      - "src/lib/telemetry/websocket-client.test.ts"
   push:
     branches: [main]
     paths:
       - ".github/workflows/acquisition-scale-acceptance.yml"
       - "docs/operations/acquisition-scale-acceptance.md"
+      - "scripts/acquisition_hardware_acceptance.py"
       - "scripts/run-acquisition-scale-acceptance.py"
       - "services/device-agent/acquisition_registry.py"
       - "services/device-agent/adaptive_scheduler.py"
@@ -31,6 +41,14 @@ on:
       - "services/device-agent/xjp60d.py"
       - "services/device-agent/le01mp.py"
       - "services/device-agent/requirements.txt"
+      - "services/device-agent/tests/test_acquisition_hardware_acceptance.py"
+      - "services/device-agent/tests/test_mqtt_backlog_order.py"
+      - "src/lib/telemetry/dashboard-state.test.ts"
+      - "src/lib/telemetry/live-adapter.test.ts"
+      - "src/lib/telemetry/request-coordinator.test.ts"
+      - "src/lib/telemetry/route-persistent-cache.test.ts"
+      - "src/lib/telemetry/route-persistent-client.test.ts"
+      - "src/lib/telemetry/websocket-client.test.ts"
   workflow_dispatch:
 
 permissions:
@@ -62,10 +80,30 @@ jobs:
       - name: Install Device Agent dependencies
         run: python -m pip install -r services/device-agent/requirements.txt
 
-      - name: Compile acceptance runner and production modules
+      - name: Compile acceptance runners and production modules
         run: |
-          python -m py_compile scripts/run-acquisition-scale-acceptance.py
+          python -m py_compile \
+            scripts/acquisition_hardware_acceptance.py \
+            scripts/run-acquisition-scale-acceptance.py
           python -m compileall -q services/device-agent
+
+      - name: Verify hardware evidence collector contract
+        env:
+          PYTHONPATH: services/device-agent
+        run: |
+          python -m unittest discover \
+            -s services/device-agent/tests \
+            -p 'test_acquisition_hardware_acceptance.py' \
+            -v
+
+      - name: Verify MQTT outbox replay ordering
+        env:
+          PYTHONPATH: services/device-agent
+        run: |
+          python -m unittest discover \
+            -s services/device-agent/tests \
+            -p 'test_mqtt_backlog_order.py' \
+            -v
 
       - name: Run deterministic acquisition scale matrix
         env:
@@ -102,5 +140,90 @@ jobs:
         with:
           name: acquisition-scale-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: acquisition-scale-evidence
+          if-no-files-found: error
+          retention-days: 14
+
+  truthful-delivery:
+    name: Truthful delivery state matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Run truthful telemetry state tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p acquisition-truthful-state-evidence
+          set +e
+          npm test -- \
+            src/lib/telemetry/dashboard-state.test.ts \
+            src/lib/telemetry/live-adapter.test.ts \
+            src/lib/telemetry/request-coordinator.test.ts \
+            src/lib/telemetry/route-persistent-cache.test.ts \
+            src/lib/telemetry/route-persistent-client.test.ts \
+            src/lib/telemetry/websocket-client.test.ts \
+            2>&1 | tee acquisition-truthful-state-evidence/test-output.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          STATUS="$status" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          status = int(os.environ["STATUS"])
+          payload = {
+              "schema_version": 1,
+              "classification": "deterministic_software",
+              "passed": status == 0,
+              "covered_states": [
+                  "connecting",
+                  "live",
+                  "reconnecting",
+                  "stale",
+                  "offline",
+                  "unauthorized",
+                  "forbidden",
+                  "configuration_error",
+              ],
+              "contracts": [
+                  "retained snapshot replay",
+                  "bounded zero-consumer grace",
+                  "single physical WebSocket per scope",
+                  "in-flight REST request ownership",
+                  "latest cache scope isolation",
+                  "truthful dashboard state derivation",
+              ],
+          }
+          Path(
+              "acquisition-truthful-state-evidence/truthful-state-summary.json"
+          ).write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          exit "$status"
+
+      - name: Upload truthful-state evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: acquisition-truthful-state-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: acquisition-truthful-state-evidence
           if-no-files-found: error
           retention-days: 14
