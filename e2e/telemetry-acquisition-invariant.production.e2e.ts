@@ -3,30 +3,16 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  expect,
-  test,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
-const organizationId = requiredEnvironment(
-  "NEXOLAB_DASHBOARD_ORGANIZATION_ID",
-);
+const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const metricsUrl = requiredEnvironment("NEXOLAB_ACQUISITION_METRICS_URL");
-const evidenceDirectory =
-  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ??
-  "dashboard-acceptance-evidence";
-const expectedRate = Number(
-  process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20",
-);
+const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const expectedRate = Number(process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20");
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
-const acceptanceCompose = requiredEnvironment(
-  "NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE",
-);
+const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
@@ -60,21 +46,13 @@ type SocketEvidence = {
   maximum: number;
 };
 
-async function authenticatedContext(
-  browser: Browser,
-): Promise<BrowserContext> {
+async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
   await context.addInitScript(
     ({ accessToken, organization }) => {
       if (window.location.protocol === "about:") return;
-      window.sessionStorage.setItem(
-        "nexolab.acceptance.access-token",
-        accessToken,
-      );
-      window.sessionStorage.setItem(
-        "nexolab.acceptance.organization-id",
-        organization,
-      );
+      window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
+      window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },
     { accessToken: viewerToken, organization: organizationId },
   );
@@ -182,10 +160,7 @@ async function waitForApiReady(): Promise<void> {
     .toBe(true);
 }
 
-async function measurePhase(
-  phase: string,
-  action: () => Promise<void>,
-): Promise<PhaseEvidence> {
+async function measurePhase(phase: string, action: () => Promise<void>): Promise<PhaseEvidence> {
   const before = await readMetrics();
   const started = performance.now();
   await action();
@@ -193,8 +168,7 @@ async function measurePhase(
   const after = await readMetrics();
   const elapsedSeconds = (performance.now() - started) / 1000;
   const requestDelta =
-    after.acquisition.normal.physical_requests_total -
-    before.acquisition.normal.physical_requests_total;
+    after.acquisition.normal.physical_requests_total - before.acquisition.normal.physical_requests_total;
   return {
     phase,
     elapsedSeconds,
@@ -239,25 +213,16 @@ function observePage(
   });
 }
 
-async function openPersistedDashboard(
-  page: Page,
-  dashboardName: string,
-): Promise<void> {
+async function openPersistedDashboard(page: Page, dashboardName: string): Promise<void> {
   await page.goto("/live", { waitUntil: "domcontentloaded" });
-  await expect(
-    page.getByRole("heading", { name: "Live Dashboards", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
   const card = page.locator("article").filter({ hasText: dashboardName });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Відкрити" }).click();
-  await expect(
-    page.getByRole("heading", { name: dashboardName, exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: dashboardName, exact: true })).toBeVisible();
 }
 
-test("page navigation and browser count do not amplify physical acquisition", async ({
-  browser,
-}) => {
+test("page navigation and browser count do not amplify physical acquisition", async ({ browser }) => {
   test.setTimeout(300_000);
   const observed = {
     controlRequests: [] as ObservedRequest[],
@@ -333,11 +298,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
   }
   phases.push(
     await measurePhase("additional-authenticated-contexts", async () => {
-      await Promise.all(
-        additionalPages.map((page) =>
-          page.waitForLoadState("domcontentloaded"),
-        ),
-      );
+      await Promise.all(additionalPages.map((page) => page.waitForLoadState("domcontentloaded")));
     }),
   );
 
@@ -347,9 +308,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
       await new Promise((resolve) => setTimeout(resolve, 250));
       await primary.setOffline(false);
       await live.reload({ waitUntil: "domcontentloaded" });
-      await expect(
-        live.getByRole("heading", { name: "Live Dashboards", exact: true }),
-      ).toBeVisible();
+      await expect(live.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
     }),
   );
 
@@ -364,38 +323,24 @@ test("page navigation and browser count do not amplify physical acquisition", as
 
   const finalMetrics = await readMetrics();
   const discoveryDelta =
-    (finalMetrics.acquisition.service_operations.discovery
-      ?.physical_requests_total ?? 0) -
-    (baseline.acquisition.service_operations.discovery
-      ?.physical_requests_total ?? 0);
+    (finalMetrics.acquisition.service_operations.discovery?.physical_requests_total ?? 0) -
+    (baseline.acquisition.service_operations.discovery?.physical_requests_total ?? 0);
   const mutationDelta =
-    (finalMetrics.acquisition.service_operations.configuration_mutation
-      ?.requests_total ?? 0) -
-    (baseline.acquisition.service_operations.configuration_mutation
-      ?.requests_total ?? 0);
+    (finalMetrics.acquisition.service_operations.configuration_mutation?.requests_total ?? 0) -
+    (baseline.acquisition.service_operations.configuration_mutation?.requests_total ?? 0);
 
   for (const phase of phases) {
-    expect(
-      phase.requestsPerSecond,
-      `${phase.phase} request rate`,
-    ).toBeGreaterThanOrEqual(expectedRate - 3);
-    expect(
-      phase.requestsPerSecond,
-      `${phase.phase} request rate`,
-    ).toBeLessThanOrEqual(expectedRate + 3);
+    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeGreaterThanOrEqual(expectedRate - 3);
+    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeLessThanOrEqual(expectedRate + 3);
   }
   const rates = phases.map((phase) => phase.requestsPerSecond);
   expect(Math.max(...rates) - Math.min(...rates)).toBeLessThanOrEqual(3.5);
   expect(observed.controlRequests.length).toBeGreaterThan(0);
-  expect(
-    observed.controlRequests.every((request) => request.method === "GET"),
-  ).toBe(true);
+  expect(observed.controlRequests.every((request) => request.method === "GET")).toBe(true);
   expect(discoveryDelta).toBe(0);
   expect(mutationDelta).toBe(0);
   for (const [name, socket] of Object.entries(observed.sockets)) {
-    expect(socket.maximum, `${name} physical WebSocket maximum`).toBeLessThanOrEqual(
-      1,
-    );
+    expect(socket.maximum, `${name} physical WebSocket maximum`).toBeLessThanOrEqual(1);
   }
 
   mkdirSync(evidenceDirectory, { recursive: true });

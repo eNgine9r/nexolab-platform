@@ -50,11 +50,11 @@ Every scenario must preserve:
 
 The matrix uses generated read-only registries with valid canonical profiles.
 
-| Profile | Active XJP60D channels | LE-01MP meters | LE metrics | Total active targets | Purpose |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `pilot` | 2 | 4 | 32 | 34 | Current laboratory-sized baseline |
-| `expanded` | 72 | 8 | 64 | 136 | Twelve six-channel controllers plus eight meters |
-| `stress` | 144 | 12 | 96 | 240 | Bounded validation above the expected first deployment |
+| Profile    | Active XJP60D channels | LE-01MP meters | LE metrics | Total active targets | Purpose                                                |
+| ---------- | ---------------------: | -------------: | ---------: | -------------------: | ------------------------------------------------------ |
+| `pilot`    |                      2 |              4 |         32 |                   34 | Current laboratory-sized baseline                      |
+| `expanded` |                     72 |              8 |         64 |                  136 | Twelve six-channel controllers plus eight meters       |
+| `stress`   |                    144 |             12 |         96 |                  240 | Bounded validation above the expected first deployment |
 
 Inactive inventory is tested separately. Disabled, reserve, retired, uninstalled, discovery-only and invalid targets must produce **zero** normal executions.
 
@@ -178,19 +178,19 @@ These are local software targets. Real operator latency on the Raspberry Pi must
 
 The following states must be distinguishable in UI and evidence:
 
-| Condition | Required state | Retained value behavior |
-| --- | --- | --- |
-| Initial selected snapshot and socket pending | `connecting` / loading | No fabricated value |
-| Fresh persisted/latest sample and connected socket | `live` | Current value visible |
-| Socket reconnecting, retained sample available | `reconnecting` | Value remains visible, not labelled live |
-| Sample older than stale threshold | `stale` | Original value and timestamp preserved |
-| Delivery transport unavailable | `offline` | Retained value visible when available |
-| Sample reports sensor fault | `sensor_error` | Fault remains distinct from transport outage |
-| Sample reports communication error | `communication_error` | Prior successful value may remain with truthful quality |
-| Missing authorization | `unauthenticated` | No telemetry/dashboard requests after gate |
-| Missing permission | `forbidden` | No protected data or mutation controls |
-| Invalid runtime configuration | `configuration_error` | No demo fallback presented as production data |
-| Empty saved dashboard | empty state | No universal scan or fabricated series |
+| Condition                                          | Required state         | Retained value behavior                                 |
+| -------------------------------------------------- | ---------------------- | ------------------------------------------------------- |
+| Initial selected snapshot and socket pending       | `connecting` / loading | No fabricated value                                     |
+| Fresh persisted/latest sample and connected socket | `live`                 | Current value visible                                   |
+| Socket reconnecting, retained sample available     | `reconnecting`         | Value remains visible, not labelled live                |
+| Sample older than stale threshold                  | `stale`                | Original value and timestamp preserved                  |
+| Delivery transport unavailable                     | `offline`              | Retained value visible when available                   |
+| Sample reports sensor fault                        | `sensor_error`         | Fault remains distinct from transport outage            |
+| Sample reports communication error                 | `communication_error`  | Prior successful value may remain with truthful quality |
+| Missing authorization                              | `unauthenticated`      | No telemetry/dashboard requests after gate              |
+| Missing permission                                 | `forbidden`            | No protected data or mutation controls                  |
+| Invalid runtime configuration                      | `configuration_error`  | No demo fallback presented as production data           |
+| Empty saved dashboard                              | empty state            | No universal scan or fabricated series                  |
 
 ## Backend and data-consistency targets
 
