@@ -1,0 +1,1 @@
+"""Persisted Live Dashboard domain."""
