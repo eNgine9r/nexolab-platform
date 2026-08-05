@@ -167,7 +167,10 @@ export function useLiveDashboardTelemetry({
     const windowFrom = Date.now() - windowMs;
     const perSeriesLimit = Math.max(
       50,
-      Math.min(MAX_HISTORY_SAMPLES_PER_SERIES, Math.floor(MAX_HISTORY_SAMPLES / Math.max(1, dashboard.items.length))),
+      Math.min(
+        MAX_HISTORY_SAMPLES_PER_SERIES,
+        Math.floor(MAX_HISTORY_SAMPLES / Math.max(1, dashboard.items.length)),
+      ),
     );
     let disposed = false;
 
@@ -298,7 +301,8 @@ export function useLiveDashboardTelemetry({
 
   const samples = series.flatMap((item) => (item.latest ? [item.latest] : []));
   const lastCapturedAt =
-    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]?.captured_at ?? null;
+    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]?.captured_at ??
+    null;
 
   return {
     status: deriveStatus(connectionState, loaded, samples, error, clock),

@@ -15,7 +15,9 @@ function timestamp(sample: TelemetrySample): number {
   return Number.isFinite(captured) ? captured : received;
 }
 
-export function inventoryFromLatestSamples(samples: readonly TelemetrySample[]): LiveDashboardInventoryItem[] {
+export function inventoryFromLatestSamples(
+  samples: readonly TelemetrySample[],
+): LiveDashboardInventoryItem[] {
   const latest = new Map<string, TelemetrySample>();
   for (const sample of samples) {
     const key = liveDashboardInventoryKey(sample);
@@ -58,7 +60,8 @@ export async function loadLiveDashboardInventory(
       if (!current || timestamp(current) <= timestamp(sample)) samples.set(sample.event_id, sample);
     }
     if (response.next_offset === null) return inventoryFromLatestSamples([...samples.values()]);
-    if (response.next_offset <= offset) throw new Error("Live Dashboard inventory pagination did not advance.");
+    if (response.next_offset <= offset)
+      throw new Error("Live Dashboard inventory pagination did not advance.");
     offset = response.next_offset;
   }
 

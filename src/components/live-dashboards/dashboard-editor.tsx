@@ -108,18 +108,13 @@ export function DashboardEditor({
   onUseServerVersion: () => void;
   onSaveAsCopy: () => void;
 }) {
-  const [filters, setFilters] = useState<LiveDashboardInventoryFilters>(
-    defaultLiveDashboardInventoryFilters,
-  );
+  const [filters, setFilters] = useState<LiveDashboardInventoryFilters>(defaultLiveDashboardInventoryFilters);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
   const filteredInventory = useMemo(
     () => filterLiveDashboardInventory(inventory.items, filters),
     [filters, inventory.items],
   );
-  const selectedKeys = useMemo(
-    () => new Set(draft.items.map(dashboardItemIdentity)),
-    [draft.items],
-  );
+  const selectedKeys = useMemo(() => new Set(draft.items.map(dashboardItemIdentity)), [draft.items]);
   const availableKeys = useMemo(
     () => new Set(inventory.items.map((item) => dashboardItemIdentity(item))),
     [inventory.items],
@@ -149,8 +144,8 @@ export function DashboardEditor({
             {draft.id ? "Редагування Live Dashboard" : "Новий Live Dashboard"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            Вибір каналів формує лише read model. Refresh і time window не змінюють scheduler або
-            Modbus cadence.
+            Вибір каналів формує лише read model. Refresh і time window не змінюють scheduler або Modbus
+            cadence.
           </p>
         </div>
         <button
@@ -159,7 +154,11 @@ export function DashboardEditor({
           disabled={saving || !validation.valid}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {saving ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}
+          {saving ? (
+            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Save className="h-4 w-4" aria-hidden="true" />
+          )}
           {saving ? "Збереження…" : "Зберегти"}
         </button>
       </div>
@@ -171,8 +170,9 @@ export function DashboardEditor({
             <div>
               <h2 className="font-semibold text-amber-100">Dashboard змінено іншим оператором</h2>
               <p className="mt-1 text-sm leading-6 text-amber-100/70">
-                Ваші незбережені зміни залишилися в редакторі. Очікувана версія: {conflict.expectedVersion ?? "—"},
-                серверна: {conflict.actualVersion ?? conflict.server?.value.version ?? "—"}.
+                Ваші незбережені зміни залишилися в редакторі. Очікувана версія:{" "}
+                {conflict.expectedVersion ?? "—"}, серверна:{" "}
+                {conflict.actualVersion ?? conflict.server?.value.version ?? "—"}.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
@@ -197,7 +197,10 @@ export function DashboardEditor({
       ) : null}
 
       {saveError ? (
-        <div className="rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100" role="alert">
+        <div
+          className="rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100"
+          role="alert"
+        >
           {saveError.message}
         </div>
       ) : null}
@@ -222,7 +225,9 @@ export function DashboardEditor({
                   value={draft.description}
                   maxLength={1024}
                   rows={3}
-                  onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, description: event.target.value }))
+                  }
                   className="rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
                 />
               </label>
@@ -278,7 +283,10 @@ export function DashboardEditor({
               {validation.valid ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-300" aria-label="Конфігурація валідна" />
               ) : (
-                <AlertTriangle className="h-5 w-5 text-amber-300" aria-label="Конфігурація потребує виправлення" />
+                <AlertTriangle
+                  className="h-5 w-5 text-amber-300"
+                  aria-label="Конфігурація потребує виправлення"
+                />
               )}
             </div>
 
@@ -293,16 +301,22 @@ export function DashboardEditor({
               {draft.items.map((item, index) => {
                 const available = availableKeys.has(dashboardItemIdentity(item));
                 return (
-                  <li key={`${dashboardItemIdentity(item)}-${index}`} className="rounded-2xl border border-white/[0.07] bg-[#06142a]/75 p-3">
+                  <li
+                    key={`${dashboardItemIdentity(item)}-${index}`}
+                    className="rounded-2xl border border-white/[0.07] bg-[#06142a]/75 p-3"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-100">
                           {item.channel_id} · {item.metric}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {item.node_id ?? "node невідомий"} · {item.equipment_id ?? "equipment невідоме"} · {item.native_unit}
+                          {item.node_id ?? "node невідомий"} · {item.equipment_id ?? "equipment невідоме"} ·{" "}
+                          {item.native_unit}
                         </p>
-                        <p className={`mt-1 text-[11px] ${available ? "text-emerald-300" : "text-amber-300"}`}>
+                        <p
+                          className={`mt-1 text-[11px] ${available ? "text-emerald-300" : "text-amber-300"}`}
+                        >
                           {available ? "Доступний у latest inventory" : "Потребує серверної перевірки"}
                         </p>
                       </div>
@@ -327,7 +341,8 @@ export function DashboardEditor({
                                 itemIndex === index
                                   ? {
                                       ...currentItem,
-                                      visualization: event.target.value as LiveDashboardDraft["items"][number]["visualization"],
+                                      visualization: event.target
+                                        .value as LiveDashboardDraft["items"][number]["visualization"],
                                     }
                                   : currentItem,
                               ),
@@ -351,7 +366,9 @@ export function DashboardEditor({
                             setDraft((current) => ({
                               ...current,
                               items: current.items.map((currentItem, itemIndex) =>
-                                itemIndex === index ? { ...currentItem, color: event.target.value.toUpperCase() } : currentItem,
+                                itemIndex === index
+                                  ? { ...currentItem, color: event.target.value.toUpperCase() }
+                                  : currentItem,
                               ),
                             }))
                           }
@@ -413,7 +430,10 @@ export function DashboardEditor({
               onClick={inventory.retry}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm text-slate-300 hover:border-cyan-300/30"
             >
-              <RefreshCw className={`h-4 w-4 ${inventory.status === "loading" ? "animate-spin" : ""}`} aria-hidden="true" />
+              <RefreshCw
+                className={`h-4 w-4 ${inventory.status === "loading" ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
               Оновити inventory
             </button>
           </div>
@@ -422,7 +442,10 @@ export function DashboardEditor({
             <label className="grid gap-1.5 text-xs font-medium text-slate-400 md:col-span-2 xl:col-span-3">
               Пошук
               <span className="relative block">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
+                  aria-hidden="true"
+                />
                 <input
                   type="search"
                   value={filters.search}
@@ -432,9 +455,24 @@ export function DashboardEditor({
                 />
               </span>
             </label>
-            <SelectFilter label="Node" value={filters.node_id} values={nodeOptions} onChange={(value) => updateFilter("node_id", value)} />
-            <SelectFilter label="Equipment" value={filters.equipment_id} values={equipmentOptions} onChange={(value) => updateFilter("equipment_id", value)} />
-            <SelectFilter label="Metric" value={filters.metric} values={metricOptions} onChange={(value) => updateFilter("metric", value)} />
+            <SelectFilter
+              label="Node"
+              value={filters.node_id}
+              values={nodeOptions}
+              onChange={(value) => updateFilter("node_id", value)}
+            />
+            <SelectFilter
+              label="Equipment"
+              value={filters.equipment_id}
+              values={equipmentOptions}
+              onChange={(value) => updateFilter("equipment_id", value)}
+            />
+            <SelectFilter
+              label="Metric"
+              value={filters.metric}
+              values={metricOptions}
+              onChange={(value) => updateFilter("metric", value)}
+            />
             <label className="grid gap-1.5 text-xs font-medium text-slate-400">
               Якість latest
               <select
@@ -442,13 +480,7 @@ export function DashboardEditor({
                 onChange={(event) => updateFilter("quality", event.target.value)}
                 className="h-10 rounded-xl border border-white/10 bg-[#06142a] px-3 text-sm text-slate-100"
               >
-                {[
-                  "all",
-                  "valid",
-                  "sensor_error",
-                  "communication_error",
-                  "unknown",
-                ].map((value) => (
+                {["all", "valid", "sensor_error", "communication_error", "unknown"].map((value) => (
                   <option key={value} value={value}>
                     {qualityLabel(value)}
                   </option>
@@ -501,7 +533,10 @@ export function DashboardEditor({
               {filteredInventory.map((item) => {
                 const selected = selectedKeys.has(item.key);
                 return (
-                  <article key={item.key} className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-[#06142a]/75 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <article
+                    key={item.key}
+                    className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-[#06142a]/75 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-100">
                         {item.channel_id} · {item.metric}
@@ -531,7 +566,11 @@ export function DashboardEditor({
                       }}
                       className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/15 px-3 text-sm text-cyan-100 hover:bg-cyan-400/[0.06] disabled:cursor-not-allowed disabled:border-emerald-300/10 disabled:text-emerald-300"
                     >
-                      {selected ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+                      {selected ? (
+                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      )}
                       {selected ? "Додано" : "Додати"}
                     </button>
                   </article>

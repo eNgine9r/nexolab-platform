@@ -14,10 +14,7 @@ import type {
   LiveDashboardWorkspaceMode,
 } from "@/features/live-dashboards/types";
 import { useLiveDashboardInventory } from "@/hooks/use-live-dashboard-inventory";
-import {
-  type LiveDashboardConflict,
-  useLiveDashboardLibrary,
-} from "@/hooks/use-live-dashboard-library";
+import { type LiveDashboardConflict, useLiveDashboardLibrary } from "@/hooks/use-live-dashboard-library";
 import { useLiveDashboardTelemetry } from "@/hooks/use-live-dashboard-telemetry";
 
 import { DashboardEditor } from "./dashboard-editor";
@@ -94,7 +91,9 @@ export function LiveDashboardWorkspace({
       setSaveError(null);
       setMode("editor");
     } catch (error) {
-      setOperationError(error instanceof Error ? error : new Error("Dashboard не вдалося відкрити для редагування."));
+      setOperationError(
+        error instanceof Error ? error : new Error("Dashboard не вдалося відкрити для редагування."),
+      );
     }
   };
 
@@ -148,9 +147,7 @@ export function LiveDashboardWorkspace({
 
   const archiveDashboard = async (dashboard: LiveDashboard) => {
     if (!canManage || dashboard.status !== "active") return;
-    const confirmed = window.confirm(
-      `Архівувати «${dashboard.name}»? Телеметрія та історія не видаляються.`,
-    );
+    const confirmed = window.confirm(`Архівувати «${dashboard.name}»? Телеметрія та історія не видаляються.`);
     if (!confirmed) return;
     setOperationError(null);
     try {
@@ -200,7 +197,10 @@ export function LiveDashboardWorkspace({
   return (
     <div className="space-y-4">
       {notice ? (
-        <div className="flex items-start justify-between gap-3 rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.06] p-4 text-sm text-emerald-100" role="status">
+        <div
+          className="flex items-start justify-between gap-3 rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.06] p-4 text-sm text-emerald-100"
+          role="status"
+        >
           <span className="inline-flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
             {notice}
@@ -217,7 +217,10 @@ export function LiveDashboardWorkspace({
       ) : null}
 
       {operationError ? (
-        <div className="flex items-start justify-between gap-3 rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100" role="alert">
+        <div
+          className="flex items-start justify-between gap-3 rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100"
+          role="alert"
+        >
           <span>{operationError.message}</span>
           <button
             type="button"

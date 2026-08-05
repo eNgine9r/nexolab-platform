@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Archive,
-  Copy,
-  Edit3,
-  FolderOpen,
-  LayoutDashboard,
-  Plus,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+import { Archive, Copy, Edit3, FolderOpen, LayoutDashboard, Plus, RefreshCw, Search } from "lucide-react";
 
 import type { LiveDashboard, LiveDashboardStatus } from "@/features/live-dashboards/types";
 import type { LiveDashboardLibraryStatus } from "@/hooks/use-live-dashboard-library";
@@ -65,13 +56,18 @@ export function DashboardLibrary({
     <section className="space-y-5" aria-labelledby="live-dashboard-library-title">
       <div className="flex flex-col gap-4 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5 shadow-2xl shadow-black/20 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-[0.18em] text-cyan-300 uppercase">Operator workspace</p>
-          <h1 id="live-dashboard-library-title" className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
+          <p className="text-xs font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+            Operator workspace
+          </p>
+          <h1
+            id="live-dashboard-library-title"
+            className="mt-1 text-2xl font-semibold text-white sm:text-3xl"
+          >
             Live Dashboards
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Збережені робочі екрани відкривають тільки вибрані канали. Налаштування відображення не
-            змінюють фізичне опитування обладнання.
+            Збережені робочі екрани відкривають тільки вибрані канали. Налаштування відображення не змінюють
+            фізичне опитування обладнання.
           </p>
         </div>
         {canManage ? (

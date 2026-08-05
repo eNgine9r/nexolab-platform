@@ -206,18 +206,10 @@ test("opens a persisted selected-series dashboard after service restart without 
     await expect.poll(() => sockets.maximum).toBe(1);
 
     await expect
-      .poll(() =>
-        requests.telemetry
-          .slice(telemetryBeforeOpen)
-          .some((item) => item.url.includes("/latest")),
-      )
+      .poll(() => requests.telemetry.slice(telemetryBeforeOpen).some((item) => item.url.includes("/latest")))
       .toBe(true);
     await expect
-      .poll(() =>
-        requests.telemetry
-          .slice(telemetryBeforeOpen)
-          .some((item) => item.url.includes("/history")),
-      )
+      .poll(() => requests.telemetry.slice(telemetryBeforeOpen).some((item) => item.url.includes("/history")))
       .toBe(true);
     const selectedRequests = requests.telemetry.slice(telemetryBeforeOpen);
     expect(

@@ -52,11 +52,12 @@ const write: LiveDashboardWrite = {
 
 describe("LiveDashboardApiClient", () => {
   it("parses the persisted library collection", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({ items: [dashboard], total: 1, limit: 100, offset: 0, has_more: false }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ items: [dashboard], total: 1, limit: 100, offset: 0, has_more: false }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
     const client = new LiveDashboardApiClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 
@@ -87,18 +88,19 @@ describe("LiveDashboardApiClient", () => {
   });
 
   it("surfaces stale-writer versions without converting the conflict into generic failure", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          detail: {
-            code: "live_dashboard_version_conflict",
-            message: "expected 3, actual 4",
-            expected_version: 3,
-            actual_version: 4,
-          },
-        }),
-        { status: 409, headers: { "Content-Type": "application/json" } },
-      ),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            detail: {
+              code: "live_dashboard_version_conflict",
+              message: "expected 3, actual 4",
+              expected_version: 3,
+              actual_version: 4,
+            },
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } },
+        ),
     );
     const client = new LiveDashboardApiClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 

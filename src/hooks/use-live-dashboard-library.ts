@@ -7,11 +7,7 @@ import {
   LiveDashboardClientError,
   type LiveDashboardApiClient,
 } from "@/features/live-dashboards/api-client";
-import {
-  draftToWrite,
-  duplicateDashboardDraft,
-  liveDashboardEtag,
-} from "@/features/live-dashboards/model";
+import { draftToWrite, duplicateDashboardDraft, liveDashboardEtag } from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
   LiveDashboardDraft,
@@ -52,7 +48,9 @@ interface ClientResult {
 
 function upsertDashboard(current: LiveDashboard[], dashboard: LiveDashboard): LiveDashboard[] {
   const without = current.filter((item) => item.id !== dashboard.id);
-  return [dashboard, ...without].sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at));
+  return [dashboard, ...without].sort(
+    (left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at),
+  );
 }
 
 function classifyStatus(error: unknown): LiveDashboardLibraryStatus {
@@ -79,10 +77,7 @@ export function useLiveDashboardLibrary({
     } catch (nextError) {
       return {
         client: null,
-        error:
-          nextError instanceof Error
-            ? nextError
-            : new Error("Live Dashboard API configuration failed."),
+        error: nextError instanceof Error ? nextError : new Error("Live Dashboard API configuration failed."),
       };
     }
   }, [enabled, organizationId]);

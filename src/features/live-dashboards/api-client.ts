@@ -53,7 +53,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function stringValue(value: unknown, field: string): string {
-  if (typeof value !== "string") throw new LiveDashboardClientError(`${field} is invalid.`, undefined, "contract");
+  if (typeof value !== "string")
+    throw new LiveDashboardClientError(`${field} is invalid.`, undefined, "contract");
   return value;
 }
 
@@ -70,7 +71,8 @@ function numberValue(value: unknown, field: string): number {
 }
 
 function booleanValue(value: unknown, field: string): boolean {
-  if (typeof value !== "boolean") throw new LiveDashboardClientError(`${field} is invalid.`, undefined, "contract");
+  if (typeof value !== "boolean")
+    throw new LiveDashboardClientError(`${field} is invalid.`, undefined, "contract");
   return value;
 }
 
@@ -85,7 +87,8 @@ function statusValue(value: unknown): LiveDashboardStatus {
 }
 
 function parseItem(value: unknown): LiveDashboardItem {
-  if (!isRecord(value)) throw new LiveDashboardClientError("Dashboard item is invalid.", undefined, "contract");
+  if (!isRecord(value))
+    throw new LiveDashboardClientError("Dashboard item is invalid.", undefined, "contract");
   return {
     id: stringValue(value.id, "Dashboard item id"),
     position: numberValue(value.position, "Dashboard item position"),
@@ -100,7 +103,8 @@ function parseItem(value: unknown): LiveDashboardItem {
 }
 
 export function parseLiveDashboard(value: unknown): LiveDashboard {
-  if (!isRecord(value)) throw new LiveDashboardClientError("Dashboard response is invalid.", undefined, "contract");
+  if (!isRecord(value))
+    throw new LiveDashboardClientError("Dashboard response is invalid.", undefined, "contract");
   if (!Array.isArray(value.items)) {
     throw new LiveDashboardClientError("Dashboard items are invalid.", undefined, "contract");
   }
@@ -153,7 +157,10 @@ function withQuery(path: string, query: LiveDashboardListQuery): string {
   return `${path}?${params.toString()}`;
 }
 
-function errorDetail(body: unknown, fallback: string): {
+function errorDetail(
+  body: unknown,
+  fallback: string,
+): {
   message: string;
   code: string;
   expectedVersion: number | null;

@@ -135,7 +135,10 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
         </div>
         <div className="flex flex-wrap gap-2" aria-label={`Легенда графіка ${unit}`}>
           {series.map((item) => (
-            <span key={item.item.id} className="inline-flex items-center gap-2 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-slate-300">
+            <span
+              key={item.item.id}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-slate-300"
+            >
               <span
                 className="h-2.5 w-2.5 rounded-full border border-white/20"
                 style={{ backgroundColor: item.item.color ?? "#00C6E0" }}
@@ -164,7 +167,13 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
               const value = maximum - ratio * valueRange;
               return (
                 <g key={ratio}>
-                  <line x1={padding.left} x2={width - padding.right} y1={gridY} y2={gridY} stroke="rgba(148,163,184,0.12)" />
+                  <line
+                    x1={padding.left}
+                    x2={width - padding.right}
+                    y1={gridY}
+                    y2={gridY}
+                    stroke="rgba(148,163,184,0.12)"
+                  />
                   <text x={padding.left - 10} y={gridY + 4} textAnchor="end" fill="#64748b" fontSize="11">
                     {new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 2 }).format(value)}
                   </text>
@@ -198,7 +207,13 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
                 </g>
               );
             })}
-            <line x1={padding.left} x2={width - padding.right} y1={padding.top + plotHeight} y2={padding.top + plotHeight} stroke="rgba(148,163,184,0.3)" />
+            <line
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={padding.top + plotHeight}
+              y2={padding.top + plotHeight}
+              stroke="rgba(148,163,184,0.3)"
+            />
             <text x={padding.left} y={height - 12} fill="#64748b" fontSize="11">
               {formatTimestamp(new Date(from).toISOString())}
             </text>
@@ -266,8 +281,8 @@ export function DashboardLiveView({
               {dashboard.description ?? "Збережений channel-scoped operator workspace."}
             </p>
             <p className="mt-2 text-xs text-slate-500">
-              {dashboard.items.length} series · {dashboard.time_window} · display refresh {dashboard.refresh_seconds} с ·
-              latest {formatTimestamp(telemetry.lastCapturedAt)}
+              {dashboard.items.length} series · {dashboard.time_window} · display refresh{" "}
+              {dashboard.refresh_seconds} с · latest {formatTimestamp(telemetry.lastCapturedAt)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -294,7 +309,10 @@ export function DashboardLiveView({
       </div>
 
       <div className={`flex items-start gap-3 rounded-2xl border p-4 ${status.classes}`} role="status">
-        <StatusIcon className={`mt-0.5 h-5 w-5 shrink-0 ${telemetry.status === "connecting" ? "animate-pulse" : ""}`} aria-hidden="true" />
+        <StatusIcon
+          className={`mt-0.5 h-5 w-5 shrink-0 ${telemetry.status === "connecting" ? "animate-pulse" : ""}`}
+          aria-hidden="true"
+        />
         <div>
           <p className="font-semibold">{status.label}</p>
           <p className="mt-1 text-sm opacity-75">{status.detail}</p>
@@ -315,7 +333,10 @@ export function DashboardLiveView({
       {valueSeries.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {valueSeries.map((item) => (
-            <article key={item.item.id} className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5">
+            <article
+              key={item.item.id}
+              className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5"
+            >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
                   {item.item.visualization === "gauge" ? "Gauge value" : "Current value"}
@@ -326,12 +347,19 @@ export function DashboardLiveView({
                   aria-hidden="true"
                 />
               </div>
-              <h2 className="mt-3 truncate text-sm font-medium text-slate-300" title={`${item.item.channel_id} ${item.item.metric}`}>
+              <h2
+                className="mt-3 truncate text-sm font-medium text-slate-300"
+                title={`${item.item.channel_id} ${item.item.metric}`}
+              >
                 {item.item.channel_id} · {item.item.metric}
               </h2>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{formatValue(item.latest)}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                {formatValue(item.latest)}
+              </p>
               <p className="mt-3 text-xs text-slate-500">{seriesState(item)}</p>
-              <p className="mt-1 text-xs text-slate-600">{formatTimestamp(item.latest?.captured_at ?? null)}</p>
+              <p className="mt-1 text-xs text-slate-600">
+                {formatTimestamp(item.latest?.captured_at ?? null)}
+              </p>
               {item.item.visualization === "gauge" ? (
                 <p className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/70 p-2 text-[11px] leading-4 text-slate-500">
                   Межі gauge не зберігаються доменом; значення показано без вигаданого діапазону.
@@ -349,7 +377,9 @@ export function DashboardLiveView({
       <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90">
         <div className="border-b border-white/[0.07] px-5 py-4">
           <h2 className="text-lg font-semibold text-white">Latest selected channels</h2>
-          <p className="mt-1 text-xs text-slate-500">Кожен рядок відповідає збереженому item; універсальний inventory не запитується.</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Кожен рядок відповідає збереженому item; універсальний inventory не запитується.
+          </p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -369,7 +399,9 @@ export function DashboardLiveView({
                   <td className="px-5 py-3">{item.item.metric}</td>
                   <td className="px-5 py-3 font-semibold text-white">{formatValue(item.latest)}</td>
                   <td className="px-5 py-3">{seriesState(item)}</td>
-                  <td className="px-5 py-3 text-slate-500">{formatTimestamp(item.latest?.captured_at ?? null)}</td>
+                  <td className="px-5 py-3 text-slate-500">
+                    {formatTimestamp(item.latest?.captured_at ?? null)}
+                  </td>
                 </tr>
               ))}
             </tbody>

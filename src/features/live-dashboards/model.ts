@@ -43,7 +43,10 @@ export function createEmptyLiveDashboardDraft(): LiveDashboardDraft {
   };
 }
 
-export function dashboardToDraft(dashboard: LiveDashboard, etag = liveDashboardEtag(dashboard.version)): LiveDashboardDraft {
+export function dashboardToDraft(
+  dashboard: LiveDashboard,
+  etag = liveDashboardEtag(dashboard.version),
+): LiveDashboardDraft {
   return {
     id: dashboard.id,
     name: dashboard.name,
