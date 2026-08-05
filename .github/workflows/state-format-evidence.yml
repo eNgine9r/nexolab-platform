@@ -1,0 +1,28 @@
+name: State Format Evidence
+
+on:
+  push:
+    branches:
+      - chore/275-post-cameras-state
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - run: npx prettier --write .project/ACTIVE_SPRINT.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: formatted-active-sprint
+          path: .project/ACTIVE_SPRINT.json
+          retention-days: 1
