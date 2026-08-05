@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_SUFFIX="$(date -u +%Y%mdt%H%M%Sz)-$$"
+RUN_SUFFIX="$(date -u +%Y%m%dt%H%M%Sz)-$$"
 NETWORK_NAME="nexolab-local-auth-migration-$RUN_SUFFIX"
 POSTGRES_CONTAINER="nexolab-local-auth-migration-postgres-$RUN_SUFFIX"
 TELEMETRY_IMAGE="nexolab-telemetry-service:local-auth-migration-$RUN_SUFFIX"
