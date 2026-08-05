@@ -202,11 +202,15 @@ export function DashboardShell() {
               >
                 <SessionsPanel />
               </Panel>
-              <Panel title="Схема лабораторії · demo layout" className="xl:col-span-5">
-                <LabMap />
+              <Panel
+                title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
+                action={<PanelAction label="Всі схеми" href="/equipment-layouts" />}
+                className="xl:col-span-5"
+              >
+                <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
               </Panel>
               <Panel
-                title="Камери · demo preview"
+                title="Камери"
                 action={<PanelAction label="Всі камери" href="/cameras" />}
                 className="xl:col-span-3"
               >
