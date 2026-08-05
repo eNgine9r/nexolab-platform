@@ -18,6 +18,8 @@ export interface LiveDashboardInventoryModel {
   retry: () => void;
 }
 
+const DEFAULT_SCOPE = "__default_organization__";
+
 export function useLiveDashboardInventory({
   enabled,
   organizationId,
@@ -25,23 +27,28 @@ export function useLiveDashboardInventory({
   enabled: boolean;
   organizationId: string | null;
 }): LiveDashboardInventoryModel {
+  const scopeKey = enabled ? (organizationId ?? DEFAULT_SCOPE) : null;
+  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [items, setItems] = useState<LiveDashboardInventoryItem[]>([]);
   const [status, setStatus] = useState<LiveDashboardInventoryStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
   const [generation, setGeneration] = useState(0);
 
-  const retry = useCallback(() => setGeneration((value) => value + 1), []);
+  const retry = useCallback(() => {
+    if (enabled) setGeneration((value) => value + 1);
+  }, [enabled]);
 
   useEffect(() => {
-    if (!enabled) {
-      setStatus("idle");
-      setError(null);
-      return;
-    }
+    if (!enabled || scopeKey === null) return;
 
     const controller = new AbortController();
-    setStatus("loading");
-    setError(null);
+    void Promise.resolve().then(() => {
+      if (controller.signal.aborted) return;
+      setActiveScopeKey(scopeKey);
+      setStatus("loading");
+      setError(null);
+    });
+
     try {
       const config = getTelemetryRuntimeConfig();
       if (config.mode !== "live" || !config.apiBaseUrl) {
@@ -59,16 +66,33 @@ export function useLiveDashboardInventory({
         })
         .catch((nextError: unknown) => {
           if (controller.signal.aborted) return;
-          setError(nextError instanceof Error ? nextError : new Error("Channel inventory failed to load."));
+          setError(
+            nextError instanceof Error
+              ? nextError
+              : new Error("Channel inventory failed to load."),
+          );
           setStatus("error");
         });
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError : new Error("Channel inventory configuration failed."));
-      setStatus("error");
+      void Promise.resolve().then(() => {
+        if (controller.signal.aborted) return;
+        setError(
+          nextError instanceof Error
+            ? nextError
+            : new Error("Channel inventory configuration failed."),
+        );
+        setStatus("error");
+      });
     }
 
     return () => controller.abort();
-  }, [enabled, generation, organizationId]);
+  }, [enabled, generation, organizationId, scopeKey]);
 
-  return { items, status, error, retry };
+  const visible = enabled && scopeKey !== null && activeScopeKey === scopeKey;
+  return {
+    items: visible ? items : [],
+    status: visible ? status : enabled ? "loading" : "idle",
+    error: visible ? error : null,
+    retry,
+  };
 }
