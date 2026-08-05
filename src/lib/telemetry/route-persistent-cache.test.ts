@@ -60,7 +60,9 @@ describe("route-persistent latest cache coverage", () => {
       },
     );
 
-    expect(client.readCachedLatest({ node_id: "edge-01", metric: "energy.active_power", limit: 1000 })).toEqual({
+    expect(
+      client.readCachedLatest({ node_id: "edge-01", metric: "energy.active_power", limit: 1000 }),
+    ).toEqual({
       items: [energy],
       count: 1,
       limit: 1000,
