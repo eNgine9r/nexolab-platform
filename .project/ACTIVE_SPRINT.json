@@ -20,29 +20,40 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-318",
-      "issue": 318,
-      "title": "Reconcile project state after telemetry route-persistence merges",
+      "id": "NEXOLAB-321",
+      "issue": 321,
+      "title": "Reconcile project state after Live Dashboard workspace merge",
       "status": "in_progress",
-      "depends_on": [314, 316],
+      "depends_on": [288],
       "scope": "state_only"
-    },
-    {
-      "id": "NEXOLAB-288",
-      "issue": 288,
-      "parent_issue": 282,
-      "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
-      "status": "ready",
-      "depends_on": [286, 287, 314, 316],
-      "product_outcome": "Operators can create, edit, duplicate, archive and open reusable Live Dashboards that request only their selected persisted telemetry series without changing physical acquisition."
     },
     {
       "id": "NEXOLAB-289",
       "issue": 289,
       "parent_issue": 282,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "blocked_by_dependency",
-      "depends_on": [288]
+      "status": "ready",
+      "depends_on": [283, 284, 285, 286, 287, 314, 316, 288],
+      "completion_classification": "software_verified_hardware_performance_acceptance_pending"
+    },
+    {
+      "id": "NEXOLAB-288",
+      "issue": 288,
+      "pull_request": 320,
+      "parent_issue": 282,
+      "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
+      "status": "completed",
+      "verified_head_sha": "091b1698ff4005164e7409fb38af475128160f73",
+      "merge_sha": "d7affee11a39d5a007c461b9a4dea17f14b5bfb3"
+    },
+    {
+      "id": "NEXOLAB-318",
+      "issue": 318,
+      "pull_request": 319,
+      "title": "Reconcile project state after telemetry route-persistence merges",
+      "status": "completed",
+      "merge_sha": "3240ab7549d6123316f243b50d508622cc24ee09",
+      "scope": "state_only"
     },
     {
       "id": "NEXOLAB-316",
@@ -133,7 +144,11 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
+      "depends_on": [
+        "concrete locker inventory",
+        "read-only protocol scope",
+        "defined operator workflow"
+      ]
     },
     {
       "id": "NEXOLAB-204",
