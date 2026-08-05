@@ -3,72 +3,71 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-269",
-  "issue": 269,
+  "task": "NEXOLAB-273",
+  "issue": 273,
   "parent_issue": 260,
-  "pull_request": 270,
-  "status": "ready_audit",
-  "timestamp": "2026-08-05T00:57:00+03:00",
-  "branch": "feat/269-operator-safe-settings",
-  "route": "/settings",
-  "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
-  "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
-  "summary": "Issue #269 replaces the Settings placeholder with an authenticated operator-safe workspace composed from the existing security-session and client-safe runtime contracts. It provides sanitized runtime diagnostics, explicit configuration states, versioned browser-local presentation preferences and canonical navigation without secrets, backend mutation APIs, hardware writes or production cutover.",
-  "verified_scope": [
-    "authenticated identity, organization, roles and effective permissions",
-    "sanitized API, WebSocket and browser-origin diagnostics",
-    "LOCAL_LAN, data-mode and auth-provider visibility",
-    "ready, incomplete and unsafe configuration states",
-    "versioned validated browser-local preferences",
-    "malformed preference recovery, persistence and reset",
-    "canonical navigation to existing operator workflows",
-    "explicit unsupported-configuration boundary",
-    "zero backend mutation requests from focused Settings acceptance"
-  ],
-  "verification": {
-    "ci": {
-      "run_id": 30953948950,
-      "conclusion": "success"
+  "status": "ready_for_implementation",
+  "timestamp": "2026-08-05T06:24:00+03:00",
+  "branch": "feat/273-local-cameras-workspace",
+  "route": "/cameras",
+  "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+  "previous_task": {
+    "issue": 269,
+    "pull_request": 270,
+    "status": "merged",
+    "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
+    "verified_state_head_sha": "9e6894c6c8011bc4fa906ec1137b6f4336a0f5a8",
+    "merge_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+    "state_head_runs": {
+      "ci": 30954817522,
+      "authenticated_dashboard": 30954817524,
+      "refrigeration_browser": 30954817521,
+      "offline_bundle": 30954817525
     },
-    "authenticated_dashboard": {
-      "run_id": 30953948970,
-      "conclusion": "success"
-    },
-    "refrigeration_browser": {
-      "run_id": 30953948956,
-      "conclusion": "success"
-    },
-    "offline_bundle": {
-      "run_id": 30953948928,
-      "conclusion": "success",
-      "evidence": [
-        "linux/amd64 bundle built",
-        "clean transferred host simulated",
-        "runtime images removed before load",
-        "container egress blocked",
-        "disconnected stack started with pull disabled",
-        "update and rollback preserved persistent data",
-        "final disconnected evidence captured"
-      ]
+    "review_audit": {
+      "inline_threads": 0,
+      "submitted_reviews": 0,
+      "focused_files": 15
     }
   },
-  "review_audit": {
-    "inline_threads": 0,
-    "submitted_reviews": 0,
-    "focused_source_files": 13,
-    "secret_exposure_observed": false,
-    "backend_mutations_observed": 0,
-    "dependency_or_lockfile_change": false,
-    "backend_schema_change": false,
-    "hardware_or_modbus_write": false
+  "summary": "Issue #273 replaces the Cameras placeholder and fabricated Overview LIVE scenes with a truthful authenticated local-first camera inventory and readiness workspace. The slice will expose only validated browser-safe metadata and explicit availability states without credentials, unsupported RTSP playback claims, camera mutations, cloud requirements or physical acceptance claims.",
+  "repository_inventory": {
+    "placeholder_route_confirmed": true,
+    "hardcoded_overview_live_scenes_confirmed": true,
+    "camera_inventory_api_available": false,
+    "camera_table_available": false,
+    "onvif_discovery_available": false,
+    "snapshot_proxy_available": false,
+    "browser_media_gateway_available": false,
+    "physical_camera_inventory_verified": false
   },
+  "planned_scope": [
+    "typed validated camera read model",
+    "sanitized local endpoint metadata",
+    "unconfigured, configured-unverified, online, offline, unavailable and invalid states",
+    "authenticated cameras workspace with deterministic search and bounded filters",
+    "truthful Overview integration without fabricated LIVE evidence",
+    "explicit unsupported media and hardware boundary",
+    "focused tests and authenticated browser acceptance with zero mutations",
+    "disconnected Offline Bundle regression"
+  ],
+  "guardrails": [
+    "no camera credentials or raw RTSP URI in client-visible state",
+    "no fabricated LIVE status",
+    "no recording, archive, PTZ, microphone or speaker control",
+    "no camera CRUD, provisioning, secret rotation or hardware write",
+    "no mandatory cloud, CDN, telemetry or paid runtime service",
+    "no ONVIF or media gateway claim without implementation evidence",
+    "no dependency migration or unrelated refactor",
+    "no production or site cutover"
+  ],
   "hardware_evidence": {
-    "software_verified": true,
-    "hardware_verified": false,
-    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
+    "software_inventory_verified": true,
+    "camera_hardware_verified": false,
+    "note": "Physical cameras, ONVIF, RTSP media, NVR and LAN/VPN access remain unverified."
   },
   "next_ready_work_package_step": {
-    "issue": 269,
-    "instruction": "Validate the state-only head against verified source head, repeat final review and focused-diff audit, update PR #270 summary and mark Ready without merge."
+    "issue": 273,
+    "instruction": "Open one focused draft Pull Request, implement the typed camera domain and focused tests, then replace the /cameras placeholder and fabricated Overview LIVE panel."
   }
 }
