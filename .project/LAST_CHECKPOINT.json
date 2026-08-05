@@ -41,50 +41,21 @@
     "canonical_channel_validation": "active_measurement_catalog",
     "metric_validation": "exact_canonical_metric",
     "display_unit_policy": "native_unit_only_until_explicit_conversion_support",
-    "lifecycle": [
-      "active",
-      "archived"
-    ],
+    "lifecycle": ["active", "archived"],
     "hard_delete_exposed": false,
     "telemetry_preserved_on_archive": true
   },
   "api_evidence": {
     "base_path": "/api/v1/live-dashboards",
-    "operations": [
-      "list",
-      "create",
-      "read",
-      "update",
-      "archive"
-    ],
+    "operations": ["list", "create", "read", "update", "archive"],
     "etag_format": "W/\"live-dashboard-vN\"",
-    "if_match_required_for": [
-      "update",
-      "archive"
-    ],
+    "if_match_required_for": ["update", "archive"],
     "stale_writer_status": 409,
     "missing_precondition_status": 428,
     "maximum_page_size": 100,
     "maximum_offset": 10000,
-    "refresh_seconds": [
-      1,
-      2,
-      5,
-      10,
-      15,
-      30,
-      60
-    ],
-    "time_windows": [
-      "5m",
-      "15m",
-      "30m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "7d"
-    ]
+    "refresh_seconds": [1, 2, 5, 10, 15, 30, 60],
+    "time_windows": ["5m", "15m", "30m", "1h", "6h", "12h", "24h", "7d"]
   },
   "authorization_and_audit_evidence": {
     "mutation_permission": "live_dashboards.manage",
@@ -94,10 +65,7 @@
       "engineer",
       "operator"
     ],
-    "read_only_roles": [
-      "viewer",
-      "auditor"
-    ],
+    "read_only_roles": ["viewer", "auditor"],
     "audit_actions": [
       "live_dashboard.created",
       "live_dashboard.updated",
@@ -154,10 +122,7 @@
     "issue": 282,
     "title": "Performance and data acquisition optimization",
     "status": "active",
-    "remaining_ordered_work_packages": [
-      288,
-      289
-    ]
+    "remaining_ordered_work_packages": [288, 289]
   },
   "next_ready_work_package": {
     "issue": 288,
