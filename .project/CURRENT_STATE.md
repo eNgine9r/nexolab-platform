@@ -1,15 +1,16 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-05
-Verified main baseline: `93e865efdadcd1f63a0c31733b98e13f8b6eb4c1`
-Active Work Package: Issue #275 — post-Cameras project-state reconciliation
-Branch: `chore/275-post-cameras-state`
-Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for merged software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
+Verified main baseline: `68c443ff9e8aeff2cdb1384ecdb90daf85baceba`
+Active Work Package: Issue #277 — cross-page operator consistency and completeness audit
+Branch: `quality/277-cross-page-consistency-audit`
+Pull Request: #278
+Status: implementation and exact-source verification complete; PR prepared for final Ready transition without merge.
+Status confidence: high for software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
 
 ## Product route status
 
-Implemented on merged `main`:
+Implemented routes reviewed under Issue #277:
 
 - `/` — Overview dashboard;
 - `/nodes` — Nodes;
@@ -22,40 +23,35 @@ Implemented on merged `main`:
 - `/equipment-layouts` — layouts catalog;
 - `/equipment` — equipment and metrology registry;
 - `/settings` — operator-safe Settings workspace;
-- `/cameras` — authenticated truthful local camera readiness workspace.
+- `/cameras` — truthful local camera readiness workspace.
 
-Remaining primary placeholder/blocker:
+Remaining approved blocked route:
 
-- `/lockers` — blocked pending concrete locker inventory, read-only protocol and operator workflow. No implementation may invent production locker behavior or expose write controls.
+- `/lockers` — blocked pending concrete locker inventory, read-only protocol and operator workflow. No production behavior or write controls may be invented.
 
-## Cameras merge outcome
+## Issue #277 outcome
 
-Issue #273 / PR #274 was squash-merged as `93e865efdadcd1f63a0c31733b98e13f8b6eb4c1`.
+The evidence-backed audit was committed before product-code corrections in `docs/audits/ISSUE_277_CROSS_PAGE_AUDIT.md`.
 
-Verified source head `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b` and state head `adc6dec1eefe043da2813b7c59be6d39aa1e1aa6` delivered:
+Verified corrections on source head `4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa`:
 
-- typed bounded camera records and explicit availability states;
-- local endpoint sanitization without credentials, query strings or public hosts;
-- authenticated `/cameras` shell with deterministic search and filters;
-- truthful `unconfigured` production state until a real safe inventory exists;
-- removal of fabricated Overview `LIVE` scenes;
-- zero non-GET camera requests in focused acceptance;
-- no dependency, backend schema, camera write, Modbus write or production cutover.
+- removed fabricated Sidebar claims for global service health, LAN online state and cloud synchronization;
+- made current pathname the single source of truth for active navigation and `aria-current="page"`;
+- replaced Overview pseudo-buttons with canonical internal links to Nodes, Alerts, Sessions and Cameras;
+- removed the unsupported `Лабораторія 1` pseudo-action;
+- added a truthful LOCAL_LAN profile region and semantic accessibility landmark;
+- narrowed Settings browser acceptance to its runtime configuration region after the shared truthful LOCAL_LAN label became legitimate;
+- preserved `/lockers`, backend contracts, dependencies, hardware and deployment boundaries.
 
-State-head verification:
+Exact-source verification:
 
-- CI `30973948934` GREEN;
-- Authenticated Dashboard Acceptance `30973948889` GREEN;
-- Refrigeration Browser Acceptance `30973948945` GREEN;
-- Offline Bundle `30973948909` GREEN;
-- inline review threads: zero;
-- submitted reviews: zero.
-
-## Parent Issue #260 reassessment
-
-Issue #260 remains open. Six queued placeholder page Work Packages are complete and merged. The only remaining placeholder route is `/lockers`, which is an approved blocked state because the repository has no concrete locker inventory or read-only protocol scope.
-
-The next independent product action under #260 is a focused cross-page consistency/completeness review. Smart Lockers must remain blocked until the Product Owner supplies concrete inventory, protocol and operator outcome.
+- CI `30977006748` GREEN;
+- Authenticated Dashboard Acceptance `30977006760` GREEN;
+- Nodes Browser Acceptance `30977006754` GREEN;
+- Alerts Browser Acceptance `30977006749` GREEN;
+- Reports Browser Acceptance `30977006747` GREEN;
+- Refrigeration Browser Acceptance `30977006752` GREEN;
+- Offline Bundle `30977006753` GREEN, including disconnected startup and update/rollback persistent-data preservation.
 
 ## Runtime and hardware evidence
 
@@ -65,4 +61,4 @@ software verified; authenticated browser verified; disconnected bundle update/ro
 
 ## Next action
 
-Validate and merge the control-only Issue #275 PR after confirming its diff contains exactly four `.project/**` files and CI is GREEN. Then create the focused cross-page consistency review Work Package under Issue #260; do not start `/lockers` implementation without concrete scope.
+Validate that the final head adds only the four `.project/**` checkpoint files after source head `4a86247f…`, audit the complete focused diff and reviews, update PR #278 summary, then mark PR #278 Ready for review without merge.
