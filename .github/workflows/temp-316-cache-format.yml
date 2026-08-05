@@ -1,0 +1,32 @@
+name: Temporary Issue 316 Cache Formatter
+
+on:
+  push:
+    branches:
+      - fix/316-complete-telemetry-acceptance
+    paths:
+      - src/lib/telemetry/route-persistent-client.ts
+      - src/lib/telemetry/route-persistent-cache.test.ts
+      - .github/workflows/temp-316-cache-format.yml
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write src/lib/telemetry/route-persistent-client.ts src/lib/telemetry/route-persistent-cache.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue-316-cache-formatted-${{ github.sha }}
+          path: |
+            src/lib/telemetry/route-persistent-client.ts
+            src/lib/telemetry/route-persistent-cache.test.ts
+          retention-days: 1
