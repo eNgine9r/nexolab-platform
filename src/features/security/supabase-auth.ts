@@ -11,6 +11,7 @@ const ACCEPTANCE_TOKEN_KEY = "nexolab.acceptance.access-token";
 const ACCEPTANCE_ORGANIZATION_KEY = "nexolab.acceptance.organization-id";
 
 let client: SupabaseClient | null | undefined;
+const runtimeCredentialProviders = new Map<string, SecurityCredentialProvider>();
 
 export type SupabaseAuthResult = { ok: true } | { ok: false; message: string };
 
@@ -46,20 +47,31 @@ export function getSupabaseAuthClient(): SupabaseClient | null {
 }
 
 export function createRuntimeCredentialProvider(organizationId: string | null): SecurityCredentialProvider {
-  if (process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER === "acceptance") {
-    return async (): Promise<SecurityCredentialSnapshot> => {
-      if (typeof window === "undefined") {
-        return { accessToken: null, organizationId };
-      }
-      const snapshot = {
-        accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
-        organizationId: window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? organizationId,
-      };
-      setSecurityCredentials(snapshot);
-      return snapshot;
-    };
-  }
-  return createSupabaseCredentialProvider(organizationId);
+  const resolvedOrganizationId =
+    organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
+  const providerKind = process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER ?? "supabase";
+  const cacheKey = `${providerKind}:${resolvedOrganizationId ?? "__default_organization__"}`;
+  const cached = runtimeCredentialProviders.get(cacheKey);
+  if (cached) return cached;
+
+  const provider =
+    providerKind === "acceptance"
+      ? async (): Promise<SecurityCredentialSnapshot> => {
+          if (typeof window === "undefined") {
+            return { accessToken: null, organizationId: resolvedOrganizationId };
+          }
+          const snapshot = {
+            accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
+            organizationId:
+              window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? resolvedOrganizationId,
+          };
+          setSecurityCredentials(snapshot);
+          return snapshot;
+        }
+      : createSupabaseCredentialProvider(resolvedOrganizationId);
+
+  runtimeCredentialProviders.set(cacheKey, provider);
+  return provider;
 }
 
 export function createSupabaseCredentialProvider(organizationId: string | null): SecurityCredentialProvider {

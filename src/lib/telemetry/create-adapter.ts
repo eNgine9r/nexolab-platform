@@ -2,13 +2,14 @@ import { DemoTelemetryAdapter } from "./demo-adapter";
 import { TelemetryClientError } from "./errors";
 import { LiveTelemetryAdapter } from "./live-adapter";
 import { TelemetryRestClient, type TelemetryRestClientOptions } from "./rest-client";
+import { getRoutePersistentTelemetryClient } from "./route-persistent-client";
 import type {
   TelemetryAdapter,
   TelemetryReadinessResponse,
   TelemetryRuntimeConfig,
   TelemetrySample,
 } from "./types";
-import { TelemetryWebSocketClient, type TelemetryWebSocketClientOptions } from "./websocket-client";
+import type { TelemetryWebSocketClientOptions } from "./websocket-client";
 
 export interface CreateTelemetryAdapterOptions {
   demoSamples?: TelemetrySample[];
@@ -31,6 +32,6 @@ export function createTelemetryAdapter(
 
   return new LiveTelemetryAdapter(
     new TelemetryRestClient(config.apiBaseUrl, options.rest),
-    new TelemetryWebSocketClient(config.websocketUrl, options.websocket),
+    getRoutePersistentTelemetryClient(config.websocketUrl, options.websocket),
   );
 }
