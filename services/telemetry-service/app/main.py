@@ -17,6 +17,8 @@ from app.config import Settings
 from app.ingestion import TelemetryIngestor
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
+from app.live_dashboard.api import create_live_dashboard_router
+from app.live_dashboard.repository import LiveDashboardRepository
 from app.metrics import render_prometheus
 from app.model_registry import register_models
 from app.mqtt_consumer import MqttConsumer
@@ -61,7 +63,7 @@ from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
 
 
-SERVICE_VERSION = "0.18.0"
+SERVICE_VERSION = "0.19.0"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
@@ -84,8 +86,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         default_organization_id=resolved.auth_default_organization_id,
     )
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
-    refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(database)
+    refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(
+        database
+    )
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
+    live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
     security_dependencies, local_auth_service = _create_security_runtime(
         resolved,
@@ -224,6 +229,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.refrigeration_repository = refrigeration_repository
     app.state.refrigeration_equipment_repository = refrigeration_equipment_repository
     app.state.equipment_lifecycle_repository = equipment_lifecycle_repository
+    app.state.live_dashboard_repository = live_dashboard_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
     app.state.broker_control_repository = broker_control_repository
@@ -314,6 +320,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             object_storage,
             image_max_bytes=resolved.equipment_image_max_bytes,
             signed_url_seconds=resolved.equipment_image_signed_url_seconds,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_live_dashboard_router(
+            live_dashboard_repository,
             security_dependencies=security_dependencies,
             security_repository=security_repository,
             default_organization_id=resolved.auth_default_organization_id,
