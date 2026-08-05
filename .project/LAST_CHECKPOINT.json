@@ -3,111 +3,83 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-287",
-  "issue": 287,
-  "status": "completed",
-  "timestamp": "2026-08-05T15:55:00+03:00",
-  "branch": "main",
-  "product_merge_sha": "e92c36fe1b863f25132ecb39fe7f46928742c470",
-  "pull_request": 311,
-  "verified_head_sha": "58f03b107cb900c7436b6784d27a305a1bccc4a4",
-  "final_head_runs": {
-    "ci": 31006749777,
-    "telemetry_service": 31006750030,
-    "authenticated_dashboard": 31006749792,
-    "offline_auth": 31006749749,
-    "offline_bundle": 31006750129,
-    "device_agent_fleet": 31006749753,
-    "mqtt_tls_fleet": 31006750185,
-    "broker_control": 31006750302,
-    "capacity_release": 31006749756,
-    "container_supply_chain": 31006749998,
-    "security_browser": 31006749943,
-    "nodes_browser": 31006749809,
-    "alerts_browser": 31006750146,
-    "refrigeration_browser": 31006750013,
-    "test_sessions_browser": 31006750194,
-    "reports_browser": 31006750027,
-    "rendered_reports_browser": 31006750023,
-    "disaster_recovery_browser": 31006749921,
-    "disaster_recovery_tls_fleet": 31006750063
+  "task": "NEXOLAB-318",
+  "issue": 318,
+  "status": "in_progress",
+  "timestamp": "2026-08-05T19:20:00+03:00",
+  "branch": "chore/318-reconcile-telemetry-state",
+  "product_baseline_sha": "b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0",
+  "completed_product_work_packages": [
+    {
+      "issue": 314,
+      "pull_request": 315,
+      "title": "Preserve telemetry state across route transitions",
+      "merge_sha": "0b55fef9c2f41670339248d132b51dd4d67d44d5"
+    },
+    {
+      "issue": 316,
+      "pull_request": 317,
+      "title": "Complete route-transition telemetry acceptance gaps",
+      "verified_head_sha": "c8ae44983c97fe108710d2d294c390b4dabfb2c2",
+      "merge_sha": "b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0"
+    }
+  ],
+  "route_persistence_evidence": {
+    "application_shell_scoped_snapshots": true,
+    "organization_scoped_shared_websocket": true,
+    "identical_latest_request_deduplication": true,
+    "identical_history_request_deduplication": true,
+    "independent_consumer_abort": true,
+    "physical_request_aborts_after_final_consumer": true,
+    "transition_grace_ms": 5000,
+    "idle_scope_ttl_ms": 900000,
+    "maximum_canonical_samples": 20000,
+    "maximum_exact_latest_queries": 128,
+    "derive_narrower_latest_only_from_complete_snapshot": true,
+    "persistent_history_cache": false
   },
-  "live_dashboard_domain_evidence": {
-    "migration_revision": "20260805_0022",
-    "storage": "postgresql",
-    "organization_scoped": true,
-    "ordered_items": true,
-    "maximum_items_per_dashboard": 64,
-    "canonical_channel_validation": "active_measurement_catalog",
-    "metric_validation": "exact_canonical_metric",
-    "display_unit_policy": "native_unit_only_until_explicit_conversion_support",
-    "lifecycle": ["active", "archived"],
-    "hard_delete_exposed": false,
-    "telemetry_preserved_on_archive": true
+  "browser_route_cycle_evidence": {
+    "cycle": ["overview", "refrigeration", "energy", "overview"],
+    "refrigeration_usable_ms": 354,
+    "energy_usable_ms": 203,
+    "overview_return_usable_ms": 226,
+    "latest_rest_requests": 1,
+    "history_rest_requests": 3,
+    "websockets_opened": 1,
+    "websockets_active_after_cycle": 1,
+    "maximum_concurrent_websockets": 1,
+    "websockets_closed_during_cycle": 0,
+    "acquisition_mutations": 0
   },
-  "api_evidence": {
-    "base_path": "/api/v1/live-dashboards",
-    "operations": ["list", "create", "read", "update", "archive"],
-    "etag_format": "W/\"live-dashboard-vN\"",
-    "if_match_required_for": ["update", "archive"],
-    "stale_writer_status": 409,
-    "missing_precondition_status": 428,
-    "maximum_page_size": 100,
-    "maximum_offset": 10000,
-    "refresh_seconds": [1, 2, 5, 10, 15, 30, 60],
-    "time_windows": ["5m", "15m", "30m", "1h", "6h", "12h", "24h", "7d"]
+  "acquisition_invariant_evidence": {
+    "software_verified": true,
+    "observed_fc03_requests_per_second_min": 19.49,
+    "observed_fc03_requests_per_second_max": 20.28,
+    "ui_activity_changes_physical_polling": false,
+    "discovery_delta": 0,
+    "mutation_delta": 0,
+    "physical_raspberry_pi_rs485_verified": false,
+    "final_physical_acceptance_issue": 289
   },
-  "authorization_and_audit_evidence": {
-    "mutation_permission": "live_dashboards.manage",
-    "mutation_roles": ["administrator", "laboratory_manager", "engineer", "operator"],
-    "read_only_roles": ["viewer", "auditor"],
-    "audit_actions": ["live_dashboard.created", "live_dashboard.updated", "live_dashboard.archived"],
-    "audit_atomic_with_domain_mutation": true,
-    "frontend_effective_permission_contract_verified": true
-  },
-  "acquisition_isolation_evidence": {
-    "display_preferences_control_acquisition": false,
-    "dashboard_repository_scheduler_dependencies": 0,
-    "dashboard_repository_registry_dependencies": 0,
-    "dashboard_repository_modbus_dependencies": 0,
-    "dashboard_repository_hardware_driver_dependencies": 0,
-    "authenticated_acquisition_invariant": "verified"
-  },
-  "compatibility_evidence": {
-    "local_auth_migration_head": "resolved_from_current_single_alembic_head",
-    "local_auth_downgrade_boundary": "20260731_0021",
-    "rendered_report_retry_versions": "three_consecutive_versions",
-    "settings_ui_expanded_for_new_permission": false
+  "verification": {
+    "verified_head_sha": "c8ae44983c97fe108710d2d294c390b4dabfb2c2",
+    "ci": "green",
+    "formatting": "green",
+    "lint": "green",
+    "typecheck": "green",
+    "tests": "green",
+    "production_build": "green",
+    "authenticated_dashboard_acceptance": "green",
+    "refrigeration_browser_acceptance": "green",
+    "offline_bundle": "green",
+    "offline_update_rollback_volume_preservation": "green"
   },
   "review_audit": {
-    "focused_files": 18,
+    "focused_product_files": 11,
     "inline_threads": 0,
-    "submitted_reviews": 0,
     "behind_main_commits_before_merge": 0,
-    "project_state_files_in_product_pr": 0
-  },
-  "runtime_evidence": {
-    "postgresql_migration_and_crud": "verified",
-    "organization_isolation": "verified",
-    "etag_concurrency": "verified",
-    "permission_aware_api": "verified",
-    "audit_events": "verified",
-    "archive_preserves_telemetry": "verified",
-    "authenticated_acquisition_invariant": "verified",
-    "offline_auth": "verified",
-    "secure_device_agent_fleet": "verified",
-    "mqtt_tls_fleet": "verified",
-    "disconnected_bundle_start": "verified",
-    "update_rollback_data_preservation": "verified",
-    "modbus_function": "fc03_only",
-    "modbus_write": "none"
-  },
-  "transient_ci_note": {
-    "workflow": "Offline Auth Acceptance",
-    "run_id": 31006749749,
-    "initial_job_result": "migration_harness_startup_failure_before_disconnected_login",
-    "isolated_rerun_result": "success",
-    "classification": "runner_or_container_startup_transient"
+    "modbus_write": "none",
+    "hardware_actions": "none"
   },
   "active_epic": {
     "issue": 282,
@@ -115,19 +87,26 @@
     "status": "active",
     "remaining_ordered_work_packages": [288, 289]
   },
+  "active_control_work_package": {
+    "issue": 318,
+    "title": "Reconcile project state after telemetry route-persistence merges",
+    "status": "in_progress",
+    "scope": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ]
+  },
   "next_ready_work_package": {
     "issue": 288,
     "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
-    "reason": "The local API now persists organization-scoped dashboards, ordered canonical items, display preferences, ETag versions and audit history, so the operator editor and selected-series live workspace can be built without changing physical acquisition."
-  },
-  "active_control_work_package": {
-    "issue": 312,
-    "pull_request": 313,
-    "title": "Reconcile project state after Live Dashboard API merge",
-    "status": "completed"
+    "reason": "Persisted Live Dashboard CRUD and bounded application-shell telemetry delivery are now available. The UI can request and subscribe only to selected canonical series without changing physical acquisition."
   },
   "guardrails": [
-    "Live Dashboard UI must use persisted API contracts",
+    "Live Dashboard UI must use persisted /api/v1/live-dashboards contracts",
+    "use the shared application-shell telemetry runtime",
+    "do not introduce page-local telemetry cache or a second physical WebSocket lifecycle",
     "selected-series delivery cannot mutate acquisition registry or scheduler priority",
     "display refresh and time window are query/render preferences only",
     "REST and WebSocket consumers cannot enqueue physical reads",
@@ -136,17 +115,16 @@
   ],
   "hardware_evidence": {
     "software_verified": true,
-    "live_dashboard_persistence_api_verified": true,
-    "delivery_isolation_verified": true,
-    "authenticated_browser_verified": true,
-    "secure_fleet_verified": true,
+    "route_transition_continuity_verified": true,
+    "rest_deduplication_verified": true,
+    "bounded_transport_and_cache_verified": true,
+    "authenticated_request_count_verified": true,
     "disconnected_runtime_verified": true,
     "physical_raspberry_pi_rs485_verified": false,
-    "physical_request_counter_under_dashboard_load_verified": false,
-    "note": "Real Raspberry Pi/RS-485 request counters, latency, utilization and final scheduler intervals remain separate hardware acceptance for Issue #289."
+    "note": "Real Raspberry Pi/RS-485 request counters, latency, utilization and final scheduler intervals remain Issue #289 hardware acceptance."
   },
   "next_ready_work_package_step": {
     "issue": 288,
-    "instruction": "Create a focused feature branch for the persisted Live Dashboard library, editor and selected-series operator workspace."
+    "instruction": "After merging the state-only reconciliation, create a focused feature branch for the persisted Live Dashboard library, editor and selected-series operator workspace."
   }
 }
