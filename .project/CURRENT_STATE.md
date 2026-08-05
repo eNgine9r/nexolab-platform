@@ -1,13 +1,11 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-05
-Verified main baseline: `da9bda46c320e2de6fd52e2136fdcfa368f00982`
-Active Work Package: Issue #269 — operator-safe Settings workspace
-Branch: `feat/269-operator-safe-settings`
-Pull Request: #270 — ready-transition checkpoint
-Verified source head: `434224191f914e5ca884ac838a2ce66e4a30f6ea`
+Verified main baseline: `5aa2252a6c20874dcc3d975c19fee441d20600a8`
+Active Work Package: Issue #273 — operator-safe local Cameras workspace
+Branch: `feat/273-local-cameras-workspace`
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
-Status confidence: high for source implementation, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi and RS-485 hardware remain explicitly unverified.
+Status confidence: high for merged Settings software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485 and camera hardware remain explicitly unverified.
 
 ## Product route status
 
@@ -22,50 +20,52 @@ Implemented on merged `main`:
 - `/energy` — verified LE-01MP Energy Monitoring;
 - `/live` — verified universal telemetry explorer;
 - `/equipment-layouts` — verified cross-asset catalog and read-only published-layout preview;
-- `/equipment` — authenticated organization-wide Equipment and metrology registry.
-
-Verified in PR #270 and pending merge:
-
-- `/settings` — authenticated operator-safe organization context, sanitized runtime diagnostics, explicit configuration states, versioned browser-local presentation preferences and canonical operational navigation.
+- `/equipment` — authenticated organization-wide Equipment and metrology registry;
+- `/settings` — authenticated operator-safe organization context, sanitized runtime diagnostics and browser-local presentation preferences, merged through PR #270.
 
 Remaining placeholder routes on merged `main`:
 
-- `/cameras` — queued local Cameras monitoring;
+- `/cameras` — active Issue #273;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
 
-## Issue #269 verified outcome
+## Issue #269 merged outcome
 
-The source implementation on `434224191f914e5ca884ac838a2ce66e4a30f6ea` provides:
+PR #270 was squash-merged as `5aa2252a6c20874dcc3d975c19fee441d20600a8` after the final audit confirmed:
 
-- active organization, identity, roles and effective permissions from the existing security-session contract;
-- sanitized `LOCAL_LAN`, data/auth-mode, API, WebSocket and browser-origin diagnostics;
-- ready, incomplete and unsafe configuration states without page crashes;
-- versioned validated browser-local presentation preferences with malformed-storage recovery and reset;
-- canonical links to Nodes, Equipment, Refrigeration, Alerts and Reports;
-- explicit unsupported-configuration boundaries;
-- zero backend mutation requests in focused authenticated browser acceptance;
-- no universal settings API, database migration, dependency upgrade, device write or production cutover.
+- state head `9e6894c6c8011bc4fa906ec1137b6f4336a0f5a8` remained current and mergeable;
+- all four state-head checks were GREEN;
+- source/state diff was focused to 15 files;
+- inline review threads and submitted reviews were zero;
+- no dependency, lockfile, backend schema, Modbus or hardware-write change.
 
-Exact-source verification:
+## Active Issue #273 boundary
 
-- CI `30953948950` GREEN;
-- Authenticated Dashboard Acceptance `30953948970` GREEN;
-- Refrigeration Browser Acceptance `30953948956` GREEN;
-- Offline Bundle `30953948928` GREEN;
-- focused source diff: 13 files;
-- inline review threads: zero;
-- submitted reviews: zero.
+Repository inventory confirms:
+
+- `/cameras` is a pure placeholder;
+- the Overview camera panel contains six hardcoded illustrative scenes labelled `LIVE`;
+- no camera inventory API or persisted camera table exists;
+- no ONVIF discovery, snapshot proxy or RTSP/WebRTC/HLS browser gateway exists;
+- no physical camera inventory is verified in repository state.
+
+Issue #273 will therefore deliver a truthful local-first read-only workspace:
+
+- typed camera inventory and sanitized endpoint metadata;
+- explicit unconfigured, configured-unverified, online, offline, unavailable and invalid states;
+- removal of fabricated `LIVE` evidence from Overview;
+- authenticated `/cameras` shell with deterministic search and bounded filters;
+- zero camera mutation controls, credentials or unsupported media claims.
 
 ## Runtime, offline and hardware evidence
 
 ```text
-software verified; authenticated browser verified; disconnected bundle startup/update/rollback verified; physical Raspberry Pi and RS-485 hardware unverified
+Settings software verified and merged; disconnected runtime verified; physical Raspberry Pi, RS-485, camera, ONVIF, RTSP and NVR evidence unverified
 ```
 
-The Offline Bundle proved clean-host archive loading, container egress blocking, disconnected startup with pulls disabled, persistent-data preservation through update/rollback and evidence capture. No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used.
+No camera configuration write, credential rotation, PTZ, recording, door/lock action or production/site cutover is permitted in Issue #273.
 
 ## Next action
 
-Validate the state-only head, confirm it changes only `.project/**`, repeat the review and focused-diff audit, update PR #270 summary and mark the PR Ready without merging.
+Open one focused draft Pull Request from `feat/273-local-cameras-workspace`, then implement the typed truthful camera domain before integrating `/cameras` and the Overview regression.
