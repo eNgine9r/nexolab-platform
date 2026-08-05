@@ -246,6 +246,74 @@ Required physical phases:
 7. one known unavailable endpoint;
 8. MQTT interruption and local outbox drain.
 
+## Controlled Raspberry Pi capture procedure
+
+The repository collector reads only local `GET /metrics`, `GET /health` and `GET /ready`. It does not open the serial adapter, execute discovery, mutate the registry or issue a Modbus write.
+
+First identify the running Device Agent container without assuming a Compose project name:
+
+```bash
+cd ~/nexolab-platform
+
+git switch main
+git pull --ff-only
+
+SOURCE_COMMIT="$(git rev-parse HEAD)"
+
+docker ps \
+  --filter label=com.docker.compose.service=device-agent \
+  --format 'table {{.ID}}\t{{.Names}}\t{{.Status}}'
+```
+
+Select the controlled installation container explicitly, then resolve its host PID:
+
+```bash
+export DEVICE_AGENT_CONTAINER='<container id from the previous command>'
+export DEVICE_AGENT_PID="$(
+  docker inspect --format '{{.State.Pid}}' "$DEVICE_AGENT_CONTAINER"
+)"
+
+printf 'Source commit: %s\nDevice Agent PID: %s\n' \
+  "$SOURCE_COMMIT" "$DEVICE_AGENT_PID"
+```
+
+Capture one equal bounded window while the named operator condition is held:
+
+```bash
+python3 scripts/acquisition_hardware_acceptance.py capture \
+  --phase no-browser \
+  --source-commit "$SOURCE_COMMIT" \
+  --node-id edge-01 \
+  --pid "$DEVICE_AGENT_PID" \
+  --window-seconds 60 \
+  --output runtime/evidence/acquisition-hardware-matrix.json
+```
+
+Repeat the same command with exactly these phase names:
+
+```text
+no-browser
+overview
+live-dashboard
+route-transitions
+multiple-browsers
+websocket-reconnect
+unavailable-endpoint
+mqtt-outbox-drain
+```
+
+The collector does not create the test condition. A Product Owner or controlled-site operator must separately perform the approved read-only UI activity. Physical endpoint isolation and MQTT interruption are disruptive acceptance actions and require an explicitly controlled maintenance window. They must not include controller configuration, Modbus write functions, production cutover or persistent-data deletion.
+
+Validate the final evidence after all eight unique phases:
+
+```bash
+python3 scripts/acquisition_hardware_acceptance.py validate \
+  --input runtime/evidence/acquisition-hardware-matrix.json \
+  --require-complete
+```
+
+Do not attach raw telemetry values, credentials, bearer tokens, private network addresses or unsanitized production logs to GitHub. Attach only the validated aggregate JSON and separately approved sanitized snapshots.
+
 ## Required artifacts
 
 Deterministic software:
