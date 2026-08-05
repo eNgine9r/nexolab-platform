@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronRight, Settings2 } from "lucide-react";
@@ -24,12 +25,15 @@ import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
 
-function PanelAction({ label }: { label: string }) {
+function PanelAction({ label, href }: { label: string; href: string }) {
   return (
-    <button className="inline-flex items-center gap-1 rounded-lg border border-white/[0.065] bg-white/[0.02] px-2.5 py-1.5 text-[8px] font-medium text-slate-500 transition hover:border-blue-400/25 hover:text-slate-200">
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 rounded-lg border border-white/[0.065] bg-white/[0.02] px-2.5 py-1.5 text-[8px] font-medium text-slate-500 transition hover:border-blue-400/25 hover:text-slate-200"
+    >
       {label}
       <ChevronRight className="h-3 w-3" />
-    </button>
+    </Link>
   );
 }
 
@@ -37,7 +41,6 @@ export function DashboardShell() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState("Огляд");
   const security = useDashboardSecurity();
   const securityReady = security.mode === "demo" || security.state === "ready";
   const organizationId = security.membership?.organizationId ?? null;
@@ -93,15 +96,10 @@ export function DashboardShell() {
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
-      <Sidebar
-        open={sidebarOpen}
-        activeItem={activeItem}
-        onClose={() => setSidebarOpen(false)}
-        onSelect={setActiveItem}
-      />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
-          title={activeItem}
+          title="Огляд"
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={canCreateSession}
           securitySession={security.session}
@@ -148,7 +146,7 @@ export function DashboardShell() {
             <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
               <Panel
                 title={telemetry.mode === "live" ? "Production node" : "Вузли системи · demo"}
-                action={<PanelAction label="Всі вузли" />}
+                action={<PanelAction label="Всі вузли" href="/nodes" />}
                 className="xl:col-span-3"
               >
                 {telemetry.mode === "live" ? (
@@ -189,7 +187,7 @@ export function DashboardShell() {
               </Panel>
               <Panel
                 title={telemetry.mode === "live" ? "Telemetry alarms" : "Тривоги · demo"}
-                action={<PanelAction label="Всі тривоги" />}
+                action={<PanelAction label="Всі тривоги" href="/alerts" />}
                 className="xl:col-span-3"
               >
                 <AlarmsPanel mode={telemetry.mode} samples={liveSamples} />
@@ -199,21 +197,17 @@ export function DashboardShell() {
             <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
               <Panel
                 title="Активні лабораторні сесії"
-                action={<PanelAction label="Всі сесії" />}
+                action={<PanelAction label="Всі сесії" href="/sessions" />}
                 className="xl:col-span-4"
               >
                 <SessionsPanel />
               </Panel>
-              <Panel
-                title="Схема лабораторії · demo layout"
-                action={<PanelAction label="Лабораторія 1" />}
-                className="xl:col-span-5"
-              >
+              <Panel title="Схема лабораторії · demo layout" className="xl:col-span-5">
                 <LabMap />
               </Panel>
               <Panel
                 title="Камери · demo preview"
-                action={<PanelAction label="Всі камери" />}
+                action={<PanelAction label="Всі камери" href="/cameras" />}
                 className="xl:col-span-3"
               >
                 <CamerasPanel />
