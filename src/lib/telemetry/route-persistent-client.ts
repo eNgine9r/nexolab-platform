@@ -10,10 +10,7 @@ import type {
   TelemetrySample,
   TelemetrySubscription,
 } from "./types";
-import {
-  TelemetryWebSocketClient,
-  type TelemetryWebSocketClientOptions,
-} from "./websocket-client";
+import { TelemetryWebSocketClient, type TelemetryWebSocketClientOptions } from "./websocket-client";
 
 export interface TelemetryLiveSource {
   subscribe: (filters: TelemetryFilters, handlers: TelemetryLiveHandlers) => TelemetrySubscription;
@@ -24,14 +21,7 @@ interface RouteSubscriber {
   handlers: TelemetryLiveHandlers;
 }
 
-const LATEST_FILTER_KEYS = [
-  "node_id",
-  "equipment_id",
-  "channel_id",
-  "metric",
-  "quality",
-  "alarm",
-] as const;
+const LATEST_FILTER_KEYS = ["node_id", "equipment_id", "channel_id", "metric", "quality", "alarm"] as const;
 const MAX_LATEST_QUERY_CACHE = 128;
 
 let applicationShellRetainCount = 0;
@@ -79,10 +69,7 @@ function providerId(provider: SecurityCredentialProvider | undefined): string {
   return String(created);
 }
 
-function sharedClientKey(
-  websocketUrl: string,
-  options: TelemetryWebSocketClientOptions,
-): string {
+function sharedClientKey(websocketUrl: string, options: TelemetryWebSocketClientOptions): string {
   return [
     websocketUrl,
     providerId(options.credentials),
@@ -265,9 +252,7 @@ export function getRoutePersistentTelemetryClient(
   const key = sharedClientKey(websocketUrl, options);
   let client = sharedClients.get(key);
   if (!client) {
-    client = new RoutePersistentTelemetryClient(
-      new TelemetryWebSocketClient(websocketUrl, options),
-    );
+    client = new RoutePersistentTelemetryClient(new TelemetryWebSocketClient(websocketUrl, options));
     client.setApplicationShellRetained(applicationShellRetainCount > 0);
     sharedClients.set(key, client);
   }
