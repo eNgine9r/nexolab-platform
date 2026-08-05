@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from le01mp import REGISTERS as LE01MP_REGISTERS
-from main import Settings
+from main import Settings, mode_uses_le01mp, mode_uses_xjp60d
 from xjp60d import PROBE_REGISTERS
 
 SCHEMA_VERSION = 1
@@ -83,6 +83,10 @@ class DeviceLifecycleMutation:
     lifecycle: str
 
 
+class RegistryRevisionConflict(RuntimeError):
+    pass
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -134,12 +138,12 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
         _validate_lifecycle(device.lifecycle)
         devices[device.device_id] = device
 
-    targets: set[str] = set()
+    target_ids: set[str] = set()
     telemetry_ids: set[tuple[str, str]] = set()
     for target in document.targets:
-        if target.target_id in targets:
+        if target.target_id in target_ids:
             raise ValueError(f"Duplicate registry target_id: {target.target_id}")
-        targets.add(target.target_id)
+        target_ids.add(target.target_id)
         device = devices.get(target.device_id)
         if device is None:
             raise ValueError(f"Unknown target device: {target.device_id}")
@@ -243,10 +247,22 @@ def build_initial_document(
     discovery_units: Iterable[int],
     legacy_active_points: tuple[tuple[int, int], ...],
 ) -> RegistryDocument:
-    discovery_set = {int(unit_id) for unit_id in discovery_units}
-    active_points = set(legacy_active_points)
-    xjp_units = discovery_set | {unit_id for unit_id, _ in active_points}
-    le_units = set(settings.le01mp_unit_ids)
+    active_points = (
+        set(legacy_active_points)
+        if mode_uses_xjp60d(settings.device_mode)
+        else set()
+    )
+    xjp_units = (
+        {int(unit_id) for unit_id in discovery_units}
+        | {unit_id for unit_id, _ in active_points}
+        if mode_uses_xjp60d(settings.device_mode)
+        else set()
+    )
+    le_units = (
+        set(settings.le01mp_unit_ids)
+        if mode_uses_le01mp(settings.device_mode)
+        else set()
+    )
     duplicate_units = xjp_units & le_units
     if duplicate_units:
         rendered = ", ".join(str(item) for item in sorted(duplicate_units))
@@ -322,11 +338,17 @@ class AcquisitionRegistry:
             and target.function == READ_FUNCTION
         )
 
-    def eligible_targets(self, family: str | None = None) -> tuple[RegistryTarget, ...]:
+    def eligible_targets(
+        self,
+        family: str | None = None,
+    ) -> tuple[RegistryTarget, ...]:
         return tuple(
             target
             for target in self.document.targets
-            if (family is None or self._devices[target.device_id].device_family == family)
+            if (
+                family is None
+                or self._devices[target.device_id].device_family == family
+            )
             and self.effective_poll_eligible(target)
         )
 
@@ -350,17 +372,25 @@ class AcquisitionRegistry:
             counts[target.lifecycle] += 1
         return counts
 
-    def sanitized(self, *, audit: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def sanitized(
+        self,
+        *,
+        audit: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         devices = []
         for device in self.document.devices:
             device_targets = [
-                target for target in self.document.targets if target.device_id == device.device_id
+                target
+                for target in self.document.targets
+                if target.device_id == device.device_id
             ]
             devices.append(
                 {
                     **asdict(device),
                     "poll_eligible_targets": sum(
-                        1 for target in device_targets if self.effective_poll_eligible(target)
+                        1
+                        for target in device_targets
+                        if self.effective_poll_eligible(target)
                     ),
                     "inventory_targets": len(device_targets),
                 }
@@ -402,8 +432,14 @@ class AcquisitionRegistry:
         if len(target_ids) != len(set(target_ids)):
             raise ValueError("Duplicate target mutation")
 
-        device_changes = {item.device_id: _validate_lifecycle(item.lifecycle) for item in device_mutations}
-        target_changes = {item.target_id: _validate_lifecycle(item.lifecycle) for item in target_mutations}
+        device_changes = {
+            item.device_id: _validate_lifecycle(item.lifecycle)
+            for item in device_mutations
+        }
+        target_changes = {
+            item.target_id: _validate_lifecycle(item.lifecycle)
+            for item in target_mutations
+        }
         unknown_devices = sorted(set(device_changes) - set(self._devices))
         unknown_targets = sorted(set(target_changes) - set(self._targets))
         if unknown_devices:
@@ -456,7 +492,10 @@ class AcquisitionRegistry:
 class AcquisitionRegistryStore:
     def __init__(self, database_path: Path) -> None:
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(database_path, check_same_thread=False)
+        self._connection = sqlite3.connect(
+            database_path,
+            check_same_thread=False,
+        )
         self._connection.execute("PRAGMA busy_timeout = 5000")
         self._lock = threading.Lock()
         with self._connection:
@@ -526,7 +565,14 @@ class AcquisitionRegistryStore:
                     "system:migration",
                     "Migrate legacy XJP60D active points and configured LE-01MP units",
                     json.dumps(
-                        [{"entity": "registry", "id": "root", "from": "absent", "to": "v1"}],
+                        [
+                            {
+                                "entity": "registry",
+                                "id": "root",
+                                "from": "absent",
+                                "to": "v1",
+                            }
+                        ],
                         separators=(",", ":"),
                     ),
                     document.updated_at,
@@ -593,7 +639,11 @@ class AcquisitionRegistryStore:
                         document.revision,
                         normalized_actor,
                         normalized_reason,
-                        json.dumps(changes, separators=(",", ":"), ensure_ascii=False),
+                        json.dumps(
+                            changes,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ),
                         document.updated_at,
                     ),
                 )
@@ -625,10 +675,6 @@ class AcquisitionRegistryStore:
             }
             for row in rows
         ]
-
-
-class RegistryRevisionConflict(RuntimeError):
-    pass
 
 
 def parse_registry_mutation(
