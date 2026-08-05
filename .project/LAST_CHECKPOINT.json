@@ -59,18 +59,9 @@
   },
   "authorization_and_audit_evidence": {
     "mutation_permission": "live_dashboards.manage",
-    "mutation_roles": [
-      "administrator",
-      "laboratory_manager",
-      "engineer",
-      "operator"
-    ],
+    "mutation_roles": ["administrator", "laboratory_manager", "engineer", "operator"],
     "read_only_roles": ["viewer", "auditor"],
-    "audit_actions": [
-      "live_dashboard.created",
-      "live_dashboard.updated",
-      "live_dashboard.archived"
-    ],
+    "audit_actions": ["live_dashboard.created", "live_dashboard.updated", "live_dashboard.archived"],
     "audit_atomic_with_domain_mutation": true,
     "frontend_effective_permission_contract_verified": true
   },
