@@ -56,10 +56,8 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
       const cached = this.live.readCachedLatest(query);
       if (cached) return Promise.resolve(cached);
       return this.live
-        .runRequest(
-          `${this.restScope}:latest:${pageQueryKey(query)}`,
-          signal,
-          (physicalSignal) => this.rest.latest(query, physicalSignal),
+        .runRequest(`${this.restScope}:latest:${pageQueryKey(query)}`, signal, (physicalSignal) =>
+          this.rest.latest(query, physicalSignal),
         )
         .then((response) => {
           if (!signal?.aborted) this.live.seedLatest(query, response);
