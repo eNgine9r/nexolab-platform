@@ -1,53 +1,33 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-04
-
-## Issue #267 — Equipment and metrology registry
-
-PR #268 was squash-merged into `main` as `2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae` after a clean final audit.
-
-Final verified head `b40faeb7999acea0f3e3ae2105bbd77b122add2d`:
-
-- CI `30929890208` GREEN;
-- Authenticated Dashboard Acceptance `30929890332` GREEN;
-- Refrigeration Browser Acceptance `30929890463` GREEN;
-- Offline Bundle `30929890230` GREEN;
-- inline review threads: zero;
-- submitted reviews: zero;
-- focused files: 15;
-- branch behind `main`: zero commits.
-
-Issue #267 has no remaining software blocker. Physical Raspberry Pi and RS-485 acceptance remains separate and explicitly unverified.
+Updated: 2026-08-05
 
 ## Issue #269 — operator-safe Settings workspace
 
-No product, architecture or repository-access blocker prevents implementation from starting.
+PR #270 has no remaining implementation, CI, authenticated-browser, offline-runtime or review blocker.
 
-Verified repository boundary:
+Verified source head `434224191f914e5ca884ac838a2ce66e4a30f6ea`:
 
-- `/settings` is currently a pure placeholder;
-- authenticated identity, organization, roles and permissions are available from the existing session contract;
-- client-visible data/auth mode and API/WebSocket configuration already exist in runtime modules;
-- no `/api/v1/settings` endpoint exists;
-- no persisted universal settings table exists;
-- no safe generic mutation contract exists for organization, memberships, nodes, devices, retention, security or deployment.
+- CI `30953948950` GREEN;
+- Authenticated Dashboard Acceptance `30953948970` GREEN;
+- Refrigeration Browser Acceptance `30953948956` GREEN;
+- Offline Bundle `30953948928` GREEN;
+- focused source files: 13;
+- inline review threads: zero;
+- submitted reviews: zero;
+- zero backend mutation requests observed by the Settings acceptance;
+- no dependency, lockfile, backend schema, Modbus, hardware or production-cutover change.
 
-The Ready slice is therefore constrained to:
-
-- read-only organization and operator context;
-- sanitized runtime/deployment diagnostics;
-- explicit ready, incomplete and unsafe configuration states;
-- versioned browser-local presentation preferences;
-- canonical links to existing workflows;
-- honest unsupported-configuration messaging.
+The source implementation is ready for the final state-only head audit and PR Ready transition. It must not be merged until the state-only commit is confirmed to contain only `.project/**` changes and the PR remains mergeable with required checks satisfied.
 
 ## Residual risks, not blockers
 
-- Public runtime variables are client-visible by design, but displayed URLs still require sanitization to remove credentials, query strings, fragments and secret-like values.
-- Runtime configuration modules were created per feature; Issue #269 may need a narrow shared read-only adapter, but must not trigger a broad runtime-config refactor.
-- Browser-local preferences must recover deterministically from malformed or obsolete storage without affecting acquisition, alarms, security or device behavior.
-- Auth provider `disabled` may exist in development/demo contexts; the page must represent it honestly and must not silently downgrade a live authenticated deployment.
-- Physical hardware evidence is not relevant to the software-only settings workspace and must not be inferred.
+- Physical Raspberry Pi and RS-485 acceptance is not relevant to this software-only workspace and remains unverified.
+- Public runtime variables are client-visible by design; the implemented diagnostics display only sanitized origins and explicit invalid/mixed-content states.
+- Browser-local preferences affect presentation only and do not alter acquisition, alarms, retention, authentication, nodes or devices.
+- `/cameras` is the next queued page after Issue #269 merges.
+- `/lockers` remains blocked pending a concrete inventory, read-only protocol and operator workflow.
+- Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a security, support or concrete product blocker appears.
 
 ## Explicitly unsupported and out of scope for Issue #269
 
@@ -59,12 +39,6 @@ The Ready slice is therefore constrained to:
 - database migration or universal settings API;
 - dependency upgrade or unrelated design-system refactor;
 - production/site cutover.
-
-## Product-page priority
-
-Issue #269 is the active Ready Work Package. After it merges, `/cameras` is next. `/lockers` remains blocked pending a concrete inventory, read-only protocol and operator workflow.
-
-Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a security, support or concrete product blocker appears.
 
 ## Smart Lockers blocker
 
@@ -97,4 +71,4 @@ Stop before:
 
 ## Next Ready action
 
-Create `feat/269-operator-safe-settings` from the updated `main`, open one focused draft Pull Request and implement the typed settings diagnostics and browser-local preference vertical slice under Issue #269.
+Validate the state-only PR head, repeat the final review and focused-diff audit, update PR #270 summary and mark the PR Ready without merging.

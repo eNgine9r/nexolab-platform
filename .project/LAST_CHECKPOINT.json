@@ -6,79 +6,69 @@
   "task": "NEXOLAB-269",
   "issue": 269,
   "parent_issue": 260,
-  "status": "ready_for_implementation",
-  "timestamp": "2026-08-04T21:06:00+03:00",
-  "main_sha_after_previous_merge": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
-  "previous_task": {
-    "issue": 267,
-    "pull_request": 268,
-    "status": "merged",
-    "verified_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
-    "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
-    "final_runs": {
-      "ci": 30929890208,
-      "authenticated_dashboard": 30929890332,
-      "refrigeration_browser": 30929890463,
-      "offline_bundle": 30929890230
-    },
-    "review_audit": {
-      "inline_threads": 0,
-      "submitted_reviews": 0,
-      "focused_files": 15
-    }
-  },
+  "pull_request": 270,
+  "status": "ready_audit",
+  "timestamp": "2026-08-05T00:57:00+03:00",
   "branch": "feat/269-operator-safe-settings",
   "route": "/settings",
-  "summary": "Issue #269 replaces the /settings placeholder with an authenticated operator-safe configuration and diagnostics workspace composed from existing session and client-safe runtime contracts. The slice exposes sanitized organization, role and deployment context plus versioned browser-local presentation preferences without adding a universal settings API, backend schema, secrets or unsafe system mutations.",
-  "repository_inventory": {
-    "placeholder_route_confirmed": true,
-    "security_session_contract_available": true,
-    "runtime_auth_provider_available": true,
-    "client_runtime_endpoints_available": true,
-    "settings_api_available": false,
-    "universal_settings_table_available": false,
-    "safe_generic_backend_mutation_contract_available": false
-  },
-  "planned_scope": [
-    "authenticated operator identity and organization context",
-    "roles and effective permissions grouped for operator comprehension",
+  "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
+  "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
+  "summary": "Issue #269 replaces the Settings placeholder with an authenticated operator-safe workspace composed from the existing security-session and client-safe runtime contracts. It provides sanitized runtime diagnostics, explicit configuration states, versioned browser-local presentation preferences and canonical navigation without secrets, backend mutation APIs, hardware writes or production cutover.",
+  "verified_scope": [
+    "authenticated identity, organization, roles and effective permissions",
     "sanitized API, WebSocket and browser-origin diagnostics",
     "LOCAL_LAN, data-mode and auth-provider visibility",
     "ready, incomplete and unsafe configuration states",
-    "versioned validated browser-local presentation preferences",
-    "malformed preference recovery and reset-to-default",
-    "canonical navigation to existing operational workflows",
+    "versioned validated browser-local preferences",
+    "malformed preference recovery, persistence and reset",
+    "canonical navigation to existing operator workflows",
     "explicit unsupported-configuration boundary",
-    "focused tests and authenticated browser acceptance with zero backend mutations"
+    "zero backend mutation requests from focused Settings acceptance"
   ],
-  "guardrails": [
-    "no secret, token, password, cookie or opaque credential exposure",
-    "no organization or membership administration",
-    "no node, device, Modbus or hardware write",
-    "no alarm-rule, retention, backup, restore, TLS, DNS, VPN or deployment mutation",
-    "no database migration or universal settings API",
-    "no dependency migration or unrelated refactor",
-    "no production or site cutover"
-  ],
-  "verification_plan": [
-    "focused unit tests for URL sanitization and configuration-state derivation",
-    "focused tests for versioned preference parsing, malformed recovery and reset",
-    "permission-aware component verification",
-    "format, lint, strict TypeScript, relevant Vitest and production build",
-    "authenticated browser proof for organization/session context and sanitized diagnostics",
-    "browser proof for preference persistence and reset",
-    "canonical navigation proof",
-    "zero backend mutation-request proof",
-    "secret-like value audit",
-    "offline dependency review proportional to changed runtime surface"
-  ],
+  "verification": {
+    "ci": {
+      "run_id": 30953948950,
+      "conclusion": "success"
+    },
+    "authenticated_dashboard": {
+      "run_id": 30953948970,
+      "conclusion": "success"
+    },
+    "refrigeration_browser": {
+      "run_id": 30953948956,
+      "conclusion": "success"
+    },
+    "offline_bundle": {
+      "run_id": 30953948928,
+      "conclusion": "success",
+      "evidence": [
+        "linux/amd64 bundle built",
+        "clean transferred host simulated",
+        "runtime images removed before load",
+        "container egress blocked",
+        "disconnected stack started with pull disabled",
+        "update and rollback preserved persistent data",
+        "final disconnected evidence captured"
+      ]
+    }
+  },
+  "review_audit": {
+    "inline_threads": 0,
+    "submitted_reviews": 0,
+    "focused_source_files": 13,
+    "secret_exposure_observed": false,
+    "backend_mutations_observed": 0,
+    "dependency_or_lockfile_change": false,
+    "backend_schema_change": false,
+    "hardware_or_modbus_write": false
+  },
   "hardware_evidence": {
-    "software_verified_for_previous_task": true,
+    "software_verified": true,
     "hardware_verified": false,
-    "note": "Issue #269 is software-only. No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover is permitted."
+    "note": "No Raspberry Pi, physical RS-485 device, Modbus command, hardware write or production/site cutover was used."
   },
   "next_ready_work_package_step": {
     "issue": 269,
-    "instruction": "Create the feature branch from updated main, open one focused draft Pull Request and begin the typed settings diagnostics and local-preference vertical slice."
+    "instruction": "Validate the state-only head against verified source head, repeat final review and focused-diff audit, update PR #270 summary and mark Ready without merge."
   }
 }

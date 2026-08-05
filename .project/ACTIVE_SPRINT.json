@@ -24,7 +24,7 @@
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
       "status": "tracking_children",
-      "remaining_placeholder_routes": ["/settings", "/cameras", "/lockers"]
+      "remaining_placeholder_routes": ["/cameras", "/lockers"]
     },
     {
       "id": "NEXOLAB-261",
@@ -67,49 +67,44 @@
       "title": "Complete the Equipment and metrology registry",
       "status": "merged",
       "branch": "feat/267-equipment-metrology-registry",
-      "baseline_main_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
       "verified_source_head_sha": "ad3aae9d8419d21082aabc8c19565953848671cb",
       "verified_state_head_sha": "b40faeb7999acea0f3e3ae2105bbd77b122add2d",
       "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
-      "route": "/equipment",
-      "required_runs": {
-        "final_ci": 30929890208,
-        "final_authenticated_dashboard": 30929890332,
-        "final_refrigeration_browser": 30929890463,
-        "final_offline_bundle": 30929890230
-      },
-      "browser_evidence_artifact": 8899868692,
-      "review_audit": {
-        "inline_threads": 0,
-        "submitted_reviews": 0,
-        "focused_files": 15
-      }
+      "route": "/equipment"
     },
     {
       "id": "NEXOLAB-269",
       "issue": 269,
       "parent_issue": 260,
+      "pull_request": 270,
       "title": "Complete operator-safe Settings workspace",
-      "status": "ready",
+      "status": "ready_audit",
       "branch": "feat/269-operator-safe-settings",
+      "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
+      "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
       "route": "/settings",
+      "required_runs": {
+        "final_ci": 30953948950,
+        "final_authenticated_dashboard": 30953948970,
+        "final_refrigeration_browser": 30953948956,
+        "final_offline_bundle": 30953948928
+      },
+      "review_audit": {
+        "inline_threads": 0,
+        "submitted_reviews": 0,
+        "focused_source_files": 13
+      },
       "product_outcome": "Authenticated organization/session context, sanitized runtime diagnostics and browser-local presentation preferences without secrets or unsafe system mutations.",
-      "architecture_decisions": [
-        "compose existing security-session and client-safe runtime configuration contracts",
-        "do not add a universal settings API or database table",
-        "sanitize all displayed origins and configuration diagnostics",
-        "allow only versioned browser-local non-critical presentation preferences",
-        "use canonical links instead of duplicate administration surfaces"
-      ],
-      "guardrails": [
+      "guardrails_verified": [
         "no secret or credential exposure",
+        "zero backend mutation requests from settings acceptance",
         "no organization or membership CRUD",
         "no node, device or Modbus write",
         "no retention, backup, restore, TLS, DNS, VPN or deployment mutation",
         "no dependency migration or unrelated refactor",
         "no production or site cutover"
       ],
-      "next_action": "Create the feature branch and one focused draft Pull Request, then implement the typed settings diagnostics and local-preference vertical slice."
+      "next_action": "Validate the state-only head, repeat final review and diff audit, update PR #270 summary and mark Ready without merge."
     },
     {
       "id": "NEXOLAB-PAGE-CAMERAS",
