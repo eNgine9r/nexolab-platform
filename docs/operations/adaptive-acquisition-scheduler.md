@@ -36,12 +36,12 @@ A registry mutation reconciles the scheduler in memory after the atomic SQLite r
 
 Defaults deliberately do not promise a faster high-priority interval than the previously configured `SAMPLE_INTERVAL_SECONDS` baseline.
 
-| Class | Default | Current target mapping |
-|---|---:|---|
-| `high` | `max(5 s, SAMPLE_INTERVAL_SECONDS)` | XJP60D temperature and status target |
-| `medium` | `max(10 s, high)` | LE-01MP voltage, current, frequency, active power and power factor |
-| `low` | `max(30 s, medium)` | LE-01MP reactive/apparent power and internal diagnostics |
-| `on_demand` | no recurring job | explicit discovery/configuration service operations |
+| Class       |                             Default | Current target mapping                                             |
+| ----------- | ----------------------------------: | ------------------------------------------------------------------ |
+| `high`      | `max(5 s, SAMPLE_INTERVAL_SECONDS)` | XJP60D temperature and status target                               |
+| `medium`    |                   `max(10 s, high)` | LE-01MP voltage, current, frequency, active power and power factor |
+| `low`       |                 `max(30 s, medium)` | LE-01MP reactive/apparent power and internal diagnostics           |
+| `on_demand` |                    no recurring job | explicit discovery/configuration service operations                |
 
 All normal intervals are bounded to `1..3600` seconds and must satisfy `high <= medium <= low`.
 
