@@ -6,7 +6,7 @@
   "task": "NEXOLAB-321",
   "issue": 321,
   "status": "in_progress",
-  "timestamp": "2026-08-05T20:36:00+03:00",
+  "timestamp": "2026-08-05T20:42:00+03:00",
   "branch": "chore/321-reconcile-live-dashboard-state",
   "product_baseline_sha": "d7affee11a39d5a007c461b9a4dea17f14b5bfb3",
   "completed_product_work_packages": [
@@ -73,6 +73,7 @@
     "verified_head_sha": "091b1698ff4005164e7409fb38af475128160f73",
     "ci": "green",
     "formatting": "green",
+    "state_formatting": "green",
     "lint": "green",
     "typecheck": "green",
     "tests": "green",
