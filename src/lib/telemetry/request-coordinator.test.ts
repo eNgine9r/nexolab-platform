@@ -25,6 +25,7 @@ describe("TelemetryRequestCoordinator", () => {
 
     const first = coordinator.request("latest:edge-01", undefined, factory);
     const second = coordinator.request("latest:edge-01", undefined, factory);
+    await flushPromises();
 
     expect(factory).toHaveBeenCalledTimes(1);
     expect(coordinator.inFlightCount).toBe(1);
@@ -52,6 +53,7 @@ describe("TelemetryRequestCoordinator", () => {
 
     const first = coordinator.request("history:24h", firstController.signal, factory);
     const second = coordinator.request("history:24h", secondController.signal, factory);
+    await flushPromises();
     firstController.abort("route unmounted");
 
     await expect(first).rejects.toMatchObject({ code: "aborted" });
@@ -78,6 +80,7 @@ describe("TelemetryRequestCoordinator", () => {
 
     const first = coordinator.request("latest:shared", firstController.signal, factory);
     const second = coordinator.request("latest:shared", secondController.signal, factory);
+    await flushPromises();
     firstController.abort("first route closed");
     await expect(first).rejects.toMatchObject({ code: "aborted" });
     expect(physicalSignal?.aborted).toBe(false);
