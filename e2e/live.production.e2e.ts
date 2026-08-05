@@ -1,32 +1,22 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
-const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
+const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
 const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
-const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
+const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
 
-type LiveSeed = {
-  nodeId?: string;
-  equipmentId: string;
-  channelId: string;
-  metric: string;
-  value: number | null;
-  unit: string;
-  quality?: "valid" | "sensor_error" | "communication_error" | "unknown";
-  alarm?: "low" | "high" | null;
-  capturedAt: string;
-  source: string;
-};
+type ObservedRequest = { url: string; method: string };
+type SocketEvidence = { opened: number; closed: number; active: number; maximum: number };
 
 async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
@@ -36,12 +26,12 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
       window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
       window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },
-    { accessToken: viewerToken, organization: organizationId },
+    { accessToken: sessionCredential, organization: organizationId },
   );
   return context;
 }
 
-function composeExec(service: string, command: string[], input?: string): string {
+function compose(args: string[]): string {
   return execFileSync(
     "docker",
     [
@@ -52,60 +42,17 @@ function composeExec(service: string, command: string[], input?: string): string
       baseCompose,
       "--file",
       acceptanceCompose,
-      "exec",
-      "-T",
-      service,
-      ...command,
+      ...args,
     ],
-    { encoding: "utf8", input, stdio: [input ? "pipe" : "ignore", "pipe", "pipe"] },
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   );
 }
 
-function sqlString(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`;
-}
-
-function persistSample(seed: LiveSeed): void {
-  const eventId = randomUUID();
-  const value = seed.value === null ? "NULL" : String(seed.value);
-  const alarm = seed.alarm == null ? "NULL" : sqlString(seed.alarm);
-  const rawValue = seed.value === null ? "NULL" : String(seed.value);
-  const sql = `
-INSERT INTO telemetry_samples (
-  event_id,
-  node_id,
-  captured_at,
-  metric,
-  value,
-  unit,
-  quality,
-  source,
-  equipment_id,
-  channel_id,
-  alarm,
-  raw_value,
-  raw_status,
-  raw_payload
-)
-VALUES (
-  ${sqlString(eventId)},
-  ${sqlString(seed.nodeId ?? "edge-01")},
-  ${sqlString(seed.capturedAt)}::timestamptz,
-  ${sqlString(seed.metric)},
-  ${value},
-  ${sqlString(seed.unit)},
-  ${sqlString(seed.quality ?? "valid")},
-  ${sqlString(seed.source)},
-  ${sqlString(seed.equipmentId)},
-  ${sqlString(seed.channelId)},
-  ${alarm},
-  ${rawValue},
-  NULL,
-  '{}'::json
-);
-SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)};
-`;
-  const output = composeExec("postgres", [
+function postgres(sql: string): string {
+  return compose([
+    "exec",
+    "-T",
+    "postgres",
     "psql",
     "-U",
     postgresUser,
@@ -116,235 +63,196 @@ SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)};
     "-tAc",
     sql,
   ]);
-  if (!output.includes(eventId)) {
-    throw new Error(`Persisted telemetry fixture ${eventId} was not committed`);
-  }
 }
 
-function waitForPersistedEvent(eventId: string, timeoutMs = 20_000): void {
-  const deadline = Date.now() + timeoutMs;
-  const sql = `SELECT event_id FROM telemetry_samples WHERE event_id = ${sqlString(eventId)} LIMIT 1;`;
-
-  while (Date.now() < deadline) {
-    const output = composeExec("postgres", [
-      "psql",
-      "-U",
-      postgresUser,
-      "-d",
-      postgresDatabase,
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-tAc",
-      sql,
-    ]);
-    if (output.includes(eventId)) return;
-    execFileSync("sleep", ["0.25"]);
-  }
-
-  throw new Error(`MQTT telemetry event ${eventId} was not committed within ${timeoutMs} ms`);
+function sqlString(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
 }
 
-function publishSample(seed: LiveSeed, eventId: string): void {
-  const payload = JSON.stringify({
-    event_id: eventId,
-    node_id: seed.nodeId ?? "edge-01",
-    captured_at: seed.capturedAt,
-    metric: seed.metric,
-    value: seed.value,
-    unit: seed.unit,
-    quality: seed.quality ?? "valid",
-    source: seed.source,
-    equipment_id: seed.equipmentId,
-    channel_id: seed.channelId,
-    alarm: seed.alarm ?? null,
-    raw_value: seed.value === null ? null : Math.round(seed.value * 10),
-    raw_status: 4354,
-  });
+function seedPersistedDashboard(): { dashboardId: string; dashboardName: string } {
+  const dashboardId = randomUUID();
+  const itemId = randomUUID();
+  const dashboardName = `КК1 read-only ${Date.now()}`;
+  const output = postgres(`
+INSERT INTO live_dashboards (
+  id, organization_id, name, description, owner_subject, refresh_seconds, time_window,
+  version, status, created_by, updated_by, created_at, updated_at
+)
+VALUES (
+  ${sqlString(dashboardId)}, ${sqlString(organizationId)}, ${sqlString(dashboardName)},
+  'Persisted browser acceptance', 'acceptance-fixture', 2, '1h', 1, 'active',
+  'acceptance-fixture', 'acceptance-fixture', NOW(), NOW()
+);
 
-  composeExec("mqtt", ["mosquitto_pub", "-h", "127.0.0.1", "-t", mqttTopic, "-q", "1", "-m", payload]);
+INSERT INTO live_dashboard_items (
+  id, organization_id, dashboard_id, position, channel_ref_id, channel_id, metric,
+  native_unit, visualization, color, display_unit
+)
+SELECT
+  ${sqlString(itemId)}, ${sqlString(organizationId)}, ${sqlString(dashboardId)}, 1,
+  channel.id, channel.channel_id, channel.metric_type, channel.unit, 'area', '#00C6E0', channel.unit
+FROM measurement_channels AS channel
+WHERE channel.organization_id = ${sqlString(organizationId)}
+  AND channel.channel_id = '106-03'
+  AND channel.metric_type = 'temperature.probe'
+  AND channel.status = 'active'
+LIMIT 1;
+
+SELECT COUNT(*) FROM live_dashboard_items WHERE dashboard_id = ${sqlString(dashboardId)};
+`);
+  if (!output.trim().endsWith("1")) throw new Error("Canonical 106-03 dashboard item was not seeded");
+  return { dashboardId, dashboardName };
 }
 
-function seedLiveEvidence(): void {
-  const now = Date.now();
-  const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
-
-  persistSample({
-    nodeId: "edge-live-01",
-    equipmentId: "K106",
-    channelId: "106-03",
-    metric: "temperature.probe",
-    value: 3.8,
-    unit: "degC",
-    capturedAt: ago(45),
-    source: "dixell-xjp60d",
-  });
-  persistSample({
-    nodeId: "edge-live-01",
-    equipmentId: "K106",
-    channelId: "106-03",
-    metric: "temperature.probe",
-    value: null,
-    unit: "degC",
-    quality: "communication_error",
-    capturedAt: ago(20),
-    source: "dixell-xjp60d",
-  });
-  persistSample({
-    nodeId: "edge-live-01",
-    equipmentId: "K106",
-    channelId: "106-03",
-    metric: "temperature.probe",
-    value: 4.4,
-    unit: "degC",
-    capturedAt: ago(10),
-    source: "dixell-xjp60d",
-  });
-  persistSample({
-    nodeId: "edge-live-01",
-    equipmentId: "K115",
-    channelId: "115-04",
-    metric: "temperature.probe",
-    value: 5.7,
-    unit: "degC",
-    capturedAt: ago(10),
-    source: "dixell-xjp60d",
-  });
-  persistSample({
-    equipmentId: "LE01MP-200",
-    channelId: "200-active-power",
-    metric: "electrical.power.active",
-    value: 720,
-    unit: "W",
-    capturedAt: ago(2),
-    source: "f-and-f-le-01mp",
-  });
-  persistSample({
-    equipmentId: "LE01MP-200",
-    channelId: "200-voltage",
-    metric: "electrical.voltage",
-    value: 230.1,
-    unit: "V",
-    capturedAt: ago(2),
-    source: "f-and-f-le-01mp",
-  });
-  persistSample({
-    nodeId: "edge-02",
-    equipmentId: "CLIMATE-01",
-    channelId: "rh-01",
-    metric: "humidity.relative",
-    value: 55,
-    unit: "%RH",
-    alarm: "high",
-    capturedAt: ago(1),
-    source: "climate-adapter",
-  });
+function persistTemperature(value: number, minutesAgo: number): void {
+  const eventId = randomUUID();
+  const capturedAt = new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  postgres(`
+INSERT INTO telemetry_samples (
+  event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
+)
+VALUES (
+  ${sqlString(eventId)}, 'edge-live-01', ${sqlString(capturedAt)}::timestamptz,
+  'temperature.probe', ${value}, 'degC', 'valid', 'dixell-xjp60d',
+  'K106', '106-03', NULL, ${Math.round(value * 10)}, 4354, '{}'::json
+);
+`);
 }
 
-function observeTelemetryRequests(page: Page): Array<{ url: string; authorized: boolean }> {
-  const requests: Array<{ url: string; authorized: boolean }> = [];
+function observeRequests(page: Page): {
+  dashboard: ObservedRequest[];
+  telemetry: ObservedRequest[];
+  acquisitionMutations: ObservedRequest[];
+} {
+  const dashboard: ObservedRequest[] = [];
+  const telemetry: ObservedRequest[] = [];
+  const acquisitionMutations: ObservedRequest[] = [];
   page.on("request", (request) => {
-    if (!request.url().includes("/api/v1/telemetry/")) return;
-    requests.push({
-      url: request.url(),
-      authorized: request.headers().authorization?.startsWith("Bearer ") ?? false,
+    const observed = { url: request.url(), method: request.method() };
+    const pathname = new URL(observed.url).pathname.toLowerCase();
+    if (pathname.includes("/api/v1/live-dashboards")) dashboard.push(observed);
+    if (pathname.includes("/api/v1/telemetry/")) telemetry.push(observed);
+    const mutating = !["GET", "HEAD", "OPTIONS"].includes(observed.method);
+    const acquisitionPath =
+      pathname.includes("device-agent") ||
+      pathname.includes("/discovery") ||
+      pathname.includes("/configuration") ||
+      pathname.includes("/config/");
+    if (mutating && acquisitionPath) acquisitionMutations.push(observed);
+  });
+  return { dashboard, telemetry, acquisitionMutations };
+}
+
+function observeSockets(page: Page): SocketEvidence {
+  const evidence: SocketEvidence = { opened: 0, closed: 0, active: 0, maximum: 0 };
+  page.on("websocket", (socket) => {
+    evidence.opened += 1;
+    evidence.active += 1;
+    evidence.maximum = Math.max(evidence.maximum, evidence.active);
+    socket.on("close", () => {
+      evidence.closed += 1;
+      evidence.active = Math.max(0, evidence.active - 1);
     });
   });
-  return requests;
+  return evidence;
 }
 
-test("discovers, filters and compares real telemetry with stable history and recovery", async ({
+async function waitForApiReady(): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        try {
+          return (await fetch(`${apiBaseUrl}/health/ready`)).ok;
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
+}
+
+test("opens a persisted selected-series dashboard after service restart without write controls", async ({
   browser,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
-  seedLiveEvidence();
+  persistTemperature(3.8, 40);
+  persistTemperature(4.1, 15);
+  persistTemperature(4.4, 1);
+  const fixture = seedPersistedDashboard();
 
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
-  const requests = observeTelemetryRequests(page);
+  const requests = observeRequests(page);
+  const sockets = observeSockets(page);
 
   try {
     await page.goto("/live", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Live дані" })).toBeVisible();
-    const staleRow = page
-      .locator("tbody tr")
-      .filter({ hasText: "K115" })
-      .filter({ hasText: "115-04" })
-      .filter({ hasText: "temperature.probe" });
-    await expect(staleRow).toHaveCount(1);
-    await expect(staleRow.getByText("Застарілі дані", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+    await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Створити Dashboard" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Редагувати/ })).toHaveCount(0);
 
-    await page.getByLabel("Пошук").fill("106-03");
-    await page.getByLabel("Node").selectOption("edge-live-01");
-    await page.getByLabel("Metric").selectOption("temperature.probe");
-    await page.getByLabel("Quality").selectOption("valid");
-    await page.getByLabel("Alarm").selectOption("none");
-    await expect(page.getByText("1 каналів відповідають поточному запиту")).toBeVisible();
-
+    const telemetryBeforeOpen = requests.telemetry.length;
     await page
-      .getByRole("checkbox", {
-        name: /Додати канал edge-live-01 · K106 · 106-03 · temperature.probe/,
-      })
-      .check();
-    await page.getByRole("button", { name: "Очистити" }).click();
-    await page
-      .getByRole("checkbox", {
-        name: /Додати канал edge-01 · LE01MP-200 · 200-active-power · electrical.power.active/,
-      })
-      .check();
+      .locator("article")
+      .filter({ hasText: fixture.dashboardName })
+      .getByRole("button", { name: "Відкрити" })
+      .click();
+    await expect(page.getByRole("heading", { name: fixture.dashboardName, exact: true })).toBeVisible();
+    const selectedChannelRow = page
+      .getByRole("row")
+      .filter({ has: page.getByRole("cell", { name: "106-03", exact: true }) });
+    await expect(selectedChannelRow).toBeVisible();
+    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)? degC/);
+    await expect.poll(() => sockets.maximum).toBe(1);
 
-    await expect(page.getByRole("img", { name: /Порівняння 1 каналів у degC/ })).toBeVisible();
-    await expect(page.getByRole("img", { name: /Порівняння 1 каналів у W/ })).toBeVisible();
     await expect
-      .poll(async () =>
-        Number(
-          await page.getByRole("img", { name: /Порівняння 1 каналів у degC/ }).getAttribute("data-segments"),
-        ),
-      )
-      .toBeGreaterThan(1);
-
-    await page.getByRole("button", { name: "6 год" }).click();
-    await expect(page).toHaveURL(/range=6h/);
+      .poll(() => requests.telemetry.slice(telemetryBeforeOpen).some((item) => item.url.includes("/latest")))
+      .toBe(true);
     await expect
-      .poll(() => requests.filter((request) => request.url.includes("/history")).length)
-      .toBeGreaterThan(2);
-    expect(requests.every((request) => request.authorized)).toBe(true);
-    expect(requests.some((request) => request.url.includes("snapshot_at="))).toBe(true);
+      .poll(() => requests.telemetry.slice(telemetryBeforeOpen).some((item) => item.url.includes("/history")))
+      .toBe(true);
+    const selectedRequests = requests.telemetry.slice(telemetryBeforeOpen);
+    expect(
+      selectedRequests
+        .filter((item) => item.url.includes("/latest") || item.url.includes("/history"))
+        .every((item) => {
+          const url = new URL(item.url);
+          return (
+            url.searchParams.get("channel_id") === "106-03" &&
+            url.searchParams.get("metric") === "temperature.probe"
+          );
+        }),
+    ).toBe(true);
+    expect(requests.acquisitionMutations).toEqual([]);
 
-    let failHistory = true;
-    await page.route("**/api/v1/telemetry/history**", async (route) => {
-      if (failHistory) {
-        failHistory = false;
-        await route.abort("failed");
-        return;
-      }
-      await route.continue();
-    });
-    await page.getByRole("button", { name: "24 год" }).click();
-    await expect(page.getByText("Не вдалося завантажити історію")).toBeVisible();
-    await page.getByRole("button", { name: "Повторити history" }).click();
-    await expect(page.getByRole("img", { name: /Порівняння 1 каналів у degC/ })).toBeVisible();
-
-    const liveEventId = randomUUID();
-    publishSample(
-      {
-        nodeId: "edge-live-01",
-        equipmentId: "K106",
-        channelId: "106-03",
-        metric: "temperature.probe",
-        value: 5.1,
-        unit: "degC",
-        capturedAt: new Date().toISOString(),
-        source: "dixell-xjp60d",
-      },
-      liveEventId,
-    );
-    waitForPersistedEvent(liveEventId);
-    await expect(page.getByText("5,1 degC", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "До library" }).click();
+    compose(["restart", "telemetry-service"]);
+    await waitForApiReady();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
 
     await page.screenshot({
-      path: path.join(evidenceDirectory, "authenticated-live-telemetry-explorer.png"),
+      path: path.join(evidenceDirectory, "live-dashboard-persisted-library.png"),
       fullPage: true,
     });
+    writeFileSync(
+      path.join(evidenceDirectory, "live-dashboard-summary.json"),
+      `${JSON.stringify(
+        {
+          dashboardId: fixture.dashboardId,
+          dashboardName: fixture.dashboardName,
+          dashboardRequests: requests.dashboard,
+          selectedTelemetryRequests: selectedRequests,
+          websocket: sockets,
+          acquisitionMutations: requests.acquisitionMutations,
+        },
+        null,
+        2,
+      )}\n`,
+    );
   } finally {
     await context.close();
   }
@@ -352,6 +260,6 @@ test("discovers, filters and compares real telemetry with stable history and rec
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required for live telemetry acceptance`);
+  if (!value) throw new Error(`${name} is required for Live Dashboard acceptance`);
   return value;
 }
