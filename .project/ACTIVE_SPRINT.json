@@ -60,14 +60,23 @@
       "status": "in_progress",
       "branch": "chore/275-post-cameras-state",
       "baseline_main_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
-      "scope": [".project/CURRENT_STATE.md", ".project/ACTIVE_SPRINT.json", ".project/BLOCKERS.md", ".project/LAST_CHECKPOINT.json"]
+      "scope": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
+      ]
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
+      "depends_on": [
+        "concrete locker inventory",
+        "read-only protocol scope",
+        "defined operator workflow"
+      ]
     },
     {
       "id": "NEXOLAB-204",
@@ -88,8 +97,23 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "software_verified_hardware_blocked"
     },
-    { "id": "NEXOLAB-200", "issue": 200, "title": "Verify physical RS-485 topology", "status": "blocked" },
-    { "id": "NEXOLAB-201", "issue": 201, "title": "Validate LE-01MP cumulative energy", "status": "blocked" },
-    { "id": "NEXOLAB-202", "issue": 202, "title": "Validate extended XJP60D semantics", "status": "blocked" }
+    {
+      "id": "NEXOLAB-200",
+      "issue": 200,
+      "title": "Verify physical RS-485 topology",
+      "status": "blocked"
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy",
+      "status": "blocked"
+    },
+    {
+      "id": "NEXOLAB-202",
+      "issue": 202,
+      "title": "Validate extended XJP60D semantics",
+      "status": "blocked"
+    }
   ]
 }
