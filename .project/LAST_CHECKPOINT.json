@@ -5,6 +5,7 @@
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
   "task": "NEXOLAB-324",
   "issue": 324,
+  "pull_request": 325,
   "status": "completed",
   "timestamp": "2026-08-06T01:14:00+03:00",
   "branch": "docs/324-acquisition-software-checkpoint",
@@ -18,6 +19,7 @@
     },
     {
       "issue": 324,
+      "pull_request": 325,
       "title": "Reconcile acquisition software acceptance checkpoint",
       "status": "completed_in_state_branch"
     }
@@ -181,6 +183,6 @@
   ],
   "next_ready_work_package_step": {
     "issue": null,
-    "instruction": "Merge the exact four-file state-only checkpoint. Resume Issue 289 physical acceptance only after controlled Raspberry Pi/RS-485 access is available, or create a new independent Ready software Work Package through the normal product process."
+    "instruction": "Resume Issue 289 physical acceptance only after controlled Raspberry Pi/RS-485 access is available, or create a new independent Ready software Work Package through the normal product process."
   }
 }
