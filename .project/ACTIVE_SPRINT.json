@@ -23,49 +23,51 @@
       "id": "NEXOLAB-260",
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
-      "status": "consistency_review_ready_with_blocked_tail",
+      "status": "consistency_review_complete_with_blocked_tail",
       "remaining_placeholder_routes": ["/lockers"],
-      "next_ready_action": "Create a focused cross-page consistency and completeness review Work Package.",
+      "next_ready_action": "Complete final review audit and Ready transition for PR #278 without merge.",
       "blocked_tail": "Smart Lockers requires concrete inventory, read-only protocol and operator workflow."
     },
     {
-      "id": "NEXOLAB-273",
-      "issue": 273,
+      "id": "NEXOLAB-277",
+      "issue": 277,
       "parent_issue": 260,
-      "pull_request": 274,
-      "title": "Complete operator-safe local Cameras workspace",
-      "status": "merged",
-      "branch": "feat/273-local-cameras-workspace",
-      "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
-      "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
-      "verified_state_head_sha": "adc6dec1eefe043da2813b7c59be6d39aa1e1aa6",
-      "merge_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
-      "route": "/cameras",
-      "state_head_runs": {
-        "ci": 30973948934,
-        "authenticated_dashboard": 30973948889,
-        "refrigeration_browser": 30973948945,
-        "offline_bundle": 30973948909
+      "pull_request": 278,
+      "title": "Audit cross-page operator consistency and completeness",
+      "status": "verified_pending_ready_transition",
+      "branch": "quality/277-cross-page-consistency-audit",
+      "baseline_main_sha": "68c443ff9e8aeff2cdb1384ecdb90daf85baceba",
+      "verified_source_head_sha": "4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa",
+      "focused_source_files": [
+        "docs/audits/ISSUE_277_CROSS_PAGE_AUDIT.md",
+        "src/components/dashboard/sidebar.tsx",
+        "src/components/dashboard/sidebar.test.tsx",
+        "src/components/dashboard/dashboard-shell.tsx",
+        "e2e/settings.production.e2e.ts"
+      ],
+      "source_head_runs": {
+        "ci": 30977006748,
+        "authenticated_dashboard": 30977006760,
+        "nodes_browser": 30977006754,
+        "alerts_browser": 30977006749,
+        "reports_browser": 30977006747,
+        "refrigeration_browser": 30977006752,
+        "offline_bundle": 30977006753
       },
-      "review_audit": {
-        "focused_files": 12,
-        "inline_threads": 0,
-        "submitted_reviews": 0
-      }
+      "guardrails": [
+        "no locker implementation",
+        "no backend schema or API expansion",
+        "no dependency or toolchain migration",
+        "no hardware write",
+        "no production cutover"
+      ]
     },
     {
       "id": "NEXOLAB-275",
       "issue": 275,
       "title": "Reconcile project state after Cameras merge",
-      "status": "in_progress",
-      "branch": "chore/275-post-cameras-state",
-      "baseline_main_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
-      "scope": [
-        ".project/CURRENT_STATE.md",
-        ".project/ACTIVE_SPRINT.json",
-        ".project/BLOCKERS.md",
-        ".project/LAST_CHECKPOINT.json"
-      ]
+      "status": "merged",
+      "branch": "chore/275-post-cameras-state"
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
