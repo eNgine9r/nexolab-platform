@@ -1,79 +1,74 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-05
+Updated: 2026-08-06
 
-## Completed Live Dashboard product boundary
+## Acquisition software acceptance completed
 
-Issue #288 / PR #320 is merged. Current product baseline is `d7affee11a39d5a007c461b9a4dea17f14b5bfb3`.
+Issue #289 software acceptance is merged through PR #323 at `959bd8f54cf044280d385917578f836a5c8ec7c8` from verified head `a15f4b084137bb53a11eff7c7ba5f2f3d78436f5`.
 
-The completed `/live` product surface guarantees:
+The merged evidence proves in deterministic and local Compose environments:
 
-- persisted organization-scoped dashboard definitions through `/api/v1/live-dashboards`;
-- library, create, edit, duplicate, archive and open flows;
-- ETag/If-Match optimistic concurrency and preservation of unsaved local changes on stale-writer conflict;
-- editor-only canonical inventory with bounded search/filter selection;
-- duplicate prevention, deterministic ordering and a 64-item maximum;
-- selected-only `latest`, `history` and logical WebSocket subscriptions after a saved dashboard is opened;
-- one physical WebSocket maximum through the shared application-shell runtime;
-- bounded history of 8,000 total samples and 500 per series;
-- truthful loading, empty, reconnecting, stale, offline, forbidden, configuration and error states;
-- viewer read-only behavior and `live_dashboards.manage` mutation gating;
-- refresh, time window, colors and visualizations remain display/query preferences only;
-- no Device Agent discovery/configuration mutation, registry mutation, scheduler mutation, Modbus write or hardware action.
+- 34, 136 and 240 active-target profiles;
+- one serialized physical read at a time;
+- priority coverage and bounded fairness;
+- no normal executions for disabled/ineligible targets;
+- endpoint-scoped cooldown and continuation of unrelated healthy endpoints;
+- retained latest values with truthful `communication_error` state;
+- UI-independent request rate across Overview, persisted Live Dashboard, Refrigeration, Energy, Sessions, additional browsers, WebSocket reconnect and Telemetry Service restart;
+- selected-only Live Dashboard latest/history requests;
+- one maximum physical WebSocket per page/scope;
+- zero discovery/configuration mutations;
+- MQTT outbox replay ordering;
+- connecting, live, reconnecting, stale, offline, authorization and configuration state distinctions;
+- disconnected Offline Bundle startup, update/rollback and persistent-volume preservation.
 
-Authenticated evidence recorded exactly one selected `latest` and one selected `history` request for `106-03 + temperature.probe`, maximum concurrent WebSockets of one, persistence after Telemetry Service restart and zero acquisition mutations. Offline Bundle update/rollback and volume preservation remained GREEN.
-
-## Acquisition optimization sequencing
-
-Epic #282 remains active.
-
-```text
-#321 state-only reconciliation
-→ #289 acquisition scale, stability and truthful live-state acceptance
-```
-
-All software dependencies for Issue #289 are merged. The deterministic software matrix is Ready; the real Raspberry Pi/RS-485 gate is hardware-dependent.
-
-## Issue #289 hardware boundary
-
-Software verification must document targets and prove the reproducible matrix for:
-
-- baseline and increased deterministic inventories;
-- unavailable and timeout-heavy endpoints;
-- one and multiple authenticated browser contexts;
-- Overview, Live Dashboard, Refrigeration, Energy and session-scoped telemetry concurrently;
-- route transitions, WebSocket interruption/reconnect and Telemetry Service restart;
-- MQTT interruption and outbox drain;
-- disconnected LOCAL_LAN runtime;
-- deterministic reconnecting, stale, offline, auth, permission and configuration states.
-
-Real Raspberry Pi/RS-485 evidence remains required for:
-
-- physical requests per bus and time window;
-- installed-adapter response latency and retry rate;
-- actual bus utilization;
-- high-priority deadline and fairness performance with slow or absent endpoints;
-- final high/medium/low interval acceptance;
-- confirmation that no other Modbus master is active;
-- physical request-counter comparison with no browser, Overview, one Live Dashboard, route transitions and multiple browsers;
-- physical CPU, memory, disk, queue depth and ingestion-to-WebSocket latency.
-
-Until measured, use this classification:
+Issue #289 remains open and must retain this classification:
 
 ```text
 software verified; hardware performance acceptance pending
 ```
 
-## Supply-chain security risk
+## Hard blocker: controlled hardware access
 
-One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` because Debian Trixie currently reports no fixed package. It:
+No independent Ready software Work Package remains in the active acquisition sprint after Issue #324 state reconciliation.
 
-- is owned by `platform-security`;
-- expires on 2026-08-15;
-- is limited to the authenticated local `mosquitto_ctrl` dynamic-security adapter path;
-- does not weaken global HIGH/CRITICAL enforcement.
+The next required action is the controlled Raspberry Pi/RS-485 phase of Issue #289. It cannot be executed from the current environment because no usable host address, SSH session, controlled maintenance window or physical RS-485 access is available.
 
-Remove the exception immediately when a fixed Debian package becomes available.
+The required physical phases are:
+
+1. no browser;
+2. Overview;
+3. one persisted Live Dashboard;
+4. repeated route transitions;
+5. multiple browser workstations;
+6. WebSocket reconnect;
+7. one known unavailable endpoint;
+8. MQTT interruption and outbox drain.
+
+Physical evidence must include:
+
+- normal FC03 physical requests per bus and bounded window;
+- real response latency and retries;
+- bus busy time and utilization;
+- scheduler lag, missed deadlines, fairness and cooldown behavior;
+- CPU, RAM, disk and outbox depth;
+- ingestion-to-WebSocket latency;
+- proof that page/browser count does not change the physical polling envelope;
+- proof that unrelated channels remain available when one endpoint is absent;
+- exact source commit and sanitized aggregate evidence.
+
+The procedure must remain read-only. Do not run Modbus writes, controller configuration, production cutover, persistent-volume deletion or unapproved disruptive hardware actions.
+
+## Other hardware-dependent blockers
+
+- **#245:** standalone loopback runtime software is merged; actual Raspberry Pi acceptance remains pending.
+- **#189:** physical reboot, hard power-loss and media restore remain pending.
+- **#200:** physical RS-485 topology, termination, single-master status and polling envelope remain pending.
+- **#201:** LE-01MP cumulative energy remains excluded pending read-only hardware validation.
+- **#202:** extended XJP60D semantics and portability require read-only physical evidence.
+- Issue #284 still requires real request-counter proof for disabled physical targets.
+- Issue #285 still requires real interval, utilization and deadline proof.
+- Physical cameras, ONVIF/RTSP media and NVR remain unverified.
 
 ## Smart Lockers blocker
 
@@ -86,29 +81,18 @@ Remove the exception immediately when a fixed Debian package becomes available.
 
 Do not create demo controls, guessed states, door/lock writes or fabricated production behavior.
 
-## Hardware-dependent blockers
+## Supply-chain security risk
 
-- **#245:** actual standalone Raspberry Pi acceptance pending.
-- **#189:** physical reboot, power-loss and media restore pending.
-- **#200:** physical RS-485 topology and polling envelope pending.
-- **#201:** LE-01MP cumulative energy remains excluded pending read-only hardware validation.
-- **#202:** extended XJP60D semantics and portability require read-only hardware evidence.
-- Physical cameras, ONVIF, RTSP media and NVR remain unverified.
-- Issue #284 still requires physical request-counter proof for disabled real targets.
-- Issue #285 still requires physical interval, utilization and deadline proof.
-- Issue #289 owns final physical comparison for the merged acquisition, delivery and Live Dashboard stack.
+One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` because Debian Trixie currently reports no fixed package. It:
 
-## Residual risks, not blockers for deterministic Issue #289 work
+- is owned by `platform-security`;
+- expires on 2026-08-15;
+- is limited to the authenticated local `mosquitto_ctrl` dynamic-security adapter path;
+- does not weaken global HIGH/CRITICAL enforcement.
 
-- Performance targets must be documented before execution rather than inferred after results.
-- Fake/recorded serial inventories must remain deterministic and must not be reported as hardware evidence.
-- A slow or missing endpoint must degrade only its own quality and must not make unrelated channels appear offline.
-- Latest REST and selected WebSocket values must remain consistent by event identity and freshness.
-- Backend restart and MQTT backlog recovery must not create duplicate committed telemetry or false freshness.
-- Browser counts and route transitions must not recreate broad inventory bootstrap or duplicate active subscriptions.
-- Deferred toolchain Issues #252–#257 remain outside active validation scope unless they become a concrete security or delivery blocker.
+Remove the exception immediately when a fixed Debian package becomes available.
 
-## Hard blockers
+## Hard-stop rules
 
 Stop before:
 
@@ -120,6 +104,6 @@ Stop before:
 - any operation that cannot preserve local laboratory data;
 - claiming physical performance acceptance without controlled Raspberry Pi/RS-485 evidence.
 
-## Next Ready action
+## Next action
 
-Complete Issue #321 as a four-file state-only PR, then start Issue #289 by documenting the performance targets and deterministic software matrix. Treat unavailable controlled Raspberry Pi/RS-485 access as a hardware acceptance blocker, not as a reason to fabricate completion.
+Complete Issue #324 as a four-file state-only PR. After it merges, wait for controlled Raspberry Pi/RS-485 access or a newly created independent Ready software Work Package. Do not treat the hardware-blocked Issue #245 label as evidence that actual Raspberry Pi acceptance can be performed without the device.
