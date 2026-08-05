@@ -45,9 +45,9 @@ LE01MP_UNIT_IDS=200,201,202,203
 
 Register `7`, observed as a cumulative-energy candidate, is deliberately excluded from production telemetry until its scale and rollover behavior are independently confirmed.
 
-### Combined Modbus polling
+### Combined Modbus acquisition
 
-`DEVICE_MODE=modbus` polls both configured driver families sequentially through one serial client:
+`DEVICE_MODE=modbus` schedules both configured driver families through the same read-only serial client and one serialized worker per registry bus:
 
 ```dotenv
 DEVICE_MODE=modbus
@@ -57,6 +57,40 @@ LE01MP_UNIT_IDS=200,201,202,203
 ```
 
 The legacy `xjp60d` mode remains supported for the already validated two-channel hardware smoke test.
+
+## Adaptive acquisition
+
+Hardware modes derive recurring jobs only from registry-eligible targets. The default local policy is:
+
+- XJP60D temperature/status targets: `high`;
+- operational LE-01MP metrics: `medium`;
+- slower LE-01MP diagnostics: `low`;
+- discovery and configuration service operations: `on_demand`.
+
+```dotenv
+ACQUISITION_HIGH_INTERVAL_SECONDS=5
+ACQUISITION_MEDIUM_INTERVAL_SECONDS=10
+ACQUISITION_LOW_INTERVAL_SECONDS=30
+ACQUISITION_STARTUP_SPREAD_SECONDS=5
+ACQUISITION_FAILURE_THRESHOLD=3
+ACQUISITION_COOLDOWN_INITIAL_SECONDS=30
+ACQUISITION_COOLDOWN_MAX_SECONDS=300
+ACQUISITION_FAIRNESS_HIGH_BURST=8
+ACQUISITION_FAIRNESS_LOW_BURST=12
+```
+
+Defaults never accelerate high-priority targets below the existing `SAMPLE_INTERVAL_SECONDS` baseline. Final physical intervals remain unverified until measured on the actual Raspberry Pi and RS-485 topology.
+
+Scheduler and latest-value evidence is available locally:
+
+```text
+GET /metrics
+GET /health
+GET /ready
+GET /api/v1/acquisition-latest
+```
+
+Reading these endpoints never initiates Modbus acquisition. See `docs/operations/adaptive-acquisition-scheduler.md` for policy, cooldown, fairness, restart and hardware-acceptance details.
 
 ## Serial configuration
 
@@ -103,7 +137,7 @@ A meter voltage reading is published as:
 }
 ```
 
-XJP60D status mask `3` suppresses the decoded value and publishes `quality=sensor_error`. Per-register Modbus failures publish `quality=communication_error` without dropping healthy points from the same cycle.
+XJP60D status mask `3` suppresses the decoded value and publishes `quality=sensor_error`. Per-target Modbus failures publish `quality=communication_error` without removing the last successful value from the local latest-value read model.
 
 ## Tests
 
