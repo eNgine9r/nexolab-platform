@@ -2,7 +2,7 @@
 
 Updated: 2026-08-06
 Verified software baseline: `959bd8f54cf044280d385917578f836a5c8ec7c8`
-Active control Work Package: Issue #324 — reconcile acquisition software acceptance checkpoint
+Control checkpoint: Issue #324 — completed in the state-only branch
 Branch: `docs/324-acquisition-software-checkpoint`
 Next independent Ready Work Package: none
 Active epic: Issue #282 — Performance and data acquisition optimization
@@ -141,4 +141,4 @@ The physical matrix must capture real request counters, retries, serial latency,
 
 ## Next action
 
-Complete Issue #324 as an exact four-file state-only reconciliation. After merge, there is no independent Ready software Work Package in the active sprint. Continue with the controlled Issue #289 hardware matrix only when Raspberry Pi/RS-485 access is available; otherwise treat the sprint as hard-blocked rather than fabricating physical acceptance.
+No independent Ready software Work Package remains. Resume Issue #289 hardware acceptance only when controlled Raspberry Pi/RS-485 access is available, or create a new independent Ready Work Package through the normal product process. Do not fabricate physical evidence or perform Modbus/hardware writes.
