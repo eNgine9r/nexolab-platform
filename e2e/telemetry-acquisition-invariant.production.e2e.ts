@@ -1,13 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  expect,
-  test,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
@@ -54,10 +48,7 @@ async function readMetrics(): Promise<MetricsPayload> {
   return (await response.json()) as MetricsPayload;
 }
 
-async function measurePhase(
-  phase: string,
-  action: () => Promise<void>,
-): Promise<PhaseEvidence> {
+async function measurePhase(phase: string, action: () => Promise<void>): Promise<PhaseEvidence> {
   const before = await readMetrics();
   const started = performance.now();
   await action();
@@ -75,19 +66,14 @@ async function measurePhase(
   };
 }
 
-function observeControlRequests(
-  page: Page,
-  evidence: Array<{ method: string; url: string }>,
-): void {
+function observeControlRequests(page: Page, evidence: Array<{ method: string; url: string }>): void {
   page.on("request", (request) => {
     if (!request.url().includes("/api/device-agent/xjp60d")) return;
     evidence.push({ method: request.method(), url: request.url() });
   });
 }
 
-test("page navigation and browser count do not amplify physical acquisition", async ({
-  browser,
-}) => {
+test("page navigation and browser count do not amplify physical acquisition", async ({ browser }) => {
   test.setTimeout(180_000);
   const controlRequests: Array<{ method: string; url: string }> = [];
   const contexts: BrowserContext[] = [];
