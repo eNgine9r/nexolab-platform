@@ -6,8 +6,9 @@
   "task": "NEXOLAB-273",
   "issue": 273,
   "parent_issue": 260,
-  "status": "ready_for_implementation",
-  "timestamp": "2026-08-05T06:24:00+03:00",
+  "pull_request": 274,
+  "status": "draft_created",
+  "timestamp": "2026-08-05T06:26:00+03:00",
   "branch": "feat/273-local-cameras-workspace",
   "route": "/cameras",
   "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
@@ -30,7 +31,7 @@
       "focused_files": 15
     }
   },
-  "summary": "Issue #273 replaces the Cameras placeholder and fabricated Overview LIVE scenes with a truthful authenticated local-first camera inventory and readiness workspace. The slice will expose only validated browser-safe metadata and explicit availability states without credentials, unsupported RTSP playback claims, camera mutations, cloud requirements or physical acceptance claims.",
+  "summary": "Issue #273 and draft PR #274 replace the Cameras placeholder and fabricated Overview LIVE scenes with a truthful authenticated local-first camera inventory and readiness workspace. The slice will expose only validated browser-safe metadata and explicit availability states without credentials, unsupported RTSP playback claims, camera mutations, cloud requirements or physical acceptance claims.",
   "repository_inventory": {
     "placeholder_route_confirmed": true,
     "hardcoded_overview_live_scenes_confirmed": true,
@@ -68,6 +69,7 @@
   },
   "next_ready_work_package_step": {
     "issue": 273,
-    "instruction": "Open one focused draft Pull Request, implement the typed camera domain and focused tests, then replace the /cameras placeholder and fabricated Overview LIVE panel."
+    "pull_request": 274,
+    "instruction": "Implement the typed truthful camera domain and focused tests, then replace the /cameras placeholder and fabricated Overview LIVE panel before running targeted and canonical verification gates."
   }
 }
