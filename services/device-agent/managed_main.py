@@ -12,8 +12,9 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
+from le01mp import REGISTERS as LE01MP_REGISTERS
 from main import (
     DeviceAgent,
     HealthHandler,
@@ -22,12 +23,13 @@ from main import (
     parse_unit_ids,
     parse_xjp60d_points,
 )
-from modbus_rtu import ModbusError
+from modbus_rtu import ModbusError, ModbusRequestMeasurement
 from xjp60d import XJP60DReader
 
 LOG = logging.getLogger("nexolab.device_agent")
 DEFAULT_DISCOVERY_UNITS = (*range(101, 115), *range(126, 139))
 _MAX_REQUEST_BYTES = 32 * 1024
+_LATENCY_BUCKETS_MS = (10, 25, 50, 100, 250, 500, 1000)
 
 
 def canonical_point(unit_id: int, channel: int) -> str:
@@ -134,6 +136,259 @@ class XJP60DPointStore:
         )
 
 
+class AcquisitionMetrics:
+    """Thread-safe, bounded metrics for physical read-only Modbus attempts."""
+
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        wall_clock: Callable[[], datetime] | None = None,
+    ) -> None:
+        self._settings = settings
+        self._clock = clock
+        self._wall_clock = wall_clock or (lambda: datetime.now(timezone.utc))
+        self._lock = threading.Lock()
+        self._request_series: dict[tuple[str, str, str, int, int, str], int] = {}
+        self._targets: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self._operation_totals: dict[str, dict[str, Any]] = {}
+        self._cycle_started_total = 0
+        self._cycle_completed_total = 0
+        self._cycle_failed_total = 0
+        self._cycle_overrun_total = 0
+        self._cycle_skipped_total = 0
+        self._current_cycle_started_at: float | None = None
+        self._current_cycle_requests_start = 0
+        self._current_cycle_busy_start = 0.0
+        self._last_cycle_duration_seconds: float | None = None
+        self._last_cycle_requests = 0
+        self._last_cycle_bus_busy_seconds = 0.0
+        self._last_cycle_bus_utilization_percent = 0.0
+        self._last_cycle_completed_at: str | None = None
+
+    def _operation(self, name: str) -> dict[str, Any]:
+        return self._operation_totals.setdefault(
+            name,
+            {
+                "physical_requests_total": 0,
+                "retry_attempts_total": 0,
+                "bus_busy_seconds_total": 0.0,
+                "outcomes": {},
+            },
+        )
+
+    def _classify(self, measurement: ModbusRequestMeasurement) -> tuple[str, str]:
+        if measurement.device_family != "unclassified":
+            return measurement.device_family, measurement.target_id
+
+        register_keys = {item.address: item.key for item in LE01MP_REGISTERS}
+        if measurement.unit_id in self._settings.le01mp_unit_ids:
+            register_key = register_keys.get(measurement.address)
+            target = (
+                f"{measurement.unit_id}-{register_key.replace('_', '-')}"
+                if register_key
+                else f"{measurement.unit_id}-register-{measurement.address}"
+            )
+            return "le01mp", target
+
+        if 256 <= measurement.address <= 267:
+            channel = ((measurement.address - 256) // 2) + 1
+            return "xjp60d", canonical_point(measurement.unit_id, channel)
+
+        return "unclassified", f"unit-{measurement.unit_id}-register-{measurement.address}"
+
+    def observe(self, measurement: ModbusRequestMeasurement) -> None:
+        family, target_id = self._classify(measurement)
+        duration_ms = measurement.duration_seconds * 1000
+        captured_at = self._wall_clock().isoformat()
+        with self._lock:
+            operation = self._operation(measurement.operation)
+            operation["physical_requests_total"] += 1
+            operation["bus_busy_seconds_total"] += measurement.duration_seconds
+            if measurement.attempt > 1:
+                operation["retry_attempts_total"] += 1
+            outcomes = operation["outcomes"]
+            outcomes[measurement.outcome] = outcomes.get(measurement.outcome, 0) + 1
+
+            series_key = (
+                measurement.operation,
+                measurement.bus,
+                family,
+                measurement.unit_id,
+                measurement.function,
+                measurement.outcome,
+            )
+            self._request_series[series_key] = self._request_series.get(series_key, 0) + 1
+
+            target_key = (measurement.operation, family, target_id)
+            target = self._targets.setdefault(
+                target_key,
+                {
+                    "operation": measurement.operation,
+                    "bus": measurement.bus,
+                    "device_family": family,
+                    "target_id": target_id,
+                    "unit_id": measurement.unit_id,
+                    "function": measurement.function,
+                    "requests_total": 0,
+                    "retry_attempts_total": 0,
+                    "outcomes": {},
+                    "latency_count": 0,
+                    "latency_total_ms": 0.0,
+                    "latency_last_ms": 0.0,
+                    "latency_max_ms": 0.0,
+                    "latency_buckets": {str(bucket): 0 for bucket in _LATENCY_BUCKETS_MS},
+                    "last_success_at": None,
+                },
+            )
+            target["requests_total"] += 1
+            if measurement.attempt > 1:
+                target["retry_attempts_total"] += 1
+            target_outcomes = target["outcomes"]
+            target_outcomes[measurement.outcome] = target_outcomes.get(measurement.outcome, 0) + 1
+            target["latency_count"] += 1
+            target["latency_total_ms"] += duration_ms
+            target["latency_last_ms"] = duration_ms
+            target["latency_max_ms"] = max(target["latency_max_ms"], duration_ms)
+            for bucket in _LATENCY_BUCKETS_MS:
+                if duration_ms <= bucket:
+                    target["latency_buckets"][str(bucket)] += 1
+            if measurement.outcome == "success":
+                target["last_success_at"] = captured_at
+
+    def begin_cycle(self) -> None:
+        with self._lock:
+            self._cycle_started_total += 1
+            self._current_cycle_started_at = self._clock()
+            normal = self._operation("normal")
+            self._current_cycle_requests_start = normal["physical_requests_total"]
+            self._current_cycle_busy_start = normal["bus_busy_seconds_total"]
+
+    def complete_cycle(self, *, interval_seconds: float, failed: bool) -> None:
+        now = self._clock()
+        completed_at = self._wall_clock().isoformat()
+        with self._lock:
+            if self._current_cycle_started_at is None:
+                return
+            duration = max(0.0, now - self._current_cycle_started_at)
+            normal = self._operation("normal")
+            requests = normal["physical_requests_total"] - self._current_cycle_requests_start
+            busy = normal["bus_busy_seconds_total"] - self._current_cycle_busy_start
+            self._cycle_completed_total += 1
+            if failed:
+                self._cycle_failed_total += 1
+            if duration > interval_seconds:
+                self._cycle_overrun_total += 1
+            self._last_cycle_duration_seconds = duration
+            self._last_cycle_requests = requests
+            self._last_cycle_bus_busy_seconds = max(0.0, busy)
+            self._last_cycle_bus_utilization_percent = (
+                min(100.0, max(0.0, busy / duration * 100)) if duration > 0 else 0.0
+            )
+            self._last_cycle_completed_at = completed_at
+            self._current_cycle_started_at = None
+
+    def snapshot(self, *, configured_logical_targets: int) -> dict[str, Any]:
+        now = self._clock()
+        with self._lock:
+            operations = {
+                name: {
+                    "physical_requests_total": values["physical_requests_total"],
+                    "retry_attempts_total": values["retry_attempts_total"],
+                    "bus_busy_seconds_total": round(values["bus_busy_seconds_total"], 6),
+                    "outcomes": dict(sorted(values["outcomes"].items())),
+                }
+                for name, values in sorted(self._operation_totals.items())
+            }
+            normal = operations.get(
+                "normal",
+                {
+                    "physical_requests_total": 0,
+                    "retry_attempts_total": 0,
+                    "bus_busy_seconds_total": 0.0,
+                    "outcomes": {},
+                },
+            )
+            service = {
+                name: values
+                for name, values in operations.items()
+                if name != "normal"
+            }
+            request_series = [
+                {
+                    "operation": key[0],
+                    "bus": key[1],
+                    "device_family": key[2],
+                    "unit_id": key[3],
+                    "function": key[4],
+                    "outcome": key[5],
+                    "requests_total": count,
+                }
+                for key, count in sorted(self._request_series.items())
+            ]
+            targets = []
+            for _, target in sorted(self._targets.items()):
+                count = target["latency_count"]
+                targets.append(
+                    {
+                        "operation": target["operation"],
+                        "bus": target["bus"],
+                        "device_family": target["device_family"],
+                        "target_id": target["target_id"],
+                        "unit_id": target["unit_id"],
+                        "function": target["function"],
+                        "requests_total": target["requests_total"],
+                        "retry_attempts_total": target["retry_attempts_total"],
+                        "outcomes": dict(sorted(target["outcomes"].items())),
+                        "latency_ms": {
+                            "count": count,
+                            "last": round(target["latency_last_ms"], 3),
+                            "average": round(target["latency_total_ms"] / count, 3)
+                            if count
+                            else 0.0,
+                            "maximum": round(target["latency_max_ms"], 3),
+                            "buckets_le": dict(target["latency_buckets"]),
+                        },
+                        "last_success_at": target["last_success_at"],
+                    }
+                )
+            current_duration = (
+                max(0.0, now - self._current_cycle_started_at)
+                if self._current_cycle_started_at is not None
+                else None
+            )
+            return {
+                "schema_version": 1,
+                "polling_policy": "fixed_interval_unchanged",
+                "configured_logical_targets": max(0, configured_logical_targets),
+                "normal": normal,
+                "service_operations": service,
+                "request_series": request_series,
+                "targets": targets,
+                "cycle": {
+                    "started_total": self._cycle_started_total,
+                    "completed_total": self._cycle_completed_total,
+                    "failed_total": self._cycle_failed_total,
+                    "overrun_total": self._cycle_overrun_total,
+                    "skipped_total": self._cycle_skipped_total,
+                    "current_duration_seconds": round(current_duration, 6)
+                    if current_duration is not None
+                    else None,
+                    "last_duration_seconds": round(self._last_cycle_duration_seconds, 6)
+                    if self._last_cycle_duration_seconds is not None
+                    else None,
+                    "last_requests": self._last_cycle_requests,
+                    "last_bus_busy_seconds": round(self._last_cycle_bus_busy_seconds, 6),
+                    "last_bus_utilization_percent": round(
+                        self._last_cycle_bus_utilization_percent,
+                        3,
+                    ),
+                    "last_completed_at": self._last_cycle_completed_at,
+                },
+            }
+
+
 class XJP60DDiscoveryScanner:
     def __init__(self, reader: XJP60DReader, unit_ids: tuple[int, ...]) -> None:
         self._reader = reader
@@ -217,10 +472,47 @@ class ManagedDeviceAgent(DeviceAgent):
         self._configuration_lock = threading.Lock()
         self._bus_operation_lock = threading.Lock()
         self._discovery_lock = threading.Lock()
+        self.acquisition_metrics = AcquisitionMetrics(self.settings)
+        if self.modbus_client is not None:
+            # The client is created by the base class before any acquisition starts.
+            self.modbus_client._request_observer = self.acquisition_metrics.observe  # noqa: SLF001
+
+    def _configured_logical_targets(self) -> int:
+        xjp60d = (
+            len(self.settings.xjp60d_points)
+            if mode_uses_xjp60d(self.settings.device_mode)
+            else 0
+        )
+        le01mp = (
+            len(self.settings.le01mp_unit_ids) * len(LE01MP_REGISTERS)
+            if self.settings.device_mode in {"le01mp", "modbus"}
+            else 0
+        )
+        return xjp60d + le01mp
+
+    def acquisition_snapshot(self) -> dict[str, Any]:
+        return self.acquisition_metrics.snapshot(
+            configured_logical_targets=self._configured_logical_targets()
+        )
+
+    def health_snapshot(self) -> dict[str, Any]:
+        payload = self.state.snapshot(self.queue.size(), self.settings)
+        payload["acquisition"] = self.acquisition_snapshot()
+        return payload
 
     def sample_batch(self):  # type: ignore[no-untyped-def]
         with self._bus_operation_lock:
-            return super().sample_batch()
+            self.acquisition_metrics.begin_cycle()
+            failed = True
+            try:
+                result = super().sample_batch()
+                failed = False
+                return result
+            finally:
+                self.acquisition_metrics.complete_cycle(
+                    interval_seconds=self.settings.sample_interval_seconds,
+                    failed=failed,
+                )
 
     def configuration(self) -> dict[str, Any]:
         with self._configuration_lock:
@@ -264,16 +556,21 @@ class ManagedDeviceAgent(DeviceAgent):
         return self.configuration()
 
     def discover_xjp60d(self) -> dict[str, Any]:
-        if self.xjp60d_reader is None:
+        if self.xjp60d_reader is None or self.modbus_client is None:
             raise RuntimeError("XJP60D reader is not initialized")
         if not self._discovery_lock.acquire(blocking=False):
             raise DiscoveryAlreadyRunningError
         try:
             with self._bus_operation_lock:
-                result = XJP60DDiscoveryScanner(
-                    self.xjp60d_reader,
-                    self.discovery_units,
-                ).scan()
+                with self.modbus_client.instrumentation_scope(
+                    device_family="xjp60d",
+                    target_id="catalog-discovery",
+                    operation="discovery",
+                ):
+                    result = XJP60DDiscoveryScanner(
+                        self.xjp60d_reader,
+                        self.discovery_units,
+                    ).scan()
             self._point_store.save_last_discovery(result)
             return {**self.configuration(), "last_discovery": result}
         finally:
@@ -291,6 +588,25 @@ class ManagedHealthHandler(HealthHandler):
         path = self.path.split("?", maxsplit=1)[0]
         if path == "/api/v1/xjp60d/configuration":
             self._send_json(HTTPStatus.OK, self.agent.configuration())
+            return
+        if path == "/metrics":
+            self._send_json(
+                HTTPStatus.OK,
+                {
+                    "schema_version": 1,
+                    "node_id": self.agent.settings.node_id,
+                    "acquisition": self.agent.acquisition_snapshot(),
+                },
+            )
+            return
+        if path in {"/health", "/ready"}:
+            payload = self.agent.health_snapshot()
+            status = (
+                HTTPStatus.OK
+                if payload["status"] in {"ok", "degraded"}
+                else HTTPStatus.SERVICE_UNAVAILABLE
+            )
+            self._send_json(status, payload)
             return
         super().do_GET()
 
