@@ -3,81 +3,63 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-273",
-  "issue": 273,
+  "task": "NEXOLAB-275",
+  "issue": 275,
   "parent_issue": 260,
-  "pull_request": 274,
-  "status": "ready_audit",
-  "timestamp": "2026-08-05T06:58:00+03:00",
-  "branch": "feat/273-local-cameras-workspace",
-  "route": "/cameras",
-  "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
-  "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
-  "summary": "Issue #273 replaces the Cameras placeholder and fabricated Overview LIVE scenes with an authenticated truthful local-first camera readiness workspace. The implementation exposes only validated browser-safe metadata and explicit availability states, intentionally renders unconfigured until a real safe inventory contract exists, and introduces no credentials, camera mutations, cloud dependency or physical acceptance claim.",
-  "verified_scope": [
-    "typed bounded camera records, source kinds, capabilities and states",
-    "local endpoint sanitization with credential and public-host rejection",
-    "query-string and fragment removal from displayed endpoints",
-    "raw RTSP online claims downgraded to explicit browser-unavailable state",
-    "authenticated cameras shell with standard Sidebar and Topbar",
-    "deterministic camera search and state filter",
-    "truthful unconfigured state without demo fallback",
-    "fabricated Overview camera scenes and animated LIVE labels removed",
-    "canonical Overview navigation to /cameras",
-    "focused unit tests and production browser acceptance",
-    "zero non-GET camera requests observed",
-    "no secret or fabricated LIVE evidence observed"
-  ],
-  "verification": {
-    "ci": {
-      "run_id": 30973348158,
-      "conclusion": "success"
-    },
-    "authenticated_dashboard": {
-      "run_id": 30973348163,
-      "conclusion": "success",
-      "flows": 7
-    },
-    "refrigeration_browser": {
-      "run_id": 30973348162,
-      "conclusion": "success"
-    },
-    "offline_bundle": {
-      "run_id": 30973348151,
-      "conclusion": "success",
-      "evidence": [
-        "linux/amd64 bundle built",
-        "clean transferred host simulated",
-        "runtime images removed before load",
-        "container egress blocked",
-        "disconnected stack started with pulls disabled",
-        "update and rollback preserved persistent data",
-        "final disconnected evidence captured"
-      ]
-    }
-  },
-  "review_audit": {
-    "focused_source_files": 8,
-    "state_files": 4,
-    "temporary_workflow_present": false,
-    "dependency_or_lockfile_change": false,
-    "backend_schema_change": false,
-    "camera_or_hardware_write": false,
-    "backend_mutations_observed": 0,
-    "secret_exposure_observed": false,
-    "fabricated_live_evidence_observed": false
-  },
-  "hardware_evidence": {
-    "software_verified": true,
-    "camera_hardware_verified": false,
-    "onvif_verified": false,
-    "rtsp_media_verified": false,
-    "nvr_verified": false,
-    "note": "No physical camera, ONVIF discovery, RTSP media session, NVR, camera write, Modbus command or production/site cutover was used."
-  },
-  "next_ready_work_package_step": {
+  "status": "state_reconciliation_in_progress",
+  "timestamp": "2026-08-05T07:18:00+03:00",
+  "branch": "chore/275-post-cameras-state",
+  "baseline_main_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
+  "previous_task": {
     "issue": 273,
     "pull_request": 274,
-    "instruction": "Validate the state-only head, repeat final review and focused-diff audit, update PR #274 summary and mark Ready without merge."
+    "status": "merged",
+    "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
+    "verified_state_head_sha": "adc6dec1eefe043da2813b7c59be6d39aa1e1aa6",
+    "merge_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
+    "state_head_runs": {
+      "ci": 30973948934,
+      "authenticated_dashboard": 30973948889,
+      "refrigeration_browser": 30973948945,
+      "offline_bundle": 30973948909
+    },
+    "review_audit": {
+      "focused_files": 12,
+      "inline_threads": 0,
+      "submitted_reviews": 0
+    }
+  },
+  "parent_epic_reassessment": {
+    "issue": 260,
+    "status": "open",
+    "completed_page_work_packages": [261, 263, 265, 267, 269, 273],
+    "remaining_placeholder_routes": ["/lockers"],
+    "next_independent_ready_action": "focused cross-page consistency and completeness review",
+    "blocked_tail": {
+      "route": "/lockers",
+      "reason": "No concrete locker inventory, read-only protocol or defined operator workflow exists."
+    }
+  },
+  "scope": [
+    ".project/CURRENT_STATE.md",
+    ".project/ACTIVE_SPRINT.json",
+    ".project/BLOCKERS.md",
+    ".project/LAST_CHECKPOINT.json"
+  ],
+  "guardrails": [
+    "no product code change",
+    "no dependency or workflow change",
+    "no locker implementation or invented behavior",
+    "no hardware write",
+    "no production cutover"
+  ],
+  "hardware_evidence": {
+    "software_verified": true,
+    "physical_hardware_verified": false,
+    "note": "Physical Raspberry Pi, RS-485, cameras and Smart Lockers remain unverified."
+  },
+  "next_ready_work_package_step": {
+    "issue": 275,
+    "instruction": "Open a control-only PR, confirm exactly four .project files, require GREEN CI, squash merge, then create the focused cross-page consistency review Work Package while keeping /lockers blocked."
   }
 }
