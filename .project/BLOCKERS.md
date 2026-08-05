@@ -2,56 +2,63 @@
 
 Updated: 2026-08-05
 
-## Completed active acquisition registry
+## Completed adaptive acquisition scheduler
 
-Issue #284 / PR #299 was squash-merged as `6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8` from verified head `c83f42aee7fc1251a683fb5c55cbe2779217673f`.
+Issue #285 / PR #305 was squash-merged as `4d9300a87e497b13d1d9fcabc479df781bcc8505` from verified head `54d49f422723b52a41feff307023a299f27e3a92`.
 
 Final exact-head verification:
 
-- CI `30990278424` GREEN;
-- Edge image `30990278312` GREEN;
-- Container Supply Chain `30990278313` GREEN;
-- Telemetry service `30990278544` GREEN;
-- Device Agent Fleet Acceptance `30990278529` GREEN;
-- MQTT TLS Fleet Acceptance `30990278311` GREEN;
-- Disaster Recovery TLS Fleet `30990278521` GREEN;
-- Authenticated Dashboard Acceptance `30990278466` GREEN on attempt 2;
-- Offline Bundle `30990278317` GREEN;
-- focused diff: 8 files;
+- CI `30996678326` GREEN;
+- Edge image `30996678375` GREEN;
+- Container Supply Chain `30996678388` GREEN;
+- Telemetry service `30996678331` GREEN;
+- Device Agent Fleet Acceptance `30996678275` GREEN;
+- MQTT TLS Fleet Acceptance `30996678364` GREEN;
+- Disaster Recovery TLS Fleet `30996678450` GREEN;
+- Authenticated Dashboard Acceptance `30996678338` GREEN;
+- Offline Bundle `30996678393` GREEN;
+- focused diff: 10 files;
 - inline review threads: zero;
 - submitted reviews: zero.
 
-The registry now preserves inventory while allowing only targets with active device and target lifecycle to enter normal FC03 polling. Disabled, reserve, retired, uninstalled, discovery-only and invalid targets remain visible but are excluded by deterministic eligibility tests. Registry state and audit are persisted atomically with optimistic revision control.
-
-Physical Raspberry Pi/RS-485 proof is still required before claiming that a real disabled target emits zero bus requests.
-
-## Completed project-state reconciliation
-
-Issue #301 / PR #302 was squash-merged as `899d8d8e15628c087ab11fde6d483a423209f616` after GREEN CI `30991763541`. The repository state now records Issue #284 as completed and Issue #285 as the single Ready Work Package.
+The scheduler now derives normal jobs only from registry-eligible FC03 targets, uses one serialized worker per bus, applies monotonic deadlines, bounded fairness and endpoint cooldown, and stores a durable latest-value read model. UI activity remains outside physical target selection and cadence.
 
 ## Acquisition optimization sequencing
 
-Epic #282 remains active. Issue #285 is the single Ready Work Package.
+Epic #282 remains active. Issue #286 is the single Ready Work Package.
 
 ```text
-#285 priority-aware adaptive scheduler and edge latest cache
-→ #286 REST/WebSocket subscription isolation
+#286 REST/WebSocket subscription isolation
 → #287 Live Dashboard persistence and API
 → #288 Live Dashboard operator workspace
 → #289 scale, stability and hardware acceptance
 ```
 
-Issue #285 may change scheduling of registry-eligible read-only targets only. It must preserve:
+Issue #286 must preserve these completed boundaries:
 
-- FC03-only behavior;
-- one serialized worker per physical bus;
-- inventory/eligibility separation;
-- explicit discovery as a separate service operation;
-- the rule that UI routes and display refresh cannot add physical work.
+- REST reads and WebSocket subscriptions consume persisted/latest telemetry state;
+- consumer count, refresh rate and reconnect activity cannot enqueue, accelerate or reprioritize physical reads;
+- the Device Agent remains the owner of physical acquisition cadence;
+- registry eligibility remains the only normal target source;
+- MQTT and SQLite delivery semantics remain compatible;
+- no Modbus or hardware writes.
+
+## Physical scheduler acceptance remains blocked
+
+Software verification proves deterministic priority ordering, monotonic deadlines, fairness, cooldown, restart staggering, latest-value persistence and offline operation. It does not prove final physical intervals.
+
+Real Raspberry Pi/RS-485 evidence is still required for:
+
+- request latency and retries on the installed adapter and wiring;
+- bus utilization under the actual active registry;
+- high-priority deadline performance with slow or absent endpoints;
+- final high/medium/low interval selection;
+- confirmation that no other Modbus master is active;
+- request-counter comparison under UI load.
+
+Until measured, report physical scheduler intervals as unverified. Do not lower intervals or perform a site cutover based only on software tests.
 
 ## Supply-chain security risk
-
-Issue #295 / PR #296 upgraded `cryptography` to the fixed 50.x line and restored the GREEN container gate.
 
 One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` because Debian Trixie currently reports no fixed package. It:
 
@@ -60,37 +67,36 @@ One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` bec
 - is limited to the authenticated local `mosquitto_ctrl` dynamic-security adapter path;
 - does not weaken global HIGH/CRITICAL enforcement.
 
-This is a tracked security risk and review obligation, not a blocker for Issue #285. Remove the exception immediately when a fixed Debian package becomes available.
+Remove the exception immediately when a fixed Debian package becomes available.
 
 ## Smart Lockers blocker
 
-`/lockers` remains blocked. Repository and GitHub evidence do not provide:
+`/lockers` remains blocked pending:
 
-- a concrete locker inventory;
+- concrete locker inventory;
 - a read-only protocol or API contract;
 - a defined operator workflow;
 - verified physical locker evidence.
 
-Do not create demo locker controls, guessed states, door/lock writes or fabricated production behavior. Resume only after the Product Owner supplies the missing inventory and protocol scope.
+Do not create demo controls, guessed states, door/lock writes or fabricated production behavior.
 
 ## Hardware-dependent blockers
 
-- **#245:** software merged; actual standalone Raspberry Pi acceptance pending.
-- **#189:** software recovery evidence verified; physical reboot, power-loss and media restore pending.
-- **#200:** physical RS-485 topology and polling envelope require hardware evidence.
+- **#245:** actual standalone Raspberry Pi acceptance pending.
+- **#189:** physical reboot, power-loss and media restore pending.
+- **#200:** physical RS-485 topology and polling envelope pending.
 - **#201:** LE-01MP cumulative energy remains excluded pending read-only hardware validation.
 - **#202:** extended XJP60D semantics and portability require read-only hardware evidence.
 - Physical cameras, ONVIF, RTSP media and NVR remain unverified.
-- Issue #283 is software/browser/offline verified only; real Raspberry Pi/RS-485 request-rate evidence remains required before hardware verification.
-- Issue #284 is software/browser/offline verified only; hardware acceptance must compare request counters before and after disabling an approved real target without any physical write.
+- Issue #284 still requires physical request-counter proof for disabled real targets.
+- Issue #285 still requires physical interval, utilization and deadline proof.
 
-## Residual risks, not blockers for Issue #285
+## Residual risks, not blockers for Issue #286
 
-- Priority intervals must be bounded and validated against actual bus capacity rather than assuming one-second polling is safe.
-- One slow or absent endpoint must not starve other eligible targets.
-- Cooldown/circuit-breaker behavior must not silently convert stale values into live values.
-- Latest-value caching must remain local and durable enough for normal UI reads without becoming a second uncontrolled acquisition path.
-- Scheduler metrics must expose missed deadlines, overruns, cooldown and fairness without secret or high-cardinality labels.
+- Consumers must not read directly from hardware drivers or invoke acquisition callbacks.
+- Latest-value age and quality must remain explicit; retained values cannot be represented as fresh live samples.
+- WebSocket reconnects must not cause replay storms or duplicate physical work.
+- Subscription fan-out must be bounded and isolated from the Device Agent bus lock.
 - Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
@@ -106,4 +112,4 @@ Stop before:
 
 ## Next Ready action
 
-Start Issue #285 on focused branch `feat/285-adaptive-acquisition-scheduler` from current `main`.
+Start Issue #286 on a focused feature branch from current `main`. Preserve complete separation between physical acquisition and REST/WebSocket consumer activity.
