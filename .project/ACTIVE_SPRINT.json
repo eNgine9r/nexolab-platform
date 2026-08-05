@@ -78,39 +78,45 @@
       "parent_issue": 260,
       "pull_request": 270,
       "title": "Complete operator-safe Settings workspace",
-      "status": "ready_audit",
+      "status": "merged",
       "branch": "feat/269-operator-safe-settings",
       "baseline_main_sha": "da9bda46c320e2de6fd52e2136fdcfa368f00982",
       "verified_source_head_sha": "434224191f914e5ca884ac838a2ce66e4a30f6ea",
+      "verified_state_head_sha": "9e6894c6c8011bc4fa906ec1137b6f4336a0f5a8",
+      "merge_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
       "route": "/settings",
       "required_runs": {
-        "final_ci": 30953948950,
-        "final_authenticated_dashboard": 30953948970,
-        "final_refrigeration_browser": 30953948956,
-        "final_offline_bundle": 30953948928
+        "final_ci": 30954817522,
+        "final_authenticated_dashboard": 30954817524,
+        "final_refrigeration_browser": 30954817521,
+        "final_offline_bundle": 30954817525
       },
       "review_audit": {
         "inline_threads": 0,
         "submitted_reviews": 0,
-        "focused_source_files": 13
-      },
-      "product_outcome": "Authenticated organization/session context, sanitized runtime diagnostics and browser-local presentation preferences without secrets or unsafe system mutations.",
-      "guardrails_verified": [
-        "no secret or credential exposure",
-        "zero backend mutation requests from settings acceptance",
-        "no organization or membership CRUD",
-        "no node, device or Modbus write",
-        "no retention, backup, restore, TLS, DNS, VPN or deployment mutation",
+        "focused_files": 15
+      }
+    },
+    {
+      "id": "NEXOLAB-273",
+      "issue": 273,
+      "parent_issue": 260,
+      "title": "Complete operator-safe local Cameras workspace",
+      "status": "ready_for_implementation",
+      "branch": "feat/273-local-cameras-workspace",
+      "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
+      "route": "/cameras",
+      "product_outcome": "Truthful authenticated local camera inventory and availability states without fabricated LIVE evidence, credential exposure or unsupported media claims.",
+      "guardrails": [
+        "no camera credentials or raw RTSP URI in client-visible state",
+        "no fabricated LIVE state",
+        "no camera CRUD, recording, PTZ or hardware write",
+        "no mandatory cloud, CDN or paid runtime service",
+        "no ONVIF or media gateway claim without implementation evidence",
         "no dependency migration or unrelated refactor",
         "no production or site cutover"
       ],
-      "next_action": "Validate the state-only head, repeat final review and diff audit, update PR #270 summary and mark Ready without merge."
-    },
-    {
-      "id": "NEXOLAB-PAGE-CAMERAS",
-      "title": "Complete local Cameras monitoring",
-      "status": "queued",
-      "route": "/cameras"
+      "next_action": "Open one focused draft Pull Request, implement the typed camera domain and tests, then replace the /cameras placeholder and fabricated Overview LIVE panel."
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
