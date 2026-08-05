@@ -2,19 +2,21 @@
 
 Updated: 2026-08-05
 
-## Cameras outcome
+## Issue #277 outcome
 
-Issue #273 / PR #274 was squash-merged as `93e865efdadcd1f63a0c31733b98e13f8b6eb4c1` with no remaining software blocker.
+Issue #277 / PR #278 has no remaining software or CI blocker on verified source head `4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa`.
 
-State-head verification on `adc6dec1eefe043da2813b7c59be6d39aa1e1aa6`:
+Exact-source verification:
 
-- CI `30973948934` GREEN;
-- Authenticated Dashboard Acceptance `30973948889` GREEN;
-- Refrigeration Browser Acceptance `30973948945` GREEN;
-- Offline Bundle `30973948909` GREEN;
-- inline review threads: zero;
-- submitted reviews: zero;
-- no dependency, lockfile, backend schema, camera write, Modbus write or production cutover.
+- CI `30977006748` GREEN;
+- Authenticated Dashboard Acceptance `30977006760` GREEN;
+- Nodes Browser Acceptance `30977006754` GREEN;
+- Alerts Browser Acceptance `30977006749` GREEN;
+- Reports Browser Acceptance `30977006747` GREEN;
+- Refrigeration Browser Acceptance `30977006752` GREEN;
+- Offline Bundle `30977006753` GREEN, including disconnected runtime and update/rollback persistent-data preservation.
+
+The remaining control action is final state-only boundary validation, focused diff/review audit, PR summary update and Ready transition without merge.
 
 ## Smart Lockers blocker
 
@@ -29,12 +31,12 @@ Do not create demo locker controls, guessed device states, door/lock writes or a
 
 ## Parent Issue #260
 
-Issue #260 remains open. The page-completion sequence has one approved blocked tail (`/lockers`) and one independent Ready action: a focused cross-page consistency/completeness review across implemented routes.
+Issue #260 remains open with one approved blocked tail: `/lockers`. The independent cross-page consistency review is implemented and verified in Issue #277 / PR #278.
 
 ## Residual risks, not blockers
 
-- Real camera `online` state still requires a concrete read-only observation source.
 - Physical Raspberry Pi, RS-485, cameras, ONVIF, RTSP media, NVR and locker hardware remain unverified.
+- Real camera `online` state still requires a concrete read-only observation source.
 - Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
@@ -63,4 +65,4 @@ Stop before:
 
 ## Next Ready action
 
-Merge the control-only Issue #275 state reconciliation after state-only diff and GREEN CI, then create the focused cross-page consistency review Work Package under Issue #260. Keep `/lockers` blocked.
+Validate the final Issue #277 state-only boundary, audit PR #278 diff and reviews, update its summary, and mark it Ready without merge. Keep `/lockers` blocked.
