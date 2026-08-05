@@ -2,38 +2,41 @@
 
 Updated: 2026-08-05
 
-## Completed persisted Live Dashboard domain
+## Completed route-persistent telemetry delivery
 
-Issue #287 / PR #311 was squash-merged as `e92c36fe1b863f25132ecb39fe7f46928742c470` from verified head `58f03b107cb900c7436b6784d27a305a1bccc4a4`.
+Issue #314 / PR #315 and corrective Issue #316 / PR #317 are merged. Current product baseline is `b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0`.
 
-Final exact-head verification was GREEN across CI, telemetry service, authenticated acquisition invariant, offline authentication, Offline Bundle, Device Agent fleet, MQTT TLS fleet, broker control, capacity release, container supply chain, security, nodes, alerts, refrigeration, test sessions, reports, rendered reports and disaster-recovery browser/TLS workflows.
+The completed delivery layer guarantees:
 
-The merged domain guarantees:
+- application-shell-scoped canonical latest snapshots across route transitions;
+- one organization-scoped physical WebSocket shared by logical route consumers;
+- simultaneous identical `latest` and `history` requests share one physical REST request;
+- independent consumer abort semantics;
+- 5-second zero-consumer route-transition grace before transport close;
+- 15-minute bounded idle scope TTL;
+- limits of 20,000 canonical samples and 128 exact latest-query snapshots;
+- narrower latest views are derived only from complete broad snapshots;
+- retained data keeps truthful quality, age, stale, reconnecting and offline states;
+- UI navigation, display preferences and subscriptions do not mutate acquisition registry eligibility, scheduler priority or physical polling cadence;
+- no Device Agent discovery/configuration mutations, Modbus writes or hardware actions were added.
 
-- Live Dashboard definitions and ordered items are persisted locally in PostgreSQL;
-- every selected channel is validated against the active organization-scoped measurement catalog;
-- maximum item count, page size, offset, names and display preferences are bounded deterministically;
-- update/archive use ETag/version optimistic concurrency;
-- mutation permissions are explicit and viewer/auditor remain read-only;
-- create/update/archive audit events are atomic with the domain mutation;
-- archive preserves telemetry, histories, channel inventory and equipment configuration;
-- refresh/time-window preferences do not influence acquisition registry eligibility, scheduler priority or physical cadence;
-- no Modbus or hardware writes were added.
+Authenticated route-cycle evidence recorded one `latest` request, three `history` requests and one active WebSocket across Overview → Refrigeration → Energy → Overview, with Overview usable again in 226 ms. Offline Bundle update/rollback and volume-preservation acceptance remained GREEN.
 
 ## Acquisition optimization sequencing
 
-Epic #282 remains active. Issue #288 is the single Ready product Work Package.
+Epic #282 remains active. After state-only Issue #318, Issue #288 is the single Ready product Work Package.
 
 ```text
-#288 Live Dashboard editor and channel-scoped operator workspace
+#318 state-only reconciliation
+→ #288 Live Dashboard editor and channel-scoped operator workspace
 → #289 scale, stability and truthful live-state acceptance
 ```
 
 Issue #288 must preserve these completed boundaries:
 
 - use the persisted `/api/v1/live-dashboards` API rather than browser-only storage;
-- bootstrap latest values and subscribe only to selected canonical channels/metrics;
-- keep WebSocket delivery downstream of persisted telemetry;
+- use the #314/#316 shared telemetry runtime rather than introducing page-local cache or a second WebSocket lifecycle;
+- bootstrap and subscribe only to selected canonical channel/metric pairs;
 - preserve ETag stale-writer conflicts and unsaved operator changes truthfully;
 - display refresh, time window, filters and reconnect behavior cannot mutate acquisition;
 - normal UI actions cannot call Device Agent discovery/configuration endpoints;
@@ -43,18 +46,18 @@ Issue #288 must preserve these completed boundaries:
 
 ## Physical scheduler acceptance remains blocked
 
-Software verification proves deterministic priority ordering, monotonic deadlines, fairness, cooldown, restart staggering, latest-value persistence, delivery isolation, persisted dashboard configuration and offline operation. It does not prove final physical intervals or real-bus request counts.
+Software verification proves deterministic priority ordering, monotonic deadlines, fairness, cooldown, delivery isolation, persisted dashboard configuration, route-persistent telemetry and offline operation. It does not prove final physical intervals or real-bus request counts.
 
-Real Raspberry Pi/RS-485 evidence is still required for:
+Real Raspberry Pi/RS-485 evidence remains required for Issue #289:
 
 - request latency and retries on the installed adapter and wiring;
 - bus utilization under the actual active registry;
 - high-priority deadline performance with slow or absent endpoints;
 - final high/medium/low interval selection;
 - confirmation that no other Modbus master is active;
-- request-counter comparison under real operator UI load and multiple dashboard subscriptions.
+- physical request-counter comparison under real operator UI load and multiple saved-dashboard subscriptions.
 
-Until measured, report physical scheduler intervals and physical request-rate acceptance as unverified.
+Until measured, report physical scheduler intervals, physical request-rate acceptance and hardware latency as unverified.
 
 ## Supply-chain security risk
 
@@ -88,8 +91,7 @@ Do not create demo controls, guessed states, door/lock writes or fabricated prod
 - Physical cameras, ONVIF, RTSP media and NVR remain unverified.
 - Issue #284 still requires physical request-counter proof for disabled real targets.
 - Issue #285 still requires physical interval, utilization and deadline proof.
-- Issue #286 software isolation is verified; physical request-counter comparison remains part of #289.
-- Issue #287 software persistence/API is verified; no physical hardware behavior was changed or accepted.
+- Issue #286/#314/#316 software isolation and continuity are verified; final physical comparison remains part of #289.
 
 ## Residual risks, not blockers for Issue #288
 
@@ -99,6 +101,7 @@ Do not create demo controls, guessed states, door/lock writes or fabricated prod
 - Loading, empty, stale, reconnecting, offline, forbidden and configuration-error states must remain distinct.
 - Archived dashboards must not silently reopen as active or fall back to demo data.
 - Color choices and charts must remain keyboard accessible and cannot communicate state by color alone.
+- The UI must not use broad inventory bootstrap after a dashboard definition is already known.
 - Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
@@ -114,4 +117,4 @@ Stop before:
 
 ## Next Ready action
 
-Start Issue #288 on a dedicated feature branch from current `main`. Build the dashboard library, editor and selected-series live workspace while preserving complete separation from physical acquisition.
+Complete Issue #318 as a four-file state-only PR, then start Issue #288 on a dedicated feature branch from current `main`.
