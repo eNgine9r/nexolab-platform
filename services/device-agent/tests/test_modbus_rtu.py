@@ -44,6 +44,15 @@ class FakeSerial:
         self.closed = True
 
 
+class SequencedSerial(FakeSerial):
+    def __init__(self, responses: list[bytes], **kwargs: object) -> None:
+        super().__init__(b"", **kwargs)
+        self.responses = list(responses)
+
+    def reset_input_buffer(self) -> None:
+        self.response = bytearray(self.responses.pop(0) if self.responses else b"")
+
+
 class ModbusRTUTests(unittest.TestCase):
     def test_crc_matches_known_request(self) -> None:
         payload = bytes.fromhex("6a0301040001")
@@ -128,6 +137,85 @@ class ModbusRTUTests(unittest.TestCase):
             fake.writes,
             [build_read_holding_registers_request(106, 256, 12)],
         )
+
+    def test_observer_records_one_successful_physical_request(self) -> None:
+        measurements = []
+        response = append_crc(bytes.fromhex("6a03020104"))
+        fake = FakeSerial(response)
+        client = ModbusRTUClient(
+            "/dev/serial/by-id/test",
+            timeout=0.01,
+            retries=0,
+            serial_factory=lambda **kwargs: fake,
+            request_observer=measurements.append,
+        )
+
+        with client.instrumentation_scope(
+            device_family="xjp60d",
+            target_id="106-03",
+        ):
+            self.assertEqual(client.read_holding_register(106, 260), 260)
+
+        self.assertEqual(len(measurements), 1)
+        measurement = measurements[0]
+        self.assertEqual(measurement.bus, "/dev/serial/by-id/test")
+        self.assertEqual(measurement.device_family, "xjp60d")
+        self.assertEqual(measurement.target_id, "106-03")
+        self.assertEqual(measurement.operation, "normal")
+        self.assertEqual(measurement.unit_id, 106)
+        self.assertEqual(measurement.function, 3)
+        self.assertEqual(measurement.attempt, 1)
+        self.assertEqual(measurement.outcome, "success")
+        self.assertGreaterEqual(measurement.duration_seconds, 0)
+
+    def test_timeout_retry_is_two_physical_attempts(self) -> None:
+        measurements = []
+        response = append_crc(bytes.fromhex("6a03020104"))
+        fake = SequencedSerial([b"", response])
+        client = ModbusRTUClient(
+            "/dev/rs485",
+            timeout=0.001,
+            retries=1,
+            serial_factory=lambda **kwargs: fake,
+            request_observer=measurements.append,
+        )
+
+        self.assertEqual(client.read_holding_register(106, 260), 260)
+
+        self.assertEqual(len(fake.writes), 2)
+        self.assertEqual([item.attempt for item in measurements], [1, 2])
+        self.assertEqual([item.outcome for item in measurements], ["timeout", "success"])
+
+    def test_protocol_error_is_recorded_once_without_retry(self) -> None:
+        measurements = []
+        fake = FakeSerial(bytes.fromhex("6a030201049d00"))
+        client = ModbusRTUClient(
+            "/dev/rs485",
+            timeout=0.01,
+            retries=2,
+            serial_factory=lambda **kwargs: fake,
+            request_observer=measurements.append,
+        )
+
+        with self.assertRaises(ModbusProtocolError):
+            client.read_holding_register(106, 260)
+
+        self.assertEqual(len(fake.writes), 1)
+        self.assertEqual(len(measurements), 1)
+        self.assertEqual(measurements[0].outcome, "protocol_error")
+
+    def test_observer_failure_does_not_interrupt_acquisition(self) -> None:
+        response = append_crc(bytes.fromhex("6a03020104"))
+        fake = FakeSerial(response)
+        client = ModbusRTUClient(
+            "/dev/rs485",
+            timeout=0.01,
+            retries=0,
+            serial_factory=lambda **kwargs: fake,
+            request_observer=lambda _measurement: (_ for _ in ()).throw(RuntimeError("metrics failed")),
+        )
+
+        self.assertEqual(client.read_holding_register(106, 260), 260)
 
 
 if __name__ == "__main__":

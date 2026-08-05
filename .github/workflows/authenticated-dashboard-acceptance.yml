@@ -10,12 +10,16 @@ on:
       - "e2e/energy.production.e2e.ts"
       - "e2e/equipment-layouts.production.e2e.ts"
       - "e2e/live.production.e2e.ts"
+      - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
       - "package-lock.json"
       - "playwright.dashboard.config.ts"
+      - "scripts/acquisition-invariant-fixture.py"
+      - "scripts/run-acquisition-invariant-browser-acceptance.sh"
       - "scripts/run-authenticated-dashboard-acceptance.sh"
+      - "services/device-agent/**"
       - "services/telemetry-service/app/**"
       - "services/telemetry-service/migrations/**"
       - "services/telemetry-service/requirements.txt"
@@ -47,7 +51,7 @@ concurrency:
 
 jobs:
   acceptance:
-    name: JWT REST history and WebSocket dashboard
+    name: JWT REST history WebSocket and acquisition invariant
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -68,8 +72,8 @@ jobs:
           package-manager-cache: false
           node-version-file: .nvmrc
 
-      - name: Run authenticated dashboard acceptance
-        run: bash scripts/run-authenticated-dashboard-acceptance.sh
+      - name: Run authenticated dashboard and acquisition invariant acceptance
+        run: bash scripts/run-acquisition-invariant-browser-acceptance.sh
 
       - name: Upload dashboard evidence
         if: always()
