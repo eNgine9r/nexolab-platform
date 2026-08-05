@@ -1,0 +1,106 @@
+name: Acquisition Scale Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/acquisition-scale-acceptance.yml"
+      - "docs/operations/acquisition-scale-acceptance.md"
+      - "scripts/run-acquisition-scale-acceptance.py"
+      - "services/device-agent/acquisition_registry.py"
+      - "services/device-agent/adaptive_scheduler.py"
+      - "services/device-agent/latest_values.py"
+      - "services/device-agent/main.py"
+      - "services/device-agent/scheduler_metrics.py"
+      - "services/device-agent/scheduler_policy.py"
+      - "services/device-agent/xjp60d.py"
+      - "services/device-agent/le01mp.py"
+      - "services/device-agent/requirements.txt"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/acquisition-scale-acceptance.yml"
+      - "docs/operations/acquisition-scale-acceptance.md"
+      - "scripts/run-acquisition-scale-acceptance.py"
+      - "services/device-agent/acquisition_registry.py"
+      - "services/device-agent/adaptive_scheduler.py"
+      - "services/device-agent/latest_values.py"
+      - "services/device-agent/main.py"
+      - "services/device-agent/scheduler_metrics.py"
+      - "services/device-agent/scheduler_policy.py"
+      - "services/device-agent/xjp60d.py"
+      - "services/device-agent/le01mp.py"
+      - "services/device-agent/requirements.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acquisition-scale-acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic-matrix:
+    name: Deterministic scheduler scale matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: services/device-agent/requirements.txt
+
+      - name: Install Device Agent dependencies
+        run: python -m pip install -r services/device-agent/requirements.txt
+
+      - name: Compile acceptance runner and production modules
+        run: |
+          python -m py_compile scripts/run-acquisition-scale-acceptance.py
+          python -m compileall -q services/device-agent
+
+      - name: Run deterministic acquisition scale matrix
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          python scripts/run-acquisition-scale-acceptance.py \
+            --output acquisition-scale-evidence/acquisition-scale-matrix.json
+
+      - name: Verify evidence classification and safety fields
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("acquisition-scale-evidence/acquisition-scale-matrix.json")
+          evidence = json.loads(path.read_text(encoding="utf-8"))
+          assert evidence["classification"] == "deterministic_software"
+          assert evidence["passed"] is True
+          assert evidence["safety"]["serial_port_opened"] is False
+          assert evidence["safety"]["modbus_write_attempts"] == 0
+          assert evidence["completion_classification"] == (
+              "software verified; hardware performance acceptance pending"
+          )
+          print(json.dumps({
+              "profiles": [item["profile"] for item in evidence["profiles"]],
+              "assertions": len(evidence["assertions"]),
+              "classification": evidence["completion_classification"],
+          }, sort_keys=True))
+          PY
+
+      - name: Upload deterministic scale evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: acquisition-scale-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: acquisition-scale-evidence
+          if-no-files-found: error
+          retention-days: 14
