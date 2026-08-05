@@ -3,47 +3,86 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-292",
-  "issue": 292,
+  "task": "NEXOLAB-297",
+  "issue": 297,
   "status": "state_reconciliation_in_progress",
-  "timestamp": "2026-08-05T09:28:00+03:00",
-  "branch": "chore/292-post-overview-state",
-  "baseline_main_sha": "4af4c04167d82bdbf2d0cec71b1d10e843c30fb2",
+  "timestamp": "2026-08-05T10:55:00+03:00",
+  "branch": "chore/297-post-acquisition-state",
+  "baseline_main_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7",
   "previous_task": {
-    "issue": 280,
-    "pull_request": 290,
+    "issue": 283,
+    "parent_issue": 282,
+    "pull_request": 294,
     "status": "merged",
-    "verified_head_sha": "66e6133ab1129c5397f32d3e3e62946cff4a92f7",
-    "merge_sha": "4af4c04167d82bdbf2d0cec71b1d10e843c30fb2",
+    "verified_head_sha": "ad5705282ef38528f1ae645458231bcef471273a",
+    "merge_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7",
     "final_head_runs": {
-      "ci": 30980784355,
-      "authenticated_dashboard": 30980784398,
-      "offline_bundle": 30980784393
+      "ci": 30985996238,
+      "authenticated_dashboard_and_acquisition_invariant": 30985996315,
+      "device_agent_fleet": 30985996219,
+      "offline_bundle": 30985996222,
+      "container_supply_chain": 30985996275,
+      "edge_image": 30985996225,
+      "telemetry_service": 30985996265,
+      "refrigeration_browser": 30985996253,
+      "mqtt_tls_fleet": 30985996287,
+      "disaster_recovery_tls_fleet": 30985996234
+    },
+    "acquisition_evidence": {
+      "expected_requests_per_second": 20,
+      "observed_min_requests_per_second": 19.57,
+      "observed_max_requests_per_second": 20.32,
+      "phases": [
+        "no_browser",
+        "overview_open",
+        "overview_refresh",
+        "live_data",
+        "three_authenticated_browser_contexts",
+        "websocket_reconnect"
+      ],
+      "discovery_delta": 0,
+      "mutation_delta": 0,
+      "device_agent_control_methods": ["GET"]
     },
     "review_audit": {
-      "focused_files": 3,
+      "focused_files": 11,
       "inline_threads": 0,
-      "submitted_reviews": 0
+      "submitted_reviews": 0,
+      "behind_main_commits": 0
     },
     "runtime_evidence": {
-      "authenticated_browser": "verified",
+      "deterministic_serial": "verified",
+      "authenticated_browser_invariant": "verified",
+      "secure_device_agent_fleet": "verified",
       "disconnected_bundle_start": "verified",
       "update_rollback_data_preservation": "verified",
-      "device_agent_mutation": "none introduced",
-      "modbus_operation": "none introduced"
+      "modbus_write": "none"
+    }
+  },
+  "security_follow_up": {
+    "issue": 295,
+    "pull_request": 296,
+    "merge_sha": "3b26fb444cdfc3f11659bce149037a87c6e3fc36",
+    "cryptography": "fixed_50_x",
+    "temporary_exception": {
+      "image_id": "telemetry-service",
+      "package": "libcjson1",
+      "vulnerability": "CVE-2026-67216",
+      "owner": "platform-security",
+      "expires_on": "2026-08-15"
     }
   },
   "active_epic": {
     "issue": 282,
     "title": "Performance and data acquisition optimization",
     "status": "active",
-    "ordered_work_packages": [283, 284, 285, 286, 287, 288, 289]
+    "remaining_ordered_work_packages": [284, 285, 286, 287, 288, 289]
   },
   "next_ready_work_package": {
-    "issue": 283,
-    "title": "Instrument acquisition and prove the UI-independent Modbus request invariant",
-    "reason": "Objective physical-request and cycle metrics are required before changing active targets, priorities or polling cadence.",
-    "branch": "feat/283-acquisition-instrumentation"
+    "issue": 284,
+    "title": "Introduce a universal active acquisition registry",
+    "reason": "The merged request counters can now prove that non-eligible inventory targets emit zero normal-cycle physical requests.",
+    "branch": "feat/284-active-acquisition-registry"
   },
   "scope": [
     ".project/CURRENT_STATE.md",
@@ -54,18 +93,21 @@
   "guardrails": [
     "no product code change in control PR",
     "no dependency or workflow change",
-    "no polling-policy change before instrumentation",
+    "no scheduler priority or cadence change in Issue #284",
+    "no Modbus or hardware write",
     "no high-cardinality or secret metric labels",
-    "no hardware write",
     "no production cutover"
   ],
   "hardware_evidence": {
     "software_verified": true,
-    "physical_hardware_verified": false,
-    "note": "Physical Raspberry Pi, RS-485, cameras and Smart Lockers remain unverified."
+    "deterministic_serial_verified": true,
+    "authenticated_browser_verified": true,
+    "disconnected_runtime_verified": true,
+    "physical_raspberry_pi_rs485_verified": false,
+    "note": "Physical Raspberry Pi and RS-485 request-rate evidence remains required before hardware verification."
   },
   "next_ready_work_package_step": {
-    "issue": 292,
-    "instruction": "Open a control-only PR, confirm exactly four .project files, require GREEN CI, squash merge, then start Issue #283 on a dedicated feature branch."
+    "issue": 297,
+    "instruction": "Open a control-only PR, confirm exactly four .project files, require GREEN CI, squash merge, then start Issue #284 on a dedicated feature branch."
   }
 }

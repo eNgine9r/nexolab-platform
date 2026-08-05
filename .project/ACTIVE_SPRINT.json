@@ -6,7 +6,7 @@
     "id": "DATA-ACQUISITION-OPTIMIZATION-1",
     "title": "Performance and data acquisition optimization",
     "goal": "Instrument and optimize read-only telemetry acquisition while proving that UI activity cannot amplify physical Modbus polling.",
-    "status": "ready",
+    "status": "in_progress",
     "started_at": "2026-08-05"
   },
   "execution_policy": {
@@ -20,12 +20,12 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-292",
-      "issue": 292,
-      "title": "Reconcile project state after truthful Overview merge",
+      "id": "NEXOLAB-297",
+      "issue": 297,
+      "title": "Reconcile project state after acquisition instrumentation merge",
       "status": "in_progress",
-      "branch": "chore/292-post-overview-state",
-      "baseline_main_sha": "4af4c04167d82bdbf2d0cec71b1d10e843c30fb2",
+      "branch": "chore/297-post-acquisition-state",
+      "baseline_main_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7",
       "scope": [
         ".project/CURRENT_STATE.md",
         ".project/ACTIVE_SPRINT.json",
@@ -34,20 +34,12 @@
       ]
     },
     {
-      "id": "NEXOLAB-283",
-      "issue": 283,
-      "parent_issue": 282,
-      "title": "Instrument acquisition and prove the UI-independent Modbus request invariant",
-      "status": "ready",
-      "product_outcome": "Physical request, latency, retry, cycle and bus-utilization metrics objectively prove that page navigation, refresh and browser count do not alter the normal Modbus polling envelope."
-    },
-    {
       "id": "NEXOLAB-284",
       "issue": 284,
       "parent_issue": 282,
       "title": "Introduce a universal active acquisition registry",
-      "status": "blocked_by_dependency",
-      "depends_on": [283]
+      "status": "ready",
+      "product_outcome": "One versioned edge registry determines which installed and operator-approved devices, channels and metrics participate in normal read-only acquisition while inventory remains independently visible."
     },
     {
       "id": "NEXOLAB-285",
@@ -55,7 +47,7 @@
       "parent_issue": 282,
       "title": "Replace the monolithic polling loop with a priority-aware adaptive scheduler",
       "status": "blocked_by_dependency",
-      "depends_on": [283, 284]
+      "depends_on": [284]
     },
     {
       "id": "NEXOLAB-286",
@@ -63,7 +55,7 @@
       "parent_issue": 282,
       "title": "Isolate REST and WebSocket subscriptions from physical acquisition",
       "status": "blocked_by_dependency",
-      "depends_on": [283, 285]
+      "depends_on": [285]
     },
     {
       "id": "NEXOLAB-287",
@@ -87,7 +79,7 @@
       "parent_issue": 282,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
       "status": "blocked_by_dependency",
-      "depends_on": [283, 284, 285, 286, 287, 288]
+      "depends_on": [284, 285, 286, 287, 288]
     },
     {
       "id": "NEXOLAB-282",
@@ -96,21 +88,30 @@
       "status": "active"
     },
     {
-      "id": "NEXOLAB-280",
-      "issue": 280,
-      "pull_request": 290,
-      "title": "Replace remaining Overview demo panels with truthful production summaries",
+      "id": "NEXOLAB-283",
+      "issue": 283,
+      "pull_request": 294,
+      "title": "Instrument acquisition and prove the UI-independent Modbus request invariant",
       "status": "completed",
-      "verified_head_sha": "66e6133ab1129c5397f32d3e3e62946cff4a92f7",
-      "merge_sha": "4af4c04167d82bdbf2d0cec71b1d10e843c30fb2"
+      "verified_head_sha": "ad5705282ef38528f1ae645458231bcef471273a",
+      "merge_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7"
     },
     {
-      "id": "NEXOLAB-279",
-      "issue": 279,
-      "pull_request": 281,
-      "title": "Reconcile project state after cross-page consistency merge",
+      "id": "NEXOLAB-295",
+      "issue": 295,
+      "pull_request": 296,
+      "title": "Restore telemetry-service supply-chain gate",
+      "status": "completed_with_expiring_exception",
+      "merge_sha": "3b26fb444cdfc3f11659bce149037a87c6e3fc36",
+      "exception_review_due": "2026-08-15"
+    },
+    {
+      "id": "NEXOLAB-292",
+      "issue": 292,
+      "pull_request": 293,
+      "title": "Reconcile project state after truthful Overview merge",
       "status": "completed",
-      "merge_sha": "688eccc2508edd41abe8246a93208ae5753cbc04"
+      "merge_sha": "429336893ee7cf97705c2497a22dfbe1764c5cb2"
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
