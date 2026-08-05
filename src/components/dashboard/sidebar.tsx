@@ -131,6 +131,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="px-4 pb-4">
           <div
+            role="region"
             className="rounded-2xl border border-cyan-300/[0.09] bg-cyan-400/[0.035] p-4"
             aria-label="Профіль виконання"
           >
