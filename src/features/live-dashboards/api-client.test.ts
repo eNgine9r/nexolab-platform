@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { LiveDashboardApiClient, LiveDashboardClientError } from "./api-client";
+import { LiveDashboardApiClient } from "./api-client";
 import type { LiveDashboardWrite } from "./types";
 
 const dashboard = {
@@ -104,9 +104,7 @@ describe("LiveDashboardApiClient", () => {
     );
     const client = new LiveDashboardApiClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 
-    await expect(client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).rejects.toMatchObject<
-      Partial<LiveDashboardClientError>
-    >({
+    await expect(client.update("dashboard-1", write, 'W/"live-dashboard-v3"')).rejects.toMatchObject({
       status: 409,
       code: "live_dashboard_version_conflict",
       expectedVersion: 3,
