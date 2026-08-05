@@ -34,11 +34,11 @@ The merged acceptance layer adds no product or acquisition runtime behavior. It 
 
 Deterministic scheduler profiles:
 
-| Profile | Active targets | Executions | Maximum concurrent reads | Planning load | Maximum scheduler lag |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| pilot | 34 | 336 | 1 | 0.56% | 0.002 s |
-| expanded | 136 | 2,304 | 1 | 3.84% | 0.000329 s |
-| stress | 240 | 4,320 | 1 | 7.20% | 0.001435 s |
+| Profile  | Active targets | Executions | Maximum concurrent reads | Planning load | Maximum scheduler lag |
+| -------- | -------------: | ---------: | -----------------------: | ------------: | --------------------: |
+| pilot    |             34 |        336 |                        1 |         0.56% |               0.002 s |
+| expanded |            136 |      2,304 |                        1 |         3.84% |            0.000329 s |
+| stress   |            240 |      4,320 |                        1 |         7.20% |            0.001435 s |
 
 Additional deterministic evidence:
 
