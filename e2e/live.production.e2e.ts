@@ -202,12 +202,24 @@ test("opens a persisted selected-series dashboard after service restart without 
       .click();
     await expect(page.getByRole("heading", { name: fixture.dashboardName, exact: true })).toBeVisible();
     await expect(page.getByRole("cell", { name: "106-03", exact: true })).toBeVisible();
-    await expect(page.getByText(/4,4 °C/).first()).toBeVisible();
+    await expect(page.getByText(/4,4 degC/).first()).toBeVisible();
     await expect.poll(() => sockets.maximum).toBe(1);
 
+    await expect
+      .poll(() =>
+        requests.telemetry
+          .slice(telemetryBeforeOpen)
+          .some((item) => item.url.includes("/latest")),
+      )
+      .toBe(true);
+    await expect
+      .poll(() =>
+        requests.telemetry
+          .slice(telemetryBeforeOpen)
+          .some((item) => item.url.includes("/history")),
+      )
+      .toBe(true);
     const selectedRequests = requests.telemetry.slice(telemetryBeforeOpen);
-    await expect.poll(() => selectedRequests.some((item) => item.url.includes("/latest"))).toBe(true);
-    await expect.poll(() => selectedRequests.some((item) => item.url.includes("/history"))).toBe(true);
     expect(
       selectedRequests
         .filter((item) => item.url.includes("/latest") || item.url.includes("/history"))
