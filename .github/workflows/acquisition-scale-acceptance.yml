@@ -5,8 +5,13 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/acquisition-scale-acceptance.yml"
+      - ".github/workflows/authenticated-dashboard-acceptance.yml"
       - "docs/operations/acquisition-scale-acceptance.md"
+      - "e2e/live.production.e2e.ts"
+      - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
+      - "playwright.dashboard.config.ts"
       - "scripts/acquisition_hardware_acceptance.py"
+      - "scripts/run-acquisition-invariant-browser-acceptance.sh"
       - "scripts/run-acquisition-scale-acceptance.py"
       - "services/device-agent/acquisition_registry.py"
       - "services/device-agent/adaptive_scheduler.py"
@@ -29,8 +34,13 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/acquisition-scale-acceptance.yml"
+      - ".github/workflows/authenticated-dashboard-acceptance.yml"
       - "docs/operations/acquisition-scale-acceptance.md"
+      - "e2e/live.production.e2e.ts"
+      - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
+      - "playwright.dashboard.config.ts"
       - "scripts/acquisition_hardware_acceptance.py"
+      - "scripts/run-acquisition-invariant-browser-acceptance.sh"
       - "scripts/run-acquisition-scale-acceptance.py"
       - "services/device-agent/acquisition_registry.py"
       - "services/device-agent/adaptive_scheduler.py"
