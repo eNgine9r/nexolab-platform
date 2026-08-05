@@ -43,9 +43,9 @@ describe("TelemetryRequestCoordinator", () => {
   it("keeps the physical request alive when only one consumer aborts", async () => {
     const coordinator = new TelemetryRequestCoordinator();
     const result = deferred<string>();
-    let physicalSignal: AbortSignal | null = null;
+    const physical = { signal: undefined as AbortSignal | undefined };
     const factory = vi.fn((signal: AbortSignal) => {
-      physicalSignal = signal;
+      physical.signal = signal;
       return result.promise;
     });
     const firstController = new AbortController();
@@ -57,7 +57,7 @@ describe("TelemetryRequestCoordinator", () => {
     firstController.abort("route unmounted");
 
     await expect(first).rejects.toMatchObject({ code: "aborted" });
-    expect(physicalSignal?.aborted).toBe(false);
+    expect(physical.signal?.aborted).toBe(false);
     expect(coordinator.hasConsumers).toBe(true);
 
     result.resolve("history");
@@ -69,11 +69,11 @@ describe("TelemetryRequestCoordinator", () => {
     const coordinator = new TelemetryRequestCoordinator();
     const firstController = new AbortController();
     const secondController = new AbortController();
-    let physicalSignal: AbortSignal | null = null;
+    const physical = { signal: undefined as AbortSignal | undefined };
     const factory = vi.fn(
       (signal: AbortSignal) =>
         new Promise<string>((_resolve, reject) => {
-          physicalSignal = signal;
+          physical.signal = signal;
           signal.addEventListener("abort", () => reject(signal.reason), { once: true });
         }),
     );
@@ -83,11 +83,11 @@ describe("TelemetryRequestCoordinator", () => {
     await flushPromises();
     firstController.abort("first route closed");
     await expect(first).rejects.toMatchObject({ code: "aborted" });
-    expect(physicalSignal?.aborted).toBe(false);
+    expect(physical.signal?.aborted).toBe(false);
 
     secondController.abort("last route closed");
     await expect(second).rejects.toMatchObject({ code: "aborted" });
-    expect(physicalSignal?.aborted).toBe(true);
+    expect(physical.signal?.aborted).toBe(true);
     await flushPromises();
     expect(coordinator.inFlightCount).toBe(0);
   });
