@@ -120,9 +120,7 @@ describe("acquisition registry proxy", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(sessionResponse(["dashboard.read"]));
 
-    await expect(GET(request("GET"))).rejects.toThrow(
-      "Device Agent control endpoint must use loopback HTTP",
-    );
+    await expect(GET(request("GET"))).rejects.toThrow("Device Agent control endpoint must use loopback HTTP");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
