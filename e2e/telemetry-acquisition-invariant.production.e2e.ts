@@ -1,12 +1,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const metricsUrl = requiredEnvironment("NEXOLAB_ACQUISITION_METRICS_URL");
-const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const evidenceDirectory =
+  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
 const expectedRate = Number(process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20");
 
 type MetricsPayload = {
@@ -41,11 +48,16 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
 
 async function readMetrics(): Promise<MetricsPayload> {
   const response = await fetch(metricsUrl, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Metrics fixture returned HTTP ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`Metrics fixture returned HTTP ${response.status}`);
+  }
   return (await response.json()) as MetricsPayload;
 }
 
-async function measurePhase(phase: string, action: () => Promise<void>): Promise<PhaseEvidence> {
+async function measurePhase(
+  phase: string,
+  action: () => Promise<void>,
+): Promise<PhaseEvidence> {
   const before = await readMetrics();
   const started = performance.now();
   await action();
@@ -63,14 +75,19 @@ async function measurePhase(phase: string, action: () => Promise<void>): Promise
   };
 }
 
-function observeControlRequests(page: Page, evidence: Array<{ method: string; url: string }>): void {
+function observeControlRequests(
+  page: Page,
+  evidence: Array<{ method: string; url: string }>,
+): void {
   page.on("request", (request) => {
     if (!request.url().includes("/api/device-agent/xjp60d")) return;
     evidence.push({ method: request.method(), url: request.url() });
   });
 }
 
-test("page navigation and browser count do not amplify physical acquisition", async ({ browser }) => {
+test("page navigation and browser count do not amplify physical acquisition", async ({
+  browser,
+}) => {
   test.setTimeout(180_000);
   const controlRequests: Array<{ method: string; url: string }> = [];
   const contexts: BrowserContext[] = [];
@@ -81,7 +98,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
 
   const primary = await authenticatedContext(browser);
   contexts.push(primary);
-  let overview = await primary.newPage();
+  const overview = await primary.newPage();
   observeControlRequests(overview, controlRequests);
   phases.push(
     await measurePhase("overview-open", async () => {
@@ -114,10 +131,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
   observeControlRequests(refrigeration, controlRequests);
   phases.push(
     await measurePhase("three-browser-contexts", async () => {
-      await Promise.all([
-        energy.goto("/energy"),
-        refrigeration.goto("/refrigeration"),
-      ]);
+      await Promise.all([energy.goto("/energy"), refrigeration.goto("/refrigeration")]);
       await Promise.all([
         energy.waitForLoadState("domcontentloaded"),
         refrigeration.waitForLoadState("domcontentloaded"),
@@ -174,8 +188,9 @@ test("page navigation and browser count do not amplify physical acquisition", as
     ),
   );
 
-  for (const context of contexts.reverse()) await context.close();
-  overview = undefined as never;
+  for (const context of contexts.reverse()) {
+    await context.close();
+  }
 });
 
 function requiredEnvironment(name: string): string {
