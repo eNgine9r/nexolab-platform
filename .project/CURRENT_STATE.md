@@ -1,64 +1,42 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-05
-Verified main baseline: `68c443ff9e8aeff2cdb1384ecdb90daf85baceba`
-Active Work Package: Issue #277 — cross-page operator consistency and completeness audit
-Branch: `quality/277-cross-page-consistency-audit`
-Pull Request: #278
-Status: implementation and exact-source verification complete; PR prepared for final Ready transition without merge.
-Status confidence: high for software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
+Verified main baseline: `1f4c2999a7bf1f1b14fe32f4995313c884be81b3`
+Active control Work Package: Issue #279 — post-consistency project-state reconciliation
+Branch: `chore/279-post-consistency-state`
+Next product-visible Work Package: Issue #280 — truthful Overview production summaries
+Status confidence: high for merged software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
 
-## Product route status
+## Completed page epic
 
-Implemented routes reviewed under Issue #277:
+Issue #260 is complete and closed. All former primary placeholder routes now provide a real operator workflow or an explicitly approved blocked state. Issue #277 / PR #278 completed the cross-page consistency audit and was squash-merged as `1f4c2999a7bf1f1b14fe32f4995313c884be81b3`.
 
-- `/` — Overview dashboard;
-- `/nodes` — Nodes;
-- `/sessions` — Test sessions;
-- `/refrigeration` — Refrigeration equipment;
-- `/alerts` — Alerts;
-- `/reports` — Reports;
-- `/energy` — Energy Monitoring;
-- `/live` — universal telemetry explorer;
-- `/equipment-layouts` — layouts catalog;
-- `/equipment` — equipment and metrology registry;
-- `/settings` — operator-safe Settings workspace;
-- `/cameras` — truthful local camera readiness workspace.
+Final PR #278 verification on head `8016b3d2de14f11562070971550e0be1751d30bb`:
 
-Remaining approved blocked route:
+- CI `30977675678` GREEN;
+- Authenticated Dashboard Acceptance `30977675732` GREEN;
+- Nodes Browser Acceptance `30977675733` GREEN;
+- Alerts Browser Acceptance `30977675715` GREEN;
+- Reports Browser Acceptance `30977675684` GREEN;
+- Refrigeration Browser Acceptance `30977675683` GREEN;
+- Offline Bundle `30977675698` GREEN;
+- inline review threads: zero;
+- submitted reviews: zero.
 
-- `/lockers` — blocked pending concrete locker inventory, read-only protocol and operator workflow. No production behavior or write controls may be invented.
+## Approved blocked route
 
-## Issue #277 outcome
+`/lockers` remains blocked pending concrete locker inventory, a read-only protocol/API contract and a defined operator workflow. No demo controls, guessed device states or door/lock writes may be introduced.
 
-The evidence-backed audit was committed before product-code corrections in `docs/audits/ISSUE_277_CROSS_PAGE_AUDIT.md`.
+## Next product-visible gap
 
-Verified corrections on source head `4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa`:
-
-- removed fabricated Sidebar claims for global service health, LAN online state and cloud synchronization;
-- made current pathname the single source of truth for active navigation and `aria-current="page"`;
-- replaced Overview pseudo-buttons with canonical internal links to Nodes, Alerts, Sessions and Cameras;
-- removed the unsupported `Лабораторія 1` pseudo-action;
-- added a truthful LOCAL_LAN profile region and semantic accessibility landmark;
-- narrowed Settings browser acceptance to its runtime configuration region after the shared truthful LOCAL_LAN label became legitimate;
-- preserved `/lockers`, backend contracts, dependencies, hardware and deployment boundaries.
-
-Exact-source verification:
-
-- CI `30977006748` GREEN;
-- Authenticated Dashboard Acceptance `30977006760` GREEN;
-- Nodes Browser Acceptance `30977006754` GREEN;
-- Alerts Browser Acceptance `30977006749` GREEN;
-- Reports Browser Acceptance `30977006747` GREEN;
-- Refrigeration Browser Acceptance `30977006752` GREEN;
-- Offline Bundle `30977006753` GREEN, including disconnected startup and update/rollback persistent-data preservation.
+Merged Overview code still renders static/demo summaries for sessions, the laboratory layout and cameras. Issue #280 will replace those surfaces with existing authenticated read-only data where available, or explicit truthful unavailable/unconfigured states. This is the next Ready Work Package because it is operator-visible, reuses existing route contracts and does not require hardware access.
 
 ## Runtime and hardware evidence
 
 ```text
-software verified; authenticated browser verified; disconnected bundle update/rollback verified; physical Raspberry Pi, RS-485, camera and locker hardware unverified
+software verified; authenticated browser verified; disconnected update/rollback verified; physical Raspberry Pi, RS-485, camera and locker hardware unverified
 ```
 
 ## Next action
 
-Validate that the final head adds only the four `.project/**` checkpoint files after source head `4a86247f…`, audit the complete focused diff and reviews, update PR #278 summary, then mark PR #278 Ready for review without merge.
+Validate and merge the control-only Issue #279 PR after confirming exactly four `.project/**` files and GREEN CI. Then start Issue #280 on a dedicated feature branch and draft PR.

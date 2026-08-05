@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "PRODUCT-PAGES-COMPLETION-1",
-    "title": "Complete NEXOLAB operator pages",
-    "goal": "Replace placeholder routes with focused real operator workflows while reusing the verified local telemetry, security and offline foundations.",
-    "status": "in_progress_blocked_tail",
-    "started_at": "2026-08-03"
+    "id": "OPERATOR-TRUTHFULNESS-1",
+    "title": "Truthful operator command center",
+    "goal": "Remove remaining fabricated or demo Overview evidence while reusing verified authenticated local read-only contracts.",
+    "status": "ready",
+    "started_at": "2026-08-05"
   },
   "execution_policy": {
     "autonomous": true,
@@ -20,54 +20,34 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-260",
-      "issue": 260,
-      "title": "Complete all NEXOLAB operator pages",
-      "status": "consistency_review_complete_with_blocked_tail",
-      "remaining_placeholder_routes": ["/lockers"],
-      "next_ready_action": "Complete final review audit and Ready transition for PR #278 without merge.",
-      "blocked_tail": "Smart Lockers requires concrete inventory, read-only protocol and operator workflow."
-    },
-    {
-      "id": "NEXOLAB-277",
-      "issue": 277,
-      "parent_issue": 260,
-      "pull_request": 278,
-      "title": "Audit cross-page operator consistency and completeness",
-      "status": "verified_pending_ready_transition",
-      "branch": "quality/277-cross-page-consistency-audit",
-      "baseline_main_sha": "68c443ff9e8aeff2cdb1384ecdb90daf85baceba",
-      "verified_source_head_sha": "4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa",
-      "focused_source_files": [
-        "docs/audits/ISSUE_277_CROSS_PAGE_AUDIT.md",
-        "src/components/dashboard/sidebar.tsx",
-        "src/components/dashboard/sidebar.test.tsx",
-        "src/components/dashboard/dashboard-shell.tsx",
-        "e2e/settings.production.e2e.ts"
-      ],
-      "source_head_runs": {
-        "ci": 30977006748,
-        "authenticated_dashboard": 30977006760,
-        "nodes_browser": 30977006754,
-        "alerts_browser": 30977006749,
-        "reports_browser": 30977006747,
-        "refrigeration_browser": 30977006752,
-        "offline_bundle": 30977006753
-      },
-      "guardrails": [
-        "no locker implementation",
-        "no backend schema or API expansion",
-        "no dependency or toolchain migration",
-        "no hardware write",
-        "no production cutover"
+      "id": "NEXOLAB-279",
+      "issue": 279,
+      "title": "Reconcile project state after cross-page consistency merge",
+      "status": "in_progress",
+      "branch": "chore/279-post-consistency-state",
+      "baseline_main_sha": "1f4c2999a7bf1f1b14fe32f4995313c884be81b3",
+      "scope": [
+        ".project/CURRENT_STATE.md",
+        ".project/ACTIVE_SPRINT.json",
+        ".project/BLOCKERS.md",
+        ".project/LAST_CHECKPOINT.json"
       ]
     },
     {
-      "id": "NEXOLAB-275",
-      "issue": 275,
-      "title": "Reconcile project state after Cameras merge",
-      "status": "merged",
-      "branch": "chore/275-post-cameras-state"
+      "id": "NEXOLAB-280",
+      "issue": 280,
+      "title": "Replace remaining Overview demo panels with truthful production summaries",
+      "status": "ready",
+      "route": "/",
+      "product_outcome": "Sessions, layout and camera summaries are repository-backed or explicitly unavailable/unconfigured; no demo record appears as production evidence."
+    },
+    {
+      "id": "NEXOLAB-260",
+      "issue": 260,
+      "title": "Complete all NEXOLAB operator pages",
+      "status": "completed",
+      "merge_sha": "1f4c2999a7bf1f1b14fe32f4995313c884be81b3",
+      "approved_blocked_tail": "/lockers"
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
