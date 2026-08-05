@@ -66,20 +66,14 @@ export function useLiveDashboardInventory({
         })
         .catch((nextError: unknown) => {
           if (controller.signal.aborted) return;
-          setError(
-            nextError instanceof Error
-              ? nextError
-              : new Error("Channel inventory failed to load."),
-          );
+          setError(nextError instanceof Error ? nextError : new Error("Channel inventory failed to load."));
           setStatus("error");
         });
     } catch (nextError) {
       void Promise.resolve().then(() => {
         if (controller.signal.aborted) return;
         setError(
-          nextError instanceof Error
-            ? nextError
-            : new Error("Channel inventory configuration failed."),
+          nextError instanceof Error ? nextError : new Error("Channel inventory configuration failed."),
         );
         setStatus("error");
       });

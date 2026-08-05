@@ -7,11 +7,7 @@ import {
   LiveDashboardClientError,
   type LiveDashboardApiClient,
 } from "@/features/live-dashboards/api-client";
-import {
-  draftToWrite,
-  duplicateDashboardDraft,
-  liveDashboardEtag,
-} from "@/features/live-dashboards/model";
+import { draftToWrite, duplicateDashboardDraft, liveDashboardEtag } from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
   LiveDashboardDraft,
@@ -85,10 +81,7 @@ export function useLiveDashboardLibrary({
     } catch (nextError) {
       return {
         client: null,
-        error:
-          nextError instanceof Error
-            ? nextError
-            : new Error("Live Dashboard API configuration failed."),
+        error: nextError instanceof Error ? nextError : new Error("Live Dashboard API configuration failed."),
       };
     }
   }, [enabled, organizationId]);
@@ -125,9 +118,7 @@ export function useLiveDashboardLibrary({
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted) return;
-        setError(
-          nextError instanceof Error ? nextError : new Error("Live Dashboard library failed."),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Live Dashboard library failed."));
         setStatus(classifyStatus(nextError));
       });
     return () => controller.abort();

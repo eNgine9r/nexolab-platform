@@ -69,12 +69,8 @@ function newestSample(current: TelemetrySample | undefined, incoming: TelemetryS
   const capturedDifference = sampleTimestamp(incoming) - sampleTimestamp(current);
   if (capturedDifference > 0) return incoming;
   if (capturedDifference < 0) return current;
-  const currentReceived = current.received_at
-    ? Date.parse(current.received_at)
-    : Number.NEGATIVE_INFINITY;
-  const incomingReceived = incoming.received_at
-    ? Date.parse(incoming.received_at)
-    : Number.NEGATIVE_INFINITY;
+  const currentReceived = current.received_at ? Date.parse(current.received_at) : Number.NEGATIVE_INFINITY;
+  const incomingReceived = incoming.received_at ? Date.parse(incoming.received_at) : Number.NEGATIVE_INFINITY;
   if (incomingReceived > currentReceived) return incoming;
   return incoming.event_id.localeCompare(current.event_id) > 0 ? incoming : current;
 }
@@ -124,9 +120,7 @@ export function useLiveDashboardTelemetry({
   enabled: boolean;
 }): LiveDashboardTelemetryModel {
   const active = enabled && dashboard !== null && dashboard.status === "active";
-  const scopeKey = active
-    ? `${organizationId ?? DEFAULT_SCOPE}:${dashboard.id}:${dashboard.version}`
-    : null;
+  const scopeKey = active ? `${organizationId ?? DEFAULT_SCOPE}:${dashboard.id}:${dashboard.version}` : null;
   const [runtime] = useState<RuntimeResult>(runtimeResult);
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [latest, setLatest] = useState<Record<string, TelemetrySample>>({});
@@ -296,9 +290,7 @@ export function useLiveDashboardTelemetry({
       .catch((nextError: unknown) => {
         if (disposed || controller.signal.aborted) return;
         setLoaded(true);
-        setError(
-          nextError instanceof Error ? nextError : new Error("Selected telemetry failed to load."),
-        );
+        setError(nextError instanceof Error ? nextError : new Error("Selected telemetry failed to load."));
         scheduleFlush(true);
       });
 
@@ -309,15 +301,7 @@ export function useLiveDashboardTelemetry({
       if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
       renderTimerRef.current = null;
     };
-  }, [
-    active,
-    dashboard,
-    generation,
-    organizationId,
-    runtime.config,
-    runtime.error,
-    scopeKey,
-  ]);
+  }, [active, dashboard, generation, organizationId, runtime.config, runtime.error, scopeKey]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
     if (!dashboard) return [];
@@ -331,8 +315,8 @@ export function useLiveDashboardTelemetry({
   const series = visible ? storedSeries : [];
   const samples = series.flatMap((item) => (item.latest ? [item.latest] : []));
   const lastCapturedAt =
-    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]
-      ?.captured_at ?? null;
+    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]?.captured_at ??
+    null;
   const visibleConnectionState = visible ? connectionState : active ? "connecting" : "idle";
   const visibleError = visible ? error : null;
 

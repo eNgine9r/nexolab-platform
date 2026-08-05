@@ -121,10 +121,8 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
   const from = timestamps.length ? Math.min(...timestamps) : 0;
   const to = timestamps.length ? Math.max(...timestamps) : 60_000;
   const timeRange = Math.max(1, to - from);
-  const x = (capturedAt: string) =>
-    padding.left + ((Date.parse(capturedAt) - from) / timeRange) * plotWidth;
-  const y = (value: number) =>
-    padding.top + (1 - (value - minimum) / valueRange) * plotHeight;
+  const x = (capturedAt: string) => padding.left + ((Date.parse(capturedAt) - from) / timeRange) * plotWidth;
+  const y = (value: number) => padding.top + (1 - (value - minimum) / valueRange) * plotHeight;
 
   return (
     <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">
@@ -176,13 +174,7 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
                     y2={gridY}
                     stroke="rgba(148,163,184,0.12)"
                   />
-                  <text
-                    x={padding.left - 10}
-                    y={gridY + 4}
-                    textAnchor="end"
-                    fill="#64748b"
-                    fontSize="11"
-                  >
+                  <text x={padding.left - 10} y={gridY + 4} textAnchor="end" fill="#64748b" fontSize="11">
                     {new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 2 }).format(value)}
                   </text>
                 </g>
@@ -194,9 +186,7 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
                   sample.value !== null && Number.isFinite(sample.value),
               );
               if (numeric.length === 0) return null;
-              const points = numeric
-                .map((sample) => `${x(sample.captured_at)},${y(sample.value)}`)
-                .join(" ");
+              const points = numeric.map((sample) => `${x(sample.captured_at)},${y(sample.value)}`).join(" ");
               const color = item.item.color ?? "#00C6E0";
               const areaPoints = `${x(numeric[0].captured_at)},${padding.top + plotHeight} ${points} ${x(
                 numeric[numeric.length - 1].captured_at,
@@ -227,13 +217,7 @@ function SeriesChart({ unit, series }: { unit: string; series: LiveDashboardSeri
             <text x={padding.left} y={height - 12} fill="#64748b" fontSize="11">
               {formatTimestamp(new Date(from).toISOString())}
             </text>
-            <text
-              x={width - padding.right}
-              y={height - 12}
-              textAnchor="end"
-              fill="#64748b"
-              fontSize="11"
-            >
+            <text x={width - padding.right} y={height - 12} textAnchor="end" fill="#64748b" fontSize="11">
               {formatTimestamp(new Date(to).toISOString())}
             </text>
           </svg>
@@ -413,9 +397,7 @@ export function DashboardLiveView({
                 <tr key={item.item.id} className="text-slate-300">
                   <td className="px-5 py-3 font-medium text-slate-100">{item.item.channel_id}</td>
                   <td className="px-5 py-3">{item.item.metric}</td>
-                  <td className="px-5 py-3 font-semibold text-white">
-                    {formatValue(item.latest)}
-                  </td>
+                  <td className="px-5 py-3 font-semibold text-white">{formatValue(item.latest)}</td>
                   <td className="px-5 py-3">{seriesState(item)}</td>
                   <td className="px-5 py-3 text-slate-500">
                     {formatTimestamp(item.latest?.captured_at ?? null)}
