@@ -54,6 +54,17 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Capture exact formatted acquisition spec
+        run: npx prettier --write e2e/telemetry-acquisition-invariant.production.e2e.ts
+
+      - name: Upload exact formatted acquisition spec
+        uses: actions/upload-artifact@v7
+        with:
+          name: exact-prettier-output-${{ github.sha }}
+          path: e2e/telemetry-acquisition-invariant.production.e2e.ts
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Check repository formatting
         shell: bash
         run: |
