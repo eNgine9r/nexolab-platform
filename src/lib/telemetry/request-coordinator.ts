@@ -96,11 +96,7 @@ export class TelemetryRequestCoordinator {
     }
   }
 
-  private releaseConsumer<T>(
-    entry: InFlightRequest<T>,
-    token: symbol,
-    consumer: RequestConsumer<T>,
-  ): void {
+  private releaseConsumer<T>(entry: InFlightRequest<T>, token: symbol, consumer: RequestConsumer<T>): void {
     consumer.signal?.removeEventListener("abort", consumer.onAbort as EventListener);
     entry.consumers.delete(token);
     this.consumerCount = Math.max(0, this.consumerCount - 1);
