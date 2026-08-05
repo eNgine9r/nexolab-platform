@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LiveTelemetryAdapter } from "./live-adapter";
 import { TelemetryRestClient, type TelemetryFetch } from "./rest-client";
 import { RoutePersistentTelemetryClient, type TelemetryLiveSource } from "./route-persistent-client";
-import type { TelemetryLiveHandlers, TelemetrySubscription } from "./types";
+import type { TelemetrySubscription } from "./types";
 
 const collection = {
   items: [
@@ -39,7 +39,7 @@ function deferred<T>() {
 }
 
 const idleLiveSource: TelemetryLiveSource = {
-  subscribe(_filters, _handlers: TelemetryLiveHandlers): TelemetrySubscription {
+  subscribe(): TelemetrySubscription {
     return { close: () => undefined };
   },
 };
