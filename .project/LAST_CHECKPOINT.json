@@ -3,18 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-318",
-  "issue": 318,
+  "task": "NEXOLAB-321",
+  "issue": 321,
   "status": "in_progress",
-  "timestamp": "2026-08-05T19:20:00+03:00",
-  "branch": "chore/318-reconcile-telemetry-state",
-  "product_baseline_sha": "b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0",
+  "timestamp": "2026-08-05T20:36:00+03:00",
+  "branch": "chore/321-reconcile-live-dashboard-state",
+  "product_baseline_sha": "d7affee11a39d5a007c461b9a4dea17f14b5bfb3",
   "completed_product_work_packages": [
     {
-      "issue": 314,
-      "pull_request": 315,
-      "title": "Preserve telemetry state across route transitions",
-      "merge_sha": "0b55fef9c2f41670339248d132b51dd4d67d44d5"
+      "issue": 288,
+      "pull_request": 320,
+      "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
+      "verified_head_sha": "091b1698ff4005164e7409fb38af475128160f73",
+      "merge_sha": "d7affee11a39d5a007c461b9a4dea17f14b5bfb3"
     },
     {
       "issue": 316,
@@ -22,39 +23,46 @@
       "title": "Complete route-transition telemetry acceptance gaps",
       "verified_head_sha": "c8ae44983c97fe108710d2d294c390b4dabfb2c2",
       "merge_sha": "b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0"
+    },
+    {
+      "issue": 314,
+      "pull_request": 315,
+      "title": "Preserve telemetry state across route transitions",
+      "merge_sha": "0b55fef9c2f41670339248d132b51dd4d67d44d5"
     }
   ],
-  "route_persistence_evidence": {
-    "application_shell_scoped_snapshots": true,
-    "organization_scoped_shared_websocket": true,
-    "identical_latest_request_deduplication": true,
-    "identical_history_request_deduplication": true,
-    "independent_consumer_abort": true,
-    "physical_request_aborts_after_final_consumer": true,
-    "transition_grace_ms": 5000,
-    "idle_scope_ttl_ms": 900000,
-    "maximum_canonical_samples": 20000,
-    "maximum_exact_latest_queries": 128,
-    "derive_narrower_latest_only_from_complete_snapshot": true,
-    "persistent_history_cache": false
-  },
-  "browser_route_cycle_evidence": {
-    "cycle": ["overview", "refrigeration", "energy", "overview"],
-    "refrigeration_usable_ms": 354,
-    "energy_usable_ms": 203,
-    "overview_return_usable_ms": 226,
-    "latest_rest_requests": 1,
-    "history_rest_requests": 3,
-    "websockets_opened": 1,
-    "websockets_active_after_cycle": 1,
+  "live_dashboard_evidence": {
+    "persisted_library": true,
+    "create_edit_duplicate_archive_open": true,
+    "etag_if_match_concurrency": true,
+    "stale_writer_local_draft_preserved": true,
+    "editor_inventory_on_demand_only": true,
+    "maximum_items": 64,
+    "maximum_history_samples_total": 8000,
+    "maximum_history_samples_per_series": 500,
+    "native_unit_only": true,
+    "viewer_read_only": true,
+    "mutation_permission": "live_dashboards.manage",
+    "selected_channel_id": "106-03",
+    "selected_metric": "temperature.probe",
+    "selected_latest_requests": 1,
+    "selected_history_requests": 1,
+    "broad_inventory_bootstrap_after_open": 0,
     "maximum_concurrent_websockets": 1,
-    "websockets_closed_during_cycle": 0,
+    "acquisition_mutations": 0,
+    "persisted_after_telemetry_service_restart": true
+  },
+  "route_transition_evidence": {
+    "refrigeration_usable_ms": 291,
+    "energy_usable_ms": 170,
+    "overview_return_usable_ms": 200,
+    "maximum_concurrent_websockets": 1,
     "acquisition_mutations": 0
   },
   "acquisition_invariant_evidence": {
     "software_verified": true,
-    "observed_fc03_requests_per_second_min": 19.49,
-    "observed_fc03_requests_per_second_max": 20.28,
+    "observed_fc03_requests_per_second_min": 19.58,
+    "observed_fc03_requests_per_second_max": 20.49,
     "ui_activity_changes_physical_polling": false,
     "discovery_delta": 0,
     "mutation_delta": 0,
@@ -62,7 +70,7 @@
     "final_physical_acceptance_issue": 289
   },
   "verification": {
-    "verified_head_sha": "c8ae44983c97fe108710d2d294c390b4dabfb2c2",
+    "verified_head_sha": "091b1698ff4005164e7409fb38af475128160f73",
     "ci": "green",
     "formatting": "green",
     "lint": "green",
@@ -72,12 +80,18 @@
     "authenticated_dashboard_acceptance": "green",
     "refrigeration_browser_acceptance": "green",
     "offline_bundle": "green",
+    "offline_clean_host_startup": "green",
     "offline_update_rollback_volume_preservation": "green"
   },
   "review_audit": {
-    "focused_product_files": 11,
+    "focused_product_test_acceptance_files": 16,
+    "backend_files_changed": 0,
+    "database_migrations_changed": 0,
+    "device_agent_files_changed": 0,
+    "registry_or_scheduler_files_changed": 0,
     "inline_threads": 0,
     "behind_main_commits_before_merge": 0,
+    "temporary_workflows_in_final_diff": 0,
     "modbus_write": "none",
     "hardware_actions": "none"
   },
@@ -85,11 +99,11 @@
     "issue": 282,
     "title": "Performance and data acquisition optimization",
     "status": "active",
-    "remaining_ordered_work_packages": [288, 289]
+    "remaining_ordered_work_packages": [289]
   },
   "active_control_work_package": {
-    "issue": 318,
-    "title": "Reconcile project state after telemetry route-persistence merges",
+    "issue": 321,
+    "title": "Reconcile project state after Live Dashboard workspace merge",
     "status": "in_progress",
     "scope": [
       ".project/CURRENT_STATE.md",
@@ -99,32 +113,32 @@
     ]
   },
   "next_ready_work_package": {
-    "issue": 288,
-    "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
-    "reason": "Persisted Live Dashboard CRUD and bounded application-shell telemetry delivery are now available. The UI can request and subscribe only to selected canonical series without changing physical acquisition."
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "reason": "All acquisition, delivery, route-persistence, persisted dashboard and selected-series UI dependencies are merged. Deterministic software acceptance can proceed; controlled Raspberry Pi/RS-485 performance evidence remains pending."
   },
   "guardrails": [
-    "Live Dashboard UI must use persisted /api/v1/live-dashboards contracts",
-    "use the shared application-shell telemetry runtime",
-    "do not introduce page-local telemetry cache or a second physical WebSocket lifecycle",
-    "selected-series delivery cannot mutate acquisition registry or scheduler priority",
-    "display refresh and time window are query/render preferences only",
-    "REST and WebSocket consumers cannot enqueue physical reads",
+    "document performance targets before running the scale matrix",
+    "keep fake and recorded serial evidence classified as software verification",
+    "page and browser count cannot define or amplify physical polling",
+    "selected Live Dashboard subscriptions cannot mutate registry or scheduler priority",
+    "truthful reconnecting stale offline auth permission and configuration states remain distinct",
+    "production defects discovered by validation require focused bug Issues",
     "no Modbus or hardware write",
     "no production cutover"
   ],
   "hardware_evidence": {
     "software_verified": true,
+    "persisted_live_dashboard_verified": true,
+    "selected_series_delivery_verified": true,
     "route_transition_continuity_verified": true,
-    "rest_deduplication_verified": true,
-    "bounded_transport_and_cache_verified": true,
-    "authenticated_request_count_verified": true,
     "disconnected_runtime_verified": true,
     "physical_raspberry_pi_rs485_verified": false,
-    "note": "Real Raspberry Pi/RS-485 request counters, latency, utilization and final scheduler intervals remain Issue #289 hardware acceptance."
+    "completion_classification": "software verified; hardware performance acceptance pending",
+    "note": "Issue #289 owns the controlled physical request counters, latency, utilization, deadline and multi-browser comparison on the installed Raspberry Pi/RS-485 system."
   },
   "next_ready_work_package_step": {
-    "issue": 288,
-    "instruction": "After merging the state-only reconciliation, create a focused feature branch for the persisted Live Dashboard library, editor and selected-series operator workspace."
+    "issue": 289,
+    "instruction": "After merging the state-only reconciliation, document performance targets and execute the deterministic scale and truthful-state matrix. Run the physical Raspberry Pi/RS-485 matrix only with controlled hardware access."
   }
 }
