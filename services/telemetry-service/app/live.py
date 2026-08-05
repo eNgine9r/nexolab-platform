@@ -88,9 +88,9 @@ class LiveTelemetryHub:
         loop = self._loop
         if loop is None or loop.is_closed():
             return
-        loop.call_soon_threadsafe(self.publish, payload)
+        loop.call_soon_threadsafe(self.publish_committed, payload)
 
-    def publish(self, payload: dict[str, Any]) -> None:
+    def publish_committed(self, payload: dict[str, Any]) -> None:
         """Project and fan out a committed event without awaiting any client."""
 
         persisted_payload = self._projection.project(payload)

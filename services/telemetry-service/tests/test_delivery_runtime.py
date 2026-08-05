@@ -92,9 +92,9 @@ def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) ->
         before = app.state.runtime.snapshot()
         for _ in range(10):
             with client.websocket_connect("/api/v1/telemetry/live") as websocket:
-                app.state.live_hub.publish(payload)
+                app.state.live_hub.publish_committed(payload)
                 assert websocket.receive_json()["state_source"] == "persisted"
-            app.state.live_hub.publish(payload)
+            app.state.live_hub.publish_committed(payload)
             wait_for(
                 lambda: app.state.runtime.snapshot()["websocket_clients"] == 0
             )

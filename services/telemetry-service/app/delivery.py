@@ -6,7 +6,6 @@ from typing import Any, Literal
 
 from app.db import Database, TelemetryQuery, TelemetrySample
 
-PersistedStateSource = Literal["persisted"]
 StalenessState = Literal["fresh", "stale", "unknown"]
 Clock = Callable[[], datetime]
 
@@ -84,9 +83,6 @@ class PersistedTelemetryReadModel:
     ) -> None:
         self._database = database
         self._projection = PersistedTelemetryProjection(clock=clock)
-
-    def project_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._projection.project(payload)
 
     def _project_sample(self, sample: TelemetrySample) -> dict[str, Any]:
         payload = dict(sample.raw_payload)

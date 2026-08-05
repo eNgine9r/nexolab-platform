@@ -68,6 +68,17 @@ class SubscriptionAcquisitionIsolationTests(unittest.TestCase):
         self.assertLess(persist, committed_branch)
         self.assertLess(committed_branch, fanout)
 
+    def test_live_hub_exposes_only_committed_event_publication(self) -> None:
+        live = (
+            ROOT / "services/telemetry-service/app/live.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("def publish_committed(", live)
+        self.assertNotIn("\n    def publish(", live)
+        self.assertIn(
+            "loop.call_soon_threadsafe(self.publish_committed, payload)",
+            live,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

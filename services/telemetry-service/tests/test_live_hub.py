@@ -34,7 +34,7 @@ def test_hub_enforces_server_side_filters() -> None:
         filtered = hub.register(LiveTelemetryFilter(channel_id="106-04"))
 
         event = payload(channel_id="106-03")
-        hub.publish(event)
+        hub.publish_committed(event)
 
         delivered = await matching.queue.get()
         assert isinstance(delivered, dict)
@@ -65,12 +65,12 @@ def test_slow_consumer_isolated_without_blocking_other_clients() -> None:
 
         first = payload(channel_id="106-03")
         second = payload(channel_id="106-04")
-        hub.publish(first)
+        hub.publish_committed(first)
         fast_first = await fast.queue.get()
         assert isinstance(fast_first, dict)
         assert fast_first["event_id"] == first["event_id"]
 
-        hub.publish(second)
+        hub.publish_committed(second)
 
         assert await slow.queue.get() is OVERFLOW
         fast_second = await fast.queue.get()
