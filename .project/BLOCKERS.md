@@ -2,42 +2,48 @@
 
 Updated: 2026-08-05
 
-## Completed acquisition instrumentation
+## Completed active acquisition registry
 
-Issue #283 / PR #294 was squash-merged as `b207a15fe88621f0ad43fe6555af2b29ad1796e7` from verified head `ad5705282ef38528f1ae645458231bcef471273a`.
+Issue #284 / PR #299 was squash-merged as `6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8` from verified head `c83f42aee7fc1251a683fb5c55cbe2779217673f`.
 
 Final exact-head verification:
 
-- CI `30985996238` GREEN;
-- Authenticated Dashboard Acceptance `30985996315` GREEN;
-- Device Agent Fleet Acceptance `30985996219` GREEN;
-- Offline Bundle `30985996222` GREEN;
-- Container Supply Chain `30985996275` GREEN;
-- Edge image `30985996225` GREEN;
-- Telemetry service `30985996265` GREEN;
-- Refrigeration Browser Acceptance `30985996253` GREEN;
-- MQTT TLS Fleet Acceptance `30985996287` GREEN;
-- Disaster Recovery TLS Fleet `30985996234` GREEN;
-- focused diff: 11 acquisition files;
+- CI `30990278424` GREEN;
+- Edge image `30990278312` GREEN;
+- Container Supply Chain `30990278313` GREEN;
+- Telemetry service `30990278544` GREEN;
+- Device Agent Fleet Acceptance `30990278529` GREEN;
+- MQTT TLS Fleet Acceptance `30990278311` GREEN;
+- Disaster Recovery TLS Fleet `30990278521` GREEN;
+- Authenticated Dashboard Acceptance `30990278466` GREEN on attempt 2;
+- Offline Bundle `30990278317` GREEN;
+- focused diff: 8 files;
 - inline review threads: zero;
 - submitted reviews: zero.
 
-Deterministic browser evidence held the normal acquisition envelope at 19.57–20.32 physical requests/second across no browser, Overview open/refresh, Live Data, three concurrent authenticated browser contexts and WebSocket reconnect. Discovery and mutation deltas were zero, and observed Device Agent control requests were GET-only.
+The registry now preserves inventory while allowing only targets with active device and target lifecycle to enter normal FC03 polling. Disabled, reserve, retired, uninstalled, discovery-only and invalid targets remain visible but are excluded by deterministic eligibility tests. Registry state and audit are persisted atomically with optimistic revision control.
+
+Physical Raspberry Pi/RS-485 proof is still required before claiming that a real disabled target emits zero bus requests.
 
 ## Acquisition optimization sequencing
 
-Epic #282 remains active. Issue #284 is the single Ready Work Package.
+Epic #282 remains active. Issue #285 is the single Ready Work Package.
 
 ```text
-#284 active acquisition registry
-→ #285 priority-aware scheduler
-→ #286 subscription isolation
-→ #287 Live Dashboard API
-→ #288 Live Dashboard UI
-→ #289 scale and hardware acceptance
+#285 priority-aware adaptive scheduler and edge latest cache
+→ #286 REST/WebSocket subscription isolation
+→ #287 Live Dashboard persistence and API
+→ #288 Live Dashboard operator workspace
+→ #289 scale, stability and hardware acceptance
 ```
 
-Issue #284 may change only local acquisition eligibility and registry persistence. It must not change Modbus function codes, scheduler priority/cadence or physical controller configuration.
+Issue #285 may change scheduling of registry-eligible read-only targets only. It must preserve:
+
+- FC03-only behavior;
+- one serialized worker per physical bus;
+- inventory/eligibility separation;
+- explicit discovery as a separate service operation;
+- the rule that UI routes and display refresh cannot add physical work.
 
 ## Supply-chain security risk
 
@@ -50,7 +56,7 @@ One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` bec
 - is limited to the authenticated local `mosquitto_ctrl` dynamic-security adapter path;
 - does not weaken global HIGH/CRITICAL enforcement.
 
-This is a tracked security risk and review obligation, not a blocker for Issue #284. Remove the exception immediately when a fixed Debian package becomes available.
+This is a tracked security risk and review obligation, not a blocker for Issue #285. Remove the exception immediately when a fixed Debian package becomes available.
 
 ## Smart Lockers blocker
 
@@ -72,14 +78,15 @@ Do not create demo locker controls, guessed states, door/lock writes or fabricat
 - **#202:** extended XJP60D semantics and portability require read-only hardware evidence.
 - Physical cameras, ONVIF, RTSP media and NVR remain unverified.
 - Issue #283 is software/browser/offline verified only; real Raspberry Pi/RS-485 request-rate evidence remains required before hardware verification.
-- Issue #284 hardware acceptance must compare request counters before and after disabling approved test targets without performing any physical write.
+- Issue #284 is software/browser/offline verified only; hardware acceptance must compare request counters before and after disabling an approved real target without any physical write.
 
-## Residual risks, not blockers for Issue #284
+## Residual risks, not blockers for Issue #285
 
-- Registry migration must preserve existing XJP60D active points and LE-01MP configuration without deleting data.
-- Inventory visibility must remain independent from polling eligibility.
-- Invalid, duplicate, write-capable or ambiguous bus/Unit/channel identities must be rejected.
-- Disabled, reserve, retired, uninstalled and discovery-only targets must generate zero normal-cycle requests.
+- Priority intervals must be bounded and validated against actual bus capacity rather than assuming one-second polling is safe.
+- One slow or absent endpoint must not starve other eligible targets.
+- Cooldown/circuit-breaker behavior must not silently convert stale values into live values.
+- Latest-value caching must remain local and durable enough for normal UI reads without becoming a second uncontrolled acquisition path.
+- Scheduler metrics must expose missed deadlines, overruns, cooldown and fairness without secret or high-cardinality labels.
 - Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
@@ -95,4 +102,4 @@ Stop before:
 
 ## Next Ready action
 
-Validate and squash-merge control Issue #297 after confirming exactly four `.project/**` files and GREEN CI. Then start Issue #284 on a focused feature branch. Preserve the read-only Modbus invariant and existing scheduler cadence.
+Validate and squash-merge control Issue #301 after confirming exactly four `.project/**` files and GREEN CI. Then start Issue #285 on a focused feature branch from updated `main`.
