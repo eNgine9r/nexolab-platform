@@ -5,27 +5,25 @@ on:
     branches:
       - feat/288-live-dashboard-workspace
     paths:
-      - e2e/live.production.e2e.ts
-      - src/components/live-dashboards/**
-      - src/components/live/live-screen.tsx
-      - src/features/live-dashboards/**
-      - src/hooks/use-live-dashboard-*.ts
       - .github/workflows/temp-288-format.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  format:
+  format-and-self-delete:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/288-live-dashboard-workspace
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: >-
+      - name: Apply exact formatter output
+        run: >-
           npx prettier --write
           e2e/live.production.e2e.ts
           src/components/live-dashboards/dashboard-editor.tsx
@@ -42,15 +40,11 @@ jobs:
           src/hooks/use-live-dashboard-inventory.ts
           src/hooks/use-live-dashboard-library.ts
           src/hooks/use-live-dashboard-telemetry.ts
-      - uses: actions/upload-artifact@v4
-        with:
-          name: issue-288-formatted-${{ github.sha }}
-          path: |
-            e2e/live.production.e2e.ts
-            src/components/live-dashboards
-            src/components/live/live-screen.tsx
-            src/features/live-dashboards
-            src/hooks/use-live-dashboard-inventory.ts
-            src/hooks/use-live-dashboard-library.ts
-            src/hooks/use-live-dashboard-telemetry.ts
-          retention-days: 1
+      - name: Remove temporary workflow and publish focused commit
+        run: |
+          rm .github/workflows/temp-288-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/live.production.e2e.ts src/components/live-dashboards src/components/live/live-screen.tsx src/features/live-dashboards src/hooks/use-live-dashboard-inventory.ts src/hooks/use-live-dashboard-library.ts src/hooks/use-live-dashboard-telemetry.ts .github/workflows/temp-288-format.yml
+          git commit -m "style(live-dashboards): apply exact formatter output"
+          git push origin HEAD:feat/288-live-dashboard-workspace
