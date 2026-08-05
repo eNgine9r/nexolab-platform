@@ -20,29 +20,20 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-309",
-      "issue": 309,
-      "title": "Reconcile project state after telemetry delivery isolation",
+      "id": "NEXOLAB-312",
+      "issue": 312,
+      "title": "Reconcile project state after Live Dashboard API merge",
       "status": "completed",
-      "depends_on": [286],
-      "pull_request": 310
-    },
-    {
-      "id": "NEXOLAB-287",
-      "issue": 287,
-      "parent_issue": 282,
-      "title": "Add the persisted Live Dashboard domain and local API",
-      "status": "ready",
-      "depends_on": [286],
-      "product_outcome": "Operators can persist organization-scoped Live Dashboard definitions and ordered canonical channel selections without changing acquisition cadence."
+      "depends_on": [287]
     },
     {
       "id": "NEXOLAB-288",
       "issue": 288,
       "parent_issue": 282,
       "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
-      "status": "blocked_by_dependency",
-      "depends_on": [287]
+      "status": "ready",
+      "depends_on": [286, 287],
+      "product_outcome": "Operators can create, edit, duplicate, archive and open reusable Live Dashboards that request only their selected persisted telemetry series without changing physical acquisition."
     },
     {
       "id": "NEXOLAB-289",
@@ -50,13 +41,31 @@
       "parent_issue": 282,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
       "status": "blocked_by_dependency",
-      "depends_on": [287, 288]
+      "depends_on": [288]
     },
     {
       "id": "NEXOLAB-282",
       "issue": 282,
       "title": "Performance and data acquisition optimization",
       "status": "active"
+    },
+    {
+      "id": "NEXOLAB-287",
+      "issue": 287,
+      "pull_request": 311,
+      "parent_issue": 282,
+      "title": "Add the persisted Live Dashboard domain and local API",
+      "status": "completed",
+      "verified_head_sha": "58f03b107cb900c7436b6784d27a305a1bccc4a4",
+      "merge_sha": "e92c36fe1b863f25132ecb39fe7f46928742c470"
+    },
+    {
+      "id": "NEXOLAB-309",
+      "issue": 309,
+      "pull_request": 310,
+      "title": "Reconcile project state after telemetry delivery isolation",
+      "status": "completed",
+      "depends_on": [286]
     },
     {
       "id": "NEXOLAB-286",
@@ -112,7 +121,11 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
+      "depends_on": [
+        "concrete locker inventory",
+        "read-only protocol scope",
+        "defined operator workflow"
+      ]
     },
     {
       "id": "NEXOLAB-204",
