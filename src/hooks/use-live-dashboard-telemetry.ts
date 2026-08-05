@@ -23,6 +23,7 @@ import type {
 const STALE_AFTER_MS = 30_000;
 const MAX_HISTORY_SAMPLES = 8_000;
 const MAX_HISTORY_SAMPLES_PER_SERIES = 500;
+const DEFAULT_SCOPE = "__default_organization__";
 
 interface RuntimeResult {
   config: TelemetryRuntimeConfig | null;
@@ -68,8 +69,12 @@ function newestSample(current: TelemetrySample | undefined, incoming: TelemetryS
   const capturedDifference = sampleTimestamp(incoming) - sampleTimestamp(current);
   if (capturedDifference > 0) return incoming;
   if (capturedDifference < 0) return current;
-  const currentReceived = current.received_at ? Date.parse(current.received_at) : Number.NEGATIVE_INFINITY;
-  const incomingReceived = incoming.received_at ? Date.parse(incoming.received_at) : Number.NEGATIVE_INFINITY;
+  const currentReceived = current.received_at
+    ? Date.parse(current.received_at)
+    : Number.NEGATIVE_INFINITY;
+  const incomingReceived = incoming.received_at
+    ? Date.parse(incoming.received_at)
+    : Number.NEGATIVE_INFINITY;
   if (incomingReceived > currentReceived) return incoming;
   return incoming.event_id.localeCompare(current.event_id) > 0 ? incoming : current;
 }
@@ -118,7 +123,12 @@ export function useLiveDashboardTelemetry({
   organizationId: string | null;
   enabled: boolean;
 }): LiveDashboardTelemetryModel {
+  const active = enabled && dashboard !== null && dashboard.status === "active";
+  const scopeKey = active
+    ? `${organizationId ?? DEFAULT_SCOPE}:${dashboard.id}:${dashboard.version}`
+    : null;
   const [runtime] = useState<RuntimeResult>(runtimeResult);
+  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [latest, setLatest] = useState<Record<string, TelemetrySample>>({});
   const [history, setHistory] = useState<Record<string, TelemetrySample[]>>({});
   const [connectionState, setConnectionState] = useState<TelemetryConnectionState>("idle");
@@ -144,22 +154,39 @@ export function useLiveDashboardTelemetry({
 
   useEffect(() => {
     const config = runtime.config;
-    if (!enabled || !dashboard || dashboard.status !== "active") {
+    if (!active || !dashboard || scopeKey === null) {
       latestRef.current = {};
       historyRef.current = {};
-      setLatest({});
-      setHistory({});
-      setLoaded(false);
-      setConnectionState("idle");
-      return;
-    }
-    if (!config || config.mode !== "live") {
-      setError(runtime.error ?? new Error("Selected-series telemetry requires live mode."));
-      setConnectionState("configuration_error");
       return;
     }
 
     const controller = new AbortController();
+    let disposed = false;
+    latestRef.current = {};
+    historyRef.current = {};
+
+    void Promise.resolve().then(() => {
+      if (disposed || controller.signal.aborted) return;
+      setActiveScopeKey(scopeKey);
+      setLatest({});
+      setHistory({});
+      setLoaded(false);
+      if (!config || config.mode !== "live") {
+        setError(runtime.error ?? new Error("Selected-series telemetry requires live mode."));
+        setConnectionState("configuration_error");
+        return;
+      }
+      setError(null);
+      setConnectionState("connecting");
+    });
+
+    if (!config || config.mode !== "live") {
+      return () => {
+        disposed = true;
+        controller.abort();
+      };
+    }
+
     const adapter = securedAdapter(config, organizationId);
     const subscriptions: TelemetrySubscription[] = [];
     const itemKeys = new Set(dashboard.items.map(dashboardItemIdentity));
@@ -172,15 +199,6 @@ export function useLiveDashboardTelemetry({
         Math.floor(MAX_HISTORY_SAMPLES / Math.max(1, dashboard.items.length)),
       ),
     );
-    let disposed = false;
-
-    latestRef.current = {};
-    historyRef.current = {};
-    setLatest({});
-    setHistory({});
-    setLoaded(false);
-    setError(null);
-    setConnectionState("connecting");
 
     const flush = () => {
       if (disposed) return;
@@ -278,7 +296,9 @@ export function useLiveDashboardTelemetry({
       .catch((nextError: unknown) => {
         if (disposed || controller.signal.aborted) return;
         setLoaded(true);
-        setError(nextError instanceof Error ? nextError : new Error("Selected telemetry failed to load."));
+        setError(
+          nextError instanceof Error ? nextError : new Error("Selected telemetry failed to load."),
+        );
         scheduleFlush(true);
       });
 
@@ -289,9 +309,17 @@ export function useLiveDashboardTelemetry({
       if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
       renderTimerRef.current = null;
     };
-  }, [dashboard, enabled, generation, organizationId, runtime.config, runtime.error]);
+  }, [
+    active,
+    dashboard,
+    generation,
+    organizationId,
+    runtime.config,
+    runtime.error,
+    scopeKey,
+  ]);
 
-  const series = useMemo<LiveDashboardSeries[]>(() => {
+  const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
     if (!dashboard) return [];
     return dashboard.items.map((item) => {
       const key = dashboardItemIdentity(item);
@@ -299,17 +327,23 @@ export function useLiveDashboardTelemetry({
     });
   }, [dashboard, history, latest]);
 
+  const visible = active && scopeKey !== null && activeScopeKey === scopeKey;
+  const series = visible ? storedSeries : [];
   const samples = series.flatMap((item) => (item.latest ? [item.latest] : []));
   const lastCapturedAt =
-    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]?.captured_at ??
-    null;
+    [...samples].sort((left, right) => sampleTimestamp(right) - sampleTimestamp(left))[0]
+      ?.captured_at ?? null;
+  const visibleConnectionState = visible ? connectionState : active ? "connecting" : "idle";
+  const visibleError = visible ? error : null;
 
   return {
-    status: deriveStatus(connectionState, loaded, samples, error, clock),
-    connectionState,
+    status: active
+      ? deriveStatus(visibleConnectionState, visible ? loaded : false, samples, visibleError, clock)
+      : "idle",
+    connectionState: visibleConnectionState,
     series,
     lastCapturedAt,
-    error,
+    error: visibleError,
     retry,
   };
 }
