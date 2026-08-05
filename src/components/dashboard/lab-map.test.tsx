@@ -74,7 +74,7 @@ describe("LabMap", () => {
 
     render(<LabMap mode="live" enabled organizationId="org-1" />);
 
-    expect(screen.getByRole("region", { name: "Стан схем обладнання" })).toHaveTextContent("4");
+    expect(screen.getByLabelText("Стан схем обладнання")).toHaveTextContent("4");
     expect(screen.getByText("Кліматична камера №1")).toBeInTheDocument();
     expect(screen.getByText("Є зміни")).toBeInTheDocument();
     expect(screen.getByText("Недоступно")).toBeInTheDocument();
