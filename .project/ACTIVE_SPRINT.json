@@ -5,7 +5,7 @@
   "sprint": {
     "id": "DATA-ACQUISITION-OPTIMIZATION-1",
     "title": "Performance and data acquisition optimization",
-    "goal": "Optimize read-only telemetry acquisition while proving that UI activity cannot amplify or define physical Modbus polling.",
+    "goal": "Optimize read-only telemetry acquisition and delivery while proving that UI activity cannot amplify or define physical Modbus polling.",
     "status": "in_progress",
     "started_at": "2026-08-05"
   },
@@ -20,12 +20,12 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-312",
-      "issue": 312,
-      "pull_request": 313,
-      "title": "Reconcile project state after Live Dashboard API merge",
-      "status": "completed",
-      "depends_on": [287]
+      "id": "NEXOLAB-318",
+      "issue": 318,
+      "title": "Reconcile project state after telemetry route-persistence merges",
+      "status": "in_progress",
+      "depends_on": [314, 316],
+      "scope": "state_only"
     },
     {
       "id": "NEXOLAB-288",
@@ -33,7 +33,7 @@
       "parent_issue": 282,
       "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
       "status": "ready",
-      "depends_on": [286, 287],
+      "depends_on": [286, 287, 314, 316],
       "product_outcome": "Operators can create, edit, duplicate, archive and open reusable Live Dashboards that request only their selected persisted telemetry series without changing physical acquisition."
     },
     {
@@ -45,10 +45,23 @@
       "depends_on": [288]
     },
     {
-      "id": "NEXOLAB-282",
-      "issue": 282,
-      "title": "Performance and data acquisition optimization",
-      "status": "active"
+      "id": "NEXOLAB-316",
+      "issue": 316,
+      "pull_request": 317,
+      "parent_issue": 314,
+      "title": "Complete route-transition telemetry acceptance gaps",
+      "status": "completed",
+      "verified_head_sha": "c8ae44983c97fe108710d2d294c390b4dabfb2c2",
+      "merge_sha": "b4660b15b49ff6e2776ea6adb4f0cea1e3f9ece0"
+    },
+    {
+      "id": "NEXOLAB-314",
+      "issue": 314,
+      "pull_request": 315,
+      "parent_issue": 282,
+      "title": "Preserve telemetry state across route transitions",
+      "status": "completed",
+      "merge_sha": "0b55fef9c2f41670339248d132b51dd4d67d44d5"
     },
     {
       "id": "NEXOLAB-287",
@@ -59,14 +72,6 @@
       "status": "completed",
       "verified_head_sha": "58f03b107cb900c7436b6784d27a305a1bccc4a4",
       "merge_sha": "e92c36fe1b863f25132ecb39fe7f46928742c470"
-    },
-    {
-      "id": "NEXOLAB-309",
-      "issue": 309,
-      "pull_request": 310,
-      "title": "Reconcile project state after telemetry delivery isolation",
-      "status": "completed",
-      "depends_on": [286]
     },
     {
       "id": "NEXOLAB-286",
@@ -107,6 +112,12 @@
       "status": "completed",
       "verified_head_sha": "ad5705282ef38528f1ae645458231bcef471273a",
       "merge_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7"
+    },
+    {
+      "id": "NEXOLAB-282",
+      "issue": 282,
+      "title": "Performance and data acquisition optimization",
+      "status": "active"
     },
     {
       "id": "NEXOLAB-295",
