@@ -52,6 +52,13 @@ function matchesFilters(sample: TelemetrySample, filters: TelemetryFilters): boo
   return LATEST_FILTER_KEYS.every((key) => filters[key] === undefined || sample[key] === filters[key]);
 }
 
+function queryCovers(covering: TelemetryPageQuery, requested: TelemetryPageQuery): boolean {
+  if ((covering.offset ?? 0) !== 0 || (requested.offset ?? 0) !== 0) return false;
+  return LATEST_FILTER_KEYS.every(
+    (key) => covering[key] === undefined || covering[key] === requested[key],
+  );
+}
+
 function queryKey(query: TelemetryPageQuery): string {
   return JSON.stringify({
     node_id: query.node_id ?? null,
@@ -146,8 +153,25 @@ export class RoutePersistentTelemetryClient {
   }
 
   readCachedLatest(query: TelemetryPageQuery = {}): TelemetryCollectionResponse | null {
-    const cached = this.latestQueries.get(queryKey(query));
-    return cached ? cloneCollection(cached.response) : null;
+    const exact = this.latestQueries.get(queryKey(query));
+    if (exact) return cloneCollection(exact.response);
+
+    for (const cached of this.latestQueries.values()) {
+      if (cached.response.next_offset !== null || !queryCovers(cached.query, query)) continue;
+      const limit = query.limit ?? cached.response.limit;
+      const items = cached.response.items
+        .filter((sample) => matchesFilters(sample, query))
+        .sort((left, right) => capturedAt(right) - capturedAt(left));
+      return {
+        ...cached.response,
+        items: items.slice(0, limit),
+        count: items.length,
+        limit,
+        offset: 0,
+        next_offset: null,
+      };
+    }
+    return null;
   }
 
   seedLatest(query: TelemetryPageQuery, response: TelemetryCollectionResponse): void {
