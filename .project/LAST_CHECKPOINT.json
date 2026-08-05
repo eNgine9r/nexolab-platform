@@ -3,140 +3,108 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-285",
-  "issue": 285,
+  "task": "NEXOLAB-286",
+  "issue": 286,
   "status": "completed",
-  "timestamp": "2026-08-05T13:29:00+03:00",
+  "timestamp": "2026-08-05T14:26:00+03:00",
   "branch": "main",
-  "product_merge_sha": "4d9300a87e497b13d1d9fcabc479df781bcc8505",
-  "pull_request": 305,
-  "verified_head_sha": "54d49f422723b52a41feff307023a299f27e3a92",
+  "product_merge_sha": "894884fb9a0fc6ad807206ed2fc087d68226346f",
+  "pull_request": 308,
+  "verified_head_sha": "8f8842bfac37e696989ad00a3074844b41de2736",
   "final_head_runs": {
-    "ci": 30996678326,
-    "edge_image": 30996678375,
-    "container_supply_chain": 30996678388,
-    "telemetry_service": 30996678331,
-    "device_agent_fleet": 30996678275,
-    "mqtt_tls_fleet": 30996678364,
-    "disaster_recovery_tls_fleet": 30996678450,
-    "authenticated_dashboard": 30996678338,
-    "offline_bundle": 30996678393
+    "ci": 31000543504,
+    "telemetry_service": 31000543552,
+    "device_agent_fleet": 31000543513,
+    "authenticated_dashboard": 31000543599,
+    "offline_auth": 31000543518,
+    "mqtt_tls_fleet": 31000543557,
+    "broker_control": 31000543548,
+    "security_browser": 31000543616,
+    "capacity_release": 31000543535,
+    "edge_image": 31000543536,
+    "container_supply_chain": 31000543545,
+    "disaster_recovery_tls_fleet": 31000543529,
+    "disaster_recovery_browser": 31000543530,
+    "offline_bundle": 31000543512
   },
-  "scheduler_evidence": {
-    "polling_policy": "priority_adaptive_v1",
-    "target_source": "active_acquisition_registry_only",
-    "priority_classes": ["high", "medium", "low", "on_demand"],
-    "normal_priority_classes": ["high", "medium", "low"],
-    "serialized_worker_per_bus": true,
-    "deadline_clock": "monotonic",
-    "startup_staggering": "verified",
-    "catch_up_burst": "prevented",
-    "high_to_non_high_fairness": "verified",
-    "non_low_to_low_fairness": "verified",
-    "endpoint_cooldown": "verified",
-    "other_unit_progress_during_cooldown": "verified",
-    "registry_reconcile_removes_ineligible_targets": "verified",
-    "global_full_cycle_sleep_removed_for_hardware_modes": "verified"
+  "delivery_boundary_evidence": {
+    "rest_source": "persisted_telemetry_read_model",
+    "websocket_replay_source": "persisted_telemetry_read_model",
+    "live_fanout_source": "successfully_committed_ingestion_events_only",
+    "fanout_method": "publish_committed",
+    "client_churn_ingestion_delta": 0,
+    "refresh_ingestion_delta": 0,
+    "restart_replay_triggers_acquisition": false,
+    "delivery_plane_hardware_dependencies": 0,
+    "scheduler_client_subscription_inputs": 0
   },
-  "latest_value_evidence": {
-    "store": "edge_sqlite_acquisition_latest_values",
-    "atomic_attempt_persistence": "verified",
-    "last_success_preserved_on_communication_error": "verified",
-    "last_attempt_and_error_updated": "verified",
-    "restart_uses_recent_attempt_without_full_scan": "verified",
-    "read_only_local_endpoint": "/api/v1/acquisition-latest"
-  },
-  "metrics_evidence": {
-    "queue_depth": "exposed",
-    "scheduler_lag": "exposed",
-    "missed_deadlines": "exposed",
-    "skipped_deadlines": "exposed",
-    "overruns": "exposed",
-    "deferrals": "exposed",
-    "cooldown": "exposed",
-    "fairness": "exposed",
-    "rolling_bus_load": "exposed",
-    "priority_execution_counts": "exposed"
-  },
-  "browser_acquisition_invariant": {
-    "expected_fixture_requests_per_second": 20,
-    "observed_min_requests_per_second": 19.58,
-    "observed_max_requests_per_second": 20.52,
-    "phases": [
-      "no_browser",
-      "overview_open",
-      "overview_refresh",
-      "live_data",
-      "three_browser_contexts",
-      "websocket_reconnect"
-    ],
-    "discovery_delta": 0,
-    "mutation_delta": 0,
-    "device_agent_control_methods": ["GET"]
+  "latest_state_evidence": {
+    "received_at": "explicit",
+    "age_seconds": "explicit",
+    "quality": "preserved",
+    "state_source": "persisted",
+    "source_owned_stale_after_seconds": "supported",
+    "missing_staleness_threshold": "unknown_not_fabricated"
   },
   "review_audit": {
-    "focused_files": 10,
+    "focused_files": 9,
     "inline_threads": 0,
     "submitted_reviews": 0,
-    "behind_main_commits": 0
+    "behind_main_commits_before_merge": 0
   },
   "runtime_evidence": {
-    "device_agent_unittests": "verified",
-    "multi_arch_edge_image": "verified",
-    "secure_device_agent_fleet": "verified",
-    "mqtt_tls_fleet": "verified",
-    "authenticated_browser_invariant": "verified",
+    "telemetry_postgresql_mqtt_rest_websocket_suite": "verified",
+    "device_agent_fleet": "verified",
+    "authenticated_acquisition_invariant": "verified",
+    "offline_auth": "verified",
     "disconnected_bundle_start": "verified",
     "update_rollback_data_preservation": "verified",
     "modbus_function": "fc03_only",
     "modbus_write": "none"
   },
-  "security_follow_up": {
-    "issue": 295,
-    "pull_request": 296,
-    "merge_sha": "3b26fb444cdfc3f11659bce149037a87c6e3fc36",
-    "cryptography": "fixed_50_x",
-    "temporary_exception": {
-      "image_id": "telemetry-service",
-      "package": "libcjson1",
-      "vulnerability": "CVE-2026-67216",
-      "owner": "platform-security",
-      "expires_on": "2026-08-15"
-    }
+  "transient_ci_note": {
+    "initial_offline_auth_run": 31000100012,
+    "classification": "runner_or_image_pull_transient",
+    "exact_head_retry": 31000543518,
+    "retry_result": "success"
   },
   "active_epic": {
     "issue": 282,
     "title": "Performance and data acquisition optimization",
     "status": "active",
-    "remaining_ordered_work_packages": [286, 287, 288, 289]
+    "remaining_ordered_work_packages": [287, 288, 289]
   },
   "next_ready_work_package": {
-    "issue": 286,
-    "title": "Isolate REST and WebSocket subscriptions from physical acquisition",
-    "reason": "The edge now has a canonical registry, deterministic physical scheduler and durable latest-value read model, so consumer fan-out can be isolated from bus work.",
-    "branch": "feat/286-subscription-acquisition-isolation"
+    "issue": 287,
+    "title": "Add the persisted Live Dashboard domain and local API",
+    "reason": "The delivery plane now consumes persisted telemetry independently of acquisition, so dashboard definitions and canonical channel selections can be persisted without changing physical cadence."
   },
-  "active_control_work_package": null,
+  "active_control_work_package": {
+    "issue": 309,
+    "pull_request": 310,
+    "title": "Reconcile project state after telemetry delivery isolation",
+    "status": "completed"
+  },
   "guardrails": [
     "REST and WebSocket consumers cannot enqueue or reprioritize physical reads",
     "only registry-eligible targets enter normal scheduling",
     "one serialized worker per physical bus",
-    "latest-value age and quality remain explicit",
+    "latest-value age, quality and staleness remain explicit",
     "no Modbus or hardware write",
     "no production cutover"
   ],
   "hardware_evidence": {
     "software_verified": true,
-    "deterministic_scheduler_verified": true,
+    "delivery_isolation_verified": true,
     "authenticated_browser_verified": true,
     "secure_fleet_verified": true,
     "disconnected_runtime_verified": true,
     "physical_raspberry_pi_rs485_verified": false,
-    "final_scheduler_intervals_verified": false,
-    "note": "Real Raspberry Pi/RS-485 latency, utilization and high-priority deadline evidence remains required before physical interval acceptance."
+    "physical_request_counter_under_real_ui_load_verified": false,
+    "note": "Real Raspberry Pi/RS-485 request counters, latency, utilization and final scheduler intervals remain separate hardware acceptance."
   },
   "next_ready_work_package_step": {
-    "issue": 286,
-    "instruction": "Create a focused feature branch from current main and isolate REST/WebSocket consumers from physical acquisition using persisted/latest telemetry state."
+    "issue": 287,
+    "instruction": "Create a focused branch for organization-scoped persisted Live Dashboard definitions and local API contracts."
   }
 }

@@ -20,21 +20,21 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-286",
-      "issue": 286,
-      "parent_issue": 282,
-      "title": "Isolate REST and WebSocket subscriptions from physical acquisition",
-      "status": "ready",
-      "depends_on": [285],
-      "product_outcome": "REST and WebSocket consumers read persisted and latest telemetry state without enqueueing, accelerating or reprioritizing physical Modbus acquisition."
+      "id": "NEXOLAB-309",
+      "issue": 309,
+      "title": "Reconcile project state after telemetry delivery isolation",
+      "status": "completed",
+      "depends_on": [286],
+      "pull_request": 310
     },
     {
       "id": "NEXOLAB-287",
       "issue": 287,
       "parent_issue": 282,
       "title": "Add the persisted Live Dashboard domain and local API",
-      "status": "blocked_by_dependency",
-      "depends_on": [286]
+      "status": "ready",
+      "depends_on": [286],
+      "product_outcome": "Operators can persist organization-scoped Live Dashboard definitions and ordered canonical channel selections without changing acquisition cadence."
     },
     {
       "id": "NEXOLAB-288",
@@ -42,7 +42,7 @@
       "parent_issue": 282,
       "title": "Build the Live Dashboard editor and channel-scoped operator workspace",
       "status": "blocked_by_dependency",
-      "depends_on": [286, 287]
+      "depends_on": [287]
     },
     {
       "id": "NEXOLAB-289",
@@ -50,13 +50,23 @@
       "parent_issue": 282,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
       "status": "blocked_by_dependency",
-      "depends_on": [284, 285, 286, 287, 288]
+      "depends_on": [287, 288]
     },
     {
       "id": "NEXOLAB-282",
       "issue": 282,
       "title": "Performance and data acquisition optimization",
       "status": "active"
+    },
+    {
+      "id": "NEXOLAB-286",
+      "issue": 286,
+      "pull_request": 308,
+      "parent_issue": 282,
+      "title": "Isolate REST and WebSocket subscriptions from physical acquisition",
+      "status": "completed",
+      "verified_head_sha": "8f8842bfac37e696989ad00a3074844b41de2736",
+      "merge_sha": "894884fb9a0fc6ad807206ed2fc087d68226346f"
     },
     {
       "id": "NEXOLAB-285",

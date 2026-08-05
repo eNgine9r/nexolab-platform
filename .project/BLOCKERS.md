@@ -2,50 +2,46 @@
 
 Updated: 2026-08-05
 
-## Completed adaptive acquisition scheduler
+## Completed telemetry delivery isolation
 
-Issue #285 / PR #305 was squash-merged as `4d9300a87e497b13d1d9fcabc479df781bcc8505` from verified head `54d49f422723b52a41feff307023a299f27e3a92`.
+Issue #286 / PR #308 was squash-merged as `894884fb9a0fc6ad807206ed2fc087d68226346f` from verified head `8f8842bfac37e696989ad00a3074844b41de2736`.
 
-Final exact-head verification:
+Final exact-head verification was GREEN across CI, telemetry service, Device Agent fleet, authenticated dashboard/acquisition invariant, offline authentication, MQTT TLS fleet, broker control, security browser, capacity release, edge image, container supply chain, disaster recovery TLS/browser and offline bundle workflows.
 
-- CI `30996678326` GREEN;
-- Edge image `30996678375` GREEN;
-- Container Supply Chain `30996678388` GREEN;
-- Telemetry service `30996678331` GREEN;
-- Device Agent Fleet Acceptance `30996678275` GREEN;
-- MQTT TLS Fleet Acceptance `30996678364` GREEN;
-- Disaster Recovery TLS Fleet `30996678450` GREEN;
-- Authenticated Dashboard Acceptance `30996678338` GREEN;
-- Offline Bundle `30996678393` GREEN;
-- focused diff: 10 files;
-- inline review threads: zero;
-- submitted reviews: zero.
+The merged boundary guarantees:
 
-The scheduler now derives normal jobs only from registry-eligible FC03 targets, uses one serialized worker per bus, applies monotonic deadlines, bounded fairness and endpoint cooldown, and stores a durable latest-value read model. UI activity remains outside physical target selection and cadence.
+- REST latest/history read committed telemetry state;
+- WebSocket replay reads committed telemetry state;
+- live fan-out is downstream of successful persistence and exposed as `publish_committed`;
+- client count, filters, refresh and reconnect do not enqueue or persist telemetry;
+- delivery code has no scheduler, registry, Modbus or driver dependencies;
+- scheduler and registry code has no client-subscription inputs;
+- Device Agent remains the only owner of physical cadence;
+- no Modbus or hardware writes were added.
 
 ## Acquisition optimization sequencing
 
-Epic #282 remains active. Issue #286 is the single Ready Work Package.
+Epic #282 remains active. Issue #287 is the single Ready product Work Package.
 
 ```text
-#286 REST/WebSocket subscription isolation
-→ #287 Live Dashboard persistence and API
-→ #288 Live Dashboard operator workspace
-→ #289 scale, stability and hardware acceptance
+#287 persisted Live Dashboard domain and local API
+→ #288 Live Dashboard editor and channel-scoped workspace
+→ #289 scale, stability and truthful live-state acceptance
 ```
 
-Issue #286 must preserve these completed boundaries:
+Issue #287 must preserve these completed boundaries:
 
-- REST reads and WebSocket subscriptions consume persisted/latest telemetry state;
-- consumer count, refresh rate and reconnect activity cannot enqueue, accelerate or reprioritize physical reads;
-- the Device Agent remains the owner of physical acquisition cadence;
-- registry eligibility remains the only normal target source;
-- MQTT and SQLite delivery semantics remain compatible;
+- dashboard definitions are configuration/read models, not acquisition targets;
+- selected channels must reference canonical registry/inventory identities;
+- dashboard CRUD cannot mutate registry eligibility, priority or cadence;
+- latest telemetry remains sourced from persisted delivery state;
+- local/offline operation remains complete;
+- no required cloud, CDN, remote fonts, telemetry or paid runtime service;
 - no Modbus or hardware writes.
 
 ## Physical scheduler acceptance remains blocked
 
-Software verification proves deterministic priority ordering, monotonic deadlines, fairness, cooldown, restart staggering, latest-value persistence and offline operation. It does not prove final physical intervals.
+Software verification proves deterministic priority ordering, monotonic deadlines, fairness, cooldown, restart staggering, latest-value persistence, delivery isolation and offline operation. It does not prove final physical intervals.
 
 Real Raspberry Pi/RS-485 evidence is still required for:
 
@@ -54,9 +50,9 @@ Real Raspberry Pi/RS-485 evidence is still required for:
 - high-priority deadline performance with slow or absent endpoints;
 - final high/medium/low interval selection;
 - confirmation that no other Modbus master is active;
-- request-counter comparison under UI load.
+- request-counter comparison under real operator UI load.
 
-Until measured, report physical scheduler intervals as unverified. Do not lower intervals or perform a site cutover based only on software tests.
+Until measured, report physical scheduler intervals and physical request-rate acceptance as unverified.
 
 ## Supply-chain security risk
 
@@ -90,13 +86,14 @@ Do not create demo controls, guessed states, door/lock writes or fabricated prod
 - Physical cameras, ONVIF, RTSP media and NVR remain unverified.
 - Issue #284 still requires physical request-counter proof for disabled real targets.
 - Issue #285 still requires physical interval, utilization and deadline proof.
+- Issue #286 software isolation is verified; physical request-counter comparison under actual client churn remains part of #289 hardware acceptance.
 
-## Residual risks, not blockers for Issue #286
+## Residual risks, not blockers for Issue #287
 
-- Consumers must not read directly from hardware drivers or invoke acquisition callbacks.
-- Latest-value age and quality must remain explicit; retained values cannot be represented as fresh live samples.
-- WebSocket reconnects must not cause replay storms or duplicate physical work.
-- Subscription fan-out must be bounded and isolated from the Device Agent bus lock.
+- Dashboard ownership, organization scoping, ordering and optimistic concurrency need explicit contracts.
+- Canonical channel selection must reject unknown or ineligible identities without mutating acquisition.
+- Dashboard limits must prevent unbounded definitions and channel lists.
+- Deleting a dashboard must not delete telemetry or channel inventory.
 - Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
@@ -112,4 +109,4 @@ Stop before:
 
 ## Next Ready action
 
-Start Issue #286 on a focused feature branch from current `main`. Preserve complete separation between physical acquisition and REST/WebSocket consumer activity.
+Start Issue #287 on a dedicated feature branch from current `main`.
