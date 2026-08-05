@@ -22,7 +22,7 @@ vi.mock("./brand-logo", () => ({
 
 describe("Sidebar", () => {
   it("renders every platform destination as an internal route", () => {
-    render(<Sidebar open activeItem="" onClose={() => undefined} onSelect={() => undefined} />);
+    render(<Sidebar open onClose={() => undefined} />);
 
     for (const item of platformNavItems) {
       expect(screen.getByRole("link", { name: item.label })).toHaveAttribute("href", item.href);
@@ -30,9 +30,23 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Live дані" })).not.toBeInTheDocument();
   });
 
-  it("keeps the refrigeration navigation item active on detail routes", () => {
-    render(<Sidebar open activeItem="" onClose={() => undefined} onSelect={() => undefined} />);
+  it("uses the pathname as the only active-navigation source", () => {
+    render(<Sidebar open activeItem="Камери" onClose={() => undefined} onSelect={() => undefined} />);
 
-    expect(screen.getByRole("link", { name: "Холодильне обладнання" })).toHaveClass("text-white");
+    expect(screen.getByRole("link", { name: "Холодильне обладнання" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Камери" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("does not fabricate service, network or cloud health", () => {
+    render(<Sidebar open onClose={() => undefined} />);
+
+    expect(screen.getByRole("region", { name: "Профіль виконання" })).toHaveTextContent("LOCAL_LAN");
+    expect(screen.queryByText("Усі сервіси в нормі")).not.toBeInTheDocument();
+    expect(screen.queryByText("Online")).not.toBeInTheDocument();
+    expect(screen.queryByText("Synced")).not.toBeInTheDocument();
+    expect(screen.queryByText("Хмарна синхронізація")).not.toBeInTheDocument();
   });
 });

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
   AlertTriangle,
   Boxes,
   Camera,
@@ -49,12 +48,14 @@ export const platformNavItems: readonly NavItem[] = [
 
 interface SidebarProps {
   open: boolean;
-  activeItem: string;
   onClose: () => void;
-  onSelect: (item: string) => void;
+  /** @deprecated Active navigation is derived exclusively from the current pathname. */
+  activeItem?: string;
+  /** @deprecated Navigation uses canonical links; callers only need onClose. */
+  onSelect?: (item: string) => void;
 }
 
-export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
+export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -86,8 +87,7 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
           </p>
           <div className="space-y-1">
             {platformNavItems.map(({ label, icon: Icon, badge, href }) => {
-              const routeActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
-              const active = routeActive || activeItem === label;
+              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               const classes = clsx(
                 "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
                 active
@@ -100,10 +100,8 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
                   key={label}
                   href={href}
                   className={classes}
-                  onClick={() => {
-                    onSelect(label);
-                    onClose();
-                  }}
+                  onClick={onClose}
+                  aria-current={active ? "page" : undefined}
                 >
                   <Icon
                     className={clsx(
@@ -132,26 +130,23 @@ export function Sidebar({ open, activeItem, onClose, onSelect }: SidebarProps) {
         </nav>
 
         <div className="px-4 pb-4">
-          <div className="rounded-2xl border border-emerald-300/[0.09] bg-emerald-400/[0.035] p-4">
+          <div
+            role="region"
+            className="rounded-2xl border border-cyan-300/[0.09] bg-cyan-400/[0.035] p-4"
+            aria-label="Профіль виконання"
+          >
             <div className="flex items-center gap-2.5">
-              <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-400/10 text-emerald-400">
-                <Activity className="h-4 w-4" />
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                <Network className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-slate-100">Система</p>
-                <p className="text-[9px] text-emerald-400">Усі сервіси в нормі</p>
+                <p className="text-[11px] font-semibold text-slate-100">LOCAL_LAN</p>
+                <p className="text-[9px] text-slate-400">Локальний профіль виконання</p>
               </div>
             </div>
-            <div className="mt-3 space-y-2 border-t border-white/[0.055] pt-3 text-[10px] text-slate-400">
-              <div className="flex items-center justify-between">
-                <span>Локальна мережа</span>
-                <span className="text-emerald-400">Online</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Хмарна синхронізація</span>
-                <span className="text-emerald-400">Synced</span>
-              </div>
-            </div>
+            <p className="mt-3 border-t border-white/[0.055] pt-3 text-[10px] leading-4 text-slate-500">
+              Стан сервісів і з’єднань показують відповідні робочі сторінки після фактичної перевірки.
+            </p>
           </div>
           <div className="mt-3 flex items-center justify-between px-1 text-[9px] text-slate-700">
             <span>© 2026 NEXOLAB</span>

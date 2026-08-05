@@ -3,53 +3,53 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCT-PAGES-COMPLETION-1",
-  "task": "NEXOLAB-275",
-  "issue": 275,
+  "task": "NEXOLAB-277",
+  "issue": 277,
   "parent_issue": 260,
-  "status": "state_reconciliation_in_progress",
-  "timestamp": "2026-08-05T07:18:00+03:00",
-  "branch": "chore/275-post-cameras-state",
-  "baseline_main_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
-  "previous_task": {
-    "issue": 273,
-    "pull_request": 274,
-    "status": "merged",
-    "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
-    "verified_state_head_sha": "adc6dec1eefe043da2813b7c59be6d39aa1e1aa6",
-    "merge_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
-    "state_head_runs": {
-      "ci": 30973948934,
-      "authenticated_dashboard": 30973948889,
-      "refrigeration_browser": 30973948945,
-      "offline_bundle": 30973948909
-    },
-    "review_audit": {
-      "focused_files": 12,
-      "inline_threads": 0,
-      "submitted_reviews": 0
-    }
-  },
-  "parent_epic_reassessment": {
-    "issue": 260,
-    "status": "open",
-    "completed_page_work_packages": [261, 263, 265, 267, 269, 273],
-    "remaining_placeholder_routes": ["/lockers"],
-    "next_independent_ready_action": "focused cross-page consistency and completeness review",
-    "blocked_tail": {
-      "route": "/lockers",
-      "reason": "No concrete locker inventory, read-only protocol or defined operator workflow exists."
-    }
-  },
-  "scope": [
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
+  "pull_request": 278,
+  "status": "verified_pending_ready_transition",
+  "timestamp": "2026-08-05T08:30:00+03:00",
+  "branch": "quality/277-cross-page-consistency-audit",
+  "baseline_main_sha": "68c443ff9e8aeff2cdb1384ecdb90daf85baceba",
+  "verified_source_head_sha": "4a86247ff6db1e4a0bee0d3a2d01a2fcb5bee0aa",
+  "scope_completed": [
+    "evidence-backed audit of twelve implemented operator routes",
+    "truthful LOCAL_LAN Sidebar profile without fabricated service or cloud status",
+    "single pathname-derived active navigation state",
+    "canonical Overview navigation links",
+    "focused Sidebar unit coverage",
+    "Settings browser selector scoped to runtime configuration summary"
   ],
+  "focused_source_files": [
+    "docs/audits/ISSUE_277_CROSS_PAGE_AUDIT.md",
+    "src/components/dashboard/sidebar.tsx",
+    "src/components/dashboard/sidebar.test.tsx",
+    "src/components/dashboard/dashboard-shell.tsx",
+    "e2e/settings.production.e2e.ts"
+  ],
+  "source_head_runs": {
+    "ci": 30977006748,
+    "authenticated_dashboard": 30977006760,
+    "nodes_browser": 30977006754,
+    "alerts_browser": 30977006749,
+    "reports_browser": 30977006747,
+    "refrigeration_browser": 30977006752,
+    "offline_bundle": 30977006753
+  },
+  "verification_outcome": {
+    "formatting": "green",
+    "lint": "green",
+    "typecheck": "green",
+    "tests": "green",
+    "production_build": "green",
+    "authenticated_browser": "green",
+    "disconnected_runtime": "green",
+    "update_rollback_persistent_data": "green"
+  },
   "guardrails": [
-    "no product code change",
-    "no dependency or workflow change",
     "no locker implementation or invented behavior",
+    "no backend schema or API expansion",
+    "no dependency or toolchain migration",
     "no hardware write",
     "no production cutover"
   ],
@@ -58,8 +58,12 @@
     "physical_hardware_verified": false,
     "note": "Physical Raspberry Pi, RS-485, cameras and Smart Lockers remain unverified."
   },
+  "blocked_tail": {
+    "route": "/lockers",
+    "reason": "No concrete locker inventory, read-only protocol or defined operator workflow exists."
+  },
   "next_ready_work_package_step": {
-    "issue": 275,
-    "instruction": "Open a control-only PR, confirm exactly four .project files, require GREEN CI, squash merge, then create the focused cross-page consistency review Work Package while keeping /lockers blocked."
+    "issue": 277,
+    "instruction": "Validate that commits after verified source head modify exactly four .project files, audit the full focused diff and reviews, update PR #278 summary, and mark it Ready without merge."
   }
 }
