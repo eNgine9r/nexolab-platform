@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_SUFFIX="$(date -u +%Y%m%dt%H%M%Sz)-$$"
+RUN_SUFFIX="$(date -u +%Y%mdt%H%M%Sz)-$$"
 NETWORK_NAME="nexolab-local-auth-migration-$RUN_SUFFIX"
 POSTGRES_CONTAINER="nexolab-local-auth-migration-postgres-$RUN_SUFFIX"
 TELEMETRY_IMAGE="nexolab-telemetry-service:local-auth-migration-$RUN_SUFFIX"
@@ -76,9 +76,12 @@ query_database() {
     --command "$1"
 }
 
+EXPECTED_HEAD_REVISION="$(run_alembic heads | awk 'NF {print $1}' | tail -n 1 | tr -d '\r')"
+[[ -n "$EXPECTED_HEAD_REVISION" ]]
+
 run_alembic upgrade head >/dev/null
 UPGRADED_REVISION="$(run_alembic current | tr -d '\r')"
-[[ "$UPGRADED_REVISION" == *"20260801_0021"* ]]
+[[ "$UPGRADED_REVISION" == *"$EXPECTED_HEAD_REVISION"* ]]
 [[ "$(query_database "SELECT to_regclass('public.security_local_accounts') IS NOT NULL AND to_regclass('public.security_local_sessions') IS NOT NULL;")" == "t" ]]
 
 run_alembic downgrade 20260731_0021 >/dev/null
@@ -88,10 +91,11 @@ DOWNGRADED_REVISION="$(run_alembic current | tr -d '\r')"
 
 run_alembic upgrade head >/dev/null
 REUPGRADED_REVISION="$(run_alembic current | tr -d '\r')"
-[[ "$REUPGRADED_REVISION" == *"20260801_0021"* ]]
+[[ "$REUPGRADED_REVISION" == *"$EXPECTED_HEAD_REVISION"* ]]
 [[ "$(query_database "SELECT to_regclass('public.security_local_accounts') IS NOT NULL AND to_regclass('public.security_local_sessions') IS NOT NULL;")" == "t" ]]
 
 cat >"$EVIDENCE_DIR/migration-roundtrip.txt" <<EOF
+expected_head_revision=$EXPECTED_HEAD_REVISION
 upgrade_revision=$UPGRADED_REVISION
 downgrade_revision=$DOWNGRADED_REVISION
 reupgrade_revision=$REUPGRADED_REVISION
