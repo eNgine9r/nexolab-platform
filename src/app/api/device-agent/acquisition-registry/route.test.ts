@@ -114,13 +114,18 @@ describe("acquisition registry proxy", () => {
     expect(headers.get("X-NEXOLAB-Actor")).toBe(`organization:${organizationId}:equipment.manage`);
   });
 
-  it("rejects a non-loopback Device Agent endpoint before relaying", async () => {
+  it("fails closed when the Device Agent endpoint is not loopback", async () => {
     process.env.NEXOLAB_DEVICE_AGENT_BASE_URL = "https://remote.example.test";
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(sessionResponse(["dashboard.read"]));
 
-    await expect(GET(request("GET"))).rejects.toThrow("Device Agent control endpoint must use loopback HTTP");
+    const response = await GET(request("GET"));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      detail: { code: "device_agent_unavailable" },
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
