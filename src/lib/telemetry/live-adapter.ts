@@ -24,10 +24,7 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
     return this.rest.readiness(signal);
   }
 
-  latest(
-    query: TelemetryPageQuery = {},
-    signal?: AbortSignal,
-  ): Promise<TelemetryCollectionResponse> {
+  latest(query: TelemetryPageQuery = {}, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
     if (this.live instanceof RoutePersistentTelemetryClient) {
       const cached = this.live.readCachedLatest(query);
       if (cached) return Promise.resolve(cached);
