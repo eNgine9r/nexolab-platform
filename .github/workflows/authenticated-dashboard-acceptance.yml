@@ -11,6 +11,7 @@ on:
       - "e2e/equipment-layouts.production.e2e.ts"
       - "e2e/live.production.e2e.ts"
       - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
+      - "e2e/telemetry-navigation.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"

@@ -33,5 +33,6 @@ export function createTelemetryAdapter(
   return new LiveTelemetryAdapter(
     new TelemetryRestClient(config.apiBaseUrl, options.rest),
     getRoutePersistentTelemetryClient(config.websocketUrl, options.websocket),
+    config.apiBaseUrl,
   );
 }

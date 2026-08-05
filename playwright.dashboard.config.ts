@@ -19,6 +19,7 @@ export default defineConfig({
     "settings.production.e2e.ts",
     "cameras.production.e2e.ts",
     "telemetry-acquisition-invariant.production.e2e.ts",
+    "telemetry-navigation.production.e2e.ts",
   ],
   fullyParallel: false,
   workers: 1,

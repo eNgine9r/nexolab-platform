@@ -1,5 +1,6 @@
 import type { SecurityCredentialProvider } from "@/features/security/security-session";
 
+import { TelemetryRequestCoordinator } from "./request-coordinator";
 import type {
   TelemetryCollectionResponse,
   TelemetryConnectionState,
@@ -16,6 +17,12 @@ export interface TelemetryLiveSource {
   subscribe: (filters: TelemetryFilters, handlers: TelemetryLiveHandlers) => TelemetrySubscription;
 }
 
+export interface RoutePersistentTelemetryClientOptions {
+  transitionGraceMs?: number;
+  cacheTtlMs?: number;
+  onEvict?: () => void;
+}
+
 interface RouteSubscriber {
   filters: TelemetryFilters;
   handlers: TelemetryLiveHandlers;
@@ -24,6 +31,8 @@ interface RouteSubscriber {
 const LATEST_FILTER_KEYS = ["node_id", "equipment_id", "channel_id", "metric", "quality", "alarm"] as const;
 const MAX_LATEST_QUERY_CACHE = 128;
 const MAX_LATEST_SAMPLES = 20_000;
+const DEFAULT_TRANSITION_GRACE_MS = 5_000;
+const DEFAULT_CACHE_TTL_MS = 15 * 60 * 1_000;
 
 let applicationShellRetainCount = 0;
 let nextCredentialProviderId = 1;
@@ -41,6 +50,11 @@ function capturedAt(sample: TelemetrySample): number {
 
 function matchesFilters(sample: TelemetrySample, filters: TelemetryFilters): boolean {
   return LATEST_FILTER_KEYS.every((key) => filters[key] === undefined || sample[key] === filters[key]);
+}
+
+function queryCovers(covering: TelemetryPageQuery, requested: TelemetryPageQuery): boolean {
+  if ((covering.offset ?? 0) !== 0 || (requested.offset ?? 0) !== 0) return false;
+  return LATEST_FILTER_KEYS.every((key) => covering[key] === undefined || covering[key] === requested[key]);
 }
 
 function queryKey(query: TelemetryPageQuery): string {
@@ -96,30 +110,70 @@ export class RoutePersistentTelemetryClient {
     string,
     { query: TelemetryPageQuery; response: TelemetryCollectionResponse }
   >();
+  private readonly transitionGraceMs: number;
+  private readonly cacheTtlMs: number;
+  private readonly onEvict?: () => void;
+  private readonly requests: TelemetryRequestCoordinator;
   private sourceSubscription: TelemetrySubscription | null = null;
+  private transitionTimer: ReturnType<typeof setTimeout> | null = null;
+  private evictionTimer: ReturnType<typeof setTimeout> | null = null;
   private shellRetained = false;
+  private disposed = false;
   private nextSubscriberId = 1;
   private connectionState: TelemetryConnectionState = "idle";
   private lastError: Error | null = null;
   private lastHeartbeat: string | null = null;
 
-  constructor(private readonly source: TelemetryLiveSource) {}
+  constructor(
+    private readonly source: TelemetryLiveSource,
+    options: RoutePersistentTelemetryClientOptions = {},
+  ) {
+    this.transitionGraceMs = options.transitionGraceMs ?? DEFAULT_TRANSITION_GRACE_MS;
+    this.cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+    this.onEvict = options.onEvict;
+    this.requests = new TelemetryRequestCoordinator(() => this.handleRequestActivityChange());
+  }
 
   setApplicationShellRetained(retained: boolean): void {
+    if (this.disposed) return;
     this.shellRetained = retained;
-    if (retained) {
-      this.ensureStarted();
-    } else {
-      this.stopIfUnused();
-    }
+    if (!retained) this.dispose();
+  }
+
+  runRequest<T>(
+    key: string,
+    signal: AbortSignal | undefined,
+    factory: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
+    if (this.disposed) return Promise.reject(new Error("Telemetry runtime scope is disposed"));
+    this.cancelLifecycleTimers();
+    return this.requests.request(key, signal, factory);
   }
 
   readCachedLatest(query: TelemetryPageQuery = {}): TelemetryCollectionResponse | null {
-    const cached = this.latestQueries.get(queryKey(query));
-    return cached ? cloneCollection(cached.response) : null;
+    const exact = this.latestQueries.get(queryKey(query));
+    if (exact) return cloneCollection(exact.response);
+
+    for (const cached of this.latestQueries.values()) {
+      if (cached.response.next_offset !== null || !queryCovers(cached.query, query)) continue;
+      const limit = query.limit ?? cached.response.limit;
+      const items = cached.response.items
+        .filter((sample) => matchesFilters(sample, query))
+        .sort((left, right) => capturedAt(right) - capturedAt(left));
+      return {
+        ...cached.response,
+        items: items.slice(0, limit),
+        count: items.length,
+        limit,
+        offset: 0,
+        next_offset: null,
+      };
+    }
+    return null;
   }
 
   seedLatest(query: TelemetryPageQuery, response: TelemetryCollectionResponse): void {
+    if (this.disposed) return;
     for (const sample of response.items) this.rememberSample(sample);
     const key = queryKey(query);
     if (!this.latestQueries.has(key) && this.latestQueries.size >= MAX_LATEST_QUERY_CACHE) {
@@ -130,6 +184,8 @@ export class RoutePersistentTelemetryClient {
   }
 
   subscribe(filters: TelemetryFilters, handlers: TelemetryLiveHandlers): TelemetrySubscription {
+    if (this.disposed) throw new Error("Telemetry runtime scope is disposed");
+    this.cancelLifecycleTimers();
     const subscriberId = this.nextSubscriberId;
     this.nextSubscriberId += 1;
     this.subscribers.set(subscriberId, { filters: { ...filters }, handlers });
@@ -154,13 +210,28 @@ export class RoutePersistentTelemetryClient {
         if (closed) return;
         closed = true;
         this.subscribers.delete(subscriberId);
-        this.stopIfUnused();
+        this.scheduleLifecycleIfIdle();
       },
     };
   }
 
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.shellRetained = false;
+    this.cancelLifecycleTimers();
+    this.stopTransport();
+    this.requests.abortAll();
+    this.subscribers.clear();
+    this.latestSamples.clear();
+    this.latestQueries.clear();
+    this.lastError = null;
+    this.lastHeartbeat = null;
+    this.onEvict?.();
+  }
+
   private ensureStarted(): void {
-    if (this.sourceSubscription || (!this.shellRetained && this.subscribers.size === 0)) return;
+    if (this.sourceSubscription || this.disposed || this.subscribers.size === 0) return;
     this.sourceSubscription = this.source.subscribe(
       {},
       {
@@ -173,11 +244,43 @@ export class RoutePersistentTelemetryClient {
     );
   }
 
-  private stopIfUnused(): void {
-    if (this.shellRetained || this.subscribers.size > 0) return;
+  private stopTransport(): void {
     this.sourceSubscription?.close();
     this.sourceSubscription = null;
     this.connectionState = "idle";
+  }
+
+  private handleRequestActivityChange(): void {
+    if (this.requests.hasConsumers) {
+      this.cancelLifecycleTimers();
+    } else {
+      this.scheduleLifecycleIfIdle();
+    }
+  }
+
+  private scheduleLifecycleIfIdle(): void {
+    if (this.disposed || !this.shellRetained || this.subscribers.size > 0 || this.requests.hasConsumers) {
+      return;
+    }
+    if (this.transitionTimer === null) {
+      this.transitionTimer = setTimeout(() => {
+        this.transitionTimer = null;
+        if (this.subscribers.size === 0 && !this.requests.hasConsumers) this.stopTransport();
+      }, this.transitionGraceMs);
+    }
+    if (this.evictionTimer === null) {
+      this.evictionTimer = setTimeout(() => {
+        this.evictionTimer = null;
+        if (this.subscribers.size === 0 && !this.requests.hasConsumers) this.dispose();
+      }, this.cacheTtlMs);
+    }
+  }
+
+  private cancelLifecycleTimers(): void {
+    if (this.transitionTimer !== null) clearTimeout(this.transitionTimer);
+    if (this.evictionTimer !== null) clearTimeout(this.evictionTimer);
+    this.transitionTimer = null;
+    this.evictionTimer = null;
   }
 
   private handleSample(sample: TelemetrySample): void {
@@ -256,9 +359,14 @@ export function getRoutePersistentTelemetryClient(
   const key = sharedClientKey(websocketUrl, options);
   let client = sharedClients.get(key);
   if (!client) {
-    client = new RoutePersistentTelemetryClient(new TelemetryWebSocketClient(websocketUrl, options));
-    client.setApplicationShellRetained(applicationShellRetainCount > 0);
+    const created = new RoutePersistentTelemetryClient(new TelemetryWebSocketClient(websocketUrl, options), {
+      onEvict: () => {
+        if (sharedClients.get(key) === created) sharedClients.delete(key);
+      },
+    });
+    client = created;
     sharedClients.set(key, client);
+    if (applicationShellRetainCount > 0) client.setApplicationShellRetained(true);
   }
   return client;
 }
@@ -275,13 +383,14 @@ export function retainTelemetryApplicationShell(): () => void {
     released = true;
     applicationShellRetainCount = Math.max(0, applicationShellRetainCount - 1);
     if (applicationShellRetainCount === 0) {
-      for (const client of sharedClients.values()) client.setApplicationShellRetained(false);
+      for (const client of [...sharedClients.values()]) client.setApplicationShellRetained(false);
+      sharedClients.clear();
     }
   };
 }
 
 export function resetRoutePersistentTelemetryStateForTests(): void {
   applicationShellRetainCount = 0;
-  for (const client of sharedClients.values()) client.setApplicationShellRetained(false);
+  for (const client of [...sharedClients.values()]) client.dispose();
   sharedClients.clear();
 }

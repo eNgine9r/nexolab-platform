@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   resetRoutePersistentTelemetryStateForTests,
@@ -67,17 +67,22 @@ class FakeTelemetryLiveSource implements TelemetryLiveSource {
 }
 
 async function flushReplay(): Promise<void> {
-  await new Promise<void>((resolve) => queueMicrotask(resolve));
+  await Promise.resolve();
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   resetRoutePersistentTelemetryStateForTests();
 });
 
 describe("RoutePersistentTelemetryClient", () => {
-  it("keeps one physical subscription and replays the latest snapshot across route transitions", async () => {
+  it("reuses one physical subscription when the next route mounts within the grace interval", async () => {
+    vi.useFakeTimers();
     const source = new FakeTelemetryLiveSource();
-    const client = new RoutePersistentTelemetryClient(source);
+    const client = new RoutePersistentTelemetryClient(source, {
+      transitionGraceMs: 1_000,
+      cacheTtlMs: 10_000,
+    });
     client.setApplicationShellRetained(true);
 
     const routeA: TelemetrySample[] = [];
@@ -85,14 +90,11 @@ describe("RoutePersistentTelemetryClient", () => {
       { node_id: "edge-01" },
       { onSample: (sample) => routeA.push(sample) },
     );
-
-    expect(source.subscribeCalls).toBe(1);
     source.emitState("connected");
     source.emitSample(firstSample);
-    expect(routeA).toEqual([firstSample]);
-
     firstSubscription.close();
 
+    await vi.advanceTimersByTimeAsync(500);
     const routeB: TelemetrySample[] = [];
     const states: TelemetryConnectionState[] = [];
     const secondSubscription = client.subscribe(
@@ -105,6 +107,7 @@ describe("RoutePersistentTelemetryClient", () => {
     await flushReplay();
 
     expect(source.subscribeCalls).toBe(1);
+    expect(source.closeCalls).toBe(0);
     expect(routeB).toEqual([firstSample]);
     expect(states).toEqual(["connected"]);
 
@@ -113,13 +116,59 @@ describe("RoutePersistentTelemetryClient", () => {
     expect(routeB).toEqual([firstSample, newerSample]);
 
     secondSubscription.close();
-    expect(source.closeCalls).toBe(0);
-
-    client.setApplicationShellRetained(false);
+    await vi.advanceTimersByTimeAsync(1_000);
     expect(source.closeCalls).toBe(1);
   });
 
-  it("retains cached values and truthful reconnect errors without duplicating listeners", async () => {
+  it("closes an idle transport after grace but retains the bounded snapshot for a later route", async () => {
+    vi.useFakeTimers();
+    const source = new FakeTelemetryLiveSource();
+    const client = new RoutePersistentTelemetryClient(source, {
+      transitionGraceMs: 1_000,
+      cacheTtlMs: 10_000,
+    });
+    client.setApplicationShellRetained(true);
+
+    const firstSubscription = client.subscribe({}, { onSample: () => undefined });
+    source.emitSample(firstSample);
+    firstSubscription.close();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(source.closeCalls).toBe(1);
+
+    const replayed: TelemetrySample[] = [];
+    const secondSubscription = client.subscribe({}, { onSample: (sample) => replayed.push(sample) });
+    await flushReplay();
+
+    expect(source.subscribeCalls).toBe(2);
+    expect(replayed).toEqual([firstSample]);
+    secondSubscription.close();
+  });
+
+  it("evicts an idle organization scope and clears retained state after the bounded TTL", async () => {
+    vi.useFakeTimers();
+    const source = new FakeTelemetryLiveSource();
+    const onEvict = vi.fn();
+    const client = new RoutePersistentTelemetryClient(source, {
+      transitionGraceMs: 100,
+      cacheTtlMs: 1_000,
+      onEvict,
+    });
+    client.setApplicationShellRetained(true);
+
+    const subscription = client.subscribe({}, { onSample: () => undefined });
+    source.emitSample(firstSample);
+    subscription.close();
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(source.closeCalls).toBe(1);
+    expect(onEvict).toHaveBeenCalledTimes(1);
+    expect(() => client.subscribe({}, { onSample: () => undefined })).toThrow(
+      "Telemetry runtime scope is disposed",
+    );
+  });
+
+  it("retains truthful reconnect errors without duplicating route listeners", async () => {
     const source = new FakeTelemetryLiveSource();
     const client = new RoutePersistentTelemetryClient(source);
     client.setApplicationShellRetained(true);
@@ -179,6 +228,7 @@ describe("RoutePersistentTelemetryClient", () => {
       snapshot_at: "2026-08-05T14:00:00.000Z",
     });
     client.setApplicationShellRetained(true);
+    const subscription = client.subscribe({}, { onSample: () => undefined });
     source.emitSample(newerSample);
 
     expect(client.readCachedLatest(query)).toEqual({
@@ -190,5 +240,6 @@ describe("RoutePersistentTelemetryClient", () => {
       snapshot_at: "2026-08-05T14:00:00.000Z",
     });
     expect(client.readCachedLatest({ node_id: "edge-02", limit: 1000 })).toBeNull();
+    subscription.close();
   });
 });
