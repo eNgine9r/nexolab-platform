@@ -3,75 +3,79 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-301",
-  "issue": 301,
-  "status": "state_reconciliation_in_progress",
-  "timestamp": "2026-08-05T11:58:00+03:00",
-  "branch": "chore/301-post-registry-state",
-  "baseline_main_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
-  "previous_task": {
-    "issue": 284,
-    "parent_issue": 282,
-    "pull_request": 299,
-    "status": "merged",
-    "verified_head_sha": "c83f42aee7fc1251a683fb5c55cbe2779217673f",
-    "merge_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
-    "final_head_runs": {
-      "ci": 30990278424,
-      "edge_image": 30990278312,
-      "container_supply_chain": 30990278313,
-      "telemetry_service": 30990278544,
-      "device_agent_fleet": 30990278529,
-      "mqtt_tls_fleet": 30990278311,
-      "disaster_recovery_tls_fleet": 30990278521,
-      "authenticated_dashboard": 30990278466,
-      "offline_bundle": 30990278317
-    },
-    "registry_evidence": {
-      "schema_version": 1,
-      "lifecycle_values": [
-        "active",
-        "disabled",
-        "reserve",
-        "retired",
-        "uninstalled",
-        "discovery_only",
-        "invalid"
-      ],
-      "effective_poll_eligibility": "device_active_and_target_active_and_fc03",
-      "legacy_xjp60d_migration": "verified",
-      "le01mp_per_metric_eligibility": "verified",
-      "atomic_revision_and_audit": "verified",
-      "restart_persistence": "verified",
-      "duplicate_bus_unit_rejection": "verified",
-      "write_capable_function_rejection": "verified",
-      "loopback_permission_gate": "verified"
-    },
-    "review_audit": {
-      "focused_files": 8,
-      "inline_threads": 0,
-      "submitted_reviews": 0,
-      "behind_main_commits": 0
-    },
-    "runtime_evidence": {
-      "device_agent_unittests": "verified",
-      "multi_arch_edge_image": "verified",
-      "secure_device_agent_fleet": "verified",
-      "mqtt_tls_fleet": "verified",
-      "authenticated_browser": "verified_attempt_2",
-      "disconnected_bundle_start": "verified",
-      "update_rollback_data_preservation": "verified",
-      "modbus_function": "fc03_only",
-      "modbus_write": "none"
-    },
-    "browser_retry_note": "Attempt 1 failed on a non-reproducible equipment URL-filter timeout outside the registry diff. Attempt 2 passed against the identical exact head."
+  "task": "NEXOLAB-284",
+  "issue": 284,
+  "status": "completed",
+  "timestamp": "2026-08-05T12:12:00+03:00",
+  "branch": "main",
+  "main_sha": "899d8d8e15628c087ab11fde6d483a423209f616",
+  "pull_request": 299,
+  "verified_head_sha": "c83f42aee7fc1251a683fb5c55cbe2779217673f",
+  "merge_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
+  "final_head_runs": {
+    "ci": 30990278424,
+    "edge_image": 30990278312,
+    "container_supply_chain": 30990278313,
+    "telemetry_service": 30990278544,
+    "device_agent_fleet": 30990278529,
+    "mqtt_tls_fleet": 30990278311,
+    "disaster_recovery_tls_fleet": 30990278521,
+    "authenticated_dashboard": 30990278466,
+    "offline_bundle": 30990278317
   },
-  "completed_control_task": {
-    "issue": 297,
-    "pull_request": 298,
-    "status": "merged",
-    "merge_sha": "ed4b9df578141eedd77cdc597d74f30449c0c3ad"
+  "registry_evidence": {
+    "schema_version": 1,
+    "lifecycle_values": [
+      "active",
+      "disabled",
+      "reserve",
+      "retired",
+      "uninstalled",
+      "discovery_only",
+      "invalid"
+    ],
+    "effective_poll_eligibility": "device_active_and_target_active_and_fc03",
+    "legacy_xjp60d_migration": "verified",
+    "le01mp_per_metric_eligibility": "verified",
+    "atomic_revision_and_audit": "verified",
+    "restart_persistence": "verified",
+    "duplicate_bus_unit_rejection": "verified",
+    "write_capable_function_rejection": "verified",
+    "loopback_permission_gate": "verified"
   },
+  "review_audit": {
+    "focused_files": 8,
+    "inline_threads": 0,
+    "submitted_reviews": 0,
+    "behind_main_commits": 0
+  },
+  "runtime_evidence": {
+    "device_agent_unittests": "verified",
+    "multi_arch_edge_image": "verified",
+    "secure_device_agent_fleet": "verified",
+    "mqtt_tls_fleet": "verified",
+    "authenticated_browser": "verified_attempt_2",
+    "disconnected_bundle_start": "verified",
+    "update_rollback_data_preservation": "verified",
+    "modbus_function": "fc03_only",
+    "modbus_write": "none"
+  },
+  "browser_retry_note": "Attempt 1 failed on a non-reproducible equipment URL-filter timeout outside the registry diff. Attempt 2 passed against the identical exact head.",
+  "completed_control_tasks": [
+    {
+      "issue": 301,
+      "pull_request": 302,
+      "status": "merged",
+      "merge_sha": "899d8d8e15628c087ab11fde6d483a423209f616",
+      "ci_run": 30991763541
+    },
+    {
+      "issue": 297,
+      "pull_request": 298,
+      "status": "merged",
+      "merge_sha": "ed4b9df578141eedd77cdc597d74f30449c0c3ad"
+    }
+  ],
   "security_follow_up": {
     "issue": 295,
     "pull_request": 296,
@@ -97,15 +101,8 @@
     "reason": "Objective physical request metrics and one canonical eligible target registry are now merged, so scheduler priority, deadlines, fairness and cooldown can be implemented without coupling UI subscriptions to bus work.",
     "branch": "feat/285-adaptive-acquisition-scheduler"
   },
-  "scope": [
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
-  ],
+  "active_control_work_package": null,
   "guardrails": [
-    "no product code change in control PR",
-    "no dependency or workflow change",
     "only registry-eligible targets may enter Issue #285 scheduling",
     "one serialized worker per physical bus",
     "UI display refresh and subscriptions cannot define physical polling",
@@ -123,7 +120,7 @@
     "note": "Physical Raspberry Pi and RS-485 request-counter evidence remains required before hardware verification of registry eligibility or adaptive scheduling."
   },
   "next_ready_work_package_step": {
-    "issue": 301,
-    "instruction": "Open a control-only PR, confirm exactly four .project files, require GREEN CI, squash merge, then start Issue #285 on a dedicated feature branch."
+    "issue": 285,
+    "instruction": "Create branch feat/285-adaptive-acquisition-scheduler from current main and implement the focused scheduler Work Package."
   }
 }
