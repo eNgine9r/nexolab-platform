@@ -106,4 +106,4 @@ Stop before:
 
 ## Next action
 
-Complete Issue #324 as a four-file state-only PR. After it merges, wait for controlled Raspberry Pi/RS-485 access or a newly created independent Ready software Work Package. Do not treat the hardware-blocked Issue #245 label as evidence that actual Raspberry Pi acceptance can be performed without the device.
+No independent Ready software Work Package remains after this checkpoint. Resume the controlled Raspberry Pi/RS-485 matrix only when access exists, or create a new independent Ready software Work Package through the normal product workflow. Do not treat the hardware-blocked Issue #245 label as evidence that actual Raspberry Pi acceptance can be performed without the device.
