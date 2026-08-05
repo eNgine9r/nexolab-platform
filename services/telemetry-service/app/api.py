@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Annotated, Callable
+from typing import Annotated, Callable, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from app.contracts import Alarm, Quality
 from app.db import Database, TelemetryQuery
+from app.delivery import PersistedTelemetryReadModel, StalenessState
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 
 
 class TelemetrySampleResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     event_id: str
     node_id: str
     captured_at: datetime
@@ -29,6 +28,11 @@ class TelemetrySampleResponse(BaseModel):
     raw_value: int | None
     raw_status: int | None
     received_at: datetime
+    age_seconds: float
+    stale_after_seconds: float | None
+    is_stale: bool | None
+    staleness: StalenessState
+    state_source: Literal["persisted"]
 
 
 class TelemetryCollectionResponse(BaseModel):
@@ -41,7 +45,7 @@ class TelemetryCollectionResponse(BaseModel):
 
 
 def _collection(
-    rows: list[object],
+    rows: list[dict[str, object]],
     *,
     limit: int,
     offset: int,
@@ -68,6 +72,7 @@ def create_api_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
     read_access = _read_access_dependency(security_dependencies)
+    read_model = PersistedTelemetryReadModel(database)
 
     def validate_limit(limit: int) -> None:
         if limit > max_page_size:
@@ -97,7 +102,7 @@ def create_api_router(
             quality=quality,
             alarm=alarm,
         )
-        rows = database.latest_samples(
+        rows = read_model.latest_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
@@ -148,7 +153,7 @@ def create_api_router(
             from_at=from_at,
             to_at=to_at,
         )
-        rows, resolved_snapshot_at = database.history_snapshot_samples(
+        rows, resolved_snapshot_at = read_model.history_snapshot_samples(
             query=query,
             limit=limit + 1,
             offset=offset,
