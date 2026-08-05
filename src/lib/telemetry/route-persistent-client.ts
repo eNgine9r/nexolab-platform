@@ -237,12 +237,7 @@ export class RoutePersistentTelemetryClient {
   }
 
   private scheduleLifecycleIfIdle(): void {
-    if (
-      this.disposed ||
-      !this.shellRetained ||
-      this.subscribers.size > 0 ||
-      this.requests.hasConsumers
-    ) {
+    if (this.disposed || !this.shellRetained || this.subscribers.size > 0 || this.requests.hasConsumers) {
       return;
     }
     if (this.transitionTimer === null) {
@@ -342,14 +337,11 @@ export function getRoutePersistentTelemetryClient(
   const key = sharedClientKey(websocketUrl, options);
   let client = sharedClients.get(key);
   if (!client) {
-    const created = new RoutePersistentTelemetryClient(
-      new TelemetryWebSocketClient(websocketUrl, options),
-      {
-        onEvict: () => {
-          if (sharedClients.get(key) === created) sharedClients.delete(key);
-        },
+    const created = new RoutePersistentTelemetryClient(new TelemetryWebSocketClient(websocketUrl, options), {
+      onEvict: () => {
+        if (sharedClients.get(key) === created) sharedClients.delete(key);
       },
-    );
+    });
     client = created;
     sharedClients.set(key, client);
     if (applicationShellRetainCount > 0) client.setApplicationShellRetained(true);
