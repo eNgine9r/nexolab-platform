@@ -5,7 +5,7 @@
   "sprint": {
     "id": "DATA-ACQUISITION-OPTIMIZATION-1",
     "title": "Performance and data acquisition optimization",
-    "goal": "Instrument and optimize read-only telemetry acquisition while proving that UI activity cannot amplify physical Modbus polling.",
+    "goal": "Optimize read-only telemetry acquisition while proving that UI activity cannot amplify or define physical Modbus polling.",
     "status": "in_progress",
     "started_at": "2026-08-05"
   },
@@ -20,12 +20,12 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-297",
-      "issue": 297,
-      "title": "Reconcile project state after acquisition instrumentation merge",
+      "id": "NEXOLAB-301",
+      "issue": 301,
+      "title": "Reconcile project state after active acquisition registry merge",
       "status": "in_progress",
-      "branch": "chore/297-post-acquisition-state",
-      "baseline_main_sha": "b207a15fe88621f0ad43fe6555af2b29ad1796e7",
+      "branch": "chore/301-post-registry-state",
+      "baseline_main_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
       "scope": [
         ".project/CURRENT_STATE.md",
         ".project/ACTIVE_SPRINT.json",
@@ -34,20 +34,13 @@
       ]
     },
     {
-      "id": "NEXOLAB-284",
-      "issue": 284,
-      "parent_issue": 282,
-      "title": "Introduce a universal active acquisition registry",
-      "status": "ready",
-      "product_outcome": "One versioned edge registry determines which installed and operator-approved devices, channels and metrics participate in normal read-only acquisition while inventory remains independently visible."
-    },
-    {
       "id": "NEXOLAB-285",
       "issue": 285,
       "parent_issue": 282,
       "title": "Replace the monolithic polling loop with a priority-aware adaptive scheduler",
-      "status": "blocked_by_dependency",
-      "depends_on": [284]
+      "status": "ready",
+      "depends_on": [283, 284],
+      "product_outcome": "One serialized worker per physical bus schedules only registry-eligible read-only targets by bounded priority and monotonic deadlines while exposing latest cached values and truthful overload/cooldown metrics."
     },
     {
       "id": "NEXOLAB-286",
@@ -88,6 +81,24 @@
       "status": "active"
     },
     {
+      "id": "NEXOLAB-284",
+      "issue": 284,
+      "pull_request": 299,
+      "parent_issue": 282,
+      "title": "Introduce a universal active acquisition registry",
+      "status": "completed",
+      "verified_head_sha": "c83f42aee7fc1251a683fb5c55cbe2779217673f",
+      "merge_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8"
+    },
+    {
+      "id": "NEXOLAB-297",
+      "issue": 297,
+      "pull_request": 298,
+      "title": "Reconcile project state after acquisition instrumentation merge",
+      "status": "completed",
+      "merge_sha": "ed4b9df578141eedd77cdc597d74f30449c0c3ad"
+    },
+    {
       "id": "NEXOLAB-283",
       "issue": 283,
       "pull_request": 294,
@@ -118,7 +129,11 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
+      "depends_on": [
+        "concrete locker inventory",
+        "read-only protocol scope",
+        "defined operator workflow"
+      ]
     },
     {
       "id": "NEXOLAB-204",
