@@ -3,48 +3,79 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-284",
-  "issue": 284,
+  "task": "NEXOLAB-285",
+  "issue": 285,
   "status": "completed",
-  "timestamp": "2026-08-05T12:12:00+03:00",
+  "timestamp": "2026-08-05T13:29:00+03:00",
   "branch": "main",
-  "main_sha": "899d8d8e15628c087ab11fde6d483a423209f616",
-  "pull_request": 299,
-  "verified_head_sha": "c83f42aee7fc1251a683fb5c55cbe2779217673f",
-  "merge_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
+  "product_merge_sha": "4d9300a87e497b13d1d9fcabc479df781bcc8505",
+  "pull_request": 305,
+  "verified_head_sha": "54d49f422723b52a41feff307023a299f27e3a92",
   "final_head_runs": {
-    "ci": 30990278424,
-    "edge_image": 30990278312,
-    "container_supply_chain": 30990278313,
-    "telemetry_service": 30990278544,
-    "device_agent_fleet": 30990278529,
-    "mqtt_tls_fleet": 30990278311,
-    "disaster_recovery_tls_fleet": 30990278521,
-    "authenticated_dashboard": 30990278466,
-    "offline_bundle": 30990278317
+    "ci": 30996678326,
+    "edge_image": 30996678375,
+    "container_supply_chain": 30996678388,
+    "telemetry_service": 30996678331,
+    "device_agent_fleet": 30996678275,
+    "mqtt_tls_fleet": 30996678364,
+    "disaster_recovery_tls_fleet": 30996678450,
+    "authenticated_dashboard": 30996678338,
+    "offline_bundle": 30996678393
   },
-  "registry_evidence": {
-    "schema_version": 1,
-    "lifecycle_values": [
-      "active",
-      "disabled",
-      "reserve",
-      "retired",
-      "uninstalled",
-      "discovery_only",
-      "invalid"
+  "scheduler_evidence": {
+    "polling_policy": "priority_adaptive_v1",
+    "target_source": "active_acquisition_registry_only",
+    "priority_classes": ["high", "medium", "low", "on_demand"],
+    "normal_priority_classes": ["high", "medium", "low"],
+    "serialized_worker_per_bus": true,
+    "deadline_clock": "monotonic",
+    "startup_staggering": "verified",
+    "catch_up_burst": "prevented",
+    "high_to_non_high_fairness": "verified",
+    "non_low_to_low_fairness": "verified",
+    "endpoint_cooldown": "verified",
+    "other_unit_progress_during_cooldown": "verified",
+    "registry_reconcile_removes_ineligible_targets": "verified",
+    "global_full_cycle_sleep_removed_for_hardware_modes": "verified"
+  },
+  "latest_value_evidence": {
+    "store": "edge_sqlite_acquisition_latest_values",
+    "atomic_attempt_persistence": "verified",
+    "last_success_preserved_on_communication_error": "verified",
+    "last_attempt_and_error_updated": "verified",
+    "restart_uses_recent_attempt_without_full_scan": "verified",
+    "read_only_local_endpoint": "/api/v1/acquisition-latest"
+  },
+  "metrics_evidence": {
+    "queue_depth": "exposed",
+    "scheduler_lag": "exposed",
+    "missed_deadlines": "exposed",
+    "skipped_deadlines": "exposed",
+    "overruns": "exposed",
+    "deferrals": "exposed",
+    "cooldown": "exposed",
+    "fairness": "exposed",
+    "rolling_bus_load": "exposed",
+    "priority_execution_counts": "exposed"
+  },
+  "browser_acquisition_invariant": {
+    "expected_fixture_requests_per_second": 20,
+    "observed_min_requests_per_second": 19.58,
+    "observed_max_requests_per_second": 20.52,
+    "phases": [
+      "no_browser",
+      "overview_open",
+      "overview_refresh",
+      "live_data",
+      "three_browser_contexts",
+      "websocket_reconnect"
     ],
-    "effective_poll_eligibility": "device_active_and_target_active_and_fc03",
-    "legacy_xjp60d_migration": "verified",
-    "le01mp_per_metric_eligibility": "verified",
-    "atomic_revision_and_audit": "verified",
-    "restart_persistence": "verified",
-    "duplicate_bus_unit_rejection": "verified",
-    "write_capable_function_rejection": "verified",
-    "loopback_permission_gate": "verified"
+    "discovery_delta": 0,
+    "mutation_delta": 0,
+    "device_agent_control_methods": ["GET"]
   },
   "review_audit": {
-    "focused_files": 8,
+    "focused_files": 10,
     "inline_threads": 0,
     "submitted_reviews": 0,
     "behind_main_commits": 0
@@ -54,28 +85,12 @@
     "multi_arch_edge_image": "verified",
     "secure_device_agent_fleet": "verified",
     "mqtt_tls_fleet": "verified",
-    "authenticated_browser": "verified_attempt_2",
+    "authenticated_browser_invariant": "verified",
     "disconnected_bundle_start": "verified",
     "update_rollback_data_preservation": "verified",
     "modbus_function": "fc03_only",
     "modbus_write": "none"
   },
-  "browser_retry_note": "Attempt 1 failed on a non-reproducible equipment URL-filter timeout outside the registry diff. Attempt 2 passed against the identical exact head.",
-  "completed_control_tasks": [
-    {
-      "issue": 301,
-      "pull_request": 302,
-      "status": "merged",
-      "merge_sha": "899d8d8e15628c087ab11fde6d483a423209f616",
-      "ci_run": 30991763541
-    },
-    {
-      "issue": 297,
-      "pull_request": 298,
-      "status": "merged",
-      "merge_sha": "ed4b9df578141eedd77cdc597d74f30449c0c3ad"
-    }
-  ],
   "security_follow_up": {
     "issue": 295,
     "pull_request": 296,
@@ -93,34 +108,35 @@
     "issue": 282,
     "title": "Performance and data acquisition optimization",
     "status": "active",
-    "remaining_ordered_work_packages": [285, 286, 287, 288, 289]
+    "remaining_ordered_work_packages": [286, 287, 288, 289]
   },
   "next_ready_work_package": {
-    "issue": 285,
-    "title": "Replace the monolithic polling loop with a priority-aware adaptive scheduler",
-    "reason": "Objective physical request metrics and one canonical eligible target registry are now merged, so scheduler priority, deadlines, fairness and cooldown can be implemented without coupling UI subscriptions to bus work.",
-    "branch": "feat/285-adaptive-acquisition-scheduler"
+    "issue": 286,
+    "title": "Isolate REST and WebSocket subscriptions from physical acquisition",
+    "reason": "The edge now has a canonical registry, deterministic physical scheduler and durable latest-value read model, so consumer fan-out can be isolated from bus work.",
+    "branch": "feat/286-subscription-acquisition-isolation"
   },
   "active_control_work_package": null,
   "guardrails": [
-    "only registry-eligible targets may enter Issue #285 scheduling",
+    "REST and WebSocket consumers cannot enqueue or reprioritize physical reads",
+    "only registry-eligible targets enter normal scheduling",
     "one serialized worker per physical bus",
-    "UI display refresh and subscriptions cannot define physical polling",
+    "latest-value age and quality remain explicit",
     "no Modbus or hardware write",
-    "no high-cardinality or secret metric labels",
     "no production cutover"
   ],
   "hardware_evidence": {
     "software_verified": true,
-    "deterministic_serial_and_registry_verified": true,
+    "deterministic_scheduler_verified": true,
     "authenticated_browser_verified": true,
     "secure_fleet_verified": true,
     "disconnected_runtime_verified": true,
     "physical_raspberry_pi_rs485_verified": false,
-    "note": "Physical Raspberry Pi and RS-485 request-counter evidence remains required before hardware verification of registry eligibility or adaptive scheduling."
+    "final_scheduler_intervals_verified": false,
+    "note": "Real Raspberry Pi/RS-485 latency, utilization and high-priority deadline evidence remains required before physical interval acceptance."
   },
   "next_ready_work_package_step": {
-    "issue": 285,
-    "instruction": "Create branch feat/285-adaptive-acquisition-scheduler from current main and implement the focused scheduler Work Package."
+    "issue": 286,
+    "instruction": "Create a focused feature branch from current main and isolate REST/WebSocket consumers from physical acquisition using persisted/latest telemetry state."
   }
 }
