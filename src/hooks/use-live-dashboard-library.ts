@@ -7,7 +7,11 @@ import {
   LiveDashboardClientError,
   type LiveDashboardApiClient,
 } from "@/features/live-dashboards/api-client";
-import { draftToWrite, duplicateDashboardDraft, liveDashboardEtag } from "@/features/live-dashboards/model";
+import {
+  draftToWrite,
+  duplicateDashboardDraft,
+  liveDashboardEtag,
+} from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
   LiveDashboardDraft,
@@ -46,6 +50,8 @@ interface ClientResult {
   error: Error | null;
 }
 
+const DEFAULT_SCOPE = "__default_organization__";
+
 function upsertDashboard(current: LiveDashboard[], dashboard: LiveDashboard): LiveDashboard[] {
   const without = current.filter((item) => item.id !== dashboard.id);
   return [dashboard, ...without].sort(
@@ -64,8 +70,10 @@ export function useLiveDashboardLibrary({
   enabled: boolean;
   organizationId: string | null;
 }): LiveDashboardLibraryModel {
+  const scopeKey = enabled ? (organizationId ?? DEFAULT_SCOPE) : null;
+  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [dashboards, setDashboards] = useState<LiveDashboard[]>([]);
-  const [status, setStatus] = useState<LiveDashboardLibraryStatus>(enabled ? "loading" : "idle");
+  const [status, setStatus] = useState<LiveDashboardLibraryStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [generation, setGeneration] = useState(0);
@@ -77,33 +85,38 @@ export function useLiveDashboardLibrary({
     } catch (nextError) {
       return {
         client: null,
-        error: nextError instanceof Error ? nextError : new Error("Live Dashboard API configuration failed."),
+        error:
+          nextError instanceof Error
+            ? nextError
+            : new Error("Live Dashboard API configuration failed."),
       };
     }
   }, [enabled, organizationId]);
   const client = clientResult.client;
 
   const refresh = useCallback(() => {
-    if (!enabled) return;
-    setGeneration((value) => value + 1);
+    if (enabled) setGeneration((value) => value + 1);
   }, [enabled]);
 
   useEffect(() => {
-    if (!enabled) {
-      setStatus("idle");
-      setDashboards([]);
-      setError(null);
-      return;
-    }
-    if (!client) {
-      setError(clientResult.error);
-      setStatus("error");
-      return;
-    }
+    if (!enabled || scopeKey === null) return;
 
     const controller = new AbortController();
-    setStatus("loading");
-    setError(null);
+    void Promise.resolve().then(() => {
+      if (controller.signal.aborted) return;
+      setActiveScopeKey(scopeKey);
+      setDashboards([]);
+      if (!client) {
+        setError(clientResult.error);
+        setStatus("error");
+        return;
+      }
+      setStatus("loading");
+      setError(null);
+    });
+
+    if (!client) return () => controller.abort();
+
     void client
       .list({ includeArchived, limit: 100, offset: 0 }, controller.signal)
       .then((page) => {
@@ -112,11 +125,13 @@ export function useLiveDashboardLibrary({
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted) return;
-        setError(nextError instanceof Error ? nextError : new Error("Live Dashboard library failed."));
+        setError(
+          nextError instanceof Error ? nextError : new Error("Live Dashboard library failed."),
+        );
         setStatus(classifyStatus(nextError));
       });
     return () => controller.abort();
-  }, [client, clientResult.error, enabled, generation, includeArchived]);
+  }, [client, clientResult.error, enabled, generation, includeArchived, scopeKey]);
 
   const get = useCallback(
     async (dashboardId: string, signal?: AbortSignal): Promise<LiveDashboardVersioned> => {
@@ -194,10 +209,11 @@ export function useLiveDashboardLibrary({
     [client, includeArchived],
   );
 
+  const visible = enabled && scopeKey !== null && activeScopeKey === scopeKey;
   return {
-    dashboards,
-    status,
-    error,
+    dashboards: visible ? dashboards : [],
+    status: visible ? status : enabled ? "loading" : "idle",
+    error: visible ? error : null,
     includeArchived,
     setIncludeArchived,
     refresh,
