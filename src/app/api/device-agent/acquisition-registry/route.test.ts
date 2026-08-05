@@ -58,9 +58,7 @@ describe("acquisition registry proxy", () => {
     await expect(response.json()).resolves.toMatchObject({ revision: 2 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const agentCall = fetchMock.mock.calls[1];
-    expect(String(agentCall[0])).toBe(
-      "http://127.0.0.1:8081/api/v1/acquisition-registry",
-    );
+    expect(String(agentCall[0])).toBe("http://127.0.0.1:8081/api/v1/acquisition-registry");
     expect(agentCall[1]).toMatchObject({ method: "GET" });
   });
 
@@ -84,9 +82,7 @@ describe("acquisition registry proxy", () => {
   it("forwards an authorized bounded eligibility mutation with audit actor", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        sessionResponse(["dashboard.read", "equipment.manage"]),
-      )
+      .mockResolvedValueOnce(sessionResponse(["dashboard.read", "equipment.manage"]))
       .mockResolvedValueOnce(
         Response.json({
           schema_version: 1,
@@ -115,9 +111,7 @@ describe("acquisition registry proxy", () => {
       body: JSON.stringify(payload),
     });
     const headers = new Headers(options?.headers);
-    expect(headers.get("X-NEXOLAB-Actor")).toBe(
-      `organization:${organizationId}:equipment.manage`,
-    );
+    expect(headers.get("X-NEXOLAB-Actor")).toBe(`organization:${organizationId}:equipment.manage`);
   });
 
   it("rejects a non-loopback Device Agent endpoint before relaying", async () => {
