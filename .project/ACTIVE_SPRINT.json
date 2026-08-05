@@ -22,6 +22,7 @@
     {
       "id": "NEXOLAB-312",
       "issue": 312,
+      "pull_request": 313,
       "title": "Reconcile project state after Live Dashboard API merge",
       "status": "completed",
       "depends_on": [287]
