@@ -2,37 +2,30 @@
 
 Updated: 2026-08-05
 
-## Issue #269 — operator-safe Settings workspace
-
-PR #270 was squash-merged into `main` as `5aa2252a6c20874dcc3d975c19fee441d20600a8` after current-head, mergeability, four-GREEN-check and clean-review audits. Issue #269 has no remaining software blocker.
-
 ## Issue #273 — operator-safe local Cameras workspace
 
-No repository-access or architecture blocker prevents the truthful software slice from starting.
+PR #274 has no remaining implementation, CI, authenticated-browser, refrigeration-regression or offline-runtime blocker.
 
-Verified repository boundary:
+Verified source head `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b`:
 
-- `/cameras` is a placeholder;
-- Overview contains six hardcoded illustrative scenes labelled `LIVE`;
-- no camera inventory API or persisted camera table exists;
-- no ONVIF discovery, snapshot proxy or RTSP/WebRTC/HLS browser gateway exists;
-- no verified physical camera inventory exists in repository state.
+- CI `30973348158` GREEN;
+- Authenticated Dashboard Acceptance `30973348163` GREEN;
+- Refrigeration Browser Acceptance `30973348162` GREEN;
+- Offline Bundle `30973348151` GREEN;
+- focused source files: 8;
+- zero non-GET camera requests in focused production acceptance;
+- fabricated Overview `LIVE` evidence removed;
+- temporary formatting workflow removed from final diff;
+- no dependency, lockfile, backend schema, camera-write, Modbus, hardware or production-cutover change.
 
-The Ready slice is constrained to:
-
-- typed browser-safe camera inventory;
-- sanitized endpoint metadata;
-- explicit unconfigured, configured-unverified, online, offline, unavailable and invalid states;
-- removal of fabricated `LIVE` evidence from Overview;
-- authenticated read-only `/cameras` workspace and canonical navigation;
-- zero mutation controls and no unsupported media claims.
+Only the state-only boundary validation, final review audit, PR summary update and Ready transition remain.
 
 ## Residual risks, not blockers
 
-- A real `online` state cannot be claimed without a real read-only observation source.
-- Browser clients cannot consume raw RTSP safely; no direct RTSP playback may be implied.
-- Camera credentials must remain outside client-visible variables, UI, logs and screenshots.
-- Physical cameras, ONVIF, RTSP, NVR and LAN/VPN access remain unverified.
+- A real `online` camera state still requires a concrete read-only observation source.
+- Raw RTSP is not a safe browser playback contract and remains explicitly unavailable without a local gateway.
+- Physical cameras, ONVIF, RTSP media, NVR and LAN/VPN camera access remain unverified.
+- The current production reader intentionally returns an unconfigured inventory instead of fabricating devices or silently using demo data.
 - `/lockers` remains blocked pending concrete inventory and read-only protocol scope.
 - Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a concrete blocker appears.
 
@@ -81,4 +74,4 @@ Stop before:
 
 ## Next Ready action
 
-Open a focused draft Pull Request for Issue #273, implement the typed truthful camera domain and tests, then integrate `/cameras` and remove fabricated Overview `LIVE` evidence.
+Validate the state-only head against source head `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b`, repeat the review and focused-diff audit, update PR #274 summary and mark Ready without merging.
