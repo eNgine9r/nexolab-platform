@@ -31,14 +31,7 @@ describe("Sidebar", () => {
   });
 
   it("uses the pathname as the only active-navigation source", () => {
-    render(
-      <Sidebar
-        open
-        activeItem="Камери"
-        onClose={() => undefined}
-        onSelect={() => undefined}
-      />,
-    );
+    render(<Sidebar open activeItem="Камери" onClose={() => undefined} onSelect={() => undefined} />);
 
     expect(screen.getByRole("link", { name: "Холодильне обладнання" })).toHaveAttribute(
       "aria-current",
