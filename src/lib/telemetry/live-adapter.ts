@@ -52,15 +52,16 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
   }
 
   latest(query: TelemetryPageQuery = {}, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
-    if (this.live instanceof RoutePersistentTelemetryClient) {
-      const cached = this.live.readCachedLatest(query);
+    const live = this.live;
+    if (live instanceof RoutePersistentTelemetryClient) {
+      const cached = live.readCachedLatest(query);
       if (cached) return Promise.resolve(cached);
-      return this.live
+      return live
         .runRequest(`${this.restScope}:latest:${pageQueryKey(query)}`, signal, (physicalSignal) =>
           this.rest.latest(query, physicalSignal),
         )
         .then((response) => {
-          if (!signal?.aborted) this.live.seedLatest(query, response);
+          if (!signal?.aborted) live.seedLatest(query, response);
           return response;
         });
     }
@@ -69,8 +70,9 @@ export class LiveTelemetryAdapter implements TelemetryAdapter {
   }
 
   history(query: TelemetryHistoryQuery, signal?: AbortSignal): Promise<TelemetryCollectionResponse> {
-    if (this.live instanceof RoutePersistentTelemetryClient) {
-      return this.live.runRequest(
+    const live = this.live;
+    if (live instanceof RoutePersistentTelemetryClient) {
+      return live.runRequest(
         `${this.restScope}:history:${historyQueryKey(query)}`,
         signal,
         (physicalSignal) => this.rest.history(query, physicalSignal),
