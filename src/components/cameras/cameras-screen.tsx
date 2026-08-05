@@ -21,7 +21,7 @@ export function CamerasScreen() {
       <SecurityGate
         state="forbidden"
         error="Камери не підміняються демонстраційними LIVE-сценами. Потрібна перевірена live session."
-        errorCode="CAMERAS_LIVE_SESSION_REQUIRED"
+        errorCode={null}
         diagnostics={null}
         onRetry={security.retry}
       />
