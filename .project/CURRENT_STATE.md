@@ -4,6 +4,7 @@ Updated: 2026-08-05
 Verified main baseline: `5aa2252a6c20874dcc3d975c19fee441d20600a8`
 Active Work Package: Issue #273 — operator-safe local Cameras workspace
 Branch: `feat/273-local-cameras-workspace`
+Pull Request: #274 — draft Work Package
 Parent Product Epic: Issue #260 — complete all NEXOLAB operator pages
 Status confidence: high for merged Settings software, authenticated browser and disconnected-runtime evidence; physical Raspberry Pi, RS-485 and camera hardware remain explicitly unverified.
 
@@ -25,7 +26,7 @@ Implemented on merged `main`:
 
 Remaining placeholder routes on merged `main`:
 
-- `/cameras` — active Issue #273;
+- `/cameras` — active Issue #273 / draft PR #274;
 - `/lockers` — blocked pending concrete inventory and read-only protocol scope.
 
 Optional toolchain migrations #252–#257 remain deferred unless they become a security, support or concrete product-delivery blocker.
@@ -50,7 +51,7 @@ Repository inventory confirms:
 - no ONVIF discovery, snapshot proxy or RTSP/WebRTC/HLS browser gateway exists;
 - no physical camera inventory is verified in repository state.
 
-Issue #273 will therefore deliver a truthful local-first read-only workspace:
+PR #274 will therefore deliver a truthful local-first read-only workspace:
 
 - typed camera inventory and sanitized endpoint metadata;
 - explicit unconfigured, configured-unverified, online, offline, unavailable and invalid states;
@@ -68,4 +69,4 @@ No camera configuration write, credential rotation, PTZ, recording, door/lock ac
 
 ## Next action
 
-Open one focused draft Pull Request from `feat/273-local-cameras-workspace`, then implement the typed truthful camera domain before integrating `/cameras` and the Overview regression.
+Implement the typed truthful camera domain and focused tests first, then integrate `/cameras` and replace the fabricated Overview `LIVE` panel in PR #274.
