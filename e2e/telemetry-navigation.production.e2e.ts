@@ -137,9 +137,7 @@ test("keeps telemetry usable and network work bounded across repeated route tran
 
     expect(routeDurationsMs.overviewReturn).toBeLessThan(5_000);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
-    expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(
-      initialHistoryRequests + 2,
-    );
+    expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests + 2);
     expect(sockets.opened).toBe(1);
     expect(sockets.closed).toBe(0);
     expect(sockets.active).toBe(1);
