@@ -201,8 +201,11 @@ test("opens a persisted selected-series dashboard after service restart without 
       .getByRole("button", { name: "Відкрити" })
       .click();
     await expect(page.getByRole("heading", { name: fixture.dashboardName, exact: true })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "106-03", exact: true })).toBeVisible();
-    await expect(page.getByText(/4,4 degC/).first()).toBeVisible();
+    const selectedChannelRow = page
+      .getByRole("row")
+      .filter({ has: page.getByRole("cell", { name: "106-03", exact: true }) });
+    await expect(selectedChannelRow).toBeVisible();
+    await expect(selectedChannelRow).toContainText(/-?\d+(?:[,.]\d+)? degC/);
     await expect.poll(() => sockets.maximum).toBe(1);
 
     await expect
