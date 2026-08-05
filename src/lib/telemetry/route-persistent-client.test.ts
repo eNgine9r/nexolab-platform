@@ -67,7 +67,7 @@ class FakeTelemetryLiveSource implements TelemetryLiveSource {
 }
 
 async function flushReplay(): Promise<void> {
-  await new Promise<void>((resolve) => queueMicrotask(resolve));
+  await Promise.resolve();
 }
 
 afterEach(() => {
