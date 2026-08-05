@@ -3,6 +3,7 @@ export type SecurityRole =
 
 export type SecurityPermission =
   | "dashboard.read"
+  | "live_dashboards.manage"
   | "telemetry.read"
   | "alerts.read"
   | "audit.read"
@@ -322,6 +323,7 @@ function isSecurityRole(value: unknown): value is SecurityRole {
 function isSecurityPermission(value: unknown): value is SecurityPermission {
   return (
     value === "dashboard.read" ||
+    value === "live_dashboards.manage" ||
     value === "telemetry.read" ||
     value === "alerts.read" ||
     value === "audit.read" ||
