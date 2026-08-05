@@ -6,7 +6,7 @@
     "id": "PRODUCT-PAGES-COMPLETION-1",
     "title": "Complete NEXOLAB operator pages",
     "goal": "Replace placeholder routes with focused real operator workflows while reusing the verified local telemetry, security and offline foundations.",
-    "status": "in_progress",
+    "status": "in_progress_blocked_tail",
     "started_at": "2026-08-03"
   },
   "execution_policy": {
@@ -23,53 +23,10 @@
       "id": "NEXOLAB-260",
       "issue": 260,
       "title": "Complete all NEXOLAB operator pages",
-      "status": "tracking_children",
-      "remaining_placeholder_routes": ["/lockers"]
-    },
-    {
-      "id": "NEXOLAB-261",
-      "issue": 261,
-      "pull_request": 262,
-      "title": "Complete the Energy Monitoring operator page",
-      "status": "merged",
-      "merge_sha": "56b4c2ab307a621ac3e77adb2f4c2eec70ae842f",
-      "route": "/energy"
-    },
-    {
-      "id": "NEXOLAB-263",
-      "issue": 263,
-      "pull_request": 264,
-      "title": "Complete the Live Data telemetry explorer",
-      "status": "merged",
-      "merge_sha": "249a271b4d67dc87c8fa28b81a76027274b07e28",
-      "route": "/live"
-    },
-    {
-      "id": "NEXOLAB-265",
-      "issue": 265,
-      "pull_request": 266,
-      "title": "Complete the Equipment Layouts catalog",
-      "status": "merged",
-      "merge_sha": "d70030dd17cde1031291e9725096a0f3d292192b",
-      "route": "/equipment-layouts"
-    },
-    {
-      "id": "NEXOLAB-267",
-      "issue": 267,
-      "pull_request": 268,
-      "title": "Complete the Equipment and metrology registry",
-      "status": "merged",
-      "merge_sha": "2f3c1ebcff3d19558ed4d2b5818f7bdd48b0dfae",
-      "route": "/equipment"
-    },
-    {
-      "id": "NEXOLAB-269",
-      "issue": 269,
-      "pull_request": 270,
-      "title": "Complete operator-safe Settings workspace",
-      "status": "merged",
-      "merge_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
-      "route": "/settings"
+      "status": "consistency_review_ready_with_blocked_tail",
+      "remaining_placeholder_routes": ["/lockers"],
+      "next_ready_action": "Create a focused cross-page consistency and completeness review Work Package.",
+      "blocked_tail": "Smart Lockers requires concrete inventory, read-only protocol and operator workflow."
     },
     {
       "id": "NEXOLAB-273",
@@ -77,38 +34,40 @@
       "parent_issue": 260,
       "pull_request": 274,
       "title": "Complete operator-safe local Cameras workspace",
-      "status": "ready_audit",
+      "status": "merged",
       "branch": "feat/273-local-cameras-workspace",
       "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
       "verified_source_head_sha": "3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b",
+      "verified_state_head_sha": "adc6dec1eefe043da2813b7c59be6d39aa1e1aa6",
+      "merge_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
       "route": "/cameras",
-      "required_runs": {
-        "final_ci": 30973348158,
-        "final_authenticated_dashboard": 30973348163,
-        "final_refrigeration_browser": 30973348162,
-        "final_offline_bundle": 30973348151
+      "state_head_runs": {
+        "ci": 30973948934,
+        "authenticated_dashboard": 30973948889,
+        "refrigeration_browser": 30973948945,
+        "offline_bundle": 30973948909
       },
       "review_audit": {
-        "focused_source_files": 8,
-        "state_files": 4,
-        "temporary_workflow_present": false
-      },
-      "guardrails_verified": [
-        "no camera credentials or raw RTSP URI in client-visible state",
-        "no fabricated LIVE state",
-        "no camera CRUD, recording, PTZ or hardware write",
-        "no mandatory cloud, CDN or paid runtime service",
-        "no dependency or lockfile change",
-        "no production or site cutover"
-      ],
-      "next_action": "Validate the state-only head, repeat review and focused-diff audit, update PR #274 summary and mark Ready without merge."
+        "focused_files": 12,
+        "inline_threads": 0,
+        "submitted_reviews": 0
+      }
+    },
+    {
+      "id": "NEXOLAB-275",
+      "issue": 275,
+      "title": "Reconcile project state after Cameras merge",
+      "status": "in_progress",
+      "branch": "chore/275-post-cameras-state",
+      "baseline_main_sha": "93e865efdadcd1f63a0c31733b98e13f8b6eb4c1",
+      "scope": [".project/CURRENT_STATE.md", ".project/ACTIVE_SPRINT.json", ".project/BLOCKERS.md", ".project/LAST_CHECKPOINT.json"]
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory and read-only protocol scope"]
+      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
     },
     {
       "id": "NEXOLAB-204",
@@ -129,23 +88,8 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "software_verified_hardware_blocked"
     },
-    {
-      "id": "NEXOLAB-200",
-      "issue": 200,
-      "title": "Verify physical RS-485 topology",
-      "status": "blocked"
-    },
-    {
-      "id": "NEXOLAB-201",
-      "issue": 201,
-      "title": "Validate LE-01MP cumulative energy",
-      "status": "blocked"
-    },
-    {
-      "id": "NEXOLAB-202",
-      "issue": 202,
-      "title": "Validate extended XJP60D semantics",
-      "status": "blocked"
-    }
+    { "id": "NEXOLAB-200", "issue": 200, "title": "Verify physical RS-485 topology", "status": "blocked" },
+    { "id": "NEXOLAB-201", "issue": 201, "title": "Validate LE-01MP cumulative energy", "status": "blocked" },
+    { "id": "NEXOLAB-202", "issue": 202, "title": "Validate extended XJP60D semantics", "status": "blocked" }
   ]
 }
