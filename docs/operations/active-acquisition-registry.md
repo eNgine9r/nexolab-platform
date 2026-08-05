@@ -56,15 +56,15 @@ Changing lifecycle does not rename historical telemetry, MQTT topics, equipment 
 
 ## Lifecycle values
 
-| Lifecycle | Inventory visible | Normal polling eligible |
-|---|:---:|:---:|
-| `active` | yes | yes, when both device and target are active |
-| `disabled` | yes | no |
-| `reserve` | yes | no |
-| `retired` | yes | no |
-| `uninstalled` | yes | no |
-| `discovery_only` | yes | no |
-| `invalid` | yes | no |
+| Lifecycle        | Inventory visible |           Normal polling eligible           |
+| ---------------- | :---------------: | :-----------------------------------------: |
+| `active`         |        yes        | yes, when both device and target are active |
+| `disabled`       |        yes        |                     no                      |
+| `reserve`        |        yes        |                     no                      |
+| `retired`        |        yes        |                     no                      |
+| `uninstalled`    |        yes        |                     no                      |
+| `discovery_only` |        yes        |                     no                      |
+| `invalid`        |        yes        |                     no                      |
 
 Effective eligibility is deliberately strict:
 
