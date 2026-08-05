@@ -125,8 +125,9 @@ test("keeps telemetry usable and network work bounded across repeated route tran
       page,
       "Енергомоніторинг",
       /\/energy$/,
-      page.getByText("M200", { exact: true }).first(),
+      page.getByRole("heading", { name: "Енергомоніторинг", exact: true }),
     );
+    await expect(page.getByRole("heading", { name: "W1", exact: true })).toBeVisible();
     routeDurationsMs.overviewReturn = await navigateAndMeasure(
       page,
       "Огляд",
