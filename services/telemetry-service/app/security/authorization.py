@@ -17,6 +17,7 @@ class Role(StrEnum):
 
 class Permission(StrEnum):
     READ_DASHBOARD = "dashboard.read"
+    MANAGE_LIVE_DASHBOARDS = "live_dashboards.manage"
     READ_TELEMETRY = "telemetry.read"
     READ_ALERTS = "alerts.read"
     READ_AUDIT = "audit.read"
@@ -41,6 +42,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.LABORATORY_MANAGER: frozenset(
         {
             Permission.READ_DASHBOARD,
+            Permission.MANAGE_LIVE_DASHBOARDS,
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_AUDIT,
@@ -62,6 +64,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.ENGINEER: frozenset(
         {
             Permission.READ_DASHBOARD,
+            Permission.MANAGE_LIVE_DASHBOARDS,
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,
@@ -79,6 +82,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.OPERATOR: frozenset(
         {
             Permission.READ_DASHBOARD,
+            Permission.MANAGE_LIVE_DASHBOARDS,
             Permission.READ_TELEMETRY,
             Permission.READ_ALERTS,
             Permission.READ_REPORTS,

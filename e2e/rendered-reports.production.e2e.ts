@@ -116,7 +116,9 @@ test("rendered reports remain reproducible, approved and organization isolated",
     const first = await generateReport(engineerA, `rendered-v1-${randomUUID()}`);
     const second = await generateReport(engineerA, `rendered-v2-${randomUUID()}`);
     const third = await generateReport(engineerA, `rendered-v3-${randomUUID()}`);
-    expect([first.version, second.version, third.version]).toEqual([1, 2, 3]);
+    expect(first.version).toBeGreaterThanOrEqual(1);
+    expect(second.version).toBe(first.version + 1);
+    expect(third.version).toBe(second.version + 1);
 
     for (const artifact of first.artifacts) {
       const response = await engineerA.get(

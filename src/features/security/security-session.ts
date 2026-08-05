@@ -21,6 +21,8 @@ export type SecurityPermission =
   | "alerts.rules.manage"
   | "alerts.acknowledge";
 
+export type SecurityEffectivePermission = SecurityPermission | "live_dashboards.manage";
+
 export type SecurityIdentity = {
   id: string;
   provider: string;
@@ -34,7 +36,7 @@ export type SecurityMembership = {
   organizationSlug: string;
   organizationName: string;
   roles: SecurityRole[];
-  permissions: SecurityPermission[];
+  permissions: SecurityEffectivePermission[];
 };
 
 export type SecuritySession = {
@@ -248,7 +250,7 @@ export function getSecurityCredentials(): SecurityCredentialSnapshot {
 export function hasPermission(
   session: SecuritySession,
   organizationId: string,
-  permission: SecurityPermission,
+  permission: SecurityEffectivePermission,
 ): boolean {
   const membership = session.memberships.find((item) => item.organizationId === organizationId);
   return membership?.permissions.includes(permission) ?? false;
@@ -319,9 +321,10 @@ function isSecurityRole(value: unknown): value is SecurityRole {
   );
 }
 
-function isSecurityPermission(value: unknown): value is SecurityPermission {
+function isSecurityPermission(value: unknown): value is SecurityEffectivePermission {
   return (
     value === "dashboard.read" ||
+    value === "live_dashboards.manage" ||
     value === "telemetry.read" ||
     value === "alerts.read" ||
     value === "audit.read" ||
