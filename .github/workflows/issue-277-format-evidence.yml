@@ -1,0 +1,35 @@
+name: Issue 277 Format Evidence
+
+on:
+  push:
+    branches:
+      - quality/277-cross-page-consistency-audit
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - run: >-
+          npx prettier --write
+          e2e/cross-page-consistency.production.e2e.ts
+          src/components/dashboard/sidebar.test.tsx
+          src/components/dashboard/sidebar.tsx
+      - uses: actions/upload-artifact@v7
+        with:
+          name: issue-277-formatted-files
+          path: |
+            e2e/cross-page-consistency.production.e2e.ts
+            src/components/dashboard/sidebar.test.tsx
+            src/components/dashboard/sidebar.tsx
+          retention-days: 1
