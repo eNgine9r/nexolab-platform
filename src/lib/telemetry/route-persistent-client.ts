@@ -21,8 +21,16 @@ interface RouteSubscriber {
   handlers: TelemetryLiveHandlers;
 }
 
-const LATEST_FILTER_KEYS = ["node_id", "equipment_id", "channel_id", "metric", "quality", "alarm"] as const;
+const LATEST_FILTER_KEYS = [
+  "node_id",
+  "equipment_id",
+  "channel_id",
+  "metric",
+  "quality",
+  "alarm",
+] as const;
 const MAX_LATEST_QUERY_CACHE = 128;
+const MAX_LATEST_SAMPLES = 20_000;
 
 let applicationShellRetainCount = 0;
 let nextCredentialProviderId = 1;
@@ -219,8 +227,13 @@ export class RoutePersistentTelemetryClient {
   private rememberSample(sample: TelemetrySample): void {
     const key = sampleIdentity(sample);
     const current = this.latestSamples.get(key);
-    if (!current || capturedAt(current) <= capturedAt(sample)) {
-      this.latestSamples.set(key, sample);
+    if (current && capturedAt(current) > capturedAt(sample)) return;
+
+    if (current) this.latestSamples.delete(key);
+    this.latestSamples.set(key, sample);
+    if (this.latestSamples.size > MAX_LATEST_SAMPLES) {
+      const oldestKey = this.latestSamples.keys().next().value as string | undefined;
+      if (oldestKey !== undefined) this.latestSamples.delete(oldestKey);
     }
   }
 
