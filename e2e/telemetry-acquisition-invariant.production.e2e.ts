@@ -6,8 +6,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from "@pla
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const metricsUrl = requiredEnvironment("NEXOLAB_ACQUISITION_METRICS_URL");
-const evidenceDirectory =
-  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
 const expectedRate = Number(process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20");
 
 type MetricsPayload = {
@@ -56,8 +55,7 @@ async function measurePhase(phase: string, action: () => Promise<void>): Promise
   const after = await readMetrics();
   const elapsedSeconds = (performance.now() - started) / 1000;
   const requestDelta =
-    after.acquisition.normal.physical_requests_total -
-    before.acquisition.normal.physical_requests_total;
+    after.acquisition.normal.physical_requests_total - before.acquisition.normal.physical_requests_total;
   return {
     phase,
     elapsedSeconds,
@@ -144,12 +142,8 @@ test("page navigation and browser count do not amplify physical acquisition", as
     (baseline.acquisition.service_operations.configuration_mutation?.requests_total ?? 0);
 
   for (const phase of phases) {
-    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeGreaterThanOrEqual(
-      expectedRate - 3,
-    );
-    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeLessThanOrEqual(
-      expectedRate + 3,
-    );
+    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeGreaterThanOrEqual(expectedRate - 3);
+    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeLessThanOrEqual(expectedRate + 3);
   }
   const rates = phases.map((phase) => phase.requestsPerSecond);
   expect(Math.max(...rates) - Math.min(...rates)).toBeLessThanOrEqual(3.5);
