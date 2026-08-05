@@ -54,9 +54,7 @@ function matchesFilters(sample: TelemetrySample, filters: TelemetryFilters): boo
 
 function queryCovers(covering: TelemetryPageQuery, requested: TelemetryPageQuery): boolean {
   if ((covering.offset ?? 0) !== 0 || (requested.offset ?? 0) !== 0) return false;
-  return LATEST_FILTER_KEYS.every(
-    (key) => covering[key] === undefined || covering[key] === requested[key],
-  );
+  return LATEST_FILTER_KEYS.every((key) => covering[key] === undefined || covering[key] === requested[key]);
 }
 
 function queryKey(query: TelemetryPageQuery): string {
