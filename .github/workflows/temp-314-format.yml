@@ -1,0 +1,39 @@
+name: Temporary Issue 314 Formatter
+
+on:
+  push:
+    branches:
+      - feat/314-preserve-telemetry-state
+    paths:
+      - src/lib/telemetry/route-persistent-client.ts
+      - .github/workflows/temp-314-format.yml
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Format Issue 314 source
+        run: npx prettier --write src/lib/telemetry/route-persistent-client.ts
+
+      - name: Upload formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-314-formatted-source-${{ github.sha }}
+          path: src/lib/telemetry/route-persistent-client.ts
+          if-no-files-found: error
+          retention-days: 1
