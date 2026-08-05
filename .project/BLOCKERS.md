@@ -2,51 +2,40 @@
 
 Updated: 2026-08-05
 
-## Issue #273 — operator-safe local Cameras workspace
+## Cameras outcome
 
-PR #274 has no remaining implementation, CI, authenticated-browser, refrigeration-regression or offline-runtime blocker.
+Issue #273 / PR #274 was squash-merged as `93e865efdadcd1f63a0c31733b98e13f8b6eb4c1` with no remaining software blocker.
 
-Verified source head `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b`:
+State-head verification on `adc6dec1eefe043da2813b7c59be6d39aa1e1aa6`:
 
-- CI `30973348158` GREEN;
-- Authenticated Dashboard Acceptance `30973348163` GREEN;
-- Refrigeration Browser Acceptance `30973348162` GREEN;
-- Offline Bundle `30973348151` GREEN;
-- focused source files: 8;
-- zero non-GET camera requests in focused production acceptance;
-- fabricated Overview `LIVE` evidence removed;
-- temporary formatting workflow removed from final diff;
-- no dependency, lockfile, backend schema, camera-write, Modbus, hardware or production-cutover change.
-
-Only the state-only boundary validation, final review audit, PR summary update and Ready transition remain.
-
-## Residual risks, not blockers
-
-- A real `online` camera state still requires a concrete read-only observation source.
-- Raw RTSP is not a safe browser playback contract and remains explicitly unavailable without a local gateway.
-- Physical cameras, ONVIF, RTSP media, NVR and LAN/VPN camera access remain unverified.
-- The current production reader intentionally returns an unconfigured inventory instead of fabricating devices or silently using demo data.
-- `/lockers` remains blocked pending concrete inventory and read-only protocol scope.
-- Deferred toolchain Issues #252–#257 remain outside the page-completion sequence unless a concrete blocker appears.
-
-## Explicitly unsupported and out of scope for Issue #273
-
-- camera CRUD or database migration;
-- ONVIF discovery;
-- RTSP-to-WebRTC/HLS transcoding;
-- recording, archive, playback timeline or retention;
-- PTZ, microphone or speaker control;
-- camera firmware/configuration writes;
-- credentials or secret rotation;
-- cloud video hosting;
-- physical camera acceptance;
-- doors, locks, Smart Lockers or unrelated pages;
-- dependency upgrades and unrelated refactors;
-- production/site cutover.
+- CI `30973948934` GREEN;
+- Authenticated Dashboard Acceptance `30973948889` GREEN;
+- Refrigeration Browser Acceptance `30973948945` GREEN;
+- Offline Bundle `30973948909` GREEN;
+- inline review threads: zero;
+- submitted reviews: zero;
+- no dependency, lockfile, backend schema, camera write, Modbus write or production cutover.
 
 ## Smart Lockers blocker
 
-The `/lockers` page remains blocked until a concrete locker inventory, read-only protocol and operator workflow are defined. Do not invent production behavior or present demo controls as completed functionality.
+`/lockers` remains blocked. Repository and GitHub state do not provide:
+
+- a concrete locker inventory;
+- a read-only protocol or API contract;
+- a defined operator workflow;
+- verified physical locker evidence.
+
+Do not create demo locker controls, guessed device states, door/lock writes or a fabricated production workflow. Resume only after the Product Owner supplies the missing inventory and protocol scope.
+
+## Parent Issue #260
+
+Issue #260 remains open. The page-completion sequence has one approved blocked tail (`/lockers`) and one independent Ready action: a focused cross-page consistency/completeness review across implemented routes.
+
+## Residual risks, not blockers
+
+- Real camera `online` state still requires a concrete read-only observation source.
+- Physical Raspberry Pi, RS-485, cameras, ONVIF, RTSP media, NVR and locker hardware remain unverified.
+- Deferred toolchain Issues #252–#257 remain outside active product scope unless they become a concrete security or delivery blocker.
 
 ## Hard blockers
 
@@ -54,7 +43,7 @@ Stop before:
 
 - destructive database or persistent-volume operations;
 - production/site cutover without explicit approval;
-- Modbus, camera or other unsafe hardware writes;
+- Modbus, camera, locker or other unsafe hardware writes;
 - credential exposure or unauthorized secret rotation;
 - materially different product or architecture choices;
 - any operation that cannot preserve local laboratory data.
@@ -74,4 +63,4 @@ Stop before:
 
 ## Next Ready action
 
-Validate the state-only head against source head `3b39d9e9f1a8e15c0cb66d0fd8924c25ffba390b`, repeat the review and focused-diff audit, update PR #274 summary and mark Ready without merging.
+Merge the control-only Issue #275 state reconciliation after state-only diff and GREEN CI, then create the focused cross-page consistency review Work Package under Issue #260. Keep `/lockers` blocked.
