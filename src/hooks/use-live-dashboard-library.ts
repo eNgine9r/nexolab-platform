@@ -45,6 +45,11 @@ export interface LiveDashboardLibraryModel {
   archive: (dashboard: LiveDashboard) => Promise<void>;
 }
 
+interface ClientResult {
+  client: LiveDashboardApiClient | null;
+  error: Error | null;
+}
+
 function upsertDashboard(current: LiveDashboard[], dashboard: LiveDashboard): LiveDashboard[] {
   const without = current.filter((item) => item.id !== dashboard.id);
   return [dashboard, ...without].sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at));
@@ -67,15 +72,21 @@ export function useLiveDashboardLibrary({
   const [includeArchived, setIncludeArchived] = useState(false);
   const [generation, setGeneration] = useState(0);
 
-  const client = useMemo<LiveDashboardApiClient | null>(() => {
-    if (!enabled) return null;
+  const clientResult = useMemo<ClientResult>(() => {
+    if (!enabled) return { client: null, error: null };
     try {
-      return createLiveDashboardApiClient(organizationId);
+      return { client: createLiveDashboardApiClient(organizationId), error: null };
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError : new Error("Live Dashboard API configuration failed."));
-      return null;
+      return {
+        client: null,
+        error:
+          nextError instanceof Error
+            ? nextError
+            : new Error("Live Dashboard API configuration failed."),
+      };
     }
   }, [enabled, organizationId]);
+  const client = clientResult.client;
 
   const refresh = useCallback(() => {
     if (!enabled) return;
@@ -90,6 +101,7 @@ export function useLiveDashboardLibrary({
       return;
     }
     if (!client) {
+      setError(clientResult.error);
       setStatus("error");
       return;
     }
@@ -109,7 +121,7 @@ export function useLiveDashboardLibrary({
         setStatus(classifyStatus(nextError));
       });
     return () => controller.abort();
-  }, [client, enabled, generation, includeArchived]);
+  }, [client, clientResult.error, enabled, generation, includeArchived]);
 
   const get = useCallback(
     async (dashboardId: string, signal?: AbortSignal): Promise<LiveDashboardVersioned> => {
@@ -163,7 +175,10 @@ export function useLiveDashboardLibrary({
   const duplicate = useCallback(
     async (dashboard: LiveDashboard): Promise<LiveDashboardVersioned> => {
       if (!client) throw new Error("Live Dashboard API is unavailable.");
-      const created = await client.create(draftToWrite(duplicateDashboardDraft(dashboard)), "Duplicate Live Dashboard");
+      const created = await client.create(
+        draftToWrite(duplicateDashboardDraft(dashboard)),
+        "Duplicate Live Dashboard",
+      );
       setDashboards((current) => upsertDashboard(current, created.value));
       return created;
     },
