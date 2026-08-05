@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Final
 from uuid import uuid4
 
+from app.delivery import PersistedTelemetryProjection
 from app.state import RuntimeState
 
 OVERFLOW: Final = object()
@@ -44,11 +45,12 @@ class LiveClient:
 
 
 class LiveTelemetryHub:
-    """Thread-safe fan-out hub with one bounded queue per WebSocket client."""
+    """Bounded fan-out over committed telemetry; never an acquisition trigger."""
 
     def __init__(self, state: RuntimeState, queue_maxsize: int) -> None:
         self._state = state
         self._queue_maxsize = queue_maxsize
+        self._projection = PersistedTelemetryProjection()
         self._loop: asyncio.AbstractEventLoop | None = None
         self._clients: dict[str, LiveClient] = {}
 
@@ -89,16 +91,17 @@ class LiveTelemetryHub:
         loop.call_soon_threadsafe(self.publish, payload)
 
     def publish(self, payload: dict[str, Any]) -> None:
-        """Publish without awaiting any client or network operation."""
+        """Project and fan out a committed event without awaiting any client."""
 
+        persisted_payload = self._projection.project(payload)
         for client in list(self._clients.values()):
             if client.closed:
                 continue
-            if not client.filters.matches(payload):
+            if not client.filters.matches(persisted_payload):
                 self._state.increment("websocket_filtered_total")
                 continue
             try:
-                client.queue.put_nowait(dict(payload))
+                client.queue.put_nowait(dict(persisted_payload))
             except asyncio.QueueFull:
                 self._close_client(client, OVERFLOW, dropped=True)
             else:

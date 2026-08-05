@@ -6,7 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
-from app.db import Database, TelemetryQuery, TelemetrySample
+from app.db import Database, TelemetryQuery
+from app.delivery import PersistedTelemetryReadModel
 from app.live import OVERFLOW, SHUTDOWN, LiveTelemetryFilter, LiveTelemetryHub
 from app.security.authorization import Permission
 from app.security.dependencies import SecurityDependencies
@@ -19,28 +20,6 @@ ALLOWED_QUALITIES = {
     "unknown",
 }
 ALLOWED_ALARMS = {"low", "high"}
-
-
-def _sample_payload(sample: TelemetrySample) -> dict[str, Any]:
-    payload = dict(sample.raw_payload)
-    payload.update(
-        {
-            "event_id": sample.event_id,
-            "node_id": sample.node_id,
-            "captured_at": sample.captured_at.isoformat(),
-            "metric": sample.metric,
-            "value": sample.value,
-            "unit": sample.unit,
-            "quality": sample.quality,
-            "source": sample.source,
-            "equipment_id": sample.equipment_id,
-            "channel_id": sample.channel_id,
-            "alarm": sample.alarm,
-            "raw_value": sample.raw_value,
-            "raw_status": sample.raw_status,
-        }
-    )
-    return payload
 
 
 def _parse_after(value: str | None) -> datetime | None:
@@ -66,7 +45,10 @@ async def _authenticate_websocket(
     *,
     timeout_seconds: float,
 ) -> bool:
-    if security_dependencies is None or not security_dependencies.authentication_required:
+    if (
+        security_dependencies is None
+        or not security_dependencies.authentication_required
+    ):
         return True
 
     try:
@@ -171,6 +153,7 @@ def create_live_router(
     security_dependencies: SecurityDependencies | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry-live"])
+    read_model = PersistedTelemetryReadModel(database)
 
     @router.websocket("/live")
     async def live(websocket: WebSocket) -> None:
@@ -225,7 +208,7 @@ def create_live_router(
 
         try:
             if after is not None:
-                replay_rows = database.history_samples(
+                replay_rows = read_model.history_samples(
                     query=TelemetryQuery(
                         node_id=filters.node_id,
                         equipment_id=filters.equipment_id,
@@ -251,10 +234,9 @@ def create_live_router(
                     await websocket.close(code=1008, reason="resume limit exceeded")
                     return
 
-                for sample in reversed(replay_rows):
-                    payload = _sample_payload(sample)
+                for payload in reversed(replay_rows):
                     await send(payload)
-                    replayed_event_ids.add(sample.event_id)
+                    replayed_event_ids.add(str(payload["event_id"]))
                     state.increment("websocket_resume_total")
 
             while True:
