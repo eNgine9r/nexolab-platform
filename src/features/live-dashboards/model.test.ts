@@ -87,6 +87,16 @@ describe("Live Dashboard editor model", () => {
     expect(second).toEqual({ draft: first.draft, added: false, reason: "duplicate" });
   });
 
+  it("rejects display-unit conversion that is not backed by the persisted domain", () => {
+    const draft = dashboardToDraft(dashboard);
+    draft.items[0] = { ...draft.items[0], display_unit: "degF" };
+
+    expect(validateLiveDashboardDraft(draft)).toEqual({
+      valid: false,
+      issues: ["Для 106-03 дозволена лише базова одиниця degC."],
+    });
+  });
+
   it("reorders selected channels deterministically", () => {
     const first = addDashboardDraftItem(createEmptyLiveDashboardDraft(), inventory).draft;
     const second = addDashboardDraftItem(first, {
@@ -94,7 +104,12 @@ describe("Live Dashboard editor model", () => {
       key: "115-04|temperature.probe",
       channel_id: "115-04",
       equipment_id: "xjp60d-115",
-      latest: { ...inventory.latest, event_id: "sample-2", channel_id: "115-04", equipment_id: "xjp60d-115" },
+      latest: {
+        ...inventory.latest,
+        event_id: "sample-2",
+        channel_id: "115-04",
+        equipment_id: "xjp60d-115",
+      },
     }).draft;
 
     expect(moveDashboardDraftItem(second, 1, -1).items.map((item) => item.channel_id)).toEqual([
