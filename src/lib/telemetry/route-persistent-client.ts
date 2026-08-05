@@ -21,14 +21,7 @@ interface RouteSubscriber {
   handlers: TelemetryLiveHandlers;
 }
 
-const LATEST_FILTER_KEYS = [
-  "node_id",
-  "equipment_id",
-  "channel_id",
-  "metric",
-  "quality",
-  "alarm",
-] as const;
+const LATEST_FILTER_KEYS = ["node_id", "equipment_id", "channel_id", "metric", "quality", "alarm"] as const;
 const MAX_LATEST_QUERY_CACHE = 128;
 const MAX_LATEST_SAMPLES = 20_000;
 
@@ -81,9 +74,7 @@ function sharedClientKey(websocketUrl: string, options: TelemetryWebSocketClient
   return [
     websocketUrl,
     providerId(options.credentials),
-    options.authenticationRequired === undefined
-      ? "runtime-auth"
-      : String(options.authenticationRequired),
+    options.authenticationRequired === undefined ? "runtime-auth" : String(options.authenticationRequired),
   ].join("::");
 }
 
