@@ -1,0 +1,56 @@
+name: Temporary Issue 288 Formatter
+
+on:
+  push:
+    branches:
+      - feat/288-live-dashboard-workspace
+    paths:
+      - e2e/live.production.e2e.ts
+      - src/components/live-dashboards/**
+      - src/components/live/live-screen.tsx
+      - src/features/live-dashboards/**
+      - src/hooks/use-live-dashboard-*.ts
+      - .github/workflows/temp-288-format.yml
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: >-
+          npx prettier --write
+          e2e/live.production.e2e.ts
+          src/components/live-dashboards/dashboard-editor.tsx
+          src/components/live-dashboards/dashboard-library.tsx
+          src/components/live-dashboards/dashboard-live-view.tsx
+          src/components/live-dashboards/live-dashboard-workspace.tsx
+          src/components/live/live-screen.tsx
+          src/features/live-dashboards/api-client.test.ts
+          src/features/live-dashboards/api-client.ts
+          src/features/live-dashboards/inventory.ts
+          src/features/live-dashboards/model.test.ts
+          src/features/live-dashboards/model.ts
+          src/features/live-dashboards/types.ts
+          src/hooks/use-live-dashboard-inventory.ts
+          src/hooks/use-live-dashboard-library.ts
+          src/hooks/use-live-dashboard-telemetry.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue-288-formatted-${{ github.sha }}
+          path: |
+            e2e/live.production.e2e.ts
+            src/components/live-dashboards
+            src/components/live/live-screen.tsx
+            src/features/live-dashboards
+            src/hooks/use-live-dashboard-inventory.ts
+            src/hooks/use-live-dashboard-library.ts
+            src/hooks/use-live-dashboard-telemetry.ts
+          retention-days: 1
