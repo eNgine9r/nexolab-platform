@@ -101,8 +101,9 @@
       "id": "NEXOLAB-273",
       "issue": 273,
       "parent_issue": 260,
+      "pull_request": 274,
       "title": "Complete operator-safe local Cameras workspace",
-      "status": "ready_for_implementation",
+      "status": "in_progress",
       "branch": "feat/273-local-cameras-workspace",
       "baseline_main_sha": "5aa2252a6c20874dcc3d975c19fee441d20600a8",
       "route": "/cameras",
@@ -116,7 +117,7 @@
         "no dependency migration or unrelated refactor",
         "no production or site cutover"
       ],
-      "next_action": "Open one focused draft Pull Request, implement the typed camera domain and tests, then replace the /cameras placeholder and fabricated Overview LIVE panel."
+      "next_action": "Implement the typed truthful camera domain and focused tests, then replace the /cameras placeholder and fabricated Overview LIVE panel in PR #274."
     },
     {
       "id": "NEXOLAB-PAGE-LOCKERS",
