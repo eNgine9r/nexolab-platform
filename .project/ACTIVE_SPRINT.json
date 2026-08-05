@@ -6,7 +6,7 @@
     "id": "DATA-ACQUISITION-OPTIMIZATION-1",
     "title": "Performance and data acquisition optimization",
     "goal": "Optimize read-only telemetry acquisition and delivery while proving that UI activity cannot amplify or define physical Modbus polling.",
-    "status": "in_progress",
+    "status": "blocked_on_hardware_acceptance",
     "started_at": "2026-08-05"
   },
   "execution_policy": {
@@ -20,21 +20,34 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-321",
-      "issue": 321,
-      "title": "Reconcile project state after Live Dashboard workspace merge",
+      "id": "NEXOLAB-324",
+      "issue": 324,
+      "title": "Reconcile acquisition software acceptance checkpoint",
       "status": "in_progress",
-      "depends_on": [288],
+      "depends_on": [289],
       "scope": "state_only"
     },
     {
       "id": "NEXOLAB-289",
       "issue": 289,
+      "pull_request": 323,
       "parent_issue": 282,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "ready",
+      "status": "software_verified_hardware_blocked",
       "depends_on": [283, 284, 285, 286, 287, 314, 316, 288],
+      "verified_head_sha": "a15f4b084137bb53a11eff7c7ba5f2f3d78436f5",
+      "merge_sha": "959bd8f54cf044280d385917578f836a5c8ec7c8",
       "completion_classification": "software_verified_hardware_performance_acceptance_pending"
+    },
+    {
+      "id": "NEXOLAB-321",
+      "issue": 321,
+      "pull_request": 322,
+      "title": "Reconcile project state after Live Dashboard workspace merge",
+      "status": "completed",
+      "depends_on": [288],
+      "merge_sha": "261beced14a2e4604fc1ae2d2bb56c054acf0d78",
+      "scope": "state_only"
     },
     {
       "id": "NEXOLAB-288",
@@ -128,7 +141,7 @@
       "id": "NEXOLAB-282",
       "issue": 282,
       "title": "Performance and data acquisition optimization",
-      "status": "active"
+      "status": "software_complete_hardware_acceptance_pending"
     },
     {
       "id": "NEXOLAB-295",
@@ -144,7 +157,11 @@
       "title": "Complete Smart Lockers",
       "status": "blocked",
       "route": "/lockers",
-      "depends_on": ["concrete locker inventory", "read-only protocol scope", "defined operator workflow"]
+      "depends_on": [
+        "concrete locker inventory",
+        "read-only protocol scope",
+        "defined operator workflow"
+      ]
     },
     {
       "id": "NEXOLAB-204",
@@ -157,7 +174,7 @@
       "id": "NEXOLAB-245",
       "issue": 245,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "software_merged_pending_actual_pi"
+      "status": "software_merged_hardware_acceptance_pending"
     },
     {
       "id": "NEXOLAB-189",
@@ -183,5 +200,11 @@
       "title": "Validate extended XJP60D semantics",
       "status": "blocked"
     }
-  ]
+  ],
+  "next_ready_work_package": null,
+  "hard_blocker": {
+    "type": "controlled_hardware_access",
+    "issues": [289, 245, 189, 200, 201, 202],
+    "reason": "No controlled Raspberry Pi/RS-485 environment is available for the remaining acceptance work."
+  }
 }
