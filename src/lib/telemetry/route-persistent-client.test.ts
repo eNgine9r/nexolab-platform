@@ -137,10 +137,7 @@ describe("RoutePersistentTelemetryClient", () => {
     expect(source.closeCalls).toBe(1);
 
     const replayed: TelemetrySample[] = [];
-    const secondSubscription = client.subscribe(
-      {},
-      { onSample: (sample) => replayed.push(sample) },
-    );
+    const secondSubscription = client.subscribe({}, { onSample: (sample) => replayed.push(sample) });
     await flushReplay();
 
     expect(source.subscribeCalls).toBe(2);
