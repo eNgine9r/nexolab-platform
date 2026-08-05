@@ -1,19 +1,8 @@
-export const CAMERA_STATES = [
-  "configured",
-  "online",
-  "offline",
-  "unavailable",
-  "invalid",
-] as const;
+export const CAMERA_STATES = ["configured", "online", "offline", "unavailable", "invalid"] as const;
 
 export type CameraState = (typeof CAMERA_STATES)[number];
 export type CameraCapability = "snapshot" | "stream";
-export type CameraSourceKind =
-  | "snapshot-http"
-  | "hls"
-  | "webrtc"
-  | "rtsp"
-  | "unknown";
+export type CameraSourceKind = "snapshot-http" | "hls" | "webrtc" | "rtsp" | "unknown";
 
 export interface CameraRecord {
   id: string;
@@ -66,28 +55,18 @@ export function sanitizeCameraEndpoint(value: unknown): string | null {
 function parseCapabilities(value: unknown): CameraCapability[] {
   if (!Array.isArray(value)) return [];
   return Array.from(
-    new Set(
-      value.filter(
-        (item): item is CameraCapability =>
-          item === "snapshot" || item === "stream",
-      ),
-    ),
+    new Set(value.filter((item): item is CameraCapability => item === "snapshot" || item === "stream")),
   );
 }
 
 function parseSourceKind(value: unknown): CameraSourceKind {
-  return value === "snapshot-http" ||
-    value === "hls" ||
-    value === "webrtc" ||
-    value === "rtsp"
+  return value === "snapshot-http" || value === "hls" || value === "webrtc" || value === "rtsp"
     ? value
     : "unknown";
 }
 
 function parseState(value: unknown): CameraState {
-  return CAMERA_STATES.includes(value as CameraState)
-    ? (value as CameraState)
-    : "configured";
+  return CAMERA_STATES.includes(value as CameraState) ? (value as CameraState) : "configured";
 }
 
 export function parseCameraInventory(input: unknown): CameraInventoryResult {
