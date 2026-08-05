@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Protocol
 
 try:
@@ -48,6 +50,35 @@ class ModbusExceptionResponse(ModbusError):
             f"Modbus exception from unit {unit_id}: "
             f"function=0x{function:02X}, code=0x{exception_code:02X}"
         )
+
+
+@dataclass(frozen=True)
+class ModbusRequestContext:
+    """Bounded labels attached to a physical request measurement."""
+
+    device_family: str = "unclassified"
+    target_id: str = "unclassified"
+    operation: str = "normal"
+
+
+@dataclass(frozen=True)
+class ModbusRequestMeasurement:
+    """One physical serial request attempt, including retries."""
+
+    bus: str
+    device_family: str
+    target_id: str
+    operation: str
+    unit_id: int
+    function: int
+    address: int
+    count: int
+    attempt: int
+    outcome: str
+    duration_seconds: float
+
+
+RequestObserver = Callable[[ModbusRequestMeasurement], None]
 
 
 def crc16(data: bytes) -> int:
@@ -148,6 +179,7 @@ class ModbusRTUClient:
         timeout: float = 0.3,
         retries: int = 1,
         serial_factory: Callable[..., SerialPort] | None = None,
+        request_observer: RequestObserver | None = None,
     ) -> None:
         if baudrate <= 0:
             raise ValueError("baudrate must be positive")
@@ -169,6 +201,8 @@ class ModbusRTUClient:
         self._serial_factory = serial_factory
         self._serial: SerialPort | None = None
         self._lock = threading.Lock()
+        self._request_observer = request_observer
+        self._request_context = threading.local()
 
     def _open(self) -> SerialPort:
         if self._serial is not None:
@@ -194,6 +228,67 @@ class ModbusRTUClient:
             if self._serial is not None:
                 self._serial.close()
                 self._serial = None
+
+    @contextmanager
+    def instrumentation_scope(
+        self,
+        *,
+        device_family: str,
+        target_id: str,
+        operation: str = "normal",
+    ) -> Iterator[None]:
+        previous = getattr(self._request_context, "value", None)
+        self._request_context.value = ModbusRequestContext(
+            device_family=device_family,
+            target_id=target_id,
+            operation=operation,
+        )
+        try:
+            yield
+        finally:
+            if previous is None:
+                try:
+                    del self._request_context.value
+                except AttributeError:
+                    pass
+            else:
+                self._request_context.value = previous
+
+    def _context(self) -> ModbusRequestContext:
+        value = getattr(self._request_context, "value", None)
+        return value if isinstance(value, ModbusRequestContext) else ModbusRequestContext()
+
+    def _observe_request(
+        self,
+        *,
+        context: ModbusRequestContext,
+        unit_id: int,
+        address: int,
+        count: int,
+        attempt: int,
+        outcome: str,
+        started_at: float,
+    ) -> None:
+        if self._request_observer is None:
+            return
+        measurement = ModbusRequestMeasurement(
+            bus=self.port,
+            device_family=context.device_family,
+            target_id=context.target_id,
+            operation=context.operation,
+            unit_id=unit_id,
+            function=3,
+            address=address,
+            count=count,
+            attempt=attempt,
+            outcome=outcome,
+            duration_seconds=max(0.0, time.monotonic() - started_at),
+        )
+        try:
+            self._request_observer(measurement)
+        except Exception:
+            # Observability must never interrupt the read-only acquisition path.
+            pass
 
     def _read_exact(self, port: SerialPort, size: int) -> bytes:
         deadline = time.monotonic() + self.timeout
@@ -230,13 +325,19 @@ class ModbusRTUClient:
     ) -> tuple[int, ...]:
         request = build_read_holding_registers_request(unit_id, address, count)
         last_timeout: ModbusTimeoutError | None = None
+        context = self._context()
 
         with self._lock:
             port = self._open()
-            for _attempt in range(self.retries + 1):
+            for attempt_index in range(self.retries + 1):
+                attempt = attempt_index + 1
+                request_started_at = 0.0
+                request_attempted = False
                 try:
                     port.reset_input_buffer()
                     port.reset_output_buffer()
+                    request_started_at = time.monotonic()
+                    request_attempted = True
                     written = port.write(request)
                     if written != len(request):
                         raise ModbusProtocolError(
@@ -244,13 +345,71 @@ class ModbusRTUClient:
                         )
                     port.flush()
                     frame = self._read_response(port, count)
-                    return parse_read_holding_registers_response(
+                    result = parse_read_holding_registers_response(
                         frame,
                         unit_id,
                         count,
                     )
                 except ModbusTimeoutError as exc:
+                    if request_attempted:
+                        self._observe_request(
+                            context=context,
+                            unit_id=unit_id,
+                            address=address,
+                            count=count,
+                            attempt=attempt,
+                            outcome="timeout",
+                            started_at=request_started_at,
+                        )
                     last_timeout = exc
+                    continue
+                except ModbusExceptionResponse:
+                    if request_attempted:
+                        self._observe_request(
+                            context=context,
+                            unit_id=unit_id,
+                            address=address,
+                            count=count,
+                            attempt=attempt,
+                            outcome="exception_response",
+                            started_at=request_started_at,
+                        )
+                    raise
+                except ModbusProtocolError:
+                    if request_attempted:
+                        self._observe_request(
+                            context=context,
+                            unit_id=unit_id,
+                            address=address,
+                            count=count,
+                            attempt=attempt,
+                            outcome="protocol_error",
+                            started_at=request_started_at,
+                        )
+                    raise
+                except OSError:
+                    if request_attempted:
+                        self._observe_request(
+                            context=context,
+                            unit_id=unit_id,
+                            address=address,
+                            count=count,
+                            attempt=attempt,
+                            outcome="io_error",
+                            started_at=request_started_at,
+                        )
+                    raise
+                else:
+                    self._observe_request(
+                        context=context,
+                        unit_id=unit_id,
+                        address=address,
+                        count=count,
+                        attempt=attempt,
+                        outcome="success",
+                        started_at=request_started_at,
+                    )
+                    return result
 
         assert last_timeout is not None
         raise last_timeout
