@@ -96,7 +96,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               );
 
               return (
-                <Link key={label} href={href} className={classes} onClick={onClose} aria-current={active ? "page" : undefined}>
+                <Link
+                  key={label}
+                  href={href}
+                  className={classes}
+                  onClick={onClose}
+                  aria-current={active ? "page" : undefined}
+                >
                   <Icon
                     className={clsx(
                       "h-[17px] w-[17px]",
@@ -124,7 +130,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="px-4 pb-4">
-          <div className="rounded-2xl border border-cyan-300/[0.09] bg-cyan-400/[0.035] p-4" aria-label="Профіль виконання">
+          <div
+            className="rounded-2xl border border-cyan-300/[0.09] bg-cyan-400/[0.035] p-4"
+            aria-label="Профіль виконання"
+          >
             <div className="flex items-center gap-2.5">
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-cyan-400/10 text-cyan-300">
                 <Network className="h-4 w-4" />
