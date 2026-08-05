@@ -1,9 +1,9 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-05
-Verified main baseline: `6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8`
-Active control Work Package: Issue #301 — post-registry project-state reconciliation
-Branch: `chore/301-post-registry-state`
+Verified main baseline: `899d8d8e15628c087ab11fde6d483a423209f616`
+Active control Work Package: none
+Branch: `main`
 Next Ready Work Package: Issue #285 — priority-aware adaptive acquisition scheduler
 Active epic: Issue #282 — Performance and data acquisition optimization
 Status confidence: high for merged software, deterministic registry/polling tests, authenticated browser acceptance, secure fleet operation and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
@@ -41,6 +41,10 @@ Final exact-head verification:
 - submitted reviews: zero.
 
 The first Authenticated Dashboard attempt encountered a non-reproducible equipment URL-filter timeout outside the registry diff. The same job passed on rerun against the identical exact head, so no unrelated equipment change was mixed into PR #299.
+
+## Project-state reconciliation completed
+
+Issue #301 / PR #302 was squash-merged as `899d8d8e15628c087ab11fde6d483a423209f616` after GREEN CI `30991763541`. It recorded the completed registry evidence, corrected stale Issue #297 state and selected Issue #285 as the single Ready Work Package.
 
 ## Acquisition instrumentation baseline
 
@@ -80,4 +84,4 @@ software verified; deterministic serial and registry tests verified; authenticat
 
 ## Next action
 
-Validate and squash-merge control Issue #301 after confirming exactly four `.project/**` files and GREEN CI. Then start Issue #285 on a dedicated feature branch. Preserve FC03 read-only behavior, one-worker-per-bus serialization and the rule that UI display refresh never changes physical polling eligibility or cadence.
+Start Issue #285 on dedicated branch `feat/285-adaptive-acquisition-scheduler`. Preserve FC03 read-only behavior, one-worker-per-bus serialization and the rule that UI display refresh never changes physical polling eligibility or cadence.

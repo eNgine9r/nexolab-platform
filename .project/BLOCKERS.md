@@ -25,6 +25,10 @@ The registry now preserves inventory while allowing only targets with active dev
 
 Physical Raspberry Pi/RS-485 proof is still required before claiming that a real disabled target emits zero bus requests.
 
+## Completed project-state reconciliation
+
+Issue #301 / PR #302 was squash-merged as `899d8d8e15628c087ab11fde6d483a423209f616` after GREEN CI `30991763541`. The repository state now records Issue #284 as completed and Issue #285 as the single Ready Work Package.
+
 ## Acquisition optimization sequencing
 
 Epic #282 remains active. Issue #285 is the single Ready Work Package.
@@ -102,4 +106,4 @@ Stop before:
 
 ## Next Ready action
 
-Validate and squash-merge control Issue #301 after confirming exactly four `.project/**` files and GREEN CI. Then start Issue #285 on a focused feature branch from updated `main`.
+Start Issue #285 on focused branch `feat/285-adaptive-acquisition-scheduler` from current `main`.

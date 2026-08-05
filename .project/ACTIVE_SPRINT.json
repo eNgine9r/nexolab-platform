@@ -20,20 +20,6 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-301",
-      "issue": 301,
-      "title": "Reconcile project state after active acquisition registry merge",
-      "status": "in_progress",
-      "branch": "chore/301-post-registry-state",
-      "baseline_main_sha": "6aaa3e700365aa7edcf8ce7de1818e5e2d1b67c8",
-      "scope": [
-        ".project/CURRENT_STATE.md",
-        ".project/ACTIVE_SPRINT.json",
-        ".project/BLOCKERS.md",
-        ".project/LAST_CHECKPOINT.json"
-      ]
-    },
-    {
       "id": "NEXOLAB-285",
       "issue": 285,
       "parent_issue": 282,
@@ -79,6 +65,14 @@
       "issue": 282,
       "title": "Performance and data acquisition optimization",
       "status": "active"
+    },
+    {
+      "id": "NEXOLAB-301",
+      "issue": 301,
+      "pull_request": 302,
+      "title": "Reconcile project state after active acquisition registry merge",
+      "status": "completed",
+      "merge_sha": "899d8d8e15628c087ab11fde6d483a423209f616"
     },
     {
       "id": "NEXOLAB-284",
