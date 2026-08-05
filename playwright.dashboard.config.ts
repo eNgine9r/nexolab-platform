@@ -7,7 +7,7 @@ const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020"
 const webPort = new URL(webUrl).port || "13020";
 
 // The focused registry flow runs first against the seeded organization and waits for its settled global total.
-// Seven authenticated operator flows then reuse the shared production stack without parallel fixture races.
+// Authenticated operator flows then reuse the shared production stack without parallel fixture races.
 export default defineConfig({
   testDir: "./e2e",
   testMatch: [
@@ -18,6 +18,7 @@ export default defineConfig({
     "equipment-registry.production.e2e.ts",
     "settings.production.e2e.ts",
     "cameras.production.e2e.ts",
+    "telemetry-acquisition-invariant.production.e2e.ts",
   ],
   fullyParallel: false,
   workers: 1,
