@@ -23,7 +23,7 @@
       "id": "NEXOLAB-324",
       "issue": 324,
       "title": "Reconcile acquisition software acceptance checkpoint",
-      "status": "in_progress",
+      "status": "completed",
       "depends_on": [289],
       "scope": "state_only"
     },
