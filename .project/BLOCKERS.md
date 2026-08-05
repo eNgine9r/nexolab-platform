@@ -21,7 +21,7 @@ The merged boundary guarantees:
 
 ## Acquisition optimization sequencing
 
-Epic #282 remains active. Issue #287 is the single Ready product Work Package after the state-only control reconciliation.
+Epic #282 remains active. Issue #287 is the single Ready product Work Package.
 
 ```text
 #287 persisted Live Dashboard domain and local API
@@ -109,4 +109,4 @@ Stop before:
 
 ## Next Ready action
 
-Finish Issue #309 as a focused four-file state reconciliation. Then start Issue #287 on a dedicated feature branch from current `main`.
+Start Issue #287 on a dedicated feature branch from current `main`.

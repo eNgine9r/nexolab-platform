@@ -23,9 +23,9 @@
       "id": "NEXOLAB-309",
       "issue": 309,
       "title": "Reconcile project state after telemetry delivery isolation",
-      "status": "in_progress",
+      "status": "completed",
       "depends_on": [286],
-      "branch": "docs/309-reconcile-telemetry-delivery-state"
+      "pull_request": 310
     },
     {
       "id": "NEXOLAB-287",

@@ -2,8 +2,8 @@
 
 Updated: 2026-08-05
 Verified product baseline: `894884fb9a0fc6ad807206ed2fc087d68226346f`
-Active control Work Package: Issue #309 — reconcile project state after telemetry delivery isolation
-Branch: `docs/309-reconcile-telemetry-delivery-state`
+Active control Work Package: none
+Branch: `main`
 Next Ready Work Package: Issue #287 — persisted Live Dashboard domain and local API
 Active epic: Issue #282 — Performance and data acquisition optimization
 Status confidence: high for merged software, persisted telemetry delivery, deterministic scheduler/registry tests, authenticated acquisition invariants, secure fleet operation and disconnected-runtime evidence; physical Raspberry Pi, RS-485, cameras and Smart Lockers remain explicitly unverified.
@@ -82,4 +82,4 @@ software verified; persisted delivery isolation verified; deterministic schedule
 
 ## Next action
 
-Complete Issue #309 as a four-file state-only reconciliation, then start Issue #287 on a dedicated feature branch. Dashboard persistence may store organization-scoped definitions and canonical channel selections, but must not influence acquisition registry eligibility or scheduler priority.
+Start Issue #287 on a dedicated feature branch. Dashboard persistence may store organization-scoped definitions and canonical channel selections, but must not influence acquisition registry eligibility or scheduler priority.
