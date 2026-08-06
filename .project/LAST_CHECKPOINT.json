@@ -3,69 +3,81 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-254",
-  "issue": 254,
-  "pull_request": 352,
+  "task": "NEXOLAB-355",
+  "issue": 355,
+  "pull_request": 358,
   "status": "verified_ready_for_merge",
-  "timestamp": "2026-08-06T10:55:00+03:00",
-  "branch": "maint/254-playwright-1-62",
-  "base_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
-  "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98",
+  "timestamp": "2026-08-06T13:15:00+03:00",
+  "branch": "fix/355-live-dashboard-channel-inventory",
+  "base_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
+  "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
   "completed_predecessors": [
     {
-      "issue": 350,
-      "pull_request": 351,
-      "verified_head_sha": "7b9cefc21022981d0413e4518c19225dd3430609",
-      "merge_sha": "dff88feee94a6e6334f1e6ea2b515cec5ecff5be",
-      "outcome": "state-only jsdom completion reconciliation and Playwright promotion"
+      "issue": 254,
+      "pull_request": 352,
+      "merge_sha": "40aec7d0fa99fe3694e2cb2954d144703eebea5c",
+      "outcome": "Playwright 1.62 migration with preserved browser evidence"
     },
     {
-      "issue": 353,
-      "pull_request": 354,
-      "verified_head_sha": "4161f0797c3d56b4839093797df3aca8eaa7adf4",
-      "merge_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
-      "outcome": "prompt WebSocket close-frame detection and exactly-once live-hub cleanup"
+      "issue": 359,
+      "pull_request": 360,
+      "merge_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
+      "outcome": "test-only Starlette WebSocket TestClient teardown stabilization"
     }
   ],
-  "playwright_migration_evidence": {
-    "version_before": "1.55.0",
-    "version_after": "1.62.0",
-    "node_baseline": "22.23.1",
-    "engine_requirement": ">=20",
-    "config_count": 13,
-    "discovered_test_count": 24,
-    "config_hashes_unchanged": true,
-    "test_discovery_unchanged": true,
-    "removed_api_findings": 0,
-    "chromium_install_verified": true,
-    "screenshots_preserved": true,
-    "traces_preserved": true,
-    "videos_preserved": true,
-    "html_reports_preserved": true,
-    "production_dependency_changed": false,
-    "runtime_closure_changed": false
+  "live_dashboard_inventory_evidence": {
+    "endpoint": "/api/v1/live-dashboards/channel-inventory",
+    "catalog_driven": true,
+    "organization_scoped": true,
+    "permission_aware": true,
+    "includes_active_channels_without_samples": true,
+    "no_sample_contract": {
+      "latest": null,
+      "quality": "unknown",
+      "alarm": null
+    },
+    "page_limit_max": 500,
+    "offset_max": 10000,
+    "latest_identity": [
+      "node_id",
+      "equipment_id",
+      "channel_id",
+      "metric"
+    ],
+    "latest_index": "ix_telemetry_latest_lookup",
+    "telemetry_fixture_rows": 50003,
+    "postgres_execution_ms": 0.363,
+    "repository_call_ms": 13.085,
+    "client_timeout_ms": 8000,
+    "editor_telemetry_requests": 0,
+    "editor_acquisition_mutations": 0,
+    "selected_series_path_preserved": true,
+    "maximum_websockets_per_page": 1
   },
   "verification": {
     "ci": "green",
-    "acquisition_scale": "green",
+    "telemetry_service_postgresql": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
-    "alerts_browser": "green",
-    "reports_browser": "green",
-    "rendered_reports_browser": "green",
-    "nodes_browser": "green",
-    "test_sessions_browser": "green",
-    "security_browser": "green",
+    "acquisition_scale": "green",
     "offline_auth": "green",
-    "offline_bundle": "green_disconnected_startup_and_update_rollback"
+    "offline_bundle": "green_disconnected_startup_and_update_rollback",
+    "container_supply_chain": "green",
+    "broker_control": "green",
+    "mqtt_tls_fleet": "green",
+    "device_agent_fleet": "green",
+    "capacity_release": "green",
+    "disaster_recovery_tls": "green",
+    "disaster_recovery_browser": "green"
   },
   "review_audit": {
-    "implementation_files": 5,
+    "implementation_files": 16,
     "state_files": 4,
     "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
     "branch_behind_main": 0,
     "mergeable": true,
+    "database_migrations": 0,
     "production_dependencies_changed": false,
     "runtime_closure_changed": false,
     "modbus_write": "none",
@@ -73,13 +85,23 @@
     "production_cutover": "none"
   },
   "open_blockers": {
-    "issue_254": [],
-    "hardware_acceptance_issues": [289, 245, 189, 200, 201, 202],
+    "issue_355_software": [],
+    "raspberry_pi_runtime_latency_acceptance": "pending",
+    "hardware_acceptance_issues": [
+      289,
+      245,
+      189,
+      200,
+      201,
+      202
+    ],
     "security_exception_expires_on": "2026-09-05"
   },
+  "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending",
   "next_ready_work_package": {
-    "issue": 355,
-    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-    "instruction": "Implement a bounded organization-scoped canonical measurement-catalog inventory endpoint and editor path, preserve selected-series latest/history/WebSocket behavior, prove large-history performance on PostgreSQL, keep physical polling unchanged, and classify Raspberry Pi latency separately until real runtime evidence exists."
+    "issue": 252,
+    "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
+    "activation_condition": "PR #358 merged and Issue #355 closed",
+    "instruction": "Upgrade only lint-staged on Node 22.23.1, preserve staged and unstaged work across success and failure, keep globs and command intent deterministic, prove empty and partially staged cases, and keep production runtime and Offline Bundle closure unchanged."
   }
 }
