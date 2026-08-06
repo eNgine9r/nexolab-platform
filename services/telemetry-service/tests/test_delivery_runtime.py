@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Generator
+from concurrent.futures import CancelledError
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from starlette.testclient import WebSocketTestSession
 
 from app.config import Settings
 from app.contracts import TelemetryEvent
@@ -54,6 +58,32 @@ def wait_for(predicate: object, timeout: float = 3.0) -> None:
     raise AssertionError("condition was not met before timeout")
 
 
+@contextmanager
+def websocket_session(
+    client: TestClient,
+    path: str,
+) -> Generator[WebSocketTestSession, None, None]:
+    """Close a TestClient socket without leaking Starlette teardown cancellation.
+
+    Starlette's WebSocketTestSession exit stack sends the disconnect frame and then
+    cancels its private runner task. Current Starlette versions can surface that
+    expected runner cancellation as concurrent.futures.CancelledError after the
+    application has already processed the close. Suppress only that framework
+    teardown signal; application exceptions and all lifecycle assertions remain
+    visible to the test.
+    """
+
+    session = client.websocket_connect(path)
+    websocket = session.__enter__()
+    try:
+        yield websocket
+    finally:
+        try:
+            session.__exit__(None, None, None)
+        except CancelledError:
+            pass
+
+
 def test_refresh_reads_persisted_latest_without_ingestion(tmp_path: Path) -> None:
     app = app_for(tmp_path)
     sample = event(captured_at=datetime(2026, 8, 5, 10, 0, tzinfo=UTC))
@@ -90,7 +120,7 @@ def test_websocket_disconnect_unregisters_before_heartbeat_without_broadcast(
     with TestClient(app) as client:
         before = app.state.runtime.snapshot()
 
-        with client.websocket_connect("/api/v1/telemetry/live"):
+        with websocket_session(client, "/api/v1/telemetry/live"):
             wait_for(
                 lambda: app.state.runtime.snapshot()["websocket_clients"] == 1
             )
@@ -128,7 +158,10 @@ def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) ->
     with TestClient(app) as client:
         before = app.state.runtime.snapshot()
         for _ in range(10):
-            with client.websocket_connect("/api/v1/telemetry/live") as websocket:
+            with websocket_session(
+                client,
+                "/api/v1/telemetry/live",
+            ) as websocket:
                 app.state.live_hub.publish_committed(payload)
                 assert websocket.receive_json()["state_source"] == "persisted"
             wait_for(
