@@ -1,0 +1,35 @@
+name: Temporary Issue 255 State Formatter
+
+on:
+  push:
+    branches:
+      - maint/255-typescript-6
+    paths:
+      - .github/workflows/tmp-255-state-format.yml
+      - .project/CURRENT_STATE.md
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - name: Format current state
+        run: npx prettier --write .project/CURRENT_STATE.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: issue-255-formatted-current-state
+          path: .project/CURRENT_STATE.md
+          if-no-files-found: error
+          retention-days: 1
