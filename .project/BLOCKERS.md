@@ -2,75 +2,73 @@
 
 Updated: 2026-08-06
 
-## Acquisition software acceptance completed
+## Active software risk: cJSON exception review
 
-Issue #289 software acceptance is merged through PR #323 at `959bd8f54cf044280d385917578f836a5c8ec7c8` from verified head `a15f4b084137bb53a11eff7c7ba5f2f3d78436f5`.
+Issue #327 is Ready and is not blocked by hardware access.
 
-The merged evidence proves in deterministic and local Compose environments:
+The repository currently records a narrow `telemetry-service/libcjson1/CVE-2026-67216` exception introduced through Issue #295 / PR #296. Its review date is 2026-08-15.
 
-- 34, 136 and 240 active-target profiles;
-- one serialized physical read at a time;
-- priority coverage and bounded fairness;
-- no normal executions for disabled/ineligible targets;
-- endpoint-scoped cooldown and continuation of unrelated healthy endpoints;
-- retained latest values with truthful `communication_error` state;
-- UI-independent request rate across Overview, persisted Live Dashboard, Refrigeration, Energy, Sessions, additional browsers, WebSocket reconnect and Telemetry Service restart;
-- selected-only Live Dashboard latest/history requests;
-- one maximum physical WebSocket per page/scope;
-- zero discovery/configuration mutations;
-- MQTT outbox replay ordering;
-- connecting, live, reconnecting, stale, offline, authorization and configuration state distinctions;
-- disconnected Offline Bundle startup, update/rollback and persistent-volume preservation.
+Current package and fix status must not be inferred from the previous review. The exact current telemetry-service image must be rebuilt and rescanned before any decision.
 
-Issue #289 remains open and must retain this classification:
+The decision order is:
+
+1. remove the package from the runtime image when the affected tooling can be isolated or removed;
+2. use a fixed supported package or base image;
+3. replace the affected tooling with an already supported local path;
+4. renew only the exact image/package/CVE exception with current evidence, owner and a short new expiry.
+
+Hard stop conditions for Issue #327:
+
+- broad suppression of HIGH/CRITICAL findings;
+- exception matching beyond `telemetry-service + libcjson1 + CVE-2026-67216`;
+- unsupported package replacement;
+- secret exposure;
+- authentication or MQTT security weakening;
+- unrelated dependency upgrades.
+
+## Queued software constraints
+
+Issue #300 is queued after #327. It is documentation and validation work only; it must preserve legacy ADR links and avoid dependency/runtime changes.
+
+Issue #328 is queued after #300. It must change dependency automation policy without changing dependency versions. PR #271 is already closed unmerged as superseded. PR #272 remains independently open and unselected.
+
+Toolchain sequencing:
+
+```text
+#253 jsdom 30
+→ #254 Playwright 1.62.x
+→ #252 lint-staged 17
+→ #255 TypeScript 6
+```
+
+Blocked or deferred:
+
+- **#257 ESLint 10:** blocked until a compatible Next.js and plugin graph is demonstrated.
+- **#256 TypeScript 7:** deferred until TypeScript 6 is complete and ecosystem support exists.
+
+Do not group these major migrations or silently advance Node types beyond the Node 22 runtime baseline.
+
+## Parallel hardware blocker
+
+The acquisition optimization software is complete, but controlled Raspberry Pi/RS-485 access is unavailable.
+
+Issue #289 remains open with:
 
 ```text
 software verified; hardware performance acceptance pending
 ```
 
-## Hard blocker: controlled hardware access
+Hardware-dependent Issues:
 
-No independent Ready software Work Package remains in the active acquisition sprint after Issue #324 state reconciliation.
+- **#245:** actual standalone Raspberry Pi acceptance pending;
+- **#189:** physical reboot, power-loss and media restore pending;
+- **#200:** physical RS-485 topology and single-master proof pending;
+- **#201:** LE-01MP cumulative energy validation pending;
+- **#202:** extended XJP60D semantics validation pending.
 
-The next required action is the controlled Raspberry Pi/RS-485 phase of Issue #289. It cannot be executed from the current environment because no usable host address, SSH session, controlled maintenance window or physical RS-485 access is available.
+These blockers do not prevent Issue #327 or the queued engineering-hardening Work Packages.
 
-The required physical phases are:
-
-1. no browser;
-2. Overview;
-3. one persisted Live Dashboard;
-4. repeated route transitions;
-5. multiple browser workstations;
-6. WebSocket reconnect;
-7. one known unavailable endpoint;
-8. MQTT interruption and outbox drain.
-
-Physical evidence must include:
-
-- normal FC03 physical requests per bus and bounded window;
-- real response latency and retries;
-- bus busy time and utilization;
-- scheduler lag, missed deadlines, fairness and cooldown behavior;
-- CPU, RAM, disk and outbox depth;
-- ingestion-to-WebSocket latency;
-- proof that page/browser count does not change the physical polling envelope;
-- proof that unrelated channels remain available when one endpoint is absent;
-- exact source commit and sanitized aggregate evidence.
-
-The procedure must remain read-only. Do not run Modbus writes, controller configuration, production cutover, persistent-volume deletion or unapproved disruptive hardware actions.
-
-## Other hardware-dependent blockers
-
-- **#245:** standalone loopback runtime software is merged; actual Raspberry Pi acceptance remains pending.
-- **#189:** physical reboot, hard power-loss and media restore remain pending.
-- **#200:** physical RS-485 topology, termination, single-master status and polling envelope remain pending.
-- **#201:** LE-01MP cumulative energy remains excluded pending read-only hardware validation.
-- **#202:** extended XJP60D semantics and portability require read-only physical evidence.
-- Issue #284 still requires real request-counter proof for disabled physical targets.
-- Issue #285 still requires real interval, utilization and deadline proof.
-- Physical cameras, ONVIF/RTSP media and NVR remain unverified.
-
-## Smart Lockers blocker
+## Other product blockers
 
 `/lockers` remains blocked pending:
 
@@ -79,20 +77,9 @@ The procedure must remain read-only. Do not run Modbus writes, controller config
 - a defined operator workflow;
 - verified physical locker evidence.
 
-Do not create demo controls, guessed states, door/lock writes or fabricated production behavior.
+Physical cameras, ONVIF/RTSP media and NVR remain unverified.
 
-## Supply-chain security risk
-
-One exact exception remains for `telemetry-service/libcjson1/CVE-2026-67216` because Debian Trixie currently reports no fixed package. It:
-
-- is owned by `platform-security`;
-- expires on 2026-08-15;
-- is limited to the authenticated local `mosquitto_ctrl` dynamic-security adapter path;
-- does not weaken global HIGH/CRITICAL enforcement.
-
-Remove the exception immediately when a fixed Debian package becomes available.
-
-## Hard-stop rules
+## Global hard-stop rules
 
 Stop before:
 
@@ -100,10 +87,10 @@ Stop before:
 - production/site cutover without explicit approval;
 - Modbus, camera, locker or other hardware writes;
 - credential exposure or unauthorized secret rotation;
-- materially different product or architecture choices;
-- any operation that cannot preserve local laboratory data;
-- claiming physical performance acceptance without controlled Raspberry Pi/RS-485 evidence.
+- mandatory internet, cloud, CDN, external API or paid runtime dependencies;
+- claiming physical performance acceptance without controlled evidence;
+- merging a grouped major dependency migration.
 
 ## Next action
 
-No independent Ready software Work Package remains after this checkpoint. Resume the controlled Raspberry Pi/RS-485 matrix only when access exists, or create a new independent Ready software Work Package through the normal product workflow. Do not treat the hardware-blocked Issue #245 label as evidence that actual Raspberry Pi acceptance can be performed without the device.
+Merge the exact four-file Issue #329 checkpoint, then execute Issue #327. If the exact image scan proves the exception obsolete, remove it. If no supported fix exists, renew only with current evidence, explicit ownership and a new short review date.
