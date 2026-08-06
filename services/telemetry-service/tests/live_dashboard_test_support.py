@@ -89,6 +89,7 @@ def provision_inventory(
                     updated_at=now,
                 )
             )
+            session.flush()
             session.add(
                 ClimateChamber(
                     id=chamber_id,
@@ -105,6 +106,7 @@ def provision_inventory(
                     updated_at=now,
                 )
             )
+            session.flush()
             session.add(
                 MeasurementDevice(
                     id=device_id,
@@ -125,6 +127,7 @@ def provision_inventory(
                     updated_at=now,
                 )
             )
+            session.flush()
             session.add_all(
                 [
                     MeasurementChannel(
