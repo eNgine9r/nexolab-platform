@@ -1,0 +1,42 @@
+name: Format jsdom migration once
+
+on:
+  push:
+    branches:
+      - chore/253-jsdom-30
+    paths:
+      - .github/workflows/format-jsdom-253-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: chore/253-jsdom-30
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+      - env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - shell: bash
+        run: |
+          set -euo pipefail
+          npx prettier --write \
+            docs/maintenance/jsdom-30-migration.md \
+            src/test/jsdom-environment.test.ts
+          rm .github/workflows/format-jsdom-253-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/maintenance/jsdom-30-migration.md \
+            src/test/jsdom-environment.test.ts \
+            .github/workflows/format-jsdom-253-once.yml
+          git commit -m "style(jsdom): format migration evidence and tests"
+          git push origin HEAD:chore/253-jsdom-30
