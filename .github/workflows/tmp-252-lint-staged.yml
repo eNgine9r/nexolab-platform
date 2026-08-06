@@ -11,7 +11,7 @@ on:
       - docs/maintenance/lint-staged-17-migration.md
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   prepare:
@@ -19,7 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          ref: maint/252-lint-staged-17
+          persist-credentials: true
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
@@ -81,3 +82,12 @@ jobs:
             /tmp/lint-staged-v17-evidence.json
           if-no-files-found: error
           retention-days: 1
+      - name: Commit verified permanent files and remove temporary workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json scripts/tests/lint-staged-v17.mjs docs/maintenance/lint-staged-17-migration.md
+          git rm .github/workflows/tmp-252-lint-staged.yml
+          git commit -m "chore(lint-staged): migrate pre-commit checks to 17.3.0"
+          git push origin HEAD:maint/252-lint-staged-17
