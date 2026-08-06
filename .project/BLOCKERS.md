@@ -2,47 +2,36 @@
 
 Updated: 2026-08-06
 
-## Issue #252 / PR #361 merge boundary
+## Issue #252 completion boundary
 
-No software implementation or verification blocker remains on exact implementation head `ca9291903e61fd4951bb2565a64d2306ef5da824`.
+Issue #252 / PR #361 is merged and closed.
 
-Verified:
+Verified software outcome:
 
-- current `main` state baseline `0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08` is included and the branch is zero commits behind;
-- implementation diff is limited to four permitted permanent files plus this four-file state checkpoint;
+- merge SHA: `323f384297bba5a0fd734b7e47704fbd360454a4`;
+- final verified head: `958fab7c84b717860138b60fddac6f60be52934a`;
+- all 11 exact-head workflows were GREEN;
 - lint-staged resolves from `16.4.0` to `17.3.0` under Node `22.23.1`;
 - Git `2.54.0` satisfies the v17 minimum `2.32.0`;
-- current globs, ESLint-before-Prettier command order and Husky hook are unchanged;
-- production-config staged-file processing passes;
-- partial-stage success restores unstaged changes;
-- failed tasks restore the original index and worktree diff;
-- empty staged-file behavior passes;
-- all exact-head CI, browser, Offline Auth and Offline Bundle workflows are GREEN;
+- globs, ESLint-before-Prettier order and the Husky hook are unchanged;
+- production-config processing, partial-stage restoration, failed-task rollback and empty-stage behavior pass;
 - Offline Bundle proves disconnected startup and update/rollback persistent-data preservation;
 - production dependencies and runtime closure are unchanged;
-- no temporary workflow remains;
-- unresolved review threads are zero;
-- no database, acquisition, hardware, Modbus or production/site action exists.
+- no database, acquisition, hardware, Modbus or production/site action occurred.
 
-Remaining control sequence:
+No Issue #252 blocker remains.
 
-1. validate this four-file state checkpoint;
-2. mark PR #361 Ready;
-3. repeat current-head, mergeability, review and required-check audit;
-4. squash merge PR #361 and confirm Issue #252 closure;
-5. promote Issue #255 as the sole Next Ready Work Package.
+## Active queue boundary: Issue #255
 
-## Next Ready Work Package boundary: Issue #255
-
-After PR #361 merges, Issue #255 becomes the sole Ready package.
+Issue #255 is the sole Ready package.
 
 Required outcome:
 
-- review the official TypeScript 6 transition release and breaking diagnostics;
+- verify the currently available official TypeScript 6 transition release before selecting an exact version;
 - update TypeScript only with deterministic lockfile movement;
-- preserve strict mode and no-emit verification;
-- explain and fix every new diagnostic without broad ignores, `any` baselines or weakened strictness;
-- keep Next.js production build, Vitest and Playwright TypeScript configs operational;
+- preserve strict mode, no-emit verification, bundler module resolution, isolated modules and Next.js integration;
+- classify and fix every new diagnostic without broad ignores, `any` baselines, weakened strictness or unrelated cleanup;
+- keep ESLint, Vitest, Next.js production build and all TypeScript Playwright configurations operational;
 - retain Offline Bundle GREEN;
 - document rollback.
 
@@ -50,12 +39,18 @@ Hard boundaries:
 
 - no TypeScript 7 native compiler;
 - no ESLint 10, React, Next.js or unrelated dependency migration;
-- no product refactor unrelated to new TypeScript 6 diagnostics;
+- no broad source refactor unrelated to TypeScript 6 diagnostics;
 - no production deployment, secrets, hardware actions or Modbus writes.
 
 ## Raspberry Pi acceptance boundary
 
-Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance pending`. Its physical acceptance does not block Issue #252 or Issue #255.
+Issue #355 remains:
+
+```text
+software verified; Raspberry Pi runtime latency acceptance pending
+```
+
+Its physical acceptance does not block Issue #255.
 
 ## Dependency lanes
 
@@ -68,8 +63,7 @@ Closed unmerged dependency PRs: #272 and #339.
 Ordered sequence:
 
 ```text
-#252 lint-staged 17
-→ #255 TypeScript 6
+#255 TypeScript 6
 ```
 
 Issue #257 remains blocked. Issue #256 remains deferred.

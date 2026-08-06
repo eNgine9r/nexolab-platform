@@ -6,11 +6,12 @@
   "task": "NEXOLAB-252",
   "issue": 252,
   "pull_request": 361,
-  "status": "verified_ready_for_merge",
-  "timestamp": "2026-08-06T14:20:00+03:00",
+  "status": "completed",
+  "timestamp": "2026-08-06T14:42:00+03:00",
   "branch": "maint/252-lint-staged-17",
   "base_sha": "0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08",
-  "implementation_verified_head_sha": "ca9291903e61fd4951bb2565a64d2306ef5da824",
+  "verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
+  "merge_sha": "323f384297bba5a0fd734b7e47704fbd360454a4",
   "lint_staged_evidence": {
     "version_before": "16.4.0",
     "version_after": "17.3.0",
@@ -42,16 +43,15 @@
     "nodes_browser": "green",
     "test_sessions_browser": "green",
     "security_browser": "green",
-    "offline_auth": "green",
+    "offline_auth": "green_after_runner_transient_rerun",
     "offline_bundle": "green_disconnected_startup_and_update_rollback"
   },
   "review_audit": {
     "implementation_files": 4,
-    "state_files": 4,
+    "state_files_in_pr": 4,
     "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0,
-    "mergeable": true,
+    "branch_behind_main_at_merge": 0,
     "production_dependencies_changed": false,
     "runtime_closure_changed": false,
     "application_source_changed": false,
@@ -69,7 +69,9 @@
   "next_ready_work_package": {
     "issue": 255,
     "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-    "activation_condition": "PR #361 merged and Issue #252 closed",
-    "instruction": "Update TypeScript only, classify every new TypeScript 6 diagnostic, preserve strict and no-emit boundaries, keep Next.js, Vitest, Playwright and Offline Bundle GREEN, and do not mix ESLint 10, TypeScript 7 or unrelated refactoring."
+    "status": "ready",
+    "assignee": "eNgine9r",
+    "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
+    "instruction": "Verify the official TypeScript 6 transition release, update TypeScript only, classify every new diagnostic, preserve strict and no-emit boundaries, keep Next.js, Vitest, Playwright and Offline Bundle GREEN, and do not mix ESLint 10, TypeScript 7 or unrelated refactoring."
   }
 }

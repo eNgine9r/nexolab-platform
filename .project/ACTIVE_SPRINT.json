@@ -19,8 +19,7 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_product_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
-  "current_main_state_sha": "0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08",
+  "current_main_sha": "323f384297bba5a0fd734b7e47704fbd360454a4",
   "tasks": [
     {
       "id": "NEXOLAB-355",
@@ -37,17 +36,19 @@
       "issue": 252,
       "pull_request": 361,
       "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-      "status": "verified_ready_for_merge",
+      "status": "completed",
       "priority": "high",
-      "base_sha": "0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08",
-      "implementation_verified_head_sha": "ca9291903e61fd4951bb2565a64d2306ef5da824"
+      "verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
+      "merge_sha": "323f384297bba5a0fd734b7e47704fbd360454a4"
     },
     {
       "id": "NEXOLAB-255",
       "issue": 255,
       "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-      "status": "ready_after_252_merge",
+      "status": "ready",
       "priority": "high",
+      "assignee": "eNgine9r",
+      "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
       "depends_on": [252]
     },
     {
@@ -85,7 +86,7 @@
     "preparation_artifact_sha256": "0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b"
   },
   "verification": {
-    "implementation_verified_head_sha": "ca9291903e61fd4951bb2565a64d2306ef5da824",
+    "issue_252_verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
     "ci": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
@@ -98,8 +99,7 @@
     "offline_auth": "green",
     "offline_bundle": "green_disconnected_startup_and_update_rollback",
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0,
-    "mergeable": true
+    "branch_behind_main_at_merge": 0
   },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
@@ -117,8 +117,7 @@
   "next_ready_work_package": {
     "issue": 255,
     "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-    "activation_condition": "PR #361 is GREEN and merged; Issue #252 is closed.",
-    "reason": "lint-staged 17.3.0 is exact-head verified on Node 22.23.1 with deterministic staged-file preservation and unchanged production runtime closure."
+    "reason": "Issue #252 is merged and closed with deterministic staged-file preservation and all exact-head software and offline gates GREEN."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
