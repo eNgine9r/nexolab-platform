@@ -7,6 +7,7 @@ Branch: `docs/345-reconcile-dependency-lanes`
 Next Ready Work Package: Issue #253 — focused jsdom 30 migration
 Active epic: Issue #326 — Engineering governance, security exception lifecycle and toolchain hardening
 Parallel blocked epic: Issue #282 — acquisition software complete; physical Raspberry Pi/RS-485 acceptance pending
+Checkpoint formatting: repository-native Prettier applied.
 
 ## Dependency update lanes completed
 
