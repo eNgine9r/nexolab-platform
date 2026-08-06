@@ -78,6 +78,20 @@ The acceptance instrumentation now:
 
 No production telemetry client, route-persistence implementation or backend behavior changed.
 
+## Post-merge base reconciliation
+
+PR #354 merged Issue #353 into `main` as `67b471e44201f7c96ef4e51e7c3904e8c78df323` before final Issue #254 verification. The Playwright branch was reconciled to that exact base with zero commits behind `main`.
+
+The focused comparison against the reconciled base remains limited to five permanent files:
+
+- `package.json`;
+- `package-lock.json`;
+- `scripts/validate-playwright-migration.py`;
+- `e2e/telemetry-acquisition-invariant.production.e2e.ts`;
+- this migration evidence document.
+
+The prompt WebSocket disconnect implementation from PR #354 is inherited from `main`, not duplicated in the Playwright migration diff. No temporary integration workflow remains in the final branch comparison.
+
 ## Runtime and offline impact
 
 `@playwright/test` remains development-only. Browser binaries are CI/development artifacts and are not part of NEXOLAB production containers or the offline runtime bundle. No mandatory network request, CDN, telemetry service or production external API was added.
