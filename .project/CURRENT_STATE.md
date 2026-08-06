@@ -1,41 +1,43 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-06
-Verified product baseline: `37107c073fa66d8db35f44932268934d3f5cd8ae`
-Active control Work Package: Issue #335 — reconcile ADR registry completion and promote dependency lanes
-Branch: `docs/335-reconcile-adr-completion`
-Next Ready Work Package: Issue #328 — separate dependency update lanes and retire grouped major PRs
+Verified product baseline: `21dc6ee26702f42e22e01eea9bca07c1d853ac73`
+Active control Work Package: Issue #338 — reconcile dependency policy completion and promote jsdom 30
+Branch: `docs/338-reconcile-dependency-policy`
+Next Ready Work Package: Issue #253 — focused jsdom 30 migration
 Active epic: Issue #326 — Engineering governance, security exception lifecycle and toolchain hardening
 Parallel blocked epic: Issue #282 — acquisition software complete; physical Raspberry Pi/RS-485 acceptance pending
-Status confidence: high for repository, CI, offline-runtime and security evidence; physical hardware acceptance remains explicitly pending.
+Status confidence: high for repository, CI, dependency policy, offline-runtime and security evidence; physical hardware acceptance remains explicitly pending.
 
-## ADR governance completed
+## Dependency automation policy completed
 
-Issue #300 / PR #334 was squash-merged as `37107c073fa66d8db35f44932268934d3f5cd8ae` from exact verified head `f0f3a38e3649064662de2307836a4c1e522218ac`.
+Issue #328 / PR #337 was squash-merged as `21dc6ee26702f42e22e01eea9bca07c1d853ac73` from exact verified head `efb685df980735427307902aaa649bd1f9b926f0`.
 
 Completed outcome:
 
-- `docs/adr/` is the authoritative ADR location;
-- ADR 0001, 0004, 0005, 0008 and 0009 appear exactly once in the canonical registry;
-- 0002, 0003, 0006 and 0007 are documented as unassigned historical gaps without invented decisions;
-- `docs/architecture/adr-0001-telemetry-ingestion.md` remains a compatibility pointer;
-- deterministic validation rejects duplicate identifiers, broken targets, missing compatibility linkage and undocumented gaps;
-- CI, formatting, lint, typecheck, full tests, production build and Telemetry Service checks were GREEN.
+- broad `development-dependencies` and `production-dependencies` groups were retired;
+- production runtime dependency updates remain individual Pull Requests;
+- development patch/minor updates are grouped only by compatible test, quality, build or React-types verification surface;
+- npm SemVer-major automation is disabled;
+- `@types/node >=23` is explicitly ignored while Node 22 remains the active `.nvmrc` runtime boundary;
+- every major migration requires a dedicated Issue, branch and focused Pull Request;
+- deterministic policy validation rejects broad groups, major grouping, missing Node guards, Node/runtime mismatch, production dependencies in dev groups, Dependabot auto-merge paths and missing migration mappings;
+- nine policy fixtures, formatting, lint, typecheck, full tests and production build were GREEN;
+- `package.json`, `package-lock.json`, dependency versions and runtime closure were unchanged.
+
+PR #271 remains closed unmerged as superseded. PR #272 remains independently open and unselected.
 
 ## Ordered engineering-hardening queue
 
-1. **Issue #328 — Ready:** dependency automation lanes and major-migration policy.
-2. **Issue #253 — queued:** jsdom 30 migration.
-3. **Issue #254 — queued:** Playwright 1.62.x migration.
-4. **Issue #252 — queued:** lint-staged 17 migration.
-5. **Issue #255 — queued:** TypeScript 6 transition.
+1. **Issue #253 — Ready:** focused jsdom 30 migration.
+2. **Issue #254 — queued:** Playwright 1.62.x migration.
+3. **Issue #252 — queued:** lint-staged 17 migration.
+4. **Issue #255 — queued:** TypeScript 6 transition.
 
 Blocked or deferred:
 
 - **Issue #257:** ESLint 10 remains blocked until a compatible Next.js/plugin graph is demonstrated.
 - **Issue #256:** TypeScript 7 remains deferred until TypeScript 6 and ecosystem support are available.
-
-PR #271 remains closed unmerged as a superseded grouped-major update. PR #272 remains independently open and unselected.
 
 ## Security exception boundary
 
@@ -51,18 +53,16 @@ software verified; hardware performance acceptance pending
 
 Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain blocked by unavailable controlled Raspberry Pi/RS-485 access. No physical acceptance claim is permitted without real evidence.
 
-## Guardrails for Issue #328
+## Guardrails for Issue #253
 
-- modify dependency automation policy only;
-- do not change dependency versions or `package-lock.json`;
-- production runtime, development patch/minor and major migration lanes must remain distinct;
-- unrelated major migrations must never share one PR;
-- every major migration requires its dedicated Issue, branch and focused PR;
-- no automatic major merge path;
-- Node and `@types/node` majors must remain aligned with the supported Node 22 runtime boundary;
-- PR #272 remains outside the decision scope;
-- no runtime, database, product, hardware, Modbus, secret or deployment changes.
+- update only jsdom and the lockfile closure required by that focused migration;
+- do not combine Playwright, lint-staged, TypeScript, ESLint, Node types or unrelated package updates;
+- confirm Vitest/Testing Library environment compatibility;
+- run unit tests, typecheck, lint and production build;
+- inspect transitive dependency and offline bundle impact;
+- preserve Node 22 and LOCAL_LAN runtime guarantees;
+- no product, database, hardware, Modbus, secret or deployment changes.
 
 ## Next action
 
-Complete Issue #335 as an exact four-file state-only PR and merge it after GREEN CI. Then execute Issue #328 from current `main`: audit `.github/dependabot.yml`, implement deterministic dependency-policy validation, document triage/rollback/offline checks, and preserve dependency closure unchanged.
+Complete Issue #338 as an exact four-file state-only PR and merge it after GREEN CI. Then execute Issue #253 from current `main` as one focused jsdom 30 migration with targeted test-environment evidence and no unrelated dependency changes.
