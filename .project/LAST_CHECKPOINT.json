@@ -3,79 +3,65 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-332",
-  "issue": 332,
+  "task": "NEXOLAB-335",
+  "issue": 335,
   "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T05:30:00+03:00",
-  "branch": "docs/332-reconcile-cjson-review",
-  "product_baseline_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
+  "timestamp": "2026-08-06T06:20:00+03:00",
+  "branch": "docs/335-reconcile-adr-completion",
+  "product_baseline_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
   "completed_work_package": {
-    "issue": 327,
-    "pull_request": 331,
-    "title": "Revalidate the expiring cJSON vulnerability exception",
-    "verified_head_sha": "d05e3e2405f55a7b8f5d3b722e1165924a4eaf9e",
-    "merge_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
-    "completion_classification": "narrow exception renewed; fixed package unavailable; next review date recorded"
+    "issue": 300,
+    "pull_request": 334,
+    "title": "Canonicalize the ADR registry and preserve legacy architecture references",
+    "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
+    "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
+    "completion_classification": "canonical ADR registry established; legacy path preserved; deterministic integrity validation enforced"
   },
-  "security_evidence": {
-    "image_id": "telemetry-service",
-    "image_digest": "sha256:544eead98d548c84c938922deb2513b1428994271600fa027dd5895c9813b24d",
-    "artifact_digest": "sha256:66ca11b7f8a8598a9a0c4abb8798b6bebc9c3869c40793a945ee62a60ad045b4",
-    "package": "libcjson1",
-    "installed_version": "1.7.18-3.1+deb13u1",
-    "vulnerability": "CVE-2026-67216",
-    "severity": "HIGH",
-    "status": "affected",
-    "fixed_version": null,
-    "owner": "platform-security",
-    "expires_on": "2026-09-05",
-    "exact_exception_count": 1,
-    "wildcard_exception_allowed": false,
-    "maximum_exception_lifetime_days": 45,
-    "unused_mosquitto_clients_removed": true,
-    "required_mosquitto_ctrl_present": true,
-    "mosquitto_pub_present": false,
-    "exact_head_provenance_verified": true
+  "adr_evidence": {
+    "canonical_location": "docs/adr",
+    "registered_ids": ["0001", "0004", "0005", "0008", "0009"],
+    "unassigned_historical_gaps": ["0002", "0003", "0006", "0007"],
+    "legacy_0001_path": "docs/architecture/adr-0001-telemetry-ingestion.md",
+    "legacy_0001_preserved": true,
+    "duplicate_identifier_fixture": "green",
+    "broken_target_fixture": "green",
+    "missing_legacy_pointer_fixture": "green",
+    "undocumented_gap_fixture": "green"
   },
   "verification": {
+    "adr_registry_validation": "green",
+    "standalone_runtime_contract": "green",
     "formatting": "green",
     "lint": "green",
     "typecheck": "green",
     "tests": "green",
     "production_build": "green",
-    "container_supply_chain": "green",
-    "telemetry_service": "green",
-    "broker_control_acceptance": "green",
-    "mqtt_tls_fleet_acceptance": "green",
-    "offline_auth_acceptance": "green",
-    "device_agent_fleet_acceptance": "green",
-    "capacity_release_gate": "green",
-    "disaster_recovery_tls_fleet": "green",
-    "disaster_recovery_browser": "green",
-    "offline_bundle": "green",
-    "offline_blocked_egress": "green",
-    "offline_update_rollback_volume_preservation": "green"
+    "telemetry_service": "green"
   },
   "review_audit": {
-    "focused_permanent_files": 6,
-    "temporary_workflows_in_final_diff": 0,
+    "focused_files": 6,
     "unresolved_review_threads": 0,
-    "behind_main_commits_before_merge": 0,
-    "acquisition_files_changed": 0,
-    "frontend_files_changed": 0,
+    "runtime_dependency_versions_changed": 0,
+    "lockfiles_changed": 0,
     "database_migrations_changed": 0,
+    "product_runtime_changed": false,
     "modbus_write": "none",
     "hardware_actions": "none",
     "production_cutover": "none"
   },
+  "security_exception": {
+    "image_id": "telemetry-service",
+    "package": "libcjson1",
+    "vulnerability": "CVE-2026-67216",
+    "expires_on": "2026-09-05",
+    "status": "affected",
+    "fixed_version": null,
+    "scope_broadened": false
+  },
   "ordered_work_packages": [
     {
-      "issue": 300,
-      "status": "ready"
-    },
-    {
       "issue": 328,
-      "status": "queued"
+      "status": "ready"
     },
     {
       "issue": 253,
@@ -95,9 +81,9 @@
     }
   ],
   "next_ready_work_package": {
-    "issue": 300,
-    "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-    "instruction": "After merging the exact four-file checkpoint, inventory all ADR locations and references, establish one canonical registry, preserve legacy links, add deterministic integrity checks, and avoid runtime or dependency changes."
+    "issue": 328,
+    "title": "Separate dependency update lanes and retire grouped major PRs",
+    "instruction": "Audit Dependabot configuration, separate production/runtime and development update lanes, prevent unrelated major grouping, enforce Node 22 type alignment, add deterministic policy validation, document triage and rollback, and do not change dependency versions or lockfiles."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,
@@ -108,10 +94,11 @@
   },
   "guardrails": [
     "one Issue, one branch and one focused Pull Request",
-    "do not broaden the cJSON exception",
+    "do not change dependency versions or package-lock.json in Issue 328",
+    "do not group unrelated major migrations",
+    "keep Node and @types/node aligned with the supported Node 22 boundary",
+    "do not change PR 272 inside Issue 328",
     "review the exact cJSON image again by 2026-09-05",
-    "preserve accepted ADR content and legacy links",
-    "do not change dependencies or runtime behavior in Issue 300",
     "do not perform Modbus or other hardware writes",
     "do not claim physical acceptance without controlled evidence"
   ]
