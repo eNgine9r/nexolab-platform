@@ -30,6 +30,16 @@ jobs:
         shell: bash
         run: bash scripts/tests/standalone-offline-runtime-contract.sh
 
+      - name: Validate ADR registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-adr-registry.py
+          python3 -m unittest discover \
+            -s tests \
+            -p 'test_adr_registry.py' \
+            -v
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
