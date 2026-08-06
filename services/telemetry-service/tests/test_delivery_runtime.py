@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Generator
-from concurrent.futures import CancelledError
-from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from starlette.testclient import WebSocketTestSession
 
 from app.config import Settings
 from app.contracts import TelemetryEvent
 from app.main import create_app
+from tests.websocket_test_support import websocket_session
 
 
 def event(*, captured_at: datetime) -> TelemetryEvent:
@@ -56,32 +53,6 @@ def wait_for(predicate: object, timeout: float = 3.0) -> None:
             return
         time.sleep(0.02)
     raise AssertionError("condition was not met before timeout")
-
-
-@contextmanager
-def websocket_session(
-    client: TestClient,
-    path: str,
-) -> Generator[WebSocketTestSession, None, None]:
-    """Close a TestClient socket without leaking Starlette teardown cancellation.
-
-    Starlette's WebSocketTestSession exit stack sends the disconnect frame and then
-    cancels its private runner task. Current Starlette versions can surface that
-    expected runner cancellation as concurrent.futures.CancelledError after the
-    application has already processed the close. Suppress only that framework
-    teardown signal; application exceptions and all lifecycle assertions remain
-    visible to the test.
-    """
-
-    session = client.websocket_connect(path)
-    websocket = session.__enter__()
-    try:
-        yield websocket
-    finally:
-        try:
-            session.__exit__(None, None, None)
-        except CancelledError:
-            pass
 
 
 def test_refresh_reads_persisted_latest_without_ingestion(tmp_path: Path) -> None:
@@ -213,8 +184,9 @@ def test_restart_latest_and_resume_use_the_existing_database(tmp_path: Path) -> 
                 "after": (base - timedelta(seconds=1)).isoformat(),
             }
         )
-        with client.websocket_connect(
-            f"/api/v1/telemetry/live?{query}"
+        with websocket_session(
+            client,
+            f"/api/v1/telemetry/live?{query}",
         ) as websocket:
             replay = websocket.receive_json()
 
