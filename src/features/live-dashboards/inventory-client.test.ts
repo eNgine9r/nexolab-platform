@@ -35,10 +35,7 @@ describe("LiveDashboardInventoryClient", () => {
           },
         ),
     );
-    const client = new LiveDashboardInventoryClient(
-      "http://127.0.0.1:8082",
-      { fetch: fetchImpl },
-    );
+    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 
     const result = await client.list();
 
@@ -90,10 +87,7 @@ describe("LiveDashboardInventoryClient", () => {
           { status: 200 },
         ),
     );
-    const client = new LiveDashboardInventoryClient(
-      "http://127.0.0.1:8082",
-      { fetch: fetchImpl },
-    );
+    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 
     const result = await client.list();
 
@@ -115,10 +109,7 @@ describe("LiveDashboardInventoryClient", () => {
           { status: 403 },
         ),
     );
-    const client = new LiveDashboardInventoryClient(
-      "http://127.0.0.1:8082",
-      { fetch: fetchImpl },
-    );
+    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", { fetch: fetchImpl });
 
     await expect(client.list()).rejects.toMatchObject({
       status: 403,
