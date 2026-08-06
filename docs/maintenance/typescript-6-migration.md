@@ -1,0 +1,80 @@
+# TypeScript 6 transition migration
+
+- Issue: #255
+- Selected release: TypeScript `6.0.3`
+- Previous resolved release: TypeScript `5.9.3`
+- Node baseline: `22.23.1`
+
+## Release selection
+
+TypeScript `6.0.3` is the selected stable release in the official 6.x transition line. TypeScript 7 is excluded from this Work Package and remains tracked separately by Issue #256.
+
+Primary upstream references:
+
+- <https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/>
+- <https://github.com/microsoft/TypeScript/releases/tag/v6.0.3>
+
+## Baseline and diagnostic comparison
+
+Diagnostic workflow `31099428290` compared the same repository state with TypeScript `5.9.3` and `6.0.3`.
+
+| Check                    | TypeScript 5.9.3 | TypeScript 6.0.3 |
+| ------------------------ | ---------------: | ---------------: |
+| `tsc --noEmit` exit code |              `0` |              `0` |
+| New diagnostics          |                — |              `0` |
+
+Diagnostic artifact SHA-256:
+
+```text
+2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f
+```
+
+Full migration workflow `31100010365` also completed baseline typecheck, deterministic lockfile audit, TypeScript 6 typecheck, compiler-option audit, TypeScript-program coverage, ESLint, 300 Vitest tests, lint-staged integration tests, Playwright package loading, Next.js production build, and evidence formatting before its publish-only whitespace check.
+
+Migration artifact SHA-256:
+
+```text
+b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7
+```
+
+No application, test, Playwright, Vitest, Next.js configuration, or declaration diagnostic required a source change.
+
+## Compiler-option classification
+
+| TypeScript 6 change                            | NEXOLAB classification                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------- |
+| `strict` defaults to `true`                    | Already explicitly `true`; unchanged.                                   |
+| `module` defaults to `esnext`                  | Already explicitly `esnext`; unchanged.                                 |
+| newer default `target`                         | Explicit `ES2017` retained; emitted/runtime behavior unchanged.         |
+| `noUncheckedSideEffectImports` default changes | Full TypeScript 6 typecheck passes; no override added.                  |
+| `rootDir` default changes                      | `noEmit` remains enabled; no output-layout adjustment required.         |
+| `types` defaults to `[]`                       | Zero missing-global diagnostics; no broad `types` list added.           |
+| `moduleResolution: node` deprecated            | NEXOLAB already uses `bundler`.                                         |
+| `baseUrl` deprecated                           | NEXOLAB has no `baseUrl`; `@/*` maps explicitly to `./src/*`.           |
+| DOM iterable declarations merged into `dom`    | Existing `dom.iterable` is retained to avoid unrelated cleanup.         |
+| `stableTypeOrdering` for 7.0 comparison        | Not enabled; TypeScript 7 and declaration comparison are outside scope. |
+
+Existing `skipLibCheck: true` is retained exactly as the pre-migration baseline. No `ignoreDeprecations`, broad ignore, `any` baseline, or mass `ts-expect-error` was introduced.
+
+## Deterministic dependency boundary
+
+Permanent dependency movement is limited to:
+
+- root `devDependencies.typescript`: `^5` → `^6.0.3`;
+- `node_modules/typescript`: `5.9.3` → `6.0.3`.
+
+No production dependency or additional package node changes.
+
+## Verification boundary
+
+`tsc --showConfig` proves that every root `playwright.*.config.ts`, every `e2e/*.ts`, and `vitest.config.ts` remains inside the TypeScript 6 program. Production Playwright suites require scenario-specific authenticated environment variables, so actual configuration and runtime behavior are verified by PR exact-head browser workflows rather than an environment-free `playwright test --list` call.
+
+Final PR verification must include CI, TypeScript-aware ESLint, Vitest, Next.js production build, browser acceptance, Offline Auth, and disconnected Offline Bundle.
+
+## Runtime and safety boundary
+
+TypeScript remains a development-only dependency. No production source, API, database, container runtime, acquisition logic, offline service, hardware path, secret, or persistent data is changed.
+
+## Rollback
+
+Restore `typescript` to `^5`, restore lockfile entries resolving `5.9.3`, remove this document, and rerun format, lint, typecheck, tests, production build, browser acceptance, Offline Auth, and Offline Bundle. No database, volume, hardware, or site rollback is required.

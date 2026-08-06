@@ -1,40 +1,55 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-06
-Verified product and state baseline: `323f384297bba5a0fd734b7e47704fbd360454a4`
-Completed Work Package: Issue #252 / PR #361 — lint-staged 17.3.0 migration
-Verified implementation head: `958fab7c84b717860138b60fddac6f60be52934a`
-Next Ready Work Package: Issue #255 — TypeScript 6 transition line
+Verified product baseline: `5831190f9714236b53f362234785639e22267477`
+Verified Work Package: Issue #255 / PR #362 — TypeScript 6 transition compiler
+Verified implementation head: `8c43439e1ab34e398f4b3bf2a9c8545e4386b956`
+Next Ready Work Package after GREEN merge: Issue #357 — immediate refrigeration image/layout/marker hydration
 Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
-Parallel blocked epic: Issue #282 — acquisition software complete; physical Raspberry Pi/RS-485 acceptance pending
+Parallel hardware/runtime track: Issue #282
 
-## Issue #252 completed
+## Issue #255 verified ready for merge
 
-Issue #252 / PR #361 merged into `main` as `323f384297bba5a0fd734b7e47704fbd360454a4`.
+Issue #255 / PR #362 upgrades the development-only TypeScript compiler from resolved `5.9.3` to `6.0.3`.
 
-The development-only staged-file runner moved from `lint-staged 16.4.0` to `17.3.0` on the unchanged Node `22.23.1` baseline.
+Verified scope:
 
-Completed behavior:
+- root `devDependencies.typescript` changes from `^5` to `^6.0.3`;
+- deterministic lockfile movement is limited to the root package entry and `node_modules/typescript`;
+- `tsconfig.json` is unchanged;
+- application source, tests, Playwright configs and Vitest config are unchanged;
+- `strict`, `noEmit`, `isolatedModules`, `module: esnext`, `moduleResolution: bundler` and explicit `target: ES2017` remain unchanged;
+- no `ignoreDeprecations`, broad `types` list, `any` baseline, mass `ts-expect-error` or weakened compiler boundary was added;
+- TypeScript 7, ESLint 10, React, Next.js and unrelated refactoring remain outside scope.
 
-- `.husky/pre-commit` remains `npx lint-staged`;
-- JavaScript and TypeScript globs still run `eslint --fix` before `prettier --write`;
-- JSON, Markdown, CSS and YAML globs still run `prettier --write`;
-- production-config TypeScript processing formats and stages the intended result;
-- partially staged files hide unstaged content from tasks and restore it after success;
-- failed tasks restore the original index and unstaged worktree diff;
-- an empty staged-file set exits successfully without mutation;
-- the acceptance harness operates only in disposable Git repositories;
-- Node `22.23.1` and Git `2.54.0` satisfy the lint-staged v17 runtime floors.
+## Diagnostic evidence
 
-## Dependency and lockfile boundary
+Diagnostic workflow `31099428290` compared the same repository state:
 
-The lockfile resolves `lint-staged 17.3.0` with a development-only graph. The v16-only CLI rendering and YAML graph was removed. No YAML dependency is needed because NEXOLAB stores lint-staged configuration in `package.json`.
+| Check                    | TypeScript 5.9.3 | TypeScript 6.0.3 |
+| ------------------------ | ---------------: | ---------------: |
+| `tsc --noEmit` exit code |              `0` |              `0` |
+| New diagnostics          |                — |              `0` |
 
-No production dependency, application source, runtime container, database, acquisition or physical polling behavior changed.
+Diagnostic artifact SHA-256:
 
-## Verification evidence
+```text
+2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f
+```
 
-Final exact head `958fab7c84b717860138b60fddac6f60be52934a` was GREEN for all 11 triggered workflows:
+Migration workflow `31100010365` verified deterministic lockfile scope, compiler invariants, all root Playwright configs, all `e2e/*.ts`, `vitest.config.ts`, ESLint, 67 Vitest files / 300 tests, lint-staged integration, Playwright package loading and Next.js production build. Migration artifact SHA-256:
+
+```text
+b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7
+```
+
+Publisher workflow `31100231787` reproduced the migration and full quality cascade, committed the three permanent files and removed the temporary workflow.
+
+Permanent evidence is recorded in `docs/maintenance/typescript-6-migration.md`.
+
+## Exact-head verification
+
+Final implementation head `8c43439e1ab34e398f4b3bf2a9c8545e4386b956` is GREEN for all 11 triggered workflows:
 
 - CI;
 - Authenticated Dashboard Acceptance;
@@ -48,42 +63,29 @@ Final exact head `958fab7c84b717860138b60fddac6f60be52934a` was GREEN for all 11
 - Offline Auth Acceptance;
 - Offline Bundle.
 
-Offline Bundle proved disconnected startup and update/rollback persistent-data preservation.
+Offline Bundle proved disconnected startup and update/rollback persistent-data preservation. TypeScript remains development-only and does not change the production runtime closure.
 
-Preparation evidence used Node `22.23.1`, Git `2.54.0` and artifact SHA-256:
+## Next Ready Work Package: Issue #357
 
-```text
-0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b
-```
+Issue #357 is open, assigned to `eNgine9r`, labeled `priority:critical` and `status:ready`.
 
-Two initial final-head Offline Auth attempts failed before migrations at Docker container startup. A fresh exact-head run passed migration round-trip and disconnected local-auth acceptance, classifying those failures as runner transients rather than product or dependency regressions.
+Required product outcome:
 
-Permanent migration evidence is recorded in `docs/maintenance/lint-staged-17-migration.md`.
-
-## Next Ready Work Package: Issue #255
-
-Issue #255 is open, assigned to `eNgine9r` and labeled:
-
-- `area:devops`;
-- `dependencies`;
-- `priority:high`;
-- `status:ready`.
-
-Required outcome:
-
-- verify the currently available official TypeScript 6 transition release before changing versions;
-- update TypeScript only with deterministic lockfile movement;
-- preserve strict mode and no-emit verification;
-- classify every new diagnostic and fix it without broad ignores, `any` baselines or weakened strictness;
-- keep Next.js production build, Vitest and Playwright TypeScript configuration operational;
-- retain Offline Bundle GREEN;
-- document rollback.
+- hydrate refrigeration image, saved layout and sensor placements as one coherent structural snapshot;
+- keep the previous valid snapshot visible during background reconciliation;
+- render configured no-sample channels with explicit unknown/stale state;
+- deduplicate equipment-scoped reads and retain a bounded organization-scoped cache;
+- separate structural rendering from latest telemetry latency;
+- prove cold and warm route performance and repeated route-cycle request counts;
+- preserve editing, image lifecycle, binding lifecycle, optimistic concurrency and physical polling boundaries;
+- classify completion as `software verified; Raspberry Pi perceived-latency acceptance pending` until real Pi evidence exists.
 
 ## Ordered queue
 
-1. **Issue #255 — Ready:** TypeScript 6 transition line.
-2. **Issue #257 — blocked:** ESLint 10 migration.
-3. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
+1. **Issue #357 — Ready, priority critical:** refrigeration structural snapshot and warm hydration.
+2. **Issue #245 — Ready parallel runtime track:** standalone offline Raspberry Pi loopback operation; physical acceptance remains required.
+3. **Issue #257 — blocked:** ESLint 10 migration.
+4. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
 
 Open unselected dependency PRs remain #340, #341 and #346. PR #347 remains obsolete.
 
@@ -91,8 +93,8 @@ Open unselected dependency PRs remain #340, #341 and #346. PR #347 remains obsol
 
 The exact `telemetry-service + libcjson1 + CVE-2026-67216` exception expires on **2026-09-05** and remains unbroadened.
 
-Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance pending`. Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain pending controlled Raspberry Pi/RS-485 evidence.
+Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance pending`. Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 still require controlled Raspberry Pi/RS-485 evidence.
 
 ## Next action
 
-Begin Issue #255 from current `main` in one focused feature branch and Pull Request. Do not combine TypeScript 7, ESLint 10, React, Next.js or unrelated dependency changes with the TypeScript 6 transition.
+Complete the immutable-head audit for PR #362, merge only while exact head `8c43439e1ab34e398f4b3bf2a9c8545e4386b956` remains current and GREEN, reconcile the actual merge SHA, then activate Issue #357 in one focused branch and Pull Request.
