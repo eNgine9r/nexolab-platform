@@ -7,6 +7,7 @@ Issue #253 updates only the direct `jsdom` development dependency and its determ
 ## Runtime compatibility
 
 - Repository Node baseline: `22.23.1`.
+- Package manager used for the deterministic closure: `npm 10.9.8`.
 - Installed jsdom: `30.0.0`.
 - jsdom engine requirement: `{"node": "^22.22.2 || ^24.15.0 || >=26.0.0"}`.
 - Installation and the focused DOM contract ran on the exact repository Node baseline.
