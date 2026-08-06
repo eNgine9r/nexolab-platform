@@ -1,0 +1,150 @@
+name: Install jsdom 30 once
+
+on:
+  push:
+    branches:
+      - chore/253-jsdom-30
+    paths:
+      - .github/workflows/install-jsdom-30-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v6
+        with:
+          ref: chore/253-jsdom-30
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+
+      - name: Verify baseline and save prior lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="v$(tr -d '[:space:]' < .nvmrc)"
+          test "$(node --version)" = "$expected"
+          cp package-lock.json /tmp/package-lock.before.json
+          printf 'Node: %s\n' "$(node --version)"
+          printf 'npm: %s\n' "$(npm --version)"
+
+      - name: Install exact jsdom 30 closure
+        env:
+          HUSKY: 0
+        run: npm install --save-dev --save-exact jsdom@30.0.0 --no-audit
+
+      - name: Verify focused DOM contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ls jsdom --depth=0
+          npm test -- src/test/jsdom-environment.test.ts
+
+      - name: Write migration evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          before = json.loads(Path('/tmp/package-lock.before.json').read_text(encoding='utf-8'))
+          after = json.loads(Path('package-lock.json').read_text(encoding='utf-8'))
+          jsdom_package = json.loads(Path('node_modules/jsdom/package.json').read_text(encoding='utf-8'))
+
+          def versions(lock: dict[str, object]) -> dict[str, str]:
+              packages = lock.get('packages', {})
+              assert isinstance(packages, dict)
+              result: dict[str, str] = {}
+              for path, metadata in packages.items():
+                  if not isinstance(path, str) or not path.startswith('node_modules/'):
+                      continue
+                  if not isinstance(metadata, dict):
+                      continue
+                  version = metadata.get('version')
+                  if isinstance(version, str):
+                      result[path.removeprefix('node_modules/')] = version
+              return result
+
+          old_versions = versions(before)
+          new_versions = versions(after)
+          changes: list[tuple[str, str, str]] = []
+          for name in sorted(set(old_versions) | set(new_versions)):
+              old = old_versions.get(name, 'absent')
+              new = new_versions.get(name, 'absent')
+              if old != new:
+                  changes.append((name, old, new))
+
+          lines = [
+              '# jsdom 30 migration evidence',
+              '',
+              '## Scope',
+              '',
+              'Issue #253 updates only the direct `jsdom` development dependency and its deterministic npm lockfile closure. Vitest, Testing Library, React, TypeScript, Playwright and production dependencies are unchanged.',
+              '',
+              '## Runtime compatibility',
+              '',
+              f'- Repository Node baseline: `{Path(".nvmrc").read_text(encoding="utf-8").strip()}`.',
+              f'- Installed jsdom: `{jsdom_package["version"]}`.',
+              f'- jsdom engine requirement: `{json.dumps(jsdom_package.get("engines", {}), sort_keys=True)}`.',
+              '- Installation and the focused DOM contract ran on the exact repository Node baseline.',
+              '',
+              '## Observable test-environment contract',
+              '',
+              '`src/test/jsdom-environment.test.ts` locks the behavior NEXOLAB relies on:',
+              '',
+              '- URL and history resolution against the configured test origin;',
+              '- local/session storage isolation;',
+              '- focus and active-element semantics;',
+              '- form submission, successful controls and cancellation;',
+              '- bubbling, custom-event detail and cancellation;',
+              '- layout-independent DOM behavior;',
+              '- no implicit external-resource fetch when DOM elements are attached.',
+              '',
+              'No custom resource loader, script execution option or hidden network fixture was added.',
+              '',
+              '## Deterministic lockfile changes',
+              '',
+              '| Package | Before | After |',
+              '| --- | --- | --- |',
+          ]
+          lines.extend(f'| `{name}` | `{old}` | `{new}` |' for name, old, new in changes)
+          lines.extend([
+              '',
+              '## Runtime and offline impact',
+              '',
+              '`jsdom` remains a development-only dependency. No production dependency, container runtime contract, offline bundle manifest or application source import changes. The production build must remain byte-closure independent of jsdom.',
+              '',
+              '## Rollback',
+              '',
+              'Revert the focused Issue #253 squash merge, or restore the previous `package.json` and `package-lock.json` from the parent commit, run `npm install --no-audit`, then run the dependency-policy validator, full test suite and production build. No database, persistent-volume or hardware rollback is involved.',
+              '',
+          ])
+          Path('docs/maintenance/jsdom-30-migration.md').write_text('\n'.join(lines), encoding='utf-8')
+          PY
+
+      - name: Remove temporary workflow and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/install-jsdom-30-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            package.json \
+            package-lock.json \
+            docs/maintenance/jsdom-30-migration.md \
+            .github/workflows/install-jsdom-30-once.yml
+          git commit -m "chore(jsdom): install exact jsdom 30 closure"
+          git push origin HEAD:chore/253-jsdom-30
