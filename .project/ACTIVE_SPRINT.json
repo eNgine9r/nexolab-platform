@@ -54,18 +54,14 @@
       "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
       "status": "ready_after_355_merge",
       "priority": "high",
-      "depends_on": [
-        355
-      ]
+      "depends_on": [355]
     },
     {
       "id": "NEXOLAB-255",
       "issue": 255,
       "title": "Transition to TypeScript 6",
       "status": "queued",
-      "depends_on": [
-        252
-      ]
+      "depends_on": [252]
     },
     {
       "id": "NEXOLAB-257",
@@ -87,12 +83,7 @@
     "catalog_driven": true,
     "includes_active_channels_without_samples": true,
     "save_validation_eligibility_shared": true,
-    "latest_identity": [
-      "node_id",
-      "equipment_id",
-      "channel_id",
-      "metric"
-    ],
+    "latest_identity": ["node_id", "equipment_id", "channel_id", "metric"],
     "latest_index": "ix_telemetry_latest_lookup",
     "telemetry_fixture_rows": 50003,
     "postgres_execution_ms": 0.363,
@@ -123,18 +114,9 @@
     "mergeable": true
   },
   "dependency_pull_requests": {
-    "open_unselected": [
-      340,
-      341,
-      346
-    ],
-    "open_obsolete": [
-      347
-    ],
-    "closed_unmerged": [
-      272,
-      339
-    ]
+    "open_unselected": [340, 341, 346],
+    "open_obsolete": [347],
+    "closed_unmerged": [272, 339]
   },
   "security_exception": {
     "image_id": "telemetry-service",
@@ -153,14 +135,7 @@
   "parallel_blocked_track": {
     "epic_issue": 282,
     "status": "software_complete_hardware_acceptance_pending",
-    "issues": [
-      289,
-      245,
-      189,
-      200,
-      201,
-      202
-    ],
+    "issues": [289, 245, 189, 200, 201, 202],
     "completion_classification": "software verified; hardware performance acceptance pending"
   }
 }

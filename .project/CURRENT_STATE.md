@@ -38,13 +38,13 @@ Verified behavior:
 
 PostgreSQL acceptance used 50,003 telemetry rows:
 
-| Evidence | Result |
-| --- | ---: |
-| Catalog channels | 2 |
-| `EXPLAIN ANALYZE` execution | 0.363 ms |
-| Complete repository call | 13.085 ms |
-| Existing client timeout | 8,000 ms |
-| Latest lookup index | `ix_telemetry_latest_lookup` |
+| Evidence                    |                       Result |
+| --------------------------- | ---------------------------: |
+| Catalog channels            |                            2 |
+| `EXPLAIN ANALYZE` execution |                     0.363 ms |
+| Complete repository call    |                    13.085 ms |
+| Existing client timeout     |                     8,000 ms |
+| Latest lookup index         | `ix_telemetry_latest_lookup` |
 
 Authenticated browser acceptance proved:
 

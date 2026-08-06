@@ -38,12 +38,7 @@
     },
     "page_limit_max": 500,
     "offset_max": 10000,
-    "latest_identity": [
-      "node_id",
-      "equipment_id",
-      "channel_id",
-      "metric"
-    ],
+    "latest_identity": ["node_id", "equipment_id", "channel_id", "metric"],
     "latest_index": "ix_telemetry_latest_lookup",
     "telemetry_fixture_rows": 50003,
     "postgres_execution_ms": 0.363,
@@ -87,14 +82,7 @@
   "open_blockers": {
     "issue_355_software": [],
     "raspberry_pi_runtime_latency_acceptance": "pending",
-    "hardware_acceptance_issues": [
-      289,
-      245,
-      189,
-      200,
-      201,
-      202
-    ],
+    "hardware_acceptance_issues": [289, 245, 189, 200, 201, 202],
     "security_exception_expires_on": "2026-09-05"
   },
   "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending",
