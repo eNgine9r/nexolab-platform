@@ -36,11 +36,7 @@ function run(command, args, options = {}) {
 
   if (!options.allowFailure && result.status !== 0) {
     throw new Error(
-      [
-        `Command failed (${result.status}): ${command} ${args.join(" ")}`,
-        result.stdout,
-        result.stderr,
-      ]
+      [`Command failed (${result.status}): ${command} ${args.join(" ")}`, result.stdout, result.stderr]
         .filter(Boolean)
         .join("\n"),
     );
@@ -74,8 +70,7 @@ function versionAtLeast(actual, minimum) {
 function assertRuntimeFloors() {
   const nodeVersion = parseVersion(process.versions.node);
   const supportedNode =
-    (nodeVersion[0] === 22 && versionAtLeast(nodeVersion, [22, 22, 1])) ||
-    nodeVersion[0] === 24;
+    (nodeVersion[0] === 22 && versionAtLeast(nodeVersion, [22, 22, 1])) || nodeVersion[0] === 24;
   assert(
     supportedNode,
     `Node ${process.versions.node} does not satisfy the NEXOLAB lint-staged v17 baseline`,
@@ -93,9 +88,7 @@ function assertRuntimeFloors() {
 
 function assertRepositoryContract() {
   const manifest = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
-  const packageMetadata = JSON.parse(
-    readFileSync(join(lintStagedRoot, "package.json"), "utf8"),
-  );
+  const packageMetadata = JSON.parse(readFileSync(join(lintStagedRoot, "package.json"), "utf8"));
 
   assert.equal(packageMetadata.version, "17.3.0");
   assert.equal(manifest.devDependencies["lint-staged"], "^17.3.0");
@@ -104,10 +97,7 @@ function assertRepositoryContract() {
     "*.{js,jsx,ts,tsx,mjs,cjs}": ["eslint --fix", "prettier --write"],
     "*.{json,md,mdx,css,yml,yaml}": ["prettier --write"],
   });
-  assert.equal(
-    readFileSync(join(repoRoot, ".husky", "pre-commit"), "utf8"),
-    "npx lint-staged\n",
-  );
+  assert.equal(readFileSync(join(repoRoot, ".husky", "pre-commit"), "utf8"), "npx lint-staged\n");
   assert(existsSync(lintStagedBin), `Missing lint-staged CLI: ${lintStagedBin}`);
 
   return packageMetadata.version;
@@ -121,15 +111,7 @@ function initializeRepository(path) {
   git(path, ["config", "core.autocrlf", "false"]);
   writeFileSync(join(path, "sample.js"), "const value = 0;\n");
   git(path, ["add", "sample.js"]);
-  git(path, [
-    "-c",
-    "commit.gpgsign=false",
-    "-c",
-    "core.hooksPath=/dev/null",
-    "commit",
-    "-qm",
-    "baseline",
-  ]);
+  git(path, ["-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "baseline"]);
 }
 
 function runLintStaged(cwd, configPath) {
@@ -182,16 +164,9 @@ function assertProductionTasks(root) {
   git(cloneDir, ["add", "src/__lint_staged_v17_fixture__.ts"]);
 
   const result = runLintStaged(cloneDir);
-  assert.equal(
-    result.status,
-    0,
-    `Production lint-staged tasks failed:\n${result.stdout}\n${result.stderr}`,
-  );
+  assert.equal(result.status, 0, `Production lint-staged tasks failed:\n${result.stdout}\n${result.stderr}`);
 
-  const staged = gitOutput(cloneDir, [
-    "show",
-    ":src/__lint_staged_v17_fixture__.ts",
-  ]);
+  const staged = gitOutput(cloneDir, ["show", ":src/__lint_staged_v17_fixture__.ts"]);
   assert.equal(staged, "export const lintStagedFixture = { value: 1 };\n");
   assert.equal(gitOutput(cloneDir, ["diff"]), "");
   git(cloneDir, ["diff", "--cached", "--check"]);
@@ -200,17 +175,10 @@ function assertProductionTasks(root) {
 function assertPartialStageSuccess(repoDir, successConfig) {
   writeFileSync(join(repoDir, "sample.js"), "const value = 1;\n");
   git(repoDir, ["add", "sample.js"]);
-  writeFileSync(
-    join(repoDir, "sample.js"),
-    "const value = 1;\n// unstaged\n",
-  );
+  writeFileSync(join(repoDir, "sample.js"), "const value = 1;\n// unstaged\n");
 
   const result = runLintStaged(repoDir, successConfig);
-  assert.equal(
-    result.status,
-    0,
-    `Partial-stage success case failed:\n${result.stdout}\n${result.stderr}`,
-  );
+  assert.equal(result.status, 0, `Partial-stage success case failed:\n${result.stdout}\n${result.stderr}`);
 
   const staged = gitOutput(repoDir, ["show", ":sample.js"]);
   const working = readFileSync(join(repoDir, "sample.js"), "utf8");
@@ -225,10 +193,7 @@ function assertFailureRollback(repoDir, failureConfig) {
   git(repoDir, ["reset", "--hard", "-q", "HEAD"]);
   writeFileSync(join(repoDir, "sample.js"), "const value = 2;\n");
   git(repoDir, ["add", "sample.js"]);
-  writeFileSync(
-    join(repoDir, "sample.js"),
-    "const value = 2;\n// unstaged\n",
-  );
+  writeFileSync(join(repoDir, "sample.js"), "const value = 2;\n// unstaged\n");
 
   const cachedBefore = gitOutput(repoDir, ["diff", "--cached", "--binary"]);
   const workingBefore = gitOutput(repoDir, ["diff", "--binary"]);
@@ -236,27 +201,16 @@ function assertFailureRollback(repoDir, failureConfig) {
 
   const result = runLintStaged(repoDir, failureConfig);
   assert.notEqual(result.status, 0, "Failure case unexpectedly succeeded");
-  assert.equal(
-    gitOutput(repoDir, ["diff", "--cached", "--binary"]),
-    cachedBefore,
-  );
+  assert.equal(gitOutput(repoDir, ["diff", "--cached", "--binary"]), cachedBefore);
   assert.equal(gitOutput(repoDir, ["diff", "--binary"]), workingBefore);
   assert.equal(gitOutput(repoDir, ["stash", "list"]), stashBefore);
-  assert(
-    !readFileSync(join(repoDir, "sample.js"), "utf8").includes(
-      "should-rollback",
-    ),
-  );
+  assert(!readFileSync(join(repoDir, "sample.js"), "utf8").includes("should-rollback"));
 }
 
 function assertEmptyStage(repoDir, successConfig) {
   git(repoDir, ["reset", "--hard", "-q", "HEAD"]);
   const result = runLintStaged(repoDir, successConfig);
-  assert.equal(
-    result.status,
-    0,
-    `Empty staged-file case failed:\n${result.stdout}\n${result.stderr}`,
-  );
+  assert.equal(result.status, 0, `Empty staged-file case failed:\n${result.stdout}\n${result.stderr}`);
   assert.equal(gitOutput(repoDir, ["status", "--porcelain"]), "");
 }
 
