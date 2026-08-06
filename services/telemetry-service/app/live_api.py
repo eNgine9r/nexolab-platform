@@ -191,7 +191,7 @@ def create_live_router(
             await websocket.send_json(
                 {"type": "error", "detail": "unsupported alarm filter"}
             )
-            await websocket.close(code=1008, reason="invalid quality filter")
+            await websocket.close(code=1008, reason="invalid alarm filter")
             return
 
         try:
