@@ -17,15 +17,16 @@ describe("jsdom environment contract", () => {
       "/live?dashboard=operator#temperature",
     );
 
+    const currentUrl = new URL(window.location.href);
     const apiUrl = new URL(
       "/api/v1/telemetry/latest?channel_id=106-03",
-      window.location.href,
+      currentUrl,
     );
 
-    expect(window.location.pathname).toBe("/live");
-    expect(window.location.searchParams.get("dashboard")).toBe("operator");
-    expect(window.location.hash).toBe("#temperature");
-    expect(apiUrl.origin).toBe(window.location.origin);
+    expect(currentUrl.pathname).toBe("/live");
+    expect(currentUrl.searchParams.get("dashboard")).toBe("operator");
+    expect(currentUrl.hash).toBe("#temperature");
+    expect(apiUrl.origin).toBe(currentUrl.origin);
     expect(apiUrl.pathname).toBe("/api/v1/telemetry/latest");
     expect(apiUrl.searchParams.get("channel_id")).toBe("106-03");
   });
