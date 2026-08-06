@@ -2,64 +2,62 @@
 
 Updated: 2026-08-06
 
-## Active Work Package boundary: Playwright 1.62.x
+## Issue #254 / PR #352 merge boundary
 
-Issue #254 is the sole Next Ready Work Package after Issue #350 merges.
-
-Allowed scope:
-
-- update only `@playwright/test` from 1.55.x to exact 1.62.x;
-- update only the lockfile closure required by Playwright;
-- review official 1.56–1.62 breaking changes and browser revisions;
-- preserve existing Playwright config names, `testMatch` contracts, single-worker behavior, timeouts and evidence locations unless a required change is explicitly documented;
-- verify browser installation/cache behavior and every browser acceptance workflow;
-- verify Offline Bundle and document browser-cache rollback.
-
-Hard boundaries:
-
-- do not combine React types, lucide, Vite plugin, lint-staged, TypeScript, ESLint, Node types, jsdom or production dependency changes;
-- preserve Node 22 and `@types/node` major 22;
-- do not merge open Dependabot PRs #340 or #341 inside Issue #254;
-- do not rewrite selectors or product behavior unless Playwright 1.62 removed an API and the focused compatibility change is documented;
-- no runtime API, database, acquisition, hardware, Modbus, secret or production/site deployment changes.
-
-Required checks:
-
-- dependency-policy validator and 11 fixtures;
-- all Playwright configs load without compatibility warnings;
-- all existing browser acceptance suites pass on the exact PR head;
-- screenshots, traces, videos and HTML evidence remain available on failure;
-- formatting, lint, typecheck, full unit tests and production build;
-- deterministic browser installation/cache review;
-- Offline Bundle and update/rollback preservation;
-- rollback by restoring the prior manifest/lockfile and cleaning/reinstalling browser binaries.
-
-## Completed jsdom migration evidence
-
-Issue #253 / PR #349 merged as `0f871d91124a70110a1948065554d55af6f183d2` from exact head `68242400e9604f6d8fcf446667d6543ec917a862`.
+No implementation or verification blocker remains on exact implementation head `0092a1035af913cbe5be22d2e57db2a3fc257e98`.
 
 Verified:
 
-- exact `jsdom 30.0.0` on Node `22.23.1`;
-- focused DOM contract GREEN 6/6;
-- complete Vitest suite and production build GREEN;
-- browser acceptance, Offline Auth Acceptance and Offline Bundle GREEN;
-- production runtime/offline closure unchanged.
+- current `main` base `67b471e44201f7c96ef4e51e7c3904e8c78df323` is included; branch is zero commits behind;
+- implementation diff is limited to five permitted permanent files;
+- 13 Playwright config hashes and 24 discovered tests are unchanged;
+- removed Playwright APIs are absent;
+- CI and every required browser acceptance workflow are GREEN;
+- Offline Auth Acceptance is GREEN;
+- Offline Bundle disconnected startup and update/rollback preservation are GREEN;
+- unresolved review threads are zero;
+- production dependencies, runtime containers, database/schema, acquisition, hardware and Modbus behavior are unchanged.
 
-## Dependency lane evidence
+Remaining control sequence:
 
-Issue #328 / PR #337 established focused lanes. Issue #343 / PR #344 excluded Playwright `>=1.56` from automation until Issue #254.
+1. validate the four-file state checkpoint;
+2. mark PR #352 Ready;
+3. repeat current-head, mergeability, review and required-check audit;
+4. squash merge PR #352 and confirm Issue #254 closure.
 
-PR status:
+## Next Ready Work Package boundary: Issue #355
 
-- #272 and #339 closed unmerged;
-- #340 open and unselected;
-- #341 open and unselected.
+After PR #352 merges, Issue #355 is the sole Ready package.
 
-## Queued sequence
+Required outcome:
+
+- load the Live Dashboard editor inventory from the organization-scoped canonical measurement catalog rather than paginated telemetry latest/history;
+- include eligible active channels even when no current sample exists;
+- keep the response bounded, deterministic and permission-aware;
+- optionally attach latest state only through a bounded indexed lookup;
+- preserve selected-series latest/history/WebSocket behavior after a dashboard opens;
+- prove a large telemetry history cannot cause the editor inventory request to exceed the existing 8-second client timeout;
+- record PostgreSQL timing/query-plan evidence and separate Raspberry Pi runtime evidence.
+
+Hard boundaries:
+
+- do not treat a larger global timeout as the primary fix;
+- do not change acquisition registry, scheduler, Modbus cadence or physical polling eligibility;
+- do not delete/truncate telemetry history;
+- do not add cloud or paid runtime dependencies;
+- no Modbus write, hardware action, secret exposure or production/site cutover;
+- Raspberry Pi latency remains `software verified; Raspberry Pi runtime latency acceptance pending` until physical evidence exists.
+
+## Dependency lanes
+
+Open and unselected dependency PRs: #340, #341, #346 and #347. PR #347 is superseded by the focused Playwright 1.62 migration after PR #352 merges. Do not combine any of them with Issue #355.
+
+Closed unmerged dependency PRs: #272 and #339.
+
+Queued sequence after Issue #355:
 
 ```text
-#254 Playwright 1.62.x
+#355 Live Dashboard canonical inventory defect
 → #252 lint-staged 17
 → #255 TypeScript 6
 ```
@@ -77,7 +75,3 @@ Issue #289 remains `software verified; hardware performance acceptance pending`.
 ## Global hard-stop rules
 
 Stop before destructive data/volume operations, production cutover, hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations or unsupported physical acceptance claims.
-
-## Next action
-
-Merge Issue #350 as an exact four-file state-only checkpoint. Then execute Issue #254 as one focused Playwright 1.62.x migration.

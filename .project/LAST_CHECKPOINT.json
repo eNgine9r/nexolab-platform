@@ -3,101 +3,83 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-350",
-  "issue": 350,
-  "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T08:35:00+03:00",
-  "branch": "docs/350-reconcile-jsdom-completion",
-  "product_baseline_sha": "0f871d91124a70110a1948065554d55af6f183d2",
-  "completed_work_packages": [
+  "task": "NEXOLAB-254",
+  "issue": 254,
+  "pull_request": 352,
+  "status": "verified_ready_for_merge",
+  "timestamp": "2026-08-06T10:55:00+03:00",
+  "branch": "maint/254-playwright-1-62",
+  "base_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
+  "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98",
+  "completed_predecessors": [
     {
-      "issue": 253,
-      "pull_request": 349,
-      "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
-      "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2",
-      "outcome": "focused jsdom 30 migration with preserved DOM test semantics and unchanged runtime closure"
+      "issue": 350,
+      "pull_request": 351,
+      "verified_head_sha": "7b9cefc21022981d0413e4518c19225dd3430609",
+      "merge_sha": "dff88feee94a6e6334f1e6ea2b515cec5ecff5be",
+      "outcome": "state-only jsdom completion reconciliation and Playwright promotion"
+    },
+    {
+      "issue": 353,
+      "pull_request": 354,
+      "verified_head_sha": "4161f0797c3d56b4839093797df3aca8eaa7adf4",
+      "merge_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
+      "outcome": "prompt WebSocket close-frame detection and exactly-once live-hub cleanup"
     }
   ],
-  "jsdom_migration_evidence": {
-    "version_before": "29.1.1",
-    "version_after": "30.0.0",
+  "playwright_migration_evidence": {
+    "version_before": "1.55.0",
+    "version_after": "1.62.0",
     "node_baseline": "22.23.1",
-    "engine_requirement": "^22.22.2 || ^24.15.0 || >=26.0.0",
-    "focused_contract": "green_6_of_6",
-    "lockfile_closure_documented": true,
-    "custom_resource_loader_added": false,
-    "hidden_network_fixture_added": false,
-    "test_skip_added": false,
-    "timeout_broadened": false,
+    "engine_requirement": ">=20",
+    "config_count": 13,
+    "discovered_test_count": 24,
+    "config_hashes_unchanged": true,
+    "test_discovery_unchanged": true,
+    "removed_api_findings": 0,
+    "chromium_install_verified": true,
+    "screenshots_preserved": true,
+    "traces_preserved": true,
+    "videos_preserved": true,
+    "html_reports_preserved": true,
     "production_dependency_changed": false,
     "runtime_closure_changed": false
   },
   "verification": {
-    "standalone_runtime_contract": "green",
-    "adr_registry_validation": "green_5_of_5",
-    "dependency_policy_validation": "green_11_of_11",
-    "node_baseline": "green_22.23.1",
-    "focused_jsdom_contract": "green_6_of_6",
-    "formatting": "green",
-    "lint": "green",
-    "typecheck": "green",
-    "full_vitest_suite": "green",
-    "production_build": "green",
+    "ci": "green",
+    "acquisition_scale": "green",
+    "authenticated_dashboard": "green",
+    "refrigeration_browser": "green",
+    "alerts_browser": "green",
     "reports_browser": "green",
     "rendered_reports_browser": "green",
     "nodes_browser": "green",
-    "refrigeration_browser": "green",
-    "alerts_browser": "green",
     "test_sessions_browser": "green",
     "security_browser": "green",
-    "authenticated_dashboard": "green",
-    "offline_auth": "green_after_same_head_failed_job_rerun",
-    "offline_bundle": "green"
-  },
-  "transient_failure_classification": {
-    "workflow": "Offline Auth Acceptance",
-    "first_attempt": "failed after postgres:16-alpine pull before disconnected acceptance",
-    "rerun": "same exact head passed migration upgrade/downgrade, disconnected authentication and evidence upload",
-    "classification": "external Docker runner failure; not a jsdom regression"
+    "offline_auth": "green",
+    "offline_bundle": "green_disconnected_startup_and_update_rollback"
   },
   "review_audit": {
-    "permanent_files": 4,
+    "implementation_files": 5,
+    "state_files": 4,
     "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
     "branch_behind_main": 0,
-    "direct_dependency_changes": ["jsdom"],
+    "mergeable": true,
     "production_dependencies_changed": false,
+    "runtime_closure_changed": false,
     "modbus_write": "none",
     "hardware_actions": "none",
     "production_cutover": "none"
   },
-  "dependency_pull_requests": {
-    "closed_unmerged": [272, 339],
-    "open_unselected": [340, 341]
+  "open_blockers": {
+    "issue_254": [],
+    "hardware_acceptance_issues": [289, 245, 189, 200, 201, 202],
+    "security_exception_expires_on": "2026-09-05"
   },
-  "security_exception": {
-    "image_id": "telemetry-service",
-    "package": "libcjson1",
-    "vulnerability": "CVE-2026-67216",
-    "expires_on": "2026-09-05",
-    "status": "affected",
-    "fixed_version": null,
-    "scope_broadened": false
-  },
-  "ordered_work_packages": [
-    { "issue": 254, "status": "ready" },
-    { "issue": 252, "status": "queued" },
-    { "issue": 255, "status": "queued" }
-  ],
   "next_ready_work_package": {
-    "issue": 254,
-    "title": "Migrate Playwright to 1.62.x",
-    "instruction": "Update only Playwright and its required lockfile closure, preserve all browser configs and evidence contracts, run every browser acceptance workflow plus Offline Bundle, inspect browser binary/cache behavior, document rollback, and do not combine other dependency updates."
-  },
-  "parallel_hardware_track": {
-    "epic_issue": 282,
-    "status": "software_complete_hardware_acceptance_pending",
-    "issues": [289, 245, 189, 200, 201, 202],
-    "completion_classification": "software verified; hardware performance acceptance pending"
+    "issue": 355,
+    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
+    "instruction": "Implement a bounded organization-scoped canonical measurement-catalog inventory endpoint and editor path, preserve selected-series latest/history/WebSocket behavior, prove large-history performance on PostgreSQL, keep physical polling unchanged, and classify Raspberry Pi latency separately until real runtime evidence exists."
   }
 }
