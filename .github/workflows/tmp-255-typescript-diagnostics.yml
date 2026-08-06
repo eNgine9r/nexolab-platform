@@ -1,4 +1,4 @@
-name: Temporary Issue 255 TypeScript Migration
+name: Temporary Issue 255 TypeScript Publisher
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  migrate:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -20,135 +20,41 @@ jobs:
           package-manager-cache: false
           node-version-file: .nvmrc
 
-      - name: Capture TypeScript 5.9 baseline
+      - name: Reproduce deterministic TypeScript 6 migration
         shell: bash
         env:
           HUSKY: "0"
         run: |
           set -Eeuo pipefail
-          mkdir -p /tmp/issue-255
-          cp package-lock.json /tmp/issue-255/package-lock-before.json
+          cp package-lock.json /tmp/package-lock-before.json
           npm ci --no-audit
-          node --version | tee /tmp/issue-255/node-version.txt
-          npm --version | tee /tmp/issue-255/npm-version.txt
-          npx tsc --version | tee /tmp/issue-255/typescript-before.txt
-          npm run typecheck | tee /tmp/issue-255/typecheck-before.txt
-
-      - name: Upgrade only TypeScript to the 6.0 transition line
-        env:
-          HUSKY: "0"
-        run: npm install --save-dev "typescript@^6.0.3" --no-audit
-
-      - name: Audit deterministic manifest and lockfile movement
-        shell: bash
-        run: |
-          set -Eeuo pipefail
+          test "$(npx tsc --version)" = "Version 5.9.3"
+          npm run typecheck
+          npm install --save-dev "typescript@^6.0.3" --no-audit
+          test "$(npx tsc --version)" = "Version 6.0.3"
           python - <<'PY'
           import json
           from pathlib import Path
 
-          before = json.loads(Path('/tmp/issue-255/package-lock-before.json').read_text())
+          before = json.loads(Path('/tmp/package-lock-before.json').read_text())
           after = json.loads(Path('package-lock.json').read_text())
           package = json.loads(Path('package.json').read_text())
-
           assert package['devDependencies']['typescript'] == '^6.0.3'
           assert after['packages']['']['devDependencies']['typescript'] == '^6.0.3'
           assert after['packages']['node_modules/typescript']['version'] == '6.0.3'
-
-          before_packages = before['packages']
-          after_packages = after['packages']
           changed = sorted(
               key
-              for key in set(before_packages) | set(after_packages)
-              if before_packages.get(key) != after_packages.get(key)
+              for key in set(before['packages']) | set(after['packages'])
+              if before['packages'].get(key) != after['packages'].get(key)
           )
-          allowed = {'', 'node_modules/typescript'}
-          unexpected = sorted(set(changed) - allowed)
-          if unexpected:
-              raise SystemExit(f'Unexpected lockfile package movement: {unexpected}')
-
-          evidence = {
-              'manifest_before': before_packages['']['devDependencies']['typescript'],
-              'manifest_after': after['packages']['']['devDependencies']['typescript'],
-              'resolved_before': before_packages['node_modules/typescript']['version'],
-              'resolved_after': after_packages['node_modules/typescript']['version'],
-              'changed_package_keys': changed,
-              'production_dependencies_changed': False,
-          }
-          Path('/tmp/issue-255/lockfile-audit.json').write_text(
-              json.dumps(evidence, indent=2) + '\n'
-          )
+          assert changed == ['', 'node_modules/typescript'], changed
           PY
-
-      - name: Verify TypeScript 6 configuration and program coverage
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          npx tsc --version | tee /tmp/issue-255/typescript-after.txt
-          npm run typecheck | tee /tmp/issue-255/typecheck-after.txt
-          npx tsc --showConfig > /tmp/issue-255/show-config-after.json
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          source = json.loads(Path('tsconfig.json').read_text())
-          shown = json.loads(Path('/tmp/issue-255/show-config-after.json').read_text())
-          compiler = source['compilerOptions']
-
-          expected = {
-              'strict': True,
-              'noEmit': True,
-              'isolatedModules': True,
-              'module': 'esnext',
-              'moduleResolution': 'bundler',
-              'target': 'ES2017',
-          }
-          for key, value in expected.items():
-              assert compiler.get(key) == value, (key, compiler.get(key), value)
-
-          assert 'ignoreDeprecations' not in compiler
-          assert 'baseUrl' not in compiler
-          assert compiler['paths'] == {'@/*': ['./src/*']}
-
-          files = set(shown['files'])
-          configs = sorted(path.as_posix() for path in Path('.').glob('playwright.*.config.ts'))
-          e2e_files = sorted(path.as_posix() for path in Path('e2e').glob('*.ts'))
-          required = configs + e2e_files + ['vitest.config.ts']
-          missing = [path for path in required if f'./{path}' not in files]
-          if missing:
-              raise SystemExit(f'TypeScript program coverage is incomplete: {missing}')
-
-          evidence = {
-              'strict': compiler['strict'],
-              'noEmit': compiler['noEmit'],
-              'isolatedModules': compiler['isolatedModules'],
-              'module': compiler['module'],
-              'moduleResolution': compiler['moduleResolution'],
-              'target': compiler['target'],
-              'types': compiler.get('types', '<implicit TypeScript 6 default []>'),
-              'ignoreDeprecations_present': 'ignoreDeprecations' in compiler,
-              'baseUrl_present': 'baseUrl' in compiler,
-              'playwright_config_count': len(configs),
-              'e2e_typescript_file_count': len(e2e_files),
-              'all_playwright_and_e2e_files_in_program': not missing,
-              'vitest_config_in_program': True,
-              'new_diagnostics': 0,
-          }
-          Path('/tmp/issue-255/config-audit.json').write_text(
-              json.dumps(evidence, indent=2) + '\n'
-          )
-          PY
-
-      - name: Verify lint, Vitest, Playwright package and production build
-        shell: bash
-        run: |
-          set -Eeuo pipefail
+          npm run typecheck
           npm run lint
           npm test
-          npx playwright --version | tee /tmp/issue-255/playwright-version.txt
-          npm run build
+          NEXT_TELEMETRY_DISABLED=1 npm run build
 
-      - name: Write migration evidence
+      - name: Write permanent migration evidence
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -156,16 +62,14 @@ jobs:
           cat > docs/maintenance/typescript-6-migration.md <<'EOF'
           # TypeScript 6 transition migration
 
-          Issue: #255  
-          Selected release: TypeScript `6.0.3`  
-          Previous resolved release: TypeScript `5.9.3`  
-          Node baseline: `22.23.1`
+          - Issue: #255
+          - Selected release: TypeScript `6.0.3`
+          - Previous resolved release: TypeScript `5.9.3`
+          - Node baseline: `22.23.1`
 
           ## Release selection
 
-          TypeScript `6.0.3` is the latest stable release in the official 6.x transition line. The TypeScript team describes 6.0 as the bridge from the JavaScript-based 5.9 compiler to the native TypeScript 7 compiler.
-
-          TypeScript 7 is intentionally excluded from this Work Package and remains tracked separately by Issue #256.
+          TypeScript `6.0.3` is the selected stable release in the official 6.x transition line. TypeScript 7 is excluded from this Work Package and remains tracked separately by Issue #256.
 
           Primary upstream references:
 
@@ -187,24 +91,32 @@ jobs:
           2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f
           ```
 
+          Full migration workflow `31100010365` also completed baseline typecheck, deterministic lockfile audit, TypeScript 6 typecheck, compiler-option audit, TypeScript-program coverage, ESLint, 300 Vitest tests, lint-staged integration tests, Playwright package loading, Next.js production build, and evidence formatting before its publish-only whitespace check.
+
+          Migration artifact SHA-256:
+
+          ```text
+          b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7
+          ```
+
           No application, test, Playwright, Vitest, Next.js configuration, or declaration diagnostic required a source change.
 
           ## Compiler-option classification
 
           | TypeScript 6 change | NEXOLAB classification |
           | --- | --- |
-          | `strict` now defaults to `true` | Already explicitly `true`; unchanged. |
-          | `module` now defaults to `esnext` | Already explicitly `esnext`; unchanged. |
-          | `target` default is newer | NEXOLAB explicitly retains `ES2017`; emitted/runtime behavior remains unchanged. |
+          | `strict` defaults to `true` | Already explicitly `true`; unchanged. |
+          | `module` defaults to `esnext` | Already explicitly `esnext`; unchanged. |
+          | newer default `target` | Explicit `ES2017` retained; emitted/runtime behavior unchanged. |
           | `noUncheckedSideEffectImports` default changes | Full TypeScript 6 typecheck passes; no override added. |
-          | `rootDir` default changes | NEXOLAB uses `noEmit`; no output-layout change or `rootDir` adjustment is required. |
-          | `types` defaults to `[]` | Full program passes with zero missing-global diagnostics; no broad `types: ["*"]` or unnecessary global package list is added. |
-          | `moduleResolution: node` deprecated | NEXOLAB already uses `bundler`, the recommended bundled-web path. |
-          | `baseUrl` deprecated | NEXOLAB has no `baseUrl`; `@/*` already maps explicitly to `./src/*`. |
-          | DOM iterable declarations merged into `dom` | Existing `dom.iterable` entry is harmless; removing it is unrelated cleanup and is not included. |
-          | `stableTypeOrdering` available for 7.0 comparison | Not enabled because this package targets TypeScript 6 only and emits no declarations. |
+          | `rootDir` default changes | `noEmit` remains enabled; no output-layout adjustment required. |
+          | `types` defaults to `[]` | Zero missing-global diagnostics; no broad `types` list added. |
+          | `moduleResolution: node` deprecated | NEXOLAB already uses `bundler`. |
+          | `baseUrl` deprecated | NEXOLAB has no `baseUrl`; `@/*` maps explicitly to `./src/*`. |
+          | DOM iterable declarations merged into `dom` | Existing `dom.iterable` is retained to avoid unrelated cleanup. |
+          | `stableTypeOrdering` for 7.0 comparison | Not enabled; TypeScript 7 and declaration comparison are outside scope. |
 
-          Existing `skipLibCheck: true` is retained exactly as the pre-migration baseline. This Work Package does not weaken it or introduce any new ignore mechanism.
+          Existing `skipLibCheck: true` is retained exactly as the pre-migration baseline. No `ignoreDeprecations`, broad ignore, `any` baseline, or mass `ts-expect-error` was introduced.
 
           ## Deterministic dependency boundary
 
@@ -215,23 +127,11 @@ jobs:
 
           No production dependency or additional package node changes.
 
-          ## Verification
+          ## Verification boundary
 
-          The migration workflow runs:
+          `tsc --showConfig` proves that every root `playwright.*.config.ts`, every `e2e/*.ts`, and `vitest.config.ts` remains inside the TypeScript 6 program. Production Playwright suites require scenario-specific authenticated environment variables, so actual configuration and runtime behavior are verified by PR exact-head browser workflows rather than an environment-free `playwright test --list` call.
 
-          - TypeScript 5.9 baseline `tsc --noEmit`;
-          - TypeScript 6.0.3 `tsc --noEmit`;
-          - explicit compiler-option invariant audit;
-          - TypeScript-program inclusion audit for every root `playwright.*.config.ts`, every `e2e/*.ts`, and `vitest.config.ts`;
-          - ESLint;
-          - Vitest and the lint-staged integration harness through `npm test`;
-          - Playwright package loading/version verification;
-          - Next.js production build;
-          - focused repository formatting.
-
-          Production Playwright suites require scenario-specific authenticated environment variables. Their actual configuration and runtime behavior are verified by the PR exact-head browser workflows instead of an environment-free `playwright test --list` call.
-
-          PR exact-head workflows provide the final browser, Offline Auth, and disconnected Offline Bundle evidence.
+          Final PR verification must include CI, TypeScript-aware ESLint, Vitest, Next.js production build, browser acceptance, Offline Auth, and disconnected Offline Bundle.
 
           ## Runtime and safety boundary
 
@@ -239,20 +139,12 @@ jobs:
 
           ## Rollback
 
-          Restore `typescript` to `^5`, restore the previous lockfile entries resolving `5.9.3`, remove this migration document, and rerun format, lint, typecheck, tests, production build, browser acceptance, Offline Auth, and Offline Bundle. No database, volume, hardware, or site rollback is required.
+          Restore `typescript` to `^5`, restore lockfile entries resolving `5.9.3`, remove this document, and rerun format, lint, typecheck, tests, production build, browser acceptance, Offline Auth, and Offline Bundle. No database, volume, hardware, or site rollback is required.
           EOF
           npx prettier --write package.json package-lock.json docs/maintenance/typescript-6-migration.md
           npx prettier --check package.json package-lock.json docs/maintenance/typescript-6-migration.md
 
-      - name: Upload migration evidence
-        uses: actions/upload-artifact@v7
-        with:
-          name: issue-255-typescript-6-migration
-          path: /tmp/issue-255
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Publish verified migration and remove temporary workflow
+      - name: Publish and remove temporary workflow
         shell: bash
         run: |
           set -Eeuo pipefail
