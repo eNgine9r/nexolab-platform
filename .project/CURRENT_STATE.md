@@ -26,10 +26,10 @@ Verified scope:
 
 Diagnostic workflow `31099428290` compared the same repository state:
 
-| Check | TypeScript 5.9.3 | TypeScript 6.0.3 |
-| --- | ---: | ---: |
-| `tsc --noEmit` exit code | `0` | `0` |
-| New diagnostics | — | `0` |
+| Check                    | TypeScript 5.9.3 | TypeScript 6.0.3 |
+| ------------------------ | ---------------: | ---------------: |
+| `tsc --noEmit` exit code |              `0` |              `0` |
+| New diagnostics          |                — |              `0` |
 
 Diagnostic artifact SHA-256:
 
