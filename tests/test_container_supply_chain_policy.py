@@ -197,7 +197,7 @@ def test_workflow_binds_pull_request_evidence_to_head_sha() -> None:
     assert "SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" in workflow
     assert workflow.count("ref: ${{ env.SOURCE_SHA }}") == 4
     assert (
-        "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ env.SOURCE_SHA }}"
+        "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ github.event.pull_request.head.sha || github.sha }}"
         in workflow
     )
     assert (
@@ -209,4 +209,4 @@ def test_workflow_binds_pull_request_evidence_to_head_sha() -> None:
     assert 'test "$revision" = "$SOURCE_SHA"' in workflow
     assert '--commit "$SOURCE_SHA"' in workflow
     assert '"commit": os.environ["SOURCE_SHA"],' in workflow
-    assert workflow.count("github.sha") == 1
+    assert workflow.count("github.sha") == 2

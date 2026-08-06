@@ -130,7 +130,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.policy.outputs.matrix) }}
     env:
-      LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ env.SOURCE_SHA }}
+      LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ github.event.pull_request.head.sha || github.sha }}
       EVIDENCE_DIR: evidence
     steps:
       - name: Checkout exact commit
