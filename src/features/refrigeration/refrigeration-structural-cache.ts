@@ -2,7 +2,6 @@ import type { EquipmentLifecycleRepository } from "./equipment-lifecycle-reposit
 import type {
   PublishLayoutDraftInput,
   RefrigerationLayoutRepository,
-  RepositoryResult,
   RestoreLayoutRevisionInput,
   SaveLayoutDraftInput,
   UploadEquipmentImageInput,
@@ -116,11 +115,17 @@ export function createCachedEquipmentLifecycleRepository(
         repository.listClimateChamberChannels(chamberId),
       ),
     listImages: (equipmentId) =>
-      cached(scope, `equipment:${encodeURIComponent(equipmentId)}:images`, () =>
-        repository.listImages(equipmentId),
+      cached(
+        scope,
+        `equipment:${encodeURIComponent(equipmentId)}:images`,
+        () => repository.listImages(equipmentId),
       ),
     retireImage: async (equipmentId, imageId, expectedVersion) => {
-      const result = await repository.retireImage(equipmentId, imageId, expectedVersion);
+      const result = await repository.retireImage(
+        equipmentId,
+        imageId,
+        expectedVersion,
+      );
       invalidateRefrigerationStructuralCache(scope, equipmentId);
       return result;
     },
@@ -131,8 +136,10 @@ export function createCachedEquipmentLifecycleRepository(
         () => repository.listBindings(equipmentId, includeHistory),
       ),
     listAvailableSensors: (equipmentId) =>
-      cached(scope, `equipment:${encodeURIComponent(equipmentId)}:available`, () =>
-        repository.listAvailableSensors(equipmentId),
+      cached(
+        scope,
+        `equipment:${encodeURIComponent(equipmentId)}:available`,
+        () => repository.listAvailableSensors(equipmentId),
       ),
     replaceSensorConfiguration: async (...args) => {
       const result = await repository.replaceSensorConfiguration(...args);
@@ -168,11 +175,17 @@ export function createCachedLayoutRepository(
 
   return {
     getDraft: (equipmentId) =>
-      cached(scope, draftKey(equipmentId), () => repository.getDraft(equipmentId)),
+      cached(scope, draftKey(equipmentId), () =>
+        repository.getDraft(equipmentId),
+      ),
     getPublished: (equipmentId) =>
-      cached(scope, publishedKey(equipmentId), () => repository.getPublished(equipmentId)),
+      cached(scope, publishedKey(equipmentId), () =>
+        repository.getPublished(equipmentId),
+      ),
     listHistory: (equipmentId) =>
-      cached(scope, historyKey(equipmentId), () => repository.listHistory(equipmentId)),
+      cached(scope, historyKey(equipmentId), () =>
+        repository.listHistory(equipmentId),
+      ),
     saveDraft: async (input: SaveLayoutDraftInput) => {
       const result = await repository.saveDraft(input);
       if (result.ok) invalidate(input.equipmentId);
