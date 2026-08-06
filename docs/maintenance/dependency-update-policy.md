@@ -25,12 +25,12 @@ PR #272 remains an independent unselected production dependency review. Issue #3
 
 Development patch and minor updates may be grouped only when they share one verification surface:
 
-| Group | Packages | Verification surface |
-| --- | --- | --- |
-| `development-test-patch-minor` | Playwright, Testing Library, jsdom, Vitest and the Vite React test plugin | unit, browser and test-runtime compatibility |
-| `development-quality-patch-minor` | Commitlint, ESLint, Husky, lint-staged and Prettier | repository quality gates and commit hooks |
-| `development-build-patch-minor` | Tailwind CSS and its PostCSS adapter | CSS compilation and production build |
-| `development-react-types-patch-minor` | React and React DOM type packages | TypeScript and React component contracts |
+| Group                                 | Packages                                                                  | Verification surface                         |
+| ------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------- |
+| `development-test-patch-minor`        | Playwright, Testing Library, jsdom, Vitest and the Vite React test plugin | unit, browser and test-runtime compatibility |
+| `development-quality-patch-minor`     | Commitlint, ESLint, Husky, lint-staged and Prettier                       | repository quality gates and commit hooks    |
+| `development-build-patch-minor`       | Tailwind CSS and its PostCSS adapter                                      | CSS compilation and production build         |
+| `development-react-types-patch-minor` | React and React DOM type packages                                         | TypeScript and React component contracts     |
 
 `@types/node` and `typescript` remain individual even for patch/minor updates because they define repository-wide compiler and runtime assumptions.
 
@@ -42,14 +42,14 @@ Every major migration requires one dedicated Issue, one feature branch, one focu
 
 Current migration mapping:
 
-| Migration | Dedicated Issue | Status |
-| --- | ---: | --- |
-| lint-staged 17 | #252 | queued |
-| jsdom 30 | #253 | queued |
-| @playwright/test 1.62.x | #254 | queued |
-| TypeScript 6 | #255 | queued |
-| TypeScript 7 | #256 | deferred |
-| ESLint 10 | #257 | blocked on compatible Next.js/plugin graph |
+| Migration               | Dedicated Issue | Status                                     |
+| ----------------------- | --------------: | ------------------------------------------ |
+| lint-staged 17          |            #252 | queued                                     |
+| jsdom 30                |            #253 | queued                                     |
+| @playwright/test 1.62.x |            #254 | queued                                     |
+| TypeScript 6            |            #255 | queued                                     |
+| TypeScript 7            |            #256 | deferred                                   |
+| ESLint 10               |            #257 | blocked on compatible Next.js/plugin graph |
 
 ## Node runtime boundary
 
