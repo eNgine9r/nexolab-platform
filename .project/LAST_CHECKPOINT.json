@@ -3,26 +3,75 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-329",
-  "issue": 329,
+  "task": "NEXOLAB-332",
+  "issue": 332,
   "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T04:18:00+03:00",
-  "branch": "docs/329-open-engineering-hardening-sprint",
-  "product_baseline_sha": "a8b2590c94a2fa67cd414f4b956f204e6b8f8540",
-  "active_epic": {
-    "issue": 326,
-    "title": "Engineering governance, security exception lifecycle and toolchain hardening",
-    "status": "active"
+  "timestamp": "2026-08-06T05:30:00+03:00",
+  "branch": "docs/332-reconcile-cjson-review",
+  "product_baseline_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
+  "completed_work_package": {
+    "issue": 327,
+    "pull_request": 331,
+    "title": "Revalidate the expiring cJSON vulnerability exception",
+    "verified_head_sha": "d05e3e2405f55a7b8f5d3b722e1165924a4eaf9e",
+    "merge_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
+    "completion_classification": "narrow exception renewed; fixed package unavailable; next review date recorded"
+  },
+  "security_evidence": {
+    "image_id": "telemetry-service",
+    "image_digest": "sha256:544eead98d548c84c938922deb2513b1428994271600fa027dd5895c9813b24d",
+    "artifact_digest": "sha256:66ca11b7f8a8598a9a0c4abb8798b6bebc9c3869c40793a945ee62a60ad045b4",
+    "package": "libcjson1",
+    "installed_version": "1.7.18-3.1+deb13u1",
+    "vulnerability": "CVE-2026-67216",
+    "severity": "HIGH",
+    "status": "affected",
+    "fixed_version": null,
+    "owner": "platform-security",
+    "expires_on": "2026-09-05",
+    "exact_exception_count": 1,
+    "wildcard_exception_allowed": false,
+    "maximum_exception_lifetime_days": 45,
+    "unused_mosquitto_clients_removed": true,
+    "required_mosquitto_ctrl_present": true,
+    "mosquitto_pub_present": false,
+    "exact_head_provenance_verified": true
+  },
+  "verification": {
+    "formatting": "green",
+    "lint": "green",
+    "typecheck": "green",
+    "tests": "green",
+    "production_build": "green",
+    "container_supply_chain": "green",
+    "telemetry_service": "green",
+    "broker_control_acceptance": "green",
+    "mqtt_tls_fleet_acceptance": "green",
+    "offline_auth_acceptance": "green",
+    "device_agent_fleet_acceptance": "green",
+    "capacity_release_gate": "green",
+    "disaster_recovery_tls_fleet": "green",
+    "disaster_recovery_browser": "green",
+    "offline_bundle": "green",
+    "offline_blocked_egress": "green",
+    "offline_update_rollback_volume_preservation": "green"
+  },
+  "review_audit": {
+    "focused_permanent_files": 6,
+    "temporary_workflows_in_final_diff": 0,
+    "unresolved_review_threads": 0,
+    "behind_main_commits_before_merge": 0,
+    "acquisition_files_changed": 0,
+    "frontend_files_changed": 0,
+    "database_migrations_changed": 0,
+    "modbus_write": "none",
+    "hardware_actions": "none",
+    "production_cutover": "none"
   },
   "ordered_work_packages": [
     {
-      "issue": 327,
-      "status": "ready",
-      "review_due": "2026-08-15"
-    },
-    {
       "issue": 300,
-      "status": "queued"
+      "status": "ready"
     },
     {
       "issue": 328,
@@ -45,33 +94,10 @@
       "status": "queued"
     }
   ],
-  "deferred_or_blocked": [
-    {
-      "issue": 257,
-      "status": "blocked",
-      "reason": "Compatible Next.js and ESLint plugin graph is not established."
-    },
-    {
-      "issue": 256,
-      "status": "deferred",
-      "reason": "Depends on TypeScript 6 and TypeScript 7 ecosystem support."
-    }
-  ],
-  "dependency_pull_requests": {
-    "pull_request_271": {
-      "state": "closed",
-      "merged": false,
-      "classification": "superseded_grouped_major_update"
-    },
-    "pull_request_272": {
-      "state": "open",
-      "classification": "independent_unselected_review"
-    }
-  },
   "next_ready_work_package": {
-    "issue": 327,
-    "title": "Revalidate the expiring cJSON vulnerability exception",
-    "reason": "Critical repository deadline on 2026-08-15; exact current image evidence is required before deciding whether to remove or renew the exception."
+    "issue": 300,
+    "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
+    "instruction": "After merging the exact four-file checkpoint, inventory all ADR locations and references, establish one canonical registry, preserve legacy links, add deterministic integrity checks, and avoid runtime or dependency changes."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,
@@ -80,17 +106,12 @@
     "physical_raspberry_pi_rs485_verified": false,
     "completion_classification": "software verified; hardware performance acceptance pending"
   },
-  "state_change_scope": [
-    ".project/CURRENT_STATE.md",
-    ".project/ACTIVE_SPRINT.json",
-    ".project/BLOCKERS.md",
-    ".project/LAST_CHECKPOINT.json"
-  ],
   "guardrails": [
     "one Issue, one branch and one focused Pull Request",
-    "do not assume CVE-2026-67216 or libcjson1 is fixed before rebuilding and rescanning the exact image",
-    "do not group unrelated major dependency migrations",
-    "preserve LOCAL_LAN and disconnected runtime guarantees",
+    "do not broaden the cJSON exception",
+    "review the exact cJSON image again by 2026-09-05",
+    "preserve accepted ADR content and legacy links",
+    "do not change dependencies or runtime behavior in Issue 300",
     "do not perform Modbus or other hardware writes",
     "do not claim physical acceptance without controlled evidence"
   ]
