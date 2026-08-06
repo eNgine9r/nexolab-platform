@@ -76,6 +76,44 @@ The harness operates only in temporary directories. It does not mutate the devel
 
 The full repository `npm test` command includes this harness so future CI runs retain the migration acceptance boundary.
 
+## Verified preparation evidence
+
+Preparation workflow run `31096023579` regenerated the lockfile under the exact repository Node baseline and completed successfully.
+
+```json
+{
+  "git": "git version 2.54.0",
+  "lintStaged": "17.3.0",
+  "node": "22.23.1",
+  "verified": [
+    "production-eslint-prettier-order",
+    "partial-stage-success",
+    "failure-rollback",
+    "empty-stage"
+  ]
+}
+```
+
+The same run completed repository formatting, lint, typecheck, the full test suite and production build before publishing the permanent files.
+
+The focused preparation artifact was recorded with SHA-256:
+
+```text
+0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b
+```
+
+## Lockfile graph audit
+
+The lockfile resolves `lint-staged 17.3.0` and updates its direct development-only graph to:
+
+- `picomatch ^4.0.5`;
+- `string-argv ^0.3.2`;
+- `tinyexec ^1.2.4`.
+
+The v16-only CLI rendering and YAML graph is removed, including `commander`, `listr2` and the mandatory transitive `yaml` entry previously pulled by lint-staged. This matches the v17 package contract because NEXOLAB stores configuration in `package.json`.
+
+No production dependency is changed. The focused comparison against the verified `main` baseline contains exactly four permanent files.
+
 ## Runtime and offline impact
 
 - lint-staged remains a development-only dependency;
