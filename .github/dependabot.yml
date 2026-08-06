@@ -1,15 +1,69 @@
+# Policy contract validated by scripts/validate-dependency-policy.py.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+      day: monday
+      time: "04:00"
+      timezone: Europe/Kyiv
+    open-pull-requests-limit: 10
+    rebase-strategy: disabled
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "area:devops"
     groups:
-      development-dependencies:
+      development-test-patch-minor:
         dependency-type: development
-      production-dependencies:
-        dependency-type: production
+        patterns:
+          - "@playwright/test"
+          - "@testing-library/jest-dom"
+          - "@testing-library/react"
+          - "@vitejs/plugin-react"
+          - "jsdom"
+          - "vitest"
+        update-types:
+          - patch
+          - minor
+      development-quality-patch-minor:
+        dependency-type: development
+        patterns:
+          - "@commitlint/cli"
+          - "@commitlint/config-conventional"
+          - "eslint"
+          - "eslint-config-next"
+          - "husky"
+          - "lint-staged"
+          - "prettier"
+          - "prettier-plugin-tailwindcss"
+        update-types:
+          - patch
+          - minor
+      development-build-patch-minor:
+        dependency-type: development
+        patterns:
+          - "@tailwindcss/postcss"
+          - "tailwindcss"
+        update-types:
+          - patch
+          - minor
+      development-react-types-patch-minor:
+        dependency-type: development
+        patterns:
+          - "@types/react"
+          - "@types/react-dom"
+        update-types:
+          - patch
+          - minor
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@types/node"
+        versions:
+          - ">=23"
   - package-ecosystem: github-actions
     directory: /
     schedule:
