@@ -65,14 +65,14 @@ Exact query-plan evidence was captured in the Telemetry Service workflow on impl
 
 Fixture and results:
 
-| Evidence | Result |
-| --- | ---: |
-| Canonical catalog channels | 2 |
-| Telemetry fixture rows | 50,003 |
-| `EXPLAIN ANALYZE` execution | 0.363 ms |
-| Complete repository call | 13.085 ms |
-| Client timeout boundary | 8,000 ms |
-| Latest lookup index | `ix_telemetry_latest_lookup` |
+| Evidence                    |                       Result |
+| --------------------------- | ---------------------------: |
+| Canonical catalog channels  |                            2 |
+| Telemetry fixture rows      |                       50,003 |
+| `EXPLAIN ANALYZE` execution |                     0.363 ms |
+| Complete repository call    |                    13.085 ms |
+| Client timeout boundary     |                     8,000 ms |
+| Latest lookup index         | `ix_telemetry_latest_lookup` |
 
 The fixture contained 50,000 unrelated telemetry samples, three samples for one eligible catalog channel and one eligible catalog channel with no sample. The latest sampled channel returned the newest value and alarm; the no-sample channel remained visible.
 
