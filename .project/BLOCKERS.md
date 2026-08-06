@@ -2,49 +2,64 @@
 
 Updated: 2026-08-06
 
-## Active Work Package boundary: jsdom 30
+## Active Work Package boundary: Playwright 1.62.x
 
-Issue #253 is the sole Next Ready Work Package after Issue #345 merges.
+Issue #254 is the sole Next Ready Work Package after Issue #350 merges.
 
 Allowed scope:
 
-- update only `jsdom` from major 29 to major 30;
-- update only the lockfile closure required by jsdom;
-- verify Vitest and Testing Library environment compatibility;
-- add targeted tests only where jsdom 30 changes observable test behavior;
-- document transitive/offline impact and rollback.
+- update only `@playwright/test` from 1.55.x to exact 1.62.x;
+- update only the lockfile closure required by Playwright;
+- review official 1.56–1.62 breaking changes and browser revisions;
+- preserve existing Playwright config names, `testMatch` contracts, single-worker behavior, timeouts and evidence locations unless a required change is explicitly documented;
+- verify browser installation/cache behavior and every browser acceptance workflow;
+- verify Offline Bundle and document browser-cache rollback.
 
 Hard boundaries:
 
-- do not combine Playwright, Vite plugin, React types, lint-staged, TypeScript, ESLint, Node types or production dependency changes;
+- do not combine React types, lucide, Vite plugin, lint-staged, TypeScript, ESLint, Node types, jsdom or production dependency changes;
 - preserve Node 22 and `@types/node` major 22;
-- do not merge open Dependabot PRs #340 or #341 inside Issue #253;
-- no runtime API, database, acquisition, hardware, Modbus, secret or deployment changes.
+- do not merge open Dependabot PRs #340 or #341 inside Issue #254;
+- do not rewrite selectors or product behavior unless Playwright 1.62 removed an API and the focused compatibility change is documented;
+- no runtime API, database, acquisition, hardware, Modbus, secret or production/site deployment changes.
 
 Required checks:
 
 - dependency-policy validator and 11 fixtures;
+- all Playwright configs load without compatibility warnings;
+- all existing browser acceptance suites pass on the exact PR head;
+- screenshots, traces, videos and HTML evidence remain available on failure;
 - formatting, lint, typecheck, full unit tests and production build;
-- focused jsdom/Vitest/Testing Library tests;
-- transitive dependency and offline closure review;
-- rollback by restoring the prior manifest and lockfile state.
+- deterministic browser installation/cache review;
+- Offline Bundle and update/rollback preservation;
+- rollback by restoring the prior manifest/lockfile and cleaning/reinstalling browser binaries.
+
+## Completed jsdom migration evidence
+
+Issue #253 / PR #349 merged as `0f871d91124a70110a1948065554d55af6f183d2` from exact head `68242400e9604f6d8fcf446667d6543ec917a862`.
+
+Verified:
+
+- exact `jsdom 30.0.0` on Node `22.23.1`;
+- focused DOM contract GREEN 6/6;
+- complete Vitest suite and production build GREEN;
+- browser acceptance, Offline Auth Acceptance and Offline Bundle GREEN;
+- production runtime/offline closure unchanged.
 
 ## Dependency lane evidence
 
-Issue #328 / PR #337 established focused lanes. Issue #343 / PR #344 corrected live behavior by excluding Playwright `>=1.56` from automation until Issue #254.
+Issue #328 / PR #337 established focused lanes. Issue #343 / PR #344 excluded Playwright `>=1.56` from automation until Issue #254.
 
 PR status:
 
-- #272 closed unmerged; GitHub branch recreation prevented reopening;
-- #339 closed unmerged as an invalid grouped migration;
+- #272 and #339 closed unmerged;
 - #340 open and unselected;
 - #341 open and unselected.
 
 ## Queued sequence
 
 ```text
-#253 jsdom 30
-→ #254 Playwright 1.62.x
+#254 Playwright 1.62.x
 → #252 lint-staged 17
 → #255 TypeScript 6
 ```
@@ -65,4 +80,4 @@ Stop before destructive data/volume operations, production cutover, hardware wri
 
 ## Next action
 
-Merge Issue #345 as an exact four-file state-only checkpoint. Then execute Issue #253 as one focused jsdom 30 migration.
+Merge Issue #350 as an exact four-file state-only checkpoint. Then execute Issue #254 as one focused Playwright 1.62.x migration.
