@@ -46,7 +46,7 @@ def valid_exception() -> dict[str, str]:
         "vulnerability": "CVE-2026-12345",
         "reason": "No fixed package exists; exposure is blocked by the runtime profile.",
         "owner": "security-team",
-        "expires_on": "2026-12-31",
+        "expires_on": "2026-08-31",
     }
 
 
@@ -63,26 +63,49 @@ def test_inventory_rejects_missing_dockerfile(tmp_path: Path) -> None:
         MODULE.validate_inventory(path, tmp_path)
 
 
-def test_exceptions_reject_wildcards(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("image_id", "telemetry-*"),
+        ("package", "libcjson*"),
+        ("vulnerability", "CVE-2026-*"),
+    ],
+)
+def test_exceptions_reject_broad_match_patterns(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
     entry = valid_exception()
-    entry["vulnerability"] = "CVE-*"
+    entry[field] = value
     path = write_json(
         tmp_path / "exceptions.json",
         {"schema_version": 1, "exceptions": [entry]},
     )
     with pytest.raises(ValidationFailure, match="wildcard"):
-        MODULE.validate_exceptions(path, date(2026, 7, 28))
+        MODULE.validate_exceptions(path, date(2026, 8, 6))
 
 
 def test_exceptions_reject_expired_entries(tmp_path: Path) -> None:
     entry = valid_exception()
-    entry["expires_on"] = "2026-07-27"
+    entry["expires_on"] = "2026-08-05"
     path = write_json(
         tmp_path / "exceptions.json",
         {"schema_version": 1, "exceptions": [entry]},
     )
     with pytest.raises(ValidationFailure, match="expired"):
-        MODULE.validate_exceptions(path, date(2026, 7, 28))
+        MODULE.validate_exceptions(path, date(2026, 8, 6))
+
+
+def test_exceptions_reject_long_lived_entries(tmp_path: Path) -> None:
+    entry = valid_exception()
+    entry["expires_on"] = "2026-09-21"
+    path = write_json(
+        tmp_path / "exceptions.json",
+        {"schema_version": 1, "exceptions": [entry]},
+    )
+    with pytest.raises(ValidationFailure, match="within 45 days"):
+        MODULE.validate_exceptions(path, date(2026, 8, 6))
 
 
 def test_exceptions_require_exact_cve(tmp_path: Path) -> None:
@@ -93,7 +116,7 @@ def test_exceptions_require_exact_cve(tmp_path: Path) -> None:
         {"schema_version": 1, "exceptions": [entry]},
     )
     with pytest.raises(ValidationFailure, match="exact CVE"):
-        MODULE.validate_exceptions(path, date(2026, 7, 28))
+        MODULE.validate_exceptions(path, date(2026, 8, 6))
 
 
 def test_empty_exception_registry_is_valid(tmp_path: Path) -> None:
@@ -101,7 +124,43 @@ def test_empty_exception_registry_is_valid(tmp_path: Path) -> None:
         tmp_path / "exceptions.json",
         {"schema_version": 1, "exceptions": []},
     )
-    MODULE.validate_exceptions(path, date(2026, 7, 28))
+    MODULE.validate_exceptions(path, date(2026, 8, 6))
+
+
+def test_current_cjson_exception_is_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "telemetry-service"
+        and entry["package"] == "libcjson1"
+        and entry["vulnerability"] == "CVE-2026-67216"
+    ]
+
+    assert len(matches) == 1
+    decision = matches[0]
+    assert decision["owner"] == "platform-security"
+    assert decision["expires_on"] == "2026-09-05"
+    assert "mosquitto_ctrl" in decision["reason"]
+    assert "Reviewed 2026-08-06" in decision["reason"]
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 8, 6),
+    )
+
+
+def test_telemetry_image_installs_only_required_dynsec_client() -> None:
+    dockerfile = (
+        Path(__file__).resolve().parents[1]
+        / "services/telemetry-service/Dockerfile"
+    ).read_text(encoding="utf-8")
+
+    assert "mosquitto-clients" not in dockerfile
+    assert "command -v mosquitto_ctrl >/dev/null" in dockerfile
+    assert "! command -v mosquitto_pub >/dev/null" in dockerfile
 
 
 def test_workflow_refreshes_base_and_versions_device_agent_cache() -> None:
