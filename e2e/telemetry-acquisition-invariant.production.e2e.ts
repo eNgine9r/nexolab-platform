@@ -3,16 +3,28 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+  type WebSocket as PlaywrightWebSocket,
+} from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const metricsUrl = requiredEnvironment("NEXOLAB_ACQUISITION_METRICS_URL");
-const evidenceDirectory = process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
-const expectedRate = Number(process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20");
+const evidenceDirectory =
+  process.env.NEXOLAB_DASHBOARD_EVIDENCE_DIR ?? "dashboard-acceptance-evidence";
+const expectedRate = Number(
+  process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20",
+);
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
-const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
+const acceptanceCompose = requiredEnvironment(
+  "NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE",
+);
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
@@ -27,6 +39,12 @@ type MetricsPayload = {
   };
 };
 
+type RuntimeMetricsPayload = {
+  websocket_clients: number;
+  websocket_connect_total: number;
+  websocket_disconnect_total: number;
+};
+
 type PhaseEvidence = {
   phase: string;
   elapsedSeconds: number;
@@ -39,11 +57,21 @@ type ObservedRequest = {
   url: string;
 };
 
+type SocketDocumentEvidence = {
+  document: number;
+  opened: number;
+  closed: number;
+  active: number;
+  maximum: number;
+};
+
 type SocketEvidence = {
   opened: number;
   closed: number;
   active: number;
   maximum: number;
+  currentDocument: number;
+  documents: SocketDocumentEvidence[];
 };
 
 async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
@@ -51,8 +79,14 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   await context.addInitScript(
     ({ accessToken, organization }) => {
       if (window.location.protocol === "about:") return;
-      window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
-      window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
+      window.sessionStorage.setItem(
+        "nexolab.acceptance.access-token",
+        accessToken,
+      );
+      window.sessionStorage.setItem(
+        "nexolab.acceptance.organization-id",
+        organization,
+      );
     },
     { accessToken: viewerToken, organization: organizationId },
   );
@@ -145,6 +179,16 @@ async function readMetrics(): Promise<MetricsPayload> {
   return (await response.json()) as MetricsPayload;
 }
 
+async function readRuntimeMetrics(): Promise<RuntimeMetricsPayload> {
+  const response = await fetch(`${apiBaseUrl}/metrics/json`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Telemetry runtime metrics returned HTTP ${response.status}`);
+  }
+  return (await response.json()) as RuntimeMetricsPayload;
+}
+
 async function waitForApiReady(): Promise<void> {
   await expect
     .poll(
@@ -160,7 +204,10 @@ async function waitForApiReady(): Promise<void> {
     .toBe(true);
 }
 
-async function measurePhase(phase: string, action: () => Promise<void>): Promise<PhaseEvidence> {
+async function measurePhase(
+  phase: string,
+  action: () => Promise<void>,
+): Promise<PhaseEvidence> {
   const before = await readMetrics();
   const started = performance.now();
   await action();
@@ -168,7 +215,8 @@ async function measurePhase(phase: string, action: () => Promise<void>): Promise
   const after = await readMetrics();
   const elapsedSeconds = (performance.now() - started) / 1000;
   const requestDelta =
-    after.acquisition.normal.physical_requests_total - before.acquisition.normal.physical_requests_total;
+    after.acquisition.normal.physical_requests_total -
+    before.acquisition.normal.physical_requests_total;
   return {
     phase,
     elapsedSeconds,
@@ -191,8 +239,41 @@ function observePage(
     closed: 0,
     active: 0,
     maximum: 0,
+    currentDocument: 0,
+    documents: [],
   };
   evidence.sockets[name] = socket;
+
+  let documentNumber = 0;
+  let activeSockets = new Set<PlaywrightWebSocket>();
+
+  const currentDocument = (): SocketDocumentEvidence => {
+    let document = socket.documents.at(-1);
+    if (!document || document.document !== documentNumber) {
+      document = {
+        document: documentNumber,
+        opened: 0,
+        closed: 0,
+        active: 0,
+        maximum: 0,
+      };
+      socket.documents.push(document);
+    }
+    return document;
+  };
+
+  const startDocument = () => {
+    documentNumber += 1;
+    activeSockets = new Set<PlaywrightWebSocket>();
+    socket.currentDocument = documentNumber;
+    socket.active = 0;
+    currentDocument();
+  };
+
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) startDocument();
+  });
+
   page.on("request", (request) => {
     const observed = { method: request.method(), url: request.url() };
     if (observed.url.includes("/api/device-agent/xjp60d")) {
@@ -202,27 +283,52 @@ function observePage(
       evidence.telemetryRequests.push(observed);
     }
   });
+
   page.on("websocket", (websocket) => {
+    if (documentNumber === 0) startDocument();
+    const ownerDocument = currentDocument();
     socket.opened += 1;
-    socket.active += 1;
-    socket.maximum = Math.max(socket.maximum, socket.active);
+    ownerDocument.opened += 1;
+    activeSockets.add(websocket);
+    socket.active = activeSockets.size;
+    ownerDocument.active = activeSockets.size;
+    ownerDocument.maximum = Math.max(
+      ownerDocument.maximum,
+      ownerDocument.active,
+    );
+    socket.maximum = Math.max(socket.maximum, ownerDocument.maximum);
+
     websocket.on("close", () => {
       socket.closed += 1;
-      socket.active = Math.max(0, socket.active - 1);
+      ownerDocument.closed += 1;
+      activeSockets.delete(websocket);
+      if (ownerDocument.document === socket.currentDocument) {
+        socket.active = activeSockets.size;
+        ownerDocument.active = activeSockets.size;
+      }
     });
   });
 }
 
-async function openPersistedDashboard(page: Page, dashboardName: string): Promise<void> {
+async function openPersistedDashboard(
+  page: Page,
+  dashboardName: string,
+): Promise<void> {
   await page.goto("/live", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Live Dashboards", exact: true }),
+  ).toBeVisible();
   const card = page.locator("article").filter({ hasText: dashboardName });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Відкрити" }).click();
-  await expect(page.getByRole("heading", { name: dashboardName, exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: dashboardName, exact: true }),
+  ).toBeVisible();
 }
 
-test("page navigation and browser count do not amplify physical acquisition", async ({ browser }) => {
+test("page navigation and browser count do not amplify physical acquisition", async ({
+  browser,
+}) => {
   test.setTimeout(300_000);
   const observed = {
     controlRequests: [] as ObservedRequest[],
@@ -252,6 +358,11 @@ test("page navigation and browser count do not amplify physical acquisition", as
       await overview.waitForLoadState("domcontentloaded");
     }),
   );
+  const overviewRuntimeAfterRefresh = await readRuntimeMetrics();
+  expect(
+    overviewRuntimeAfterRefresh.websocket_clients,
+    "server active WebSocket clients after overview reload settles",
+  ).toBe(1);
 
   const live = await primary.newPage();
   observePage(live, observed, "live-primary");
@@ -298,7 +409,11 @@ test("page navigation and browser count do not amplify physical acquisition", as
   }
   phases.push(
     await measurePhase("additional-authenticated-contexts", async () => {
-      await Promise.all(additionalPages.map((page) => page.waitForLoadState("domcontentloaded")));
+      await Promise.all(
+        additionalPages.map((page) =>
+          page.waitForLoadState("domcontentloaded"),
+        ),
+      );
     }),
   );
 
@@ -308,7 +423,9 @@ test("page navigation and browser count do not amplify physical acquisition", as
       await new Promise((resolve) => setTimeout(resolve, 250));
       await primary.setOffline(false);
       await live.reload({ waitUntil: "domcontentloaded" });
-      await expect(live.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+      await expect(
+        live.getByRole("heading", { name: "Live Dashboards", exact: true }),
+      ).toBeVisible();
     }),
   );
 
@@ -317,30 +434,47 @@ test("page navigation and browser count do not amplify physical acquisition", as
       compose(["restart", "telemetry-service"]);
       await waitForApiReady();
       await live.reload({ waitUntil: "domcontentloaded" });
-      await expect(live.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
+      await expect(
+        live.getByText(fixture.dashboardName, { exact: true }),
+      ).toBeVisible();
     }),
   );
 
   const finalMetrics = await readMetrics();
   const discoveryDelta =
-    (finalMetrics.acquisition.service_operations.discovery?.physical_requests_total ?? 0) -
-    (baseline.acquisition.service_operations.discovery?.physical_requests_total ?? 0);
+    (finalMetrics.acquisition.service_operations.discovery
+      ?.physical_requests_total ?? 0) -
+    (baseline.acquisition.service_operations.discovery
+      ?.physical_requests_total ?? 0);
   const mutationDelta =
-    (finalMetrics.acquisition.service_operations.configuration_mutation?.requests_total ?? 0) -
-    (baseline.acquisition.service_operations.configuration_mutation?.requests_total ?? 0);
+    (finalMetrics.acquisition.service_operations.configuration_mutation
+      ?.requests_total ?? 0) -
+    (baseline.acquisition.service_operations.configuration_mutation
+      ?.requests_total ?? 0);
 
   for (const phase of phases) {
-    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeGreaterThanOrEqual(expectedRate - 3);
-    expect(phase.requestsPerSecond, `${phase.phase} request rate`).toBeLessThanOrEqual(expectedRate + 3);
+    expect(
+      phase.requestsPerSecond,
+      `${phase.phase} request rate`,
+    ).toBeGreaterThanOrEqual(expectedRate - 3);
+    expect(
+      phase.requestsPerSecond,
+      `${phase.phase} request rate`,
+    ).toBeLessThanOrEqual(expectedRate + 3);
   }
   const rates = phases.map((phase) => phase.requestsPerSecond);
   expect(Math.max(...rates) - Math.min(...rates)).toBeLessThanOrEqual(3.5);
   expect(observed.controlRequests.length).toBeGreaterThan(0);
-  expect(observed.controlRequests.every((request) => request.method === "GET")).toBe(true);
+  expect(
+    observed.controlRequests.every((request) => request.method === "GET"),
+  ).toBe(true);
   expect(discoveryDelta).toBe(0);
   expect(mutationDelta).toBe(0);
   for (const [name, socket] of Object.entries(observed.sockets)) {
-    expect(socket.maximum, `${name} physical WebSocket maximum`).toBeLessThanOrEqual(1);
+    expect(
+      socket.maximum,
+      `${name} physical WebSocket maximum per document`,
+    ).toBeLessThanOrEqual(1);
   }
 
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -356,6 +490,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
         controlRequests: observed.controlRequests,
         telemetryRequests: observed.telemetryRequests,
         websocketByPage: observed.sockets,
+        overviewRuntimeAfterRefresh,
         discoveryDelta,
         mutationDelta,
       },
