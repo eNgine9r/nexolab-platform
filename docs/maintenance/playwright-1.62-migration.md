@@ -64,6 +64,20 @@ Playwright version: 1.62.0
 
 Existing configs continue to retain screenshots, traces, videos, HTML reporters, result directories, timeouts and single-worker behavior because no config file changed.
 
+## Authenticated acquisition invariant compatibility
+
+Playwright 1.62 and Chrome for Testing report WebSocket lifecycle events from the outgoing and incoming document through the same `Page` object during `page.reload()`. The prior counter treated both document generations as one lifecycle and twice reported a false per-page maximum of two, although the test title, selectors and application code were unchanged.
+
+The acceptance instrumentation now:
+
+- scopes active WebSocket accounting to each main-frame document generation;
+- preserves the unchanged `maximum <= 1` threshold for every document;
+- retains aggregate opened/closed counts for diagnostics;
+- reads Telemetry Service `/metrics/json` after the Overview reload settles and requires exactly one active server-side WebSocket client;
+- keeps acquisition-rate, GET-only control, zero-discovery and zero-mutation assertions unchanged.
+
+No production telemetry client, route-persistence implementation or backend behavior changed.
+
 ## Runtime and offline impact
 
 `@playwright/test` remains development-only. Browser binaries are CI/development artifacts and are not part of NEXOLAB production containers or the offline runtime bundle. No mandatory network request, CDN, telemetry service or production external API was added.
