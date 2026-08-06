@@ -1,0 +1,47 @@
+name: Temporary Issue 355 Formatter
+
+on:
+  push:
+    branches:
+      - fix/355-live-dashboard-channel-inventory
+    paths:
+      - .github/workflows/tmp-355-format.yml
+      - src/features/live-dashboards/inventory-client.ts
+      - src/features/live-dashboards/inventory-client.test.ts
+      - src/features/live-dashboards/inventory.test.ts
+      - src/hooks/use-live-dashboard-inventory.ts
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - name: Format focused files
+        run: >-
+          npx prettier --write
+          src/features/live-dashboards/inventory-client.ts
+          src/features/live-dashboards/inventory-client.test.ts
+          src/features/live-dashboards/inventory.test.ts
+          src/hooks/use-live-dashboard-inventory.ts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: issue-355-formatted-files
+          path: |
+            src/features/live-dashboards/inventory-client.ts
+            src/features/live-dashboards/inventory-client.test.ts
+            src/features/live-dashboards/inventory.test.ts
+            src/hooks/use-live-dashboard-inventory.ts
+          if-no-files-found: error
+          retention-days: 1
