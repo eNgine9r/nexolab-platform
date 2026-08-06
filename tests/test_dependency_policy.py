@@ -34,7 +34,6 @@ updates:
       development-test-patch-minor:
         dependency-type: development
         patterns:
-          - "@playwright/test"
           - "@testing-library/jest-dom"
           - "@testing-library/react"
           - "@vitejs/plugin-react"
@@ -80,6 +79,9 @@ updates:
       - dependency-name: "@types/node"
         versions:
           - ">=23"
+      - dependency-name: "@playwright/test"
+        versions:
+          - ">=1.56"
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -90,8 +92,9 @@ POLICY_DOC = """# NEXOLAB Dependency Update Policy
 
 Production runtime updates are individual Pull Requests.
 Major version updates are disabled in Dependabot version-update automation.
+Playwright >=1.56 is held for focused Issue #254.
 Node 22 and @types/node remain aligned.
-PR #272 remains independent.
+PR #272 was platform-closed; PR #341 is its open individual replacement.
 The offline bundle verification and rollback are required.
 
 lint-staged 17 -> #252
@@ -221,6 +224,35 @@ class DependencyPolicyTests(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(DependencyPolicyError, "@types/node"):
+            MODULE.validate(root)
+
+    def test_playwright_guard_is_required(self) -> None:
+        root = self.make_fixture()
+        config = root / ".github/dependabot.yml"
+        config.write_text(
+            config.read_text(encoding="utf-8").replace(
+                '      - dependency-name: "@playwright/test"\n'
+                "        versions:\n"
+                '          - ">=1.56"\n',
+                "",
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(DependencyPolicyError, "migration-grade"):
+            MODULE.validate(root)
+
+    def test_playwright_cannot_enter_test_group(self) -> None:
+        root = self.make_fixture()
+        config = root / ".github/dependabot.yml"
+        config.write_text(
+            config.read_text(encoding="utf-8").replace(
+                '          - "@testing-library/jest-dom"\n',
+                '          - "@playwright/test"\n'
+                '          - "@testing-library/jest-dom"\n',
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(DependencyPolicyError, "migration-grade"):
             MODULE.validate(root)
 
     def test_node_types_must_match_runtime_major(self) -> None:
