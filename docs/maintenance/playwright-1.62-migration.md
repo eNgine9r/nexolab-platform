@@ -68,6 +68,8 @@ Existing configs continue to retain screenshots, traces, videos, HTML reporters,
 
 `@playwright/test` remains development-only. Browser binaries are CI/development artifacts and are not part of NEXOLAB production containers or the offline runtime bundle. No mandatory network request, CDN, telemetry service or production external API was added.
 
+Repository-native Prettier was applied to the permanent migration artifacts before exact-head verification.
+
 ## Rollback
 
 Revert the focused Issue #254 squash merge, or restore the previous `package.json` and `package-lock.json`, run `npm install --no-audit`, remove cached Playwright browsers with `npx playwright uninstall --all`, reinstall the prior Chromium revision with `npx playwright install --with-deps chromium`, then rerun CI, every browser acceptance workflow and Offline Bundle. No database, persistent-volume, Raspberry Pi or hardware rollback is involved.
