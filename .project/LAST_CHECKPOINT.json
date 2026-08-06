@@ -3,75 +3,77 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-345",
-  "issue": 345,
+  "task": "NEXOLAB-350",
+  "issue": 350,
   "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T07:20:00+03:00",
-  "branch": "docs/345-reconcile-dependency-lanes",
-  "product_baseline_sha": "5cfba8b58080cca22105934b94110e961c5b3098",
+  "timestamp": "2026-08-06T08:35:00+03:00",
+  "branch": "docs/350-reconcile-jsdom-completion",
+  "product_baseline_sha": "0f871d91124a70110a1948065554d55af6f183d2",
   "completed_work_packages": [
     {
-      "issue": 328,
-      "pull_request": 337,
-      "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
-      "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73",
-      "outcome": "focused dependency lanes and deterministic policy validation"
-    },
-    {
-      "issue": 343,
-      "pull_request": 344,
-      "verified_head_sha": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
-      "merge_sha": "5cfba8b58080cca22105934b94110e961c5b3098",
-      "outcome": "migration-grade Playwright isolation and live automation correction"
+      "issue": 253,
+      "pull_request": 349,
+      "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
+      "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2",
+      "outcome": "focused jsdom 30 migration with preserved DOM test semantics and unchanged runtime closure"
     }
   ],
-  "dependency_policy_evidence": {
-    "production_runtime_grouped": false,
-    "development_group_count": 4,
-    "npm_major_automation_enabled": false,
-    "node_runtime_major": 22,
-    "node_types_guard": ">=23",
-    "playwright_guard": ">=1.56",
-    "automatic_major_merge": false,
-    "validator_fixture_count": 11,
-    "manifest_changed": false,
-    "lockfile_changed": false,
-    "dependency_versions_changed": false,
+  "jsdom_migration_evidence": {
+    "version_before": "29.1.1",
+    "version_after": "30.0.0",
+    "node_baseline": "22.23.1",
+    "engine_requirement": "^22.22.2 || ^24.15.0 || >=26.0.0",
+    "focused_contract": "green_6_of_6",
+    "lockfile_closure_documented": true,
+    "custom_resource_loader_added": false,
+    "hidden_network_fixture_added": false,
+    "test_skip_added": false,
+    "timeout_broadened": false,
+    "production_dependency_changed": false,
     "runtime_closure_changed": false
-  },
-  "live_dependabot_evidence": {
-    "closed_unmerged": {
-      "272": "platform closed after branch deletion/recreation; limitation documented",
-      "339": "invalid Playwright plus Vite grouped migration"
-    },
-    "open_unselected": {
-      "340": "valid React types patch group",
-      "341": "individual lucide replacement review"
-    },
-    "open_grouped_playwright_pr": false
   },
   "verification": {
     "standalone_runtime_contract": "green",
-    "adr_registry_validation": "green",
-    "dependency_policy_validation": "green",
-    "dependency_policy_fixtures": "green_11_of_11",
+    "adr_registry_validation": "green_5_of_5",
+    "dependency_policy_validation": "green_11_of_11",
     "node_baseline": "green_22.23.1",
+    "focused_jsdom_contract": "green_6_of_6",
     "formatting": "green",
     "lint": "green",
     "typecheck": "green",
-    "tests": "green",
-    "production_build": "green"
+    "full_vitest_suite": "green",
+    "production_build": "green",
+    "reports_browser": "green",
+    "rendered_reports_browser": "green",
+    "nodes_browser": "green",
+    "refrigeration_browser": "green",
+    "alerts_browser": "green",
+    "test_sessions_browser": "green",
+    "security_browser": "green",
+    "authenticated_dashboard": "green",
+    "offline_auth": "green_after_same_head_failed_job_rerun",
+    "offline_bundle": "green"
+  },
+  "transient_failure_classification": {
+    "workflow": "Offline Auth Acceptance",
+    "first_attempt": "failed after postgres:16-alpine pull before disconnected acceptance",
+    "rerun": "same exact head passed migration upgrade/downgrade, disconnected authentication and evidence upload",
+    "classification": "external Docker runner failure; not a jsdom regression"
   },
   "review_audit": {
-    "base_policy_permanent_files": 5,
-    "corrective_permanent_files": 4,
-    "temporary_workflows_in_final_diffs": 0,
+    "permanent_files": 4,
+    "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
-    "package_json_changed": false,
-    "package_lock_changed": false,
+    "branch_behind_main": 0,
+    "direct_dependency_changes": ["jsdom"],
+    "production_dependencies_changed": false,
     "modbus_write": "none",
     "hardware_actions": "none",
     "production_cutover": "none"
+  },
+  "dependency_pull_requests": {
+    "closed_unmerged": [272, 339],
+    "open_unselected": [340, 341]
   },
   "security_exception": {
     "image_id": "telemetry-service",
@@ -83,15 +85,14 @@
     "scope_broadened": false
   },
   "ordered_work_packages": [
-    { "issue": 253, "status": "ready" },
-    { "issue": 254, "status": "queued" },
+    { "issue": 254, "status": "ready" },
     { "issue": 252, "status": "queued" },
     { "issue": 255, "status": "queued" }
   ],
   "next_ready_work_package": {
-    "issue": 253,
-    "title": "Migrate jsdom to 30",
-    "instruction": "Update only jsdom and its required lockfile closure, verify Vitest and Testing Library behavior, run full gates, inspect transitive/offline impact, and do not combine other dependency updates."
+    "issue": 254,
+    "title": "Migrate Playwright to 1.62.x",
+    "instruction": "Update only Playwright and its required lockfile closure, preserve all browser configs and evidence contracts, run every browser acceptance workflow plus Offline Bundle, inspect browser binary/cache behavior, document rollback, and do not combine other dependency updates."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,

@@ -21,11 +21,11 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-345",
-      "issue": 345,
-      "title": "Reconcile dependency lane completion and promote jsdom 30",
+      "id": "NEXOLAB-350",
+      "issue": 350,
+      "title": "Reconcile jsdom 30 completion and promote Playwright 1.62",
       "status": "in_progress",
-      "depends_on": [328, 343],
+      "depends_on": [253],
       "scope": "state_only"
     },
     {
@@ -49,15 +49,17 @@
     {
       "id": "NEXOLAB-253",
       "issue": 253,
+      "pull_request": 349,
       "title": "Migrate jsdom to 30",
-      "status": "ready",
-      "depends_on": [328, 343]
+      "status": "completed",
+      "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
+      "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2"
     },
     {
       "id": "NEXOLAB-254",
       "issue": 254,
       "title": "Migrate Playwright to 1.62.x",
-      "status": "queued",
+      "status": "ready",
       "depends_on": [253]
     },
     {
@@ -96,9 +98,17 @@
     "node_types_max_automated_major": 22,
     "playwright_automated_guard": ">=1.56",
     "validator_fixture_count": 11,
-    "automatic_major_merge": false,
-    "manifest_changed": false,
-    "lockfile_changed": false
+    "automatic_major_merge": false
+  },
+  "jsdom_migration": {
+    "version_before": "29.1.1",
+    "version_after": "30.0.0",
+    "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
+    "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2",
+    "node_baseline": "22.23.1",
+    "focused_contract": "green_6_of_6",
+    "runtime_closure_changed": false,
+    "offline_bundle": "green"
   },
   "dependency_pull_requests": {
     "closed_unmerged": [272, 339],
@@ -113,9 +123,9 @@
     "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 253,
-    "title": "Migrate jsdom to 30",
-    "reason": "Dependency lane policy and its live automation correction are merged. jsdom is the first isolated migration in the ordered queue."
+    "issue": 254,
+    "title": "Migrate Playwright to 1.62.x",
+    "reason": "The focused jsdom 30 migration is merged with GREEN unit, browser and offline evidence. Playwright is the next isolated migration in the ordered queue."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
