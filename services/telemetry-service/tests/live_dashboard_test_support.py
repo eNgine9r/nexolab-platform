@@ -68,6 +68,7 @@ def provision_inventory(
                     updated_at=now,
                 )
             )
+            session.flush()
             session.add(
                 MeasurementBus(
                     id=bus_id,
