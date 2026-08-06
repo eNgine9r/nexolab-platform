@@ -141,6 +141,18 @@ async def _authenticate_websocket(
     return True
 
 
+async def _wait_for_websocket_disconnect(websocket: WebSocket) -> None:
+    """Consume the one inbound stream after authentication until disconnect."""
+
+    try:
+        while True:
+            message = await websocket.receive()
+            if message["type"] == "websocket.disconnect":
+                return
+    except WebSocketDisconnect:
+        return
+
+
 def create_live_router(
     database: Database,
     hub: LiveTelemetryHub,
@@ -179,7 +191,7 @@ def create_live_router(
             await websocket.send_json(
                 {"type": "error", "detail": "unsupported alarm filter"}
             )
-            await websocket.close(code=1008, reason="invalid alarm filter")
+            await websocket.close(code=1008, reason="invalid quality filter")
             return
 
         try:
@@ -199,6 +211,9 @@ def create_live_router(
         )
         client = hub.register(filters)
         replayed_event_ids: set[str] = set()
+        disconnect_task = asyncio.create_task(
+            _wait_for_websocket_disconnect(websocket)
+        )
 
         async def send(payload: dict[str, Any]) -> None:
             await asyncio.wait_for(
@@ -240,12 +255,21 @@ def create_live_router(
                     state.increment("websocket_resume_total")
 
             while True:
-                try:
-                    item = await asyncio.wait_for(
-                        client.queue.get(),
-                        timeout=heartbeat_seconds,
-                    )
-                except TimeoutError:
+                queue_task = asyncio.create_task(client.queue.get())
+                done, _ = await asyncio.wait(
+                    {disconnect_task, queue_task},
+                    timeout=heartbeat_seconds,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                if disconnect_task in done:
+                    queue_task.cancel()
+                    await asyncio.gather(queue_task, return_exceptions=True)
+                    return
+
+                if queue_task not in done:
+                    queue_task.cancel()
+                    await asyncio.gather(queue_task, return_exceptions=True)
                     await send(
                         {
                             "type": "heartbeat",
@@ -255,6 +279,7 @@ def create_live_router(
                     state.increment("websocket_heartbeat_total")
                     continue
 
+                item = queue_task.result()
                 if item is OVERFLOW:
                     await websocket.close(code=1013, reason="slow consumer")
                     return
@@ -275,6 +300,8 @@ def create_live_router(
         except WebSocketDisconnect:
             pass
         finally:
+            disconnect_task.cancel()
+            await asyncio.gather(disconnect_task, return_exceptions=True)
             hub.unregister(client)
 
     return router
