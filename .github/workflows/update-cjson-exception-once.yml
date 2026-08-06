@@ -1,0 +1,66 @@
+name: Update cJSON exception once
+
+on:
+  push:
+    branches:
+      - fix/327-revalidate-cjson-exception
+    paths:
+      - ".github/workflows/update-cjson-exception-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout security branch
+        uses: actions/checkout@v6
+        with:
+          ref: fix/327-revalidate-cjson-exception
+          fetch-depth: 0
+
+      - name: Renew exact reviewed exception
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("security/vulnerability-exceptions.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          matches = [
+              item
+              for item in payload["exceptions"]
+              if item.get("image_id") == "telemetry-service"
+              and item.get("package") == "libcjson1"
+              and item.get("vulnerability") == "CVE-2026-67216"
+          ]
+          if len(matches) != 1:
+              raise SystemExit(f"Expected one exact cJSON exception, found {len(matches)}")
+
+          decision = matches[0]
+          decision["reason"] = (
+              "Reviewed 2026-08-06 against the exact telemetry-service image and current Debian cJSON status. "
+              "Debian Trixie and unstable provide no fixed libcjson1 package for CVE-2026-67216. "
+              "The package remains a transitive dependency of the required mosquitto package that provides "
+              "mosquitto_ctrl. NEXOLAB invokes only fixed dynamic-security commands against the authenticated "
+              "local broker through the bounded nexolab-dynsec-admin adapter and accepts no arbitrary JSON files "
+              "through this path. Remove immediately when Debian publishes a fixed package or the broker-control "
+              "client can be isolated without weakening the administration contract."
+          )
+          decision["expires_on"] = "2026-09-05"
+          path.write_text(
+              json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Remove temporary workflow and publish
+        run: |
+          rm .github/workflows/update-cjson-exception-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add security/vulnerability-exceptions.json .github/workflows/update-cjson-exception-once.yml
+          git commit -m "fix(security): renew exact cJSON exception"
+          git push origin HEAD:fix/327-revalidate-cjson-exception
