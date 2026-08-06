@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,7 @@ IMAGE_NAME = re.compile(r"^ghcr\.io/[a-z0-9-]+/[a-z0-9-]+$")
 CVE_ID = re.compile(r"^CVE-[0-9]{4}-[0-9]{4,}$")
 PACKAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+:-]*$")
 SUPPORTED_PLATFORMS = {"linux/amd64", "linux/arm64"}
+MAX_EXCEPTION_LIFETIME_DAYS = 45
 
 
 class ValidationFailure(ValueError):
@@ -95,6 +96,7 @@ def validate_exceptions(path: Path, today: date) -> None:
         raise ValidationFailure("exceptions must be a list")
 
     seen: set[tuple[str, str, str]] = set()
+    latest_allowed_expiry = today + timedelta(days=MAX_EXCEPTION_LIFETIME_DAYS)
     for index, item in enumerate(entries):
         label = f"exceptions[{index}]"
         if not isinstance(item, dict):
@@ -124,6 +126,11 @@ def validate_exceptions(path: Path, today: date) -> None:
             raise ValidationFailure(f"{label}.expires_on must use YYYY-MM-DD") from exc
         if expiry < today:
             raise ValidationFailure(f"{label} expired on {expires_on}")
+        if expiry > latest_allowed_expiry:
+            raise ValidationFailure(
+                f"{label}.expires_on must be within "
+                f"{MAX_EXCEPTION_LIFETIME_DAYS} days of the validation date"
+            )
 
         key = (image_id, package, vulnerability)
         if key in seen:
