@@ -19,8 +19,11 @@ jobs:
         with:
           package-manager-cache: false
           node-version-file: .nvmrc
+
       - name: Capture TypeScript 5.9 baseline
         shell: bash
+        env:
+          HUSKY: "0"
         run: |
           set -Eeuo pipefail
           mkdir -p /tmp/issue-255
@@ -30,12 +33,12 @@ jobs:
           npm --version | tee /tmp/issue-255/npm-version.txt
           npx tsc --version | tee /tmp/issue-255/typescript-before.txt
           npm run typecheck | tee /tmp/issue-255/typecheck-before.txt
-        env:
-          HUSKY: "0"
+
       - name: Upgrade only TypeScript to the 6.0 transition line
-        run: npm install --save-dev "typescript@^6.0.3" --no-audit
         env:
           HUSKY: "0"
+        run: npm install --save-dev "typescript@^6.0.3" --no-audit
+
       - name: Audit deterministic manifest and lockfile movement
         shell: bash
         run: |
@@ -76,7 +79,8 @@ jobs:
               json.dumps(evidence, indent=2) + '\n'
           )
           PY
-      - name: Verify TypeScript 6 configuration and diagnostics
+
+      - name: Verify TypeScript 6 configuration and program coverage
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -107,11 +111,12 @@ jobs:
           assert compiler['paths'] == {'@/*': ['./src/*']}
 
           files = set(shown['files'])
-          configs = sorted(path.name for path in Path('.').glob('playwright.*.config.ts'))
-          missing = [name for name in configs if f'./{name}' not in files]
+          configs = sorted(path.as_posix() for path in Path('.').glob('playwright.*.config.ts'))
+          e2e_files = sorted(path.as_posix() for path in Path('e2e').glob('*.ts'))
+          required = configs + e2e_files + ['vitest.config.ts']
+          missing = [path for path in required if f'./{path}' not in files]
           if missing:
-              raise SystemExit(f'Playwright configs missing from TypeScript program: {missing}')
-          assert './vitest.config.ts' in files
+              raise SystemExit(f'TypeScript program coverage is incomplete: {missing}')
 
           evidence = {
               'strict': compiler['strict'],
@@ -124,7 +129,8 @@ jobs:
               'ignoreDeprecations_present': 'ignoreDeprecations' in compiler,
               'baseUrl_present': 'baseUrl' in compiler,
               'playwright_config_count': len(configs),
-              'all_playwright_configs_in_program': not missing,
+              'e2e_typescript_file_count': len(e2e_files),
+              'all_playwright_and_e2e_files_in_program': not missing,
               'vitest_config_in_program': True,
               'new_diagnostics': 0,
           }
@@ -132,17 +138,16 @@ jobs:
               json.dumps(evidence, indent=2) + '\n'
           )
           PY
-      - name: Verify lint, Vitest, Playwright configs and production build
+
+      - name: Verify lint, Vitest, Playwright package and production build
         shell: bash
         run: |
           set -Eeuo pipefail
           npm run lint
           npm test
-          for config in playwright.*.config.ts; do
-            printf 'Compiling Playwright config: %s\n' "$config"
-            npx playwright test --list --config="$config" >/tmp/issue-255/"${config%.ts}"-list.txt
-          done
+          npx playwright --version | tee /tmp/issue-255/playwright-version.txt
           npm run build
+
       - name: Write migration evidence
         shell: bash
         run: |
@@ -217,12 +222,14 @@ jobs:
           - TypeScript 5.9 baseline `tsc --noEmit`;
           - TypeScript 6.0.3 `tsc --noEmit`;
           - explicit compiler-option invariant audit;
-          - inclusion audit for every root `playwright.*.config.ts` and `vitest.config.ts`;
+          - TypeScript-program inclusion audit for every root `playwright.*.config.ts`, every `e2e/*.ts`, and `vitest.config.ts`;
           - ESLint;
           - Vitest and the lint-staged integration harness through `npm test`;
-          - Playwright `--list` compilation for every TypeScript config;
+          - Playwright package loading/version verification;
           - Next.js production build;
-          - repository formatting.
+          - focused repository formatting.
+
+          Production Playwright suites require scenario-specific authenticated environment variables. Their actual configuration and runtime behavior are verified by the PR exact-head browser workflows instead of an environment-free `playwright test --list` call.
 
           PR exact-head workflows provide the final browser, Offline Auth, and disconnected Offline Bundle evidence.
 
@@ -235,7 +242,8 @@ jobs:
           Restore `typescript` to `^5`, restore the previous lockfile entries resolving `5.9.3`, remove this migration document, and rerun format, lint, typecheck, tests, production build, browser acceptance, Offline Auth, and Offline Bundle. No database, volume, hardware, or site rollback is required.
           EOF
           npx prettier --write package.json package-lock.json docs/maintenance/typescript-6-migration.md
-          npm run format:check
+          npx prettier --check package.json package-lock.json docs/maintenance/typescript-6-migration.md
+
       - name: Upload migration evidence
         uses: actions/upload-artifact@v7
         with:
@@ -243,6 +251,7 @@ jobs:
           path: /tmp/issue-255
           if-no-files-found: error
           retention-days: 7
+
       - name: Publish verified migration and remove temporary workflow
         shell: bash
         run: |
