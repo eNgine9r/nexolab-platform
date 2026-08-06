@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -29,19 +30,23 @@ EXPECTED_CONFIGS = (
     "playwright.sessions.config.ts",
 )
 ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+ENV_NAME = re.compile(r"\bNEXOLAB_[A-Z0-9_]+\b")
 REMOVED_API_PATTERNS = {
     "_react selector": re.compile(r"_react\s*="),
     "_vue selector": re.compile(r"_vue\s*="),
     ":light selector suffix": re.compile(r":light(?:\(|\b)"),
     "browserType.launch devtools option": re.compile(r"\bdevtools\s*:"),
 }
+DISCOVERY_UUID = "00000000-0000-4000-8000-000000000001"
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run(command: list[str]) -> subprocess.CompletedProcess[str]:
+def run(
+    command: list[str], *, environment: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=ROOT,
@@ -49,7 +54,53 @@ def run(command: list[str]) -> subprocess.CompletedProcess[str]:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        env=environment,
     )
+
+
+def discovery_value(name: str) -> str:
+    if "PASSWORD" in name:
+        return "Nxl_Discovery_Only_123!"
+    if "EMAIL" in name:
+        return "operator@nexolab.local"
+    if "USERNAME" in name or name.endswith("_USER"):
+        return "operator"
+    if "URL" in name or "ORIGIN" in name or "BASE" in name:
+        return "http://127.0.0.1:3999"
+    if "HOST" in name:
+        return "127.0.0.1"
+    if "PORT" in name:
+        return "3999"
+    if "TOKEN" in name or "SECRET" in name or name.endswith("_KEY"):
+        return "nxl-discovery-only-token"
+    if "PATH" in name or name.endswith("_DIR"):
+        return "/tmp/nexolab-discovery"
+    if "DATE" in name or "TIME" in name:
+        return "2026-08-06T00:00:00Z"
+    if (
+        name.endswith("_ID")
+        or "ORGANIZATION" in name
+        or "LABORATORY" in name
+        or "SESSION" in name
+        or "ALERT" in name
+        or "DEVICE" in name
+        or "NODE" in name
+    ):
+        return DISCOVERY_UUID
+    return "nexolab-discovery-only"
+
+
+def discovery_environment() -> tuple[dict[str, str], list[str]]:
+    names: set[str] = set()
+    paths = list(ROOT.glob("playwright*.config.ts")) + list((ROOT / "e2e").rglob("*.ts"))
+    for path in paths:
+        names.update(ENV_NAME.findall(path.read_text(encoding="utf-8")))
+
+    environment = os.environ.copy()
+    environment.update({name: discovery_value(name) for name in sorted(names)})
+    environment["CI"] = "1"
+    environment["NEXOLAB_PLAYWRIGHT_DISCOVERY_ONLY"] = "1"
+    return environment, sorted(names)
 
 
 def parse_test_listing(output: str) -> tuple[list[str], int, int]:
@@ -117,6 +168,7 @@ def collect(expected_version: str) -> dict[str, Any]:
             + json.dumps(removed_api_findings, indent=2)
         )
 
+    environment, synthetic_environment_names = discovery_environment()
     configs: list[dict[str, Any]] = []
     total_tests = 0
     for config_name in EXPECTED_CONFIGS:
@@ -126,7 +178,8 @@ def collect(expected_version: str) -> dict[str, Any]:
                 "test",
                 f"--config={config_name}",
                 "--list",
-            ]
+            ],
+            environment=environment,
         )
         if result.returncode != 0:
             raise RuntimeError(
@@ -154,12 +207,18 @@ def collect(expected_version: str) -> dict[str, Any]:
         "config_count": len(configs),
         "total_discovered_tests": total_tests,
         "removed_api_findings": removed_api_findings,
+        "discovery_only_environment_names": synthetic_environment_names,
         "configs": configs,
     }
 
 
 def compare_contracts(before: dict[str, Any], after: dict[str, Any]) -> None:
-    comparable_keys = ("config_count", "total_discovered_tests", "configs")
+    comparable_keys = (
+        "config_count",
+        "total_discovered_tests",
+        "discovery_only_environment_names",
+        "configs",
+    )
     differences = {
         key: {"before": before.get(key), "after": after.get(key)}
         for key in comparable_keys
@@ -191,7 +250,8 @@ def main() -> int:
         "Playwright migration contract passed: "
         f"version={evidence['playwright_version']} "
         f"configs={evidence['config_count']} "
-        f"tests={evidence['total_discovered_tests']}"
+        f"tests={evidence['total_discovered_tests']} "
+        f"synthetic_env={len(evidence['discovery_only_environment_names'])}"
     )
     return 0
 
