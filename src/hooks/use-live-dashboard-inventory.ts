@@ -6,7 +6,11 @@ import { loadLiveDashboardInventory } from "@/features/live-dashboards/inventory
 import { createLiveDashboardInventoryClient } from "@/features/live-dashboards/inventory-client";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 
-export type LiveDashboardInventoryStatus = "idle" | "loading" | "ready" | "error";
+export type LiveDashboardInventoryStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "error";
 
 export interface LiveDashboardInventoryModel {
   items: LiveDashboardInventoryItem[];
@@ -27,7 +31,8 @@ export function useLiveDashboardInventory({
   const scopeKey = enabled ? (organizationId ?? DEFAULT_SCOPE) : null;
   const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
   const [items, setItems] = useState<LiveDashboardInventoryItem[]>([]);
-  const [status, setStatus] = useState<LiveDashboardInventoryStatus>("idle");
+  const [status, setStatus] =
+    useState<LiveDashboardInventoryStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
   const [generation, setGeneration] = useState(0);
 
@@ -77,7 +82,8 @@ export function useLiveDashboardInventory({
     return () => controller.abort();
   }, [enabled, generation, organizationId, scopeKey]);
 
-  const visible = enabled && scopeKey !== null && activeScopeKey === scopeKey;
+  const visible =
+    enabled && scopeKey !== null && activeScopeKey === scopeKey;
   return {
     items: visible ? items : [],
     status: visible ? status : enabled ? "loading" : "idle",
