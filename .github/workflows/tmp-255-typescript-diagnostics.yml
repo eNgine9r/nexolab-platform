@@ -1,0 +1,82 @@
+name: Temporary Issue 255 TypeScript Diagnostics
+
+on:
+  push:
+    branches:
+      - maint/255-typescript-6
+    paths:
+      - .github/workflows/tmp-255-typescript-diagnostics.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+      - name: Install baseline dependencies
+        run: npm ci --no-audit
+        env:
+          HUSKY: "0"
+      - name: Capture TypeScript 5.9 baseline
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/issue-255
+          node --version | tee /tmp/issue-255/node-version.txt
+          npm --version | tee /tmp/issue-255/npm-version.txt
+          npx tsc --version | tee /tmp/issue-255/typescript-before.txt
+          npm run typecheck > /tmp/issue-255/typecheck-before.txt 2>&1
+      - name: Install TypeScript 6.0.3 without mutating manifests
+        run: npm install --no-save --package-lock=false --no-audit typescript@6.0.3
+        env:
+          HUSKY: "0"
+      - name: Capture TypeScript 6 diagnostics
+        shell: bash
+        run: |
+          set +e
+          npx tsc --version | tee /tmp/issue-255/typescript-after.txt
+          npm run typecheck > /tmp/issue-255/typecheck-after.txt 2>&1
+          status=$?
+          printf '%s\n' "$status" > /tmp/issue-255/typecheck-after-exit-code.txt
+          npx tsc --showConfig > /tmp/issue-255/show-config-after.json 2>&1
+          exit 0
+      - name: Record configuration audit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          package = json.loads(Path('package.json').read_text())
+          config = json.loads(Path('tsconfig.json').read_text())
+          compiler = config['compilerOptions']
+          evidence = {
+              'manifest_typescript': package['devDependencies']['typescript'],
+              'strict': compiler.get('strict'),
+              'noEmit': compiler.get('noEmit'),
+              'isolatedModules': compiler.get('isolatedModules'),
+              'module': compiler.get('module'),
+              'moduleResolution': compiler.get('moduleResolution'),
+              'target': compiler.get('target'),
+              'types': compiler.get('types', '<implicit>'),
+              'baseUrl_present': 'baseUrl' in compiler,
+              'paths': compiler.get('paths'),
+              'skipLibCheck': compiler.get('skipLibCheck'),
+          }
+          Path('/tmp/issue-255/config-audit.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: issue-255-typescript-diagnostics
+          path: /tmp/issue-255
+          if-no-files-found: error
+          retention-days: 3
