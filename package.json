@@ -20,7 +20,7 @@
     "test:e2e:rendered-reports": "playwright test --config=playwright.rendered-reports.config.ts",
     "test:e2e:nodes": "playwright test --config=playwright.nodes.config.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --write src/features/refrigeration/refrigeration-structural-cache.ts && printf '\n===FORMATTED-357===\n' && cat src/features/refrigeration/refrigeration-structural-cache.ts && exit 1",
+    "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "dependencies": {
