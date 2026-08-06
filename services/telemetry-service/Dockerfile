@@ -9,8 +9,8 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         fonts-dejavu-core \
         mosquitto \
-        mosquitto-clients \
     && command -v mosquitto_ctrl >/dev/null \
+    && ! command -v mosquitto_pub >/dev/null \
     && apt-get purge --yes --allow-remove-essential perl-base \
     && apt-get autoremove --yes \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/*
