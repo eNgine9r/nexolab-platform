@@ -20,31 +20,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "current_main_product_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
+  "current_main_state_sha": "0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08",
   "tasks": [
-    {
-      "id": "NEXOLAB-254",
-      "issue": 254,
-      "pull_request": 352,
-      "title": "Migrate Playwright to 1.62.x",
-      "status": "completed",
-      "merge_sha": "40aec7d0fa99fe3694e2cb2954d144703eebea5c"
-    },
-    {
-      "id": "NEXOLAB-359",
-      "issue": 359,
-      "pull_request": 360,
-      "title": "Stabilize telemetry WebSocket TestClient teardown",
-      "status": "completed",
-      "scope": "test_only",
-      "merge_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a"
-    },
     {
       "id": "NEXOLAB-355",
       "issue": 355,
       "pull_request": 358,
       "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
       "status": "completed",
-      "priority": "critical",
       "verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
       "merge_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
       "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending"
@@ -52,18 +35,19 @@
     {
       "id": "NEXOLAB-252",
       "issue": 252,
+      "pull_request": 361,
       "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-      "status": "ready",
+      "status": "verified_ready_for_merge",
       "priority": "high",
-      "assignee": "eNgine9r",
-      "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
-      "depends_on": [355]
+      "base_sha": "0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08",
+      "implementation_verified_head_sha": "ca9291903e61fd4951bb2565a64d2306ef5da824"
     },
     {
       "id": "NEXOLAB-255",
       "issue": 255,
-      "title": "Transition to TypeScript 6",
-      "status": "queued",
+      "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
+      "status": "ready_after_252_merge",
+      "priority": "high",
       "depends_on": [252]
     },
     {
@@ -79,41 +63,43 @@
       "status": "deferred"
     }
   ],
-  "live_dashboard_inventory": {
-    "endpoint": "/api/v1/live-dashboards/channel-inventory",
-    "page_limit_max": 500,
-    "offset_max": 10000,
-    "catalog_driven": true,
-    "includes_active_channels_without_samples": true,
-    "save_validation_eligibility_shared": true,
-    "latest_identity": ["node_id", "equipment_id", "channel_id", "metric"],
-    "latest_index": "ix_telemetry_latest_lookup",
-    "telemetry_fixture_rows": 50003,
-    "postgres_execution_ms": 0.363,
-    "repository_call_ms": 13.085,
-    "client_timeout_ms": 8000,
-    "selected_series_path_preserved": true,
-    "acquisition_changed": false,
-    "physical_polling_changed": false
+  "lint_staged_migration": {
+    "version_before": "16.4.0",
+    "version_after": "17.3.0",
+    "node_baseline": "22.23.1",
+    "node_floor": "22.22.1",
+    "git_verified": "2.54.0",
+    "git_floor": "2.32.0",
+    "configuration_source": "package.json",
+    "husky_hook_unchanged": true,
+    "globs_unchanged": true,
+    "command_order_unchanged": true,
+    "production_dependencies_changed": false,
+    "runtime_closure_changed": false,
+    "verified_cases": [
+      "production-eslint-prettier-order",
+      "partial-stage-success",
+      "failure-rollback",
+      "empty-stage"
+    ],
+    "preparation_artifact_sha256": "0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b"
   },
   "verification": {
-    "issue_355_verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
+    "implementation_verified_head_sha": "ca9291903e61fd4951bb2565a64d2306ef5da824",
     "ci": "green",
-    "telemetry_service_postgresql": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
-    "acquisition_scale": "green",
+    "alerts_browser": "green",
+    "reports_browser": "green",
+    "rendered_reports_browser": "green",
+    "nodes_browser": "green",
+    "test_sessions_browser": "green",
+    "security_browser": "green",
     "offline_auth": "green",
     "offline_bundle": "green_disconnected_startup_and_update_rollback",
-    "container_supply_chain": "green",
-    "broker_control": "green",
-    "mqtt_tls_fleet": "green",
-    "device_agent_fleet": "green",
-    "capacity_release": "green",
-    "disaster_recovery_tls": "green",
-    "disaster_recovery_browser": "green",
     "unresolved_review_threads": 0,
-    "branch_behind_main_at_merge": 0
+    "branch_behind_main": 0,
+    "mergeable": true
   },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
@@ -129,9 +115,10 @@
     "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 252,
-    "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-    "reason": "Issue #355 is merged and closed with all exact-head software gates GREEN. Issue #252 is the next isolated development-tool migration on Node 22.23.1."
+    "issue": 255,
+    "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
+    "activation_condition": "PR #361 is GREEN and merged; Issue #252 is closed.",
+    "reason": "lint-staged 17.3.0 is exact-head verified on Node 22.23.1 with deterministic staged-file preservation and unchanged production runtime closure."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,

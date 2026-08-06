@@ -2,110 +2,100 @@
 
 Updated: 2026-08-06
 Verified product baseline: `5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e`
-Completed Work Package: Issue #355 / PR #358 — canonical Live Dashboard channel inventory
-Verified implementation head: `116ffc81844db1506f2f1b622cd2938ea0ae9563`
-Active Work Package: Issue #252 — lint-staged 17 migration on the verified Node 22 baseline
+Repository state baseline: `0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08`
+Active Work Package: Issue #252 / PR #361 — lint-staged 17.3.0 migration, exact-head verified and ready for final merge audit
+Branch: `maint/252-lint-staged-17`
+Verified implementation head: `ca9291903e61fd4951bb2565a64d2306ef5da824`
+Next Ready Work Package after merge: Issue #255 — TypeScript 6 transition line
 Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
 Parallel blocked epic: Issue #282 — acquisition software complete; physical Raspberry Pi/RS-485 acceptance pending
 
-## Issue #355 completed
+## Reconciled predecessor state
 
-Issue #355 / PR #358 merged into `main` as `5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e`.
+- Issue #355 / PR #358 completed the canonical Live Dashboard inventory and merged as `5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e`.
+- Post-merge state reconciliation completed on `main` as `0e5b39a93130dfcc8810b28e0ff7348fdd3d0e08` with GREEN push CI.
+- Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance pending`.
 
-The Live Dashboard editor now reads the authenticated organization-scoped canonical measurement catalog through:
+## Issue #252 product outcome verified
 
-```text
-GET /api/v1/live-dashboards/channel-inventory?limit=500&offset=0
-```
+The development-only staged-file runner moves from `lint-staged 16.4.0` to `17.3.0` on the unchanged Node `22.23.1` baseline.
 
-Completed behavior:
+Verified behavior:
 
-- inventory discovery is independent of paginated `/api/v1/telemetry/latest` and telemetry-history volume;
-- active eligible channels remain selectable without telemetry samples;
-- no-sample state is explicit: `latest: null`, `quality: unknown`, `alarm: null`;
-- inventory and save validation share the same organization, active channel/device/bus/chamber and non-revoked-node eligibility boundary;
-- response bounds are deterministic: maximum page size `500`, maximum offset `10,000`, stable identity ordering;
-- optional latest metadata uses `node_id + equipment_id + channel_id + metric` and PostgreSQL index `ix_telemetry_latest_lookup`;
-- saved Dashboard views retain selected-series latest/history and one bounded WebSocket path;
-- editor actions do not mutate Device Agent configuration, discovery, acquisition registry, scheduler, Modbus cadence or physical polling eligibility.
+- `.husky/pre-commit` remains `npx lint-staged`;
+- JavaScript and TypeScript globs still run `eslint --fix` before `prettier --write`;
+- JSON, Markdown, CSS and YAML globs still run `prettier --write`;
+- a real production-config TypeScript fixture is formatted and staged successfully;
+- partially staged files hide unstaged content from tasks and restore it after success;
+- failed tasks restore the original index and unstaged worktree diff;
+- an empty staged-file set exits successfully without mutation;
+- the harness operates only in disposable Git repositories;
+- Node `22.23.1` satisfies the v17 floor `22.22.1`;
+- Git `2.54.0` satisfies the v17 floor `2.32.0`.
 
-## Verification evidence
+## Dependency and lockfile boundary
 
-Final exact head `116ffc81844db1506f2f1b622cd2938ea0ae9563` was GREEN across all 14 workflows:
+The lockfile resolves `lint-staged 17.3.0` with the development-only direct graph:
 
-- CI;
-- Telemetry service;
+- `picomatch ^4.0.5`;
+- `string-argv ^0.3.2`;
+- `tinyexec ^1.2.4`.
+
+The v16-only CLI rendering and YAML graph is removed. No YAML dependency is needed because NEXOLAB stores lint-staged configuration in `package.json`.
+
+The implementation diff contains exactly four permanent files:
+
+- `package.json`;
+- `package-lock.json`;
+- `scripts/tests/lint-staged-v17.mjs`;
+- `docs/maintenance/lint-staged-17-migration.md`.
+
+No temporary workflow remains.
+
+## Exact-head verification
+
+Exact implementation head `ca9291903e61fd4951bb2565a64d2306ef5da824` is GREEN for:
+
+- CI, including runtime contracts, dependency policy, formatting, lint, typecheck, full tests and production build;
 - Authenticated Dashboard Acceptance;
 - Refrigeration Browser Acceptance;
-- Acquisition Scale Acceptance;
+- Alerts Browser Acceptance;
+- Reports Browser Acceptance;
+- Rendered Reports Browser Acceptance;
+- Nodes Browser Acceptance;
+- Test Sessions Browser Acceptance;
+- Security Browser Acceptance;
 - Offline Auth Acceptance;
-- Offline Bundle;
-- Container Supply Chain;
-- Broker Control Acceptance;
-- MQTT TLS Fleet Acceptance;
-- Device Agent Fleet Acceptance;
-- Capacity Release Gate;
-- Disaster Recovery TLS Fleet;
-- Disaster Recovery Browser.
+- Offline Bundle, including disconnected startup and update/rollback persistent-data preservation.
 
-PostgreSQL acceptance used 50,003 telemetry rows:
+Preparation evidence used Node `22.23.1`, Git `2.54.0` and artifact SHA-256 `0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b`.
 
-| Evidence                    |                       Result |
-| --------------------------- | ---------------------------: |
-| Catalog channels            |                            2 |
-| `EXPLAIN ANALYZE` execution |                     0.363 ms |
-| Complete repository call    |                    13.085 ms |
-| Existing client timeout     |                     8,000 ms |
-| Latest lookup index         | `ix_telemetry_latest_lookup` |
+## Runtime and safety audit
 
-Authenticated browser evidence recorded zero telemetry discovery requests, zero acquisition/configuration mutations, successful no-sample selection, selected-only latest/history requests and maximum one WebSocket. Offline Bundle proved disconnected startup and update/rollback persistent-data preservation.
-
-Permanent evidence is recorded in `docs/operations/live-dashboard-channel-inventory.md`.
-
-## Completion boundary
-
-Issue #355 classification remains:
-
-```text
-software verified; Raspberry Pi runtime latency acceptance pending
-```
-
-The affected Raspberry Pi with its long-running LOCAL_LAN PostgreSQL database still requires physical latency acceptance. No hardware or Modbus write was performed.
-
-## Active Work Package: Issue #252
-
-Issue #252 is open, assigned to `eNgine9r` and labeled:
-
-- `area:devops`;
-- `dependencies`;
-- `priority:high`;
-- `status:ready`.
-
-Required outcome:
-
-- upgrade only lint-staged from 16.4.0 to the supported 17.x line;
-- retain Node `22.23.1`;
-- preserve current command ordering and file globs;
-- prove successful staged-file formatting/linting;
-- prove failure rollback and preservation of unstaged changes;
-- cover empty and partially staged cases;
-- keep production runtime and Offline Bundle closure unchanged.
+- production dependencies changed: no;
+- production runtime closure changed: no;
+- application source changed: no;
+- database or migration changed: no;
+- cloud or paid runtime dependency added: no;
+- acquisition or physical polling changed: no;
+- Modbus write: none;
+- hardware action: none;
+- production/site cutover: none.
 
 ## Ordered queue
 
-1. **Issue #252 — Ready:** lint-staged 17 migration.
-2. **Issue #255 — queued:** TypeScript 6 transition.
-3. **Issue #257 — blocked:** ESLint 10 migration.
-4. **Issue #256 — deferred:** TypeScript 7 transition.
+1. **Issue #255 — next after PR #361 merge:** TypeScript 6 transition line.
+2. **Issue #257 — blocked:** ESLint 10 migration.
+3. **Issue #256 — deferred:** TypeScript 7 transition.
 
-Open unselected dependency PRs remain #340, #341 and #346. PR #347 is obsolete because Playwright 1.62 already merged through Issue #254 / PR #352.
+Open unselected dependency PRs remain #340, #341 and #346. PR #347 remains obsolete.
 
 ## Security and hardware boundaries
 
 The exact `telemetry-service + libcjson1 + CVE-2026-67216` exception expires on **2026-09-05** and remains unbroadened.
 
-Issue #289 remains `software verified; hardware performance acceptance pending`. Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain pending controlled Raspberry Pi/RS-485 evidence.
+Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain pending controlled Raspberry Pi/RS-485 evidence.
 
 ## Next action
 
-Begin Issue #252 from current `main` in one focused feature branch and Pull Request. Do not combine ESLint, Prettier, Husky, Node, source refactors or unrelated dependency updates with the lint-staged migration.
+Validate this four-file state checkpoint on the exact PR head, mark PR #361 Ready, repeat current-head/check/review/mergeability audit, squash merge PR #361, confirm Issue #252 closure and promote Issue #255 as the sole Next Ready Work Package.
