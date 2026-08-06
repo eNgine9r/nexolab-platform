@@ -75,22 +75,50 @@ function seedNoSampleChannel(): string {
   const channelId = `acceptance-no-sample-${suffix}`;
   const sourceChannelId = `acceptance-source-${suffix}`;
   const output = postgres(`
+WITH candidate AS (
+  SELECT
+    channel.organization_id,
+    channel.climate_chamber_id,
+    channel.bus_id,
+    channel.device_id,
+    channel.metric_type,
+    channel.unit,
+    available.channel_number,
+    (
+      SELECT COALESCE(MAX(existing.logical_sensor_number), 0) + 1
+      FROM measurement_channels AS existing
+      WHERE existing.organization_id = channel.organization_id
+    ) AS logical_sensor_number
+  FROM measurement_channels AS channel
+  CROSS JOIN LATERAL (
+    SELECT slot AS channel_number
+    FROM generate_series(1, 6) AS slot
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM measurement_channels AS occupied
+      WHERE occupied.device_id = channel.device_id
+        AND occupied.channel_number = slot
+    )
+    ORDER BY slot
+    LIMIT 1
+  ) AS available
+  WHERE channel.organization_id = ${sqlString(organizationId)}
+    AND channel.status = 'active'
+  ORDER BY channel.device_id, channel.channel_number
+  LIMIT 1
+)
 INSERT INTO measurement_channels (
   id, organization_id, climate_chamber_id, bus_id, device_id, channel_id,
   source_channel_id, channel_number, logical_sensor_number, display_name,
   physical_sensor_count, metric_type, unit, status, created_at, updated_at
 )
 SELECT
-  ${sqlString(channelRefId)}, channel.organization_id, channel.climate_chamber_id,
-  channel.bus_id, channel.device_id, ${sqlString(channelId)},
-  ${sqlString(sourceChannelId)}, 999, 999, 'Acceptance channel without sample',
-  1, channel.metric_type, channel.unit, 'active', NOW(), NOW()
-FROM measurement_channels AS channel
-WHERE channel.organization_id = ${sqlString(organizationId)}
-  AND channel.channel_id = '106-03'
-  AND channel.metric_type = 'temperature.probe'
-  AND channel.status = 'active'
-LIMIT 1;
+  ${sqlString(channelRefId)}, candidate.organization_id, candidate.climate_chamber_id,
+  candidate.bus_id, candidate.device_id, ${sqlString(channelId)},
+  ${sqlString(sourceChannelId)}, candidate.channel_number, candidate.logical_sensor_number,
+  'Acceptance channel without sample', 1, candidate.metric_type, candidate.unit,
+  'active', NOW(), NOW()
+FROM candidate;
 
 SELECT COUNT(*) FROM measurement_channels WHERE id = ${sqlString(channelRefId)};
 `);
