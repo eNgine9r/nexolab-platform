@@ -17,6 +17,7 @@ import {
   InMemoryRefrigerationEquipmentRepository,
   type RefrigerationEquipmentRepository,
 } from "./equipment-repository";
+import { createCachedEquipmentLifecycleRepository } from "./refrigeration-structural-cache";
 
 export type RefrigerationEquipmentRuntime = {
   mode: "demo" | "live";
@@ -74,10 +75,13 @@ export function createRefrigerationEquipmentRuntime(
       apiBaseUrl: config.apiBaseUrl,
       fetchImpl: authenticatedFetch,
     });
-    const lifecycleRepository = new HttpEquipmentLifecycleRepository({
-      apiBaseUrl: config.apiBaseUrl,
-      fetchImpl: authenticatedFetch,
-    });
+    const lifecycleRepository = createCachedEquipmentLifecycleRepository(
+      new HttpEquipmentLifecycleRepository({
+        apiBaseUrl: config.apiBaseUrl,
+        fetchImpl: authenticatedFetch,
+      }),
+      `${config.apiBaseUrl}|${organizationId ?? "default"}`,
+    );
     return {
       mode: "live",
       repository: equipmentRepository,
