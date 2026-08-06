@@ -90,7 +90,7 @@ def list_live_dashboard_inventory(
         total = int(
             session.scalar(
                 _eligible_catalog_select(organization_id)
-                .with_only_columns(func.count())
+                .with_only_columns(func.count(), maintain_column_froms=True)
                 .order_by(None)
             )
             or 0
