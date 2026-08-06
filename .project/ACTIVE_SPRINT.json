@@ -21,11 +21,21 @@
   },
   "tasks": [
     {
+      "id": "NEXOLAB-335",
+      "issue": 335,
+      "title": "Reconcile ADR registry completion and promote dependency lanes",
+      "status": "completed",
+      "depends_on": [300],
+      "scope": "state_only"
+    },
+    {
       "id": "NEXOLAB-332",
       "issue": 332,
+      "pull_request": 333,
       "title": "Reconcile cJSON exception review and promote ADR registry",
       "status": "completed",
       "depends_on": [327],
+      "merge_sha": "43c454ac813a6dc866c1e4f1d4c45b2bcbc58f9d",
       "scope": "state_only"
     },
     {
@@ -44,8 +54,6 @@
       "parent_issue": 326,
       "title": "Revalidate the expiring cJSON vulnerability exception",
       "status": "completed_with_short_exception",
-      "priority": "critical",
-      "depends_on": [295],
       "verified_head_sha": "d05e3e2405f55a7b8f5d3b722e1165924a4eaf9e",
       "merge_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
       "review_due": "2026-09-05",
@@ -54,17 +62,20 @@
     {
       "id": "NEXOLAB-300",
       "issue": 300,
+      "pull_request": 334,
       "parent_issue": 326,
       "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-      "status": "ready",
-      "depends_on": [327]
+      "status": "completed",
+      "depends_on": [327],
+      "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
+      "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae"
     },
     {
       "id": "NEXOLAB-328",
       "issue": 328,
       "parent_issue": 326,
       "title": "Separate dependency update lanes and retire grouped major PRs",
-      "status": "queued",
+      "status": "ready",
       "depends_on": [300]
     },
     {
@@ -116,6 +127,14 @@
       "depends_on": [255, "TypeScript 7 ecosystem support"]
     }
   ],
+  "adr_registry": {
+    "canonical_directory": "docs/adr",
+    "registry": "docs/adr/README.md",
+    "published_ids": ["0001", "0004", "0005", "0008", "0009"],
+    "unassigned_historical_gaps": ["0002", "0003", "0006", "0007"],
+    "legacy_0001_path": "docs/architecture/adr-0001-telemetry-ingestion.md",
+    "integrity_validation_in_ci": true
+  },
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -146,9 +165,9 @@
     ]
   },
   "next_ready_work_package": {
-    "issue": 300,
-    "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-    "reason": "The critical security review is merged. ADR governance is independent of hardware and dependency migrations and is next in the ordered sprint."
+    "issue": 328,
+    "title": "Separate dependency update lanes and retire grouped major PRs",
+    "reason": "ADR governance is merged. Dependency automation policy is the next independent package and changes policy only, not dependency versions."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
