@@ -15,6 +15,7 @@ from app.config import Settings
 from app.contracts import TelemetryEvent
 from app.db import TelemetrySample
 from app.main import create_app
+from tests.websocket_test_support import websocket_session
 
 
 def wait_for(predicate, timeout: float = 10.0) -> None:
@@ -91,8 +92,9 @@ def test_mqtt_fixture_persists_once_and_reaches_rest_and_websocket() -> None:
         with TestClient(app) as client:
             wait_for(lambda: client.get("/health/ready").status_code == 200)
 
-            with client.websocket_connect(
-                "/api/v1/telemetry/live?channel_id=201-voltage"
+            with websocket_session(
+                client,
+                "/api/v1/telemetry/live?channel_id=201-voltage",
             ) as websocket:
                 publish_fixture(topic, event.normalized_payload())
                 live_message = websocket.receive_json()
