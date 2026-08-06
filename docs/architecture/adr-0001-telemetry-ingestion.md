@@ -10,4 +10,6 @@ This compatibility file preserves the published path:
 docs/architecture/adr-0001-telemetry-ingestion.md
 ```
 
+The compatibility contract and canonical registry were established by Issue #300.
+
 Do not add or revise decision content here. Update the canonical ADR and the authoritative registry in [`docs/adr/README.md`](../adr/README.md).
