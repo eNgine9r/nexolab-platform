@@ -19,20 +19,28 @@ They are not grouped because each update can affect the browser bundle, server r
 - rollback instructions;
 - confirmation that no mandatory cloud, CDN, remote font, telemetry or paid runtime service was introduced.
 
-PR #272 remains an independent unselected production dependency review. Issue #328 does not approve, merge or close it.
+PR #272 was the original independent `lucide-react` review. Dependabot closed it and deleted its head branch while applying the ungrouped production lane. GitHub rejected reopening it after branch recreation. PR #341 is the exact current individual replacement and remains open and unselected. Neither Issue #328 nor corrective Issue #343 approves or merges the dependency update.
 
 ### Development patch/minor
 
 Development patch and minor updates may be grouped only when they share one verification surface:
 
-| Group                                 | Packages                                                                  | Verification surface                         |
-| ------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------- |
-| `development-test-patch-minor`        | Playwright, Testing Library, jsdom, Vitest and the Vite React test plugin | unit, browser and test-runtime compatibility |
-| `development-quality-patch-minor`     | Commitlint, ESLint, Husky, lint-staged and Prettier                       | repository quality gates and commit hooks    |
-| `development-build-patch-minor`       | Tailwind CSS and its PostCSS adapter                                      | CSS compilation and production build         |
-| `development-react-types-patch-minor` | React and React DOM type packages                                         | TypeScript and React component contracts     |
+| Group                                 | Packages                                                     | Verification surface                         |
+| ------------------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
+| `development-test-patch-minor`        | Testing Library, jsdom, Vitest and the Vite React test plugin | unit, browser and test-runtime compatibility |
+| `development-quality-patch-minor`     | Commitlint, ESLint, Husky, lint-staged and Prettier           | repository quality gates and commit hooks    |
+| `development-build-patch-minor`       | Tailwind CSS and its PostCSS adapter                          | CSS compilation and production build         |
+| `development-react-types-patch-minor` | React and React DOM type packages                             | TypeScript and React component contracts     |
 
 `@types/node` and `typescript` remain individual even for patch/minor updates because they define repository-wide compiler and runtime assumptions.
+
+### Migration-grade minor updates
+
+A SemVer-minor update can still be a repository migration when the package is pre-2.0, changes browser binaries, modifies test execution semantics or has a dedicated compatibility Work Package.
+
+Playwright >=1.56 is migration-grade for this repository. It is excluded from every automated patch/minor group and held by an explicit Dependabot version guard until Issue #254 intentionally removes that guard and performs the focused 1.62.x migration.
+
+PR #339 demonstrated why this rule is required: it combined Playwright 1.62.1 with an unrelated Vite plugin patch. PR #339 was closed unmerged.
 
 ### Major migrations
 
@@ -58,15 +66,19 @@ The active repository runtime baseline is Node 22 from `.nvmrc`. `@types/node` m
 Dependabot therefore has:
 
 - a global SemVer-major ignore rule;
-- an explicit `@types/node >=23` guard.
+- an explicit `@types/node >=23` guard;
+- an explicit `@playwright/test >=1.56` migration-grade guard.
 
 Moving to Node 24, Node 26 or another major requires a dedicated runtime migration Issue that updates `.nvmrc`, package engine constraints, CI images, container/runtime evidence and `@types/node` together. A type-only jump is not acceptable.
 
 ## Pull Request triage
 
-### Superseded or grouped major PR
+### Superseded or grouped migration PR
 
-Close without merge and explain which focused Issues replace it. PR #271 is the reference example: it mixed Playwright, Node types, ESLint, jsdom, lint-staged and TypeScript major migrations and was superseded by Issues #252–#257.
+Close without merge and explain which focused Issues replace it.
+
+- PR #271 mixed Playwright, Node types, ESLint, jsdom, lint-staged and TypeScript migrations and was superseded by Issues #252–#257.
+- PR #339 mixed migration-grade Playwright with an unrelated Vite plugin patch and was superseded by Issue #254 plus a separate routine patch path.
 
 ### Stale PR
 
