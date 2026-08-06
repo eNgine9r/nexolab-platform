@@ -83,10 +83,10 @@
     "scope_broadened": false
   },
   "ordered_work_packages": [
-    {"issue": 253, "status": "ready"},
-    {"issue": 254, "status": "queued"},
-    {"issue": 252, "status": "queued"},
-    {"issue": 255, "status": "queued"}
+    { "issue": 253, "status": "ready" },
+    { "issue": 254, "status": "queued" },
+    { "issue": 252, "status": "queued" },
+    { "issue": 255, "status": "queued" }
   ],
   "next_ready_work_package": {
     "issue": 253,
