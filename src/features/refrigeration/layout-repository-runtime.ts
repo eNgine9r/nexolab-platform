@@ -13,6 +13,7 @@ import {
   InMemoryRefrigerationLayoutRepository,
   type RefrigerationLayoutRepository,
 } from "./layout-repository";
+import { createCachedLayoutRepository } from "./refrigeration-structural-cache";
 
 export type RefrigerationLayoutRuntime = {
   mode: "demo" | "live";
@@ -50,12 +51,16 @@ export function createRefrigerationLayoutRuntime(
       const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
       const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
       const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
-      return {
-        mode: "live",
-        repository: new HttpRefrigerationLayoutRepository({
+      const repository = createCachedLayoutRepository(
+        new HttpRefrigerationLayoutRepository({
           apiBaseUrl: config.apiBaseUrl,
           fetchImpl: authenticatedFetch,
         }),
+        `${config.apiBaseUrl}|${organizationId ?? "default"}`,
+      );
+      return {
+        mode: "live",
+        repository,
         sessionClient: new HttpSecuritySessionClient({
           apiBaseUrl: config.apiBaseUrl,
           fetchImpl: authenticatedFetch,
