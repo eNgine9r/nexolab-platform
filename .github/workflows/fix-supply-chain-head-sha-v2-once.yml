@@ -1,0 +1,129 @@
+name: Fix supply chain head SHA v2 once
+
+on:
+  push:
+    branches:
+      - fix/327-revalidate-cjson-exception
+    paths:
+      - ".github/workflows/fix-supply-chain-head-sha-v2-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout security branch
+        uses: actions/checkout@v6
+        with:
+          ref: fix/327-revalidate-cjson-exception
+          fetch-depth: 0
+
+      - name: Bind supply-chain evidence to source head
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def gh(expression: str) -> str:
+              return "$" + "{{ " + expression + " }}"
+
+          workflow_path = Path(".github/workflows/container-supply-chain.yml")
+          text = workflow_path.read_text(encoding="utf-8")
+
+          concurrency = (
+              "concurrency:\n"
+              f"  group: container-supply-chain-{gh('github.ref')}\n"
+              "  cancel-in-progress: true\n\n"
+              "jobs:\n"
+          )
+          replacement = (
+              "concurrency:\n"
+              f"  group: container-supply-chain-{gh('github.ref')}\n"
+              "  cancel-in-progress: true\n\n"
+              "env:\n"
+              f"  SOURCE_SHA: {gh('github.event.pull_request.head.sha || github.sha')}\n\n"
+              "jobs:\n"
+          )
+          if text.count(concurrency) != 1:
+              raise SystemExit("Unexpected concurrency block")
+          text = text.replace(concurrency, replacement)
+
+          checkout = "          persist-credentials: false\n"
+          if text.count(checkout) != 4:
+              raise SystemExit(
+                  f"Expected four checkout blocks, found {text.count(checkout)}"
+              )
+          text = text.replace(
+              checkout,
+              checkout + f"          ref: {gh('env.SOURCE_SHA')}\n",
+          )
+
+          replacements = {
+              (
+                  "LOCAL_IMAGE: local/nexolab-"
+                  f"{gh('matrix.id')}:{gh('github.sha')}"
+              ): (
+                  "LOCAL_IMAGE: local/nexolab-"
+                  f"{gh('matrix.id')}:{gh('env.SOURCE_SHA')}"
+              ),
+              f"org.opencontainers.image.revision={gh('github.sha')}":
+                  f"org.opencontainers.image.revision={gh('env.SOURCE_SHA')}",
+              'test "$revision" = "$GITHUB_SHA"':
+                  'test "$revision" = "$SOURCE_SHA"',
+              '--commit "$GITHUB_SHA"':
+                  '--commit "$SOURCE_SHA"',
+              '"commit": os.environ["GITHUB_SHA"],':
+                  '"commit": os.environ["SOURCE_SHA"],',
+              f"name: container-release-evidence-{gh('github.sha')}":
+                  f"name: container-release-evidence-{gh('env.SOURCE_SHA')}",
+              (
+                  "name: published-container-"
+                  f"{gh('matrix.id')}-{gh('github.sha')}"
+              ): (
+                  "name: published-container-"
+                  f"{gh('matrix.id')}-{gh('env.SOURCE_SHA')}"
+              ),
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"Missing expected workflow fragment: {old}")
+              text = text.replace(old, new)
+
+          source_expression = gh(
+              "github.event.pull_request.head.sha || github.sha"
+          )
+          if text.count(source_expression) != 1:
+              raise SystemExit("Missing unique PR-head SOURCE_SHA expression")
+          if text.count("github.sha") != 1:
+              raise SystemExit(
+                  f"Expected one github.sha fallback, found {text.count('github.sha')}"
+              )
+          workflow_path.write_text(text, encoding="utf-8")
+
+          test_path = Path("tests/test_container_supply_chain_policy.py")
+          tests = test_path.read_text(encoding="utf-8")
+          marker = "def test_workflow_binds_pull_request_evidence_to_head_sha()"
+          if marker not in tests:
+              env_expression = gh("env.SOURCE_SHA")
+              matrix_expression = gh("matrix.id")
+              test_source = f'''\n\ndef test_workflow_binds_pull_request_evidence_to_head_sha() -> None:\n    workflow = (\n        Path(__file__).resolve().parents[1]\n        / ".github/workflows/container-supply-chain.yml"\n    ).read_text(encoding="utf-8")\n\n    assert "SOURCE_SHA: {source_expression}" in workflow\n    assert workflow.count("ref: {env_expression}") == 4\n    assert (\n        "LOCAL_IMAGE: local/nexolab-{matrix_expression}:{env_expression}"\n        in workflow\n    )\n    assert (\n        workflow.count(\n            "org.opencontainers.image.revision={env_expression}"\n        )\n        == 2\n    )\n    assert 'test "$revision" = "$SOURCE_SHA"' in workflow\n    assert '--commit "$SOURCE_SHA"' in workflow\n    assert '\"commit\": os.environ[\"SOURCE_SHA\"],' in workflow\n    assert workflow.count("github.sha") == 1\n'''
+              tests += test_source
+          test_path.write_text(tests, encoding="utf-8")
+          PY
+
+      - name: Remove temporary workflows and publish
+        run: |
+          rm \
+            .github/workflows/fix-supply-chain-head-sha-once.yml \
+            .github/workflows/fix-supply-chain-head-sha-v2-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/container-supply-chain.yml \
+            tests/test_container_supply_chain_policy.py \
+            .github/workflows/fix-supply-chain-head-sha-once.yml \
+            .github/workflows/fix-supply-chain-head-sha-v2-once.yml
+          git commit -m "fix(security): bind scan evidence to PR head"
+          git push origin HEAD:fix/327-revalidate-cjson-exception
