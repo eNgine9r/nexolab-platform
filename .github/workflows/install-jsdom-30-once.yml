@@ -1,3 +1,4 @@
+# Retry after correcting the URL assertion to use the standard URL API.
 name: Install jsdom 30 once
 
 on:
