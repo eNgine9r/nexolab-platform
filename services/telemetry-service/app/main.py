@@ -39,6 +39,7 @@ from app.refrigeration.lifecycle_api import create_equipment_lifecycle_router
 from app.refrigeration.lifecycle_repository import PostgresEquipmentLifecycleRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
+from app.refrigeration.structural_api import create_refrigeration_structural_router
 from app.reports.api import create_report_router
 from app.reports.output_api import create_report_output_router
 from app.reports.output_queries import ReportOutputQueryRepository
@@ -311,6 +312,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             signed_url_seconds=resolved.equipment_image_signed_url_seconds,
             security_dependencies=security_dependencies,
             security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_refrigeration_structural_router(
+            refrigeration_equipment_repository,
+            equipment_lifecycle_repository,
+            refrigeration_repository,
+            object_storage,
+            signed_url_seconds=resolved.equipment_image_signed_url_seconds,
+            security_dependencies=security_dependencies,
             default_organization_id=resolved.auth_default_organization_id,
         )
     )
