@@ -24,29 +24,29 @@ Issue #254 updates only the direct `@playwright/test` development dependency and
 - Discovered tests compared: `24`.
 - Every config file hash, test title, test count and test-file count is identical before and after migration.
 
-| Config | Tests | Files | Config unchanged |
-| --- | ---: | ---: | :---: |
-| `playwright.alerts.config.ts` | 1 | 1 | yes |
-| `playwright.broker-control.config.ts` | 1 | 1 | yes |
-| `playwright.dashboard.config.ts` | 9 | 9 | yes |
-| `playwright.device-agent-fleet.config.ts` | 1 | 1 | yes |
-| `playwright.disaster-recovery.config.ts` | 1 | 1 | yes |
-| `playwright.local-auth.config.ts` | 3 | 2 | yes |
-| `playwright.nodes.config.ts` | 1 | 1 | yes |
-| `playwright.observability.config.ts` | 1 | 1 | yes |
-| `playwright.production.config.ts` | 2 | 1 | yes |
-| `playwright.rendered-reports.config.ts` | 1 | 1 | yes |
-| `playwright.reports.config.ts` | 1 | 1 | yes |
-| `playwright.security.config.ts` | 1 | 1 | yes |
-| `playwright.sessions.config.ts` | 1 | 1 | yes |
+| Config                                    | Tests | Files | Config unchanged |
+| ----------------------------------------- | ----: | ----: | :--------------: |
+| `playwright.alerts.config.ts`             |     1 |     1 |       yes        |
+| `playwright.broker-control.config.ts`     |     1 |     1 |       yes        |
+| `playwright.dashboard.config.ts`          |     9 |     9 |       yes        |
+| `playwright.device-agent-fleet.config.ts` |     1 |     1 |       yes        |
+| `playwright.disaster-recovery.config.ts`  |     1 |     1 |       yes        |
+| `playwright.local-auth.config.ts`         |     3 |     2 |       yes        |
+| `playwright.nodes.config.ts`              |     1 |     1 |       yes        |
+| `playwright.observability.config.ts`      |     1 |     1 |       yes        |
+| `playwright.production.config.ts`         |     2 |     1 |       yes        |
+| `playwright.rendered-reports.config.ts`   |     1 |     1 |       yes        |
+| `playwright.reports.config.ts`            |     1 |     1 |       yes        |
+| `playwright.security.config.ts`           |     1 |     1 |       yes        |
+| `playwright.sessions.config.ts`           |     1 |     1 |       yes        |
 
 ## Deterministic lockfile changes
 
-| Package | Before | After |
-| --- | --- | --- |
+| Package            | Before   | After    |
+| ------------------ | -------- | -------- |
 | `@playwright/test` | `1.55.0` | `1.62.0` |
-| `playwright` | `1.55.0` | `1.62.0` |
-| `playwright-core` | `1.55.0` | `1.62.0` |
+| `playwright`       | `1.55.0` | `1.62.0` |
+| `playwright-core`  | `1.55.0` | `1.62.0` |
 
 ## Browser installation evidence
 
