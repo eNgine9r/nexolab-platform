@@ -29,12 +29,16 @@ describe("LiveDashboardInventoryClient", () => {
             offset: 0,
             has_more: false,
           }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
         ),
     );
-    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", {
-      fetch: fetchImpl,
-    });
+    const client = new LiveDashboardInventoryClient(
+      "http://127.0.0.1:8082",
+      { fetch: fetchImpl },
+    );
 
     const result = await client.list();
 
@@ -86,9 +90,10 @@ describe("LiveDashboardInventoryClient", () => {
           { status: 200 },
         ),
     );
-    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", {
-      fetch: fetchImpl,
-    });
+    const client = new LiveDashboardInventoryClient(
+      "http://127.0.0.1:8082",
+      { fetch: fetchImpl },
+    );
 
     const result = await client.list();
 
@@ -104,13 +109,16 @@ describe("LiveDashboardInventoryClient", () => {
     const fetchImpl = vi.fn(
       async () =>
         new Response(
-          JSON.stringify({ detail: { code: "permission_denied", message: "Forbidden" } }),
+          JSON.stringify({
+            detail: { code: "permission_denied", message: "Forbidden" },
+          }),
           { status: 403 },
         ),
     );
-    const client = new LiveDashboardInventoryClient("http://127.0.0.1:8082", {
-      fetch: fetchImpl,
-    });
+    const client = new LiveDashboardInventoryClient(
+      "http://127.0.0.1:8082",
+      { fetch: fetchImpl },
+    );
 
     await expect(client.list()).rejects.toMatchObject({
       status: 403,
