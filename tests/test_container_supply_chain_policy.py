@@ -186,3 +186,27 @@ def test_workflow_refreshes_base_and_versions_device_agent_cache() -> None:
         "cache-from: type=gha,scope=supply-chain-${{ matrix.id }}"
         not in workflow
     )
+
+
+def test_workflow_binds_pull_request_evidence_to_head_sha() -> None:
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/container-supply-chain.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" in workflow
+    assert workflow.count("ref: ${{ env.SOURCE_SHA }}") == 4
+    assert (
+        "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ env.SOURCE_SHA }}"
+        in workflow
+    )
+    assert (
+        workflow.count(
+            "org.opencontainers.image.revision=${{ env.SOURCE_SHA }}"
+        )
+        == 2
+    )
+    assert 'test "$revision" = "$SOURCE_SHA"' in workflow
+    assert '--commit "$SOURCE_SHA"' in workflow
+    assert '"commit": os.environ["SOURCE_SHA"],' in workflow
+    assert workflow.count("github.sha") == 1
