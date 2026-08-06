@@ -25,8 +25,8 @@ PR #272 was the original independent `lucide-react` review. Dependabot closed it
 
 Development patch and minor updates may be grouped only when they share one verification surface:
 
-| Group                                 | Packages                                                     | Verification surface                         |
-| ------------------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
+| Group                                 | Packages                                                      | Verification surface                         |
+| ------------------------------------- | ------------------------------------------------------------- | -------------------------------------------- |
 | `development-test-patch-minor`        | Testing Library, jsdom, Vitest and the Vite React test plugin | unit, browser and test-runtime compatibility |
 | `development-quality-patch-minor`     | Commitlint, ESLint, Husky, lint-staged and Prettier           | repository quality gates and commit hooks    |
 | `development-build-patch-minor`       | Tailwind CSS and its PostCSS adapter                          | CSS compilation and production build         |
