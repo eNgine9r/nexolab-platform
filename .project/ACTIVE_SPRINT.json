@@ -5,7 +5,7 @@
   "sprint": {
     "id": "ENGINEERING-HARDENING-1",
     "title": "Engineering governance, security exception lifecycle and toolchain hardening",
-    "goal": "Continue independent software hardening while physical acquisition acceptance remains blocked, without mixing major migrations or weakening LOCAL_LAN and offline-runtime guarantees.",
+    "goal": "Continue independent software hardening while physical acquisition acceptance remains blocked, without mixing migrations or weakening LOCAL_LAN and offline-runtime guarantees.",
     "status": "in_progress",
     "started_at": "2026-08-06",
     "epic_issue": 326
@@ -21,43 +21,41 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-335",
-      "issue": 335,
-      "title": "Reconcile ADR registry completion and promote dependency lanes",
+      "id": "NEXOLAB-345",
+      "issue": 345,
+      "title": "Reconcile dependency lane completion and promote jsdom 30",
       "status": "in_progress",
-      "depends_on": [300],
+      "depends_on": [328, 343],
       "scope": "state_only"
-    },
-    {
-      "id": "NEXOLAB-300",
-      "issue": 300,
-      "pull_request": 334,
-      "parent_issue": 326,
-      "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-      "status": "completed",
-      "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
-      "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae"
     },
     {
       "id": "NEXOLAB-328",
       "issue": 328,
-      "parent_issue": 326,
+      "pull_request": 337,
       "title": "Separate dependency update lanes and retire grouped major PRs",
-      "status": "ready",
-      "depends_on": [300]
+      "status": "completed",
+      "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
+      "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73"
+    },
+    {
+      "id": "NEXOLAB-343",
+      "issue": 343,
+      "pull_request": 344,
+      "title": "Isolate Playwright migration-grade updates",
+      "status": "completed",
+      "verified_head_sha": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
+      "merge_sha": "5cfba8b58080cca22105934b94110e961c5b3098"
     },
     {
       "id": "NEXOLAB-253",
       "issue": 253,
-      "parent_issue": 204,
       "title": "Migrate jsdom to 30",
-      "status": "queued",
-      "depends_on": [328]
+      "status": "ready",
+      "depends_on": [328, 343]
     },
     {
       "id": "NEXOLAB-254",
       "issue": 254,
-      "parent_issue": 204,
       "title": "Migrate Playwright to 1.62.x",
       "status": "queued",
       "depends_on": [253]
@@ -65,15 +63,13 @@
     {
       "id": "NEXOLAB-252",
       "issue": 252,
-      "parent_issue": 204,
       "title": "Migrate lint-staged to 17",
       "status": "queued",
-      "depends_on": [251, 254]
+      "depends_on": [254]
     },
     {
       "id": "NEXOLAB-255",
       "issue": 255,
-      "parent_issue": 204,
       "title": "Transition to TypeScript 6",
       "status": "queued",
       "depends_on": [252]
@@ -81,59 +77,50 @@
     {
       "id": "NEXOLAB-257",
       "issue": 257,
-      "parent_issue": 204,
       "title": "Migrate ESLint to 10",
-      "status": "blocked",
-      "depends_on": ["compatible Next.js and eslint-plugin dependency graph"]
+      "status": "blocked"
     },
     {
       "id": "NEXOLAB-256",
       "issue": 256,
-      "parent_issue": 204,
       "title": "Transition to TypeScript 7",
-      "status": "deferred",
-      "depends_on": [255, "TypeScript 7 ecosystem support"]
+      "status": "deferred"
     }
   ],
+  "dependency_policy": {
+    "base_verified_head": "efb685df980735427307902aaa649bd1f9b926f0",
+    "corrective_verified_head": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
+    "production_runtime_grouped": false,
+    "npm_major_automation_enabled": false,
+    "node_runtime_major": 22,
+    "node_types_max_automated_major": 22,
+    "playwright_automated_guard": ">=1.56",
+    "validator_fixture_count": 11,
+    "automatic_major_merge": false,
+    "manifest_changed": false,
+    "lockfile_changed": false
+  },
+  "dependency_pull_requests": {
+    "closed_unmerged": [272, 339],
+    "open_unselected": [340, 341]
+  },
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
     "vulnerability": "CVE-2026-67216",
-    "owner": "platform-security",
-    "installed_version": "1.7.18-3.1+deb13u1",
-    "severity": "HIGH",
-    "status": "affected",
-    "fixed_version": null,
     "expires_on": "2026-09-05",
-    "image_digest": "sha256:544eead98d548c84c938922deb2513b1428994271600fa027dd5895c9813b24d"
-  },
-  "dependency_pull_requests": {
-    "closed_superseded": [
-      {
-        "pull_request": 271,
-        "reason": "Grouped unrelated major migrations conflict with one-Issue/one-branch/one-focused-PR policy.",
-        "merged": false
-      }
-    ],
-    "open_independent_review": [
-      {
-        "pull_request": 272,
-        "title": "Bump lucide-react from 1.26.0 to 1.28.0",
-        "status": "open_unselected",
-        "reason": "Requires a separate focused compatibility and visual-regression decision."
-      }
-    ]
+    "status": "affected",
+    "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 328,
-    "title": "Separate dependency update lanes and retire grouped major PRs",
-    "reason": "ADR governance is merged. Dependency automation policy is independent of hardware and must be corrected before focused toolchain migrations begin."
+    "issue": 253,
+    "title": "Migrate jsdom to 30",
+    "reason": "Dependency lane policy and its live automation correction are merged. jsdom is the first isolated migration in the ordered queue."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
     "status": "software_complete_hardware_acceptance_pending",
     "issues": [289, 245, 189, 200, 201, 202],
-    "blocker": "Controlled Raspberry Pi/RS-485 access is unavailable.",
     "completion_classification": "software verified; hardware performance acceptance pending"
   }
 }
