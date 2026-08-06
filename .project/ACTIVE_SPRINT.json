@@ -4,8 +4,8 @@
   "profile": "LOCAL_LAN",
   "sprint": {
     "id": "ENGINEERING-HARDENING-1",
-    "title": "Engineering governance, security exception lifecycle and toolchain hardening",
-    "goal": "Continue independent software hardening while physical acquisition acceptance remains blocked, without mixing migrations or weakening LOCAL_LAN and offline-runtime guarantees.",
+    "title": "Engineering governance, critical operator defects and toolchain hardening",
+    "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated toolchain migrations and the highest-priority operator defects.",
     "status": "in_progress",
     "started_at": "2026-08-06",
     "epic_issue": 326
@@ -23,51 +23,46 @@
     {
       "id": "NEXOLAB-350",
       "issue": 350,
+      "pull_request": 351,
       "title": "Reconcile jsdom 30 completion and promote Playwright 1.62",
-      "status": "in_progress",
-      "depends_on": [253],
-      "scope": "state_only"
+      "status": "completed",
+      "scope": "state_only",
+      "verified_head_sha": "7b9cefc21022981d0413e4518c19225dd3430609",
+      "merge_sha": "dff88feee94a6e6334f1e6ea2b515cec5ecff5be"
     },
     {
-      "id": "NEXOLAB-328",
-      "issue": 328,
-      "pull_request": 337,
-      "title": "Separate dependency update lanes and retire grouped major PRs",
+      "id": "NEXOLAB-353",
+      "issue": 353,
+      "pull_request": 354,
+      "title": "Detect telemetry WebSocket disconnects without waiting for heartbeat",
       "status": "completed",
-      "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
-      "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73"
-    },
-    {
-      "id": "NEXOLAB-343",
-      "issue": 343,
-      "pull_request": 344,
-      "title": "Isolate Playwright migration-grade updates",
-      "status": "completed",
-      "verified_head_sha": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
-      "merge_sha": "5cfba8b58080cca22105934b94110e961c5b3098"
-    },
-    {
-      "id": "NEXOLAB-253",
-      "issue": 253,
-      "pull_request": 349,
-      "title": "Migrate jsdom to 30",
-      "status": "completed",
-      "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
-      "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2"
+      "verified_head_sha": "4161f0797c3d56b4839093797df3aca8eaa7adf4",
+      "merge_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323"
     },
     {
       "id": "NEXOLAB-254",
       "issue": 254,
+      "pull_request": 352,
       "title": "Migrate Playwright to 1.62.x",
+      "status": "verified_ready_for_merge",
+      "depends_on": [253, 353],
+      "base_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
+      "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98"
+    },
+    {
+      "id": "NEXOLAB-355",
+      "issue": 355,
+      "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
       "status": "ready",
-      "depends_on": [253]
+      "priority": "critical",
+      "depends_on": [254]
     },
     {
       "id": "NEXOLAB-252",
       "issue": 252,
       "title": "Migrate lint-staged to 17",
       "status": "queued",
-      "depends_on": [254]
+      "depends_on": [355]
     },
     {
       "id": "NEXOLAB-255",
@@ -89,30 +84,39 @@
       "status": "deferred"
     }
   ],
-  "dependency_policy": {
-    "base_verified_head": "efb685df980735427307902aaa649bd1f9b926f0",
-    "corrective_verified_head": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
-    "production_runtime_grouped": false,
-    "npm_major_automation_enabled": false,
-    "node_runtime_major": 22,
-    "node_types_max_automated_major": 22,
-    "playwright_automated_guard": ">=1.56",
-    "validator_fixture_count": 11,
-    "automatic_major_merge": false
-  },
-  "jsdom_migration": {
-    "version_before": "29.1.1",
-    "version_after": "30.0.0",
-    "verified_head_sha": "68242400e9604f6d8fcf446667d6543ec917a862",
-    "merge_sha": "0f871d91124a70110a1948065554d55af6f183d2",
+  "playwright_migration": {
+    "version_before": "1.55.0",
+    "version_after": "1.62.0",
     "node_baseline": "22.23.1",
-    "focused_contract": "green_6_of_6",
+    "engine_requirement": ">=20",
+    "config_count": 13,
+    "discovered_test_count": 24,
+    "config_hashes_unchanged": true,
+    "test_discovery_unchanged": true,
+    "removed_api_findings": 0,
+    "browser_install_command": "npx playwright install --with-deps chromium",
+    "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98",
+    "production_dependencies_changed": false,
     "runtime_closure_changed": false,
+    "offline_bundle": "green"
+  },
+  "verification": {
+    "ci": "green",
+    "acquisition_scale": "green",
+    "authenticated_dashboard": "green",
+    "refrigeration_browser": "green",
+    "alerts_browser": "green",
+    "reports_browser": "green",
+    "rendered_reports_browser": "green",
+    "nodes_browser": "green",
+    "test_sessions_browser": "green",
+    "security_browser": "green",
+    "offline_auth": "green",
     "offline_bundle": "green"
   },
   "dependency_pull_requests": {
     "closed_unmerged": [272, 339],
-    "open_unselected": [340, 341]
+    "open_unselected": [340, 341, 346, 347]
   },
   "security_exception": {
     "image_id": "telemetry-service",
@@ -123,9 +127,9 @@
     "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 254,
-    "title": "Migrate Playwright to 1.62.x",
-    "reason": "The focused jsdom 30 migration is merged with GREEN unit, browser and offline evidence. Playwright is the next isolated migration in the ordered queue."
+    "issue": 355,
+    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
+    "reason": "Playwright 1.62 is exact-head GREEN across CI, browser, Offline Auth and Offline Bundle. Issue #355 is the critical operator defect that prevents canonical channel selection on a long-running LOCAL_LAN database."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,

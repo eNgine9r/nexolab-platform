@@ -1,61 +1,78 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-06
-Verified product baseline: `0f871d91124a70110a1948065554d55af6f183d2`
-Active control Work Package: Issue #350 — reconcile jsdom 30 completion and promote Playwright 1.62
-Branch: `docs/350-reconcile-jsdom-completion`
-Next Ready Work Package: Issue #254 — focused Playwright 1.62.x migration
-Active epic: Issue #326 — Engineering governance, security exception lifecycle and toolchain hardening
+Verified product baseline: `67b471e44201f7c96ef4e51e7c3904e8c78df323`
+Active Work Package: Issue #254 / PR #352 — Playwright 1.62 migration, exact-head verified and ready for final merge audit
+Branch: `maint/254-playwright-1-62`
+Verified implementation head: `0092a1035af913cbe5be22d2e57db2a3fc257e98`
+Next Ready Work Package after merge: Issue #355 — canonical Live Dashboard channel inventory without telemetry-history timeout
+Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
 Parallel blocked epic: Issue #282 — acquisition software complete; physical Raspberry Pi/RS-485 acceptance pending
 
-## Focused dependency lanes
+## Reconciled predecessor state
 
-Issue #328 / PR #337 established separate dependency update lanes. Corrective Issue #343 / PR #344 excluded migration-grade Playwright updates from routine automation.
+- Issue #350 / PR #351 completed the jsdom state reconciliation and merged as `dff88feee94a6e6334f1e6ea2b515cec5ecff5be` from exact head `7b9cefc21022981d0413e4518c19225dd3430609`.
+- Issue #353 / PR #354 fixed prompt Telemetry Service WebSocket disconnect detection and merged as `67b471e44201f7c96ef4e51e7c3904e8c78df323` from exact head `4161f0797c3d56b4839093797df3aca8eaa7adf4`.
+- PR #352 is based on that current `main` baseline and is zero commits behind.
 
-Current rules:
+## Playwright 1.62 migration verified
 
-- production runtime updates remain individual Pull Requests;
-- development patch/minor groups remain limited to compatible verification surfaces;
-- npm SemVer-major automation and automatic major merge remain disabled;
-- Node 22 and `@types/node` major 22 remain aligned;
-- Playwright `>=1.56` remains excluded from Dependabot until Issue #254 completes;
-- deterministic dependency-policy validation remains GREEN with 11 fixtures.
+Issue #254 / PR #352 moves only the Playwright development toolchain:
 
-Dependency PR status:
+- `@playwright/test 1.55.0 → 1.62.0`;
+- `playwright 1.55.0 → 1.62.0`;
+- `playwright-core 1.55.0 → 1.62.0`;
+- repository Node baseline remains `22.23.1`, compatible with Playwright engine `>=20`;
+- all 13 Playwright configuration hashes remain unchanged;
+- test discovery remains 24 tests across the same files and titles;
+- removed `_react`, `_vue`, `:light` and `launch({ devtools })` APIs are absent;
+- Chromium installation/cache evidence and package/browser rollback are documented in `docs/maintenance/playwright-1.62-migration.md`;
+- screenshots, traces, videos and HTML report contracts remain configured;
+- the acquisition invariant instrumentation is scoped per document generation and verifies one active server WebSocket after reload without changing application runtime behavior.
 
-- #272 and #339 are closed unmerged;
-- #340 remains open and unselected as the React types patch group;
-- #341 remains open and unselected as the individual lucide review.
+Exact-head `0092a1035af913cbe5be22d2e57db2a3fc257e98` is GREEN for:
 
-## jsdom 30 migration completed
+- CI, including dependency policy, formatting, lint, typecheck, full unit suite and production build;
+- Acquisition Scale Acceptance;
+- Authenticated Dashboard Acceptance;
+- Refrigeration Browser Acceptance;
+- Alerts Browser Acceptance;
+- Reports Browser Acceptance;
+- Rendered Reports Browser Acceptance;
+- Nodes Browser Acceptance;
+- Test Sessions Browser Acceptance;
+- Security Browser Acceptance;
+- Offline Auth Acceptance;
+- Offline Bundle, including disconnected startup and update/rollback persistent-data preservation.
 
-Issue #253 / PR #349 was squash merged as `0f871d91124a70110a1948065554d55af6f183d2` from exact head `68242400e9604f6d8fcf446667d6543ec917a862`.
+## Focused diff and review audit
 
-Verified outcome:
+The implementation comparison against current `main` contains five permanent files:
 
-- direct development dependency changed only from `jsdom 29.1.1` to exact `30.0.0`;
-- jsdom engine `^22.22.2 || ^24.15.0 || >=26.0.0` is compatible with repository Node `22.23.1`;
-- deterministic lockfile closure is documented in `docs/maintenance/jsdom-30-migration.md`;
-- focused URL, storage, focus, form, event, layout-independent and no-network contract passed 6/6;
-- formatting, lint, typecheck, complete Vitest suite and production build are GREEN;
-- all browser acceptance workflows, Offline Auth Acceptance and Offline Bundle are GREEN;
-- the first Offline Auth attempt failed before acceptance after a Docker image pull, then passed on a same-head failed-job rerun;
-- production source, runtime containers and offline delivery closure are unchanged.
+- `package.json`;
+- `package-lock.json`;
+- `scripts/validate-playwright-migration.py`;
+- `e2e/telemetry-acquisition-invariant.production.e2e.ts`;
+- `docs/maintenance/playwright-1.62-migration.md`.
 
-## Ordered engineering-hardening queue
+This checkpoint adds only the four authoritative `.project` state files. No temporary workflow remains. Unresolved review threads: zero. Production dependencies, runtime containers, database/schema, acquisition scheduler, hardware and Modbus behavior are unchanged.
 
-1. **Issue #254 — Ready:** Playwright 1.62.x migration.
+## Ordered queue
+
+1. **Issue #355 — Ready after PR #352 merge:** canonical Live Dashboard inventory independent of telemetry-history volume.
 2. **Issue #252 — queued:** lint-staged 17 migration.
 3. **Issue #255 — queued:** TypeScript 6 transition.
 
 Issue #257 remains blocked. Issue #256 remains deferred.
 
+Open dependency Pull Requests #340, #341, #346 and #347 remain unselected and outside Issue #254. PR #347 becomes obsolete after the Playwright 1.62 merge and must not be merged into this Work Package.
+
 ## Security and hardware boundaries
 
-The exact `telemetry-service + libcjson1 + CVE-2026-67216` exception expires on **2026-09-05** and must not be broadened.
+The exact `telemetry-service + libcjson1 + CVE-2026-67216` exception expires on **2026-09-05** and remains unbroadened.
 
-Issue #289 remains `software verified; hardware performance acceptance pending`. Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain blocked by unavailable controlled Raspberry Pi/RS-485 access.
+Issue #289 remains `software verified; hardware performance acceptance pending`. Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain pending controlled Raspberry Pi/RS-485 evidence.
 
 ## Next action
 
-Merge Issue #350 as an exact four-file state-only checkpoint. Then execute Issue #254 as one focused Playwright 1.62.x migration: update Playwright only, preserve all browser acceptance contracts and evidence locations, run every browser workflow plus Offline Bundle, audit browser binary/cache behavior and document rollback.
+Validate this state-only checkpoint on the exact PR head, mark PR #352 Ready, perform the final current-head/check/review audit, squash merge PR #352, confirm Issue #254 closed, and leave Issue #355 as the sole Next Ready Work Package.

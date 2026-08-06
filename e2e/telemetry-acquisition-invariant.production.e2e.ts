@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+  type WebSocket as PlaywrightWebSocket,
+} from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
@@ -27,6 +34,12 @@ type MetricsPayload = {
   };
 };
 
+type RuntimeMetricsPayload = {
+  websocket_clients: number;
+  websocket_connect_total: number;
+  websocket_disconnect_total: number;
+};
+
 type PhaseEvidence = {
   phase: string;
   elapsedSeconds: number;
@@ -39,11 +52,21 @@ type ObservedRequest = {
   url: string;
 };
 
+type SocketDocumentEvidence = {
+  document: number;
+  opened: number;
+  closed: number;
+  active: number;
+  maximum: number;
+};
+
 type SocketEvidence = {
   opened: number;
   closed: number;
   active: number;
   maximum: number;
+  currentDocument: number;
+  documents: SocketDocumentEvidence[];
 };
 
 async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
@@ -145,6 +168,16 @@ async function readMetrics(): Promise<MetricsPayload> {
   return (await response.json()) as MetricsPayload;
 }
 
+async function readRuntimeMetrics(): Promise<RuntimeMetricsPayload> {
+  const response = await fetch(`${apiBaseUrl}/metrics/json`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Telemetry runtime metrics returned HTTP ${response.status}`);
+  }
+  return (await response.json()) as RuntimeMetricsPayload;
+}
+
 async function waitForApiReady(): Promise<void> {
   await expect
     .poll(
@@ -191,8 +224,41 @@ function observePage(
     closed: 0,
     active: 0,
     maximum: 0,
+    currentDocument: 0,
+    documents: [],
   };
   evidence.sockets[name] = socket;
+
+  let documentNumber = 0;
+  let activeSockets = new Set<PlaywrightWebSocket>();
+
+  const currentDocument = (): SocketDocumentEvidence => {
+    let document = socket.documents.at(-1);
+    if (!document || document.document !== documentNumber) {
+      document = {
+        document: documentNumber,
+        opened: 0,
+        closed: 0,
+        active: 0,
+        maximum: 0,
+      };
+      socket.documents.push(document);
+    }
+    return document;
+  };
+
+  const startDocument = () => {
+    documentNumber += 1;
+    activeSockets = new Set<PlaywrightWebSocket>();
+    socket.currentDocument = documentNumber;
+    socket.active = 0;
+    currentDocument();
+  };
+
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) startDocument();
+  });
+
   page.on("request", (request) => {
     const observed = { method: request.method(), url: request.url() };
     if (observed.url.includes("/api/device-agent/xjp60d")) {
@@ -202,13 +268,26 @@ function observePage(
       evidence.telemetryRequests.push(observed);
     }
   });
+
   page.on("websocket", (websocket) => {
+    if (documentNumber === 0) startDocument();
+    const ownerDocument = currentDocument();
     socket.opened += 1;
-    socket.active += 1;
-    socket.maximum = Math.max(socket.maximum, socket.active);
+    ownerDocument.opened += 1;
+    activeSockets.add(websocket);
+    socket.active = activeSockets.size;
+    ownerDocument.active = activeSockets.size;
+    ownerDocument.maximum = Math.max(ownerDocument.maximum, ownerDocument.active);
+    socket.maximum = Math.max(socket.maximum, ownerDocument.maximum);
+
     websocket.on("close", () => {
       socket.closed += 1;
-      socket.active = Math.max(0, socket.active - 1);
+      ownerDocument.closed += 1;
+      activeSockets.delete(websocket);
+      if (ownerDocument.document === socket.currentDocument) {
+        socket.active = activeSockets.size;
+        ownerDocument.active = activeSockets.size;
+      }
     });
   });
 }
@@ -252,6 +331,11 @@ test("page navigation and browser count do not amplify physical acquisition", as
       await overview.waitForLoadState("domcontentloaded");
     }),
   );
+  const overviewRuntimeAfterRefresh = await readRuntimeMetrics();
+  expect(
+    overviewRuntimeAfterRefresh.websocket_clients,
+    "server active WebSocket clients after overview reload settles",
+  ).toBe(1);
 
   const live = await primary.newPage();
   observePage(live, observed, "live-primary");
@@ -340,7 +424,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
   expect(discoveryDelta).toBe(0);
   expect(mutationDelta).toBe(0);
   for (const [name, socket] of Object.entries(observed.sockets)) {
-    expect(socket.maximum, `${name} physical WebSocket maximum`).toBeLessThanOrEqual(1);
+    expect(socket.maximum, `${name} physical WebSocket maximum per document`).toBeLessThanOrEqual(1);
   }
 
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -356,6 +440,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
         controlRequests: observed.controlRequests,
         telemetryRequests: observed.telemetryRequests,
         websocketByPage: observed.sockets,
+        overviewRuntimeAfterRefresh,
         discoveryDelta,
         mutationDelta,
       },
