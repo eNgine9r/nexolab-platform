@@ -34,7 +34,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index() -> None:
+def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     database = Database(os.environ["DATABASE_URL"])
     repository = LiveDashboardRepository(database)
     security = SecurityRepository(database)
@@ -166,19 +168,21 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index() -> 
         }
         evidence_path.parent.mkdir(parents=True, exist_ok=True)
         evidence_path.write_text(json.dumps(evidence, indent=2, default=str) + "\n")
-        print(
-            "NEXOLAB_LIVE_DASHBOARD_INVENTORY_POSTGRES_EVIDENCE="
-            + json.dumps(
-                {
-                    "catalog_channels": page.total,
-                    "telemetry_fixture_rows": 50003,
-                    "execution_ms": execution_ms,
-                    "request_ms": request_ms,
-                    "latest_lookup_index": "ix_telemetry_latest_lookup",
-                },
-                sort_keys=True,
+        with capsys.disabled():
+            print(
+                "NEXOLAB_LIVE_DASHBOARD_INVENTORY_POSTGRES_EVIDENCE="
+                + json.dumps(
+                    {
+                        "catalog_channels": page.total,
+                        "telemetry_fixture_rows": 50003,
+                        "execution_ms": execution_ms,
+                        "request_ms": request_ms,
+                        "latest_lookup_index": "ix_telemetry_latest_lookup",
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
             )
-        )
 
         assert execution_ms < 8000
         assert request_ms < 8000
