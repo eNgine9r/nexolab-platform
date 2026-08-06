@@ -2,33 +2,29 @@
 
 Updated: 2026-08-06
 
-## Issue #255 merge boundary
+## Issue #255 completed
 
-Issue #255 / PR #362 is verified ready for merge at exact head:
-
-```text
-8c43439e1ab34e398f4b3bf2a9c8545e4386b956
-```
+Issue #255 / PR #362 is merged and closed.
 
 Verified outcome:
 
+- merge SHA: `a3c7ced8d499d02d4f77ff14e2260499c58fb472`;
+- final verified head: `945e04a464d7229d76bdd80abb396d5b1d6c5991`;
 - TypeScript resolves from `5.9.3` to `6.0.3`;
-- `tsc --noEmit` is GREEN before and after the migration;
+- `tsc --noEmit` was GREEN before and after the migration;
 - new TypeScript 6 diagnostics: `0`;
 - deterministic lockfile movement is limited to the root entry and `node_modules/typescript`;
 - `tsconfig.json`, application source, tests, Playwright configs and Vitest config are unchanged;
-- `strict`, `noEmit`, `isolatedModules`, `module: esnext`, `moduleResolution: bundler` and explicit `target: ES2017` remain unchanged;
-- no `ignoreDeprecations`, broad `types` list, `any` baseline or mass `ts-expect-error` was introduced;
-- all 11 exact-head CI, browser, Offline Auth and Offline Bundle workflows are GREEN;
-- Offline Bundle proves disconnected startup and update/rollback persistent-data preservation;
+- all 11 exact-head CI, browser, Offline Auth and Offline Bundle workflows were GREEN;
+- Offline Bundle proved disconnected startup and update/rollback persistent-data preservation;
 - production dependencies and runtime closure are unchanged;
 - no database, acquisition, scheduler, hardware, Modbus or production/site action occurred.
 
-No Issue #255 software blocker remains. Merge only while the immutable head above remains current, zero commits behind `main`, and GREEN.
+No Issue #255 software blocker remains.
 
-## Next Ready boundary: Issue #357
+## Active Work Package boundary: Issue #357
 
-Issue #357 is the selected next Ready Work Package after Issue #255 merges.
+Issue #357 is the sole selected active package.
 
 Required outcome:
 
@@ -46,6 +42,16 @@ Until real Raspberry Pi evidence is attached, completion must remain:
 ```text
 software verified; Raspberry Pi perceived-latency acceptance pending
 ```
+
+Hard boundaries:
+
+- no visual redesign;
+- no dependency upgrades;
+- no cloud or CDN image delivery;
+- no telemetry-history requirement before marker rendering;
+- no acquisition scheduler or physical polling change;
+- no destructive database or image operation;
+- no Modbus write, hardware action or production/site cutover.
 
 ## Parallel runtime and hardware boundary
 

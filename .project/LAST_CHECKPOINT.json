@@ -6,11 +6,12 @@
   "task": "NEXOLAB-255",
   "issue": 255,
   "pull_request": 362,
-  "status": "verified_ready_for_merge",
-  "timestamp": "2026-08-06T15:24:54+03:00",
+  "status": "completed",
+  "timestamp": "2026-08-06T15:44:39+03:00",
   "branch": "maint/255-typescript-6",
   "base_sha": "5831190f9714236b53f362234785639e22267477",
-  "verified_head_sha": "8c43439e1ab34e398f4b3bf2a9c8545e4386b956",
+  "verified_head_sha": "945e04a464d7229d76bdd80abb396d5b1d6c5991",
+  "merge_sha": "a3c7ced8d499d02d4f77ff14e2260499c58fb472",
   "typescript_6_evidence": {
     "version_before": "5.9.3",
     "manifest_before": "^5",
@@ -60,7 +61,7 @@
     "state_files_in_pr": 4,
     "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0,
+    "branch_behind_main_at_merge": 0,
     "production_dependencies_changed": false,
     "runtime_closure_changed": false,
     "application_source_changed": false,
@@ -77,13 +78,14 @@
     "hardware_acceptance_issues": [289, 245, 189, 200, 201, 202],
     "security_exception_expires_on": "2026-09-05"
   },
-  "next_ready_work_package": {
+  "active_work_package": {
     "issue": 357,
     "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-    "status": "ready",
+    "status": "in_progress",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "labels": ["area:backend", "area:frontend", "type:bug", "priority:critical", "status:ready"],
-    "instruction": "Build one bounded equipment-scoped structural snapshot, retain it across route transitions with deterministic stale-while-revalidate caching and request deduplication, keep markers independent from latest telemetry latency, prove cold and warm browser hydration, preserve editing and physical polling boundaries, and classify completion as software verified with Raspberry Pi perceived-latency acceptance pending until real hardware evidence exists."
+    "labels": ["area:backend", "area:frontend", "type:bug", "priority:critical", "status:in-progress"],
+    "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending",
+    "instruction": "Build one bounded equipment-scoped structural snapshot, retain it across route transitions with deterministic stale-while-revalidate caching and request deduplication, keep markers independent from latest telemetry latency, prove cold and warm browser hydration, preserve editing and physical polling boundaries, and require real Raspberry Pi evidence before hardware acceptance."
   }
 }

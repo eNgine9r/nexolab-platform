@@ -19,7 +19,7 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "5831190f9714236b53f362234785639e22267477",
+  "current_main_sha": "a3c7ced8d499d02d4f77ff14e2260499c58fb472",
   "tasks": [
     {
       "id": "NEXOLAB-252",
@@ -35,21 +35,20 @@
       "issue": 255,
       "pull_request": 362,
       "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-      "status": "verified_ready_for_merge",
+      "status": "completed",
       "priority": "high",
       "assignee": "eNgine9r",
-      "verified_head_sha": "8c43439e1ab34e398f4b3bf2a9c8545e4386b956",
-      "labels": ["area:devops", "dependencies", "priority:high", "status:in-progress"],
-      "depends_on": [252]
+      "verified_head_sha": "945e04a464d7229d76bdd80abb396d5b1d6c5991",
+      "merge_sha": "a3c7ced8d499d02d4f77ff14e2260499c58fb472"
     },
     {
       "id": "NEXOLAB-357",
       "issue": 357,
       "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-      "status": "ready",
+      "status": "in_progress",
       "priority": "critical",
       "assignee": "eNgine9r",
-      "labels": ["area:backend", "area:frontend", "type:bug", "priority:critical", "status:ready"],
+      "labels": ["area:backend", "area:frontend", "type:bug", "priority:critical", "status:in-progress"],
       "depends_on": [255]
     },
     {
@@ -99,7 +98,7 @@
     "publisher_workflow_run": 31100231787
   },
   "verification": {
-    "issue_255_verified_head_sha": "8c43439e1ab34e398f4b3bf2a9c8545e4386b956",
+    "issue_255_verified_head_sha": "945e04a464d7229d76bdd80abb396d5b1d6c5991",
     "ci": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
@@ -112,7 +111,7 @@
     "offline_auth": "green",
     "offline_bundle": "green_disconnected_startup_and_update_rollback",
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0
+    "branch_behind_main_at_merge": 0
   },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
@@ -127,11 +126,12 @@
     "status": "affected",
     "fixed_version": null
   },
-  "next_ready_work_package": {
+  "active_work_package": {
     "issue": 357,
     "title": "Hydrate refrigeration image, layout and sensor placements immediately",
     "priority": "critical",
-    "reason": "Issue #255 has zero TypeScript 6 diagnostics, a three-file focused diff and all exact-head quality, browser and offline gates GREEN. Issue #357 is the highest-priority product-visible Ready defect."
+    "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending",
+    "reason": "Issue #255 is merged and closed with zero TypeScript 6 diagnostics and all exact-head quality, browser and offline gates GREEN. Issue #357 is the highest-priority product-visible defect."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,

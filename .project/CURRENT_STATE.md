@@ -1,26 +1,27 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-06
-Verified product baseline: `5831190f9714236b53f362234785639e22267477`
-Verified Work Package: Issue #255 / PR #362 — TypeScript 6 transition compiler
-Verified implementation head: `8c43439e1ab34e398f4b3bf2a9c8545e4386b956`
-Next Ready Work Package after GREEN merge: Issue #357 — immediate refrigeration image/layout/marker hydration
+Verified product baseline: `a3c7ced8d499d02d4f77ff14e2260499c58fb472`
+Completed Work Package: Issue #255 / PR #362 — TypeScript 6 transition compiler
+Verified implementation head: `945e04a464d7229d76bdd80abb396d5b1d6c5991`
+Active Work Package: Issue #357 — immediate refrigeration image/layout/marker hydration
 Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
 Parallel hardware/runtime track: Issue #282
 
-## Issue #255 verified ready for merge
+## Issue #255 completed
 
-Issue #255 / PR #362 upgrades the development-only TypeScript compiler from resolved `5.9.3` to `6.0.3`.
+Issue #255 / PR #362 merged into `main` as `a3c7ced8d499d02d4f77ff14e2260499c58fb472`.
 
-Verified scope:
+Completed scope:
 
+- TypeScript resolves from `5.9.3` to `6.0.3`;
 - root `devDependencies.typescript` changes from `^5` to `^6.0.3`;
 - deterministic lockfile movement is limited to the root package entry and `node_modules/typescript`;
 - `tsconfig.json` is unchanged;
 - application source, tests, Playwright configs and Vitest config are unchanged;
 - `strict`, `noEmit`, `isolatedModules`, `module: esnext`, `moduleResolution: bundler` and explicit `target: ES2017` remain unchanged;
 - no `ignoreDeprecations`, broad `types` list, `any` baseline, mass `ts-expect-error` or weakened compiler boundary was added;
-- TypeScript 7, ESLint 10, React, Next.js and unrelated refactoring remain outside scope.
+- TypeScript 7, ESLint 10, React, Next.js and unrelated refactoring remained outside scope.
 
 ## Diagnostic evidence
 
@@ -43,13 +44,11 @@ Migration workflow `31100010365` verified deterministic lockfile scope, compiler
 b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7
 ```
 
-Publisher workflow `31100231787` reproduced the migration and full quality cascade, committed the three permanent files and removed the temporary workflow.
-
 Permanent evidence is recorded in `docs/maintenance/typescript-6-migration.md`.
 
 ## Exact-head verification
 
-Final implementation head `8c43439e1ab34e398f4b3bf2a9c8545e4386b956` is GREEN for all 11 triggered workflows:
+Final head `945e04a464d7229d76bdd80abb396d5b1d6c5991` was GREEN for all 11 triggered workflows:
 
 - CI;
 - Authenticated Dashboard Acceptance;
@@ -63,11 +62,11 @@ Final implementation head `8c43439e1ab34e398f4b3bf2a9c8545e4386b956` is GREEN fo
 - Offline Auth Acceptance;
 - Offline Bundle.
 
-Offline Bundle proved disconnected startup and update/rollback persistent-data preservation. TypeScript remains development-only and does not change the production runtime closure.
+Offline Bundle proved clean transferred-host simulation, blocked egress, disconnected startup and update/rollback persistent-data preservation. TypeScript remains development-only and does not change the production runtime closure.
 
-## Next Ready Work Package: Issue #357
+## Active Work Package: Issue #357
 
-Issue #357 is open, assigned to `eNgine9r`, labeled `priority:critical` and `status:ready`.
+Issue #357 is open, assigned to `eNgine9r`, labeled `priority:critical` and `status:in-progress`.
 
 Required product outcome:
 
@@ -82,7 +81,7 @@ Required product outcome:
 
 ## Ordered queue
 
-1. **Issue #357 — Ready, priority critical:** refrigeration structural snapshot and warm hydration.
+1. **Issue #357 — active, priority critical:** refrigeration structural snapshot and warm hydration.
 2. **Issue #245 — Ready parallel runtime track:** standalone offline Raspberry Pi loopback operation; physical acceptance remains required.
 3. **Issue #257 — blocked:** ESLint 10 migration.
 4. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
@@ -97,4 +96,4 @@ Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance p
 
 ## Next action
 
-Complete the immutable-head audit for PR #362, merge only while exact head `8c43439e1ab34e398f4b3bf2a9c8545e4386b956` remains current and GREEN, reconcile the actual merge SHA, then activate Issue #357 in one focused branch and Pull Request.
+Continue Issue #357 from current `main` in one focused feature branch and Pull Request. Do not mix dependency upgrades, visual redesign, acquisition scheduler changes, cloud delivery, destructive data changes, Modbus writes or production/site cutover with the refrigeration hydration fix.
