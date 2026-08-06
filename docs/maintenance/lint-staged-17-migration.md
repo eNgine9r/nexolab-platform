@@ -85,12 +85,7 @@ Preparation workflow run `31096023579` regenerated the lockfile under the exact 
   "git": "git version 2.54.0",
   "lintStaged": "17.3.0",
   "node": "22.23.1",
-  "verified": [
-    "production-eslint-prettier-order",
-    "partial-stage-success",
-    "failure-rollback",
-    "empty-stage"
-  ]
+  "verified": ["production-eslint-prettier-order", "partial-stage-success", "failure-rollback", "empty-stage"]
 }
 ```
 
