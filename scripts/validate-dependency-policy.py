@@ -14,9 +14,12 @@ NVMRC_PATH = Path(".nvmrc")
 POLICY_DOC_PATH = Path("docs/maintenance/dependency-update-policy.md")
 WORKFLOWS_DIR = Path(".github/workflows")
 
+MIGRATION_GRADE_GUARDS = {
+    "@playwright/test": ">=1.56",
+}
+
 EXPECTED_GROUPS = {
     "development-test-patch-minor": {
-        "@playwright/test",
         "@testing-library/jest-dom",
         "@testing-library/react",
         "@vitejs/plugin-react",
@@ -251,6 +254,14 @@ def validate_groups(groups: dict[str, Group], package: dict[str, object]) -> Non
             )
         if "major" in group.update_types:
             raise DependencyPolicyError(f"group {name} must not include major updates")
+
+        migration_grade = set(group.patterns) & set(MIGRATION_GRADE_GUARDS)
+        if migration_grade:
+            raise DependencyPolicyError(
+                f"migration-grade dependencies must not enter grouped updates: "
+                f"{sorted(migration_grade)}"
+            )
+
         if set(group.patterns) != expected_patterns:
             raise DependencyPolicyError(
                 f"group {name} pattern mismatch; "
@@ -309,6 +320,19 @@ def validate_ignore_rules(rules: list[IgnoreRule]) -> None:
             "@types/node must have an explicit >=23 ignore guard for the Node 22 baseline"
         )
 
+    for dependency_name, required_version in MIGRATION_GRADE_GUARDS.items():
+        matching = [
+            rule
+            for rule in rules
+            if rule.dependency_name == dependency_name
+            and required_version in rule.versions
+        ]
+        if len(matching) != 1:
+            raise DependencyPolicyError(
+                f"{dependency_name} must have an explicit {required_version} "
+                "migration-grade version guard"
+            )
+
 
 def major_from_range(value: str) -> int:
     match = re.search(r"(\d+)", value)
@@ -344,9 +368,11 @@ def validate_policy_document(root: Path) -> None:
     required_phrases = (
         "Production runtime updates are individual Pull Requests",
         "Major version updates are disabled in Dependabot version-update automation",
+        "Playwright >=1.56",
         "Node 22",
         "@types/node",
         "PR #272",
+        "PR #341",
         "offline bundle",
         "rollback",
     )
