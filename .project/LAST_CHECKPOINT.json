@@ -2,187 +2,96 @@
   "schema_version": 1,
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
-  "sprint": "DATA-ACQUISITION-OPTIMIZATION-1",
-  "task": "NEXOLAB-324",
-  "issue": 324,
-  "pull_request": 325,
-  "status": "completed",
-  "timestamp": "2026-08-06T01:14:00+03:00",
-  "branch": "docs/324-acquisition-software-checkpoint",
-  "product_baseline_sha": "959bd8f54cf044280d385917578f836a5c8ec7c8",
-  "completed_control_work_packages": [
+  "sprint": "ENGINEERING-HARDENING-1",
+  "task": "NEXOLAB-329",
+  "issue": 329,
+  "status": "completed_in_state_branch",
+  "timestamp": "2026-08-06T04:18:00+03:00",
+  "branch": "docs/329-open-engineering-hardening-sprint",
+  "product_baseline_sha": "a8b2590c94a2fa67cd414f4b956f204e6b8f8540",
+  "active_epic": {
+    "issue": 326,
+    "title": "Engineering governance, security exception lifecycle and toolchain hardening",
+    "status": "active"
+  },
+  "ordered_work_packages": [
     {
-      "issue": 321,
-      "pull_request": 322,
-      "title": "Reconcile project state after Live Dashboard workspace merge",
-      "merge_sha": "261beced14a2e4604fc1ae2d2bb56c054acf0d78"
+      "issue": 327,
+      "status": "ready",
+      "review_due": "2026-08-15"
     },
     {
-      "issue": 324,
-      "pull_request": 325,
-      "title": "Reconcile acquisition software acceptance checkpoint",
-      "status": "completed_in_state_branch"
+      "issue": 300,
+      "status": "queued"
+    },
+    {
+      "issue": 328,
+      "status": "queued"
+    },
+    {
+      "issue": 253,
+      "status": "queued"
+    },
+    {
+      "issue": 254,
+      "status": "queued"
+    },
+    {
+      "issue": 252,
+      "status": "queued"
+    },
+    {
+      "issue": 255,
+      "status": "queued"
     }
   ],
-  "acquisition_software_acceptance": {
-    "issue": 289,
-    "pull_request": 323,
-    "issue_state": "open",
-    "verified_head_sha": "a15f4b084137bb53a11eff7c7ba5f2f3d78436f5",
-    "merge_sha": "959bd8f54cf044280d385917578f836a5c8ec7c8",
-    "completion_classification": "software verified; hardware performance acceptance pending",
-    "production_runtime_changed": false,
-    "serial_port_opened_by_deterministic_runner": false,
-    "modbus_write_attempts": 0
-  },
-  "scale_evidence": {
-    "profiles": [
-      {
-        "name": "pilot",
-        "active_targets": 34,
-        "executions": 336,
-        "maximum_concurrent_reads": 1,
-        "planning_load_percent": 0.56,
-        "maximum_scheduler_lag_seconds": 0.002
-      },
-      {
-        "name": "expanded",
-        "active_targets": 136,
-        "executions": 2304,
-        "maximum_concurrent_reads": 1,
-        "planning_load_percent": 3.84,
-        "maximum_scheduler_lag_seconds": 0.000329
-      },
-      {
-        "name": "stress",
-        "active_targets": 240,
-        "executions": 4320,
-        "maximum_concurrent_reads": 1,
-        "planning_load_percent": 7.2,
-        "maximum_scheduler_lag_seconds": 0.001435
-      }
-    ],
-    "healthy_communication_failures": 0,
-    "callback_errors": 0,
-    "healthy_overruns": 0,
-    "disabled_or_ineligible_executions": 0,
-    "failure_threshold": 3,
-    "cooldown_entries": 1,
-    "unrelated_healthy_endpoint_continued": true,
-    "retained_value_survived_failure": true,
-    "failure_quality": "communication_error",
-    "fairness_verified": true,
-    "no_catch_up_burst_verified": true
-  },
-  "authenticated_acquisition_evidence": {
-    "authenticated_contexts": 7,
-    "open_pages": 8,
-    "requests_per_second_min": 19.7697,
-    "requests_per_second_max": 20.1266,
-    "no_browser_requests_per_second": 19.9594,
-    "persisted_live_dashboard_requests_per_second": 19.889,
-    "concurrent_operator_surfaces_requests_per_second": 20.086,
-    "websocket_reconnect_requests_per_second": 20.118,
-    "telemetry_service_restart_requests_per_second": 19.9899,
-    "control_requests_get_only": true,
-    "discovery_delta": 0,
-    "configuration_mutation_delta": 0,
-    "maximum_websockets_per_page": 1
-  },
-  "selected_series_evidence": {
-    "channel_id": "106-03",
-    "metric": "temperature.probe",
-    "selected_latest_requests": 1,
-    "selected_history_requests": 1,
-    "maximum_concurrent_websockets": 1,
-    "acquisition_mutations": 0,
-    "persisted_after_telemetry_service_restart": true
-  },
-  "route_transition_evidence": {
-    "refrigeration_usable_ms": 175,
-    "energy_usable_ms": 210,
-    "overview_return_usable_ms": 170,
-    "latest_requests": 1,
-    "history_requests": 3,
-    "active_websockets": 1,
-    "maximum_concurrent_websockets": 1,
-    "acquisition_mutations": 0
-  },
-  "verification": {
-    "ci": "green",
-    "formatting": "green",
-    "lint": "green",
-    "typecheck": "green",
-    "tests": "green",
-    "production_build": "green",
-    "acquisition_scale_acceptance": "green",
-    "truthful_delivery_state_matrix": "green",
-    "authenticated_dashboard_acceptance": "green",
-    "refrigeration_browser_acceptance": "green",
-    "telemetry_service": "green",
-    "device_agent_fleet_acceptance": "green",
-    "mqtt_tls_fleet_acceptance": "green",
-    "edge_image": "green",
-    "container_supply_chain": "green",
-    "disaster_recovery_tls_fleet": "green",
-    "offline_bundle": "green",
-    "offline_clean_host_startup": "green",
-    "offline_blocked_egress": "green",
-    "offline_update_rollback_volume_preservation": "green"
-  },
-  "review_audit": {
-    "focused_acceptance_files": 6,
-    "production_frontend_files_changed": 0,
-    "production_backend_files_changed": 0,
-    "database_migrations_changed": 0,
-    "device_agent_runtime_files_changed": 0,
-    "registry_or_scheduler_runtime_files_changed": 0,
-    "inline_threads": 0,
-    "behind_main_commits_before_merge": 0,
-    "temporary_workflows_in_final_diff": 0,
-    "modbus_write": "none",
-    "hardware_actions": "none"
-  },
-  "active_epic": {
-    "issue": 282,
-    "title": "Performance and data acquisition optimization",
-    "status": "software_complete_hardware_acceptance_pending"
-  },
-  "next_ready_work_package": null,
-  "hard_blocker": {
-    "type": "controlled_hardware_access",
-    "issues": [289, 245, 189, 200, 201, 202],
-    "reason": "The remaining acceptance work requires a controlled Raspberry Pi/RS-485 environment that is not available from the current execution context."
-  },
-  "hardware_evidence": {
-    "software_verified": true,
-    "deterministic_scale_verified": true,
-    "truthful_delivery_verified": true,
-    "authenticated_multi_browser_verified": true,
-    "disconnected_runtime_verified": true,
-    "physical_raspberry_pi_rs485_verified": false,
-    "completion_classification": "software verified; hardware performance acceptance pending",
-    "required_phases": [
-      "no-browser",
-      "overview",
-      "live-dashboard",
-      "route-transitions",
-      "multiple-browsers",
-      "websocket-reconnect",
-      "unavailable-endpoint",
-      "mqtt-outbox-drain"
-    ]
-  },
-  "guardrails": [
-    "keep deterministic evidence classified as software verification",
-    "do not close Issue 289 without controlled Raspberry Pi and RS-485 evidence",
-    "page and browser count cannot define or amplify physical polling",
-    "do not perform Modbus or other hardware writes",
-    "do not delete persistent volumes or production data",
-    "do not perform production cutover without explicit approval"
+  "deferred_or_blocked": [
+    {
+      "issue": 257,
+      "status": "blocked",
+      "reason": "Compatible Next.js and ESLint plugin graph is not established."
+    },
+    {
+      "issue": 256,
+      "status": "deferred",
+      "reason": "Depends on TypeScript 6 and TypeScript 7 ecosystem support."
+    }
   ],
-  "next_ready_work_package_step": {
-    "issue": null,
-    "instruction": "Resume Issue 289 physical acceptance only after controlled Raspberry Pi/RS-485 access is available, or create a new independent Ready software Work Package through the normal product process."
-  }
+  "dependency_pull_requests": {
+    "pull_request_271": {
+      "state": "closed",
+      "merged": false,
+      "classification": "superseded_grouped_major_update"
+    },
+    "pull_request_272": {
+      "state": "open",
+      "classification": "independent_unselected_review"
+    }
+  },
+  "next_ready_work_package": {
+    "issue": 327,
+    "title": "Revalidate the expiring cJSON vulnerability exception",
+    "reason": "Critical repository deadline on 2026-08-15; exact current image evidence is required before deciding whether to remove or renew the exception."
+  },
+  "parallel_hardware_track": {
+    "epic_issue": 282,
+    "status": "software_complete_hardware_acceptance_pending",
+    "issues": [289, 245, 189, 200, 201, 202],
+    "physical_raspberry_pi_rs485_verified": false,
+    "completion_classification": "software verified; hardware performance acceptance pending"
+  },
+  "state_change_scope": [
+    ".project/CURRENT_STATE.md",
+    ".project/ACTIVE_SPRINT.json",
+    ".project/BLOCKERS.md",
+    ".project/LAST_CHECKPOINT.json"
+  ],
+  "guardrails": [
+    "one Issue, one branch and one focused Pull Request",
+    "do not assume CVE-2026-67216 or libcjson1 is fixed before rebuilding and rescanning the exact image",
+    "do not group unrelated major dependency migrations",
+    "preserve LOCAL_LAN and disconnected runtime guarantees",
+    "do not perform Modbus or other hardware writes",
+    "do not claim physical acceptance without controlled evidence"
+  ]
 }
