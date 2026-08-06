@@ -19,6 +19,7 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
+  "current_main_product_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
   "tasks": [
     {
       "id": "NEXOLAB-254",
@@ -42,18 +43,20 @@
       "issue": 355,
       "pull_request": 358,
       "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-      "status": "verified_ready_for_merge",
+      "status": "completed",
       "priority": "critical",
-      "base_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
-      "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
+      "verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
+      "merge_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
       "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending"
     },
     {
       "id": "NEXOLAB-252",
       "issue": 252,
       "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-      "status": "ready_after_355_merge",
+      "status": "ready",
       "priority": "high",
+      "assignee": "eNgine9r",
+      "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
       "depends_on": [355]
     },
     {
@@ -94,7 +97,7 @@
     "physical_polling_changed": false
   },
   "verification": {
-    "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
+    "issue_355_verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
     "ci": "green",
     "telemetry_service_postgresql": "green",
     "authenticated_dashboard": "green",
@@ -110,8 +113,7 @@
     "disaster_recovery_tls": "green",
     "disaster_recovery_browser": "green",
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0,
-    "mergeable": true
+    "branch_behind_main_at_merge": 0
   },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
@@ -129,8 +131,7 @@
   "next_ready_work_package": {
     "issue": 252,
     "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-    "activation_condition": "PR #358 is GREEN and merged; Issue #355 is closed.",
-    "reason": "The critical Live Dashboard inventory defect is exact-head software verified. The next isolated lane is the lint-staged 17 development-tool migration on Node 22.23.1."
+    "reason": "Issue #355 is merged and closed with all exact-head software gates GREEN. Issue #252 is the next isolated development-tool migration on Node 22.23.1."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,

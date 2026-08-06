@@ -6,25 +6,12 @@
   "task": "NEXOLAB-355",
   "issue": 355,
   "pull_request": 358,
-  "status": "verified_ready_for_merge",
-  "timestamp": "2026-08-06T13:15:00+03:00",
+  "status": "completed",
+  "timestamp": "2026-08-06T13:41:25+03:00",
   "branch": "fix/355-live-dashboard-channel-inventory",
   "base_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
-  "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
-  "completed_predecessors": [
-    {
-      "issue": 254,
-      "pull_request": 352,
-      "merge_sha": "40aec7d0fa99fe3694e2cb2954d144703eebea5c",
-      "outcome": "Playwright 1.62 migration with preserved browser evidence"
-    },
-    {
-      "issue": 359,
-      "pull_request": 360,
-      "merge_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
-      "outcome": "test-only Starlette WebSocket TestClient teardown stabilization"
-    }
-  ],
+  "verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
+  "merge_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
   "live_dashboard_inventory_evidence": {
     "endpoint": "/api/v1/live-dashboards/channel-inventory",
     "catalog_driven": true,
@@ -67,11 +54,10 @@
   },
   "review_audit": {
     "implementation_files": 16,
-    "state_files": 4,
+    "state_files_in_pr": 4,
     "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
-    "branch_behind_main": 0,
-    "mergeable": true,
+    "branch_behind_main_at_merge": 0,
     "database_migrations": 0,
     "production_dependencies_changed": false,
     "runtime_closure_changed": false,
@@ -89,7 +75,9 @@
   "next_ready_work_package": {
     "issue": 252,
     "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-    "activation_condition": "PR #358 merged and Issue #355 closed",
+    "status": "ready",
+    "assignee": "eNgine9r",
+    "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
     "instruction": "Upgrade only lint-staged on Node 22.23.1, preserve staged and unstaged work across success and failure, keep globs and command intent deterministic, prove empty and partially staged cases, and keep production runtime and Offline Bundle closure unchanged."
   }
 }
