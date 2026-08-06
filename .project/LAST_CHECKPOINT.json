@@ -3,51 +3,76 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-335",
-  "issue": 335,
+  "task": "NEXOLAB-338",
+  "issue": 338,
   "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T06:20:00+03:00",
-  "branch": "docs/335-reconcile-adr-completion",
-  "product_baseline_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
+  "timestamp": "2026-08-06T06:55:00+03:00",
+  "branch": "docs/338-reconcile-dependency-policy",
+  "product_baseline_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73",
   "completed_work_package": {
-    "issue": 300,
-    "pull_request": 334,
-    "title": "Canonicalize the ADR registry and preserve legacy architecture references",
-    "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
-    "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
-    "completion_classification": "canonical ADR registry established; legacy path preserved; deterministic integrity validation enforced"
+    "issue": 328,
+    "pull_request": 337,
+    "title": "Separate dependency update lanes and retire grouped major PRs",
+    "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
+    "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73",
+    "completion_classification": "focused dependency lanes enforced; automated majors disabled; Node 22 type boundary protected"
   },
-  "adr_evidence": {
-    "canonical_location": "docs/adr",
-    "registered_ids": ["0001", "0004", "0005", "0008", "0009"],
-    "unassigned_historical_gaps": ["0002", "0003", "0006", "0007"],
-    "legacy_0001_path": "docs/architecture/adr-0001-telemetry-ingestion.md",
-    "legacy_0001_preserved": true,
-    "duplicate_identifier_fixture": "green",
-    "broken_target_fixture": "green",
-    "missing_legacy_pointer_fixture": "green",
-    "undocumented_gap_fixture": "green"
+  "dependency_policy_evidence": {
+    "production_runtime_grouped": false,
+    "development_groups": [
+      "development-test-patch-minor",
+      "development-quality-patch-minor",
+      "development-build-patch-minor",
+      "development-react-types-patch-minor"
+    ],
+    "group_update_types": ["patch", "minor"],
+    "global_semver_major_ignored": true,
+    "node_runtime_major": 22,
+    "node_types_guard": ">=23",
+    "automatic_major_merge": false,
+    "validator_fixture_count": 9,
+    "legacy_broad_group_rejected": true,
+    "major_in_group_rejected": true,
+    "missing_major_ignore_rejected": true,
+    "missing_node_guard_rejected": true,
+    "node_type_runtime_mismatch_rejected": true,
+    "production_dependency_in_dev_group_rejected": true,
+    "dependabot_auto_merge_rejected": true,
+    "missing_migration_mapping_rejected": true,
+    "manifest_changed": false,
+    "lockfile_changed": false,
+    "dependency_versions_changed": false,
+    "runtime_closure_changed": false
   },
   "verification": {
-    "adr_registry_validation": "green",
     "standalone_runtime_contract": "green",
+    "adr_registry_validation": "green",
+    "dependency_policy_validation": "green",
+    "dependency_policy_fixtures": "green_9_of_9",
+    "node_baseline": "green_22.23.1",
     "formatting": "green",
     "lint": "green",
     "typecheck": "green",
     "tests": "green",
-    "production_build": "green",
-    "telemetry_service": "green"
+    "production_build": "green"
   },
   "review_audit": {
-    "focused_files": 6,
+    "focused_permanent_files": 5,
+    "temporary_workflows_in_final_diff": 0,
     "unresolved_review_threads": 0,
-    "runtime_dependency_versions_changed": 0,
-    "lockfiles_changed": 0,
+    "behind_main_commits_before_merge": 0,
+    "package_json_changed": false,
+    "package_lock_changed": false,
+    "production_dependencies_changed": false,
     "database_migrations_changed": 0,
     "product_runtime_changed": false,
     "modbus_write": "none",
     "hardware_actions": "none",
     "production_cutover": "none"
+  },
+  "pull_request_state": {
+    "closed_superseded": [271],
+    "open_independent_unselected": [272]
   },
   "security_exception": {
     "image_id": "telemetry-service",
@@ -60,12 +85,8 @@
   },
   "ordered_work_packages": [
     {
-      "issue": 328,
-      "status": "ready"
-    },
-    {
       "issue": 253,
-      "status": "queued"
+      "status": "ready"
     },
     {
       "issue": 254,
@@ -81,9 +102,9 @@
     }
   ],
   "next_ready_work_package": {
-    "issue": 328,
-    "title": "Separate dependency update lanes and retire grouped major PRs",
-    "instruction": "Audit Dependabot configuration, separate production/runtime and development update lanes, prevent unrelated major grouping, enforce Node 22 type alignment, add deterministic policy validation, document triage and rollback, and do not change dependency versions or lockfiles."
+    "issue": 253,
+    "title": "Migrate jsdom to 30",
+    "instruction": "Update only jsdom and its exact lockfile closure, verify Vitest and Testing Library behavior, run the full repository gates, inspect offline/transitive impact, and do not combine any other toolchain migration."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,
@@ -94,10 +115,10 @@
   },
   "guardrails": [
     "one Issue, one branch and one focused Pull Request",
-    "do not change dependency versions or package-lock.json in Issue 328",
-    "do not group unrelated major migrations",
-    "keep Node and @types/node aligned with the supported Node 22 boundary",
-    "do not change PR 272 inside Issue 328",
+    "migrate only jsdom in Issue 253",
+    "do not combine Playwright, lint-staged, TypeScript, ESLint or Node type updates",
+    "preserve Node 22 and LOCAL_LAN offline runtime",
+    "do not change PR 272 inside Issue 253",
     "review the exact cJSON image again by 2026-09-05",
     "do not perform Modbus or other hardware writes",
     "do not claim physical acceptance without controlled evidence"
