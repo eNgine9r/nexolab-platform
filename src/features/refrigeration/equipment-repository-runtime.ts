@@ -18,6 +18,10 @@ import {
   type RefrigerationEquipmentRepository,
 } from "./equipment-repository";
 import { createCachedEquipmentLifecycleRepository } from "./refrigeration-structural-cache";
+import {
+  HttpRefrigerationStructuralSnapshotRepository,
+  type RefrigerationStructuralSnapshotRepository,
+} from "./structural-snapshot-repository";
 
 export type RefrigerationEquipmentRuntime = {
   mode: "demo" | "live";
@@ -25,6 +29,7 @@ export type RefrigerationEquipmentRuntime = {
   repository: RefrigerationEquipmentRepository | null;
   equipmentRepository: RefrigerationEquipmentRepository | null;
   lifecycleRepository: EquipmentLifecycleRepository | null;
+  structuralSnapshotRepository: RefrigerationStructuralSnapshotRepository | null;
   /**
    * Explicit alias used by the atomic sensor configuration workspace. The
    * lifecycle repository owns the compatible binding/channel operations.
@@ -57,6 +62,7 @@ export function createRefrigerationEquipmentRuntime(
         repository: demoRepository,
         equipmentRepository: demoRepository,
         lifecycleRepository: null,
+        structuralSnapshotRepository: null,
         sensorConfigurationRepository: null,
         climateCatalogRepository: null,
         sessionClient: null,
@@ -71,6 +77,7 @@ export function createRefrigerationEquipmentRuntime(
     const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
     const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
     const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
+    const scope = `${config.apiBaseUrl}|${organizationId ?? "default"}`;
     const equipmentRepository = new HttpRefrigerationEquipmentRepository({
       apiBaseUrl: config.apiBaseUrl,
       fetchImpl: authenticatedFetch,
@@ -80,13 +87,18 @@ export function createRefrigerationEquipmentRuntime(
         apiBaseUrl: config.apiBaseUrl,
         fetchImpl: authenticatedFetch,
       }),
-      `${config.apiBaseUrl}|${organizationId ?? "default"}`,
+      scope,
     );
     return {
       mode: "live",
       repository: equipmentRepository,
       equipmentRepository,
       lifecycleRepository,
+      structuralSnapshotRepository: new HttpRefrigerationStructuralSnapshotRepository({
+        apiBaseUrl: config.apiBaseUrl,
+        fetchImpl: authenticatedFetch,
+        scope,
+      }),
       sensorConfigurationRepository: lifecycleRepository,
       climateCatalogRepository: new HttpClimateCatalogRepository({
         apiBaseUrl: config.apiBaseUrl,
@@ -105,6 +117,7 @@ export function createRefrigerationEquipmentRuntime(
       repository: null,
       equipmentRepository: null,
       lifecycleRepository: null,
+      structuralSnapshotRepository: null,
       sensorConfigurationRepository: null,
       climateCatalogRepository: null,
       sessionClient: null,
