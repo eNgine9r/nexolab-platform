@@ -4,13 +4,13 @@ This directory is the authoritative registry and canonical storage location for 
 
 ## Registry
 
-| ID | Title | Status | Date | Supersedes | Canonical record |
-| --- | --- | --- | --- | --- | --- |
-| 0001 | Central telemetry ingestion architecture | Accepted for M2 implementation | 2026-07-23 | — | [0001-central-telemetry-ingestion.md](0001-central-telemetry-ingestion.md) |
-| 0004 | Controlled central deployment topology | Accepted | 2026-07-23 | — | [0004-central-deployment-topology.md](0004-central-deployment-topology.md) |
-| 0005 | Laboratory test session domain | Accepted | 2026-07-24 | — | [0005-laboratory-test-session-domain.md](0005-laboratory-test-session-domain.md) |
-| 0008 | Durable local staging between MQTT and PostgreSQL | Proposed in Issue #198 / PR #207 | 2026-08-01 | — | [0008-durable-central-ingestion-spool.md](0008-durable-central-ingestion-spool.md) |
-| 0009 | Local operator authentication for disconnected laboratories | Accepted | 2026-08-01 | — | [0009-local-operator-authentication.md](0009-local-operator-authentication.md) |
+| ID   | Title                                                       | Status                           | Date       | Supersedes | Canonical record                                                                   |
+| ---- | ----------------------------------------------------------- | -------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------------------- |
+| 0001 | Central telemetry ingestion architecture                    | Accepted for M2 implementation   | 2026-07-23 | —          | [0001-central-telemetry-ingestion.md](0001-central-telemetry-ingestion.md)         |
+| 0004 | Controlled central deployment topology                      | Accepted                         | 2026-07-23 | —          | [0004-central-deployment-topology.md](0004-central-deployment-topology.md)         |
+| 0005 | Laboratory test session domain                              | Accepted                         | 2026-07-24 | —          | [0005-laboratory-test-session-domain.md](0005-laboratory-test-session-domain.md)   |
+| 0008 | Durable local staging between MQTT and PostgreSQL           | Proposed in Issue #198 / PR #207 | 2026-08-01 | —          | [0008-durable-central-ingestion-spool.md](0008-durable-central-ingestion-spool.md) |
+| 0009 | Local operator authentication for disconnected laboratories | Accepted                         | 2026-08-01 | —          | [0009-local-operator-authentication.md](0009-local-operator-authentication.md)     |
 
 Every canonical ADR must appear exactly once in this table. An ADR identifier is permanent after publication, including when the decision is later superseded.
 
@@ -18,8 +18,8 @@ Every canonical ADR must appear exactly once in this table. An ADR identifier is
 
 The repository contains no ADR documents or Git history evidence that assigns the following identifiers. They remain unassigned historical gaps; no decision content is inferred for them.
 
-| ID | Classification | Evidence |
-| --- | --- | --- |
+| ID   | Classification            | Evidence                                                                   |
+| ---- | ------------------------- | -------------------------------------------------------------------------- |
 | 0002 | Unassigned historical gap | No ADR file or supported repository evidence found during Issue #300 audit |
 | 0003 | Unassigned historical gap | No ADR file or supported repository evidence found during Issue #300 audit |
 | 0006 | Unassigned historical gap | No ADR file or supported repository evidence found during Issue #300 audit |
