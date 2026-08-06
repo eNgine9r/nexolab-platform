@@ -48,7 +48,7 @@ jobs:
           scripts/tests/lint-staged-v17.mjs
           docs/maintenance/lint-staged-17-migration.md
       - name: Run focused lint-staged acceptance
-        run: node scripts/tests/lint-staged-v17.mjs | tee lint-staged-v17-evidence.json
+        run: node scripts/tests/lint-staged-v17.mjs | tee /tmp/lint-staged-v17-evidence.json
       - name: Run repository quality gates
         run: |
           set -euo pipefail
@@ -78,6 +78,6 @@ jobs:
             package-lock.json
             scripts/tests/lint-staged-v17.mjs
             docs/maintenance/lint-staged-17-migration.md
-            lint-staged-v17-evidence.json
+            /tmp/lint-staged-v17-evidence.json
           if-no-files-found: error
           retention-days: 1
