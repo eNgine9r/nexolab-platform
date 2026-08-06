@@ -60,33 +60,12 @@ def list_live_dashboard_inventory(
 ) -> InventoryPage:
     """Return the bounded canonical catalog used by Live Dashboard save validation.
 
-    The catalog rows are independent of telemetry history volume. Latest metadata is
-    attached with one correlated, indexed lookup per returned catalog row. A channel
+    Catalog discovery is independent of telemetry history volume. Latest metadata is
+    attached with one correlated indexed lookup per returned catalog row. A channel
     remains visible when that lookup has no matching sample.
     """
 
-    engine = repository._engine  # Same database boundary as dashboard persistence.
-    sample_candidate = aliased(TelemetrySample, name="inventory_sample_candidate")
-    latest_sample = aliased(TelemetrySample, name="inventory_latest_sample")
-
-    latest_sample_id = (
-        select(sample_candidate.id)
-        .where(
-            sample_candidate.node_id == MeasurementBus.node_id,
-            sample_candidate.equipment_id == MeasurementDevice.business_key,
-            sample_candidate.channel_id == MeasurementChannel.channel_id,
-            sample_candidate.metric == MeasurementChannel.metric_type,
-        )
-        .order_by(
-            sample_candidate.captured_at.desc(),
-            sample_candidate.event_id.desc(),
-        )
-        .limit(1)
-        .correlate(MeasurementBus, MeasurementDevice, MeasurementChannel)
-        .scalar_subquery()
-    )
-
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(repository._engine, expire_on_commit=False) as session:
         total = int(
             session.scalar(
                 _eligible_catalog_select(organization_id)
@@ -95,40 +74,15 @@ def list_live_dashboard_inventory(
             )
             or 0
         )
-        statement = (
-            _eligible_catalog_select(organization_id)
-            .with_only_columns(
-                MeasurementChannel.id.label("channel_ref_id"),
-                MeasurementBus.node_id.label("node_id"),
-                MeasurementDevice.business_key.label("equipment_id"),
-                MeasurementDevice.display_name.label("equipment_name"),
-                MeasurementChannel.channel_id.label("channel_id"),
-                MeasurementChannel.display_name.label("channel_name"),
-                MeasurementChannel.metric_type.label("metric"),
-                MeasurementChannel.unit.label("native_unit"),
-                MeasurementDevice.device_type.label("catalog_source"),
-                latest_sample.event_id.label("latest_event_id"),
-                latest_sample.captured_at.label("latest_captured_at"),
-                latest_sample.value.label("latest_value"),
-                latest_sample.unit.label("latest_unit"),
-                latest_sample.quality.label("latest_quality"),
-                latest_sample.source.label("latest_source"),
-                latest_sample.alarm.label("latest_alarm"),
-                latest_sample.received_at.label("latest_received_at"),
-            )
-            .outerjoin(latest_sample, latest_sample.id == latest_sample_id)
-            .order_by(
-                MeasurementBus.node_id.asc(),
-                MeasurementDevice.business_key.asc(),
-                MeasurementChannel.channel_id.asc(),
-                MeasurementChannel.metric_type.asc(),
-                MeasurementChannel.id.asc(),
-            )
-            .limit(limit)
-            .offset(offset)
-        )
         records: list[InventoryChannelRecord] = []
-        for row in session.execute(statement):
+        for row in session.execute(
+            inventory_query_plan_statement(
+                repository,
+                organization_id=organization_id,
+                limit=limit,
+                offset=offset,
+            )
+        ):
             mapping = row._mapping
             latest = None
             if mapping["latest_event_id"] is not None:
@@ -176,18 +130,49 @@ def inventory_query_plan_statement(
     limit: int,
     offset: int = 0,
 ):
-    """Expose the catalog-only statement for PostgreSQL EXPLAIN evidence."""
+    """Return the exact full query used for PostgreSQL EXPLAIN evidence."""
 
     del repository
+    sample_candidate = aliased(TelemetrySample, name="inventory_sample_candidate")
+    latest_sample = aliased(TelemetrySample, name="inventory_latest_sample")
+    latest_sample_id = (
+        select(sample_candidate.id)
+        .where(
+            sample_candidate.node_id == MeasurementBus.node_id,
+            sample_candidate.equipment_id == MeasurementDevice.business_key,
+            sample_candidate.channel_id == MeasurementChannel.channel_id,
+            sample_candidate.metric == MeasurementChannel.metric_type,
+        )
+        .order_by(
+            sample_candidate.captured_at.desc(),
+            sample_candidate.event_id.desc(),
+        )
+        .limit(1)
+        .correlate(MeasurementBus, MeasurementDevice, MeasurementChannel)
+        .scalar_subquery()
+    )
     return (
         _eligible_catalog_select(organization_id)
         .with_only_columns(
-            MeasurementChannel.id,
-            MeasurementBus.node_id,
-            MeasurementDevice.business_key,
-            MeasurementChannel.channel_id,
-            MeasurementChannel.metric_type,
+            MeasurementChannel.id.label("channel_ref_id"),
+            MeasurementBus.node_id.label("node_id"),
+            MeasurementDevice.business_key.label("equipment_id"),
+            MeasurementDevice.display_name.label("equipment_name"),
+            MeasurementChannel.channel_id.label("channel_id"),
+            MeasurementChannel.display_name.label("channel_name"),
+            MeasurementChannel.metric_type.label("metric"),
+            MeasurementChannel.unit.label("native_unit"),
+            MeasurementDevice.device_type.label("catalog_source"),
+            latest_sample.event_id.label("latest_event_id"),
+            latest_sample.captured_at.label("latest_captured_at"),
+            latest_sample.value.label("latest_value"),
+            latest_sample.unit.label("latest_unit"),
+            latest_sample.quality.label("latest_quality"),
+            latest_sample.source.label("latest_source"),
+            latest_sample.alarm.label("latest_alarm"),
+            latest_sample.received_at.label("latest_received_at"),
         )
+        .outerjoin(latest_sample, latest_sample.id == latest_sample_id)
         .order_by(
             MeasurementBus.node_id.asc(),
             MeasurementDevice.business_key.asc(),
