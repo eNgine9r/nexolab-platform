@@ -30,7 +30,14 @@ EXPECTED_CONFIGS = (
     "playwright.sessions.config.ts",
 )
 ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-ENV_NAME = re.compile(r"\bNEXOLAB_[A-Z0-9_]+\b")
+ENV_PATTERNS = (
+    re.compile(r"process\.env\.([A-Z][A-Z0-9_]+)"),
+    re.compile(r"process\.env\[\s*[\"']([A-Z][A-Z0-9_]+)[\"']\s*\]"),
+    re.compile(
+        r"(?:required|requiredEnvironment|requiredNumber|requiredInteger)"
+        r"\(\s*[\"']([A-Z][A-Z0-9_]+)[\"']"
+    ),
+)
 REMOVED_API_PATTERNS = {
     "_react selector": re.compile(r"_react\s*="),
     "_vue selector": re.compile(r"_vue\s*="),
@@ -94,7 +101,9 @@ def discovery_environment() -> tuple[dict[str, str], list[str]]:
     names: set[str] = set()
     paths = list(ROOT.glob("playwright*.config.ts")) + list((ROOT / "e2e").rglob("*.ts"))
     for path in paths:
-        names.update(ENV_NAME.findall(path.read_text(encoding="utf-8")))
+        text = path.read_text(encoding="utf-8")
+        for pattern in ENV_PATTERNS:
+            names.update(pattern.findall(text))
 
     environment = os.environ.copy()
     environment.update({name: discovery_value(name) for name in sorted(names)})
