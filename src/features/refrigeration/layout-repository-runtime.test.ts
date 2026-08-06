@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 
-import { HttpRefrigerationLayoutRepository } from "./http-layout-repository";
 import { createRefrigerationLayoutRuntime } from "./layout-repository-runtime";
 import { InMemoryRefrigerationLayoutRepository } from "./layout-repository";
 
@@ -40,7 +39,7 @@ describe("createRefrigerationLayoutRuntime", () => {
     });
   });
 
-  it("uses the production HTTP adapter in live mode", () => {
+  it("uses the cached production repository contract in live mode", () => {
     const runtime = createRefrigerationLayoutRuntime({
       equipment: equipment(),
       mode: "live",
@@ -49,7 +48,15 @@ describe("createRefrigerationLayoutRuntime", () => {
     });
 
     expect(runtime.mode).toBe("live");
-    expect(runtime.repository).toBeInstanceOf(HttpRefrigerationLayoutRepository);
+    expect(runtime.repository).toMatchObject({
+      getDraft: expect.any(Function),
+      getPublished: expect.any(Function),
+      saveDraft: expect.any(Function),
+      publishDraft: expect.any(Function),
+      listHistory: expect.any(Function),
+      restoreRevision: expect.any(Function),
+      uploadImage: expect.any(Function),
+    });
     expect(runtime.actorId).toBe("operator-live");
     expect(runtime.error).toBeNull();
   });
