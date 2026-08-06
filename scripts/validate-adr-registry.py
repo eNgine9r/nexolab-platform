@@ -75,7 +75,8 @@ def canonical_records(root: Path) -> dict[str, Path]:
 
 def extract_status(text: str) -> str | None:
     bullet = re.search(
-        r"^-\s*(?:\*\*)?Status(?:\*\*)?:\s*(?P<status>Proposed|Accepted|Deprecated|Superseded)\b",
+        r"^-\s*(?:\*\*)?Status(?::)?(?:\*\*)?:?\s*"
+        r"(?P<status>Proposed|Accepted|Deprecated|Superseded)\b",
         text,
         re.MULTILINE,
     )
