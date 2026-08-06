@@ -29,16 +29,25 @@ jobs:
           def gh(expression: str) -> str:
               return "$" + "{{ " + expression + " }}"
 
+          matrix_expression = gh("matrix.id")
+          env_expression = gh("env.SOURCE_SHA")
+          source_expression = gh(
+              "github.event.pull_request.head.sha || github.sha"
+          )
+
           workflow_path = Path(".github/workflows/container-supply-chain.yml")
           workflow = workflow_path.read_text(encoding="utf-8")
           old = (
               "      LOCAL_IMAGE: local/nexolab-"
-              f"{gh('matrix.id')}:{gh('env.SOURCE_SHA')}"
+              + matrix_expression
+              + ":"
+              + env_expression
           )
           new = (
               "      LOCAL_IMAGE: local/nexolab-"
-              f"{gh('matrix.id')}:"
-              f"{gh('github.event.pull_request.head.sha || github.sha')}"
+              + matrix_expression
+              + ":"
+              + source_expression
           )
           if workflow.count(old) != 1:
               raise SystemExit("Unexpected LOCAL_IMAGE source expression")
@@ -48,20 +57,29 @@ jobs:
           test_path = Path("tests/test_container_supply_chain_policy.py")
           tests = test_path.read_text(encoding="utf-8")
           old_test = (
-              '        "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:'
-              '${{ env.SOURCE_SHA }}"\n'
-              '        in workflow\n'
+              '        "LOCAL_IMAGE: local/nexolab-'
+              + matrix_expression
+              + ":"
+              + env_expression
+              + '"\n'
+              + "        in workflow\n"
           )
           new_test = (
-              '        "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:'
-              '${{ github.event.pull_request.head.sha || github.sha }}"\n'
-              '        in workflow\n'
+              '        "LOCAL_IMAGE: local/nexolab-'
+              + matrix_expression
+              + ":"
+              + source_expression
+              + '"\n'
+              + "        in workflow\n"
           )
           if tests.count(old_test) != 1:
               raise SystemExit("Unexpected LOCAL_IMAGE regression assertion")
           tests = tests.replace(old_test, new_test)
+          count_assertion = '    assert workflow.count("github.sha") == 1\n'
+          if tests.count(count_assertion) != 1:
+              raise SystemExit("Unexpected github.sha regression assertion")
           tests = tests.replace(
-              '    assert workflow.count("github.sha") == 1\n',
+              count_assertion,
               '    assert workflow.count("github.sha") == 2\n',
           )
           test_path.write_text(tests, encoding="utf-8")
