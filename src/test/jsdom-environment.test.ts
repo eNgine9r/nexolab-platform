@@ -11,17 +11,10 @@ describe("jsdom environment contract", () => {
   });
 
   it("resolves application URLs against the configured test origin", () => {
-    window.history.replaceState(
-      { source: "test" },
-      "",
-      "/live?dashboard=operator#temperature",
-    );
+    window.history.replaceState({ source: "test" }, "", "/live?dashboard=operator#temperature");
 
     const currentUrl = new URL(window.location.href);
-    const apiUrl = new URL(
-      "/api/v1/telemetry/latest?channel_id=106-03",
-      currentUrl,
-    );
+    const apiUrl = new URL("/api/v1/telemetry/latest?channel_id=106-03", currentUrl);
 
     expect(currentUrl.pathname).toBe("/live");
     expect(currentUrl.searchParams.get("dashboard")).toBe("operator");
@@ -32,14 +25,12 @@ describe("jsdom environment contract", () => {
   });
 
   it("keeps local and session storage isolated and string-based", () => {
-    window.localStorage.setItem(
-      "nexolab.settings",
-      JSON.stringify({ density: "compact" }),
-    );
+    window.localStorage.setItem("nexolab.settings", JSON.stringify({ density: "compact" }));
     window.sessionStorage.setItem("nexolab.returnTo", "/overview");
 
-    expect(JSON.parse(window.localStorage.getItem("nexolab.settings") ?? "{}"))
-      .toEqual({ density: "compact" });
+    expect(JSON.parse(window.localStorage.getItem("nexolab.settings") ?? "{}")).toEqual({
+      density: "compact",
+    });
     expect(window.sessionStorage.getItem("nexolab.returnTo")).toBe("/overview");
     expect(window.localStorage.getItem("nexolab.returnTo")).toBeNull();
   });

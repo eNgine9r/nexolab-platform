@@ -27,17 +27,17 @@ No custom resource loader, script execution option or hidden network fixture was
 
 ## Deterministic lockfile changes
 
-| Package | Before | After |
-| --- | --- | --- |
-| `@asamuzakjp/css-color` | `5.1.11` | `6.0.5` |
-| `@asamuzakjp/css-color/node_modules/lru-cache` | `absent` | `11.5.2` |
-| `@asamuzakjp/dom-selector` | `7.1.1` | `8.3.2` |
+| Package                                           | Before   | After    |
+| ------------------------------------------------- | -------- | -------- |
+| `@asamuzakjp/css-color`                           | `5.1.11` | `6.0.5`  |
+| `@asamuzakjp/css-color/node_modules/lru-cache`    | `absent` | `11.5.2` |
+| `@asamuzakjp/dom-selector`                        | `7.1.1`  | `8.3.2`  |
 | `@asamuzakjp/dom-selector/node_modules/lru-cache` | `absent` | `11.5.2` |
-| `@asamuzakjp/generational-cache` | `1.0.1` | `absent` |
-| `@asamuzakjp/nwsapi` | `2.3.9` | `absent` |
-| `jsdom` | `29.1.1` | `30.0.0` |
-| `jsdom/node_modules/whatwg-url` | `absent` | `17.1.0` |
-| `undici` | `7.29.0` | `8.10.0` |
+| `@asamuzakjp/generational-cache`                  | `1.0.1`  | `absent` |
+| `@asamuzakjp/nwsapi`                              | `2.3.9`  | `absent` |
+| `jsdom`                                           | `29.1.1` | `30.0.0` |
+| `jsdom/node_modules/whatwg-url`                   | `absent` | `17.1.0` |
+| `undici`                                          | `7.29.0` | `8.10.0` |
 
 ## Runtime and offline impact
 
