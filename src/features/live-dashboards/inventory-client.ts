@@ -5,7 +5,11 @@ import type {
   LiveDashboardInventoryItem,
 } from "@/features/live-dashboards/types";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
-import type { TelemetryAlarm, TelemetryQuality, TelemetrySample } from "@/lib/telemetry/types";
+import type {
+  TelemetryAlarm,
+  TelemetryQuality,
+  TelemetrySample,
+} from "@/lib/telemetry/types";
 
 export type LiveDashboardInventoryFetch = (
   input: RequestInfo | URL,
@@ -40,26 +44,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function stringValue(value: unknown, field: string): string {
   if (typeof value !== "string") {
-    throw new LiveDashboardInventoryClientError(`${field} is invalid.`, undefined, "contract");
+    throw new LiveDashboardInventoryClientError(
+      `${field} is invalid.`,
+      undefined,
+      "contract",
+    );
   }
   return value;
 }
 
-function nullableString(value: unknown, field: string): string | null {
-  if (value === null) return null;
-  return stringValue(value, field);
-}
-
 function numberValue(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new LiveDashboardInventoryClientError(`${field} is invalid.`, undefined, "contract");
+    throw new LiveDashboardInventoryClientError(
+      `${field} is invalid.`,
+      undefined,
+      "contract",
+    );
   }
   return value;
 }
 
 function booleanValue(value: unknown, field: string): boolean {
   if (typeof value !== "boolean") {
-    throw new LiveDashboardInventoryClientError(`${field} is invalid.`, undefined, "contract");
+    throw new LiveDashboardInventoryClientError(
+      `${field} is invalid.`,
+      undefined,
+      "contract",
+    );
   }
   return value;
 }
@@ -112,7 +123,10 @@ function parseLatest(value: unknown): TelemetrySample | null {
     node_id: stringValue(value.node_id, "Inventory latest node"),
     equipment_id: stringValue(value.equipment_id, "Inventory latest equipment"),
     channel_id: stringValue(value.channel_id, "Inventory latest channel"),
-    captured_at: stringValue(value.captured_at, "Inventory latest captured timestamp"),
+    captured_at: stringValue(
+      value.captured_at,
+      "Inventory latest captured timestamp",
+    ),
     metric: stringValue(value.metric, "Inventory latest metric"),
     value: nullableNumber(value.value, "Inventory latest value"),
     unit: stringValue(value.unit, "Inventory latest unit"),
@@ -121,7 +135,10 @@ function parseLatest(value: unknown): TelemetrySample | null {
     alarm: alarmValue(value.alarm),
     raw_value: nullableNumber(value.raw_value, "Inventory latest raw value"),
     raw_status: nullableNumber(value.raw_status, "Inventory latest raw status"),
-    received_at: stringValue(value.received_at, "Inventory latest received timestamp"),
+    received_at: stringValue(
+      value.received_at,
+      "Inventory latest received timestamp",
+    ),
   };
 }
 
@@ -137,10 +154,16 @@ function parseItem(value: unknown): LiveDashboardInventoryItem {
   const metric = stringValue(value.metric, "Inventory metric");
   return {
     key: inventoryKey(channelId, metric),
-    channel_ref_id: stringValue(value.channel_ref_id, "Inventory channel reference"),
+    channel_ref_id: stringValue(
+      value.channel_ref_id,
+      "Inventory channel reference",
+    ),
     node_id: stringValue(value.node_id, "Inventory node"),
     equipment_id: stringValue(value.equipment_id, "Inventory equipment"),
-    equipment_name: stringValue(value.equipment_name, "Inventory equipment name"),
+    equipment_name: stringValue(
+      value.equipment_name,
+      "Inventory equipment name",
+    ),
     channel_id: channelId,
     channel_name: stringValue(value.channel_name, "Inventory channel name"),
     metric,
@@ -171,9 +194,15 @@ export function parseLiveDashboardInventoryCollection(
   };
 }
 
-function errorDetail(body: unknown, fallback: string): { message: string; code: string } {
+function errorDetail(
+  body: unknown,
+  fallback: string,
+): { message: string; code: string } {
   const rawDetail = isRecord(body) ? body.detail : null;
-  const detail = isRecord(rawDetail) && isRecord(rawDetail.detail) ? rawDetail.detail : rawDetail;
+  const detail =
+    isRecord(rawDetail) && isRecord(rawDetail.detail)
+      ? rawDetail.detail
+      : rawDetail;
   if (!isRecord(detail)) return { message: fallback, code: "http_error" };
   return {
     message: typeof detail.message === "string" ? detail.message : fallback,
@@ -221,7 +250,11 @@ export class LiveDashboardInventoryClient {
         },
       );
     } catch (error) {
-      const code = timedOut ? "timeout" : controller.signal.aborted ? "aborted" : "network";
+      const code = timedOut
+        ? "timeout"
+        : controller.signal.aborted
+          ? "aborted"
+          : "network";
       throw new LiveDashboardInventoryClientError(
         timedOut
           ? `Live Dashboard inventory request exceeded ${this.timeoutMs} ms.`
