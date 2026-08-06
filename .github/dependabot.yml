@@ -1,4 +1,4 @@
-# Policy contract validated by scripts/validate-dependency-policy.py.
+# Policy contract, including migration-grade minor guards, is validated by scripts/validate-dependency-policy.py.
 version: 2
 updates:
   - package-ecosystem: npm
