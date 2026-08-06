@@ -1,4 +1,4 @@
-name: Temporary Issue 255 TypeScript Diagnostics
+name: Temporary Issue 255 TypeScript Migration
 
 on:
   push:
@@ -8,47 +8,35 @@ on:
       - .github/workflows/tmp-255-typescript-diagnostics.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  migrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
           node-version-file: .nvmrc
-      - name: Install baseline dependencies
-        run: npm ci --no-audit
-        env:
-          HUSKY: "0"
       - name: Capture TypeScript 5.9 baseline
         shell: bash
         run: |
           set -Eeuo pipefail
           mkdir -p /tmp/issue-255
+          cp package-lock.json /tmp/issue-255/package-lock-before.json
+          npm ci --no-audit
           node --version | tee /tmp/issue-255/node-version.txt
           npm --version | tee /tmp/issue-255/npm-version.txt
           npx tsc --version | tee /tmp/issue-255/typescript-before.txt
-          npm run typecheck > /tmp/issue-255/typecheck-before.txt 2>&1
-      - name: Install TypeScript 6.0.3 without mutating manifests
-        run: npm install --no-save --package-lock=false --no-audit typescript@6.0.3
+          npm run typecheck | tee /tmp/issue-255/typecheck-before.txt
         env:
           HUSKY: "0"
-      - name: Capture TypeScript 6 diagnostics
-        shell: bash
-        run: |
-          set +e
-          npx tsc --version | tee /tmp/issue-255/typescript-after.txt
-          npm run typecheck > /tmp/issue-255/typecheck-after.txt 2>&1
-          status=$?
-          printf '%s\n' "$status" > /tmp/issue-255/typecheck-after-exit-code.txt
-          npx tsc --showConfig > /tmp/issue-255/show-config-after.json 2>&1
-          exit 0
-      - name: Record configuration audit
+      - name: Upgrade only TypeScript to the 6.0 transition line
+        run: npm install --save-dev "typescript@^6.0.3" --no-audit
+        env:
+          HUSKY: "0"
+      - name: Audit deterministic manifest and lockfile movement
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -56,27 +44,213 @@ jobs:
           import json
           from pathlib import Path
 
+          before = json.loads(Path('/tmp/issue-255/package-lock-before.json').read_text())
+          after = json.loads(Path('package-lock.json').read_text())
           package = json.loads(Path('package.json').read_text())
-          config = json.loads(Path('tsconfig.json').read_text())
-          compiler = config['compilerOptions']
+
+          assert package['devDependencies']['typescript'] == '^6.0.3'
+          assert after['packages']['']['devDependencies']['typescript'] == '^6.0.3'
+          assert after['packages']['node_modules/typescript']['version'] == '6.0.3'
+
+          before_packages = before['packages']
+          after_packages = after['packages']
+          changed = sorted(
+              key
+              for key in set(before_packages) | set(after_packages)
+              if before_packages.get(key) != after_packages.get(key)
+          )
+          allowed = {'', 'node_modules/typescript'}
+          unexpected = sorted(set(changed) - allowed)
+          if unexpected:
+              raise SystemExit(f'Unexpected lockfile package movement: {unexpected}')
+
           evidence = {
-              'manifest_typescript': package['devDependencies']['typescript'],
-              'strict': compiler.get('strict'),
-              'noEmit': compiler.get('noEmit'),
-              'isolatedModules': compiler.get('isolatedModules'),
-              'module': compiler.get('module'),
-              'moduleResolution': compiler.get('moduleResolution'),
-              'target': compiler.get('target'),
-              'types': compiler.get('types', '<implicit>'),
-              'baseUrl_present': 'baseUrl' in compiler,
-              'paths': compiler.get('paths'),
-              'skipLibCheck': compiler.get('skipLibCheck'),
+              'manifest_before': before_packages['']['devDependencies']['typescript'],
+              'manifest_after': after['packages']['']['devDependencies']['typescript'],
+              'resolved_before': before_packages['node_modules/typescript']['version'],
+              'resolved_after': after_packages['node_modules/typescript']['version'],
+              'changed_package_keys': changed,
+              'production_dependencies_changed': False,
           }
-          Path('/tmp/issue-255/config-audit.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          Path('/tmp/issue-255/lockfile-audit.json').write_text(
+              json.dumps(evidence, indent=2) + '\n'
+          )
           PY
-      - uses: actions/upload-artifact@v7
+      - name: Verify TypeScript 6 configuration and diagnostics
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npx tsc --version | tee /tmp/issue-255/typescript-after.txt
+          npm run typecheck | tee /tmp/issue-255/typecheck-after.txt
+          npx tsc --showConfig > /tmp/issue-255/show-config-after.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          source = json.loads(Path('tsconfig.json').read_text())
+          shown = json.loads(Path('/tmp/issue-255/show-config-after.json').read_text())
+          compiler = source['compilerOptions']
+
+          expected = {
+              'strict': True,
+              'noEmit': True,
+              'isolatedModules': True,
+              'module': 'esnext',
+              'moduleResolution': 'bundler',
+              'target': 'ES2017',
+          }
+          for key, value in expected.items():
+              assert compiler.get(key) == value, (key, compiler.get(key), value)
+
+          assert 'ignoreDeprecations' not in compiler
+          assert 'baseUrl' not in compiler
+          assert compiler['paths'] == {'@/*': ['./src/*']}
+
+          files = set(shown['files'])
+          configs = sorted(path.name for path in Path('.').glob('playwright.*.config.ts'))
+          missing = [name for name in configs if f'./{name}' not in files]
+          if missing:
+              raise SystemExit(f'Playwright configs missing from TypeScript program: {missing}')
+          assert './vitest.config.ts' in files
+
+          evidence = {
+              'strict': compiler['strict'],
+              'noEmit': compiler['noEmit'],
+              'isolatedModules': compiler['isolatedModules'],
+              'module': compiler['module'],
+              'moduleResolution': compiler['moduleResolution'],
+              'target': compiler['target'],
+              'types': compiler.get('types', '<implicit TypeScript 6 default []>'),
+              'ignoreDeprecations_present': 'ignoreDeprecations' in compiler,
+              'baseUrl_present': 'baseUrl' in compiler,
+              'playwright_config_count': len(configs),
+              'all_playwright_configs_in_program': not missing,
+              'vitest_config_in_program': True,
+              'new_diagnostics': 0,
+          }
+          Path('/tmp/issue-255/config-audit.json').write_text(
+              json.dumps(evidence, indent=2) + '\n'
+          )
+          PY
+      - name: Verify lint, Vitest, Playwright configs and production build
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm run lint
+          npm test
+          for config in playwright.*.config.ts; do
+            printf 'Compiling Playwright config: %s\n' "$config"
+            npx playwright test --list --config="$config" >/tmp/issue-255/"${config%.ts}"-list.txt
+          done
+          npm run build
+      - name: Write migration evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p docs/maintenance
+          cat > docs/maintenance/typescript-6-migration.md <<'EOF'
+          # TypeScript 6 transition migration
+
+          Issue: #255  
+          Selected release: TypeScript `6.0.3`  
+          Previous resolved release: TypeScript `5.9.3`  
+          Node baseline: `22.23.1`
+
+          ## Release selection
+
+          TypeScript `6.0.3` is the latest stable release in the official 6.x transition line. The TypeScript team describes 6.0 as the bridge from the JavaScript-based 5.9 compiler to the native TypeScript 7 compiler.
+
+          TypeScript 7 is intentionally excluded from this Work Package and remains tracked separately by Issue #256.
+
+          Primary upstream references:
+
+          - <https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/>
+          - <https://github.com/microsoft/TypeScript/releases/tag/v6.0.3>
+
+          ## Baseline and diagnostic comparison
+
+          Diagnostic workflow `31099428290` compared the same repository state with TypeScript `5.9.3` and `6.0.3`.
+
+          | Check | TypeScript 5.9.3 | TypeScript 6.0.3 |
+          | --- | ---: | ---: |
+          | `tsc --noEmit` exit code | `0` | `0` |
+          | New diagnostics | — | `0` |
+
+          Diagnostic artifact SHA-256:
+
+          ```text
+          2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f
+          ```
+
+          No application, test, Playwright, Vitest, Next.js configuration, or declaration diagnostic required a source change.
+
+          ## Compiler-option classification
+
+          | TypeScript 6 change | NEXOLAB classification |
+          | --- | --- |
+          | `strict` now defaults to `true` | Already explicitly `true`; unchanged. |
+          | `module` now defaults to `esnext` | Already explicitly `esnext`; unchanged. |
+          | `target` default is newer | NEXOLAB explicitly retains `ES2017`; emitted/runtime behavior remains unchanged. |
+          | `noUncheckedSideEffectImports` default changes | Full TypeScript 6 typecheck passes; no override added. |
+          | `rootDir` default changes | NEXOLAB uses `noEmit`; no output-layout change or `rootDir` adjustment is required. |
+          | `types` defaults to `[]` | Full program passes with zero missing-global diagnostics; no broad `types: ["*"]` or unnecessary global package list is added. |
+          | `moduleResolution: node` deprecated | NEXOLAB already uses `bundler`, the recommended bundled-web path. |
+          | `baseUrl` deprecated | NEXOLAB has no `baseUrl`; `@/*` already maps explicitly to `./src/*`. |
+          | DOM iterable declarations merged into `dom` | Existing `dom.iterable` entry is harmless; removing it is unrelated cleanup and is not included. |
+          | `stableTypeOrdering` available for 7.0 comparison | Not enabled because this package targets TypeScript 6 only and emits no declarations. |
+
+          Existing `skipLibCheck: true` is retained exactly as the pre-migration baseline. This Work Package does not weaken it or introduce any new ignore mechanism.
+
+          ## Deterministic dependency boundary
+
+          Permanent dependency movement is limited to:
+
+          - root `devDependencies.typescript`: `^5` → `^6.0.3`;
+          - `node_modules/typescript`: `5.9.3` → `6.0.3`.
+
+          No production dependency or additional package node changes.
+
+          ## Verification
+
+          The migration workflow runs:
+
+          - TypeScript 5.9 baseline `tsc --noEmit`;
+          - TypeScript 6.0.3 `tsc --noEmit`;
+          - explicit compiler-option invariant audit;
+          - inclusion audit for every root `playwright.*.config.ts` and `vitest.config.ts`;
+          - ESLint;
+          - Vitest and the lint-staged integration harness through `npm test`;
+          - Playwright `--list` compilation for every TypeScript config;
+          - Next.js production build;
+          - repository formatting.
+
+          PR exact-head workflows provide the final browser, Offline Auth, and disconnected Offline Bundle evidence.
+
+          ## Runtime and safety boundary
+
+          TypeScript remains a development-only dependency. No production source, API, database, container runtime, acquisition logic, offline service, hardware path, secret, or persistent data is changed.
+
+          ## Rollback
+
+          Restore `typescript` to `^5`, restore the previous lockfile entries resolving `5.9.3`, remove this migration document, and rerun format, lint, typecheck, tests, production build, browser acceptance, Offline Auth, and Offline Bundle. No database, volume, hardware, or site rollback is required.
+          EOF
+          npx prettier --write package.json package-lock.json docs/maintenance/typescript-6-migration.md
+          npm run format:check
+      - name: Upload migration evidence
+        uses: actions/upload-artifact@v7
         with:
-          name: issue-255-typescript-diagnostics
+          name: issue-255-typescript-6-migration
           path: /tmp/issue-255
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 7
+      - name: Publish verified migration and remove temporary workflow
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json docs/maintenance/typescript-6-migration.md
+          git rm .github/workflows/tmp-255-typescript-diagnostics.yml
+          git diff --cached --check
+          git commit -m "chore(typescript): migrate transition compiler to 6.0.3"
+          git push origin HEAD:maint/255-typescript-6
