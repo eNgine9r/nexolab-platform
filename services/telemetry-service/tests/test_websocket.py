@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.contracts import TelemetryEvent
 from app.main import create_app
+from tests.websocket_test_support import websocket_session
 
 
 def event(
@@ -78,11 +79,13 @@ def test_only_successfully_persisted_events_reach_filtered_clients(tmp_path: Pat
     )
 
     with TestClient(app) as client:
-        with client.websocket_connect(
-            "/api/v1/telemetry/live?metric=electrical.voltage"
+        with websocket_session(
+            client,
+            "/api/v1/telemetry/live?metric=electrical.voltage",
         ) as voltage_socket:
-            with client.websocket_connect(
-                "/api/v1/telemetry/live?channel_id=106-03"
+            with websocket_session(
+                client,
+                "/api/v1/telemetry/live?channel_id=106-03",
             ) as temperature_socket:
                 assert app.state.ingestor.submit_payload(
                     json.dumps(voltage.normalized_payload()).encode()
@@ -142,8 +145,9 @@ def test_resume_replays_committed_events_oldest_first(tmp_path: Path) -> None:
                 "after": (base - timedelta(seconds=1)).isoformat(),
             }
         )
-        with client.websocket_connect(
-            f"/api/v1/telemetry/live?{query}"
+        with websocket_session(
+            client,
+            f"/api/v1/telemetry/live?{query}",
         ) as websocket:
             first_message = websocket.receive_json()
             second_message = websocket.receive_json()

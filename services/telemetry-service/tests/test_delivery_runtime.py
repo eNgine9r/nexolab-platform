@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.contracts import TelemetryEvent
 from app.main import create_app
+from tests.websocket_test_support import websocket_session
 
 
 def event(*, captured_at: datetime) -> TelemetryEvent:
@@ -90,7 +91,7 @@ def test_websocket_disconnect_unregisters_before_heartbeat_without_broadcast(
     with TestClient(app) as client:
         before = app.state.runtime.snapshot()
 
-        with client.websocket_connect("/api/v1/telemetry/live"):
+        with websocket_session(client, "/api/v1/telemetry/live"):
             wait_for(
                 lambda: app.state.runtime.snapshot()["websocket_clients"] == 1
             )
@@ -128,7 +129,10 @@ def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) ->
     with TestClient(app) as client:
         before = app.state.runtime.snapshot()
         for _ in range(10):
-            with client.websocket_connect("/api/v1/telemetry/live") as websocket:
+            with websocket_session(
+                client,
+                "/api/v1/telemetry/live",
+            ) as websocket:
                 app.state.live_hub.publish_committed(payload)
                 assert websocket.receive_json()["state_source"] == "persisted"
             wait_for(
@@ -180,8 +184,9 @@ def test_restart_latest_and_resume_use_the_existing_database(tmp_path: Path) -> 
                 "after": (base - timedelta(seconds=1)).isoformat(),
             }
         )
-        with client.websocket_connect(
-            f"/api/v1/telemetry/live?{query}"
+        with websocket_session(
+            client,
+            f"/api/v1/telemetry/live?{query}",
         ) as websocket:
             replay = websocket.receive_json()
 

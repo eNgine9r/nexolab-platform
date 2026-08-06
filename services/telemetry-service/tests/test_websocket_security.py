@@ -13,6 +13,7 @@ from app.contracts import TelemetryEvent
 from app.main import create_app
 from app.security.authentication import VerifiedIdentityClaims
 from app.security.authorization import Role
+from tests.websocket_test_support import websocket_session
 
 SECRET = "test-only-websocket-secret-with-sufficient-length"
 ISSUER = "https://identity.example.test"
@@ -123,7 +124,10 @@ def test_authenticated_viewer_receives_ack_before_replay(tmp_path: Path) -> None
             }
         )
 
-        with client.websocket_connect(f"/api/v1/telemetry/live?{query}") as websocket:
+        with websocket_session(
+            client,
+            f"/api/v1/telemetry/live?{query}",
+        ) as websocket:
             assert app.state.runtime.snapshot()["websocket_clients"] == 0
             websocket.send_json(authentication(subject))
             acknowledgement = websocket.receive_json()
@@ -142,7 +146,10 @@ def test_missing_websocket_token_is_rejected_before_registration(tmp_path: Path)
     app = app_for(tmp_path)
 
     with TestClient(app) as client:
-        with client.websocket_connect("/api/v1/telemetry/live") as websocket:
+        with websocket_session(
+            client,
+            "/api/v1/telemetry/live",
+        ) as websocket:
             websocket.send_json(
                 {
                     "type": "authenticate",
@@ -163,7 +170,10 @@ def test_cross_organization_websocket_is_denied(tmp_path: Path) -> None:
 
     with TestClient(app) as client:
         provision(app, subject=subject, roles={Role.VIEWER})
-        with client.websocket_connect("/api/v1/telemetry/live") as websocket:
+        with websocket_session(
+            client,
+            "/api/v1/telemetry/live",
+        ) as websocket:
             websocket.send_json(authentication(subject, OTHER_ORGANIZATION_ID))
             response = websocket.receive_json()
 
