@@ -33,11 +33,7 @@ function bucket(scope: string): CacheBucket {
   return current;
 }
 
-async function cached<T>(
-  scope: string,
-  key: string,
-  loader: () => Promise<T>,
-): Promise<T> {
+async function cached<T>(scope: string, key: string, loader: () => Promise<T>): Promise<T> {
   const now = Date.now();
   const current = bucket(scope);
   const stored = current.values.get(key) as CacheEntry<T> | undefined;
@@ -56,11 +52,7 @@ async function cached<T>(
   return revalidate(scope, key, loader);
 }
 
-async function revalidate<T>(
-  scope: string,
-  key: string,
-  loader: () => Promise<T>,
-): Promise<T> {
+async function revalidate<T>(scope: string, key: string, loader: () => Promise<T>): Promise<T> {
   const current = bucket(scope);
   const existing = current.inflight.get(key) as Promise<T> | undefined;
   if (existing) return existing;
@@ -88,10 +80,7 @@ function trim(current: CacheBucket): void {
   for (const [key] of oldest) current.values.delete(key);
 }
 
-export function invalidateRefrigerationStructuralCache(
-  scope: string,
-  equipmentId?: string,
-): void {
+export function invalidateRefrigerationStructuralCache(scope: string, equipmentId?: string): void {
   if (!equipmentId) {
     buckets.delete(scope);
     return;
@@ -115,17 +104,11 @@ export function createCachedEquipmentLifecycleRepository(
         repository.listClimateChamberChannels(chamberId),
       ),
     listImages: (equipmentId) =>
-      cached(
-        scope,
-        `equipment:${encodeURIComponent(equipmentId)}:images`,
-        () => repository.listImages(equipmentId),
+      cached(scope, `equipment:${encodeURIComponent(equipmentId)}:images`, () =>
+        repository.listImages(equipmentId),
       ),
     retireImage: async (equipmentId, imageId, expectedVersion) => {
-      const result = await repository.retireImage(
-        equipmentId,
-        imageId,
-        expectedVersion,
-      );
+      const result = await repository.retireImage(equipmentId, imageId, expectedVersion);
       invalidateRefrigerationStructuralCache(scope, equipmentId);
       return result;
     },
@@ -136,10 +119,8 @@ export function createCachedEquipmentLifecycleRepository(
         () => repository.listBindings(equipmentId, includeHistory),
       ),
     listAvailableSensors: (equipmentId) =>
-      cached(
-        scope,
-        `equipment:${encodeURIComponent(equipmentId)}:available`,
-        () => repository.listAvailableSensors(equipmentId),
+      cached(scope, `equipment:${encodeURIComponent(equipmentId)}:available`, () =>
+        repository.listAvailableSensors(equipmentId),
       ),
     replaceSensorConfiguration: async (...args) => {
       const result = await repository.replaceSensorConfiguration(...args);
@@ -163,29 +144,19 @@ export function createCachedLayoutRepository(
   repository: RefrigerationLayoutRepository,
   scope: string,
 ): RefrigerationLayoutRepository {
-  const draftKey = (equipmentId: string) =>
-    `equipment:${encodeURIComponent(equipmentId)}:layout:draft`;
+  const draftKey = (equipmentId: string) => `equipment:${encodeURIComponent(equipmentId)}:layout:draft`;
   const publishedKey = (equipmentId: string) =>
     `equipment:${encodeURIComponent(equipmentId)}:layout:published`;
-  const historyKey = (equipmentId: string) =>
-    `equipment:${encodeURIComponent(equipmentId)}:layout:history`;
+  const historyKey = (equipmentId: string) => `equipment:${encodeURIComponent(equipmentId)}:layout:history`;
 
-  const invalidate = (equipmentId: string) =>
-    invalidateRefrigerationStructuralCache(scope, equipmentId);
+  const invalidate = (equipmentId: string) => invalidateRefrigerationStructuralCache(scope, equipmentId);
 
   return {
-    getDraft: (equipmentId) =>
-      cached(scope, draftKey(equipmentId), () =>
-        repository.getDraft(equipmentId),
-      ),
+    getDraft: (equipmentId) => cached(scope, draftKey(equipmentId), () => repository.getDraft(equipmentId)),
     getPublished: (equipmentId) =>
-      cached(scope, publishedKey(equipmentId), () =>
-        repository.getPublished(equipmentId),
-      ),
+      cached(scope, publishedKey(equipmentId), () => repository.getPublished(equipmentId)),
     listHistory: (equipmentId) =>
-      cached(scope, historyKey(equipmentId), () =>
-        repository.listHistory(equipmentId),
-      ),
+      cached(scope, historyKey(equipmentId), () => repository.listHistory(equipmentId)),
     saveDraft: async (input: SaveLayoutDraftInput) => {
       const result = await repository.saveDraft(input);
       if (result.ok) invalidate(input.equipmentId);
