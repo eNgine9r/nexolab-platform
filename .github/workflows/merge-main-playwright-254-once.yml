@@ -1,0 +1,33 @@
+name: Integrate corrective main into Playwright once
+
+on:
+  push:
+    branches:
+      - maint/254-playwright-1-62
+    paths:
+      - .github/workflows/merge-main-playwright-254-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: maint/254-playwright-1-62
+          fetch-depth: 0
+
+      - shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
+          rm .github/workflows/merge-main-playwright-254-once.yml
+          git add .github/workflows/merge-main-playwright-254-once.yml
+          git commit -m "ci(playwright): remove one-shot main integration"
+          git push origin HEAD:maint/254-playwright-1-62
