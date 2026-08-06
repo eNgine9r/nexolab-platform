@@ -3,48 +3,72 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "NEXOLAB-335",
-  "issue": 335,
+  "task": "NEXOLAB-345",
+  "issue": 345,
   "status": "completed_in_state_branch",
-  "timestamp": "2026-08-06T06:20:00+03:00",
-  "branch": "docs/335-reconcile-adr-completion",
-  "product_baseline_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
-  "completed_work_package": {
-    "issue": 300,
-    "pull_request": 334,
-    "title": "Canonicalize the ADR registry and preserve legacy architecture references",
-    "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
-    "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae",
-    "completion_classification": "canonical ADR registry established; legacy path preserved; deterministic integrity validation enforced"
+  "timestamp": "2026-08-06T07:20:00+03:00",
+  "branch": "docs/345-reconcile-dependency-lanes",
+  "product_baseline_sha": "5cfba8b58080cca22105934b94110e961c5b3098",
+  "completed_work_packages": [
+    {
+      "issue": 328,
+      "pull_request": 337,
+      "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
+      "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73",
+      "outcome": "focused dependency lanes and deterministic policy validation"
+    },
+    {
+      "issue": 343,
+      "pull_request": 344,
+      "verified_head_sha": "eec26d7f5daeed510eab2df551fac011b5e3f05a",
+      "merge_sha": "5cfba8b58080cca22105934b94110e961c5b3098",
+      "outcome": "migration-grade Playwright isolation and live automation correction"
+    }
+  ],
+  "dependency_policy_evidence": {
+    "production_runtime_grouped": false,
+    "development_group_count": 4,
+    "npm_major_automation_enabled": false,
+    "node_runtime_major": 22,
+    "node_types_guard": ">=23",
+    "playwright_guard": ">=1.56",
+    "automatic_major_merge": false,
+    "validator_fixture_count": 11,
+    "manifest_changed": false,
+    "lockfile_changed": false,
+    "dependency_versions_changed": false,
+    "runtime_closure_changed": false
   },
-  "adr_evidence": {
-    "canonical_location": "docs/adr",
-    "registered_ids": ["0001", "0004", "0005", "0008", "0009"],
-    "unassigned_historical_gaps": ["0002", "0003", "0006", "0007"],
-    "legacy_0001_path": "docs/architecture/adr-0001-telemetry-ingestion.md",
-    "legacy_0001_preserved": true,
-    "duplicate_identifier_fixture": "green",
-    "broken_target_fixture": "green",
-    "missing_legacy_pointer_fixture": "green",
-    "undocumented_gap_fixture": "green"
+  "live_dependabot_evidence": {
+    "closed_unmerged": {
+      "272": "platform closed after branch deletion/recreation; limitation documented",
+      "339": "invalid Playwright plus Vite grouped migration"
+    },
+    "open_unselected": {
+      "340": "valid React types patch group",
+      "341": "individual lucide replacement review"
+    },
+    "open_grouped_playwright_pr": false
   },
   "verification": {
-    "adr_registry_validation": "green",
     "standalone_runtime_contract": "green",
+    "adr_registry_validation": "green",
+    "dependency_policy_validation": "green",
+    "dependency_policy_fixtures": "green_11_of_11",
+    "node_baseline": "green_22.23.1",
     "formatting": "green",
     "lint": "green",
     "typecheck": "green",
     "tests": "green",
-    "production_build": "green",
-    "telemetry_service": "green"
+    "production_build": "green"
   },
   "review_audit": {
-    "focused_files": 6,
+    "base_policy_permanent_files": 5,
+    "corrective_permanent_files": 4,
+    "temporary_workflows_in_final_diffs": 0,
     "unresolved_review_threads": 0,
-    "runtime_dependency_versions_changed": 0,
-    "lockfiles_changed": 0,
-    "database_migrations_changed": 0,
-    "product_runtime_changed": false,
+    "package_json_changed": false,
+    "package_lock_changed": false,
     "modbus_write": "none",
     "hardware_actions": "none",
     "production_cutover": "none"
@@ -59,47 +83,20 @@
     "scope_broadened": false
   },
   "ordered_work_packages": [
-    {
-      "issue": 328,
-      "status": "ready"
-    },
-    {
-      "issue": 253,
-      "status": "queued"
-    },
-    {
-      "issue": 254,
-      "status": "queued"
-    },
-    {
-      "issue": 252,
-      "status": "queued"
-    },
-    {
-      "issue": 255,
-      "status": "queued"
-    }
+    {"issue": 253, "status": "ready"},
+    {"issue": 254, "status": "queued"},
+    {"issue": 252, "status": "queued"},
+    {"issue": 255, "status": "queued"}
   ],
   "next_ready_work_package": {
-    "issue": 328,
-    "title": "Separate dependency update lanes and retire grouped major PRs",
-    "instruction": "Audit Dependabot configuration, separate production/runtime and development update lanes, prevent unrelated major grouping, enforce Node 22 type alignment, add deterministic policy validation, document triage and rollback, and do not change dependency versions or lockfiles."
+    "issue": 253,
+    "title": "Migrate jsdom to 30",
+    "instruction": "Update only jsdom and its required lockfile closure, verify Vitest and Testing Library behavior, run full gates, inspect transitive/offline impact, and do not combine other dependency updates."
   },
   "parallel_hardware_track": {
     "epic_issue": 282,
     "status": "software_complete_hardware_acceptance_pending",
     "issues": [289, 245, 189, 200, 201, 202],
-    "physical_raspberry_pi_rs485_verified": false,
     "completion_classification": "software verified; hardware performance acceptance pending"
-  },
-  "guardrails": [
-    "one Issue, one branch and one focused Pull Request",
-    "do not change dependency versions or package-lock.json in Issue 328",
-    "do not group unrelated major migrations",
-    "keep Node and @types/node aligned with the supported Node 22 boundary",
-    "do not change PR 272 inside Issue 328",
-    "review the exact cJSON image again by 2026-09-05",
-    "do not perform Modbus or other hardware writes",
-    "do not claim physical acceptance without controlled evidence"
-  ]
+  }
 }
