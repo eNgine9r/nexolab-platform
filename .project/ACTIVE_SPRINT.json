@@ -21,37 +21,29 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-335",
-      "issue": 335,
-      "title": "Reconcile ADR registry completion and promote dependency lanes",
+      "id": "NEXOLAB-338",
+      "issue": 338,
+      "title": "Reconcile dependency policy completion and promote jsdom 30",
       "status": "in_progress",
-      "depends_on": [300],
+      "depends_on": [328],
       "scope": "state_only"
-    },
-    {
-      "id": "NEXOLAB-300",
-      "issue": 300,
-      "pull_request": 334,
-      "parent_issue": 326,
-      "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-      "status": "completed",
-      "verified_head_sha": "f0f3a38e3649064662de2307836a4c1e522218ac",
-      "merge_sha": "37107c073fa66d8db35f44932268934d3f5cd8ae"
     },
     {
       "id": "NEXOLAB-328",
       "issue": 328,
+      "pull_request": 337,
       "parent_issue": 326,
       "title": "Separate dependency update lanes and retire grouped major PRs",
-      "status": "ready",
-      "depends_on": [300]
+      "status": "completed",
+      "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
+      "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73"
     },
     {
       "id": "NEXOLAB-253",
       "issue": 253,
       "parent_issue": 204,
       "title": "Migrate jsdom to 30",
-      "status": "queued",
+      "status": "ready",
       "depends_on": [328]
     },
     {
@@ -95,6 +87,24 @@
       "depends_on": [255, "TypeScript 7 ecosystem support"]
     }
   ],
+  "dependency_policy": {
+    "verified_head_sha": "efb685df980735427307902aaa649bd1f9b926f0",
+    "merge_sha": "21dc6ee26702f42e22e01eea9bca07c1d853ac73",
+    "production_runtime_grouped": false,
+    "development_groups": [
+      "development-test-patch-minor",
+      "development-quality-patch-minor",
+      "development-build-patch-minor",
+      "development-react-types-patch-minor"
+    ],
+    "npm_major_automation_enabled": false,
+    "node_runtime_major": 22,
+    "node_types_max_automated_major": 22,
+    "automatic_major_merge": false,
+    "validator_fixture_count": 9,
+    "manifest_changed": false,
+    "lockfile_changed": false
+  },
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -125,9 +135,9 @@
     ]
   },
   "next_ready_work_package": {
-    "issue": 328,
-    "title": "Separate dependency update lanes and retire grouped major PRs",
-    "reason": "ADR governance is merged. Dependency automation policy is independent of hardware and must be corrected before focused toolchain migrations begin."
+    "issue": 253,
+    "title": "Migrate jsdom to 30",
+    "reason": "Dependency automation policy is merged. jsdom is the first focused toolchain migration in the ordered engineering-hardening queue."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
