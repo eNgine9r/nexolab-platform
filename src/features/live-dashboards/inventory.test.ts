@@ -48,20 +48,9 @@ describe("loadLiveDashboardInventory", () => {
 
     const result = await loadLiveDashboardInventory(client);
 
-    expect(list).toHaveBeenNthCalledWith(
-      1,
-      { limit: 500, offset: 0 },
-      undefined,
-    );
-    expect(list).toHaveBeenNthCalledWith(
-      2,
-      { limit: 500, offset: 1 },
-      undefined,
-    );
-    expect(result.map((entry) => entry.channel_id)).toEqual([
-      "106-03",
-      "106-04",
-    ]);
+    expect(list).toHaveBeenNthCalledWith(1, { limit: 500, offset: 0 }, undefined);
+    expect(list).toHaveBeenNthCalledWith(2, { limit: 500, offset: 1 }, undefined);
+    expect(result.map((entry) => entry.channel_id)).toEqual(["106-03", "106-04"]);
   });
 
   it("fails closed when catalog pagination does not advance", async () => {
@@ -75,8 +64,6 @@ describe("loadLiveDashboardInventory", () => {
       }),
     } as unknown as LiveDashboardInventoryClient;
 
-    await expect(loadLiveDashboardInventory(client)).rejects.toThrow(
-      "pagination did not advance",
-    );
+    await expect(loadLiveDashboardInventory(client)).rejects.toThrow("pagination did not advance");
   });
 });
