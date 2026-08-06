@@ -82,6 +82,43 @@ def test_refresh_reads_persisted_latest_without_ingestion(tmp_path: Path) -> Non
         assert runtime["persisted_total"] == 0
 
 
+def test_websocket_disconnect_unregisters_before_heartbeat_without_broadcast(
+    tmp_path: Path,
+) -> None:
+    app = app_for(tmp_path)
+
+    with TestClient(app) as client:
+        before = app.state.runtime.snapshot()
+
+        with client.websocket_connect("/api/v1/telemetry/live"):
+            wait_for(
+                lambda: app.state.runtime.snapshot()["websocket_clients"] == 1
+            )
+
+        wait_for(
+            lambda: app.state.runtime.snapshot()["websocket_clients"] == 0,
+            timeout=1.0,
+        )
+        after = app.state.runtime.snapshot()
+
+        assert after["websocket_clients"] == 0
+        assert (
+            after["websocket_connect_total"]
+            - before["websocket_connect_total"]
+            == 1
+        )
+        assert (
+            after["websocket_disconnect_total"]
+            - before["websocket_disconnect_total"]
+            == 1
+        )
+        assert (
+            after["websocket_heartbeat_total"]
+            == before["websocket_heartbeat_total"]
+        )
+        assert app.state.database.count_samples() == 0
+
+
 def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) -> None:
     app = app_for(tmp_path)
     payload = event(
@@ -94,7 +131,6 @@ def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) ->
             with client.websocket_connect("/api/v1/telemetry/live") as websocket:
                 app.state.live_hub.publish_committed(payload)
                 assert websocket.receive_json()["state_source"] == "persisted"
-            app.state.live_hub.publish_committed(payload)
             wait_for(
                 lambda: app.state.runtime.snapshot()["websocket_clients"] == 0
             )
@@ -104,6 +140,11 @@ def test_websocket_reconnect_churn_does_not_persist_telemetry(tmp_path: Path) ->
         assert (
             after["websocket_connect_total"]
             - before["websocket_connect_total"]
+            == 10
+        )
+        assert (
+            after["websocket_disconnect_total"]
+            - before["websocket_disconnect_total"]
             == 10
         )
         assert after["received_total"] == before["received_total"] == 0
