@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { TelemetrySample } from "@/lib/telemetry/types";
+
 import {
   addDashboardDraftItem,
   createEmptyLiveDashboardDraft,
@@ -10,31 +12,37 @@ import {
 } from "./model";
 import type { LiveDashboard, LiveDashboardInventoryItem } from "./types";
 
-const inventory: LiveDashboardInventoryItem = {
-  key: "106-03|temperature.probe",
+const latestSample: TelemetrySample = {
+  event_id: "sample-1",
   node_id: "edge-01",
+  captured_at: "2026-08-05T18:00:00.000Z",
+  metric: "temperature.probe",
+  value: 3.8,
+  unit: "degC",
+  quality: "valid",
+  source: "dixell-xjp60d",
   equipment_id: "xjp60d-106",
   channel_id: "106-03",
+  alarm: null,
+  raw_value: 38,
+  raw_status: null,
+  received_at: "2026-08-05T18:00:01.000Z",
+};
+
+const inventory: LiveDashboardInventoryItem = {
+  key: "106-03|temperature.probe",
+  channel_ref_id: "channel-ref-106-03",
+  node_id: "edge-01",
+  equipment_id: "xjp60d-106",
+  equipment_name: "XJP60D 106",
+  channel_id: "106-03",
+  channel_name: "Temperature 106-03",
   metric: "temperature.probe",
   native_unit: "degC",
   source: "dixell-xjp60d",
   quality: "valid",
   alarm: null,
-  latest: {
-    event_id: "sample-1",
-    node_id: "edge-01",
-    captured_at: "2026-08-05T18:00:00.000Z",
-    metric: "temperature.probe",
-    value: 3.8,
-    unit: "degC",
-    quality: "valid",
-    source: "dixell-xjp60d",
-    equipment_id: "xjp60d-106",
-    channel_id: "106-03",
-    alarm: null,
-    raw_value: 38,
-    raw_status: null,
-  },
+  latest: latestSample,
 };
 
 const dashboard: LiveDashboard = {
@@ -102,10 +110,13 @@ describe("Live Dashboard editor model", () => {
     const second = addDashboardDraftItem(first, {
       ...inventory,
       key: "115-04|temperature.probe",
+      channel_ref_id: "channel-ref-115-04",
       channel_id: "115-04",
+      channel_name: "Temperature 115-04",
       equipment_id: "xjp60d-115",
+      equipment_name: "XJP60D 115",
       latest: {
-        ...inventory.latest,
+        ...latestSample,
         event_id: "sample-2",
         channel_id: "115-04",
         equipment_id: "xjp60d-115",
@@ -119,27 +130,30 @@ describe("Live Dashboard editor model", () => {
   });
 
   it("filters inventory by canonical identity fields and current quality", () => {
-    const items = [
+    const items: LiveDashboardInventoryItem[] = [
       inventory,
       {
         ...inventory,
         key: "M200|electrical.power.active",
+        channel_ref_id: "channel-ref-M200",
         node_id: "edge-02",
         equipment_id: "meter-200",
+        equipment_name: "Meter 200",
         channel_id: "M200",
+        channel_name: "Active power M200",
         metric: "electrical.power.active",
         native_unit: "W",
         source: "le-01mp",
-        quality: "communication_error" as const,
+        quality: "communication_error",
         latest: {
-          ...inventory.latest,
+          ...latestSample,
           event_id: "sample-3",
           node_id: "edge-02",
           equipment_id: "meter-200",
           channel_id: "M200",
           metric: "electrical.power.active",
           unit: "W",
-          quality: "communication_error" as const,
+          quality: "communication_error",
         },
       },
     ];

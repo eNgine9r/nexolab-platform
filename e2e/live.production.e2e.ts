@@ -69,6 +69,63 @@ function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
+function seedNoSampleChannel(): string {
+  const channelRefId = randomUUID();
+  const suffix = Date.now().toString();
+  const channelId = `acceptance-no-sample-${suffix}`;
+  const sourceChannelId = `acceptance-source-${suffix}`;
+  const output = postgres(`
+WITH candidate AS (
+  SELECT
+    channel.organization_id,
+    channel.climate_chamber_id,
+    channel.bus_id,
+    channel.device_id,
+    channel.metric_type,
+    channel.unit,
+    available.channel_number,
+    (
+      SELECT COALESCE(MAX(existing.logical_sensor_number), 0) + 1
+      FROM measurement_channels AS existing
+      WHERE existing.organization_id = channel.organization_id
+    ) AS logical_sensor_number
+  FROM measurement_channels AS channel
+  CROSS JOIN LATERAL (
+    SELECT slot AS channel_number
+    FROM generate_series(1, 6) AS slot
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM measurement_channels AS occupied
+      WHERE occupied.device_id = channel.device_id
+        AND occupied.channel_number = slot
+    )
+    ORDER BY slot
+    LIMIT 1
+  ) AS available
+  WHERE channel.organization_id = ${sqlString(organizationId)}
+    AND channel.status = 'active'
+  ORDER BY channel.device_id, channel.channel_number
+  LIMIT 1
+)
+INSERT INTO measurement_channels (
+  id, organization_id, climate_chamber_id, bus_id, device_id, channel_id,
+  source_channel_id, channel_number, logical_sensor_number, display_name,
+  physical_sensor_count, metric_type, unit, status, created_at, updated_at
+)
+SELECT
+  ${sqlString(channelRefId)}, candidate.organization_id, candidate.climate_chamber_id,
+  candidate.bus_id, candidate.device_id, ${sqlString(channelId)},
+  ${sqlString(sourceChannelId)}, candidate.channel_number, candidate.logical_sensor_number,
+  'Acceptance channel without sample', 1, candidate.metric_type, candidate.unit,
+  'active', NOW(), NOW()
+FROM candidate;
+
+SELECT COUNT(*) FROM measurement_channels WHERE id = ${sqlString(channelRefId)};
+`);
+  if (!output.trim().endsWith("1")) throw new Error("No-sample canonical channel was not seeded");
+  return channelId;
+}
+
 function seedPersistedDashboard(): { dashboardId: string; dashboardName: string } {
   const dashboardId = randomUUID();
   const itemId = randomUUID();
@@ -172,6 +229,93 @@ async function waitForApiReady(): Promise<void> {
     )
     .toBe(true);
 }
+
+test("editor loads the canonical catalog and selects a channel without telemetry history", async ({
+  browser,
+}) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const noSampleChannelId = seedNoSampleChannel();
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const requests = observeRequests(page);
+
+  await page.route("**/api/v1/auth/session", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        identity: {
+          id: "acceptance-editor-identity",
+          provider: "acceptance-oidc",
+          subject: "viewer-acceptance",
+          email: "viewer@example.test",
+          display_name: "Editor Acceptance",
+        },
+        memberships: [
+          {
+            organization_id: organizationId,
+            organization_slug: "dashboard-acceptance",
+            organization_name: "NEXOLAB Dashboard Acceptance",
+            roles: ["operator"],
+            permissions: [
+              "dashboard.read",
+              "live_dashboards.manage",
+              "telemetry.read",
+              "alerts.read",
+              "reports.read",
+              "nodes.read",
+            ],
+          },
+        ],
+      }),
+    });
+  });
+
+  try {
+    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Створити Dashboard" }).click();
+    await expect(page.getByRole("heading", { name: "Новий Live Dashboard", exact: true })).toBeVisible();
+    await expect
+      .poll(() => requests.dashboard.some((item) => item.url.includes("/channel-inventory")))
+      .toBe(true);
+
+    const catalogCard = page.locator("article").filter({ hasText: noSampleChannelId });
+    await expect(catalogCard).toContainText("Якість: Невідомі");
+    await expect(catalogCard).toContainText("Тривога: немає");
+    await catalogCard.getByRole("button", { name: "Додати", exact: true }).click();
+    await expect(page.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
+    await expect(page.getByText(`${noSampleChannelId} додано.`, { exact: true })).toBeVisible();
+
+    expect(requests.telemetry).toEqual([]);
+    expect(requests.acquisitionMutations).toEqual([]);
+    expect(
+      requests.dashboard
+        .filter((item) => item.url.includes("/channel-inventory"))
+        .every((item) => item.method === "GET"),
+    ).toBe(true);
+
+    await page.screenshot({
+      path: path.join(evidenceDirectory, "live-dashboard-no-sample-editor.png"),
+      fullPage: true,
+    });
+    writeFileSync(
+      path.join(evidenceDirectory, "live-dashboard-inventory-summary.json"),
+      `${JSON.stringify(
+        {
+          noSampleChannelId,
+          dashboardRequests: requests.dashboard,
+          telemetryRequests: requests.telemetry,
+          acquisitionMutations: requests.acquisitionMutations,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } finally {
+    await context.close();
+  }
+});
 
 test("opens a persisted selected-series dashboard after service restart without write controls", async ({
   browser,

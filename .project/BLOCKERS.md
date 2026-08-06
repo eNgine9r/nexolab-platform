@@ -2,62 +2,84 @@
 
 Updated: 2026-08-06
 
-## Issue #254 / PR #352 merge boundary
+## Issue #355 / PR #358 merge boundary
 
-No implementation or verification blocker remains on exact implementation head `0092a1035af913cbe5be22d2e57db2a3fc257e98`.
+No software implementation or verification blocker remains on exact implementation head `6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5`.
 
 Verified:
 
-- current `main` base `67b471e44201f7c96ef4e51e7c3904e8c78df323` is included; branch is zero commits behind;
-- implementation diff is limited to five permitted permanent files;
-- 13 Playwright config hashes and 24 discovered tests are unchanged;
-- removed Playwright APIs are absent;
-- CI and every required browser acceptance workflow are GREEN;
-- Offline Auth Acceptance is GREEN;
-- Offline Bundle disconnected startup and update/rollback preservation are GREEN;
+- current `main` base `72aaa668a90cfa1068078167a0cd7023a13e639a` is included and the branch is zero commits behind;
+- implementation diff is limited to 16 permitted permanent files plus this four-file state checkpoint;
+- all 14 exact-head workflows are GREEN;
+- PostgreSQL large-history evidence is 0.363 ms query execution and 13.085 ms complete repository call on 50,003 telemetry rows;
+- browser evidence shows zero telemetry discovery requests, zero acquisition/configuration mutations and successful no-sample selection;
+- selected-series latest/history and one bounded WebSocket path are preserved;
+- Offline Auth and Offline Bundle are GREEN;
 - unresolved review threads are zero;
-- production dependencies, runtime containers, database/schema, acquisition, hardware and Modbus behavior are unchanged.
+- no database migration, telemetry deletion, runtime dependency, cloud service, Modbus write, hardware write or site cutover exists.
 
 Remaining control sequence:
 
-1. validate the four-file state checkpoint;
-2. mark PR #352 Ready;
+1. validate this four-file state checkpoint;
+2. mark PR #358 Ready;
 3. repeat current-head, mergeability, review and required-check audit;
-4. squash merge PR #352 and confirm Issue #254 closure.
+4. squash merge PR #358 and confirm Issue #355 closure;
+5. promote Issue #252 as the sole Next Ready Work Package.
 
-## Next Ready Work Package boundary: Issue #355
+## Raspberry Pi acceptance boundary
 
-After PR #352 merges, Issue #355 is the sole Ready package.
+Issue #355 software is verified, but the affected Raspberry Pi with its real long-running LOCAL_LAN database has not been retested.
+
+Required physical evidence:
+
+- update the Raspberry Pi to the merged `main`;
+- open the Live Dashboard editor against the real database;
+- record channel-inventory response timing;
+- confirm channels without samples are selectable;
+- confirm the editor no longer reports `Telemetry request exceeded 8000 ms`;
+- record runtime logs without performing Modbus or hardware writes.
+
+Classification remains:
+
+```text
+software verified; Raspberry Pi runtime latency acceptance pending
+```
+
+This is a hardware/runtime acceptance item, not a software merge blocker.
+
+## Next Ready Work Package boundary: Issue #252
+
+After PR #358 merges, Issue #252 becomes the sole Ready package.
 
 Required outcome:
 
-- load the Live Dashboard editor inventory from the organization-scoped canonical measurement catalog rather than paginated telemetry latest/history;
-- include eligible active channels even when no current sample exists;
-- keep the response bounded, deterministic and permission-aware;
-- optionally attach latest state only through a bounded indexed lookup;
-- preserve selected-series latest/history/WebSocket behavior after a dashboard opens;
-- prove a large telemetry history cannot cause the editor inventory request to exceed the existing 8-second client timeout;
-- record PostgreSQL timing/query-plan evidence and separate Raspberry Pi runtime evidence.
+- upgrade only lint-staged from 16.4.0 to the supported 17.x line;
+- retain Node `22.23.1`;
+- preserve current command ordering and file globs;
+- prove successful staged-file formatting/linting;
+- prove failed-task rollback and preservation of unstaged changes;
+- cover empty and partially staged cases;
+- keep production runtime and Offline Bundle closure unchanged.
 
 Hard boundaries:
 
-- do not treat a larger global timeout as the primary fix;
-- do not change acquisition registry, scheduler, Modbus cadence or physical polling eligibility;
-- do not delete/truncate telemetry history;
-- do not add cloud or paid runtime dependencies;
-- no Modbus write, hardware action, secret exposure or production/site cutover;
-- Raspberry Pi latency remains `software verified; Raspberry Pi runtime latency acceptance pending` until physical evidence exists.
+- no ESLint, Prettier, Husky or Node migration;
+- no mass formatting or source refactor;
+- no destructive Git operation;
+- no production deployment, secrets, hardware actions or Modbus writes.
 
 ## Dependency lanes
 
-Open and unselected dependency PRs: #340, #341, #346 and #347. PR #347 is superseded by the focused Playwright 1.62 migration after PR #352 merges. Do not combine any of them with Issue #355.
+Open unselected dependency PRs: #340, #341 and #346.
+
+PR #347 is obsolete because Playwright 1.62 already merged through Issue #254 / PR #352. Do not merge it.
 
 Closed unmerged dependency PRs: #272 and #339.
 
-Queued sequence after Issue #355:
+Ordered sequence:
 
 ```text
-#355 Live Dashboard canonical inventory defect
+#355 Live Dashboard canonical inventory
 → #252 lint-staged 17
 → #255 TypeScript 6
 ```

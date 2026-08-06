@@ -97,15 +97,26 @@ export interface LiveDashboardValidation {
 
 export interface LiveDashboardInventoryItem {
   key: string;
+  channel_ref_id: string;
   node_id: string;
   equipment_id: string;
+  equipment_name: string;
   channel_id: string;
+  channel_name: string;
   metric: string;
   native_unit: string;
   source: string;
   quality: TelemetryQuality;
   alarm: TelemetryAlarm | null;
-  latest: TelemetrySample;
+  latest: TelemetrySample | null;
+}
+
+export interface LiveDashboardInventoryCollection {
+  items: LiveDashboardInventoryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
 }
 
 export interface LiveDashboardInventoryFilters {

@@ -3,8 +3,18 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 
+from app.live_dashboard.inventory import list_live_dashboard_inventory
 from app.live_dashboard.repository import (
     DEFAULT_ORGANIZATION_ID,
     DashboardRecord,
@@ -21,20 +31,23 @@ from app.live_dashboard.schemas import (
     ApiErrorDetail,
     ApiErrorResponse,
     LiveDashboardCollectionResponse,
+    LiveDashboardInventoryCollectionResponse,
+    LiveDashboardInventoryItemResponse,
+    LiveDashboardInventoryLatestResponse,
     LiveDashboardItemResponse,
     LiveDashboardResponse,
     LiveDashboardWrite,
     MAX_DASHBOARD_OFFSET,
     MAX_DASHBOARD_PAGE_SIZE,
+    MAX_INVENTORY_OFFSET,
+    MAX_INVENTORY_PAGE_SIZE,
 )
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
-_ETAG_RE = re.compile(
-    r'^(?:W/)?"live-dashboard-v(?P<version>[1-9][0-9]*)"$'
-)
+_ETAG_RE = re.compile(r'^(?:W/)?"live-dashboard-v(?P<version>[1-9][0-9]*)"$')
 
 
 def create_live_dashboard_router(
@@ -81,6 +94,64 @@ def create_live_dashboard_router(
             limit=limit,
             offset=offset,
             has_more=offset + len(page.items) < page.total,
+        )
+
+    @router.get(
+        "/channel-inventory",
+        response_model=LiveDashboardInventoryCollectionResponse,
+        responses={403: {"model": ApiErrorResponse}},
+    )
+    def list_channel_inventory(
+        limit: int = Query(default=MAX_INVENTORY_PAGE_SIZE, ge=1, le=MAX_INVENTORY_PAGE_SIZE),
+        offset: int = Query(default=0, ge=0, le=MAX_INVENTORY_OFFSET),
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> LiveDashboardInventoryCollectionResponse:
+        page = list_live_dashboard_inventory(
+            repository,
+            organization_id=authorized.principal.organization_id,
+            limit=limit,
+            offset=offset,
+        )
+        items: list[LiveDashboardInventoryItemResponse] = []
+        for item in page.items:
+            latest = None
+            if item.latest is not None:
+                latest = LiveDashboardInventoryLatestResponse(
+                    event_id=item.latest.event_id,
+                    node_id=item.node_id,
+                    equipment_id=item.equipment_id,
+                    channel_id=item.channel_id,
+                    captured_at=item.latest.captured_at,
+                    metric=item.metric,
+                    value=item.latest.value,
+                    unit=item.latest.unit,
+                    quality=item.latest.quality,
+                    source=item.latest.source,
+                    alarm=item.latest.alarm,
+                    received_at=item.latest.received_at,
+                )
+            items.append(
+                LiveDashboardInventoryItemResponse(
+                    channel_ref_id=item.channel_ref_id,
+                    node_id=item.node_id,
+                    equipment_id=item.equipment_id,
+                    equipment_name=item.equipment_name,
+                    channel_id=item.channel_id,
+                    channel_name=item.channel_name,
+                    metric=item.metric,
+                    native_unit=item.native_unit,
+                    source=item.source,
+                    quality=item.quality,
+                    alarm=item.alarm,
+                    latest=latest,
+                )
+            )
+        return LiveDashboardInventoryCollectionResponse(
+            items=items,
+            total=page.total,
+            limit=limit,
+            offset=offset,
+            has_more=offset + len(items) < page.total,
         )
 
     @router.post(

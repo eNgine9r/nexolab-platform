@@ -21,47 +21,39 @@
   },
   "tasks": [
     {
-      "id": "NEXOLAB-350",
-      "issue": 350,
-      "pull_request": 351,
-      "title": "Reconcile jsdom 30 completion and promote Playwright 1.62",
-      "status": "completed",
-      "scope": "state_only",
-      "verified_head_sha": "7b9cefc21022981d0413e4518c19225dd3430609",
-      "merge_sha": "dff88feee94a6e6334f1e6ea2b515cec5ecff5be"
-    },
-    {
-      "id": "NEXOLAB-353",
-      "issue": 353,
-      "pull_request": 354,
-      "title": "Detect telemetry WebSocket disconnects without waiting for heartbeat",
-      "status": "completed",
-      "verified_head_sha": "4161f0797c3d56b4839093797df3aca8eaa7adf4",
-      "merge_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323"
-    },
-    {
       "id": "NEXOLAB-254",
       "issue": 254,
       "pull_request": 352,
       "title": "Migrate Playwright to 1.62.x",
-      "status": "verified_ready_for_merge",
-      "depends_on": [253, 353],
-      "base_sha": "67b471e44201f7c96ef4e51e7c3904e8c78df323",
-      "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98"
+      "status": "completed",
+      "merge_sha": "40aec7d0fa99fe3694e2cb2954d144703eebea5c"
+    },
+    {
+      "id": "NEXOLAB-359",
+      "issue": 359,
+      "pull_request": 360,
+      "title": "Stabilize telemetry WebSocket TestClient teardown",
+      "status": "completed",
+      "scope": "test_only",
+      "merge_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a"
     },
     {
       "id": "NEXOLAB-355",
       "issue": 355,
+      "pull_request": 358,
       "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-      "status": "ready",
+      "status": "verified_ready_for_merge",
       "priority": "critical",
-      "depends_on": [254]
+      "base_sha": "72aaa668a90cfa1068078167a0cd7023a13e639a",
+      "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
+      "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending"
     },
     {
       "id": "NEXOLAB-252",
       "issue": 252,
-      "title": "Migrate lint-staged to 17",
-      "status": "queued",
+      "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
+      "status": "ready_after_355_merge",
+      "priority": "high",
       "depends_on": [355]
     },
     {
@@ -84,39 +76,47 @@
       "status": "deferred"
     }
   ],
-  "playwright_migration": {
-    "version_before": "1.55.0",
-    "version_after": "1.62.0",
-    "node_baseline": "22.23.1",
-    "engine_requirement": ">=20",
-    "config_count": 13,
-    "discovered_test_count": 24,
-    "config_hashes_unchanged": true,
-    "test_discovery_unchanged": true,
-    "removed_api_findings": 0,
-    "browser_install_command": "npx playwright install --with-deps chromium",
-    "implementation_verified_head_sha": "0092a1035af913cbe5be22d2e57db2a3fc257e98",
-    "production_dependencies_changed": false,
-    "runtime_closure_changed": false,
-    "offline_bundle": "green"
+  "live_dashboard_inventory": {
+    "endpoint": "/api/v1/live-dashboards/channel-inventory",
+    "page_limit_max": 500,
+    "offset_max": 10000,
+    "catalog_driven": true,
+    "includes_active_channels_without_samples": true,
+    "save_validation_eligibility_shared": true,
+    "latest_identity": ["node_id", "equipment_id", "channel_id", "metric"],
+    "latest_index": "ix_telemetry_latest_lookup",
+    "telemetry_fixture_rows": 50003,
+    "postgres_execution_ms": 0.363,
+    "repository_call_ms": 13.085,
+    "client_timeout_ms": 8000,
+    "selected_series_path_preserved": true,
+    "acquisition_changed": false,
+    "physical_polling_changed": false
   },
   "verification": {
+    "implementation_verified_head_sha": "6894c1f4c30ac3f1cd5bedf7d138761d0cc112b5",
     "ci": "green",
-    "acquisition_scale": "green",
+    "telemetry_service_postgresql": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
-    "alerts_browser": "green",
-    "reports_browser": "green",
-    "rendered_reports_browser": "green",
-    "nodes_browser": "green",
-    "test_sessions_browser": "green",
-    "security_browser": "green",
+    "acquisition_scale": "green",
     "offline_auth": "green",
-    "offline_bundle": "green"
+    "offline_bundle": "green_disconnected_startup_and_update_rollback",
+    "container_supply_chain": "green",
+    "broker_control": "green",
+    "mqtt_tls_fleet": "green",
+    "device_agent_fleet": "green",
+    "capacity_release": "green",
+    "disaster_recovery_tls": "green",
+    "disaster_recovery_browser": "green",
+    "unresolved_review_threads": 0,
+    "branch_behind_main": 0,
+    "mergeable": true
   },
   "dependency_pull_requests": {
-    "closed_unmerged": [272, 339],
-    "open_unselected": [340, 341, 346, 347]
+    "open_unselected": [340, 341, 346],
+    "open_obsolete": [347],
+    "closed_unmerged": [272, 339]
   },
   "security_exception": {
     "image_id": "telemetry-service",
@@ -127,9 +127,10 @@
     "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 355,
-    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-    "reason": "Playwright 1.62 is exact-head GREEN across CI, browser, Offline Auth and Offline Bundle. Issue #355 is the critical operator defect that prevents canonical channel selection on a long-running LOCAL_LAN database."
+    "issue": 252,
+    "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
+    "activation_condition": "PR #358 is GREEN and merged; Issue #355 is closed.",
+    "reason": "The critical Live Dashboard inventory defect is exact-head software verified. The next isolated lane is the lint-staged 17 development-tool migration on Node 22.23.1."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,

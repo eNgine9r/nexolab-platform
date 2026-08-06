@@ -11,6 +11,8 @@ MAX_DASHBOARD_NAME_LENGTH = 128
 MAX_DASHBOARD_DESCRIPTION_LENGTH = 1024
 MAX_DASHBOARD_PAGE_SIZE = 100
 MAX_DASHBOARD_OFFSET = 10_000
+MAX_INVENTORY_PAGE_SIZE = 500
+MAX_INVENTORY_OFFSET = 10_000
 ALLOWED_REFRESH_SECONDS = frozenset({1, 2, 5, 10, 15, 30, 60})
 
 
@@ -138,6 +140,46 @@ class LiveDashboardResponse(BaseModel):
 
 class LiveDashboardCollectionResponse(BaseModel):
     items: list[LiveDashboardResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class LiveDashboardInventoryLatestResponse(BaseModel):
+    event_id: str
+    node_id: str
+    equipment_id: str
+    channel_id: str
+    captured_at: datetime
+    metric: str
+    value: float | None
+    unit: str
+    quality: str
+    source: str
+    alarm: str | None
+    raw_value: int | None = None
+    raw_status: int | None = None
+    received_at: datetime
+
+
+class LiveDashboardInventoryItemResponse(BaseModel):
+    channel_ref_id: str
+    node_id: str
+    equipment_id: str
+    equipment_name: str
+    channel_id: str
+    channel_name: str
+    metric: str
+    native_unit: str
+    source: str
+    quality: str
+    alarm: str | None
+    latest: LiveDashboardInventoryLatestResponse | None
+
+
+class LiveDashboardInventoryCollectionResponse(BaseModel):
+    items: list[LiveDashboardInventoryItemResponse]
     total: int
     limit: int
     offset: int
