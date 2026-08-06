@@ -21,28 +21,42 @@
   },
   "tasks": [
     {
+      "id": "NEXOLAB-332",
+      "issue": 332,
+      "title": "Reconcile cJSON exception review and promote ADR registry",
+      "status": "completed",
+      "depends_on": [327],
+      "scope": "state_only"
+    },
+    {
       "id": "NEXOLAB-329",
       "issue": 329,
+      "pull_request": 330,
       "title": "Open engineering hardening sprint and record Issue #327 as Ready",
       "status": "completed",
+      "merge_sha": "dbf4e108b259fac6eb8cbfaef0f1792dc50dac2e",
       "scope": "state_only"
     },
     {
       "id": "NEXOLAB-327",
       "issue": 327,
+      "pull_request": 331,
       "parent_issue": 326,
       "title": "Revalidate the expiring cJSON vulnerability exception",
-      "status": "ready",
+      "status": "completed_with_short_exception",
       "priority": "critical",
       "depends_on": [295],
-      "review_due": "2026-08-15"
+      "verified_head_sha": "d05e3e2405f55a7b8f5d3b722e1165924a4eaf9e",
+      "merge_sha": "20863d5e0242ff4248b208633e5e6ef58bb70adf",
+      "review_due": "2026-09-05",
+      "completion_classification": "narrow_exception_renewed_fixed_package_unavailable_next_review_recorded"
     },
     {
       "id": "NEXOLAB-300",
       "issue": 300,
       "parent_issue": 326,
       "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
-      "status": "queued",
+      "status": "ready",
       "depends_on": [327]
     },
     {
@@ -102,6 +116,18 @@
       "depends_on": [255, "TypeScript 7 ecosystem support"]
     }
   ],
+  "security_exception": {
+    "image_id": "telemetry-service",
+    "package": "libcjson1",
+    "vulnerability": "CVE-2026-67216",
+    "owner": "platform-security",
+    "installed_version": "1.7.18-3.1+deb13u1",
+    "severity": "HIGH",
+    "status": "affected",
+    "fixed_version": null,
+    "expires_on": "2026-09-05",
+    "image_digest": "sha256:544eead98d548c84c938922deb2513b1428994271600fa027dd5895c9813b24d"
+  },
   "dependency_pull_requests": {
     "closed_superseded": [
       {
@@ -120,9 +146,9 @@
     ]
   },
   "next_ready_work_package": {
-    "issue": 327,
-    "title": "Revalidate the expiring cJSON vulnerability exception",
-    "reason": "The repository review deadline is 2026-08-15 and the work is independent of unavailable hardware."
+    "issue": 300,
+    "title": "Canonical ADR registry, legacy-link compatibility and integrity validation",
+    "reason": "The critical security review is merged. ADR governance is independent of hardware and dependency migrations and is next in the ordered sprint."
   },
   "parallel_blocked_track": {
     "epic_issue": 282,
