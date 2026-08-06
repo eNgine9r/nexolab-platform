@@ -19,37 +19,45 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "323f384297bba5a0fd734b7e47704fbd360454a4",
+  "current_main_sha": "5831190f9714236b53f362234785639e22267477",
   "tasks": [
-    {
-      "id": "NEXOLAB-355",
-      "issue": 355,
-      "pull_request": 358,
-      "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-      "status": "completed",
-      "verified_head_sha": "116ffc81844db1506f2f1b622cd2938ea0ae9563",
-      "merge_sha": "5ba8af5b7c9a2bec184b7f39bc15f45d5c3a703e",
-      "completion_classification": "software verified; Raspberry Pi runtime latency acceptance pending"
-    },
     {
       "id": "NEXOLAB-252",
       "issue": 252,
       "pull_request": 361,
       "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
       "status": "completed",
-      "priority": "high",
       "verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
       "merge_sha": "323f384297bba5a0fd734b7e47704fbd360454a4"
     },
     {
       "id": "NEXOLAB-255",
       "issue": 255,
+      "pull_request": 362,
       "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-      "status": "ready",
+      "status": "verified_ready_for_merge",
       "priority": "high",
       "assignee": "eNgine9r",
-      "labels": ["area:devops", "dependencies", "priority:high", "status:ready"],
+      "verified_head_sha": "8c43439e1ab34e398f4b3bf2a9c8545e4386b956",
+      "labels": ["area:devops", "dependencies", "priority:high", "status:in-progress"],
       "depends_on": [252]
+    },
+    {
+      "id": "NEXOLAB-357",
+      "issue": 357,
+      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
+      "status": "ready",
+      "priority": "critical",
+      "assignee": "eNgine9r",
+      "labels": ["area:backend", "area:frontend", "type:bug", "priority:critical", "status:ready"],
+      "depends_on": [255]
+    },
+    {
+      "id": "NEXOLAB-245",
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "status": "ready_parallel_runtime_track",
+      "hardware_acceptance": "pending"
     },
     {
       "id": "NEXOLAB-257",
@@ -64,29 +72,34 @@
       "status": "deferred"
     }
   ],
-  "lint_staged_migration": {
-    "version_before": "16.4.0",
-    "version_after": "17.3.0",
+  "typescript_6_migration": {
+    "version_before": "5.9.3",
+    "manifest_before": "^5",
+    "version_after": "6.0.3",
+    "manifest_after": "^6.0.3",
     "node_baseline": "22.23.1",
-    "node_floor": "22.22.1",
-    "git_verified": "2.54.0",
-    "git_floor": "2.32.0",
-    "configuration_source": "package.json",
-    "husky_hook_unchanged": true,
-    "globs_unchanged": true,
-    "command_order_unchanged": true,
+    "new_diagnostics": 0,
+    "tsconfig_changed": false,
+    "application_source_changed": false,
+    "test_source_changed": false,
+    "strict_unchanged": true,
+    "no_emit_unchanged": true,
+    "isolated_modules_unchanged": true,
+    "module_resolution": "bundler",
+    "target": "ES2017",
+    "ignore_deprecations_added": false,
+    "broad_types_added": false,
     "production_dependencies_changed": false,
     "runtime_closure_changed": false,
-    "verified_cases": [
-      "production-eslint-prettier-order",
-      "partial-stage-success",
-      "failure-rollback",
-      "empty-stage"
-    ],
-    "preparation_artifact_sha256": "0265ae89f4c56827171350b6d0dfef79b225048e72e5f9b80f103a828d0b910b"
+    "changed_lockfile_package_keys": ["", "node_modules/typescript"],
+    "diagnostic_workflow_run": 31099428290,
+    "diagnostic_artifact_sha256": "2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f",
+    "migration_workflow_run": 31100010365,
+    "migration_artifact_sha256": "b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7",
+    "publisher_workflow_run": 31100231787
   },
   "verification": {
-    "issue_252_verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
+    "issue_255_verified_head_sha": "8c43439e1ab34e398f4b3bf2a9c8545e4386b956",
     "ci": "green",
     "authenticated_dashboard": "green",
     "refrigeration_browser": "green",
@@ -99,7 +112,7 @@
     "offline_auth": "green",
     "offline_bundle": "green_disconnected_startup_and_update_rollback",
     "unresolved_review_threads": 0,
-    "branch_behind_main_at_merge": 0
+    "branch_behind_main": 0
   },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
@@ -115,14 +128,14 @@
     "fixed_version": null
   },
   "next_ready_work_package": {
-    "issue": 255,
-    "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-    "reason": "Issue #252 is merged and closed with deterministic staged-file preservation and all exact-head software and offline gates GREEN."
+    "issue": 357,
+    "title": "Hydrate refrigeration image, layout and sensor placements immediately",
+    "priority": "critical",
+    "reason": "Issue #255 has zero TypeScript 6 diagnostics, a three-file focused diff and all exact-head quality, browser and offline gates GREEN. Issue #357 is the highest-priority product-visible Ready defect."
   },
-  "parallel_blocked_track": {
+  "parallel_hardware_track": {
     "epic_issue": 282,
-    "status": "software_complete_hardware_acceptance_pending",
     "issues": [289, 245, 189, 200, 201, 202],
-    "completion_classification": "software verified; hardware performance acceptance pending"
+    "completion_classification": "software verified where applicable; controlled Raspberry Pi or RS-485 acceptance pending"
   }
 }
