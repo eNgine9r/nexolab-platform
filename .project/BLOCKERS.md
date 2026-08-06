@@ -2,28 +2,43 @@
 
 Updated: 2026-08-06
 
-## Active Work Package boundary: dependency automation policy
+## Active Work Package boundary: jsdom 30
 
-Issue #328 is the sole Next Ready Work Package after Issue #335 merges.
+Issue #253 is the sole Next Ready Work Package after Issue #338 merges.
 
 Allowed scope:
 
-- audit and revise `.github/dependabot.yml`;
-- separate production runtime, development patch/minor and major migration lanes;
-- add deterministic dependency-policy validation and fixtures;
-- document cadence, ownership, triage, rollback and offline-runtime verification;
-- preserve PR #272 as an independent unselected review.
+- migrate only `jsdom` from major 29 to major 30;
+- update the exact lockfile closure required by jsdom;
+- inspect Vitest and Testing Library environment compatibility;
+- add or adjust targeted tests only where jsdom 30 changes observable test behavior;
+- document migration and rollback evidence.
 
 Hard scope boundaries:
 
-- no dependency version changes;
-- no `package-lock.json` changes;
-- no grouped unrelated major migrations;
-- no automatic merge route for major updates;
-- no Node or `@types/node` major beyond the supported Node 22 runtime boundary without a dedicated migration Issue;
-- no product, runtime, database, acquisition, hardware, Modbus, secret or deployment changes.
+- do not combine Playwright, lint-staged, TypeScript, ESLint, Node types or unrelated package updates;
+- do not change production dependencies;
+- preserve Node 22 and the `@types/node` major 22 boundary;
+- no product, runtime API, database, acquisition, hardware, Modbus, secret or deployment changes;
+- no automatic merge before exact-head CI and test-environment verification are GREEN.
 
-The required focused migration order remains:
+Required checks:
+
+- dependency-policy validator and fixtures;
+- formatting, lint, typecheck, full unit tests and production build;
+- focused jsdom/Vitest/Testing Library tests;
+- transitive dependency diff and offline closure review;
+- rollback by restoring the prior manifest and lockfile state.
+
+## Dependency automation policy completed
+
+Issue #328 / PR #337 is completed. Broad production/development groups are retired. Production runtime updates remain individual; dev patch/minor groups are limited by verification surface; npm major automation and automatic major merge are prohibited; `@types/node >=23` is blocked while Node 22 is active.
+
+PR #271 remains closed unmerged. PR #272 remains open and outside the jsdom migration scope.
+
+## Queued software constraints
+
+Ordered sequence:
 
 ```text
 #253 jsdom 30
@@ -37,13 +52,9 @@ Blocked or deferred:
 - **#257 ESLint 10:** blocked until a compatible Next.js and plugin graph is demonstrated.
 - **#256 TypeScript 7:** deferred until TypeScript 6 is complete and ecosystem support exists.
 
-PR #271 is closed unmerged and superseded by focused migration Issues. PR #272 remains open and must not be merged, closed or implicitly approved by Issue #328.
-
 ## cJSON exception: reviewed, narrow and time-bounded
 
-Issue #327 / PR #331 is completed. The exact `telemetry-service/libcjson1/CVE-2026-67216` exception remains necessary because the verified exact image contains `libcjson1 1.7.18-3.1+deb13u1`, severity HIGH, status affected and no fixed version.
-
-The exception is owned by `platform-security` and expires on **2026-09-05**. It is not a blocker for current software work, but it must be reviewed again by that date. Do not broaden it.
+The exact `telemetry-service/libcjson1/CVE-2026-67216` exception remains owned by `platform-security`, affected with no fixed version, and expires on **2026-09-05**. It is not a blocker for current software work, but it must be reviewed again by that date. Do not broaden it.
 
 ## Parallel hardware blocker
 
@@ -61,7 +72,7 @@ Hardware-dependent Issues:
 - **#201:** LE-01MP cumulative energy validation pending;
 - **#202:** extended XJP60D semantics validation pending.
 
-These blockers do not prevent dependency-policy or focused toolchain work.
+These blockers do not prevent focused jsdom/toolchain work.
 
 ## Other product blockers
 
@@ -84,4 +95,4 @@ Stop before:
 
 ## Next action
 
-Merge Issue #335 as an exact four-file state-only checkpoint. Then implement Issue #328 with a focused policy/configuration PR and full repository verification while keeping dependency closure unchanged.
+Merge Issue #338 as an exact four-file state-only checkpoint. Then implement Issue #253 as a focused jsdom 30 migration with targeted test-environment evidence and no unrelated dependency changes.
