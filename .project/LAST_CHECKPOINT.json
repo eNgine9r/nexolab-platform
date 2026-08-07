@@ -4,54 +4,56 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
-  "status": "exact_head_ci_pending_after_checkpoint",
-  "timestamp": "2026-08-07T16:20:00+03:00",
+  "status": "hardware_verified_final_ci_pending",
+  "timestamp": "2026-08-07T16:45:00+03:00",
   "branch": "fix/378-rs485-usb-hotplug-recovery",
   "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "issue": 378,
   "pull_request": 380,
   "regression_parent_issue": 374,
   "blocked_issue": 368,
-  "first_physical_acceptance": {
-    "result": "failed_after_compose_path_success",
-    "candidate_head": "aec3cb10ea33395e8ac7472dfac433976f18cc96",
-    "candidate_container": "b26acda00ae8",
-    "container_restarted": false,
-    "restart_count_before_after": "0 -> 0",
-    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "device_before": "ttyUSB0",
-    "stable_path_absent_observed": true,
-    "device_after": "ttyUSB1",
-    "stable_path_reappeared_observed": true,
-    "recovery_base_postgres_max_id": 2331346,
-    "final_postgres_max_id": 2331346,
-    "final_newest_age": "00:07:10.22367",
-    "serial_error": "termios.error: (5, Input/output error)"
+  "verified_pre_state_candidate": "c2cf1ce4939c77f138daac2841f39651afd4bcba",
+  "software_verification": {
+    "checks": 14,
+    "failures": 0,
+    "in_progress": 0,
+    "quality": "green",
+    "offline_bundle": "green"
   },
-  "diagnosis": {
-    "compose_layer": "validated: running container followed stable by-id identity across ttyUSB0 to ttyUSB1",
-    "python_layer": "real termios.error bypassed the OSError-only cached-handle invalidation",
-    "effect": "dead cached serial handle remained active after re-enumeration"
+  "hardware_acceptance": {
+    "result": "pass",
+    "candidate_container": "9f03df0e798e",
+    "container_restarted": false,
+    "container_recreated": false,
+    "restart_count_before_after": "0 -> 0",
+    "started_at_unchanged": true,
+    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+    "stable_path_absent_observed": true,
+    "stable_path_reappeared_observed": true,
+    "device_before": "ttyUSB1",
+    "device_after": "ttyUSB0",
+    "phase_1_postgres_max_id_before": 2331346,
+    "phase_1_postgres_final_max_id": 2331419,
+    "postgres_max_id_at_reappearance": 2332589,
+    "postgres_first_recovery_max_id": 2332595,
+    "postgres_final_observed_max_id": 2332624,
+    "final_newest_age": "~18-21 seconds",
+    "mqtt_connected": true,
+    "fresh_last_sample_and_publish": true,
+    "classification": "same running Device Agent recovered real telemetry after CP2104 disconnect and ttyUSB re-enumeration"
   },
   "implementation": {
     "compose_hotplug_path": "read-only /host/dev plus exact stable by-id path and bounded c 188:* rwm rule",
     "serial_recovery": "catch OSError and termios.error, invalidate cached handle, preserve original exception and reopen only on next normal scheduler attempt",
-    "termios_regression_test": "added with real termios.error exception class",
     "scheduler_changes": 0,
     "polling_cadence_changes": 0,
     "dependency_changes": 0,
     "database_changes": 0,
     "privileged_container": false
   },
-  "verification": {
-    "previous_compose_only_ci": "GREEN on aec3cb10ea33395e8ac7472dfac433976f18cc96",
-    "first_hotplug": "FAIL after Compose path recovery; telemetry did not resume",
-    "current_exact_head_ci": "required on the branch head containing this checkpoint",
-    "second_hardware_acceptance": "pending only after exact-head GREEN"
-  },
   "blocked_work": {
-    "issue_374": "reopened regression parent; blocked by 378",
-    "issue_368": "software GREEN on 36ccb909ca3754cc395468382bed2da93743ee24; physical migration-v2 blocked by 378"
+    "issue_374": "regression physically resolved by 378; close after 378 merge and post-merge reconciliation",
+    "issue_368": "software GREEN on 36ccb909ca3754cc395468382bed2da93743ee24; physical migration-v2 blocked only until 378 merge/reconciliation"
   },
   "hardware_safety": {
     "modbus_write": "none",
@@ -61,5 +63,5 @@
     "production_site_cutover": "none"
   },
   "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Freeze branch content, require exact-head GREEN, then install that exact candidate once on Raspberry Pi and repeat same-container CP2104 unplug/replug acceptance."
+  "next_action": "Freeze branch content after this checkpoint, require exact-head GREEN, perform final focused review/base audit, mark PR 380 Ready and merge. Then reconcile main, close 378 and 374, and resume 368 physical acceptance."
 }
