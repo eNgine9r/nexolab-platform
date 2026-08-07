@@ -4,37 +4,26 @@ Updated: 2026-08-07
 
 ## Issue #374 — resolved
 
-Issue #374 / PR #375 is complete.
+Issue #374 / PR #375 is completed, software verified and Raspberry Pi serial recovery hardware verified. Post-merge state reconciliation is also merged into `main`.
 
-Final merge:
+The observed poisoned cached serial-session failure is no longer an active blocker for Issue #368.
+
+## Issue #368 — reconciled, exact-head CI pending
+
+Issue #368 remains open `status:in-progress` and PR #373 remains Draft until physical acceptance completes.
+
+The previous software head `cb082621f8b5e4cedf44534f3b5256fb2817d55a` passed 26 checks, but it predated Issue #374 and its post-merge state reconciliation.
+
+PR #373 is now reconciled with current main through non-force two-parent merge commit:
 
 ```text
-verified final head: 956df254a904c49e6a265101ab2fe0f959e3fbf3
-squash merge: 442cd6bc37aefc11977f82f31423d052fe70ced1
-final CI: 14 completed, 0 failures, 0 in-progress
+ad3923ace7aa8ae6bfe29548916d594171a5e50b
+reconciled main: 1c10f86a57dbeea9b2d410888d57d8b19a2288ab
 ```
 
-Controlled Raspberry Pi serial-session recovery passed:
+No conflict was resolved by dropping production work: the merge retains #368 telemetry code and inherits current-main Device Agent recovery/canonical state.
 
-```text
-PostgreSQL max(id): 2327052 -> 2327095 in first 10 seconds
-newest telemetry age: 00:00:19.499133
-Device Agent status: ok
-mqtt_connected: true
-last_error: null
-degraded_endpoints: 0
-cooldown_endpoints: 0
-active_bus_workers: 1
-communication_failures_total: 0
-cooldown_entered_total: 0
-recent EIO/ERROR/WARNING/Traceback matches: 0
-```
-
-The poisoned cached serial-session runtime blocker is no longer active. This evidence does not claim that every future physical USB/TTY EIO cause is eliminated; it proves the Device Agent recovered correctly from the observed failure mode.
-
-## Issue #368 — no longer blocked by acquisition freshness
-
-Issue #368 remains open `status:in-progress`. PR #373 latest-projection software was previously verified on `cb082621f8b5e4cedf44534f3b5256fb2817d55a` with 26 completed checks, zero failures and zero in-progress checks.
+Fresh exact-head CI is required before the reconciled branch becomes a valid Raspberry Pi candidate.
 
 The previous Raspberry Pi migration-v2 attempt was rejected by its freshness precondition because #374 had already stopped telemetry. Automatic rollback preserved:
 
@@ -45,15 +34,20 @@ history: preserved
 named volumes: preserved
 ```
 
-Acquisition freshness is now hardware verified. No product/runtime blocker prevents resuming #368.
+No product/runtime blocker currently prevents #368 physical acceptance after fresh CI passes.
 
-Required sequencing before physical acceptance:
+## #368 physical acceptance requirements
 
-1. reconcile PR #373 branch with current `main` (`442cd6bc37aefc11977f82f31423d052fe70ced1`);
-2. obtain fresh exact-head GREEN CI;
-3. rerun the controlled Raspberry Pi migration-v2/latest-query acceptance against the long-running database.
-
-Do not accept the old pre-#374 PR head as a post-merge candidate without this reconciliation.
+- verify acquisition freshness before migration;
+- fresh PostgreSQL backup/evidence before candidate migration;
+- prove long initial backfill does not hold a long-lived exclusive ingestion lock;
+- measure total migration duration and bounded final lock/catch-up phase;
+- preserve all history and named volumes;
+- verify projection cardinality against canonical history series;
+- verify startup deployment-gap reconciliation;
+- measure `/api/v1/telemetry/latest?limit=1&offset=0` and normal latest reads: all HTTP 200, normal-load p95 `<500 ms`;
+- capture query-plan evidence that normal latest reads use `telemetry_latest` rather than full history;
+- central smoke must pass without timeout/retry-budget increases.
 
 ## Sequencing blockers
 
