@@ -216,7 +216,8 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
             "/api/v1/auth/local/login",
             json={"username": "engineer.one", "password": ENGINEER_PASSWORD},
         )
-        assert denied_login.status_code == 403
+        assert denied_login.status_code == 401
+        assert denied_login.json()["detail"]["code"] == "invalid_local_credentials"
 
         reactivated_response = fixture.client.patch(
             f"/api/v1/admin/users/{created['id']}",
