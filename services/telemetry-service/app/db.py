@@ -17,6 +17,7 @@ from sqlalchemy import (
     create_engine,
     delete,
     func,
+    or_,
     select,
     text,
     update,
@@ -66,6 +67,39 @@ class TelemetrySample(Base):
     )
 
 
+class TelemetryLatest(Base):
+    """Bounded durable projection containing one row per canonical telemetry series."""
+
+    __tablename__ = "telemetry_latest"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    sample_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    metric: Mapped[str] = mapped_column(String(128), nullable=False)
+    value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    quality: Mapped[str] = mapped_column(String(32), nullable=False)
+    source: Mapped[str] = mapped_column(String(128), nullable=False)
+    equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    channel_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    alarm: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    raw_value: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    raw_status: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    stale_after_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    @property
+    def raw_payload(self) -> dict[str, Any]:
+        """Expose only delivery metadata needed by the existing projection contract."""
+        if self.stale_after_seconds is None:
+            return {}
+        return {"stale_after_seconds": self.stale_after_seconds}
+
+
 class DeadLetterEvent(Base):
     __tablename__ = "telemetry_dead_letters"
 
@@ -110,6 +144,26 @@ Index(
     TelemetrySample.event_id,
 )
 Index(
+    "uq_telemetry_latest_series",
+    TelemetryLatest.node_id,
+    TelemetryLatest.equipment_id,
+    TelemetryLatest.channel_id,
+    TelemetryLatest.metric,
+    unique=True,
+)
+Index(
+    "ix_telemetry_latest_order",
+    TelemetryLatest.captured_at,
+    TelemetryLatest.event_id,
+)
+Index(
+    "ix_telemetry_latest_filters",
+    TelemetryLatest.quality,
+    TelemetryLatest.alarm,
+    TelemetryLatest.captured_at,
+    TelemetryLatest.event_id,
+)
+Index(
     "ix_dead_letter_reason_received",
     DeadLetterEvent.reason_code,
     DeadLetterEvent.received_at,
@@ -138,6 +192,14 @@ class RetentionResult:
     telemetry_deleted: int = 0
     raw_payloads_redacted: int = 0
     dead_letters_deleted: int = 0
+
+
+def _stale_after_seconds(raw_payload: dict[str, Any]) -> float | None:
+    value = raw_payload.get("stale_after_seconds")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    resolved = float(value)
+    return resolved if resolved > 0 else None
 
 
 class Database:
@@ -178,6 +240,98 @@ class Database:
         except Exception:
             return False
 
+    @staticmethod
+    def _latest_values(
+        *,
+        values: dict[str, Any],
+        sample_id: int,
+        received_at: datetime,
+        raw_payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "sample_id": sample_id,
+            "event_id": values["event_id"],
+            "node_id": values["node_id"],
+            "captured_at": values["captured_at"],
+            "metric": values["metric"],
+            "value": values["value"],
+            "unit": values["unit"],
+            "quality": values["quality"],
+            "source": values["source"],
+            "equipment_id": values["equipment_id"],
+            "channel_id": values["channel_id"],
+            "alarm": values["alarm"],
+            "raw_value": values["raw_value"],
+            "raw_status": values["raw_status"],
+            "stale_after_seconds": _stale_after_seconds(raw_payload),
+            "received_at": received_at,
+        }
+
+    @staticmethod
+    def _upsert_latest(
+        connection: Any,
+        *,
+        dialect: str,
+        values: dict[str, Any],
+    ) -> None:
+        table = TelemetryLatest.__table__
+        series_columns = ["node_id", "equipment_id", "channel_id", "metric"]
+        update_columns = {
+            key: value
+            for key, value in values.items()
+            if key not in {"node_id", "equipment_id", "channel_id", "metric"}
+        }
+
+        if dialect in {"postgresql", "sqlite"}:
+            insert_fn = postgresql_insert if dialect == "postgresql" else sqlite_insert
+            statement = insert_fn(table).values(**values)
+            excluded = statement.excluded
+            newer = or_(
+                excluded.captured_at > table.c.captured_at,
+                (
+                    (excluded.captured_at == table.c.captured_at)
+                    & (excluded.sample_id > table.c.sample_id)
+                ),
+            )
+            statement = statement.on_conflict_do_update(
+                index_elements=series_columns,
+                set_=update_columns,
+                where=newer,
+            )
+            connection.execute(statement)
+            return
+
+        key_filter = (
+            (table.c.node_id == values["node_id"])
+            & (table.c.equipment_id == values["equipment_id"])
+            & (table.c.channel_id == values["channel_id"])
+            & (table.c.metric == values["metric"])
+        )
+        existing = connection.execute(
+            select(table.c.id, table.c.captured_at, table.c.sample_id).where(key_filter)
+        ).first()
+        if existing is None:
+            connection.execute(table.insert().values(**values))
+            return
+
+        existing_captured_at = existing.captured_at
+        incoming_captured_at = values["captured_at"]
+        if existing_captured_at.tzinfo is None and incoming_captured_at.tzinfo is not None:
+            existing_captured_at = existing_captured_at.replace(tzinfo=UTC)
+        if incoming_captured_at.tzinfo is None and existing_captured_at.tzinfo is not None:
+            incoming_captured_at = incoming_captured_at.replace(tzinfo=UTC)
+
+        if (
+            incoming_captured_at > existing_captured_at
+            or (
+                incoming_captured_at == existing_captured_at
+                and values["sample_id"] > existing.sample_id
+            )
+        ):
+            connection.execute(
+                update(table).where(table.c.id == existing.id).values(**update_columns)
+            )
+
     def persist(self, event: TelemetryEvent, raw_payload: dict[str, Any]) -> bool:
         values = {
             "event_id": str(event.event_id),
@@ -210,28 +364,45 @@ class Database:
                     postgresql_insert(table)
                     .values(**values, received_at=func.clock_timestamp())
                     .on_conflict_do_nothing(index_elements=["event_id"])
-                    .returning(table.c.event_id)
+                    .returning(table.c.id, table.c.received_at)
                 )
-                inserted_event_id = connection.execute(statement).scalar_one_or_none()
-                return inserted_event_id is not None
-
-            if dialect == "sqlite":
+                inserted = connection.execute(statement).first()
+            elif dialect == "sqlite":
                 statement = (
                     sqlite_insert(table)
                     .values(**values)
                     .on_conflict_do_nothing(index_elements=["event_id"])
+                    .returning(table.c.id, table.c.received_at)
                 )
-                result = connection.execute(statement)
-                return result.rowcount == 1
+                inserted = connection.execute(statement).first()
+            else:
+                existing = connection.execute(
+                    select(TelemetrySample.id).where(
+                        TelemetrySample.event_id == str(event.event_id)
+                    )
+                ).first()
+                if existing is not None:
+                    return False
+                result = connection.execute(table.insert().values(**values))
+                sample_id = int(result.inserted_primary_key[0])
+                inserted = connection.execute(
+                    select(table.c.id, table.c.received_at).where(table.c.id == sample_id)
+                ).first()
 
-            existing = connection.execute(
-                select(TelemetrySample.id).where(
-                    TelemetrySample.event_id == str(event.event_id)
-                )
-            ).first()
-            if existing is not None:
+            if inserted is None:
                 return False
-            connection.execute(table.insert().values(**values))
+
+            latest_values = self._latest_values(
+                values=values,
+                sample_id=int(inserted.id),
+                received_at=inserted.received_at,
+                raw_payload=raw_payload,
+            )
+            self._upsert_latest(
+                connection,
+                dialect=dialect,
+                values=latest_values,
+            )
             return True
 
     def persist_dead_letter(
@@ -281,39 +452,44 @@ class Database:
             statement = statement.where(*filters)
         return statement
 
+    @staticmethod
+    def _apply_latest_filters(statement: Any, query: TelemetryQuery) -> Any:
+        filters = []
+        if query.node_id is not None:
+            filters.append(TelemetryLatest.node_id == query.node_id)
+        if query.equipment_id is not None:
+            filters.append(TelemetryLatest.equipment_id == query.equipment_id)
+        if query.channel_id is not None:
+            filters.append(TelemetryLatest.channel_id == query.channel_id)
+        if query.metric is not None:
+            filters.append(TelemetryLatest.metric == query.metric)
+        if query.quality is not None:
+            filters.append(TelemetryLatest.quality == query.quality)
+        if query.alarm is not None:
+            filters.append(TelemetryLatest.alarm == query.alarm)
+        if query.from_at is not None:
+            filters.append(TelemetryLatest.captured_at >= query.from_at)
+        if query.to_at is not None:
+            filters.append(TelemetryLatest.captured_at < query.to_at)
+        if query.received_before is not None:
+            filters.append(TelemetryLatest.received_at <= query.received_before)
+        if filters:
+            statement = statement.where(*filters)
+        return statement
+
     def latest_samples(
         self,
         *,
         query: TelemetryQuery,
         limit: int,
         offset: int,
-    ) -> list[TelemetrySample]:
-        rank = func.row_number().over(
-            partition_by=(
-                TelemetrySample.node_id,
-                TelemetrySample.equipment_id,
-                TelemetrySample.channel_id,
-                TelemetrySample.metric,
-            ),
-            order_by=(
-                TelemetrySample.captured_at.desc(),
-                TelemetrySample.id.desc(),
-            ),
-        ).label("sample_rank")
-        ranked_statement = select(
-            TelemetrySample.id.label("sample_id"),
-            rank,
-        )
-        ranked_statement = self._apply_filters(ranked_statement, query)
-        ranked = ranked_statement.subquery()
-
+    ) -> list[TelemetryLatest]:
+        statement = select(TelemetryLatest)
+        statement = self._apply_latest_filters(statement, query)
         statement = (
-            select(TelemetrySample)
-            .join(ranked, TelemetrySample.id == ranked.c.sample_id)
-            .where(ranked.c.sample_rank == 1)
-            .order_by(
-                TelemetrySample.captured_at.desc(),
-                TelemetrySample.event_id.desc(),
+            statement.order_by(
+                TelemetryLatest.captured_at.desc(),
+                TelemetryLatest.event_id.desc(),
             )
             .limit(limit)
             .offset(offset)
@@ -465,6 +641,13 @@ class Database:
         with self._sessions() as session:
             return int(
                 session.scalar(select(func.count()).select_from(TelemetrySample))
+                or 0
+            )
+
+    def count_latest_samples(self) -> int:
+        with self._sessions() as session:
+            return int(
+                session.scalar(select(func.count()).select_from(TelemetryLatest))
                 or 0
             )
 
