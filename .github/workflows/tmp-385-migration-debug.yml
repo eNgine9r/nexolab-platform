@@ -1,0 +1,24 @@
+name: Temporary Issue 385 migration debug
+
+on:
+  push:
+    branches:
+      - feat/385-local-user-permissions
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/385-local-user-permissions
+      - name: Run local auth migration acceptance with command trace
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cp scripts/run-local-auth-migration-acceptance.sh /tmp/migration-debug.sh
+          sed -i 's# >/dev/null##g; s#>/dev/null##g; s#set -Eeuo pipefail#set -Eeuxo pipefail#' /tmp/migration-debug.sh
+          ROOT_DIR="$PWD" bash /tmp/migration-debug.sh
