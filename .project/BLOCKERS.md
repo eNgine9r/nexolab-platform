@@ -63,15 +63,38 @@ software verified; Raspberry Pi latest-query acceptance pending
 
 The physical retest is the only remaining Issue #368 acceptance blocker after final state-head CI/review audit.
 
-## Issue #366 — blocked by #368
+## Issue #369 — next focused Work Package after #368
 
-Issue #366 — **Audit and deduplicate monitoring-route read models** — is `status:blocked` until #368 is accepted.
+Issue #369 — **Raspberry Pi browser acceptance for canonical Live Dashboard inventory** — is `status:ready`, priority critical, and must run immediately after #368 acceptance.
+
+The same controlled Raspberry Pi evidence that exposed #368 also showed:
+
+- canonical inventory backend: healthy, 162 items in ~50 ms;
+- actual operator browser: inventory remained empty/unusable and dashboard creation could not be completed.
+
+This is a separate browser/runtime acceptance gap. #369 owns exact browser/API capture, TypeScript runtime parser/contract validation, rendering/select/reorder/save acceptance, and a regression proving inventory loading makes zero generic `/telemetry/latest` calls.
+
+Do not mix #369 into #368. The generic latest database fix and actual-Pi Live Dashboard browser flow remain separate focused Work Packages.
+
+## Issue #366 — blocked by #368 and sequenced after #369
+
+Issue #366 — **Audit and deduplicate monitoring-route read models** — remains `status:blocked`.
 
 Reason:
 
 - #366 must optimize route-local non-telemetry read ownership and request deduplication against a correct bounded latest telemetry contract;
-- it must not introduce longer TTLs/timeouts or another telemetry cache to conceal the >20-second backend latest query;
-- after #368 acceptance/merge, #366 becomes the next focused product-visible Work Package.
+- the actual-Pi Live Dashboard inventory browser gap is already isolated in #369 and should be accepted first;
+- #366 must not introduce longer TTLs/timeouts or another telemetry cache to conceal the >20-second backend latest query.
+
+Canonical sequence:
+
+```text
+#368 → #369 → #366 → #289
+```
+
+## Issue #370 — superseded state-only package
+
+Issue #370 was created only to reconcile the same Raspberry Pi negative-acceptance evidence into `.project` files. PR #373 now performs that authoritative reconciliation as part of the active Work Package checkpoint. #370 has therefore been closed `not_planned` to avoid a duplicate state-only branch/PR.
 
 ## Issue #245 — validation track, not software Ready
 
@@ -89,7 +112,7 @@ Do not create a second software implementation branch for #245.
 
 Issue #289 remains `status:needs-validation`, priority critical.
 
-Its final acquisition, route-latency and request-count matrix should run after #368, #366 and the remaining Epic #356 navigation optimization slice so measurements target the completed performance architecture.
+Its final acquisition, route-latency and request-count matrix should run after #368, #369, #366 and the remaining Epic #356 navigation optimization slice so measurements target the completed performance architecture.
 
 This sequencing does not authorize any Modbus/hardware write or change the physical polling envelope.
 
@@ -105,13 +128,14 @@ Open unselected dependency PRs: #340, #341 and #346.
 
 PR #347 remains obsolete because Playwright 1.62 already merged through Issue #254 / PR #352.
 
-These dependency PRs must not interrupt #368 → #366 unless a separate dependency Work Package is selected later.
+These dependency PRs must not interrupt #368 → #369 → #366 unless a separate dependency Work Package is selected later.
 
 ## Remaining physical acceptance
 
 - Issue #368: software GREEN; Raspberry Pi latest-query acceptance pending on existing long-running DB.
-- Issue #355: software verified; Raspberry Pi runtime latency acceptance pending.
-- Issue #357: software completed; Raspberry Pi perceived-latency acceptance pending.
+- Issue #369: software evidence exists for canonical inventory; actual Raspberry Pi browser render/select/save acceptance pending.
+- Issue #355: software fix exists; issue reopened after negative Raspberry Pi acceptance; residual browser gap is owned by #369.
+- Issue #357: software fix exists; issue reopened after negative Raspberry Pi acceptance; perceived-latency evidence remains pending.
 - Issue #245: actual standalone Raspberry Pi acceptance blocked on recorded actual-host runtime health.
 - Issue #289: hardware performance acceptance pending.
 - Issues #189, #200, #201 and #202 remain hardware-dependent according to their existing evidence boundaries.
