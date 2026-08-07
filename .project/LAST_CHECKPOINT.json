@@ -3,52 +3,60 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "POST-357-READY-AUDIT",
-  "status": "completed",
-  "timestamp": "2026-08-07T09:34:13+03:00",
-  "branch": "chore/post-357-ready-audit",
-  "audited_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
-  "last_completed_issue": 357,
-  "selected_next_issue": 366,
-  "audit": {
-    "open_status_ready_before_reconciliation": [245],
-    "issue_245_software_pr": 246,
-    "issue_245_software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
-    "issue_245_stale_ready_label_corrected": true,
-    "issue_245_new_status": "needs_validation",
-    "issue_245_latest_hardware_state": "actual standalone Raspberry Pi acceptance blocked on actual-host runtime health",
-    "issue_289_status": "needs_validation",
-    "issue_289_declared_dependencies": [283, 284, 285, 286, 287, 314, 288],
-    "issue_289_declared_dependencies_completed": true,
-    "issue_289_sequence_note": "final route-latency/request-count acceptance follows the remaining Epic #356 read-model and prefetch slices",
-    "issue_257_status": "blocked",
-    "issue_256_status": "deferred",
-    "open_unselected_dependency_prs": [340, 341, 346],
-    "obsolete_prs": [347],
-    "new_ready_issue": 366,
-    "open_status_ready_after_reconciliation": [366]
+  "task": "ISSUE-374-RS485-SERIAL-EIO-RECOVERY",
+  "status": "implementation_complete_final_state_ci_pending",
+  "timestamp": "2026-08-07T13:18:00+03:00",
+  "branch": "bug/374-rs485-serial-eio-recovery",
+  "base_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
+  "issue": 374,
+  "pull_request": 375,
+  "initial_implementation_head_sha": "2ca37ae0cb987d16322687def1ae5b57c0da8e73",
+  "trigger": {
+    "discovered_during_issue": 368,
+    "raspberry_pi_observation": "telemetry stopped while central services and MQTT remained healthy",
+    "device_agent_status": "degraded",
+    "serial_error": "termios.error: (5, 'Input/output error') at reset_input_buffer",
+    "last_sample_at": "2026-08-07T09:53:34.660958+00:00",
+    "postgres_history_max_id": 2327052,
+    "issue_368_guard_result": "migration-v2 aborted before meaningful acceptance because newest telemetry age exceeded 120 seconds",
+    "issue_368_rollback_schema": "20260805_0022"
   },
-  "selected_work_package": {
-    "issue": 366,
-    "title": "Audit and deduplicate monitoring-route read models",
-    "priority": "critical",
-    "status": "ready",
-    "assignee": "eNgine9r",
-    "parent_epic": 356,
-    "depends_on": [314, 355, 357],
-    "product_outcome": "Reuse known monitoring-route read models across remounts, deduplicate equivalent non-telemetry reads, retain valid scoped state during background reconciliation, and prove normal navigation cannot create Device Agent control activity or change physical polling."
+  "root_cause": {
+    "component": "services/device-agent/modbus_rtu.py",
+    "finding": "ModbusRTUClient cached a serial descriptor after OSError/EIO, so later scheduled targets reused the poisoned descriptor and cascaded into cooldown",
+    "scheduler_change_required": false
   },
-  "safety_audit": {
-    "runtime_code_changes": 0,
-    "dependency_changes": 0,
-    "database_migrations": 0,
-    "acquisition_scheduler_changes": 0,
-    "registry_eligibility_changes": 0,
-    "physical_polling_changes": 0,
+  "scope_completed": [
+    "invalidate cached serial descriptor after OSError/EIO",
+    "best-effort close without masking original transport exception",
+    "no immediate reopen/retry loop for EIO",
+    "next normal scheduler call reopens existing configured stable path/settings",
+    "regression test for EIO before transmission, reopen and success",
+    "regression test for post-transmission io_error and close failure preservation"
+  ],
+  "checks_actually_run": {
+    "device_agent_compile": "green",
+    "device_agent_tests": "green",
+    "repository_formatting": "green",
+    "lint": "green",
+    "typecheck": "green",
+    "repository_tests": "green",
+    "production_build": "green",
+    "device_agent_image_build": "green",
+    "device_agent_supply_chain": "green",
+    "final_state_head_ci": "required after checkpoint commit"
+  },
+  "hardware_evidence": {
+    "software_fix_on_raspberry_pi": "not yet deployed",
+    "serial_recovery": "unverified",
     "modbus_write": "none",
-    "hardware_actions": "none",
-    "destructive_data_operations": "none",
-    "production_cutover": "none"
+    "hardware_write": "none"
   },
-  "next_action": "Merge the four-file state-only Ready-audit checkpoint after GREEN CI, then start Issue #366 from the resulting main in one focused feature branch. Begin with repository/browser read-model ownership evidence before implementing cache or deduplication corrections."
+  "blocked_work": {
+    "issue_368": "physical migration-v2/latest-query acceptance waits for fresh acquisition after #374",
+    "issue_369": "waits for #368",
+    "issue_366": "waits for #368/#369 runtime sequence",
+    "issue_289": "downstream final validation"
+  },
+  "next_action": "Run final exact-head CI after this state checkpoint. If GREEN and review/base audit is clean, merge PR #375 as the focused software recovery while leaving Issue #374 open for Raspberry Pi evidence. Then rebuild/recreate only Device Agent with existing hardware mapping, prove telemetry freshness and close #374 before resuming #368 migration-v2 acceptance."
 }
