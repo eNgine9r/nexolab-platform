@@ -175,3 +175,27 @@ def test_latest_hot_path_reads_projection_without_history_window_scan(
     assert all("row_number" not in statement for statement in latest_selects)
     assert all("telemetry_samples" not in statement for statement in latest_selects)
     database.dispose()
+
+
+def test_postgres_backfill_defers_exclusive_lock_until_bounded_catchup() -> None:
+    migration_path = (
+        Path(__file__).parents[1]
+        / "migrations"
+        / "versions"
+        / "20260807_0023_add_telemetry_latest_projection.py"
+    )
+    source = migration_path.read_text(encoding="utf-8")
+    postgres_start = source.index("def _upgrade_postgresql()")
+    sqlite_start = source.index("def _upgrade_sqlite()")
+    postgres_source = source[postgres_start:sqlite_start]
+
+    assert "row_number() OVER" not in postgres_source
+    assert "CREATE TEMPORARY TABLE telemetry_latest_backfill_watermark" in postgres_source
+    assert "CROSS JOIN LATERAL" in postgres_source
+    assert "ON CONFLICT (node_id, equipment_id, channel_id, metric)" in source
+
+    bulk_backfill = postgres_source.index("CROSS JOIN LATERAL")
+    exclusive_lock = postgres_source.index("SELECT pg_advisory_xact_lock")
+    bounded_catchup = postgres_source.index("candidate.id >")
+
+    assert bulk_backfill < exclusive_lock < bounded_catchup
