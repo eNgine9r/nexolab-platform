@@ -1,8 +1,5 @@
 export type SecurityProductRole =
-  | "administrator"
-  | "laboratory_manager"
-  | "engineer"
-  | "laboratory_technician";
+  "administrator" | "laboratory_manager" | "engineer" | "laboratory_technician";
 
 export type SecurityLegacyRole = "operator" | "viewer" | "auditor";
 

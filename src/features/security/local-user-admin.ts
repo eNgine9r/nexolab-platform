@@ -1,7 +1,4 @@
-import type {
-  SecurityEffectivePermission,
-  SecurityProductRole,
-} from "@/features/security/security-session";
+import type { SecurityEffectivePermission, SecurityProductRole } from "@/features/security/security-session";
 
 export type LocalUserAdminUser = {
   id: string;
@@ -127,10 +124,7 @@ export class LocalUserAdminClient {
     return parseUser(payload);
   }
 
-  async updateUser(
-    userId: string,
-    input: LocalUserUpdateInput,
-  ): Promise<LocalUserAdminUser> {
+  async updateUser(userId: string, input: LocalUserUpdateInput): Promise<LocalUserAdminUser> {
     const payload = await this.request(`/api/v1/admin/users/${encodeURIComponent(userId)}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -147,21 +141,14 @@ export class LocalUserAdminClient {
     permissions: SecurityEffectivePermission[],
     reason?: string | null,
   ): Promise<LocalUserAdminUser> {
-    const payload = await this.request(
-      `/api/v1/admin/users/${encodeURIComponent(userId)}/permissions`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ permissions, reason: reason ?? null }),
-      },
-    );
+    const payload = await this.request(`/api/v1/admin/users/${encodeURIComponent(userId)}/permissions`, {
+      method: "PUT",
+      body: JSON.stringify({ permissions, reason: reason ?? null }),
+    });
     return parseUser(payload);
   }
 
-  async resetPassword(
-    userId: string,
-    password: string,
-    reason?: string | null,
-  ): Promise<void> {
+  async resetPassword(userId: string, password: string, reason?: string | null): Promise<void> {
     await this.request(`/api/v1/admin/users/${encodeURIComponent(userId)}/reset-password`, {
       method: "POST",
       body: JSON.stringify({ password, reason: reason ?? null }),
@@ -169,13 +156,10 @@ export class LocalUserAdminClient {
   }
 
   async revokeSessions(userId: string, reason?: string | null): Promise<number> {
-    const payload = await this.request(
-      `/api/v1/admin/users/${encodeURIComponent(userId)}/revoke-sessions`,
-      {
-        method: "POST",
-        body: JSON.stringify({ reason: reason ?? null }),
-      },
-    );
+    const payload = await this.request(`/api/v1/admin/users/${encodeURIComponent(userId)}/revoke-sessions`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason ?? null }),
+    });
     const record = asRecord(payload);
     const count = record?.revoked_session_count;
     if (typeof count !== "number") throw invalidResponse();
@@ -221,7 +205,7 @@ function parseUser(value: unknown): LocalUserAdminUser {
     !id ||
     !identityId ||
     !username ||
-    row.is_active !== true && row.is_active !== false ||
+    (row.is_active !== true && row.is_active !== false) ||
     !legacyRoles ||
     !grantedPermissions ||
     !effectivePermissions ||
@@ -267,9 +251,7 @@ function readPermission(value: unknown): SecurityEffectivePermission | null {
 function readPermissionArray(value: unknown): SecurityEffectivePermission[] | null {
   if (!Array.isArray(value)) return null;
   const permissions = value.map(readPermission);
-  return permissions.some((item) => item === null)
-    ? null
-    : (permissions as SecurityEffectivePermission[]);
+  return permissions.some((item) => item === null) ? null : (permissions as SecurityEffectivePermission[]);
 }
 
 function readStringArray(value: unknown): string[] | null {
