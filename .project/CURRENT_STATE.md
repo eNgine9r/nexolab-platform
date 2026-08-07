@@ -1,92 +1,75 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-06
-Verified product baseline: `a3c7ced8d499d02d4f77ff14e2260499c58fb472`
-Completed Work Package: Issue #255 / PR #362 — TypeScript 6 transition compiler
-Verified implementation head: `945e04a464d7229d76bdd80abb396d5b1d6c5991`
-Active Work Package: Issue #357 — immediate refrigeration image/layout/marker hydration
+Updated: 2026-08-07
+Verified product baseline on `main`: `a47f0674c8d6dadae2f6858b093006deb183d19c`
+Active completion Work Package: Issue #357 / PR #364 — immediate refrigeration structural snapshot hydration
+Verified implementation head: `145bf02210393269622d0422aeba3bcba8b7f361`
 Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
 Parallel hardware/runtime track: Issue #282
 
-## Issue #255 completed
+## Issue #357 software completion
 
-Issue #255 / PR #362 merged into `main` as `a3c7ced8d499d02d4f77ff14e2260499c58fb472`.
+PR #364 implements the completion slice after PR #363:
 
-Completed scope:
-
-- TypeScript resolves from `5.9.3` to `6.0.3`;
-- root `devDependencies.typescript` changes from `^5` to `^6.0.3`;
-- deterministic lockfile movement is limited to the root package entry and `node_modules/typescript`;
-- `tsconfig.json` is unchanged;
-- application source, tests, Playwright configs and Vitest config are unchanged;
-- `strict`, `noEmit`, `isolatedModules`, `module: esnext`, `moduleResolution: bundler` and explicit `target: ES2017` remain unchanged;
-- no `ignoreDeprecations`, broad `types` list, `any` baseline, mass `ts-expect-error` or weakened compiler boundary was added;
-- TypeScript 7, ESLint 10, React, Next.js and unrelated refactoring remained outside scope.
-
-## Diagnostic evidence
-
-Diagnostic workflow `31099428290` compared the same repository state:
-
-| Check                    | TypeScript 5.9.3 | TypeScript 6.0.3 |
-| ------------------------ | ---------------: | ---------------: |
-| `tsc --noEmit` exit code |              `0` |              `0` |
-| New diagnostics          |                — |              `0` |
-
-Diagnostic artifact SHA-256:
-
-```text
-2a8c38909db85d4844613ea6d7c24039bd42c4aea8e9363a781fd3ed83eb098f
-```
-
-Migration workflow `31100010365` verified deterministic lockfile scope, compiler invariants, all root Playwright configs, all `e2e/*.ts`, `vitest.config.ts`, ESLint, 67 Vitest files / 300 tests, lint-staged integration, Playwright package loading and Next.js production build. Migration artifact SHA-256:
-
-```text
-b4db5cc6b3abcaa9df721a95dc95b809f186d1b0a9cc7a23be30033717f096b7
-```
-
-Permanent evidence is recorded in `docs/maintenance/typescript-6-migration.md`.
+- one organization/equipment-scoped read-only structural snapshot;
+- equipment identity, active image metadata, layout draft/revision, placements, active bindings and canonical channels in one composition path;
+- configured channels without current telemetry remain visible with explicit `unknown`/`stale` state;
+- bounded organization-scoped stale-while-revalidate cache with concurrent request deduplication and equipment-targeted invalidation;
+- retained valid image/layout/markers during background reconciliation and route transitions;
+- structural rendering no longer depends on telemetry-history latency;
+- refrigeration route and detail reconciliation loops that repeatedly remounted authorization/layout state were removed;
+- production browser readiness uses concrete UI assertions rather than global `networkidle`;
+- canonical climate-chamber catalog resolution supports restored equipment without a direct `node_id`;
+- no database migration, dependency upgrade, acquisition scheduler change, Device Agent configuration change, Modbus write, hardware write or site cutover occurred.
 
 ## Exact-head verification
 
-Final head `945e04a464d7229d76bdd80abb396d5b1d6c5991` was GREEN for all 11 triggered workflows:
+Implementation head `145bf02210393269622d0422aeba3bcba8b7f361` is GREEN for all triggered workflows:
 
 - CI;
-- Authenticated Dashboard Acceptance;
 - Refrigeration Browser Acceptance;
+- Security Browser Acceptance;
+- Authenticated Dashboard Acceptance;
+- Offline Auth Acceptance;
+- Offline Bundle;
+- Telemetry service;
+- Disaster Recovery Browser;
+- Disaster Recovery Domain Completeness;
+- Disaster Recovery TLS Fleet;
+- Container Supply Chain;
+- Device Agent Fleet Acceptance;
+- MQTT TLS Fleet Acceptance;
+- Broker Control Acceptance;
+- Capacity Release Gate;
+- Nodes Browser Acceptance;
 - Alerts Browser Acceptance;
 - Reports Browser Acceptance;
-- Rendered Reports Browser Acceptance;
-- Nodes Browser Acceptance;
-- Test Sessions Browser Acceptance;
-- Security Browser Acceptance;
-- Offline Auth Acceptance;
-- Offline Bundle.
+- Rendered Reports Browser Acceptance.
 
-Offline Bundle proved clean transferred-host simulation, blocked egress, disconnected startup and update/rollback persistent-data preservation. TypeScript remains development-only and does not change the production runtime closure.
+CI includes repository formatting, ESLint, strict TypeScript, Vitest and production build. Review-thread audit reports zero unresolved threads.
 
-## Active Work Package: Issue #357
+## Completion classification
 
-Issue #357 is open, assigned to `eNgine9r`, labeled `priority:critical` and `status:in-progress`.
+Software acceptance is complete. Real Raspberry Pi perceived-latency acceptance remains a separate physical evidence requirement:
 
-Required product outcome:
+```text
+software verified; Raspberry Pi perceived-latency acceptance pending
+```
 
-- hydrate refrigeration image, saved layout and sensor placements as one coherent structural snapshot;
-- keep the previous valid snapshot visible during background reconciliation;
-- render configured no-sample channels with explicit unknown/stale state;
-- deduplicate equipment-scoped reads and retain a bounded organization-scoped cache;
-- separate structural rendering from latest telemetry latency;
-- prove cold and warm route performance and repeated route-cycle request counts;
-- preserve editing, image lifecycle, binding lifecycle, optimistic concurrency and physical polling boundaries;
-- classify completion as `software verified; Raspberry Pi perceived-latency acceptance pending` until real Pi evidence exists.
+This pending physical acceptance does not authorize a hardware-complete claim and does not permit Modbus writes, hardware writes or production/site cutover.
+
+## Merge state
+
+PR #364 is mergeable and ready for final state-only exact-head verification after this reconciliation commit. Merge is permitted only after the reconciliation head is GREEN and the final diff/review audit remains clean.
 
 ## Ordered queue
 
-1. **Issue #357 — active, priority critical:** refrigeration structural snapshot and warm hydration.
+1. **Issue #357 — software complete, merge pending:** finalize state reconciliation, GREEN exact-head audit, Ready transition and squash merge PR #364.
 2. **Issue #245 — Ready parallel runtime track:** standalone offline Raspberry Pi loopback operation; physical acceptance remains required.
 3. **Issue #257 — blocked:** ESLint 10 migration.
 4. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
 
-Open unselected dependency PRs remain #340, #341 and #346. PR #347 remains obsolete.
+The next product-visible Work Package must be selected from current GitHub/Sprint state after #357 merges; do not infer a successor Issue from chat history alone.
 
 ## Security and hardware boundaries
 
@@ -96,4 +79,4 @@ Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance p
 
 ## Next action
 
-Continue Issue #357 from current `main` in one focused feature branch and Pull Request. Do not mix dependency upgrades, visual redesign, acquisition scheduler changes, cloud delivery, destructive data changes, Modbus writes or production/site cutover with the refrigeration hydration fix.
+Run exact-head verification for the state-reconciliation commit, audit PR #364 diff/mergeability/reviews, mark Ready, squash merge, verify `main`, close Issue #357 as software-complete, and retain Raspberry Pi perceived-latency acceptance as explicitly pending physical evidence.
