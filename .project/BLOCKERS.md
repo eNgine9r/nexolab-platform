@@ -2,40 +2,34 @@
 
 Updated: 2026-08-07
 
-## Issue #378 — hardware verified; merge gate only
+## Issue #378 — resolved and merged
 
-Issue #378 / PR #380 passed controlled Raspberry Pi hotplug acceptance on exact pre-state candidate `c2cf1ce4939c77f138daac2841f39651afd4bcba`.
+Issue #378 / PR #380 is completed. Final exact head `5635df201a6cbd59227a8ebe181c44fa5167f67c` completed 14 checks with 0 failures and 0 in-progress, and PR #380 squash-merged into `main` as `6645af46a198ff454142df3b0a713984f4d71196`.
 
-Physical PASS evidence:
+Controlled Raspberry Pi hotplug acceptance passed on the same running Device Agent:
 
 ```text
-candidate container: 9f03df0e798e
-container id before/after: unchanged
+container: 9f03df0e798e
 restart_count: 0 -> 0
-started_at: unchanged
 device_before: /dev/ttyUSB1
 stable by-id path disappeared: yes
 device_after: /dev/ttyUSB0
 stable by-id path reappeared: yes
-PostgreSQL max(id) at reappearance: 2332589
-first recovery max(id): 2332595
-final observed max(id): 2332624
+PostgreSQL max(id): 2332589 -> 2332595 -> 2332624
 newest_age after recovery: ~18-21 s
 ```
 
-Transient `termios.error` / ENOENT warnings occurred during the deliberate physical disconnect while the path was absent. The same running Device Agent recovered automatically after re-enumeration without restart/recreate.
+The RS-485 USB re-enumeration blocker is no longer active.
 
-PR #380 therefore satisfies the hardware behavior boundary. Remaining gate: commit this project-state checkpoint, rerun exact-head CI on the resulting head, complete final diff/review/base audit, then merge only if GREEN.
+## Issue #374 — regression parent resolved
 
-## Issue #374 — regression parent awaiting #378 merge
+Issue #374 / PR #375 remains a valid merged partial fix. Its reopened long-duration USB re-enumeration regression is resolved by merged Issue #378 and physical same-container recovery evidence.
 
-Issue #374 / PR #375 remains the merged partial serial-session invalidation fix. The previously exposed long-duration USB re-enumeration regression is now physically resolved by #378.
+After this state-only reconciliation merges, close #374 as completed regression parent and remove any stale blocked/in-progress label.
 
-Keep #374 reopened only until #378 is merged and post-merge reconciliation confirms the corrected behavior in canonical `main`; then close #374 as completed regression parent. Do not create another implementation PR under #374.
+## Issue #368 — active validation track
 
-## Issue #368 — blocked only by #378 merge/reconciliation
-
-Issue #368 / PR #373 remains software-GREEN on reconciled head:
+Issue #368 / PR #373 remains software-GREEN on the previously reconciled head:
 
 ```text
 36ccb909ca3754cc395468382bed2da93743ee24
@@ -45,7 +39,9 @@ Issue #368 / PR #373 remains software-GREEN on reconciled head:
 0 queued
 ```
 
-Its Raspberry Pi database remains safe:
+It is no longer blocked by acquisition recovery. Before Raspberry Pi migration-v2, PR #373 must be reconciled with current `main` so it inherits merged #378 and canonical project state, then must receive fresh exact-head GREEN CI.
+
+The Raspberry Pi database remains safe:
 
 ```text
 Alembic: 20260805_0022
@@ -55,13 +51,10 @@ named volumes: preserved
 advisory locks: none
 ```
 
-Do not run #368 migration-v2 until #378 is merged into `main` and the post-merge project state confirms acquisition recovery as canonical.
-
 ## Sequencing blockers
 
-- #378: hardware PASS; final exact-head CI and merge pending.
-- #374: waits for #378 merge and post-merge reconciliation, then close.
-- #368: waits for #378 merge/reconciliation only.
+- #381: state-only post-#378 reconciliation; merge on proportional GREEN CI.
+- #368: active immediately after #381; reconcile branch and rerun exact-head CI before physical migration-v2.
 - #369 waits for #368 physical migration/latest-query acceptance.
 - #366 waits for the #368 -> #369 runtime acceptance sequence.
 - #289 remains downstream after #366.
