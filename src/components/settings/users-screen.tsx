@@ -151,9 +151,11 @@ export function UsersScreen() {
   };
 
   useEffect(() => {
-    if (security.state === "ready" && canManageUsers && client) {
+    if (security.state !== "ready" || !canManageUsers || !client) return;
+    const timeoutId = window.setTimeout(() => {
       void refresh();
-    }
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
     // refresh intentionally depends on the resolved security/client boundary only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [security.state, canManageUsers, client]);
@@ -162,11 +164,14 @@ export function UsersScreen() {
 
   useEffect(() => {
     if (!selectedUser) return;
-    setSelectedRole(selectedUser.role ?? "laboratory_technician");
-    setSelectedPermissions(selectedUser.grantedPermissions);
-    setResetPassword("");
-    setNotice(null);
-    setError(null);
+    const timeoutId = window.setTimeout(() => {
+      setSelectedRole(selectedUser.role ?? "laboratory_technician");
+      setSelectedPermissions(selectedUser.grantedPermissions);
+      setResetPassword("");
+      setNotice(null);
+      setError(null);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [selectedUser]);
 
   const filteredUsers = useMemo(() => {
