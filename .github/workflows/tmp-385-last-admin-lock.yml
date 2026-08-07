@@ -25,38 +25,30 @@ jobs:
 
           path = Path("services/telemetry-service/app/security/local_admin_service.py")
           text = path.read_text()
-          old = '''    def _assert_not_last_active_administrator(
-              self,
-              session: Session,
-              *,
-              organization_id: str,
-              account_id: str,
-          ) -> None:
-              if self._active_admin_count(
-          '''
-          new = '''    def _assert_not_last_active_administrator(
-              self,
-              session: Session,
-              *,
-              organization_id: str,
-              account_id: str,
-          ) -> None:
-              organization = session.scalar(
-                  select(SecurityOrganization)
-                  .where(SecurityOrganization.id == organization_id)
-                  .with_for_update()
+          method = text.index("    def _assert_not_last_active_administrator(")
+          needle = "        if self._active_admin_count(\n"
+          insertion = text.index(needle, method)
+          lock = '''        organization = session.scalar(
+              select(SecurityOrganization)
+              .where(SecurityOrganization.id == organization_id)
+              .with_for_update()
+          )
+          if organization is None or not organization.is_active:
+              raise LocalUserNotFoundError(
+                  f"organization {organization_id!r} is not active"
               )
-              if organization is None or not organization.is_active:
-                  raise LocalUserNotFoundError(
-                      f"organization {organization_id!r} is not active"
-                  )
-              if self._active_admin_count(
           '''
-          if old not in text:
-              raise SystemExit("last-administrator invariant pattern not found")
-          path.write_text(text.replace(old, new, 1))
+          if ".with_for_update()" in text[method:insertion]:
+              raise SystemExit("organization lock already present")
+          path.write_text(text[:insertion] + lock + text[insertion:])
           PY
           python -m py_compile services/telemetry-service/app/security/local_admin_service.py
+      - name: Run focused last-administrator tests
+        shell: bash
+        working-directory: services/telemetry-service
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt >/dev/null
+          pytest -q tests/test_local_user_admin.py -k last_active_local_administrator
       - name: Commit security hardening
         shell: bash
         run: |
