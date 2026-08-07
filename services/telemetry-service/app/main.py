@@ -38,6 +38,7 @@ from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmen
 from app.refrigeration.lifecycle_api import create_equipment_lifecycle_router
 from app.refrigeration.lifecycle_repository import PostgresEquipmentLifecycleRepository
 from app.refrigeration.repository import PostgresRefrigerationLayoutRepository
+from app.refrigeration.sensor_configuration_repository import PostgresSensorConfigurationRepository
 from app.refrigeration.storage import S3ObjectStorage, UnavailableObjectStorage
 from app.refrigeration.structural_api import create_refrigeration_structural_router
 from app.reports.api import create_report_router
@@ -91,6 +92,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         database
     )
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
+    sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
     live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
     security_dependencies, local_auth_service = _create_security_runtime(
@@ -230,6 +232,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.refrigeration_repository = refrigeration_repository
     app.state.refrigeration_equipment_repository = refrigeration_equipment_repository
     app.state.equipment_lifecycle_repository = equipment_lifecycle_repository
+    app.state.sensor_configuration_repository = sensor_configuration_repository
     app.state.live_dashboard_repository = live_dashboard_repository
     app.state.node_repository = node_repository
     app.state.node_ingress_authorizer = node_ingress_authorizer
@@ -319,6 +322,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         create_refrigeration_structural_router(
             refrigeration_equipment_repository,
             equipment_lifecycle_repository,
+            sensor_configuration_repository,
             refrigeration_repository,
             object_storage,
             signed_url_seconds=resolved.equipment_image_signed_url_seconds,
