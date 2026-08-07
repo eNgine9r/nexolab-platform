@@ -4,7 +4,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from app.db import Database, TelemetryQuery, TelemetrySample
+from app.db import Database, TelemetryLatest, TelemetryQuery, TelemetrySample
 
 StalenessState = Literal["fresh", "stale", "unknown"]
 Clock = Callable[[], datetime]
@@ -84,7 +84,10 @@ class PersistedTelemetryReadModel:
         self._database = database
         self._projection = PersistedTelemetryProjection(clock=clock)
 
-    def _project_sample(self, sample: TelemetrySample) -> dict[str, Any]:
+    def _project_sample(
+        self,
+        sample: TelemetrySample | TelemetryLatest,
+    ) -> dict[str, Any]:
         payload = dict(sample.raw_payload)
         payload.update(
             {
