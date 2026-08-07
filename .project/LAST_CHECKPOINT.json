@@ -3,52 +3,22 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-374-RS485-SERIAL-EIO-RECOVERY",
-  "status": "hardware_verified_final_evidence_ci_pending",
-  "timestamp": "2026-08-07T13:41:00+03:00",
-  "branch": "bug/374-rs485-serial-eio-recovery",
-  "base_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
-  "issue": 374,
-  "pull_request": 375,
-  "verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
-  "trigger": {
-    "discovered_during_issue": 368,
-    "raspberry_pi_observation": "telemetry stopped while central services and MQTT remained healthy",
-    "serial_error": "termios.error: (5, 'Input/output error') at reset_input_buffer",
-    "postgres_history_max_id_at_diagnosis": 2327052,
-    "issue_368_guard_result": "migration-v2 aborted before meaningful acceptance because newest telemetry age exceeded the freshness guard",
-    "issue_368_rollback_schema": "20260805_0022"
-  },
-  "root_cause": {
-    "component": "services/device-agent/modbus_rtu.py",
-    "finding": "ModbusRTUClient cached a serial descriptor after OSError/EIO, so later scheduled targets reused the poisoned descriptor and cascaded into cooldown",
-    "scheduler_change_required": false
-  },
-  "scope_completed": [
-    "invalidate cached serial descriptor after OSError/EIO",
-    "best-effort close without masking original transport exception",
-    "no immediate reopen/retry loop for EIO",
-    "next normal scheduler call reopens existing configured stable path/settings",
-    "regression test for EIO before transmission, reopen and success",
-    "regression test for post-transmission io_error and close failure preservation",
-    "controlled Raspberry Pi acceptance using exact candidate image"
-  ],
-  "checks_actually_run": {
-    "verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
-    "github_checks_completed": 14,
-    "github_check_failures": 0,
-    "github_checks_in_progress": 0,
-    "device_agent_compile": "green",
-    "device_agent_tests": "green",
-    "repository_formatting": "green",
-    "lint": "green",
-    "typecheck": "green",
-    "repository_tests": "green",
-    "production_build": "green",
-    "device_agent_image_build": "green",
-    "device_agent_supply_chain": "green",
-    "offline_bundle": "green_disconnected_startup_and_update_rollback",
-    "final_evidence_head_ci": "required after this hardware-evidence checkpoint"
+  "task": "POST-374-STATE-RECONCILIATION",
+  "status": "state_only_ci_pending",
+  "timestamp": "2026-08-07T14:08:00+03:00",
+  "branch": "chore/post-374-state-reconciliation",
+  "base_main_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
+  "issue": 376,
+  "pull_request": 377,
+  "last_completed_issue": 374,
+  "completed_work_package": {
+    "issue": 374,
+    "pull_request": 375,
+    "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
+    "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
+    "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
+    "final_ci": "14 completed, 0 failures, 0 in-progress",
+    "completion_classification": "software verified; Raspberry Pi serial recovery hardware verified; merged"
   },
   "hardware_evidence": {
     "acceptance": "passed",
@@ -57,10 +27,6 @@
     "resolved_device": "ttyUSB1",
     "device_agent_status": "ok",
     "mqtt_connected": true,
-    "queue_depth": 0,
-    "samples_total_at_observation": 43,
-    "last_sample_at": "2026-08-07T10:40:08.526303+00:00",
-    "last_publish_at": "2026-08-07T10:40:08.940904+00:00",
     "last_error": null,
     "postgres_max_id_before": 2327052,
     "postgres_max_id_after_first_10_seconds": 2327095,
@@ -72,14 +38,28 @@
     "cooldown_entered_total": 0,
     "recent_eio_error_warning_traceback_matches": 0,
     "modbus_write": "none",
-    "hardware_write": "none",
-    "classification": "software verified; Raspberry Pi serial recovery hardware verified"
+    "hardware_write": "none"
   },
-  "blocked_work": {
-    "issue_368": "ready to resume immediately after #374 merge/closure; migration-v2/latest-query physical acceptance still pending",
-    "issue_369": "waits for #368",
-    "issue_366": "waits for #368/#369 runtime sequence",
-    "issue_289": "downstream final validation"
+  "active_work_package": {
+    "issue": 368,
+    "pull_request": 373,
+    "title": "Make telemetry latest reads independent of history volume",
+    "status": "in_progress_hardware_acceptance_pending",
+    "previous_verified_software_head_sha": "cb082621f8b5e4cedf44534f3b5256fb2817d55a",
+    "previous_software_ci": "26 completed, 0 failures, 0 in-progress",
+    "next_required_step": "reconcile PR #373 branch with current main, rerun exact-head CI, then execute controlled Raspberry Pi migration-v2/latest-query acceptance"
   },
-  "next_action": "Run final exact-head CI after this evidence checkpoint. If GREEN and review/base audit remains clean, mark PR #375 Ready, merge it, close #374 as completed, reconcile main, then resume #368 migration-v2/latest-query acceptance before #369/#366/#289."
+  "state_reconciliation": {
+    "issue": 376,
+    "pull_request": 377,
+    "scope": "four .project files only",
+    "runtime_code_changes": 0,
+    "dependency_changes": 0,
+    "database_changes": 0,
+    "acquisition_changes": 0,
+    "hardware_actions": 0,
+    "ci": "pending on final state-only head"
+  },
+  "downstream_sequence": [368, 369, 366, 289],
+  "next_action": "Run exact-head CI and focused review/base audit for state-only PR #377. If GREEN, merge #377 and close #376. Then reconcile PR #373 with current main and resume #368 controlled Raspberry Pi migration-v2/latest-query acceptance."
 }

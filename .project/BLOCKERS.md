@@ -2,29 +2,21 @@
 
 Updated: 2026-08-07
 
-## Issue #374 — runtime blocker resolved, merge pending
+## Issue #374 — resolved
 
-The controlled Raspberry Pi serial-session recovery acceptance has passed on exact candidate `8543bebad6149ac9c23be75b60d85830e980509e`.
+Issue #374 / PR #375 is complete.
 
-Original blocker:
+Final merge:
 
 ```text
-Device Agent container/process: healthy
-Device Agent status: degraded
-MQTT connected: true
-PostgreSQL/Telemetry Service: healthy
-telemetry last sample/publish: 2026-08-07T09:53:34Z
-PostgreSQL max telemetry id at diagnosis: 2327052
-serial exception: termios.error: (5, 'Input/output error')
-location: reset_input_buffer() before the Modbus request is transmitted
+verified final head: 956df254a904c49e6a265101ab2fe0f959e3fbf3
+squash merge: 442cd6bc37aefc11977f82f31423d052fe70ced1
+final CI: 14 completed, 0 failures, 0 in-progress
 ```
 
-Repository inspection proved `ModbusRTUClient` retained the failed cached serial descriptor after `OSError`. PR #375 fixes that boundary by invalidating/closing the failed handle and allowing the next normal scheduler attempt to reopen the existing configured stable serial path. No scheduler production-code change, polling amplification or Modbus write was introduced.
-
-Controlled Raspberry Pi acceptance after candidate recreate:
+Controlled Raspberry Pi serial-session recovery passed:
 
 ```text
-stable path: /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0 -> ttyUSB1
 PostgreSQL max(id): 2327052 -> 2327095 in first 10 seconds
 newest telemetry age: 00:00:19.499133
 Device Agent status: ok
@@ -38,23 +30,13 @@ cooldown_entered_total: 0
 recent EIO/ERROR/WARNING/Traceback matches: 0
 ```
 
-Classification:
+The poisoned cached serial-session runtime blocker is no longer active. This evidence does not claim that every future physical USB/TTY EIO cause is eliminated; it proves the Device Agent recovered correctly from the observed failure mode.
 
-```text
-software verified;
-Raspberry Pi serial recovery hardware verified;
-final evidence-head CI and merge pending
-```
+## Issue #368 — no longer blocked by acquisition freshness
 
-The runtime blocker is therefore resolved. #374 remains open only until PR #375 receives final exact-head GREEN after the evidence/state checkpoint and is merged.
+Issue #368 remains open `status:in-progress`. PR #373 latest-projection software was previously verified on `cb082621f8b5e4cedf44534f3b5256fb2817d55a` with 26 completed checks, zero failures and zero in-progress checks.
 
-This acceptance proves recovery from the observed poisoned serial-session failure mode. It does not claim that every future physical USB/TTY EIO root cause is eliminated.
-
-## Issue #368 — ready to resume after #374 merge
-
-PR #373 latest-projection software remains verified on `cb082621f8b5e4cedf44534f3b5256fb2817d55a` with 26 completed checks, zero failures and zero in-progress checks.
-
-The prior migration-v2 retry did not fail migration-v2; its precondition monitor rejected stale ingestion caused by the #374 serial EIO defect. Automatic rollback left:
+The previous Raspberry Pi migration-v2 attempt was rejected by its freshness precondition because #374 had already stopped telemetry. Automatic rollback preserved:
 
 ```text
 Alembic: 20260805_0022
@@ -63,12 +45,20 @@ history: preserved
 named volumes: preserved
 ```
 
-Because acquisition freshness is now physically verified, #368 can resume immediately after #374 is merged/closed. Its remaining acceptance must prove migration-v2/latest-query behavior on the existing long-running Raspberry Pi PostgreSQL database.
+Acquisition freshness is now hardware verified. No product/runtime blocker prevents resuming #368.
+
+Required sequencing before physical acceptance:
+
+1. reconcile PR #373 branch with current `main` (`442cd6bc37aefc11977f82f31423d052fe70ced1`);
+2. obtain fresh exact-head GREEN CI;
+3. rerun the controlled Raspberry Pi migration-v2/latest-query acceptance against the long-running database.
+
+Do not accept the old pre-#374 PR head as a post-merge candidate without this reconciliation.
 
 ## Sequencing blockers
 
 - #369 waits for #368 physical migration/latest-query acceptance.
-- #366 waits for the #368 -> #369 runtime acceptance sequence so read-model work is not validated against an incomplete runtime path.
+- #366 waits for the #368 -> #369 runtime acceptance sequence.
 - #289 remains the downstream final acquisition/route-latency/hardware matrix after #366.
 - #245 remains a separate Raspberry Pi validation track.
 - #257 remains blocked by ESLint 10 compatibility.
