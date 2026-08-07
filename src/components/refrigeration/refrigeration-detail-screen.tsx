@@ -188,9 +188,7 @@ export function RefrigerationDetailScreen({
     const lifecycle = runtime.lifecycleRepository;
     const chamberId = equipmentRecord.climateChamberId;
     if (!structural && (!lifecycle || !chamberId)) {
-      if (bindingSensors === null) {
-        setBindingSensors(runtime.mode === "demo" ? null : []);
-      }
+      setBindingSensors((current) => current ?? (runtime.mode === "demo" ? null : []));
       setChannelError(
         runtime.mode === "live" && !chamberId ? "Для обладнання не вибрано кліматичну камеру." : null,
       );
