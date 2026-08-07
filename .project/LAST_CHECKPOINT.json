@@ -18,7 +18,8 @@
     "raspberry_pi_channel_inventory_count": 162,
     "raspberry_pi_latest_limit_1_timeout_seconds": 20.002650,
     "raspberry_pi_latest_http_status": "000",
-    "diagnosis": "generic latest telemetry was re-derived from retained telemetry_samples history with a per-series window ranking before latest pagination"
+    "diagnosis": "generic latest telemetry was re-derived from retained telemetry_samples history with a per-series window ranking before latest pagination",
+    "separate_browser_gap": "canonical Live Dashboard inventory backend was fast but actual Raspberry Pi browser did not render/select/save it; owned by Issue #369"
   },
   "implementation": {
     "latest_projection_table": "telemetry_latest",
@@ -88,10 +89,15 @@
     "completion_classification": "software verified; Raspberry Pi latest-query acceptance pending"
   },
   "downstream": {
-    "blocked_issue": 366,
-    "blocked_issue_status": "blocked",
-    "next_after_issue_368_acceptance": 366,
-    "final_performance_validation_issue": 289
+    "next_after_issue_368_acceptance": 369,
+    "issue_369_status": "ready",
+    "issue_369_outcome": "actual Raspberry Pi browser renders, selects, reorders and saves canonical Live Dashboard inventory without generic telemetry latest inventory calls",
+    "blocked_issue_after_369": 366,
+    "issue_366_status": "blocked",
+    "final_performance_validation_issue": 289,
+    "canonical_sequence": [368, 369, 366, 289],
+    "superseded_state_only_issue": 370,
+    "issue_370_status": "closed_not_planned"
   },
   "safety_audit": {
     "modbus_write": "none",
@@ -102,5 +108,5 @@
     "secret_handling": "none",
     "mandatory_cloud_dependency_added": false
   },
-  "next_action": "Require the final state-reconciliation head of PR #373 to pass exact-head CI and focused review audit. Then perform the controlled Raspberry Pi latest-query acceptance against the existing long-running database. If physical acceptance passes, complete and merge Issue #368 and unblock Issue #366; otherwise keep #368 active and diagnose the measured remaining bottleneck without increasing timeout budgets."
+  "next_action": "Require the final state-reconciliation head of PR #373 to pass exact-head CI and focused review audit. Then perform the controlled Raspberry Pi #368 latest-query acceptance against the existing long-running database. If #368 physical acceptance passes, complete/merge #368 and execute #369 next. After #369 acceptance, unblock #366; keep #289 as the final acquisition/route-latency/hardware matrix. If the #368 physical retest fails, keep #368 active and diagnose the measured remaining bottleneck without increasing timeout budgets."
 }
