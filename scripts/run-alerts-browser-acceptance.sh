@@ -188,6 +188,10 @@ VALUES
 ON CONFLICT (membership_id, role) DO NOTHING;
 SQL
 
+compose exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+  < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+
 MANAGER_A_TOKEN="$(jwt_token "$MANAGER_A_SUBJECT" 'manager-a-alerts@nexolab.local' 'Manager A Alerts')"
 MANAGER_B_TOKEN="$(jwt_token "$MANAGER_B_SUBJECT" 'manager-b-alerts@nexolab.local' 'Manager B Alerts')"
 VIEWER_A_TOKEN="$(jwt_token "$VIEWER_A_SUBJECT" 'viewer-a-alerts@nexolab.local' 'Viewer A Alerts')"
