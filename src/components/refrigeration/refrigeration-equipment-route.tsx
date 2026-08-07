@@ -46,7 +46,6 @@ export function RefrigerationEquipmentRoute({
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        if (!equipment) setEquipment(null);
         setError(reason instanceof Error ? reason.message : "Обладнання не знайдено.");
       })
       .finally(() => {
@@ -55,7 +54,7 @@ export function RefrigerationEquipmentRoute({
     return () => {
       active = false;
     };
-  }, [equipment, equipmentId, runtime.repository, runtime.structuralSnapshotRepository]);
+  }, [equipmentId, runtime.repository, runtime.structuralSnapshotRepository]);
 
   if (equipment) {
     return <RefrigerationDetailScreen equipment={equipment} initialSnapshot={snapshot} />;
