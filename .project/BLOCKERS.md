@@ -2,13 +2,80 @@
 
 Updated: 2026-08-07
 
-## Ready audit result
+## Active critical Work Package — Issue #368
 
-The post-Issue #357 repository audit found one stale control-plane classification and one missing focused Work Package.
+Issue #368 — **Make telemetry latest reads independent of history volume** — is active on PR #373.
 
-### Issue #245 — validation track, not software Ready
+It preempted Issue #366 after controlled Raspberry Pi evidence proved that the generic latest telemetry endpoint remained history-volume-bound on the existing long-running PostgreSQL database:
 
-Issue #245 no longer carries `status:ready` and is now `status:needs-validation`.
+```text
+GET /health/ready
+HTTP 200 in 0.002680 s
+
+GET /api/v1/live-dashboards/channel-inventory
+HTTP 200 in 0.050279 s
+162 canonical channels
+
+GET /api/v1/telemetry/latest?limit=1&offset=0
+client timeout after 20.002650 s
+HTTP 000 / zero response bytes
+```
+
+Repository diagnosis confirmed that `Database.latest_samples` ranked retained telemetry history before applying latest pagination. Caching this response in frontend route models would hide, not fix, the backend defect.
+
+### Software status
+
+Verified implementation head before state reconciliation:
+
+```text
+8b44241df429cedb6c28a8382bbd43ae4c285fd7
+```
+
+Software verification on that head is GREEN:
+
+- 26 current GitHub checks completed with zero failures;
+- Telemetry Service PostgreSQL migrations and full MQTT/REST/WebSocket/object-storage/dead-letter/retention suite GREEN;
+- PostgreSQL outage recovery GREEN;
+- offline Alembic SQL GREEN;
+- container build GREEN;
+- large-history latest-projection regression GREEN;
+- authenticated/operator browser regressions GREEN;
+- Offline Bundle disconnected startup GREEN;
+- Offline Bundle update/rollback persistent-data preservation GREEN;
+- Disaster Recovery TLS fleet GREEN on isolated rerun after an initial runner/startup flake that had no service/runtime diagnostics and required no code change.
+
+### Remaining hard acceptance boundary
+
+Issue #368 is **not yet fully accepted** because the original physical Raspberry Pi case must be rerun against the same existing long-running PostgreSQL database after deploying the candidate.
+
+Required physical evidence:
+
+- direct `GET /api/v1/telemetry/latest?limit=1&offset=0` completes instead of exceeding 20 seconds;
+- normal LOCAL_LAN target `<500 ms` is measured, not assumed;
+- central smoke completes without increasing timeout/retry budgets;
+- no history truncation, reset, volume deletion or clean-database substitution is allowed.
+
+Current classification:
+
+```text
+software verified; Raspberry Pi latest-query acceptance pending
+```
+
+The physical retest is the only remaining Issue #368 acceptance blocker after final state-head CI/review audit.
+
+## Issue #366 — blocked by #368
+
+Issue #366 — **Audit and deduplicate monitoring-route read models** — is `status:blocked` until #368 is accepted.
+
+Reason:
+
+- #366 must optimize route-local non-telemetry read ownership and request deduplication against a correct bounded latest telemetry contract;
+- it must not introduce longer TTLs/timeouts or another telemetry cache to conceal the >20-second backend latest query;
+- after #368 acceptance/merge, #366 becomes the next focused product-visible Work Package.
+
+## Issue #245 — validation track, not software Ready
+
+Issue #245 remains `status:needs-validation`.
 
 Reason:
 
@@ -16,38 +83,15 @@ Reason:
 - exact-head software CI, Telemetry Service and Offline Bundle evidence was GREEN;
 - the latest physical Raspberry Pi evidence records standalone deployment blocked on actual-host runtime health before loopback-only reboot/observation acceptance could be completed.
 
-Current classification:
+Do not create a second software implementation branch for #245.
 
-```text
-software verified; actual standalone Raspberry Pi acceptance blocked on actual-host runtime health
-```
-
-Do not create a second software implementation branch for #245. Resume it only as a controlled hardware/runtime validation track once the recorded actual-host health blocker is addressed.
-
-### Issue #289 — needs validation
+## Issue #289 — needs validation
 
 Issue #289 remains `status:needs-validation`, priority critical.
 
-All declared dependencies #283, #284, #285, #286, #287, #314 and #288 are closed. However, #289 measures route-return latency and duplicate request counts that are intentionally affected by the remaining Epic #356 navigation optimization work. Run its final route/performance matrix after Issue #366 and the subsequent route-prefetch/time-to-usable slice so acceptance targets the completed navigation architecture.
+Its final acquisition, route-latency and request-count matrix should run after #368, #366 and the remaining Epic #356 navigation optimization slice so measurements target the completed performance architecture.
 
 This sequencing does not authorize any Modbus/hardware write or change the physical polling envelope.
-
-## Selected Ready Work Package
-
-Issue #366 — **Audit and deduplicate monitoring-route read models** — is the sole executable open `status:ready` Work Package after reconciliation.
-
-No known blocker prevents software work on #366.
-
-Boundaries:
-
-- reuse #314 shared telemetry state and #357 refrigeration structural state;
-- no duplicate telemetry cache;
-- no route prefetch in this slice;
-- no backend/schema expansion without a separately proven gap and explicit scope update;
-- no acquisition registry/scheduler/polling changes;
-- no dependency upgrades;
-- no Modbus/hardware writes;
-- no destructive data operation or site cutover.
 
 ## Toolchain lanes
 
@@ -61,12 +105,13 @@ Open unselected dependency PRs: #340, #341 and #346.
 
 PR #347 remains obsolete because Playwright 1.62 already merged through Issue #254 / PR #352.
 
-These dependency PRs must not interrupt Issue #366 unless a separate dependency Work Package is selected after the product-visible sequence.
+These dependency PRs must not interrupt #368 → #366 unless a separate dependency Work Package is selected later.
 
 ## Remaining physical acceptance
 
-- Issue #355: `software verified; Raspberry Pi runtime latency acceptance pending`.
-- Issue #357: `software verified; Raspberry Pi perceived-latency acceptance pending`.
+- Issue #368: software GREEN; Raspberry Pi latest-query acceptance pending on existing long-running DB.
+- Issue #355: software verified; Raspberry Pi runtime latency acceptance pending.
+- Issue #357: software completed; Raspberry Pi perceived-latency acceptance pending.
 - Issue #245: actual standalone Raspberry Pi acceptance blocked on recorded actual-host runtime health.
 - Issue #289: hardware performance acceptance pending.
 - Issues #189, #200, #201 and #202 remain hardware-dependent according to their existing evidence boundaries.
