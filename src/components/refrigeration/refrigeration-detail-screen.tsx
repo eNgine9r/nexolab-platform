@@ -208,14 +208,14 @@ export function RefrigerationDetailScreen({
           lifecycle!.listBindings(equipmentRecord.id),
           lifecycle!.listClimateChamberChannels(chamberId!),
         ]).then(([loadedBindings, availableChannels]) => ({
-          equipment: equipmentRecord,
+          equipment: null,
           bindings: loadedBindings,
           channels: availableChannels,
         }));
     void request
       .then((loaded) => {
         if (!active) return;
-        setEquipmentRecord(loaded.equipment);
+        if (loaded.equipment) setEquipmentRecord(loaded.equipment);
         setBindings(loaded.bindings);
         setChannels(loaded.channels);
         setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
