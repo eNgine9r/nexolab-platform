@@ -9,6 +9,7 @@ from app.climate_catalog.api import create_climate_catalog_router
 from app.climate_catalog.repository import PostgresClimateCatalogRepository
 from app.config import Settings
 from app.durable_spool import DurableIngestionSpool
+from app.latest_projection_reconcile import reconcile_latest_projection
 from app.main import create_app as create_base_app
 from app.refrigeration.sensor_configuration_api import (
     create_sensor_configuration_router,
@@ -49,8 +50,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             default_organization_id=resolved.auth_default_organization_id,
         )
     )
+    _install_latest_projection_reconciliation_lifespan(app)
     _install_durable_ingestion_lifespan(app)
     return app
+
+
+def _install_latest_projection_reconciliation_lifespan(app: FastAPI) -> None:
+    settings: Settings = app.state.settings
+    database = app.state.database
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def reconciliation_lifespan(application: FastAPI) -> AsyncIterator[None]:
+        if settings.auto_create_schema:
+            database.create_schema()
+        reconcile_latest_projection(database)
+        async with original_lifespan(application):
+            yield
+
+    app.router.lifespan_context = reconciliation_lifespan
 
 
 def _install_durable_ingestion_lifespan(app: FastAPI) -> None:

@@ -1,64 +1,48 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-07
-Verified repository baseline on `main`: `6645af46a198ff454142df3b0a713984f4d71196`
+Verified repository baseline on `main`: `329282496491d2ee27ab4f292e982a30af33c2b7`
 Active Work Package: Issue #368 / PR #373 — telemetry latest projection Raspberry Pi migration-v2/latest-query acceptance
 Completed recovery Work Package: Issue #378 / PR #380 — RS-485 USB re-enumeration recovery
 Resolved regression parent: Issue #374 / PR #375
 Active product epic: Issue #356 — eliminate visible loading across monitoring routes
 Parallel acquisition/hardware epic: Issue #282
 
-## Issue #378 / PR #380 — completed and hardware verified
+## Issue #378 / #374 recovery chain — completed
 
-PR #380 was squash-merged into `main` as `6645af46a198ff454142df3b0a713984f4d71196` after final exact-head `5635df201a6cbd59227a8ebe181c44fa5167f67c` completed 14 GitHub checks with 0 failures and 0 in-progress.
-
-The merged recovery includes:
-
-- live read-only host `/dev` visibility at `/host/dev` instead of static Docker device-node injection;
-- exact `/dev/serial/by-id/...` identity across changing `ttyUSB` minors;
-- bounded `c 188:* rwm` cgroup permission with no privileged container;
-- `(OSError, termios.error)` transport-failure handling;
-- failed cached serial-handle invalidation and best-effort close while preserving the original exception;
-- reopen only on the next normal scheduler attempt;
-- preserved FC03 read-only behavior, scheduler cadence and one serialized worker per bus.
-
-Controlled Raspberry Pi hardware acceptance passed:
-
-```text
-container before/after: 9f03df0e798e
-started_at before/after: unchanged
-restart_count: 0 -> 0
-stable by-id path disappeared: yes
-device_before: /dev/ttyUSB1
-stable by-id path reappeared: yes
-device_after: /dev/ttyUSB0
-PostgreSQL max(id) at reappearance: 2332589
-first recovery max(id): 2332595
-final observed max(id): 2332624
-newest_age after recovery: ~18-21 s
-```
-
-Transient EIO/ENOENT warnings occurred only while the adapter/path was physically absent. Acquisition recovered automatically on the same running Device Agent.
-
-## Issue #374 regression status — resolved
-
-Issue #374 / PR #375 remains the merged first serial-session invalidation slice. The later long-duration USB re-enumeration regression exposed during #368 acceptance is now resolved by merged #378 and its physical hardware evidence. Issue #374 can be closed as completed regression parent after this state-only reconciliation is merged.
+Issue #378 / PR #380 is merged and Raspberry Pi hardware verified. The same running Device Agent recovered real telemetry after CP2104 disconnect/re-enumeration from `ttyUSB1` to `ttyUSB0` with unchanged container identity/start time and restart count `0 -> 0`. Issue #374 is closed as the completed regression parent.
 
 ## Active Issue #368 / PR #373
 
-Issue #368 remains software-GREEN on its previously reconciled head:
+PR #373 has now been reconciled with current `main` through non-force two-parent merge commit:
 
 ```text
-36ccb909ca3754cc395468382bed2da93743ee24
-26 completed GitHub checks
-0 failures
-0 in-progress
-0 queued
+3427df41fab06667904d127313723fa90e130fcd
+parents:
+  36ccb909ca3754cc395468382bed2da93743ee24
+  329282496491d2ee27ab4f292e982a30af33c2b7
 ```
 
-Because `main` now contains #378, PR #373 must first be reconciled with current `main` and rerun full exact-head CI before any physical migration is attempted.
+The reconciliation tree is based on current `main` and overlays only the ten telemetry-specific #368 files. Therefore all merged #378 runtime/state changes are inherited canonically while the #368 telemetry implementation remains intact. No rebase, force push or `main` mutation was used.
 
-The Raspberry Pi database remains safe before migration-v2:
+The previous `36ccb909...` CI record is historical only. Repository state had recorded it as GREEN, while current workflow-run history exposes older failed runs on that SHA; this discrepancy is intentionally superseded. **Only fresh exact-head CI on the branch head containing this checkpoint is authoritative before Raspberry Pi acceptance.**
+
+### #368 implementation boundary
+
+- durable `telemetry_latest` projection keyed by canonical series identity;
+- immutable telemetry history retained;
+- transactional history/latest persistence;
+- duplicate idempotency;
+- out-of-order samples cannot regress latest state;
+- deterministic equal-timestamp `sample_id` tie-break;
+- latest API reads bounded projection rather than retained history;
+- migration-v2 performs long initial backfill before exclusive advisory lock and bounded delta catch-up under final lock;
+- startup deployment-gap reconciliation is bounded and fail-closed;
+- no Device Agent, scheduler, polling cadence or Modbus behavior changes.
+
+### Raspberry Pi pre-migration state
+
+Last verified safe physical database state remains:
 
 ```text
 Alembic: 20260805_0022
@@ -68,25 +52,28 @@ named volumes: preserved
 advisory locks: none
 ```
 
-The corrected #368 physical gate remains:
+This is historical preflight evidence and must be rechecked immediately before migration. Acquisition must also be fresh (`newest_age <= 120 s`) before migration-v2 is allowed to start.
 
-- fresh PostgreSQL backup;
-- acquisition freshness proven before migration;
-- migration-v2 backfill without long exclusive advisory lock;
-- ingestion continuity during backfill;
-- final bounded delta catch-up;
-- candidate Telemetry Service startup;
-- projection cardinality validation;
-- latest-query p95 and query-plan verification;
-- no polling changes and no destructive operations.
+### Physical acceptance gate after software GREEN
+
+- exact candidate SHA verification;
+- fresh PostgreSQL backup and checksum;
+- current acquisition freshness proof;
+- migration-v2 backfill while ingestion continues;
+- no long-lived exclusive advisory lock during initial backfill;
+- bounded final delta catch-up/cutover;
+- schema `20260807_0023` and projection cardinality correctness;
+- exact candidate Telemetry Service startup;
+- repeated latest-query latency with normal-load p95 `<500 ms`;
+- query-plan evidence proving latest reads use `telemetry_latest`, not retained full history;
+- central smoke and final history/volume/freshness audit.
 
 ## Execution sequence
 
 ```text
-post-#378 state reconciliation
-  -> reconcile PR #373 with current main
-  -> full exact-head #368 CI
+fresh exact-head #368 CI
   -> controlled Raspberry Pi migration-v2/latest-query acceptance
+  -> final state/review audit and merge #373
   -> #369 actual Raspberry Pi Live Dashboard browser inventory acceptance
   -> #366 cross-route read-model deduplication
   -> #289 final acquisition/route-latency/hardware matrix
@@ -96,8 +83,8 @@ Issue #245 remains a separate standalone Raspberry Pi validation track. Issues #
 
 ## Safety boundary
 
-No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure is part of this state-only reconciliation.
+No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure is part of #368 software reconciliation.
 
 ## Next action
 
-Run proportional exact-head CI and focused review/base audit for state-only Issue #381. If GREEN, merge it, close #374 as completed regression parent, then reconcile PR #373 with current `main` and resume Issue #368 acceptance.
+Freeze branch content after the four-file #368 checkpoint. Require full fresh exact-head CI to complete GREEN. Only then run the corrected child-shell Raspberry Pi migration-v2/latest-query acceptance; do not run migration from an older candidate.
