@@ -1,0 +1,49 @@
+name: Issue 357 Browser Readiness Fix
+
+on:
+  push:
+    branches:
+      - fix/357-structural-snapshot-acceptance
+    paths:
+      - .github/workflows/issue-357-browser-readiness-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/357-structural-snapshot-acceptance
+          fetch-depth: 0
+      - name: Replace global network idle readiness
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('e2e/refrigeration-layout.production.e2e.ts')
+          text = path.read_text()
+          old = '''  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
+    waitUntil: "networkidle",
+  });'''
+          new = '''  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
+    waitUntil: "domcontentloaded",
+  });'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one equipment navigation block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          Path('.github/workflows/issue-357-browser-readiness-fix.yml').unlink()
+          PY
+      - name: Format and commit
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          npx prettier --write e2e/refrigeration-layout.production.e2e.ts
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/refrigeration-layout.production.e2e.ts .github/workflows/issue-357-browser-readiness-fix.yml
+          git commit -m "test(refrigeration): assert route readiness without network idle"
+          git push origin HEAD:fix/357-structural-snapshot-acceptance
