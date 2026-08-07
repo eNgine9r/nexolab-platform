@@ -2,45 +2,58 @@
 
 Updated: 2026-08-07
 
-## Issue #357 software completion
+## Ready audit result
 
-Issue #357 / PR #364 is squash-merged into `main` as `f837cae493e9903b0123c8b1ba7ff3c7401eacfc`.
+The post-Issue #357 repository audit found one stale control-plane classification and one missing focused Work Package.
 
-Verified outcome:
+### Issue #245 — validation track, not software Ready
 
-- bounded equipment-scoped structural snapshot implemented;
-- canonical climate-chamber channels included independently of current telemetry samples;
-- configured no-sample channels remain visible with explicit `unknown`/`stale` state;
-- bounded organization-scoped SWR cache, concurrent request deduplication and equipment-targeted invalidation implemented;
-- valid canvas/markers retained during reconciliation and route transitions;
-- structural rendering no longer waits on telemetry-history latency;
-- refrigeration hydration and detail reconciliation loops removed;
-- canonical restored-equipment path no longer requires a direct `node_id`;
-- all exact-head CI, browser, telemetry, security, fleet, disaster-recovery, Offline Auth and Offline Bundle workflows GREEN;
-- unresolved review threads: 0;
-- no dependency upgrade, database migration, acquisition scheduler change, Device Agent configuration change, Modbus write, hardware write or site cutover occurred.
+Issue #245 no longer carries `status:ready` and is now `status:needs-validation`.
 
-No software blocker remains for Issue #357.
+Reason:
 
-## Remaining physical acceptance
+- PR #246 already merged the standalone runtime software scope as `83b161ca7e26580c46789e76a7bbdc0d5e434c21`;
+- exact-head software CI, Telemetry Service and Offline Bundle evidence was GREEN;
+- the latest physical Raspberry Pi evidence records standalone deployment blocked on actual-host runtime health before loopback-only reboot/observation acceptance could be completed.
 
-Issue #357 retains the truthful completion classification:
+Current classification:
 
 ```text
-software verified; Raspberry Pi perceived-latency acceptance pending
+software verified; actual standalone Raspberry Pi acceptance blocked on actual-host runtime health
 ```
 
-The remaining Raspberry Pi check is physical evidence, not a software blocker. Hardware completion must not be claimed until the controlled LOCAL_LAN Raspberry Pi retest measures cold/warm perceived latency and confirms the absence of the historical blank-marker interval on the real substrate image/database.
+Do not create a second software implementation branch for #245. Resume it only as a controlled hardware/runtime validation track once the recorded actual-host health blocker is addressed.
 
-## Parallel runtime and hardware boundary
+### Issue #289 — needs validation
 
-Issue #245 remains Ready on the parallel standalone Raspberry Pi runtime track. Actual loopback-only Raspberry Pi acceptance remains mandatory before hardware completion can be claimed.
+Issue #289 remains `status:needs-validation`, priority critical.
 
-Issue #355 remains:
+All declared dependencies #283, #284, #285, #286, #287, #314 and #288 are closed. However, #289 measures route-return latency and duplicate request counts that are intentionally affected by the remaining Epic #356 navigation optimization work. Run its final route/performance matrix after Issue #366 and the subsequent route-prefetch/time-to-usable slice so acceptance targets the completed navigation architecture.
 
-```text
-software verified; Raspberry Pi runtime latency acceptance pending
-```
+This sequencing does not authorize any Modbus/hardware write or change the physical polling envelope.
+
+## Selected Ready Work Package
+
+Issue #366 — **Audit and deduplicate monitoring-route read models** — is the sole executable open `status:ready` Work Package after reconciliation.
+
+No known blocker prevents software work on #366.
+
+Boundaries:
+
+- reuse #314 shared telemetry state and #357 refrigeration structural state;
+- no duplicate telemetry cache;
+- no route prefetch in this slice;
+- no backend/schema expansion without a separately proven gap and explicit scope update;
+- no acquisition registry/scheduler/polling changes;
+- no dependency upgrades;
+- no Modbus/hardware writes;
+- no destructive data operation or site cutover.
+
+## Toolchain lanes
+
+Issue #257 remains blocked until the resolved Next.js ESLint plugin graph supports ESLint 10 without broad rule weakening.
+
+Issue #256 remains deferred until TypeScript 7 support is confirmed across Next.js, Vitest/Vite and ESLint integration boundaries.
 
 ## Dependency lanes
 
@@ -48,13 +61,19 @@ Open unselected dependency PRs: #340, #341 and #346.
 
 PR #347 remains obsolete because Playwright 1.62 already merged through Issue #254 / PR #352.
 
-Issue #257 remains blocked. Issue #256 remains deferred.
+These dependency PRs must not interrupt Issue #366 unless a separate dependency Work Package is selected after the product-visible sequence.
 
-## Security and hardware blockers
+## Remaining physical acceptance
+
+- Issue #355: `software verified; Raspberry Pi runtime latency acceptance pending`.
+- Issue #357: `software verified; Raspberry Pi perceived-latency acceptance pending`.
+- Issue #245: actual standalone Raspberry Pi acceptance blocked on recorded actual-host runtime health.
+- Issue #289: hardware performance acceptance pending.
+- Issues #189, #200, #201 and #202 remain hardware-dependent according to their existing evidence boundaries.
+
+## Security boundary
 
 The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Do not broaden it.
-
-Hardware-dependent Issues #289, #245, #189, #200, #201 and #202 remain pending controlled Raspberry Pi/RS-485 evidence.
 
 `/lockers`, physical cameras, ONVIF/RTSP and NVR remain blocked or unverified by their existing evidence requirements.
 
