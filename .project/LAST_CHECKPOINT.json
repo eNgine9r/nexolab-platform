@@ -5,21 +5,18 @@
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
   "status": "exact_head_ci_pending_after_checkpoint",
-  "timestamp": "2026-08-07T16:16:00+03:00",
+  "timestamp": "2026-08-07T16:20:00+03:00",
   "branch": "fix/378-rs485-usb-hotplug-recovery",
   "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "issue": 378,
   "pull_request": 380,
   "regression_parent_issue": 374,
   "blocked_issue": 368,
-  "checkpoint_parent_head": "70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
-  "exact_candidate_rule": "the exact branch head containing this checkpoint is the only acceptable CI and Raspberry Pi candidate until another commit is made",
   "first_physical_acceptance": {
     "result": "failed_after_compose_path_success",
     "candidate_head": "aec3cb10ea33395e8ac7472dfac433976f18cc96",
     "candidate_container": "b26acda00ae8",
     "container_restarted": false,
-    "container_recreated": false,
     "restart_count_before_after": "0 -> 0",
     "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
     "device_before": "ttyUSB0",
@@ -29,39 +26,17 @@
     "recovery_base_postgres_max_id": 2331346,
     "final_postgres_max_id": 2331346,
     "final_newest_age": "00:07:10.22367",
-    "serial_error": "termios.error: (5, Input/output error)",
-    "classification": "Compose hotplug path works; Python exception-class boundary prevented cached-handle invalidation"
+    "serial_error": "termios.error: (5, Input/output error)"
   },
   "diagnosis": {
-    "compose_root_cause_resolved": "static Docker devices mapping no longer pins old ttyUSB minor; running container saw ttyUSB0 -> ttyUSB1 through stable by-id path",
-    "remaining_root_cause": "ModbusRTUClient caught OSError but real reset_input_buffer tcflush failure is termios.error",
-    "termios_is_oserror_subclass": false,
-    "effect": "_invalidate_serial was skipped, leaving dead cached pyserial handle active"
+    "compose_layer": "validated: running container followed stable by-id identity across ttyUSB0 to ttyUSB1",
+    "python_layer": "real termios.error bypassed the OSError-only cached-handle invalidation",
+    "effect": "dead cached serial handle remained active after re-enumeration"
   },
   "implementation": {
-    "termios_fix_head_before_state_checkpoint": "b71040bda3b56f835af883bbe33a682060344518",
-    "runtime_files": [
-      "infrastructure/compose/compose.hardware.yaml",
-      "services/device-agent/modbus_rtu.py"
-    ],
-    "test_files": [
-      "scripts/tests/standalone-offline-runtime-contract.sh",
-      "services/device-agent/tests/test_modbus_rtu_recovery.py"
-    ],
-    "state_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "runtime_changes": [
-      "remove static RS485_HOST_DEVICE:/dev/rs485 device mapping",
-      "mount host /dev read-only at /host/dev",
-      "set SERIAL_DEVICE to /host plus exact stable by-id path",
-      "allow only ttyUSB character major 188 with dynamic minor",
-      "catch OSError and termios.error as serial transport failures",
-      "invalidate and best-effort close cached handle while preserving original exception"
-    ],
+    "compose_hotplug_path": "read-only /host/dev plus exact stable by-id path and bounded c 188:* rwm rule",
+    "serial_recovery": "catch OSError and termios.error, invalidate cached handle, preserve original exception and reopen only on next normal scheduler attempt",
+    "termios_regression_test": "added with real termios.error exception class",
     "scheduler_changes": 0,
     "polling_cadence_changes": 0,
     "dependency_changes": 0,
@@ -69,11 +44,9 @@
     "privileged_container": false
   },
   "verification": {
-    "compose_contract": "passed on previous exact head aec3cb10ea33395e8ac7472dfac433976f18cc96",
-    "first_hotplug": "failed usefully; live stable path recovered but telemetry did not because termios.error was not invalidated",
-    "termios_regression_test": "added with real termios.error exception class",
-    "device_agent_image_build_on_b71040bd": "passed",
-    "final_exact_head_ci": "required on the branch head containing this checkpoint",
+    "previous_compose_only_ci": "GREEN on aec3cb10ea33395e8ac7472dfac433976f18cc96",
+    "first_hotplug": "FAIL after Compose path recovery; telemetry did not resume",
+    "current_exact_head_ci": "required on the branch head containing this checkpoint",
     "second_hardware_acceptance": "pending only after exact-head GREEN"
   },
   "blocked_work": {
@@ -83,11 +56,10 @@
   "hardware_safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "polling_cadence_change": "none",
     "data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none"
   },
   "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Do not change branch content. Require all exact-head checks GREEN on the branch head containing this checkpoint, then build/install that exact candidate once on Raspberry Pi, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
+  "next_action": "Freeze branch content, require exact-head GREEN, then install that exact candidate once on Raspberry Pi and repeat same-container CP2104 unplug/replug acceptance."
 }
