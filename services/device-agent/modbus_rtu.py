@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import termios
 import threading
 import time
 from collections.abc import Callable, Iterator
@@ -399,7 +400,7 @@ class ModbusRTUClient:
                             started_at=request_started_at,
                         )
                     raise
-                except OSError:
+                except (OSError, termios.error):
                     if request_attempted:
                         self._observe_request(
                             context=context,

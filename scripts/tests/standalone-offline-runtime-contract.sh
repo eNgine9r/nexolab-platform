@@ -89,7 +89,7 @@ ENV
 cat > "$EDGE_ENV" <<'ENV'
 NEXOLAB_NODE_ID=edge-01
 DEVICE_AGENT_IMAGE=nexolab-device-agent:local
-RS485_HOST_DEVICE=/dev/null
+RS485_HOST_DEVICE=/dev/serial/by-id/usb-NEXOLAB-test-if00-port0
 RS485_GROUP_GID=20
 STANDALONE_RUNTIME_NETWORK=nexolab-standalone-runtime
 CENTRAL_MQTT_HOST=central-mqtt
@@ -149,6 +149,25 @@ assert edge["networks"]["standalone-runtime"]["external"] is True
 assert edge["networks"]["standalone-runtime"]["name"] == "nexolab-standalone-runtime"
 assert edge_services["mqtt"]["environment"]["CENTRAL_MQTT_HOST"] == "central-mqtt"
 assert str(edge_services["mqtt"]["environment"]["CENTRAL_MQTT_PORT"]) == "1883"
+
+device_agent = edge_services["device-agent"]
+assert device_agent["environment"]["SERIAL_DEVICE"] == (
+    "/host/dev/serial/by-id/usb-NEXOLAB-test-if00-port0"
+)
+assert device_agent.get("privileged") in (None, False)
+assert device_agent.get("devices") in (None, [])
+assert device_agent["device_cgroup_rules"] == ["c 188:* rwm"]
+
+host_dev_mounts = [
+    volume
+    for volume in device_agent["volumes"]
+    if volume.get("target") == "/host/dev"
+]
+assert len(host_dev_mounts) == 1
+host_dev_mount = host_dev_mounts[0]
+assert host_dev_mount["type"] == "bind"
+assert host_dev_mount["source"] == "/dev"
+assert host_dev_mount["read_only"] is True
 PY
 
 printf 'Standalone offline runtime contract checks passed.\n'
