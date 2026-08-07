@@ -21,6 +21,9 @@ from app.refrigeration.repository import (
     LayoutRepositoryError,
     PostgresRefrigerationLayoutRepository,
 )
+from app.refrigeration.sensor_configuration_repository import (
+    PostgresSensorConfigurationRepository,
+)
 from app.refrigeration.storage import ObjectStorage
 from app.refrigeration.structural_schemas import (
     RefrigerationStructuralSnapshotResponse,
@@ -34,6 +37,7 @@ from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 def create_refrigeration_structural_router(
     equipment_repository: PostgresRefrigerationEquipmentRepository,
     lifecycle_repository: PostgresEquipmentLifecycleRepository,
+    sensor_configuration_repository: PostgresSensorConfigurationRepository,
     layout_repository: PostgresRefrigerationLayoutRepository,
     storage: ObjectStorage,
     *,
@@ -71,10 +75,20 @@ def create_refrigeration_structural_router(
                 include_history=False,
                 organization_id=organization_id,
             )
-            _, available_channels = lifecycle_repository.list_available_sensors(
-                equipment_id,
-                organization_id=organization_id,
-            )
+            if equipment.climate_chamber_id is not None:
+                _, available_channels = (
+                    sensor_configuration_repository.list_climate_chamber_channels(
+                        equipment.climate_chamber_id,
+                        organization_id=organization_id,
+                    )
+                )
+            elif equipment.node_id is not None:
+                _, available_channels = lifecycle_repository.list_available_sensors(
+                    equipment_id,
+                    organization_id=organization_id,
+                )
+            else:
+                available_channels = []
         except EquipmentNotFoundError as error:
             raise HTTPException(
                 status_code=404,
