@@ -2,7 +2,11 @@ services:
   device-agent:
     environment:
       DEVICE_MODE: ${HARDWARE_DEVICE_MODE:-xjp60d}
-      SERIAL_DEVICE: /dev/rs485
+      # Keep the operator-approved stable host identity authoritative inside the
+      # running container. /host/dev is a read-only view of host devtmpfs so a
+      # USB serial adapter may re-enumerate to another ttyUSB minor without
+      # leaving the container pinned to the device node resolved at create time.
+      SERIAL_DEVICE: "/host${RS485_HOST_DEVICE:?Set RS485_HOST_DEVICE to the stable /dev/serial/by-id path}"
       SERIAL_BAUDRATE: 9600
       SERIAL_PARITY: N
       SERIAL_STOPBITS: 1
@@ -17,7 +21,15 @@ services:
       XJP60D_DISCOVERY_UNITS: ${XJP60D_DISCOVERY_UNITS:-101,102,103,104,105,106,107,108,109,110,111,112,113,114,126,127,128,129,130,131,132,133,134,135,136,137,138}
       XJP60D_SCALE: ${XJP60D_SCALE:-0.1}
       LE01MP_UNIT_IDS: ${LE01MP_UNIT_IDS:-200,201,202,203}
-    devices:
-      - "${RS485_HOST_DEVICE:?Set RS485_HOST_DEVICE to the stable /dev/serial/by-id path}:/dev/rs485"
+    volumes:
+      - type: bind
+        source: /dev
+        target: /host/dev
+        read_only: true
+    # CP210x adapters enumerate as ttyUSB devices (character major 188). A
+    # class-level rule is required because the minor can change on hotplug; the
+    # application still opens only the exact stable RS485_HOST_DEVICE identity.
+    device_cgroup_rules:
+      - "c 188:* rwm"
     group_add:
       - "${RS485_GROUP_GID:-20}"

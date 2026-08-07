@@ -19,7 +19,7 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
+  "current_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "tasks": [
     {
       "id": "NEXOLAB-357",
@@ -35,25 +35,37 @@
       "issue": 374,
       "pull_request": 375,
       "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
-      "status": "completed",
+      "status": "regression_resolved_by_378_pending_merge",
       "priority": "critical",
       "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
       "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
       "software_ci": "14 completed, 0 failures, 0 in-progress",
-      "hardware_acceptance": "passed on controlled Raspberry Pi: PostgreSQL max(id) 2327052 -> 2327095 in first 10 seconds; Device Agent status ok; mqtt connected; last_error null; zero degraded/cooldown endpoints",
-      "completion_classification": "software verified; Raspberry Pi serial recovery hardware verified"
+      "depends_on": [378]
+    },
+    {
+      "id": "NEXOLAB-378",
+      "issue": 378,
+      "pull_request": 380,
+      "title": "Recover RS-485 after USB re-enumeration without recreating Device Agent",
+      "status": "hardware_verified_final_ci_pending",
+      "priority": "critical",
+      "branch": "fix/378-rs485-usb-hotplug-recovery",
+      "verified_pre_state_head_sha": "c2cf1ce4939c77f138daac2841f39651afd4bcba",
+      "software_ci": "14 completed, 0 failures, 0 in-progress",
+      "hardware_acceptance": "PASS on Raspberry Pi; same container recovered telemetry across ttyUSB1 -> ttyUSB0 re-enumeration",
+      "target_outcome": "running Device Agent follows exact stable by-id identity across ttyUSB minor changes and invalidates real termios EIO without restart/recreate"
     },
     {
       "id": "NEXOLAB-368",
       "issue": 368,
       "pull_request": 373,
       "title": "Make telemetry latest reads independent of history volume",
-      "status": "in_progress_hardware_acceptance_pending",
+      "status": "blocked_by_378_merge_reconciliation",
       "priority": "critical",
-      "software_verified_head_sha_before_374_merge": "cb082621f8b5e4cedf44534f3b5256fb2817d55a",
-      "software_ci_before_374_merge": "26 completed, 0 failures, 0 in-progress",
+      "verified_reconciled_head_sha": "36ccb909ca3754cc395468382bed2da93743ee24",
+      "software_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
       "hardware_acceptance": "migration-v2/latest-query acceptance pending on controlled Raspberry Pi",
-      "next_required_step": "reconcile PR #373 branch with current main, rerun exact-head CI, then run controlled Raspberry Pi acceptance"
+      "depends_on": [378]
     },
     {
       "id": "NEXOLAB-369",
@@ -106,33 +118,38 @@
     }
   ],
   "active_work_package": {
-    "issue": 368,
-    "pull_request": 373,
-    "title": "Make telemetry latest reads independent of history volume",
-    "status": "in_progress_hardware_acceptance_pending",
+    "issue": 378,
+    "pull_request": 380,
+    "title": "Recover RS-485 after USB re-enumeration without recreating Device Agent",
+    "status": "hardware_verified_final_ci_pending",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "selection_reason": "Issue #374 is merged, closed and physically verified. The previously blocked #368 migration-v2/latest-query Raspberry Pi acceptance is now the first executable critical path."
+    "selection_reason": "Controlled Raspberry Pi acceptance proved same-container recovery across real CP2104 USB re-enumeration; only final state-head CI and merge remain."
   },
   "verification": {
-    "issue_374_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
-    "issue_374_merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
-    "issue_374_final_ci": "14 completed, 0 failures, 0 in-progress",
-    "issue_374_raspberry_pi_serial_recovery": "hardware_verified",
-    "issue_368_previous_software_ci": "26 completed, 0 failures, 0 in-progress",
-    "issue_368_fresh_post_374_head_ci": "required_after_branch_reconciliation",
-    "issue_368_raspberry_pi_latest_projection": "pending"
+    "issue_378_pre_state_exact_head_ci": "14 completed, 0 failures, 0 in-progress on c2cf1ce4939c77f138daac2841f39651afd4bcba",
+    "issue_378_phase_1": "PASS; real telemetry resumed before hotplug, PostgreSQL 2331346 -> 2331419, Device Agent status ok",
+    "issue_378_phase_2": "PASS; same container, restart 0 -> 0, ttyUSB1 -> ttyUSB0, PostgreSQL 2332589 -> 2332595 -> 2332624",
+    "issue_378_final_exact_head_ci": "required after hardware-result state checkpoint",
+    "issue_368_reconciled_software_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
+    "issue_368_raspberry_pi_latest_projection": "blocked until #378 merge/reconciliation"
   },
   "runtime_evidence": {
     "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "raspberry_pi_device_agent_status_after_374": "ok",
-    "mqtt_connected_after_374": true,
-    "postgres_history_max_id_before_374_acceptance": 2327052,
-    "postgres_history_max_id_after_first_10_seconds": 2327095,
-    "issue_368_schema_after_previous_guard_rollback": "20260805_0022",
-    "issue_368_projection_after_previous_guard_rollback": "absent"
+    "verified_candidate_container": "9f03df0e798e",
+    "container_restart_count_before_after": "0 -> 0",
+    "device_before": "ttyUSB1",
+    "device_after": "ttyUSB0",
+    "stable_path_absence_observed": true,
+    "stable_path_reappearance_observed": true,
+    "postgres_max_id_at_reappearance": 2332589,
+    "postgres_first_recovery_max_id": 2332595,
+    "postgres_final_observed_max_id": 2332624,
+    "final_newest_age": "~18-21 seconds",
+    "issue_368_schema": "20260805_0022",
+    "issue_368_projection": "absent"
   },
-  "next_selection_policy": "Complete state-only Issue #376, reconcile PR #373 with current main and rerun exact-head CI, then execute controlled #368 migration-v2/latest-query Raspberry Pi acceptance. Only after #368 passes proceed to #369, #366 and #289.",
+  "next_selection_policy": "Finish #378 final exact-head CI and merge, reconcile canonical state and close #374 regression parent, then resume #368 physical migration-v2/latest-query acceptance; continue #369 -> #366 -> #289.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -147,6 +164,7 @@
     "polling_cadence_change": "none",
     "data_deletion": "none",
     "volume_deletion": "none",
+    "privileged_container": "none",
     "production_site_cutover": "none"
   }
 }

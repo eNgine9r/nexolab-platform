@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import termios
 import unittest
 
 from modbus_rtu import ModbusRTUClient, append_crc
@@ -53,6 +54,12 @@ class RecoverySerial:
         self.closed = True
 
 
+class TermiosResetFailureSerial(RecoverySerial):
+    def reset_input_buffer(self) -> None:
+        self.reset_calls += 1
+        raise termios.error(5, "Input/output error")
+
+
 class SerialFactory:
     def __init__(self, serials: list[RecoverySerial]) -> None:
         self.serials = list(serials)
@@ -66,6 +73,36 @@ class SerialFactory:
 
 
 class ModbusRTURecoveryTests(unittest.TestCase):
+    def test_termios_eio_invalidates_cached_handle_and_next_read_reopens(self) -> None:
+        response = append_crc(bytes.fromhex("6a03020104"))
+        broken = TermiosResetFailureSerial()
+        recovered = RecoverySerial(response)
+        factory = SerialFactory([broken, recovered])
+        measurements = []
+        client = ModbusRTUClient(
+            "/dev/serial/by-id/test-rs485",
+            timeout=0.01,
+            retries=3,
+            serial_factory=factory,
+            request_observer=measurements.append,
+        )
+
+        with self.assertRaisesRegex(termios.error, "Input/output error"):
+            client.read_holding_register(106, 260)
+
+        self.assertEqual(factory.calls, 1)
+        self.assertEqual(broken.reset_calls, 1)
+        self.assertTrue(broken.closed)
+        self.assertEqual(broken.writes, [])
+        self.assertEqual(measurements, [])
+
+        self.assertEqual(client.read_holding_register(106, 260), 260)
+
+        self.assertEqual(factory.calls, 2)
+        self.assertEqual(len(recovered.writes), 1)
+        self.assertEqual(len(measurements), 1)
+        self.assertEqual(measurements[0].outcome, "success")
+
     def test_eio_invalidates_cached_handle_and_next_read_reopens(self) -> None:
         response = append_crc(bytes.fromhex("6a03020104"))
         broken = RecoverySerial(fail_reset=True)
