@@ -6,11 +6,12 @@
   "task": "NEXOLAB-357",
   "issue": 357,
   "pull_request": 364,
-  "status": "software_verified_merge_pending",
+  "status": "completed",
   "timestamp": "2026-08-07T08:15:00+03:00",
   "branch": "fix/357-structural-snapshot-acceptance",
   "base_sha": "a47f0674c8d6dadae2f6858b093006deb183d19c",
-  "verified_head_sha": "145bf02210393269622d0422aeba3bcba8b7f361",
+  "verified_head_sha": "e474176fd129912d4c863824cec4ea08a0a474a7",
+  "merge_sha": "f837cae493e9903b0123c8b1ba7ff3c7401eacfc",
   "implementation": {
     "structural_snapshot_endpoint": true,
     "equipment_identity": true,
@@ -34,7 +35,7 @@
     "security_browser": "green",
     "authenticated_dashboard": "green",
     "offline_auth": "green",
-    "offline_bundle": "green",
+    "offline_bundle": "green_disconnected_startup_and_update_rollback",
     "telemetry_service": "green",
     "disaster_recovery_browser": "green",
     "disaster_recovery_domain": "green",
@@ -50,9 +51,9 @@
     "rendered_reports_browser": "green"
   },
   "review_audit": {
-    "changed_files_before_state_reconciliation": 12,
+    "final_pr_changed_files": 16,
     "unresolved_review_threads": 0,
-    "mergeable": true,
+    "mergeable_before_merge": true,
     "temporary_helper_workflows_in_final_diff": 0,
     "dependency_upgrades": 0,
     "database_migrations": 0,
@@ -74,5 +75,5 @@
     "hardware_acceptance_issues": [289, 245, 189, 200, 201, 202],
     "security_exception_expires_on": "2026-09-05"
   },
-  "next_action": "Verify the state-reconciliation exact head, confirm focused diff and zero unresolved review threads, mark PR #364 Ready, squash merge with expected head SHA, verify main, close Issue #357 as software-complete, and preserve Raspberry Pi perceived-latency acceptance as pending physical evidence."
+  "next_action": "Merge the post-merge state-only checkpoint after GREEN verification, close Issue #357 as completed while preserving Raspberry Pi perceived-latency acceptance as pending physical evidence, then select the next Ready Work Package from repository-backed state."
 }
