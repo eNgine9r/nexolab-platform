@@ -1,75 +1,51 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-07
-Verified product baseline on `main`: `a47f0674c8d6dadae2f6858b093006deb183d19c`
-Active completion Work Package: Issue #357 / PR #364 — immediate refrigeration structural snapshot hydration
-Verified implementation head: `145bf02210393269622d0422aeba3bcba8b7f361`
+Verified product baseline on `main`: `f837cae493e9903b0123c8b1ba7ff3c7401eacfc`
+Completed Work Package: Issue #357 / PR #364 — immediate refrigeration structural snapshot hydration
+Verified implementation head: `e474176fd129912d4c863824cec4ea08a0a474a7`
+Merge SHA: `f837cae493e9903b0123c8b1ba7ff3c7401eacfc`
 Active epic: Issue #326 — Engineering governance, critical operator defects and toolchain hardening
 Parallel hardware/runtime track: Issue #282
 
-## Issue #357 software completion
+## Issue #357 completed in software
 
-PR #364 implements the completion slice after PR #363:
+Issue #357 / PR #364 is squash-merged into `main`.
 
-- one organization/equipment-scoped read-only structural snapshot;
-- equipment identity, active image metadata, layout draft/revision, placements, active bindings and canonical channels in one composition path;
-- configured channels without current telemetry remain visible with explicit `unknown`/`stale` state;
+Completed scope:
+
+- one bounded organization/equipment-scoped read-only structural snapshot;
+- equipment identity, active image metadata, layout draft/revision, placements, active bindings and canonical channels composed together;
+- configured no-sample channels remain visible with explicit `unknown`/`stale` state;
 - bounded organization-scoped stale-while-revalidate cache with concurrent request deduplication and equipment-targeted invalidation;
-- retained valid image/layout/markers during background reconciliation and route transitions;
-- structural rendering no longer depends on telemetry-history latency;
-- refrigeration route and detail reconciliation loops that repeatedly remounted authorization/layout state were removed;
-- production browser readiness uses concrete UI assertions rather than global `networkidle`;
-- canonical climate-chamber catalog resolution supports restored equipment without a direct `node_id`;
+- valid image/layout/markers retained during background reconciliation and route transitions;
+- structural rendering independent from telemetry-history latency;
+- refrigeration route/detail reconciliation loops removed;
+- restored climate-chamber equipment resolves canonical channels without requiring a direct `node_id`;
+- production browser readiness uses concrete UI assertions instead of global `networkidle`;
 - no database migration, dependency upgrade, acquisition scheduler change, Device Agent configuration change, Modbus write, hardware write or site cutover occurred.
 
-## Exact-head verification
+## Verification
 
-Implementation head `145bf02210393269622d0422aeba3bcba8b7f361` is GREEN for all triggered workflows:
+Final state-reconciliation head `e474176fd129912d4c863824cec4ea08a0a474a7` was GREEN for every triggered workflow, including CI, Refrigeration Browser, Security Browser, Authenticated Dashboard, Offline Auth, Offline Bundle, Telemetry service, Disaster Recovery, fleet, capacity and supply-chain gates.
 
-- CI;
-- Refrigeration Browser Acceptance;
-- Security Browser Acceptance;
-- Authenticated Dashboard Acceptance;
-- Offline Auth Acceptance;
-- Offline Bundle;
-- Telemetry service;
-- Disaster Recovery Browser;
-- Disaster Recovery Domain Completeness;
-- Disaster Recovery TLS Fleet;
-- Container Supply Chain;
-- Device Agent Fleet Acceptance;
-- MQTT TLS Fleet Acceptance;
-- Broker Control Acceptance;
-- Capacity Release Gate;
-- Nodes Browser Acceptance;
-- Alerts Browser Acceptance;
-- Reports Browser Acceptance;
-- Rendered Reports Browser Acceptance.
-
-CI includes repository formatting, ESLint, strict TypeScript, Vitest and production build. Review-thread audit reports zero unresolved threads.
+Offline Bundle proved clean transferred-host startup with blocked egress and update/rollback persistent-data preservation. Review-thread audit reported zero unresolved threads. The final PR contained 16 focused files and no temporary helper workflow.
 
 ## Completion classification
-
-Software acceptance is complete. Real Raspberry Pi perceived-latency acceptance remains a separate physical evidence requirement:
 
 ```text
 software verified; Raspberry Pi perceived-latency acceptance pending
 ```
 
-This pending physical acceptance does not authorize a hardware-complete claim and does not permit Modbus writes, hardware writes or production/site cutover.
-
-## Merge state
-
-PR #364 is mergeable and ready for final state-only exact-head verification after this reconciliation commit. Merge is permitted only after the reconciliation head is GREEN and the final diff/review audit remains clean.
+Issue #357 is software-complete. The remaining Raspberry Pi perceived-latency retest is physical evidence only and must not be reported as hardware-complete until actually performed.
 
 ## Ordered queue
 
-1. **Issue #357 — software complete, merge pending:** finalize state reconciliation, GREEN exact-head audit, Ready transition and squash merge PR #364.
-2. **Issue #245 — Ready parallel runtime track:** standalone offline Raspberry Pi loopback operation; physical acceptance remains required.
-3. **Issue #257 — blocked:** ESLint 10 migration.
-4. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
+1. **Issue #245 — Ready parallel runtime track:** standalone offline Raspberry Pi loopback operation; physical acceptance remains required.
+2. **Issue #257 — blocked:** ESLint 10 migration.
+3. **Issue #256 — deferred:** TypeScript 7 native compiler transition.
 
-The next product-visible Work Package must be selected from current GitHub/Sprint state after #357 merges; do not infer a successor Issue from chat history alone.
+The next product-visible Work Package must be selected from the current open GitHub Issues and Sprint dependencies after this state-only checkpoint; do not infer a successor Issue from chat history alone.
 
 ## Security and hardware boundaries
 
@@ -79,4 +55,4 @@ Issue #355 remains `software verified; Raspberry Pi runtime latency acceptance p
 
 ## Next action
 
-Run exact-head verification for the state-reconciliation commit, audit PR #364 diff/mergeability/reviews, mark Ready, squash merge, verify `main`, close Issue #357 as software-complete, and retain Raspberry Pi perceived-latency acceptance as explicitly pending physical evidence.
+Merge this state-only post-merge checkpoint after GREEN verification, close Issue #357 as completed, preserve Raspberry Pi perceived-latency acceptance as pending physical evidence, then select the next Ready Work Package from repository-backed state.
