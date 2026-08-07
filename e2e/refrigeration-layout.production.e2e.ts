@@ -156,7 +156,7 @@ async function createEquipmentViaApi(
 
 async function openProductionEquipment(page: Page, equipment: EquipmentPayload, draftVersion: number) {
   await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
   });
   await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
   await expect(editor(page).getByText(`Чернетка v${draftVersion}`, { exact: true })).toBeVisible();
