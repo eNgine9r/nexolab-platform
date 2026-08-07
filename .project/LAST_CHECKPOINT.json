@@ -4,21 +4,19 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-374-RS485-SERIAL-EIO-RECOVERY",
-  "status": "implementation_complete_final_state_ci_pending",
-  "timestamp": "2026-08-07T13:18:00+03:00",
+  "status": "hardware_verified_final_evidence_ci_pending",
+  "timestamp": "2026-08-07T13:41:00+03:00",
   "branch": "bug/374-rs485-serial-eio-recovery",
   "base_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
   "issue": 374,
   "pull_request": 375,
-  "initial_implementation_head_sha": "2ca37ae0cb987d16322687def1ae5b57c0da8e73",
+  "verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
   "trigger": {
     "discovered_during_issue": 368,
     "raspberry_pi_observation": "telemetry stopped while central services and MQTT remained healthy",
-    "device_agent_status": "degraded",
     "serial_error": "termios.error: (5, 'Input/output error') at reset_input_buffer",
-    "last_sample_at": "2026-08-07T09:53:34.660958+00:00",
-    "postgres_history_max_id": 2327052,
-    "issue_368_guard_result": "migration-v2 aborted before meaningful acceptance because newest telemetry age exceeded 120 seconds",
+    "postgres_history_max_id_at_diagnosis": 2327052,
+    "issue_368_guard_result": "migration-v2 aborted before meaningful acceptance because newest telemetry age exceeded the freshness guard",
     "issue_368_rollback_schema": "20260805_0022"
   },
   "root_cause": {
@@ -32,9 +30,14 @@
     "no immediate reopen/retry loop for EIO",
     "next normal scheduler call reopens existing configured stable path/settings",
     "regression test for EIO before transmission, reopen and success",
-    "regression test for post-transmission io_error and close failure preservation"
+    "regression test for post-transmission io_error and close failure preservation",
+    "controlled Raspberry Pi acceptance using exact candidate image"
   ],
   "checks_actually_run": {
+    "verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
+    "github_checks_completed": 14,
+    "github_check_failures": 0,
+    "github_checks_in_progress": 0,
     "device_agent_compile": "green",
     "device_agent_tests": "green",
     "repository_formatting": "green",
@@ -44,19 +47,39 @@
     "production_build": "green",
     "device_agent_image_build": "green",
     "device_agent_supply_chain": "green",
-    "final_state_head_ci": "required after checkpoint commit"
+    "offline_bundle": "green_disconnected_startup_and_update_rollback",
+    "final_evidence_head_ci": "required after this hardware-evidence checkpoint"
   },
   "hardware_evidence": {
-    "software_fix_on_raspberry_pi": "not yet deployed",
-    "serial_recovery": "unverified",
+    "acceptance": "passed",
+    "exact_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
+    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+    "resolved_device": "ttyUSB1",
+    "device_agent_status": "ok",
+    "mqtt_connected": true,
+    "queue_depth": 0,
+    "samples_total_at_observation": 43,
+    "last_sample_at": "2026-08-07T10:40:08.526303+00:00",
+    "last_publish_at": "2026-08-07T10:40:08.940904+00:00",
+    "last_error": null,
+    "postgres_max_id_before": 2327052,
+    "postgres_max_id_after_first_10_seconds": 2327095,
+    "postgres_newest_age": "00:00:19.499133",
+    "degraded_endpoints": 0,
+    "cooldown_endpoints": 0,
+    "active_bus_workers": 1,
+    "communication_failures_total": 0,
+    "cooldown_entered_total": 0,
+    "recent_eio_error_warning_traceback_matches": 0,
     "modbus_write": "none",
-    "hardware_write": "none"
+    "hardware_write": "none",
+    "classification": "software verified; Raspberry Pi serial recovery hardware verified"
   },
   "blocked_work": {
-    "issue_368": "physical migration-v2/latest-query acceptance waits for fresh acquisition after #374",
+    "issue_368": "ready to resume immediately after #374 merge/closure; migration-v2/latest-query physical acceptance still pending",
     "issue_369": "waits for #368",
     "issue_366": "waits for #368/#369 runtime sequence",
     "issue_289": "downstream final validation"
   },
-  "next_action": "Run final exact-head CI after this state checkpoint. If GREEN and review/base audit is clean, merge PR #375 as the focused software recovery while leaving Issue #374 open for Raspberry Pi evidence. Then rebuild/recreate only Device Agent with existing hardware mapping, prove telemetry freshness and close #374 before resuming #368 migration-v2 acceptance."
+  "next_action": "Run final exact-head CI after this evidence checkpoint. If GREEN and review/base audit remains clean, mark PR #375 Ready, merge it, close #374 as completed, reconcile main, then resume #368 migration-v2/latest-query acceptance before #369/#366/#289."
 }
