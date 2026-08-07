@@ -66,7 +66,7 @@ def create_local_user_admin_router(
     service: LocalUserAdminService,
     dependencies: SecurityDependencies,
 ) -> APIRouter:
-    router = APIRouter(prefix="/api/v1/admin", tags=["local-user-admin"])
+    router = APIRouter(prefix="/admin", tags=["local-user-admin"])
 
     @router.get("/users")
     def list_users(
