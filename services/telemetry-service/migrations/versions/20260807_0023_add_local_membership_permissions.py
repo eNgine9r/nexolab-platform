@@ -144,34 +144,28 @@ def upgrade() -> None:
         ["permission"],
     )
 
-    bind = op.get_bind()
-    permission_table = sa.table(
-        "security_membership_permissions",
-        sa.column("membership_id", sa.String(length=36)),
-        sa.column("permission", sa.String(length=128)),
-        sa.column("assigned_by", sa.String(length=255)),
+    # Keep the backfill renderable by `alembic upgrade head --sql`: no database
+    # reads are performed while the migration script itself is being generated.
+    grants = [
+        (role, permission)
+        for role, permissions in _ROLE_PERMISSIONS.items()
+        for permission in permissions
+    ]
+    values_sql = ",\n        ".join(
+        f"('{role}', '{permission}')" for role, permission in grants
     )
-    role_rows = bind.execute(
+    op.execute(
         sa.text(
-            "SELECT membership_id, role "
-            "FROM security_membership_roles "
-            "ORDER BY membership_id, role"
+            "INSERT INTO security_membership_permissions "
+            "(membership_id, permission, assigned_by)\n"
+            "SELECT roles.membership_id, grants.permission, "
+            f"'{_MIGRATION_ACTOR}'\n"
+            "FROM security_membership_roles AS roles\n"
+            f"JOIN (VALUES\n        {values_sql}\n"
+            ") AS grants(role, permission) ON grants.role = roles.role\n"
+            "ON CONFLICT (membership_id, permission) DO NOTHING"
         )
-    ).fetchall()
-    seen: set[tuple[str, str]] = set()
-    for membership_id, role in role_rows:
-        for permission in _ROLE_PERMISSIONS.get(role, ()):
-            key = (membership_id, permission)
-            if key in seen:
-                continue
-            seen.add(key)
-            bind.execute(
-                permission_table.insert().values(
-                    membership_id=membership_id,
-                    permission=permission,
-                    assigned_by=_MIGRATION_ACTOR,
-                )
-            )
+    )
 
 
 def downgrade() -> None:
