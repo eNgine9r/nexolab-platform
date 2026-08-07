@@ -2,61 +2,73 @@
 
 Updated: 2026-08-07
 
-## Issue #374 — resolved
+## Issue #378 — active critical blocker for physical acceptance
 
-Issue #374 / PR #375 is complete.
+Issue #378 / PR #380 is the active Work Package after long-duration Raspberry Pi evidence proved that the merged #374 serial-handle invalidation is not sufficient across real CP2104 USB disconnect/re-enumeration.
 
-Final merge:
-
-```text
-verified final head: 956df254a904c49e6a265101ab2fe0f959e3fbf3
-squash merge: 442cd6bc37aefc11977f82f31423d052fe70ced1
-final CI: 14 completed, 0 failures, 0 in-progress
-```
-
-Controlled Raspberry Pi serial-session recovery passed:
+Observed runtime sequence:
 
 ```text
-PostgreSQL max(id): 2327052 -> 2327095 in first 10 seconds
-newest telemetry age: 00:00:19.499133
-Device Agent status: ok
+Device Agent image: nexolab-device-agent:issue-374
+container: running / healthy
 mqtt_connected: true
-last_error: null
-degraded_endpoints: 0
-cooldown_endpoints: 0
-active_bus_workers: 1
-communication_failures_total: 0
-cooldown_entered_total: 0
-recent EIO/ERROR/WARNING/Traceback matches: 0
+last_sample_at: 2026-08-07T10:55:00.478390+00:00
+PostgreSQL max(id): 2329963
+newest telemetry age at diagnosis: ~1h10m
+
+13:55:00+03 CP2104 disconnects from ttyUSB1
+13:55:01+03 same serial re-enumerates on ttyUSB0
 ```
 
-The poisoned cached serial-session runtime blocker is no longer active. This evidence does not claim that every future physical USB/TTY EIO cause is eliminated; it proves the Device Agent recovered correctly from the observed failure mode.
+The host stable path correctly moved to the new `ttyUSB0` target, but the already-created container remained bound to the stale `/dev/rs485` device mapping and subsequent reads repeatedly failed with `termios.error: (5, 'Input/output error')`.
 
-## Issue #368 — no longer blocked by acquisition freshness
+Repository diagnosis:
 
-Issue #368 remains open `status:in-progress`. PR #373 latest-projection software was previously verified on `cb082621f8b5e4cedf44534f3b5256fb2817d55a` with 26 completed checks, zero failures and zero in-progress checks.
+- #374 correctly invalidates the cached pyserial handle;
+- `compose.hardware.yaml` previously injected `${RS485_HOST_DEVICE}:/dev/rs485` through Docker `devices:`;
+- that mapping is fixed when the container is created and does not follow a later by-id symlink target/minor change;
+- therefore reopening `/dev/rs485` after #374 still reopens the stale container device node.
 
-The previous Raspberry Pi migration-v2 attempt was rejected by its freshness precondition because #374 had already stopped telemetry. Automatic rollback preserved:
+PR #380 replaces that runtime boundary with a read-only host `/dev` view at `/host/dev`, exact `SERIAL_DEVICE=/host${RS485_HOST_DEVICE}`, and a bounded `c 188:* rwm` cgroup rule for the current CP210x `ttyUSB` class. No `privileged: true`, scheduler change or Device Agent Python change is included.
+
+Deterministic Docker Compose contract validation passed on implementation head `1fe7d2b1051293ce55062159b03d3828684cd6bc`. Final exact-head CI is required after the project-state checkpoint.
+
+Completion requires controlled Raspberry Pi evidence where the exact candidate is installed once, the Device Agent container ID is recorded, the same CP2104 adapter is unplugged/replugged, and telemetry resumes without restarting/recreating the container.
+
+## Issue #374 — reopened regression parent
+
+Issue #374 / PR #375 remains a valid merged software slice for cached serial-handle invalidation, but the previous short hardware acceptance is invalidated as a completion criterion by the later re-enumeration failure.
+
+Issue #374 is reopened and `status:blocked` on focused child #378. Do not create a second implementation PR under #374.
+
+## Issue #368 — blocked by acquisition stability
+
+Issue #368 / PR #373 is software-GREEN on reconciled head:
+
+```text
+36ccb909ca3754cc395468382bed2da93743ee24
+26 completed checks
+0 failures
+0 in-progress
+0 queued
+```
+
+Physical migration-v2/latest-query acceptance is blocked until #378 restores reliable telemetry across USB re-enumeration. The Raspberry Pi database remains safe:
 
 ```text
 Alembic: 20260805_0022
 telemetry_latest: absent
 history: preserved
 named volumes: preserved
+advisory locks: none
 ```
 
-Acquisition freshness is now hardware verified. No product/runtime blocker prevents resuming #368.
-
-Required sequencing before physical acceptance:
-
-1. reconcile PR #373 branch with current `main` (`442cd6bc37aefc11977f82f31423d052fe70ced1`);
-2. obtain fresh exact-head GREEN CI;
-3. rerun the controlled Raspberry Pi migration-v2/latest-query acceptance against the long-running database.
-
-Do not accept the old pre-#374 PR head as a post-merge candidate without this reconciliation.
+Do not run #368 migration-v2 while telemetry freshness is stale.
 
 ## Sequencing blockers
 
+- #374 regression record waits for #378 physical hotplug PASS.
+- #368 waits for #378 physical hotplug PASS.
 - #369 waits for #368 physical migration/latest-query acceptance.
 - #366 waits for the #368 -> #369 runtime acceptance sequence.
 - #289 remains the downstream final acquisition/route-latency/hardware matrix after #366.
@@ -70,4 +82,4 @@ The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **20
 
 ## Global hard-stop rules
 
-Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, or unsupported physical acceptance claims.
+Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, privileged hardware containers, or unsupported physical acceptance claims.
