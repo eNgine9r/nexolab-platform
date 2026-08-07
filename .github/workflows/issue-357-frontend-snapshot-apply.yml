@@ -1,5 +1,6 @@
 name: Issue 357 Frontend Snapshot Apply
 
+# Retriggered after a GitHub Actions service outage; this workflow self-deletes after applying the focused hydration patch.
 on:
   push:
     branches:
