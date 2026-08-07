@@ -1,51 +1,31 @@
 # NEXOLAB Current State
 
 Updated: 2026-08-07
-Verified repository baseline on `main`: `1c10f86a57dbeea9b2d410888d57d8b19a2288ab`
-Active Work Package: Issue #378 / PR #380 — recover RS-485 after USB re-enumeration without recreating Device Agent
-Next blocked Work Package: Issue #368 / PR #373 — telemetry latest projection Raspberry Pi acceptance
+Verified repository baseline on `main`: `6645af46a198ff454142df3b0a713984f4d71196`
+Active Work Package: Issue #368 / PR #373 — telemetry latest projection Raspberry Pi migration-v2/latest-query acceptance
+Completed recovery Work Package: Issue #378 / PR #380 — RS-485 USB re-enumeration recovery
+Resolved regression parent: Issue #374 / PR #375
 Active product epic: Issue #356 — eliminate visible loading across monitoring routes
 Parallel acquisition/hardware epic: Issue #282
 
-## Issue #378 / PR #380 — hardware verified, final CI pending
+## Issue #378 / PR #380 — completed and hardware verified
 
-PR #380 contains both required recovery layers:
+PR #380 was squash-merged into `main` as `6645af46a198ff454142df3b0a713984f4d71196` after final exact-head `5635df201a6cbd59227a8ebe181c44fa5167f67c` completed 14 GitHub checks with 0 failures and 0 in-progress.
 
-- remove static `${RS485_HOST_DEVICE}:/dev/rs485` injection;
-- mount host `/dev` read-only at `/host/dev`;
-- set `SERIAL_DEVICE=/host${RS485_HOST_DEVICE}`;
-- allow only Linux `ttyUSB` character major `188` through `device_cgroup_rules`;
-- retain exact `/dev/serial/by-id/...` identity;
-- catch `(OSError, termios.error)` at the serial transport boundary;
-- invalidate/best-effort close the cached handle while preserving the original exception;
+The merged recovery includes:
+
+- live read-only host `/dev` visibility at `/host/dev` instead of static Docker device-node injection;
+- exact `/dev/serial/by-id/...` identity across changing `ttyUSB` minors;
+- bounded `c 188:* rwm` cgroup permission with no privileged container;
+- `(OSError, termios.error)` transport-failure handling;
+- failed cached serial-handle invalidation and best-effort close while preserving the original exception;
 - reopen only on the next normal scheduler attempt;
-- preserve FC03 read-only behavior, scheduler cadence and one-worker-per-bus;
-- no privileged container.
+- preserved FC03 read-only behavior, scheduler cadence and one serialized worker per bus.
 
-Software CI on exact pre-hardware candidate `c2cf1ce4939c77f138daac2841f39651afd4bcba` completed GREEN with 14 checks, 0 failures and 0 in-progress, including Quality/build and Offline Bundle.
-
-### Raspberry Pi physical acceptance — PASS
-
-Phase 1 proved fresh real acquisition before hotplug:
+Controlled Raspberry Pi hardware acceptance passed:
 
 ```text
-candidate: c2cf1ce4939c77f138daac2841f39651afd4bcba
-container: 9f03df0e798e
-restart_count: 0
-PostgreSQL max(id): 2331346 -> 2331419
-newest_age: ~18 s
-Device Agent status: ok
-mqtt_connected: true
-last_error: none
-degraded_endpoints: 0
-cooldown_endpoints: 0
-```
-
-Phase 2 performed a controlled unplug/replug of the same CP2104 `0133F090` without restarting or recreating Device Agent:
-
-```text
-container_before: 9f03df0e798e
-container_after: 9f03df0e798e
+container before/after: 9f03df0e798e
 started_at before/after: unchanged
 restart_count: 0 -> 0
 stable by-id path disappeared: yes
@@ -58,15 +38,15 @@ final observed max(id): 2332624
 newest_age after recovery: ~18-21 s
 ```
 
-Transient `termios.error` and ENOENT warnings occurred only while the physical adapter/path was absent. Acquisition recovered automatically after re-enumeration on the same running container. This satisfies the hardware acceptance boundary for #378.
+Transient EIO/ENOENT warnings occurred only while the adapter/path was physically absent. Acquisition recovered automatically on the same running Device Agent.
 
-## Issue #374 regression status
+## Issue #374 regression status — resolved
 
-Issue #374 / PR #375 remains the merged first serial-session invalidation slice. Its long-duration USB re-enumeration regression is now physically resolved by child Issue #378. Keep #374 open only until PR #380 merges and post-merge state reconciliation confirms the fix in `main`; then close #374 as completed regression parent.
+Issue #374 / PR #375 remains the merged first serial-session invalidation slice. The later long-duration USB re-enumeration regression exposed during #368 acceptance is now resolved by merged #378 and its physical hardware evidence. Issue #374 can be closed as completed regression parent after this state-only reconciliation is merged.
 
-## Issue #368 status
+## Active Issue #368 / PR #373
 
-Issue #368 remains software-GREEN on reconciled head:
+Issue #368 remains software-GREEN on its previously reconciled head:
 
 ```text
 36ccb909ca3754cc395468382bed2da93743ee24
@@ -76,7 +56,9 @@ Issue #368 remains software-GREEN on reconciled head:
 0 queued
 ```
 
-The Raspberry Pi database remains safe:
+Because `main` now contains #378, PR #373 must first be reconciled with current `main` and rerun full exact-head CI before any physical migration is attempted.
+
+The Raspberry Pi database remains safe before migration-v2:
 
 ```text
 Alembic: 20260805_0022
@@ -86,19 +68,25 @@ named volumes: preserved
 advisory locks: none
 ```
 
-#368 is now blocked only by final #378 merge/post-merge reconciliation. Do not run migration-v2 until #378 is merged into `main` and the canonical Device Agent recovery state is reconciled.
+The corrected #368 physical gate remains:
+
+- fresh PostgreSQL backup;
+- acquisition freshness proven before migration;
+- migration-v2 backfill without long exclusive advisory lock;
+- ingestion continuity during backfill;
+- final bounded delta catch-up;
+- candidate Telemetry Service startup;
+- projection cardinality validation;
+- latest-query p95 and query-plan verification;
+- no polling changes and no destructive operations.
 
 ## Execution sequence
 
 ```text
-#378 hardware PASS
-  -> final hardware-result state checkpoint
-  -> exact-head CI GREEN
-  -> final focused review/base audit
-  -> mark PR #380 Ready and squash merge
-  -> post-merge state reconciliation
-  -> close #378 and resolve #374 regression parent
-  -> resume #368 migration-v2/latest-query physical acceptance
+post-#378 state reconciliation
+  -> reconcile PR #373 with current main
+  -> full exact-head #368 CI
+  -> controlled Raspberry Pi migration-v2/latest-query acceptance
   -> #369 actual Raspberry Pi Live Dashboard browser inventory acceptance
   -> #366 cross-route read-model deduplication
   -> #289 final acquisition/route-latency/hardware matrix
@@ -108,8 +96,8 @@ Issue #245 remains a separate standalone Raspberry Pi validation track. Issues #
 
 ## Safety boundary
 
-No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure was performed during #378 acceptance.
+No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure is part of this state-only reconciliation.
 
 ## Next action
 
-Freeze PR #380 branch after this hardware-result state checkpoint. Require exact-head CI GREEN on the resulting branch head, then perform final focused diff/review/base audit and merge only if GREEN. After merge, reconcile project state and resume #368.
+Run proportional exact-head CI and focused review/base audit for state-only Issue #381. If GREEN, merge it, close #374 as completed regression parent, then reconcile PR #373 with current `main` and resume Issue #368 acceptance.
