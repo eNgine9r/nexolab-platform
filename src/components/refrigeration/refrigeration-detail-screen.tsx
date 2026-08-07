@@ -222,7 +222,7 @@ export function RefrigerationDetailScreen({
       })
       .catch((cause) => {
         if (!active) return;
-        if (bindingSensors === null) setBindingSensors([]);
+        setBindingSensors((current) => current ?? []);
         setChannelError(
           cause instanceof Error ? cause.message : "Не вдалося оновити структурний snapshot обладнання.",
         );
@@ -230,7 +230,7 @@ export function RefrigerationDetailScreen({
     return () => {
       active = false;
     };
-  }, [bindingEpoch, bindingSensors, equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
+  }, [bindingEpoch, equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
 
   const equipment = useMemo(
     () => (bindingSensors === null ? equipmentRecord : { ...equipmentRecord, sensors: bindingSensors }),
