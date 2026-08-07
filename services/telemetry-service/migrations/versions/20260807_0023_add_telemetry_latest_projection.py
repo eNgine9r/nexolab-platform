@@ -18,6 +18,8 @@ down_revision: str | None = "20260805_0022"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+TELEMETRY_HISTORY_ADVISORY_LOCK_ID = 263_000_001
+
 
 def upgrade() -> None:
     op.create_table(
@@ -62,6 +64,10 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
+        bind.execute(
+            sa.text("SELECT pg_advisory_xact_lock(:lock_id)"),
+            {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+        )
         op.execute(
             sa.text(
                 """
