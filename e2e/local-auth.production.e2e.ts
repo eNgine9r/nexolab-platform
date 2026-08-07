@@ -138,7 +138,7 @@ test("administrator creates a four-role user with explicit permissions and non-a
     await createPanel.getByLabel("Логін").fill(username);
     await createPanel.getByLabel("Ім’я").fill("Issue 385 Engineer");
     await createPanel.getByLabel("Початковий пароль").fill(password);
-    await createPanel.getByLabel("Роль").selectOption("engineer");
+    await createPanel.getByLabel("Роль", { exact: true }).selectOption("engineer");
     await createPanel.getByRole("checkbox", { name: /Огляд/ }).check();
     await createPanel.getByRole("checkbox", { name: /Перегляд телеметрії/ }).check();
     await createPanel.getByRole("button", { name: "Створити" }).click();
