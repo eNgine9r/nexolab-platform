@@ -18,10 +18,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
-from app.security.authorization import Role
+from app.security.authorization import Permission, Role
 
 
 _ROLE_VALUES = ", ".join(f"'{role.value}'" for role in Role)
+_PERMISSION_VALUES = ", ".join(f"'{permission.value}'" for permission in Permission)
 
 
 class SecurityOrganization(Base):
@@ -132,6 +133,32 @@ class SecurityMembershipRole(Base):
         primary_key=True,
     )
     role: Mapped[str] = mapped_column(String(64), primary_key=True)
+    assigned_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class SecurityMembershipPermission(Base):
+    __tablename__ = "security_membership_permissions"
+    __table_args__ = (
+        CheckConstraint(
+            f"permission IN ({_PERMISSION_VALUES})",
+            name="ck_security_membership_permission_known",
+        ),
+        Index("ix_security_membership_permissions_permission", "permission"),
+    )
+
+    membership_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organization_memberships.id",
+            name="fk_security_membership_permission_membership",
+            ondelete="CASCADE",
+        ),
+        primary_key=True,
+    )
+    permission: Mapped[str] = mapped_column(String(128), primary_key=True)
     assigned_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
