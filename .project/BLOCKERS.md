@@ -4,7 +4,7 @@ Updated: 2026-08-07
 
 ## Issue #357 software completion
 
-Issue #357 / PR #364 has completed software implementation and exact-head verification on `145bf02210393269622d0422aeba3bcba8b7f361`.
+Issue #357 / PR #364 is squash-merged into `main` as `f837cae493e9903b0123c8b1ba7ff3c7401eacfc`.
 
 Verified outcome:
 
@@ -16,7 +16,7 @@ Verified outcome:
 - structural rendering no longer waits on telemetry-history latency;
 - refrigeration hydration and detail reconciliation loops removed;
 - canonical restored-equipment path no longer requires a direct `node_id`;
-- CI, browser, security, telemetry, offline, disaster-recovery, fleet and supply-chain workflows are GREEN;
+- all exact-head CI, browser, telemetry, security, fleet, disaster-recovery, Offline Auth and Offline Bundle workflows GREEN;
 - unresolved review threads: 0;
 - no dependency upgrade, database migration, acquisition scheduler change, Device Agent configuration change, Modbus write, hardware write or site cutover occurred.
 
@@ -24,13 +24,13 @@ No software blocker remains for Issue #357.
 
 ## Remaining physical acceptance
 
-Issue #357 must retain the completion classification:
+Issue #357 retains the truthful completion classification:
 
 ```text
 software verified; Raspberry Pi perceived-latency acceptance pending
 ```
 
-The remaining Raspberry Pi check is physical evidence, not a software merge blocker. Hardware completion must not be claimed until the controlled LOCAL_LAN Raspberry Pi retest measures cold/warm perceived latency and confirms the absence of the historical blank-marker interval on the real substrate image/database.
+The remaining Raspberry Pi check is physical evidence, not a software blocker. Hardware completion must not be claimed until the controlled LOCAL_LAN Raspberry Pi retest measures cold/warm perceived latency and confirms the absence of the historical blank-marker interval on the real substrate image/database.
 
 ## Parallel runtime and hardware boundary
 
