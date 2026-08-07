@@ -18,6 +18,8 @@ Cold and warm navigation acceptance must record endpoint request counts. Concurr
 
 Production browser readiness is proven with concrete equipment-heading and layout-revision assertions after DOM content is loaded. The acceptance flow does not wait for global network idleness because bounded background reconciliation may keep legitimate requests active.
 
+The equipment route starts one reconciliation cycle per equipment identity and stable repository instance. Mutable equipment state is not an effect dependency, preventing successful snapshot responses from recursively restarting hydration and access checks.
+
 The structural client and its focused tests are formatted with the repository-pinned Prettier version before the final software gate is evaluated. Background reconciliation avoids capturing the complete mutable equipment record, preventing unnecessary effect restarts while retaining the current valid snapshot. Runtime fixtures explicitly model the optional structural repository, and route hydration uses a typed nullable snapshot promise rather than property-shape detection.
 
 Software verification must include formatting, Python tests, frontend tests, TypeScript checks, production build, Refrigeration Browser Acceptance, Offline Auth and Offline Bundle. Raspberry Pi perceived-latency acceptance remains a separate physical check.
