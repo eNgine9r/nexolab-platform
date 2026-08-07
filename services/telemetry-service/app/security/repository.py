@@ -10,10 +10,17 @@ from sqlalchemy.orm import Session
 
 from app.db import Database
 from app.security.authentication import VerifiedIdentityClaims
-from app.security.authorization import AuthenticatedPrincipal, Role
+from app.security.authorization import (
+    AuthenticatedPrincipal,
+    Permission,
+    Role,
+    effective_permissions,
+    effective_permissions_from_grants,
+)
 from app.security.models import (
     SecurityAuditEvent,
     SecurityIdentity,
+    SecurityMembershipPermission,
     SecurityMembershipRole,
     SecurityOrganization,
     SecurityOrganizationMembership,
@@ -38,6 +45,16 @@ class MembershipSummary:
     organization_slug: str
     organization_name: str
     roles: frozenset[Role]
+    granted_permissions: frozenset[Permission] | None = None
+
+    @property
+    def permissions(self) -> frozenset[Permission]:
+        if self.granted_permissions is None:
+            return effective_permissions(self.roles)
+        return effective_permissions_from_grants(
+            self.roles,
+            self.granted_permissions,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,9 +185,21 @@ class SecurityRepository:
                     )
                 ).all()
                 before_roles = sorted(assignment.role for assignment in existing_roles)
+                existing_permissions = session.scalars(
+                    select(SecurityMembershipPermission).where(
+                        SecurityMembershipPermission.membership_id == membership.id
+                    )
+                ).all()
+                before_permissions = sorted(
+                    assignment.permission for assignment in existing_permissions
+                )
+
                 for assignment in existing_roles:
                     session.delete(assignment)
+                for assignment in existing_permissions:
+                    session.delete(assignment)
                 session.flush()
+
                 session.add_all(
                     SecurityMembershipRole(
                         membership_id=membership.id,
@@ -180,6 +209,25 @@ class SecurityRepository:
                     )
                     for role in sorted(resolved_roles, key=lambda item: item.value)
                 )
+
+                # This pre-#385 membership API keeps its historical role bundles
+                # by materializing them as explicit grants. New local users are
+                # created through the dedicated admin service and receive only
+                # administrator-selected grants.
+                compatibility_permissions = effective_permissions(resolved_roles)
+                if Role.ADMINISTRATOR not in resolved_roles:
+                    session.add_all(
+                        SecurityMembershipPermission(
+                            membership_id=membership.id,
+                            permission=permission.value,
+                            assigned_by=assigned_by or "legacy-membership-provisioning",
+                            assigned_at=now,
+                        )
+                        for permission in sorted(
+                            compatibility_permissions,
+                            key=lambda item: item.value,
+                        )
+                    )
                 session.flush()
 
                 if audit_event is not None:
@@ -193,6 +241,7 @@ class SecurityRepository:
                                 "provider": identity.provider,
                                 "subject": identity.subject,
                                 "roles": before_roles,
+                                "permissions": before_permissions,
                             },
                             after_snapshot={
                                 "organization_id": organization_id,
@@ -202,6 +251,13 @@ class SecurityRepository:
                                 "email": identity.email,
                                 "display_name": identity.display_name,
                                 "roles": sorted(role.value for role in resolved_roles),
+                                "permissions": sorted(
+                                    permission.value
+                                    for permission in compatibility_permissions
+                                    if permission != Permission.MANAGE_MEMBERSHIPS
+                                    and permission
+                                    != Permission.MANAGE_PROJECT_VERSIONS
+                                ),
                                 "is_active": membership.is_active,
                             },
                         ),
@@ -255,6 +311,7 @@ class SecurityRepository:
                 email=security_session.email,
                 display_name=security_session.display_name,
                 provider=security_session.provider,
+                granted_permissions=membership.granted_permissions,
             ),
         )
 
@@ -370,12 +427,21 @@ class SecurityRepository:
             roles = frozenset(Role(role) for role in assigned_roles)
             if not roles:
                 continue
+            assigned_permissions = session.scalars(
+                select(SecurityMembershipPermission.permission).where(
+                    SecurityMembershipPermission.membership_id == membership_id
+                )
+            ).all()
+            permissions = frozenset(
+                Permission(permission) for permission in assigned_permissions
+            )
             result.append(
                 MembershipSummary(
                     organization_id=organization_id,
                     organization_slug=slug,
                     organization_name=name,
                     roles=roles,
+                    granted_permissions=permissions,
                 )
             )
         return tuple(result)
