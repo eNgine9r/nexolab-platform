@@ -102,10 +102,7 @@ describe("HttpRefrigerationStructuralSnapshotRepository", () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
 
-    const [first, second] = await Promise.all([
-      repository.get(equipmentId),
-      repository.get(equipmentId),
-    ]);
+    const [first, second] = await Promise.all([repository.get(equipmentId), repository.get(equipmentId)]);
 
     expect(fetchImpl).toHaveBeenCalledOnce();
     expect(first).toEqual(second);

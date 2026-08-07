@@ -44,9 +44,7 @@ const STALE_TTL_MS = 5 * 60_000;
 const MAX_ENTRIES = 32;
 const caches = new Map<string, ScopeCache>();
 
-export class HttpRefrigerationStructuralSnapshotRepository
-  implements RefrigerationStructuralSnapshotRepository
-{
+export class HttpRefrigerationStructuralSnapshotRepository implements RefrigerationStructuralSnapshotRepository {
   private readonly apiBaseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly scope: string;
@@ -220,7 +218,16 @@ function parseImage(value: unknown): EquipmentImageMetadata {
   const sizeBytes = readInteger(record?.size_bytes);
   const sourceUrl = readString(record?.content_url);
   const updatedAt = readString(record?.created_at);
-  if (!id || !fileName || !mimeType || widthPx === null || heightPx === null || sizeBytes === null || !sourceUrl || !updatedAt) {
+  if (
+    !id ||
+    !fileName ||
+    !mimeType ||
+    widthPx === null ||
+    heightPx === null ||
+    sizeBytes === null ||
+    !sourceUrl ||
+    !updatedAt
+  ) {
     throw invalidResponse();
   }
   if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") {
