@@ -31,15 +31,10 @@ jobs:
 
           users_path = Path("src/components/settings/users-screen.tsx")
           users = users_path.read_text()
-          old = '''  useEffect(() => {
-            if (security.state === "ready" && canManageUsers && client) {
-              void refresh();
-            }
-            // refresh intentionally depends on the resolved security/client boundary only.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-          }, [security.state, canManageUsers, client]);
-          '''
-          new = '''  useEffect(() => {
+
+          first_start = users.index('  useEffect(() => {\n    if (security.state === "ready"')
+          first_end = users.index('  const selectedUser =', first_start)
+          first_replacement = '''  useEffect(() => {
             if (security.state !== "ready" || !canManageUsers || !client) return;
             const timeoutId = window.setTimeout(() => {
               void refresh();
@@ -48,21 +43,13 @@ jobs:
             // refresh intentionally depends on the resolved security/client boundary only.
             // eslint-disable-next-line react-hooks/exhaustive-deps
           }, [security.state, canManageUsers, client]);
-          '''
-          if old not in users:
-              raise SystemExit("initial refresh effect pattern not found")
-          users = users.replace(old, new, 1)
 
-          old = '''  useEffect(() => {
-            if (!selectedUser) return;
-            setSelectedRole(selectedUser.role ?? "laboratory_technician");
-            setSelectedPermissions(selectedUser.grantedPermissions);
-            setResetPassword("");
-            setNotice(null);
-            setError(null);
-          }, [selectedUser]);
           '''
-          new = '''  useEffect(() => {
+          users = users[:first_start] + first_replacement + users[first_end:]
+
+          second_start = users.index('  useEffect(() => {\n    if (!selectedUser) return;', first_start)
+          second_end = users.index('  const filteredUsers =', second_start)
+          second_replacement = '''  useEffect(() => {
             if (!selectedUser) return;
             const timeoutId = window.setTimeout(() => {
               setSelectedRole(selectedUser.role ?? "laboratory_technician");
@@ -73,10 +60,9 @@ jobs:
             }, 0);
             return () => window.clearTimeout(timeoutId);
           }, [selectedUser]);
+
           '''
-          if old not in users:
-              raise SystemExit("selected user effect pattern not found")
-          users_path.write_text(users.replace(old, new, 1))
+          users_path.write_text(users[:second_start] + second_replacement + users[second_end:])
 
           settings_path = Path("src/components/settings/settings-workspace.tsx")
           settings = settings_path.read_text()
