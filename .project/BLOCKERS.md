@@ -1,61 +1,40 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-06
+Updated: 2026-08-07
 
-## Issue #255 completed
+## Issue #357 software completion
 
-Issue #255 / PR #362 is merged and closed.
+Issue #357 / PR #364 has completed software implementation and exact-head verification on `145bf02210393269622d0422aeba3bcba8b7f361`.
 
 Verified outcome:
 
-- merge SHA: `a3c7ced8d499d02d4f77ff14e2260499c58fb472`;
-- final verified head: `945e04a464d7229d76bdd80abb396d5b1d6c5991`;
-- TypeScript resolves from `5.9.3` to `6.0.3`;
-- `tsc --noEmit` was GREEN before and after the migration;
-- new TypeScript 6 diagnostics: `0`;
-- deterministic lockfile movement is limited to the root entry and `node_modules/typescript`;
-- `tsconfig.json`, application source, tests, Playwright configs and Vitest config are unchanged;
-- all 11 exact-head CI, browser, Offline Auth and Offline Bundle workflows were GREEN;
-- Offline Bundle proved disconnected startup and update/rollback persistent-data preservation;
-- production dependencies and runtime closure are unchanged;
-- no database, acquisition, scheduler, hardware, Modbus or production/site action occurred.
+- bounded equipment-scoped structural snapshot implemented;
+- canonical climate-chamber channels included independently of current telemetry samples;
+- configured no-sample channels remain visible with explicit `unknown`/`stale` state;
+- bounded organization-scoped SWR cache, concurrent request deduplication and equipment-targeted invalidation implemented;
+- valid canvas/markers retained during reconciliation and route transitions;
+- structural rendering no longer waits on telemetry-history latency;
+- refrigeration hydration and detail reconciliation loops removed;
+- canonical restored-equipment path no longer requires a direct `node_id`;
+- CI, browser, security, telemetry, offline, disaster-recovery, fleet and supply-chain workflows are GREEN;
+- unresolved review threads: 0;
+- no dependency upgrade, database migration, acquisition scheduler change, Device Agent configuration change, Modbus write, hardware write or site cutover occurred.
 
-No Issue #255 software blocker remains.
+No software blocker remains for Issue #357.
 
-## Active Work Package boundary: Issue #357
+## Remaining physical acceptance
 
-Issue #357 is the sole selected active package.
-
-Required outcome:
-
-- return refrigeration equipment identity, active image metadata, layout revision, placements, active bindings and canonical channel metadata as one bounded structural snapshot;
-- retain the last valid organization/equipment-scoped snapshot across route transitions;
-- use stale-while-revalidate without clearing image, placements or markers;
-- deduplicate concurrent equivalent reads and invalidate only the affected equipment after mutations;
-- render configured channels without current telemetry using explicit unknown/stale state;
-- keep structural rendering independent from latest telemetry latency;
-- measure cold and warm route hydration and duplicate request count;
-- preserve image lifecycle, layout editing, optimistic concurrency, binding lifecycle and physical polling boundaries.
-
-Until real Raspberry Pi evidence is attached, completion must remain:
+Issue #357 must retain the completion classification:
 
 ```text
 software verified; Raspberry Pi perceived-latency acceptance pending
 ```
 
-Hard boundaries:
-
-- no visual redesign;
-- no dependency upgrades;
-- no cloud or CDN image delivery;
-- no telemetry-history requirement before marker rendering;
-- no acquisition scheduler or physical polling change;
-- no destructive database or image operation;
-- no Modbus write, hardware action or production/site cutover.
+The remaining Raspberry Pi check is physical evidence, not a software merge blocker. Hardware completion must not be claimed until the controlled LOCAL_LAN Raspberry Pi retest measures cold/warm perceived latency and confirms the absence of the historical blank-marker interval on the real substrate image/database.
 
 ## Parallel runtime and hardware boundary
 
-Issue #245 remains Ready on the parallel standalone Raspberry Pi runtime track, but it is not selected ahead of the critical product-visible Issue #357. Actual loopback-only Raspberry Pi acceptance remains mandatory before hardware completion can be claimed.
+Issue #245 remains Ready on the parallel standalone Raspberry Pi runtime track. Actual loopback-only Raspberry Pi acceptance remains mandatory before hardware completion can be claimed.
 
 Issue #355 remains:
 
