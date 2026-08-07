@@ -9,6 +9,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { RefrigerationDetailScreen } from "@/components/refrigeration/refrigeration-detail-screen";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 
 export function RefrigerationEquipmentRoute({
   equipmentId,
@@ -19,26 +20,32 @@ export function RefrigerationEquipmentRoute({
 }) {
   const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
   const [equipment, setEquipment] = useState<RefrigerationEquipment | null>(initialEquipment);
+  const [snapshot, setSnapshot] = useState<RefrigerationStructuralSnapshot | null>(null);
   const [loading, setLoading] = useState(
     runtime.repository !== null && (runtime.mode === "live" || initialEquipment === null),
   );
   const [error, setError] = useState<string | null>(runtime.error);
 
   useEffect(() => {
+    const structural = runtime.structuralSnapshotRepository;
     const repository = runtime.repository;
-    if (!repository) return;
+    if (!structural && !repository) return;
 
     let active = true;
-    void repository
-      .get(equipmentId)
-      .then((loaded) => {
+    const snapshotRequest: Promise<RefrigerationStructuralSnapshot | null> = structural
+      ? structural.get(equipmentId)
+      : Promise.resolve(null);
+    const equipmentRequest = repository?.get(equipmentId) ?? Promise.resolve(null);
+
+    void Promise.all([equipmentRequest, snapshotRequest])
+      .then(([loadedEquipment, loadedSnapshot]) => {
         if (!active) return;
-        setEquipment(loaded);
+        setEquipment(loadedSnapshot?.equipment ?? loadedEquipment);
+        if (loadedSnapshot) setSnapshot(loadedSnapshot);
         setError(null);
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        setEquipment(null);
         setError(reason instanceof Error ? reason.message : "Обладнання не знайдено.");
       })
       .finally(() => {
@@ -47,9 +54,11 @@ export function RefrigerationEquipmentRoute({
     return () => {
       active = false;
     };
-  }, [equipmentId, runtime.repository]);
+  }, [equipmentId, runtime.repository, runtime.structuralSnapshotRepository]);
 
-  if (equipment) return <RefrigerationDetailScreen equipment={equipment} />;
+  if (equipment) {
+    return <RefrigerationDetailScreen equipment={equipment} initialSnapshot={snapshot} />;
+  }
 
   return <EquipmentRouteState loading={loading} error={error} />;
 }
