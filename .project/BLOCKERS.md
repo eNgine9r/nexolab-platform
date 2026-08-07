@@ -2,61 +2,38 @@
 
 Updated: 2026-08-07
 
-## Issue #378 — active critical blocker for physical acceptance
+## Issue #378 — hardware verified; merge gate only
 
-Issue #378 / PR #380 remains the single active Work Package. The first controlled Raspberry Pi hotplug acceptance proved the new Compose path is visible across CP2104 re-enumeration, but telemetry still failed to resume.
+Issue #378 / PR #380 passed controlled Raspberry Pi hotplug acceptance on exact pre-state candidate `c2cf1ce4939c77f138daac2841f39651afd4bcba`.
 
-Physical evidence:
+Physical PASS evidence:
 
 ```text
-candidate container: b26acda00ae8
+candidate container: 9f03df0e798e
 container id before/after: unchanged
 restart_count: 0 -> 0
 started_at: unchanged
-device_before: /dev/ttyUSB0
+device_before: /dev/ttyUSB1
 stable by-id path disappeared: yes
-device_after: /dev/ttyUSB1
+device_after: /dev/ttyUSB0
 stable by-id path reappeared: yes
-recovery_base PostgreSQL max(id): 2331346
-final PostgreSQL max(id): 2331346
-final newest_age: 00:07:10.22367
+PostgreSQL max(id) at reappearance: 2332589
+first recovery max(id): 2332595
+final observed max(id): 2332624
+newest_age after recovery: ~18-21 s
 ```
 
-The Device Agent continued logging:
+Transient `termios.error` / ENOENT warnings occurred during the deliberate physical disconnect while the path was absent. The same running Device Agent recovered automatically after re-enumeration without restart/recreate.
 
-```text
-termios.error: (5, 'Input/output error')
-```
+PR #380 therefore satisfies the hardware behavior boundary. Remaining gate: commit this project-state checkpoint, rerun exact-head CI on the resulting head, complete final diff/review/base audit, then merge only if GREEN.
 
-The Compose-only layer is therefore validated: the running container can see the updated stable by-id path after `ttyUSB0 -> ttyUSB1` without restart/recreate.
+## Issue #374 — regression parent awaiting #378 merge
 
-The remaining root cause is in the Modbus client exception boundary. `ModbusRTUClient.read_holding_registers()` caught only `OSError`, but Python `termios.error` is a distinct `Exception` type and bypassed `_invalidate_serial()`. The cached dead handle therefore remained in use even though the new stable path was available.
+Issue #374 / PR #375 remains the merged partial serial-session invalidation fix. The previously exposed long-duration USB re-enumeration regression is now physically resolved by #378.
 
-PR #380 now also:
+Keep #374 reopened only until #378 is merged and post-merge reconciliation confirms the corrected behavior in canonical `main`; then close #374 as completed regression parent. Do not create another implementation PR under #374.
 
-- catches `(OSError, termios.error)` only for bounded serial transport failures;
-- invalidates/closes the cached handle while preserving the original exception;
-- allows the next normal scheduler attempt to reopen the exact stable by-id path;
-- adds a deterministic regression test using a real `termios.error(5, "Input/output error")`;
-- preserves FC03 read-only behavior, scheduler cadence and one-worker-per-bus;
-- retains the read-only `/host/dev` mount and bounded `c 188:* rwm` rule;
-- does not use privileged mode.
-
-Implementation head before final project-state checkpoint:
-
-```text
-b71040bda3b56f835af883bbe33a682060344518
-```
-
-Fresh CI is running. After the final state checkpoint, exact-head CI must be GREEN again before repeating physical hotplug acceptance.
-
-## Issue #374 — reopened regression parent
-
-Issue #374 / PR #375 remains a valid merged partial fix for ordinary `OSError` serial invalidation. Its previous completion claim is not sufficient for real USB re-enumeration because real `tcflush()` failures propagate `termios.error`.
-
-Issue #374 remains reopened and blocked by child #378. Do not create a second implementation PR under #374.
-
-## Issue #368 — blocked by acquisition stability
+## Issue #368 — blocked only by #378 merge/reconciliation
 
 Issue #368 / PR #373 remains software-GREEN on reconciled head:
 
@@ -68,9 +45,7 @@ Issue #368 / PR #373 remains software-GREEN on reconciled head:
 0 queued
 ```
 
-Physical migration-v2/latest-query acceptance is blocked until #378 proves that telemetry resumes automatically after real CP2104 disconnect/re-enumeration.
-
-The Raspberry Pi database remains safe:
+Its Raspberry Pi database remains safe:
 
 ```text
 Alembic: 20260805_0022
@@ -80,12 +55,13 @@ named volumes: preserved
 advisory locks: none
 ```
 
-Do not run #368 migration-v2 while telemetry freshness is not proven stable.
+Do not run #368 migration-v2 until #378 is merged into `main` and the post-merge project state confirms acquisition recovery as canonical.
 
 ## Sequencing blockers
 
-- #374 regression record waits for #378 physical hotplug PASS.
-- #368 waits for #378 physical hotplug PASS.
+- #378: hardware PASS; final exact-head CI and merge pending.
+- #374: waits for #378 merge and post-merge reconciliation, then close.
+- #368: waits for #378 merge/reconciliation only.
 - #369 waits for #368 physical migration/latest-query acceptance.
 - #366 waits for the #368 -> #369 runtime acceptance sequence.
 - #289 remains downstream after #366.
