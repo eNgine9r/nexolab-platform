@@ -32,14 +32,16 @@ export function RefrigerationEquipmentRoute({
     if (!structural && !repository) return;
 
     let active = true;
-    const request = structural
+    const snapshotRequest: Promise<RefrigerationStructuralSnapshot | null> = structural
       ? structural.get(equipmentId)
-      : repository!.get(equipmentId).then((loaded) => ({ equipment: loaded }));
-    void request
-      .then((loaded) => {
+      : Promise.resolve(null);
+    const equipmentRequest = repository?.get(equipmentId) ?? Promise.resolve(null);
+
+    void Promise.all([equipmentRequest, snapshotRequest])
+      .then(([loadedEquipment, loadedSnapshot]) => {
         if (!active) return;
-        setEquipment(loaded.equipment);
-        if ("layout" in loaded) setSnapshot(loaded);
+        setEquipment(loadedSnapshot?.equipment ?? loadedEquipment);
+        if (loadedSnapshot) setSnapshot(loadedSnapshot);
         setError(null);
       })
       .catch((reason: unknown) => {
