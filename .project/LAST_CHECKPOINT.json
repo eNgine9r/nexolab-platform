@@ -4,14 +4,15 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
-  "status": "termios_fix_checkpoint_exact_head_ci_pending",
-  "timestamp": "2026-08-07T16:10:00+03:00",
+  "status": "final_candidate_exact_head_ci_pending",
+  "timestamp": "2026-08-07T16:14:00+03:00",
   "branch": "fix/378-rs485-usb-hotplug-recovery",
   "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "issue": 378,
   "pull_request": 380,
   "regression_parent_issue": 374,
   "blocked_issue": 368,
+  "final_candidate_head": "70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
   "first_physical_acceptance": {
     "result": "failed_after_compose_path_success",
     "candidate_head": "aec3cb10ea33395e8ac7472dfac433976f18cc96",
@@ -32,7 +33,7 @@
   },
   "diagnosis": {
     "compose_root_cause_resolved": "static Docker devices mapping no longer pins old ttyUSB minor; running container saw ttyUSB0 -> ttyUSB1 through stable by-id path",
-    "remaining_root_cause": "ModbusRTUClient catches OSError but real reset_input_buffer tcflush failure is termios.error",
+    "remaining_root_cause": "ModbusRTUClient caught OSError but real reset_input_buffer tcflush failure is termios.error",
     "termios_is_oserror_subclass": false,
     "effect": "_invalidate_serial was skipped, leaving dead cached pyserial handle active"
   },
@@ -71,8 +72,7 @@
     "first_hotplug": "failed usefully; live stable path recovered but telemetry did not because termios.error was not invalidated",
     "termios_regression_test": "added with real termios.error exception class",
     "device_agent_image_build_on_b71040bd": "passed",
-    "fresh_ci_after_termios_fix": "in progress",
-    "final_exact_head_ci": "required after this state checkpoint",
+    "final_exact_head_ci": "pending on 70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
     "second_hardware_acceptance": "pending final exact-head candidate"
   },
   "blocked_work": {
@@ -88,5 +88,5 @@
     "production_site_cutover": "none"
   },
   "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Use this checkpoint head as the new exact candidate only after all required CI is GREEN. Then build/install the candidate on Raspberry Pi once, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
+  "next_action": "Require all exact-head checks GREEN on 70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1. Then build/install that candidate once on Raspberry Pi, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
 }
