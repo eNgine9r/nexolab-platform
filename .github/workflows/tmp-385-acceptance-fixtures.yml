@@ -32,7 +32,6 @@ jobs:
               Path("scripts/run-test-sessions-browser-acceptance.sh"),
               Path("scripts/run-broker-control-acceptance.sh"),
               Path("scripts/run-device-agent-fleet-acceptance.sh"),
-              Path("scripts/run-disaster-recovery-acceptance.sh"),
           ]
           invocation = '''
           compose exec -T postgres \\
@@ -63,8 +62,7 @@ jobs:
             scripts/run-nodes-browser-acceptance.sh \
             scripts/run-test-sessions-browser-acceptance.sh \
             scripts/run-broker-control-acceptance.sh \
-            scripts/run-device-agent-fleet-acceptance.sh \
-            scripts/run-disaster-recovery-acceptance.sh; do
+            scripts/run-device-agent-fleet-acceptance.sh; do
             bash -n "$script"
           done
       - name: Commit fixture compatibility only
@@ -72,7 +70,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+eNgine9r@users.noreply.github.com"
           git add \
             scripts/run-security-browser-acceptance.sh \
             scripts/run-authenticated-dashboard-acceptance.sh \
@@ -81,7 +79,6 @@ jobs:
             scripts/run-nodes-browser-acceptance.sh \
             scripts/run-test-sessions-browser-acceptance.sh \
             scripts/run-broker-control-acceptance.sh \
-            scripts/run-device-agent-fleet-acceptance.sh \
-            scripts/run-disaster-recovery-acceptance.sh
+            scripts/run-device-agent-fleet-acceptance.sh
           git commit -m "test(security): seed explicit permissions in acceptance fixtures"
           git push origin HEAD:feat/385-local-user-permissions
