@@ -19,7 +19,8 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "f837cae493e9903b0123c8b1ba7ff3c7401eacfc",
+  "current_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
+  "current_main_sha_semantics": "audited product baseline before the state-only Ready-selection checkpoint",
   "tasks": [
     {
       "id": "NEXOLAB-252",
@@ -54,23 +55,48 @@
       "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
     },
     {
+      "id": "NEXOLAB-366",
+      "issue": 366,
+      "title": "Audit and deduplicate monitoring-route read models",
+      "status": "ready",
+      "priority": "critical",
+      "assignee": "eNgine9r",
+      "parent_epic": 356,
+      "depends_on": [314, 355, 357]
+    },
+    {
       "id": "NEXOLAB-245",
       "issue": 245,
+      "pull_request": 246,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "ready_parallel_runtime_track",
-      "hardware_acceptance": "pending"
+      "status": "needs_validation_parallel_runtime_track",
+      "priority": "critical",
+      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
+      "hardware_acceptance": "blocked_on_actual_host_runtime_health_per_latest_github_evidence"
+    },
+    {
+      "id": "NEXOLAB-289",
+      "issue": 289,
+      "title": "Prove acquisition scale, stability and truthful live-state behavior",
+      "status": "needs_validation",
+      "priority": "critical",
+      "depends_on": [283, 284, 285, 286, 287, 314, 288],
+      "declared_dependencies_completed": true,
+      "selection_note": "Run final route-latency and request-count acceptance after the remaining Epic #356 read-model and prefetch slices so measurements target the completed navigation architecture."
     },
     {
       "id": "NEXOLAB-257",
       "issue": 257,
       "title": "Migrate ESLint to 10",
-      "status": "blocked"
+      "status": "blocked",
+      "blocker": "resolved Next ESLint plugin graph does not yet provide the required ESLint 10 compatibility boundary"
     },
     {
       "id": "NEXOLAB-256",
       "issue": 256,
       "title": "Transition to TypeScript 7",
-      "status": "deferred"
+      "status": "deferred",
+      "blocker": "requires confirmed Next.js, Vitest/Vite and ESLint integration support for the selected TypeScript 7 line"
     }
   ],
   "verification": {
@@ -97,6 +123,18 @@
     "unresolved_review_threads": 0,
     "branch_behind_main_at_merge": 0
   },
+  "ready_audit": {
+    "performed_at": "2026-08-07T09:34:13+03:00",
+    "audited_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
+    "ready_issues_before_reconciliation": [245],
+    "stale_ready_labels_corrected": [245],
+    "ready_issues_after_reconciliation": [366],
+    "needs_validation": [245, 289],
+    "blocked": [257],
+    "deferred": [256],
+    "open_unselected_dependency_prs": [340, 341, 346],
+    "obsolete_prs": [347]
+  },
   "dependency_pull_requests": {
     "open_unselected": [340, 341, 346],
     "open_obsolete": [347],
@@ -110,8 +148,16 @@
     "status": "affected",
     "fixed_version": null
   },
-  "active_work_package": null,
-  "next_selection_policy": "Select the next Ready Work Package from current open GitHub Issues and explicit Sprint dependencies after the post-merge state checkpoint; do not infer a successor from chat history alone.",
+  "active_work_package": {
+    "issue": 366,
+    "title": "Audit and deduplicate monitoring-route read models",
+    "status": "ready",
+    "priority": "critical",
+    "assignee": "eNgine9r",
+    "parent_epic": 356,
+    "selection_reason": "Issue #366 is the only executable open status:ready Work Package after repository reconciliation. Issue #245 is validation-only after merged software, Issue #289 is needs-validation, Issue #257 is blocked and Issue #256 is deferred."
+  },
+  "next_selection_policy": "Execute Issue #366 first. Preserve #245 and #289 as separate validation tracks and do not pull dependency maintenance into the product-visible navigation optimization sequence.",
   "parallel_hardware_track": {
     "epic_issue": 282,
     "issues": [289, 245, 189, 200, 201, 202],
