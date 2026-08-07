@@ -10,9 +10,25 @@ class Role(StrEnum):
     ADMINISTRATOR = "administrator"
     LABORATORY_MANAGER = "laboratory_manager"
     ENGINEER = "engineer"
+    LABORATORY_TECHNICIAN = "laboratory_technician"
+
+    # Transitional persistence-only roles. They remain readable so upgrades never
+    # reinterpret or discard existing memberships, but they are not exposed as
+    # assignable product roles.
     OPERATOR = "operator"
     VIEWER = "viewer"
     AUDITOR = "auditor"
+
+
+PRODUCT_ROLES = frozenset(
+    {
+        Role.ADMINISTRATOR,
+        Role.LABORATORY_MANAGER,
+        Role.ENGINEER,
+        Role.LABORATORY_TECHNICIAN,
+    }
+)
+LEGACY_ROLES = frozenset({Role.OPERATOR, Role.VIEWER, Role.AUDITOR})
 
 
 class Permission(StrEnum):
@@ -35,8 +51,21 @@ class Permission(StrEnum):
     MANAGE_ALERT_RULES = "alerts.rules.manage"
     ACKNOWLEDGE_ALERTS = "alerts.acknowledge"
     APPROVE_REPORTS = "reports.approve"
+    MANAGE_PROJECT_VERSIONS = "project_versions.manage"
 
 
+ADMIN_ONLY_PERMISSIONS = frozenset(
+    {
+        Permission.MANAGE_MEMBERSHIPS,
+        Permission.MANAGE_PROJECT_VERSIONS,
+    }
+)
+GRANTABLE_PERMISSIONS = frozenset(Permission) - ADMIN_ONLY_PERMISSIONS
+
+# Compatibility bundles are intentionally retained for old code paths and for
+# migrations that preserve the access existing users had before Issue #385.
+# Production principals resolved from PostgreSQL carry explicit grants and do
+# not derive non-administrator permissions from these bundles.
 _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.ADMINISTRATOR: frozenset(Permission),
     Role.LABORATORY_MANAGER: frozenset(
@@ -79,6 +108,7 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.ACKNOWLEDGE_ALERTS,
         }
     ),
+    Role.LABORATORY_TECHNICIAN: frozenset(),
     Role.OPERATOR: frozenset(
         {
             Permission.READ_DASHBOARD,
@@ -124,6 +154,7 @@ class AuthenticatedPrincipal:
     email: str | None = None
     display_name: str | None = None
     provider: str = "oidc"
+    granted_permissions: frozenset[Permission] | None = None
 
     def __post_init__(self) -> None:
         if not self.subject.strip():
@@ -147,10 +178,31 @@ def permissions_for_role(role: Role) -> frozenset[Permission]:
 
 
 def effective_permissions(roles: AbstractSet[Role]) -> frozenset[Permission]:
+    """Return the pre-#385 compatibility bundle for role-only callers."""
     permissions: set[Permission] = set()
     for role in roles:
         permissions.update(permissions_for_role(role))
     return frozenset(permissions)
+
+
+def effective_permissions_from_grants(
+    roles: AbstractSet[Role],
+    granted_permissions: AbstractSet[Permission],
+) -> frozenset[Permission]:
+    if Role.ADMINISTRATOR in roles:
+        return frozenset(Permission)
+    return frozenset(granted_permissions & GRANTABLE_PERMISSIONS)
+
+
+def effective_permissions_for_principal(
+    principal: AuthenticatedPrincipal,
+) -> frozenset[Permission]:
+    if principal.granted_permissions is None:
+        return effective_permissions(principal.roles)
+    return effective_permissions_from_grants(
+        principal.roles,
+        principal.granted_permissions,
+    )
 
 
 def authorize(
@@ -167,7 +219,7 @@ def authorize(
             organization_id=resource_organization_id,
         )
 
-    if permission not in effective_permissions(principal.roles):
+    if permission not in effective_permissions_for_principal(principal):
         return AuthorizationDecision(
             allowed=False,
             code="permission_denied",
