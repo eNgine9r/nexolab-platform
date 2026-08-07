@@ -229,6 +229,18 @@ class ModbusRTUClient:
                 self._serial.close()
                 self._serial = None
 
+    def _invalidate_serial(self, port: SerialPort) -> None:
+        """Drop a serial handle after transport I/O failure without hiding it."""
+
+        if self._serial is port:
+            self._serial = None
+        try:
+            port.close()
+        except Exception:
+            # The original transport exception is authoritative. Closing a
+            # broken descriptor is best-effort and must never mask that error.
+            pass
+
     @contextmanager
     def instrumentation_scope(
         self,
@@ -398,6 +410,7 @@ class ModbusRTUClient:
                             outcome="io_error",
                             started_at=request_started_at,
                         )
+                    self._invalidate_serial(port)
                     raise
                 else:
                     self._observe_request(
