@@ -22,12 +22,23 @@
   "current_main_sha": "329282496491d2ee27ab4f292e982a30af33c2b7",
   "tasks": [
     {
+      "id": "NEXOLAB-357",
+      "issue": 357,
+      "pull_request": 364,
+      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
+      "status": "completed",
+      "priority": "critical",
+      "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
+    },
+    {
       "id": "NEXOLAB-374",
       "issue": 374,
       "pull_request": 375,
       "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
       "status": "completed",
       "priority": "critical",
+      "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
+      "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
       "completion_classification": "initial serial invalidation merged; later USB re-enumeration regression resolved and hardware verified by Issue #378"
     },
     {
@@ -40,7 +51,8 @@
       "verified_final_head_sha": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
       "merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
       "software_ci": "14 completed, 0 failures, 0 in-progress",
-      "hardware_acceptance": "PASS; same container recovered real telemetry across ttyUSB1 -> ttyUSB0 re-enumeration"
+      "hardware_acceptance": "PASS on Raspberry Pi; same container recovered telemetry across ttyUSB1 -> ttyUSB0 re-enumeration",
+      "completion_classification": "software verified; Raspberry Pi USB re-enumeration recovery hardware verified; merged"
     },
     {
       "id": "NEXOLAB-368",
@@ -70,6 +82,8 @@
       "title": "Audit and deduplicate monitoring-route read models",
       "status": "blocked_by_runtime_acceptance_sequence",
       "priority": "critical",
+      "assignee": "eNgine9r",
+      "parent_epic": 356,
       "depends_on": [314, 355, 357, 368, 369]
     },
     {
@@ -86,7 +100,8 @@
       "pull_request": 246,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "status": "needs_validation_parallel_runtime_track",
-      "priority": "critical"
+      "priority": "critical",
+      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
     },
     {
       "id": "NEXOLAB-257",
@@ -119,19 +134,29 @@
     "priority": "critical"
   },
   "verification": {
-    "issue_378": "completed, merged and Raspberry Pi hardware verified",
-    "issue_368_reconciliation": "two-parent merge commit 3427df41fab06667904d127313723fa90e130fcd; PR mergeable against main 329282496491d2ee27ab4f292e982a30af33c2b7",
+    "issue_378_final_exact_head": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
+    "issue_378_final_ci": "14 completed, 0 failures, 0 in-progress",
+    "issue_378_merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
+    "issue_378_hardware": "PASS; same container, restart 0 -> 0, ttyUSB1 -> ttyUSB0, PostgreSQL 2332589 -> 2332595 -> 2332624",
+    "issue_381_state_only_ci": "GREEN and merged as 329282496491d2ee27ab4f292e982a30af33c2b7",
+    "issue_368_reconciliation": "two-parent merge commit 3427df41fab06667904d127313723fa90e130fcd; PR mergeable against current main 329282496491d2ee27ab4f292e982a30af33c2b7",
+    "issue_368_historical_ci": "superseded due state/workflow-history inconsistency",
     "issue_368_fresh_exact_head_ci": "pending on branch head containing this checkpoint",
     "issue_368_physical_acceptance": "pending only after fresh exact-head GREEN"
   },
   "runtime_evidence": {
     "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "last_verified_acquisition_recovery": "PASS on Issue #378",
+    "verified_candidate_container": "9f03df0e798e",
+    "container_restart_count_before_after": "0 -> 0",
+    "device_before": "ttyUSB1",
+    "device_after": "ttyUSB0",
+    "postgres_final_observed_max_id": 2332624,
+    "final_newest_age": "~18-21 seconds",
     "issue_368_last_verified_schema": "20260805_0022",
     "issue_368_last_verified_projection": "absent",
     "issue_368_preflight_must_be_rechecked": true
   },
-  "next_selection_policy": "Require full fresh exact-head GREEN for #368, then run controlled Raspberry Pi migration-v2/latest-query acceptance. If PASS, complete #368 review/merge and continue #369 -> #366 -> #289.",
+  "next_selection_policy": "Require full fresh exact-head GREEN for #368, then controlled Raspberry Pi migration-v2/latest-query acceptance; if PASS complete #368 review/merge then #369 -> #366 -> #289.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -146,6 +171,7 @@
     "polling_cadence_change": "none",
     "data_deletion": "none",
     "volume_deletion": "none",
+    "privileged_container": "none",
     "production_site_cutover": "none"
   }
 }
