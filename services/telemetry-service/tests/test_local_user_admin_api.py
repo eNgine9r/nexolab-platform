@@ -25,7 +25,7 @@ from app.security.repository import SecurityRepository
 ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111"
 
 
-class TestAdminDependencies:
+class _AdminDependencies:
     def __init__(self, admin_identity_id: str) -> None:
         self._admin_identity_id = admin_identity_id
 
@@ -80,7 +80,7 @@ def build_client(tmp_path: Path) -> tuple[TestClient, Database]:
     api.include_router(
         create_local_user_admin_router(
             service,
-            TestAdminDependencies(admin.identity_id),  # type: ignore[arg-type]
+            _AdminDependencies(admin.identity_id),  # type: ignore[arg-type]
         )
     )
     app.include_router(api)
@@ -93,13 +93,14 @@ def headers(role: Role = Role.ADMINISTRATOR) -> dict[str, str]:
 
 def test_admin_api_uses_canonical_path_and_never_returns_password(tmp_path: Path) -> None:
     client, database = build_client(tmp_path)
+    secret = "Technician-password-123"
 
     created = client.post(
         "/api/v1/admin/users",
         headers=headers(),
         json={
             "username": "technician.one",
-            "password": "Technician-password-123",
+            "password": secret,
             "display_name": "Technician One",
             "role": "laboratory_technician",
             "permissions": ["dashboard.read", "telemetry.read"],
@@ -110,7 +111,10 @@ def test_admin_api_uses_canonical_path_and_never_returns_password(tmp_path: Path
     payload = created.json()
     assert payload["role"] == "laboratory_technician"
     assert payload["effective_permissions"] == ["dashboard.read", "telemetry.read"]
-    assert "password" not in repr(payload).casefold()
+    assert "password" not in payload
+    assert "password_hash" not in payload
+    assert secret not in repr(payload)
+    assert "scrypt$" not in repr(payload)
     assert created.headers["cache-control"] == "no-store"
 
     listing = client.get("/api/v1/admin/users", headers=headers())
