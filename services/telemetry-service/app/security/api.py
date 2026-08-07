@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from app.security.authentication import VerifiedIdentityClaims
-from app.security.authorization import Permission, Role, effective_permissions
+from app.security.authorization import Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository, SecuritySession
 
@@ -156,7 +156,6 @@ def _membership_payload(membership: object) -> dict[str, Any]:
         "organization_name": membership.organization_name,
         "roles": sorted(role.value for role in membership.roles),
         "permissions": sorted(
-            permission.value
-            for permission in effective_permissions(membership.roles)
+            permission.value for permission in membership.permissions
         ),
     }
