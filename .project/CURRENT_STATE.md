@@ -28,7 +28,7 @@ Software CI on `aec3cb10ea33395e8ac7472dfac433976f18cc96` was GREEN.
 
 ### First physical hotplug acceptance — failed usefully
 
-Exact candidate `aec3cb10ea33395e8ac7472dfac433976f18cc96` ran as container `b26acda00ae8`. The container ID, start time and restart count remained unchanged. The host stable path disappeared and reappeared successfully across a real CP2104 unplug/replug:
+Exact candidate `aec3cb10ea33395e8ac7472dfac433976f18cc96` ran as container `b26acda00ae8`. Container ID, start time and restart count remained unchanged. The host stable path disappeared and reappeared successfully across a real CP2104 unplug/replug:
 
 ```text
 device_before: /dev/ttyUSB0
@@ -61,13 +61,7 @@ PR #380 now includes both recovery layers:
 - deterministic regression test using real `termios.error(5, "Input/output error")`;
 - FC03 read-only and scheduler cadence preserved.
 
-Exact branch candidate after the final checkpoint is:
-
-```text
-1b9feb55c8512ce250beb9b83b2ee8f72498bdda
-```
-
-Any new branch-content commit invalidates that candidate. Exact-head CI must be GREEN on that SHA before the second Raspberry Pi hotplug acceptance.
+The exact candidate is defined as **the branch head containing this state checkpoint**. No additional branch-content commits are permitted before exact-head CI and the second Raspberry Pi hotplug acceptance. The concrete SHA is recorded in PR #380 / Issue #378 metadata after this checkpoint and does not alter branch content.
 
 ## Issue #368 blocked
 
@@ -96,8 +90,8 @@ Do not run #368 migration-v2 until #378 proves acquisition resumes automatically
 ## Execution sequence
 
 ```text
-#378 exact-head GREEN on 1b9feb55...
-  -> install exact candidate once
+#378 branch-head exact CI GREEN
+  -> install that exact candidate once
   -> prove fresh telemetry before hotplug
   -> controlled same-container CP2104 unplug/replug acceptance
   -> close #378 and resolve #374 regression parent
@@ -115,4 +109,4 @@ No Modbus write, controller configuration change, polling cadence change, data d
 
 ## Next action
 
-Do not change PR #380 branch content. Require exact-head CI GREEN on `1b9feb55c8512ce250beb9b83b2ee8f72498bdda`; then build/install that candidate once on the Raspberry Pi, prove fresh telemetry, and repeat same-container unplug/replug acceptance. Do not resume #368 before #378 passes.
+Freeze PR #380 branch content. Require exact-head CI GREEN on the branch head containing this checkpoint; then build/install that exact candidate once on the Raspberry Pi, prove fresh telemetry, and repeat same-container unplug/replug acceptance. Do not resume #368 before #378 passes.
