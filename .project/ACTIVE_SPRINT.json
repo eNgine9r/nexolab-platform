@@ -19,8 +19,8 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
-  "current_main_sha_semantics": "audited product baseline before the state-only Ready-selection checkpoint",
+  "current_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
+  "current_main_sha_semantics": "verified main baseline from which Issue #368 feature branch was created",
   "tasks": [
     {
       "id": "NEXOLAB-252",
@@ -55,14 +55,31 @@
       "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
     },
     {
+      "id": "NEXOLAB-368",
+      "issue": 368,
+      "pull_request": 373,
+      "title": "Make telemetry latest reads independent of history volume",
+      "status": "in_progress_hardware_acceptance_pending",
+      "priority": "critical",
+      "assignee": "eNgine9r",
+      "parent_epic": 282,
+      "related_epic": 356,
+      "branch": "perf/368-telemetry-latest-projection",
+      "verified_implementation_head_sha": "8b44241df429cedb6c28a8382bbd43ae4c285fd7",
+      "software_verification": "green_26_current_checks_zero_failures",
+      "hardware_acceptance": "pending_controlled_raspberry_pi_retest_on_existing_long_running_database",
+      "completion_classification": "software verified; Raspberry Pi latest-query acceptance pending"
+    },
+    {
       "id": "NEXOLAB-366",
       "issue": 366,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "ready",
+      "status": "blocked",
       "priority": "critical",
       "assignee": "eNgine9r",
       "parent_epic": 356,
-      "depends_on": [314, 355, 357]
+      "depends_on": [314, 355, 357, 368],
+      "blocker": "Issue #368 must first remove the history-volume-dependent generic latest telemetry backend bottleneck; do not cache around it"
     },
     {
       "id": "NEXOLAB-245",
@@ -82,7 +99,7 @@
       "priority": "critical",
       "depends_on": [283, 284, 285, 286, 287, 314, 288],
       "declared_dependencies_completed": true,
-      "selection_note": "Run final route-latency and request-count acceptance after the remaining Epic #356 read-model and prefetch slices so measurements target the completed navigation architecture."
+      "selection_note": "Run final route-latency and request-count acceptance after Issue #368, Issue #366 and the remaining Epic #356 navigation optimization slices."
     },
     {
       "id": "NEXOLAB-257",
@@ -100,37 +117,29 @@
     }
   ],
   "verification": {
-    "issue_357_verified_head_sha": "e474176fd129912d4c863824cec4ea08a0a474a7",
-    "ci": "green",
-    "refrigeration_browser": "green",
-    "security_browser": "green",
-    "authenticated_dashboard": "green",
-    "offline_auth": "green",
-    "offline_bundle": "green_disconnected_startup_and_update_rollback",
-    "telemetry_service": "green",
-    "disaster_recovery_browser": "green",
-    "disaster_recovery_domain": "green",
-    "disaster_recovery_tls": "green",
-    "container_supply_chain": "green",
-    "device_agent_fleet": "green",
-    "mqtt_tls_fleet": "green",
-    "broker_control": "green",
-    "capacity_release": "green",
-    "nodes_browser": "green",
-    "alerts_browser": "green",
-    "reports_browser": "green",
-    "rendered_reports_browser": "green",
-    "unresolved_review_threads": 0,
-    "branch_behind_main_at_merge": 0
+    "issue_368_verified_implementation_head_sha": "8b44241df429cedb6c28a8382bbd43ae4c285fd7",
+    "issue_368_current_check_count": 26,
+    "issue_368_current_check_failures": 0,
+    "telemetry_service": "green_postgresql_migrations_full_tests_outage_recovery_offline_sql_container_build",
+    "latest_projection_sqlite_regressions": "green",
+    "latest_projection_postgres_large_history": "green_200_series_8000_older_history_rows_explain_without_history_scan_target_under_500ms",
+    "authenticated_and_operator_browser_regressions": "green",
+    "offline_bundle": "green_disconnected_startup_and_update_rollback_volume_preservation",
+    "disaster_recovery_tls": "green_attempt_2_after_runner_startup_flake_on_attempt_1",
+    "container_supply_chain_and_release": "green",
+    "hardware_latest_query": "pending_raspberry_pi_existing_database_retest",
+    "unresolved_review_threads": "not_yet_final_audited"
   },
   "ready_audit": {
     "performed_at": "2026-08-07T09:34:13+03:00",
     "audited_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
-    "ready_issues_before_reconciliation": [245],
-    "stale_ready_labels_corrected": [245],
-    "ready_issues_after_reconciliation": [366],
+    "post_audit_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
+    "original_next_issue": 366,
+    "preempting_critical_issue": 368,
+    "preemption_reason": "controlled Raspberry Pi evidence proved /api/v1/telemetry/latest?limit=1 remained slower than 20 seconds because latest state was re-derived from retained history",
+    "issue_366_status_after_preemption": "blocked",
     "needs_validation": [245, 289],
-    "blocked": [257],
+    "blocked": [366, 257],
     "deferred": [256],
     "open_unselected_dependency_prs": [340, 341, 346],
     "obsolete_prs": [347]
@@ -149,18 +158,20 @@
     "fixed_version": null
   },
   "active_work_package": {
-    "issue": 366,
-    "title": "Audit and deduplicate monitoring-route read models",
-    "status": "ready",
+    "issue": 368,
+    "pull_request": 373,
+    "title": "Make telemetry latest reads independent of history volume",
+    "status": "in_progress_hardware_acceptance_pending",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "parent_epic": 356,
-    "selection_reason": "Issue #366 is the only executable open status:ready Work Package after repository reconciliation. Issue #245 is validation-only after merged software, Issue #289 is needs-validation, Issue #257 is blocked and Issue #256 is deferred."
+    "branch": "perf/368-telemetry-latest-projection",
+    "verified_implementation_head_sha": "8b44241df429cedb6c28a8382bbd43ae4c285fd7",
+    "selection_reason": "Physical Raspberry Pi evidence exposed a backend-wide latest telemetry bottleneck that must be corrected before route-local read-model caching/deduplication in Issue #366."
   },
-  "next_selection_policy": "Execute Issue #366 first. Preserve #245 and #289 as separate validation tracks and do not pull dependency maintenance into the product-visible navigation optimization sequence.",
+  "next_selection_policy": "Finish Issue #368 exact-head state CI and controlled Raspberry Pi latest-query acceptance first. After #368 is accepted and merged, unblock and execute Issue #366. Keep dependency maintenance out of this product-visible performance sequence.",
   "parallel_hardware_track": {
     "epic_issue": 282,
-    "issues": [289, 245, 189, 200, 201, 202],
+    "issues": [368, 289, 245, 189, 200, 201, 202],
     "completion_classification": "software verified where applicable; controlled Raspberry Pi or RS-485 acceptance pending"
   }
 }
