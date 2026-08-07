@@ -6,7 +6,9 @@ Issue #357 introduces a read-only equipment-scoped structural snapshot at:
 GET /api/v1/equipment/{equipment_id}/structural-snapshot
 ```
 
-The response composes equipment identity, active image metadata, the current layout draft and revision, normalized placements, active sensor bindings, canonical node channels and their optional latest sample.
+The response composes equipment identity, active image metadata, the current layout draft and revision, normalized placements, active sensor bindings, canonical measurement channels and their optional latest sample.
+
+For equipment assigned to a climate chamber, channels are sourced from the canonical chamber catalog and resolved through its measurement bus. This keeps configured channels visible even when no telemetry sample exists and avoids requiring a direct equipment `node_id`. Legacy equipment without a chamber can still use its node-scoped channel source.
 
 A channel without a persisted latest sample remains present with `latest_value: null` and `sample_state: unknown`. A non-good persisted sample is classified as `stale`. Structural rendering must not wait for telemetry history or trigger Device Agent configuration, scheduler changes, discovery, Modbus writes or physical polling.
 
