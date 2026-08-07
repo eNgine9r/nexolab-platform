@@ -19,17 +19,8 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
+  "current_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "tasks": [
-    {
-      "id": "NEXOLAB-357",
-      "issue": 357,
-      "pull_request": 364,
-      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-      "status": "completed",
-      "priority": "critical",
-      "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
-    },
     {
       "id": "NEXOLAB-374",
       "issue": 374,
@@ -39,8 +30,7 @@
       "priority": "critical",
       "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
       "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
-      "software_ci": "14 completed, 0 failures, 0 in-progress",
-      "hardware_acceptance": "passed on controlled Raspberry Pi: PostgreSQL max(id) 2327052 -> 2327095 in first 10 seconds; Device Agent status ok; mqtt connected; last_error null; zero degraded/cooldown endpoints",
+      "post_merge_state_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
       "completion_classification": "software verified; Raspberry Pi serial recovery hardware verified"
     },
     {
@@ -48,12 +38,14 @@
       "issue": 368,
       "pull_request": 373,
       "title": "Make telemetry latest reads independent of history volume",
-      "status": "in_progress_hardware_acceptance_pending",
+      "status": "in_progress_reconciled_ci_pending",
       "priority": "critical",
-      "software_verified_head_sha_before_374_merge": "cb082621f8b5e4cedf44534f3b5256fb2817d55a",
-      "software_ci_before_374_merge": "26 completed, 0 failures, 0 in-progress",
-      "hardware_acceptance": "migration-v2/latest-query acceptance pending on controlled Raspberry Pi",
-      "next_required_step": "reconcile PR #373 branch with current main, rerun exact-head CI, then run controlled Raspberry Pi acceptance"
+      "software_verified_head_sha_before_main_reconciliation": "cb082621f8b5e4cedf44534f3b5256fb2817d55a",
+      "software_ci_before_main_reconciliation": "26 completed, 0 failures, 0 in-progress",
+      "main_reconciliation_merge_sha": "ad3923ace7aa8ae6bfe29548916d594171a5e50b",
+      "reconciled_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
+      "fresh_exact_head_ci": "pending",
+      "hardware_acceptance": "migration-v2/latest-query acceptance pending on controlled Raspberry Pi after fresh exact-head GREEN"
     },
     {
       "id": "NEXOLAB-369",
@@ -109,30 +101,27 @@
     "issue": 368,
     "pull_request": 373,
     "title": "Make telemetry latest reads independent of history volume",
-    "status": "in_progress_hardware_acceptance_pending",
+    "status": "in_progress_reconciled_ci_pending",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "selection_reason": "Issue #374 is merged, closed and physically verified. The previously blocked #368 migration-v2/latest-query Raspberry Pi acceptance is now the first executable critical path."
+    "selection_reason": "Issue #374 is completed and physically verified. PR #373 now contains current main through a non-force two-parent reconciliation; fresh exact-head CI is the remaining software gate before controlled Raspberry Pi migration-v2/latest-query acceptance."
   },
   "verification": {
-    "issue_374_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
-    "issue_374_merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
-    "issue_374_final_ci": "14 completed, 0 failures, 0 in-progress",
     "issue_374_raspberry_pi_serial_recovery": "hardware_verified",
     "issue_368_previous_software_ci": "26 completed, 0 failures, 0 in-progress",
-    "issue_368_fresh_post_374_head_ci": "required_after_branch_reconciliation",
+    "issue_368_main_reconciliation_merge_sha": "ad3923ace7aa8ae6bfe29548916d594171a5e50b",
+    "issue_368_reconciled_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
+    "issue_368_fresh_exact_head_ci": "pending",
     "issue_368_raspberry_pi_latest_projection": "pending"
   },
   "runtime_evidence": {
     "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
     "raspberry_pi_device_agent_status_after_374": "ok",
     "mqtt_connected_after_374": true,
-    "postgres_history_max_id_before_374_acceptance": 2327052,
-    "postgres_history_max_id_after_first_10_seconds": 2327095,
     "issue_368_schema_after_previous_guard_rollback": "20260805_0022",
     "issue_368_projection_after_previous_guard_rollback": "absent"
   },
-  "next_selection_policy": "Complete state-only Issue #376, reconcile PR #373 with current main and rerun exact-head CI, then execute controlled #368 migration-v2/latest-query Raspberry Pi acceptance. Only after #368 passes proceed to #369, #366 and #289.",
+  "next_selection_policy": "Require fresh exact-head GREEN on reconciled PR #373, then execute controlled #368 migration-v2/latest-query Raspberry Pi acceptance. Only after #368 passes proceed to #369, #366 and #289.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
