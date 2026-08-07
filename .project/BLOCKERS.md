@@ -4,46 +4,61 @@ Updated: 2026-08-07
 
 ## Issue #378 — active critical blocker for physical acceptance
 
-Issue #378 / PR #380 is the active Work Package after long-duration Raspberry Pi evidence proved that the merged #374 serial-handle invalidation is not sufficient across real CP2104 USB disconnect/re-enumeration.
+Issue #378 / PR #380 remains the single active Work Package. The first controlled Raspberry Pi hotplug acceptance proved the new Compose path is visible across CP2104 re-enumeration, but telemetry still failed to resume.
 
-Observed runtime sequence:
+Physical evidence:
 
 ```text
-Device Agent image: nexolab-device-agent:issue-374
-container: running / healthy
-mqtt_connected: true
-last_sample_at: 2026-08-07T10:55:00.478390+00:00
-PostgreSQL max(id): 2329963
-newest telemetry age at diagnosis: ~1h10m
-
-13:55:00+03 CP2104 disconnects from ttyUSB1
-13:55:01+03 same serial re-enumerates on ttyUSB0
+candidate container: b26acda00ae8
+container id before/after: unchanged
+restart_count: 0 -> 0
+started_at: unchanged
+device_before: /dev/ttyUSB0
+stable by-id path disappeared: yes
+device_after: /dev/ttyUSB1
+stable by-id path reappeared: yes
+recovery_base PostgreSQL max(id): 2331346
+final PostgreSQL max(id): 2331346
+final newest_age: 00:07:10.22367
 ```
 
-The host stable path correctly moved to the new `ttyUSB0` target, but the already-created container remained bound to the stale `/dev/rs485` device mapping and subsequent reads repeatedly failed with `termios.error: (5, 'Input/output error')`.
+The Device Agent continued logging:
 
-Repository diagnosis:
+```text
+termios.error: (5, 'Input/output error')
+```
 
-- #374 correctly invalidates the cached pyserial handle;
-- `compose.hardware.yaml` previously injected `${RS485_HOST_DEVICE}:/dev/rs485` through Docker `devices:`;
-- that mapping is fixed when the container is created and does not follow a later by-id symlink target/minor change;
-- therefore reopening `/dev/rs485` after #374 still reopens the stale container device node.
+The Compose-only layer is therefore validated: the running container can see the updated stable by-id path after `ttyUSB0 -> ttyUSB1` without restart/recreate.
 
-PR #380 replaces that runtime boundary with a read-only host `/dev` view at `/host/dev`, exact `SERIAL_DEVICE=/host${RS485_HOST_DEVICE}`, and a bounded `c 188:* rwm` cgroup rule for the current CP210x `ttyUSB` class. No `privileged: true`, scheduler change or Device Agent Python change is included.
+The remaining root cause is in the Modbus client exception boundary. `ModbusRTUClient.read_holding_registers()` caught only `OSError`, but Python `termios.error` is a distinct `Exception` type and bypassed `_invalidate_serial()`. The cached dead handle therefore remained in use even though the new stable path was available.
 
-Deterministic Docker Compose contract validation passed on implementation head `1fe7d2b1051293ce55062159b03d3828684cd6bc`. Final exact-head CI is required after the project-state checkpoint.
+PR #380 now also:
 
-Completion requires controlled Raspberry Pi evidence where the exact candidate is installed once, the Device Agent container ID is recorded, the same CP2104 adapter is unplugged/replugged, and telemetry resumes without restarting/recreating the container.
+- catches `(OSError, termios.error)` only for bounded serial transport failures;
+- invalidates/closes the cached handle while preserving the original exception;
+- allows the next normal scheduler attempt to reopen the exact stable by-id path;
+- adds a deterministic regression test using a real `termios.error(5, "Input/output error")`;
+- preserves FC03 read-only behavior, scheduler cadence and one-worker-per-bus;
+- retains the read-only `/host/dev` mount and bounded `c 188:* rwm` rule;
+- does not use privileged mode.
+
+Implementation head before final project-state checkpoint:
+
+```text
+b71040bda3b56f835af883bbe33a682060344518
+```
+
+Fresh CI is running. After the final state checkpoint, exact-head CI must be GREEN again before repeating physical hotplug acceptance.
 
 ## Issue #374 — reopened regression parent
 
-Issue #374 / PR #375 remains a valid merged software slice for cached serial-handle invalidation, but the previous short hardware acceptance is invalidated as a completion criterion by the later re-enumeration failure.
+Issue #374 / PR #375 remains a valid merged partial fix for ordinary `OSError` serial invalidation. Its previous completion claim is not sufficient for real USB re-enumeration because real `tcflush()` failures propagate `termios.error`.
 
-Issue #374 is reopened and `status:blocked` on focused child #378. Do not create a second implementation PR under #374.
+Issue #374 remains reopened and blocked by child #378. Do not create a second implementation PR under #374.
 
 ## Issue #368 — blocked by acquisition stability
 
-Issue #368 / PR #373 is software-GREEN on reconciled head:
+Issue #368 / PR #373 remains software-GREEN on reconciled head:
 
 ```text
 36ccb909ca3754cc395468382bed2da93743ee24
@@ -53,7 +68,9 @@ Issue #368 / PR #373 is software-GREEN on reconciled head:
 0 queued
 ```
 
-Physical migration-v2/latest-query acceptance is blocked until #378 restores reliable telemetry across USB re-enumeration. The Raspberry Pi database remains safe:
+Physical migration-v2/latest-query acceptance is blocked until #378 proves that telemetry resumes automatically after real CP2104 disconnect/re-enumeration.
+
+The Raspberry Pi database remains safe:
 
 ```text
 Alembic: 20260805_0022
@@ -63,7 +80,7 @@ named volumes: preserved
 advisory locks: none
 ```
 
-Do not run #368 migration-v2 while telemetry freshness is stale.
+Do not run #368 migration-v2 while telemetry freshness is not proven stable.
 
 ## Sequencing blockers
 
@@ -71,7 +88,7 @@ Do not run #368 migration-v2 while telemetry freshness is stale.
 - #368 waits for #378 physical hotplug PASS.
 - #369 waits for #368 physical migration/latest-query acceptance.
 - #366 waits for the #368 -> #369 runtime acceptance sequence.
-- #289 remains the downstream final acquisition/route-latency/hardware matrix after #366.
+- #289 remains downstream after #366.
 - #245 remains a separate Raspberry Pi validation track.
 - #257 remains blocked by ESLint 10 compatibility.
 - #256 remains deferred pending TypeScript 7 ecosystem compatibility.
