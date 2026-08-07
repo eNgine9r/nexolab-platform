@@ -4,67 +4,79 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
-  "status": "implementation_complete_exact_head_ci_pending",
-  "timestamp": "2026-08-07T15:25:00+03:00",
+  "status": "termios_fix_checkpoint_exact_head_ci_pending",
+  "timestamp": "2026-08-07T16:10:00+03:00",
   "branch": "fix/378-rs485-usb-hotplug-recovery",
   "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "issue": 378,
   "pull_request": 380,
   "regression_parent_issue": 374,
   "blocked_issue": 368,
-  "diagnosis": {
-    "classification": "container device mapping does not follow CP2104 ttyUSB minor re-enumeration",
-    "device_agent_image": "nexolab-device-agent:issue-374",
-    "container_remained_running_healthy": true,
-    "mqtt_connected": true,
-    "last_sample_at": "2026-08-07T10:55:00.478390+00:00",
-    "postgres_max_id_at_stale_diagnosis": 2329963,
-    "postgres_newest_age_at_stale_diagnosis": "01:10:15.828279",
+  "first_physical_acceptance": {
+    "result": "failed_after_compose_path_success",
+    "candidate_head": "aec3cb10ea33395e8ac7472dfac433976f18cc96",
+    "candidate_container": "b26acda00ae8",
+    "container_restarted": false,
+    "container_recreated": false,
+    "restart_count_before_after": "0 -> 0",
     "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "first_disconnect_local": "2026-08-07T13:55:00+03:00",
-    "first_disconnect_device": "ttyUSB1",
-    "first_reenumeration_local": "2026-08-07T13:55:01+03:00",
-    "reenumerated_device": "ttyUSB0",
-    "subsequent_disconnects_observed": true,
-    "serial_error": "termios.error: (5, Input/output error) at reset_input_buffer"
+    "device_before": "ttyUSB0",
+    "stable_path_absent_observed": true,
+    "device_after": "ttyUSB1",
+    "stable_path_reappeared_observed": true,
+    "recovery_base_postgres_max_id": 2331346,
+    "final_postgres_max_id": 2331346,
+    "final_newest_age": "00:07:10.22367",
+    "serial_error": "termios.error: (5, Input/output error)",
+    "classification": "Compose hotplug path works; Python exception-class boundary prevented cached-handle invalidation"
+  },
+  "diagnosis": {
+    "compose_root_cause_resolved": "static Docker devices mapping no longer pins old ttyUSB minor; running container saw ttyUSB0 -> ttyUSB1 through stable by-id path",
+    "remaining_root_cause": "ModbusRTUClient catches OSError but real reset_input_buffer tcflush failure is termios.error",
+    "termios_is_oserror_subclass": false,
+    "effect": "_invalidate_serial was skipped, leaving dead cached pyserial handle active"
   },
   "implementation": {
-    "implementation_head_before_state_checkpoint": "1fe7d2b1051293ce55062159b03d3828684cd6bc",
-    "files": [
+    "termios_fix_head_before_state_checkpoint": "b71040bda3b56f835af883bbe33a682060344518",
+    "runtime_files": [
       "infrastructure/compose/compose.hardware.yaml",
+      "services/device-agent/modbus_rtu.py"
+    ],
+    "test_files": [
       "scripts/tests/standalone-offline-runtime-contract.sh",
+      "services/device-agent/tests/test_modbus_rtu_recovery.py"
+    ],
+    "state_files": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
       ".project/BLOCKERS.md",
       ".project/LAST_CHECKPOINT.json"
     ],
     "runtime_changes": [
-      "remove static RS485_HOST_DEVICE:/dev/rs485 Docker device mapping",
+      "remove static RS485_HOST_DEVICE:/dev/rs485 device mapping",
       "mount host /dev read-only at /host/dev",
-      "set SERIAL_DEVICE to /host plus exact RS485_HOST_DEVICE stable by-id path",
-      "allow only ttyUSB character major 188 with dynamic minor through device_cgroup_rules"
+      "set SERIAL_DEVICE to /host plus exact stable by-id path",
+      "allow only ttyUSB character major 188 with dynamic minor",
+      "catch OSError and termios.error as serial transport failures",
+      "invalidate and best-effort close cached handle while preserving original exception"
     ],
-    "device_agent_python_changes": 0,
     "scheduler_changes": 0,
+    "polling_cadence_changes": 0,
     "dependency_changes": 0,
     "database_changes": 0,
     "privileged_container": false
   },
   "verification": {
-    "compose_contract_on_implementation_head": "passed in GitHub CI",
-    "verified_contracts": [
-      "stable by-id path translated to /host/dev/serial/by-id/...",
-      "static devices mapping absent",
-      "privileged false/absent",
-      "device_cgroup_rules exactly c 188:* rwm",
-      "/dev -> /host/dev bind is read-only"
-    ],
-    "exact_head_ci": "pending after state checkpoint",
-    "offline_bundle": "pending after state checkpoint",
-    "hardware_acceptance": "pending controlled same-container CP2104 unplug/replug"
+    "compose_contract": "passed on previous exact head aec3cb10ea33395e8ac7472dfac433976f18cc96",
+    "first_hotplug": "failed usefully; live stable path recovered but telemetry did not because termios.error was not invalidated",
+    "termios_regression_test": "added with real termios.error exception class",
+    "device_agent_image_build_on_b71040bd": "passed",
+    "fresh_ci_after_termios_fix": "in progress",
+    "final_exact_head_ci": "required after this state checkpoint",
+    "second_hardware_acceptance": "pending final exact-head candidate"
   },
   "blocked_work": {
-    "issue_374": "reopened regression record; blocked by 378",
+    "issue_374": "reopened regression parent; blocked by 378",
     "issue_368": "software GREEN on 36ccb909ca3754cc395468382bed2da93743ee24; physical migration-v2 blocked by 378"
   },
   "hardware_safety": {
@@ -76,5 +88,5 @@
     "production_site_cutover": "none"
   },
   "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Run exact-head CI and review audit for PR #380. If GREEN, install exact candidate by recreating only Device Agent once, record container ID and fresh telemetry, then have the user physically unplug/replug the same CP2104 and verify automatic recovery with the same container ID."
+  "next_action": "Use this checkpoint head as the new exact candidate only after all required CI is GREEN. Then build/install the candidate on Raspberry Pi once, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
 }
