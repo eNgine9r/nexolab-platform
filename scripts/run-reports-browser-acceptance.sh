@@ -362,6 +362,10 @@ VALUES
   );
 SQL
 
+compose exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+  < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+
 ENGINEER_A_TOKEN="$(jwt_token "$ENGINEER_A_SUBJECT" 'engineer-a-reports@nexolab.local' 'Engineer A Reports')"
 MANAGER_A_TOKEN="$(jwt_token "$MANAGER_A_SUBJECT" 'manager-a-reports@nexolab.local' 'Manager A Reports')"
 MANAGER_B_TOKEN="$(jwt_token "$MANAGER_B_SUBJECT" 'manager-b-reports@nexolab.local' 'Manager B Reports')"
