@@ -19,6 +19,5 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          cp scripts/run-local-auth-migration-acceptance.sh /tmp/migration-debug.sh
-          sed -i 's# >/dev/null##g; s#>/dev/null##g; s#set -Eeuo pipefail#set -Eeuxo pipefail#' /tmp/migration-debug.sh
-          ROOT_DIR="$PWD" bash /tmp/migration-debug.sh
+          sed -i 's# >/dev/null##g; s#>/dev/null##g; s#set -Eeuo pipefail#set -Eeuxo pipefail#' scripts/run-local-auth-migration-acceptance.sh
+          bash scripts/run-local-auth-migration-acceptance.sh
