@@ -3,51 +3,61 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "POST-378-STATE-RECONCILIATION",
+  "task": "POST-CHART-SPEC-STATE-RECONCILIATION",
   "status": "state_only_ci_pending",
-  "timestamp": "2026-08-07T17:06:00+03:00",
-  "branch": "chore/post-378-state-reconciliation",
-  "base_main_sha": "6645af46a198ff454142df3b0a713984f4d71196",
-  "issue": 381,
-  "completed_work_package": {
-    "issue": 378,
-    "pull_request": 380,
-    "title": "Recover RS-485 after USB re-enumeration without recreating Device Agent",
-    "verified_final_head_sha": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
-    "merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
-    "final_ci": "14 completed, 0 failures, 0 in-progress",
-    "completion_classification": "software verified; Raspberry Pi same-container USB re-enumeration recovery hardware verified; merged"
+  "timestamp": "2026-08-07T22:38:00+03:00",
+  "branch": "chore/387-chart-spec-state-reconciliation",
+  "base_main_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
+  "issue": 387,
+  "recently_completed_work_package": {
+    "issue": 383,
+    "pull_request": 384,
+    "title": "Define the NEXOLAB Chart System technical specification",
+    "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
+    "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
+    "final_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
+    "completion_classification": "documentation architecture verified; no production chart implementation and no Raspberry Pi chart hardware acceptance"
   },
+  "chart_system": {
+    "specification": "docs/architecture/nexolab-chart-system.md",
+    "next_ready_issue": 386,
+    "next_ready_title": "Establish chart-domain primitives and benchmark the local renderer",
+    "selected_for_implementation": false,
+    "selection_reason": "single active implementation slot remains occupied by critical Issue #368"
+  },
+  "active_work_package": {
+    "issue": 368,
+    "pull_request": 373,
+    "title": "Make telemetry latest reads independent of history volume",
+    "status": "current_main_reconciliation_and_hardware_acceptance_pending",
+    "previous_exact_software_head": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
+    "previous_reconciled_main": "329282496491d2ee27ab4f292e982a30af33c2b7",
+    "current_main_before_state_reconciliation": "72f32d387e0199f7b863a56931d40a411ebf999c",
+    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, freeze the new candidate, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
+  },
+  "prepared_ready_backlog": [
+    {
+      "issue": 385,
+      "title": "Add local Raspberry Pi user administration and role management"
+    },
+    {
+      "issue": 386,
+      "title": "Establish chart-domain primitives and benchmark the local renderer"
+    }
+  ],
   "hardware_evidence": {
+    "latest_completed_hardware_issue": 378,
     "candidate_container": "9f03df0e798e",
     "container_restarted": false,
     "container_recreated": false,
     "restart_count_before_after": "0 -> 0",
-    "started_at_unchanged": true,
-    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "stable_path_absent_observed": true,
-    "stable_path_reappeared_observed": true,
     "device_before": "ttyUSB1",
     "device_after": "ttyUSB0",
-    "postgres_max_id_at_reappearance": 2332589,
-    "postgres_first_recovery_max_id": 2332595,
     "postgres_final_observed_max_id": 2332624,
-    "final_newest_age": "~18-21 seconds",
+    "chart_hardware_acceptance": "not performed",
     "modbus_write": "none",
     "hardware_write": "none"
-  },
-  "regression_parent": {
-    "issue": 374,
-    "status": "resolved_by_378_pending_state_merge_and_close"
-  },
-  "next_active_work_package": {
-    "issue": 368,
-    "pull_request": 373,
-    "title": "Make telemetry latest reads independent of history volume",
-    "status": "resume_after_state_merge",
-    "previous_reconciled_head_sha": "36ccb909ca3754cc395468382bed2da93743ee24",
-    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
-    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
   },
   "state_reconciliation": {
     "scope": "four .project files only",
@@ -58,6 +68,6 @@
     "hardware_actions": 0,
     "ci": "pending on final state-only head"
   },
-  "downstream_sequence": [368, 369, 366, 289],
-  "next_action": "Open focused state-only PR for Issue 381, run proportional exact-head CI and review/base audit, merge on GREEN, close Issue 374 regression parent, then reconcile PR 373 and resume Issue 368 physical acceptance."
+  "downstream_runtime_sequence": [368, 369, 366, 289],
+  "next_action": "Complete state-only Issue #387 on GREEN, then return to PR #373 current-main reconciliation and controlled Issue #368 acceptance. Keep Issues #385 and #386 Ready but unselected while the single active implementation slot is occupied."
 }
