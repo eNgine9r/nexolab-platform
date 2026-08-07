@@ -19,29 +19,8 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
-  "current_main_sha_semantics": "audited product baseline before the state-only Ready-selection checkpoint",
+  "current_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
   "tasks": [
-    {
-      "id": "NEXOLAB-252",
-      "issue": 252,
-      "pull_request": 361,
-      "title": "Upgrade lint-staged 16 to 17 after Node baseline alignment",
-      "status": "completed",
-      "verified_head_sha": "958fab7c84b717860138b60fddac6f60be52934a",
-      "merge_sha": "323f384297bba5a0fd734b7e47704fbd360454a4"
-    },
-    {
-      "id": "NEXOLAB-255",
-      "issue": 255,
-      "pull_request": 362,
-      "title": "Migrate TypeScript 5.9 to the 6.0 transition line",
-      "status": "completed",
-      "priority": "high",
-      "assignee": "eNgine9r",
-      "verified_head_sha": "945e04a464d7229d76bdd80abb396d5b1d6c5991",
-      "merge_sha": "a3c7ced8d499d02d4f77ff14e2260499c58fb472"
-    },
     {
       "id": "NEXOLAB-357",
       "issue": 357,
@@ -49,20 +28,59 @@
       "title": "Hydrate refrigeration image, layout and sensor placements immediately",
       "status": "completed",
       "priority": "critical",
-      "assignee": "eNgine9r",
-      "verified_head_sha": "e474176fd129912d4c863824cec4ea08a0a474a7",
-      "merge_sha": "f837cae493e9903b0123c8b1ba7ff3c7401eacfc",
       "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
+    },
+    {
+      "id": "NEXOLAB-368",
+      "issue": 368,
+      "pull_request": 373,
+      "title": "Make telemetry latest reads independent of history volume",
+      "status": "ready_after_374_merge",
+      "priority": "critical",
+      "software_verified_head_sha": "cb082621f8b5e4cedf44534f3b5256fb2817d55a",
+      "software_ci": "26 completed, 0 failures, 0 in-progress",
+      "hardware_acceptance": "migration-v2/latest-query acceptance pending on the controlled Raspberry Pi; prior freshness blocker is resolved by #374 hardware acceptance",
+      "blocked_by": [374]
+    },
+    {
+      "id": "NEXOLAB-374",
+      "issue": 374,
+      "pull_request": 375,
+      "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
+      "status": "hardware_verified_merge_pending",
+      "priority": "critical",
+      "assignee": "eNgine9r",
+      "branch": "bug/374-rs485-serial-eio-recovery",
+      "verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
+      "software_scope": "invalidate the failed cached serial descriptor and let the next normal scheduler attempt reopen the existing stable device path; no immediate EIO retry loop",
+      "software_ci": "14 completed, 0 failures, 0 in-progress on verified candidate before final evidence checkpoint",
+      "hardware_acceptance": "passed on controlled Raspberry Pi: PostgreSQL max(id) 2327052 -> 2327095 in first 10 seconds; Device Agent status ok; mqtt connected; last_error null; zero degraded/cooldown endpoints"
+    },
+    {
+      "id": "NEXOLAB-369",
+      "issue": 369,
+      "title": "Run actual Raspberry Pi Live Dashboard browser inventory acceptance",
+      "status": "queued_after_368",
+      "priority": "critical",
+      "depends_on": [368]
     },
     {
       "id": "NEXOLAB-366",
       "issue": 366,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "ready",
+      "status": "blocked_by_runtime_acceptance_sequence",
       "priority": "critical",
       "assignee": "eNgine9r",
       "parent_epic": 356,
-      "depends_on": [314, 355, 357]
+      "depends_on": [314, 355, 357, 368, 369]
+    },
+    {
+      "id": "NEXOLAB-289",
+      "issue": 289,
+      "title": "Prove acquisition scale, stability and truthful live-state behavior",
+      "status": "needs_validation",
+      "priority": "critical",
+      "depends_on": [283, 284, 285, 286, 287, 314, 288, 366]
     },
     {
       "id": "NEXOLAB-245",
@@ -71,18 +89,7 @@
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "status": "needs_validation_parallel_runtime_track",
       "priority": "critical",
-      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21",
-      "hardware_acceptance": "blocked_on_actual_host_runtime_health_per_latest_github_evidence"
-    },
-    {
-      "id": "NEXOLAB-289",
-      "issue": 289,
-      "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "needs_validation",
-      "priority": "critical",
-      "depends_on": [283, 284, 285, 286, 287, 314, 288],
-      "declared_dependencies_completed": true,
-      "selection_note": "Run final route-latency and request-count acceptance after the remaining Epic #356 read-model and prefetch slices so measurements target the completed navigation architecture."
+      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
     },
     {
       "id": "NEXOLAB-257",
@@ -99,47 +106,49 @@
       "blocker": "requires confirmed Next.js, Vitest/Vite and ESLint integration support for the selected TypeScript 7 line"
     }
   ],
+  "active_work_package": {
+    "issue": 374,
+    "pull_request": 375,
+    "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
+    "status": "hardware_verified_merge_pending",
+    "priority": "critical",
+    "assignee": "eNgine9r",
+    "selection_reason": "Controlled #368 acceptance found a poisoned cached RS-485 serial descriptor after EIO. The focused #374 fix is now software verified and physically verified on the Raspberry Pi; only final evidence-head CI, merge and closure remain before #368 resumes."
+  },
   "verification": {
-    "issue_357_verified_head_sha": "e474176fd129912d4c863824cec4ea08a0a474a7",
-    "ci": "green",
-    "refrigeration_browser": "green",
-    "security_browser": "green",
-    "authenticated_dashboard": "green",
-    "offline_auth": "green",
+    "issue_374_verified_candidate_head_sha": "8543bebad6149ac9c23be75b60d85830e980509e",
+    "device_agent_compile": "green",
+    "device_agent_tests": "green",
+    "repository_format_lint_typecheck_test_build": "green",
+    "device_agent_supply_chain": "green",
     "offline_bundle": "green_disconnected_startup_and_update_rollback",
-    "telemetry_service": "green",
-    "disaster_recovery_browser": "green",
-    "disaster_recovery_domain": "green",
-    "disaster_recovery_tls": "green",
-    "container_supply_chain": "green",
-    "device_agent_fleet": "green",
-    "mqtt_tls_fleet": "green",
-    "broker_control": "green",
-    "capacity_release": "green",
-    "nodes_browser": "green",
-    "alerts_browser": "green",
-    "reports_browser": "green",
-    "rendered_reports_browser": "green",
-    "unresolved_review_threads": 0,
-    "branch_behind_main_at_merge": 0
+    "verified_candidate_ci": "14 completed, 0 failures, 0 in-progress",
+    "final_evidence_head_ci": "pending_after_hardware_evidence_checkpoint",
+    "raspberry_pi_serial_recovery": "hardware_verified"
   },
-  "ready_audit": {
-    "performed_at": "2026-08-07T09:34:13+03:00",
-    "audited_main_sha": "9e174f60cede96cc07d96b7ce5df4e6856593ab5",
-    "ready_issues_before_reconciliation": [245],
-    "stale_ready_labels_corrected": [245],
-    "ready_issues_after_reconciliation": [366],
-    "needs_validation": [245, 289],
-    "blocked": [257],
-    "deferred": [256],
-    "open_unselected_dependency_prs": [340, 341, 346],
-    "obsolete_prs": [347]
+  "runtime_evidence": {
+    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+    "stable_rs485_resolved_device": "ttyUSB1",
+    "raspberry_pi_device_agent_status": "ok",
+    "mqtt_connected": true,
+    "queue_depth": 0,
+    "last_error": null,
+    "samples_total_at_acceptance": 43,
+    "last_sample_at": "2026-08-07T10:40:08.526303+00:00",
+    "last_publish_at": "2026-08-07T10:40:08.940904+00:00",
+    "postgres_history_max_id_before": 2327052,
+    "postgres_history_max_id_after_first_10_seconds": 2327095,
+    "postgres_newest_age": "00:00:19.499133",
+    "degraded_endpoints": 0,
+    "cooldown_endpoints": 0,
+    "active_bus_workers": 1,
+    "communication_failures_total": 0,
+    "cooldown_entered_total": 0,
+    "recent_eio_error_warning_traceback_matches": 0,
+    "issue_368_schema_after_guard_rollback": "20260805_0022",
+    "issue_368_projection_after_guard_rollback": "absent"
   },
-  "dependency_pull_requests": {
-    "open_unselected": [340, 341, 346],
-    "open_obsolete": [347],
-    "closed_unmerged": [272, 339]
-  },
+  "next_selection_policy": "Require final evidence-head GREEN for #374, merge PR #375 and close #374. Then immediately resume #368 migration-v2/latest-query acceptance, followed by #369, #366 and #289 in that order.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -148,19 +157,12 @@
     "status": "affected",
     "fixed_version": null
   },
-  "active_work_package": {
-    "issue": 366,
-    "title": "Audit and deduplicate monitoring-route read models",
-    "status": "ready",
-    "priority": "critical",
-    "assignee": "eNgine9r",
-    "parent_epic": 356,
-    "selection_reason": "Issue #366 is the only executable open status:ready Work Package after repository reconciliation. Issue #245 is validation-only after merged software, Issue #289 is needs-validation, Issue #257 is blocked and Issue #256 is deferred."
-  },
-  "next_selection_policy": "Execute Issue #366 first. Preserve #245 and #289 as separate validation tracks and do not pull dependency maintenance into the product-visible navigation optimization sequence.",
-  "parallel_hardware_track": {
-    "epic_issue": 282,
-    "issues": [289, 245, 189, 200, 201, 202],
-    "completion_classification": "software verified where applicable; controlled Raspberry Pi or RS-485 acceptance pending"
+  "safety": {
+    "modbus_write": "none",
+    "hardware_write": "none",
+    "polling_cadence_change": "none",
+    "data_deletion": "none",
+    "volume_deletion": "none",
+    "production_site_cutover": "none"
   }
 }

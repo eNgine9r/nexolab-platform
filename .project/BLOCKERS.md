@@ -2,81 +2,82 @@
 
 Updated: 2026-08-07
 
-## Ready audit result
+## Issue #374 — runtime blocker resolved, merge pending
 
-The post-Issue #357 repository audit found one stale control-plane classification and one missing focused Work Package.
+The controlled Raspberry Pi serial-session recovery acceptance has passed on exact candidate `8543bebad6149ac9c23be75b60d85830e980509e`.
 
-### Issue #245 — validation track, not software Ready
-
-Issue #245 no longer carries `status:ready` and is now `status:needs-validation`.
-
-Reason:
-
-- PR #246 already merged the standalone runtime software scope as `83b161ca7e26580c46789e76a7bbdc0d5e434c21`;
-- exact-head software CI, Telemetry Service and Offline Bundle evidence was GREEN;
-- the latest physical Raspberry Pi evidence records standalone deployment blocked on actual-host runtime health before loopback-only reboot/observation acceptance could be completed.
-
-Current classification:
+Original blocker:
 
 ```text
-software verified; actual standalone Raspberry Pi acceptance blocked on actual-host runtime health
+Device Agent container/process: healthy
+Device Agent status: degraded
+MQTT connected: true
+PostgreSQL/Telemetry Service: healthy
+telemetry last sample/publish: 2026-08-07T09:53:34Z
+PostgreSQL max telemetry id at diagnosis: 2327052
+serial exception: termios.error: (5, 'Input/output error')
+location: reset_input_buffer() before the Modbus request is transmitted
 ```
 
-Do not create a second software implementation branch for #245. Resume it only as a controlled hardware/runtime validation track once the recorded actual-host health blocker is addressed.
+Repository inspection proved `ModbusRTUClient` retained the failed cached serial descriptor after `OSError`. PR #375 fixes that boundary by invalidating/closing the failed handle and allowing the next normal scheduler attempt to reopen the existing configured stable serial path. No scheduler production-code change, polling amplification or Modbus write was introduced.
 
-### Issue #289 — needs validation
+Controlled Raspberry Pi acceptance after candidate recreate:
 
-Issue #289 remains `status:needs-validation`, priority critical.
+```text
+stable path: /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0 -> ttyUSB1
+PostgreSQL max(id): 2327052 -> 2327095 in first 10 seconds
+newest telemetry age: 00:00:19.499133
+Device Agent status: ok
+mqtt_connected: true
+last_error: null
+degraded_endpoints: 0
+cooldown_endpoints: 0
+active_bus_workers: 1
+communication_failures_total: 0
+cooldown_entered_total: 0
+recent EIO/ERROR/WARNING/Traceback matches: 0
+```
 
-All declared dependencies #283, #284, #285, #286, #287, #314 and #288 are closed. However, #289 measures route-return latency and duplicate request counts that are intentionally affected by the remaining Epic #356 navigation optimization work. Run its final route/performance matrix after Issue #366 and the subsequent route-prefetch/time-to-usable slice so acceptance targets the completed navigation architecture.
+Classification:
 
-This sequencing does not authorize any Modbus/hardware write or change the physical polling envelope.
+```text
+software verified;
+Raspberry Pi serial recovery hardware verified;
+final evidence-head CI and merge pending
+```
 
-## Selected Ready Work Package
+The runtime blocker is therefore resolved. #374 remains open only until PR #375 receives final exact-head GREEN after the evidence/state checkpoint and is merged.
 
-Issue #366 — **Audit and deduplicate monitoring-route read models** — is the sole executable open `status:ready` Work Package after reconciliation.
+This acceptance proves recovery from the observed poisoned serial-session failure mode. It does not claim that every future physical USB/TTY EIO root cause is eliminated.
 
-No known blocker prevents software work on #366.
+## Issue #368 — ready to resume after #374 merge
 
-Boundaries:
+PR #373 latest-projection software remains verified on `cb082621f8b5e4cedf44534f3b5256fb2817d55a` with 26 completed checks, zero failures and zero in-progress checks.
 
-- reuse #314 shared telemetry state and #357 refrigeration structural state;
-- no duplicate telemetry cache;
-- no route prefetch in this slice;
-- no backend/schema expansion without a separately proven gap and explicit scope update;
-- no acquisition registry/scheduler/polling changes;
-- no dependency upgrades;
-- no Modbus/hardware writes;
-- no destructive data operation or site cutover.
+The prior migration-v2 retry did not fail migration-v2; its precondition monitor rejected stale ingestion caused by the #374 serial EIO defect. Automatic rollback left:
 
-## Toolchain lanes
+```text
+Alembic: 20260805_0022
+telemetry_latest: absent
+history: preserved
+named volumes: preserved
+```
 
-Issue #257 remains blocked until the resolved Next.js ESLint plugin graph supports ESLint 10 without broad rule weakening.
+Because acquisition freshness is now physically verified, #368 can resume immediately after #374 is merged/closed. Its remaining acceptance must prove migration-v2/latest-query behavior on the existing long-running Raspberry Pi PostgreSQL database.
 
-Issue #256 remains deferred until TypeScript 7 support is confirmed across Next.js, Vitest/Vite and ESLint integration boundaries.
+## Sequencing blockers
 
-## Dependency lanes
-
-Open unselected dependency PRs: #340, #341 and #346.
-
-PR #347 remains obsolete because Playwright 1.62 already merged through Issue #254 / PR #352.
-
-These dependency PRs must not interrupt Issue #366 unless a separate dependency Work Package is selected after the product-visible sequence.
-
-## Remaining physical acceptance
-
-- Issue #355: `software verified; Raspberry Pi runtime latency acceptance pending`.
-- Issue #357: `software verified; Raspberry Pi perceived-latency acceptance pending`.
-- Issue #245: actual standalone Raspberry Pi acceptance blocked on recorded actual-host runtime health.
-- Issue #289: hardware performance acceptance pending.
-- Issues #189, #200, #201 and #202 remain hardware-dependent according to their existing evidence boundaries.
+- #369 waits for #368 physical migration/latest-query acceptance.
+- #366 waits for the #368 -> #369 runtime acceptance sequence so read-model work is not validated against an incomplete runtime path.
+- #289 remains the downstream final acquisition/route-latency/hardware matrix after #366.
+- #245 remains a separate Raspberry Pi validation track.
+- #257 remains blocked by ESLint 10 compatibility.
+- #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
 ## Security boundary
 
 The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Do not broaden it.
 
-`/lockers`, physical cameras, ONVIF/RTSP and NVR remain blocked or unverified by their existing evidence requirements.
-
 ## Global hard-stop rules
 
-Stop before destructive data or volume operations, production cutover, hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations or unsupported physical acceptance claims.
+Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, or unsupported physical acceptance claims.
