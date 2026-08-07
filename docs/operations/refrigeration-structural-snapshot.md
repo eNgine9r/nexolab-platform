@@ -14,4 +14,6 @@ The endpoint is organization-scoped through the existing `READ_DASHBOARD` author
 
 Cold and warm navigation acceptance must record endpoint request counts. Concurrent consumers for the same organization and equipment are expected to resolve through the bounded frontend structural cache rather than issuing duplicate physical reads. A valid cached snapshot remains visible while background reconciliation is in progress, so route transitions do not replace the canvas with a full-screen loading state.
 
+The structural client and its focused tests are formatted with the repository-pinned Prettier version before the final software gate is evaluated.
+
 Software verification must include formatting, Python tests, frontend tests, TypeScript checks, production build, Refrigeration Browser Acceptance, Offline Auth and Offline Bundle. Raspberry Pi perceived-latency acceptance remains a separate physical check.
