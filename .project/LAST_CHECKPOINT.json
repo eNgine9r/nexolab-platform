@@ -4,15 +4,16 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
-  "status": "final_candidate_exact_head_ci_pending",
-  "timestamp": "2026-08-07T16:14:00+03:00",
+  "status": "exact_head_ci_pending_after_checkpoint",
+  "timestamp": "2026-08-07T16:16:00+03:00",
   "branch": "fix/378-rs485-usb-hotplug-recovery",
   "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
   "issue": 378,
   "pull_request": 380,
   "regression_parent_issue": 374,
   "blocked_issue": 368,
-  "final_candidate_head": "70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
+  "checkpoint_parent_head": "70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
+  "exact_candidate_rule": "the exact branch head containing this checkpoint is the only acceptable CI and Raspberry Pi candidate until another commit is made",
   "first_physical_acceptance": {
     "result": "failed_after_compose_path_success",
     "candidate_head": "aec3cb10ea33395e8ac7472dfac433976f18cc96",
@@ -72,8 +73,8 @@
     "first_hotplug": "failed usefully; live stable path recovered but telemetry did not because termios.error was not invalidated",
     "termios_regression_test": "added with real termios.error exception class",
     "device_agent_image_build_on_b71040bd": "passed",
-    "final_exact_head_ci": "pending on 70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1",
-    "second_hardware_acceptance": "pending final exact-head candidate"
+    "final_exact_head_ci": "required on the branch head containing this checkpoint",
+    "second_hardware_acceptance": "pending only after exact-head GREEN"
   },
   "blocked_work": {
     "issue_374": "reopened regression parent; blocked by 378",
@@ -88,5 +89,5 @@
     "production_site_cutover": "none"
   },
   "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Require all exact-head checks GREEN on 70f7ee7d80aacfc5ef9da6eb7d8c7dc65ad1bff1. Then build/install that candidate once on Raspberry Pi, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
+  "next_action": "Do not change branch content. Require all exact-head checks GREEN on the branch head containing this checkpoint, then build/install that exact candidate once on Raspberry Pi, prove fresh telemetry, and repeat same-container CP2104 unplug/replug acceptance."
 }
