@@ -1,0 +1,153 @@
+name: Temporary Issue 385 UI reconcile
+
+on:
+  push:
+    branches:
+      - feat/385-local-user-permissions
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/385-local-user-permissions
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          check-latest: false
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: "0"
+      - name: Apply focused React and Settings corrections
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          users_path = Path("src/components/settings/users-screen.tsx")
+          users = users_path.read_text()
+          old = '''  useEffect(() => {
+            if (security.state === "ready" && canManageUsers && client) {
+              void refresh();
+            }
+            // refresh intentionally depends on the resolved security/client boundary only.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+          }, [security.state, canManageUsers, client]);
+          '''
+          new = '''  useEffect(() => {
+            if (security.state !== "ready" || !canManageUsers || !client) return;
+            const timeoutId = window.setTimeout(() => {
+              void refresh();
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
+            // refresh intentionally depends on the resolved security/client boundary only.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+          }, [security.state, canManageUsers, client]);
+          '''
+          if old not in users:
+              raise SystemExit("initial refresh effect pattern not found")
+          users = users.replace(old, new, 1)
+
+          old = '''  useEffect(() => {
+            if (!selectedUser) return;
+            setSelectedRole(selectedUser.role ?? "laboratory_technician");
+            setSelectedPermissions(selectedUser.grantedPermissions);
+            setResetPassword("");
+            setNotice(null);
+            setError(null);
+          }, [selectedUser]);
+          '''
+          new = '''  useEffect(() => {
+            if (!selectedUser) return;
+            const timeoutId = window.setTimeout(() => {
+              setSelectedRole(selectedUser.role ?? "laboratory_technician");
+              setSelectedPermissions(selectedUser.grantedPermissions);
+              setResetPassword("");
+              setNotice(null);
+              setError(null);
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
+          }, [selectedUser]);
+          '''
+          if old not in users:
+              raise SystemExit("selected user effect pattern not found")
+          users_path.write_text(users.replace(old, new, 1))
+
+          settings_path = Path("src/components/settings/settings-workspace.tsx")
+          settings = settings_path.read_text()
+          replacements = [
+              (
+                  '  engineer: "Інженер",\n  operator: "Оператор",',
+                  '  engineer: "Інженер",\n  laboratory_technician: "Технік-лаборант",\n  operator: "Оператор",',
+              ),
+              (
+                  '  "dashboard.read": "Огляд dashboard",\n  "telemetry.read": "Перегляд телеметрії",',
+                  '  "dashboard.read": "Огляд dashboard",\n  "live_dashboards.manage": "Керування Live Dashboard",\n  "telemetry.read": "Перегляд телеметрії",',
+              ),
+              (
+                  '  "memberships.manage": "Керування членством",\n  "equipment.manage": "Керування обладнанням",',
+                  '  "memberships.manage": "Керування користувачами",\n  "project_versions.manage": "Керування версіями NEXOLAB",\n  "equipment.manage": "Керування обладнанням",',
+              ),
+              (
+                  '      "sessions.manage",\n',
+                  '      "live_dashboards.manage",\n      "sessions.manage",\n',
+              ),
+              (
+                  '      "memberships.manage",\n',
+                  '      "memberships.manage",\n      "project_versions.manage",\n',
+              ),
+              (
+                  '          <div className="mt-5 grid gap-3 sm:grid-cols-2">\n            {navigationItems.map((item) => {',
+                  '''          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {membership.permissions.includes("memberships.manage") ? (
+              <Link
+                href="/settings/users"
+                className="group rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-4 transition hover:border-cyan-300/30"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05]">
+                    <UsersRound className="h-5 w-5 text-cyan-200" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-medium text-slate-100">Користувачі та права</h3>
+                      <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Локальні користувачі, ролі, granular permissions і lifecycle access.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+            {navigationItems.map((item) => {''',
+              ),
+              (
+                  '              "Організації, memberships і ролі не редагуються на цій сторінці.",',
+                  '              "Користувачі, ролі та permissions адмініструються в окремому Users & Access workspace.",',
+              ),
+          ]
+          for old, new in replacements:
+              if old not in settings:
+                  raise SystemExit(f"settings reconciliation pattern not found: {old[:70]!r}")
+              settings = settings.replace(old, new, 1)
+          settings_path.write_text(settings)
+          PY
+      - name: Format focused UI files
+        run: npx prettier --write src/components/settings/users-screen.tsx src/components/settings/settings-workspace.tsx
+      - name: Verify frontend lint and typecheck
+        run: |
+          npm run lint
+          npm run typecheck
+      - name: Commit focused corrections
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/settings/users-screen.tsx src/components/settings/settings-workspace.tsx
+          git commit -m "fix(frontend): reconcile Users and Access workspace"
+          git push origin HEAD:feat/385-local-user-permissions
