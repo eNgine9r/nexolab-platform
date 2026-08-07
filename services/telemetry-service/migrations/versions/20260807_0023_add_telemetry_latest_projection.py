@@ -64,9 +64,8 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        bind.execute(
-            sa.text("SELECT pg_advisory_xact_lock(:lock_id)"),
-            {"lock_id": TELEMETRY_HISTORY_ADVISORY_LOCK_ID},
+        op.execute(
+            f"SELECT pg_advisory_xact_lock({TELEMETRY_HISTORY_ADVISORY_LOCK_ID})"
         )
         op.execute(
             sa.text(
