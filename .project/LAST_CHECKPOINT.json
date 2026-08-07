@@ -3,25 +3,22 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-378-RS485-USB-HOTPLUG-RECOVERY",
-  "status": "hardware_verified_final_ci_pending",
-  "timestamp": "2026-08-07T16:45:00+03:00",
-  "branch": "fix/378-rs485-usb-hotplug-recovery",
-  "base_main_sha": "1c10f86a57dbeea9b2d410888d57d8b19a2288ab",
-  "issue": 378,
-  "pull_request": 380,
-  "regression_parent_issue": 374,
-  "blocked_issue": 368,
-  "verified_pre_state_candidate": "c2cf1ce4939c77f138daac2841f39651afd4bcba",
-  "software_verification": {
-    "checks": 14,
-    "failures": 0,
-    "in_progress": 0,
-    "quality": "green",
-    "offline_bundle": "green"
+  "task": "POST-378-STATE-RECONCILIATION",
+  "status": "state_only_ci_pending",
+  "timestamp": "2026-08-07T17:06:00+03:00",
+  "branch": "chore/post-378-state-reconciliation",
+  "base_main_sha": "6645af46a198ff454142df3b0a713984f4d71196",
+  "issue": 381,
+  "completed_work_package": {
+    "issue": 378,
+    "pull_request": 380,
+    "title": "Recover RS-485 after USB re-enumeration without recreating Device Agent",
+    "verified_final_head_sha": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
+    "merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
+    "final_ci": "14 completed, 0 failures, 0 in-progress",
+    "completion_classification": "software verified; Raspberry Pi same-container USB re-enumeration recovery hardware verified; merged"
   },
-  "hardware_acceptance": {
-    "result": "pass",
+  "hardware_evidence": {
     "candidate_container": "9f03df0e798e",
     "container_restarted": false,
     "container_recreated": false,
@@ -32,36 +29,35 @@
     "stable_path_reappeared_observed": true,
     "device_before": "ttyUSB1",
     "device_after": "ttyUSB0",
-    "phase_1_postgres_max_id_before": 2331346,
-    "phase_1_postgres_final_max_id": 2331419,
     "postgres_max_id_at_reappearance": 2332589,
     "postgres_first_recovery_max_id": 2332595,
     "postgres_final_observed_max_id": 2332624,
     "final_newest_age": "~18-21 seconds",
-    "mqtt_connected": true,
-    "fresh_last_sample_and_publish": true,
-    "classification": "same running Device Agent recovered real telemetry after CP2104 disconnect and ttyUSB re-enumeration"
+    "modbus_write": "none",
+    "hardware_write": "none"
   },
-  "implementation": {
-    "compose_hotplug_path": "read-only /host/dev plus exact stable by-id path and bounded c 188:* rwm rule",
-    "serial_recovery": "catch OSError and termios.error, invalidate cached handle, preserve original exception and reopen only on next normal scheduler attempt",
-    "scheduler_changes": 0,
-    "polling_cadence_changes": 0,
+  "regression_parent": {
+    "issue": 374,
+    "status": "resolved_by_378_pending_state_merge_and_close"
+  },
+  "next_active_work_package": {
+    "issue": 368,
+    "pull_request": 373,
+    "title": "Make telemetry latest reads independent of history volume",
+    "status": "resume_after_state_merge",
+    "previous_reconciled_head_sha": "36ccb909ca3754cc395468382bed2da93743ee24",
+    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
+    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
+  },
+  "state_reconciliation": {
+    "scope": "four .project files only",
+    "runtime_code_changes": 0,
     "dependency_changes": 0,
     "database_changes": 0,
-    "privileged_container": false
+    "acquisition_changes": 0,
+    "hardware_actions": 0,
+    "ci": "pending on final state-only head"
   },
-  "blocked_work": {
-    "issue_374": "regression physically resolved by 378; close after 378 merge and post-merge reconciliation",
-    "issue_368": "software GREEN on 36ccb909ca3754cc395468382bed2da93743ee24; physical migration-v2 blocked only until 378 merge/reconciliation"
-  },
-  "hardware_safety": {
-    "modbus_write": "none",
-    "hardware_write": "none",
-    "data_deletion": "none",
-    "volume_deletion": "none",
-    "production_site_cutover": "none"
-  },
-  "downstream_sequence": [378, 368, 369, 366, 289],
-  "next_action": "Freeze branch content after this checkpoint, require exact-head GREEN, perform final focused review/base audit, mark PR 380 Ready and merge. Then reconcile main, close 378 and 374, and resume 368 physical acceptance."
+  "downstream_sequence": [368, 369, 366, 289],
+  "next_action": "Open focused state-only PR for Issue 381, run proportional exact-head CI and review/base audit, merge on GREEN, close Issue 374 regression parent, then reconcile PR 373 and resume Issue 368 physical acceptance."
 }
