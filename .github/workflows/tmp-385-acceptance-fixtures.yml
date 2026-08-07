@@ -1,0 +1,87 @@
+name: Temporary Issue 385 acceptance fixture reconcile
+
+on:
+  push:
+    branches:
+      - feat/385-local-user-permissions
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/385-local-user-permissions
+      - name: Add explicit permission seed after direct role seed
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path("scripts/run-security-browser-acceptance.sh"),
+              Path("scripts/run-authenticated-dashboard-acceptance.sh"),
+              Path("scripts/run-alerts-browser-acceptance.sh"),
+              Path("scripts/run-reports-browser-acceptance.sh"),
+              Path("scripts/run-nodes-browser-acceptance.sh"),
+              Path("scripts/run-test-sessions-browser-acceptance.sh"),
+              Path("scripts/run-broker-control-acceptance.sh"),
+              Path("scripts/run-device-agent-fleet-acceptance.sh"),
+              Path("scripts/run-disaster-recovery-acceptance.sh"),
+          ]
+          invocation = '''
+          compose exec -T postgres \\
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \\
+            < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+          '''
+          for path in paths:
+              text = path.read_text()
+              marker = "INSERT INTO security_membership_roles"
+              if marker not in text:
+                  raise SystemExit(f"{path}: direct role seed marker not found")
+              if "security-acceptance-role-permissions.sql" in text:
+                  continue
+              start = text.index(marker)
+              end = text.find("\nSQL\n", start)
+              if end < 0:
+                  raise SystemExit(f"{path}: role seed heredoc terminator not found")
+              insertion = end + len("\nSQL\n")
+              text = text[:insertion] + invocation + text[insertion:]
+              path.write_text(text)
+          PY
+
+          for script in \
+            scripts/run-security-browser-acceptance.sh \
+            scripts/run-authenticated-dashboard-acceptance.sh \
+            scripts/run-alerts-browser-acceptance.sh \
+            scripts/run-reports-browser-acceptance.sh \
+            scripts/run-nodes-browser-acceptance.sh \
+            scripts/run-test-sessions-browser-acceptance.sh \
+            scripts/run-broker-control-acceptance.sh \
+            scripts/run-device-agent-fleet-acceptance.sh \
+            scripts/run-disaster-recovery-acceptance.sh; do
+            bash -n "$script"
+          done
+      - name: Commit fixture compatibility only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            scripts/run-security-browser-acceptance.sh \
+            scripts/run-authenticated-dashboard-acceptance.sh \
+            scripts/run-alerts-browser-acceptance.sh \
+            scripts/run-reports-browser-acceptance.sh \
+            scripts/run-nodes-browser-acceptance.sh \
+            scripts/run-test-sessions-browser-acceptance.sh \
+            scripts/run-broker-control-acceptance.sh \
+            scripts/run-device-agent-fleet-acceptance.sh \
+            scripts/run-disaster-recovery-acceptance.sh
+          git commit -m "test(security): seed explicit permissions in acceptance fixtures"
+          git push origin HEAD:feat/385-local-user-permissions
