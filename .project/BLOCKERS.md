@@ -11,6 +11,7 @@ Issue #378 / PR #380 is merged and hardware verified. Same-container CP2104 USB 
 Issue #368 / PR #373 has been reconciled with current `main` through non-force two-parent merge commit `3427df41fab06667904d127313723fa90e130fcd`.
 
 Reconciliation policy:
+
 - current `main` is authoritative for all #378/state files;
 - only the ten telemetry-specific #368 files are overlaid from the prior feature head;
 - no rebase, force push or `main` mutation;
