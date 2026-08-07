@@ -47,7 +47,7 @@
       "issue": 357,
       "pull_request": 364,
       "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-      "status": "completed",
+      "status": "software_completed_issue_reopened_for_physical_acceptance",
       "priority": "critical",
       "assignee": "eNgine9r",
       "verified_head_sha": "e474176fd129912d4c863824cec4ea08a0a474a7",
@@ -71,6 +71,16 @@
       "completion_classification": "software verified; Raspberry Pi latest-query acceptance pending"
     },
     {
+      "id": "NEXOLAB-369",
+      "issue": 369,
+      "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
+      "status": "ready_after_368",
+      "priority": "critical",
+      "assignee": "eNgine9r",
+      "depends_on": [368],
+      "selection_note": "Run immediately after #368 acceptance. It owns the separate actual-Pi browser render/select/save gap while the canonical inventory backend itself is already fast."
+    },
+    {
       "id": "NEXOLAB-366",
       "issue": 366,
       "title": "Audit and deduplicate monitoring-route read models",
@@ -78,8 +88,8 @@
       "priority": "critical",
       "assignee": "eNgine9r",
       "parent_epic": 356,
-      "depends_on": [314, 355, 357, 368],
-      "blocker": "Issue #368 must first remove the history-volume-dependent generic latest telemetry backend bottleneck; do not cache around it"
+      "depends_on": [314, 355, 357, 368, 369],
+      "blocker": "Complete #368 latest projection and #369 actual-Pi Live Dashboard browser acceptance before route-wide read-model deduplication"
     },
     {
       "id": "NEXOLAB-245",
@@ -97,9 +107,8 @@
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
       "status": "needs_validation",
       "priority": "critical",
-      "depends_on": [283, 284, 285, 286, 287, 314, 288],
-      "declared_dependencies_completed": true,
-      "selection_note": "Run final route-latency and request-count acceptance after Issue #368, Issue #366 and the remaining Epic #356 navigation optimization slices."
+      "depends_on": [283, 284, 285, 286, 287, 314, 288, 368, 369, 366],
+      "selection_note": "Run final route-latency and request-count acceptance after #368, #369, #366 and the remaining Epic #356 navigation optimization slice."
     },
     {
       "id": "NEXOLAB-257",
@@ -136,8 +145,10 @@
     "post_audit_main_sha": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a",
     "original_next_issue": 366,
     "preempting_critical_issue": 368,
-    "preemption_reason": "controlled Raspberry Pi evidence proved /api/v1/telemetry/latest?limit=1 remained slower than 20 seconds because latest state was re-derived from retained history",
+    "queued_after_368": 369,
+    "preemption_reason": "controlled Raspberry Pi evidence proved /api/v1/telemetry/latest?limit=1 remained slower than 20 seconds because latest state was re-derived from retained history; the same acceptance separately isolated a Live Dashboard browser gap into #369",
     "issue_366_status_after_preemption": "blocked",
+    "issue_370_status": "closed_not_planned_superseded_by_pr_373_state_reconciliation",
     "needs_validation": [245, 289],
     "blocked": [366, 257],
     "deferred": [256],
@@ -166,12 +177,12 @@
     "assignee": "eNgine9r",
     "branch": "perf/368-telemetry-latest-projection",
     "verified_implementation_head_sha": "8b44241df429cedb6c28a8382bbd43ae4c285fd7",
-    "selection_reason": "Physical Raspberry Pi evidence exposed a backend-wide latest telemetry bottleneck that must be corrected before route-local read-model caching/deduplication in Issue #366."
+    "selection_reason": "Physical Raspberry Pi evidence exposed a backend-wide latest telemetry bottleneck that must be corrected before the separate #369 browser acceptance and route-local read-model caching/deduplication in #366."
   },
-  "next_selection_policy": "Finish Issue #368 exact-head state CI and controlled Raspberry Pi latest-query acceptance first. After #368 is accepted and merged, unblock and execute Issue #366. Keep dependency maintenance out of this product-visible performance sequence.",
+  "next_selection_policy": "Finish #368 final state-head CI and controlled Raspberry Pi latest-query acceptance. Then execute #369. After #369 acceptance, unblock #366. Keep #289 as the final performance/hardware matrix and keep dependency maintenance out of this product-visible sequence.",
   "parallel_hardware_track": {
     "epic_issue": 282,
-    "issues": [368, 289, 245, 189, 200, 201, 202],
+    "issues": [368, 369, 289, 245, 189, 200, 201, 202],
     "completion_classification": "software verified where applicable; controlled Raspberry Pi or RS-485 acceptance pending"
   }
 }
