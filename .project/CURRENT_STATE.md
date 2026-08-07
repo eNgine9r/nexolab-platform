@@ -9,59 +9,93 @@ Parallel acquisition/hardware epic: Issue #282
 
 ## Issue #374 regression status
 
-Issue #374 / PR #375 merged the valid serial-session invalidation fix as `442cd6bc37aefc11977f82f31423d052fe70ced1`. The fix closes and clears a cached pyserial handle after transport `OSError`/EIO so a later scheduler attempt opens a new handle. Its software verification remains valid.
+Issue #374 / PR #375 merged the first serial-session invalidation slice as `442cd6bc37aefc11977f82f31423d052fe70ced1`. Its `except OSError:` recovery works for ordinary `OSError` transport failures, but real Raspberry Pi hotplug evidence has now shown a second boundary: pyserial `reset_input_buffer()` propagates `termios.error`, which is not an `OSError` subclass and therefore bypassed the merged invalidation branch.
 
-The original short Raspberry Pi acceptance is no longer sufficient as a completion criterion. Long-duration evidence from the same `nexolab-device-agent:issue-374` candidate reproduced acquisition loss after a real CP2104 USB disconnect/re-enumeration:
-
-```text
-Device Agent container: running / healthy
-mqtt_connected: true
-last_sample_at: 2026-08-07T10:55:00.478390+00:00
-last_publish_at: 2026-08-07T10:55:00.728022+00:00
-last_error: adaptive acquisition degraded: 8 endpoint(s) failing or in cooldown
-PostgreSQL max(id): 2329963
-newest telemetry age at diagnosis: ~1h10m
-```
-
-Kernel evidence aligns with the stop point:
-
-```text
-13:55:00+03 CP2104 disconnects from ttyUSB1
-13:55:01+03 same serial 0133F090 re-enumerates on ttyUSB0
-13:57:09+03 another disconnect/reconnect
-15:04:48/49+03 another disconnect/reconnect
-```
-
-The host stable path correctly followed the device to `ttyUSB0`, but the already-created container continued using the stale `/dev/rs485` device mapping and repeated `termios.error: (5, 'Input/output error')`.
-
-Issue #374 is therefore reopened as a regression record and blocked by focused child Issue #378.
+Issue #374 remains reopened as the regression parent. Do not create another implementation PR under #374; focused child Issue #378 is the active implementation package.
 
 ## Active Issue #378 / PR #380
 
-Issue #378 is the single active implementation Work Package. Branch:
+Branch:
 
 ```text
 fix/378-rs485-usb-hotplug-recovery
 ```
 
-Draft PR #380 changes the hardware Compose boundary so the running Device Agent can resolve the live host stable by-id path after `ttyUSB` minor changes:
+The first #378 implementation added a hotplug-visible container path:
 
 - remove static `${RS485_HOST_DEVICE}:/dev/rs485` device injection;
 - mount host `/dev` read-only at `/host/dev`;
 - set `SERIAL_DEVICE=/host${RS485_HOST_DEVICE}`;
-- allow only the current CP210x `ttyUSB` character-device class (`c 188:* rwm`) so the minor may change on hotplug;
-- keep exact `RS485_HOST_DEVICE=/dev/serial/by-id/...` identity authoritative;
-- no `privileged: true`, no scheduler change and no Device Agent Python change.
+- allow only Linux `ttyUSB` character major `188` through `device_cgroup_rules`;
+- keep the exact `/dev/serial/by-id/...` identity authoritative;
+- no privileged container and no polling/scheduler change.
 
-Deterministic Docker Compose contract validation is GREEN on implementation head `1fe7d2b1051293ce55062159b03d3828684cd6bc` for the hotplug-visible path, absence of static device mapping, bounded cgroup rule and read-only host `/dev` bind. Full exact-head CI will be rerun after the project-state checkpoint commit.
+Software CI on `aec3cb10ea33395e8ac7472dfac433976f18cc96` was GREEN, including Quality and Offline Bundle.
 
-Physical completion still requires a controlled Raspberry Pi acceptance where the exact candidate is installed once, the container ID is recorded, the same CP2104 is physically unplugged/replugged, and telemetry resumes with the same container ID and no manual restart/recreate.
+### First physical hotplug acceptance — failed usefully
+
+Exact candidate `aec3cb10ea33395e8ac7472dfac433976f18cc96` was installed as `nexolab-device-agent:issue-378`. Candidate container:
+
+```text
+b26acda00ae8
+```
+
+The container remained the same throughout the test:
+
+```text
+restart_count: 0 -> 0
+started_at: unchanged
+container id: unchanged
+```
+
+The host stable path disappeared and reappeared successfully across a real CP2104 unplug/replug:
+
+```text
+device_before: /dev/ttyUSB0
+stable path absent observed: yes
+device_after: /dev/ttyUSB1
+stable path reappeared observed: yes
+```
+
+This proves the Compose hotplug-visible path layer works. However telemetry did not resume. PostgreSQL remained at:
+
+```text
+recovery_base_max_id: 2331346
+final max_id: 2331346
+newest_age after test: ~7m10s
+```
+
+Device Agent repeatedly logged:
+
+```text
+termios.error: (5, 'Input/output error')
+```
+
+Repository diagnosis found that `ModbusRTUClient.read_holding_registers()` only caught `OSError`, while Python `termios.error` is a distinct `Exception` type rather than an `OSError` subclass. Therefore `_invalidate_serial()` was never called for the real `tcflush()` failure, so the cached dead handle remained in use even though the new `/host/dev/serial/by-id/...` path was visible.
+
+### Current implementation
+
+PR #380 now contains the second recovery layer:
+
+- import `termios` in the Linux Device Agent Modbus client;
+- catch `(OSError, termios.error)` as bounded serial transport failures;
+- preserve the original exception;
+- invalidate/close the cached handle exactly as #374 intended;
+- let the next normal scheduler attempt reopen the same stable by-id path;
+- add a deterministic regression test using a real `termios.error(5, "Input/output error")` exception class;
+- retain the Compose hotplug-visible `/host/dev` contract.
+
+Implementation head after the code/test fix:
+
+```text
+b71040bda3b56f835af883bbe33a682060344518
+```
+
+Fresh CI is running on that head. A final project-state checkpoint will produce the final hardware candidate SHA; only that final exact head may be used for the second Raspberry Pi unplug/replug acceptance.
 
 ## Issue #368 blocked
 
-Issue #368 remains software-GREEN but physical migration-v2 acceptance is blocked until #378 proves stable acquisition across USB re-enumeration.
-
-PR #373 reconciled software head:
+Issue #368 remains software-GREEN on reconciled head:
 
 ```text
 36ccb909ca3754cc395468382bed2da93743ee24
@@ -71,7 +105,7 @@ PR #373 reconciled software head:
 0 queued
 ```
 
-The Raspberry Pi database remains safe after the rejected precondition runs:
+The Raspberry Pi database remains safe:
 
 ```text
 Alembic: 20260805_0022
@@ -81,14 +115,15 @@ named volumes: preserved
 advisory locks: none
 ```
 
-Do not run #368 migration-v2 while telemetry is stale.
+Do not run #368 migration-v2 until #378 proves acquisition resumes automatically after real CP2104 re-enumeration.
 
 ## Execution sequence
 
 ```text
-#378 exact-head GREEN
-  -> controlled Raspberry Pi CP2104 unplug/replug acceptance with same container ID
-  -> close #378 and resolve #374 regression record
+#378 termios-aware exact-head GREEN
+  -> install final candidate once
+  -> controlled same-container CP2104 ttyUSB minor-change unplug/replug acceptance
+  -> close #378 and resolve #374 regression parent
   -> resume #368 migration-v2/latest-query physical acceptance
   -> #369 actual Raspberry Pi Live Dashboard browser inventory acceptance
   -> #366 cross-route read-model deduplication
@@ -99,8 +134,8 @@ Issue #245 remains a separate standalone Raspberry Pi validation track. Issues #
 
 ## Safety boundary
 
-No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure is included in #378. The later physical acceptance requires only a user-performed unplug/replug of the same CP2104 adapter.
+No Modbus write, controller configuration change, polling cadence change, data deletion, volume deletion, privileged container, production/site cutover, mandatory cloud dependency or secret exposure is included in #378. The physical acceptance requires only a user-performed unplug/replug of the same CP2104 adapter.
 
 ## Next action
 
-Complete exact-head CI/review for PR #380. If GREEN, build the exact candidate on the Raspberry Pi, recreate only Device Agent once to install it, then perform controlled unplug/replug acceptance without any further container restart or recreate.
+Complete fresh CI on the termios-aware implementation, checkpoint the final exact head, rerun exact-head CI if the checkpoint changes the SHA, then install that candidate once on the Raspberry Pi and repeat the same-container unplug/replug acceptance. Do not resume #368 before #378 passes.
