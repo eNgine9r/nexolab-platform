@@ -21,6 +21,7 @@ import type {
 } from "@/data/refrigeration";
 import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
@@ -56,16 +57,48 @@ const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> =
 ];
 const shelves = [1, 2, 3, 4] as const;
 
+function buildBindingSensors(
+  bindings: readonly SensorBinding[],
+  channels: readonly AvailableSensor[],
+): RefrigerationSensor[] {
+  const latest = new Map(channels.map((sensor) => [sensor.channelId, sensor]));
+  return bindings.map((binding) => {
+    const telemetry = latest.get(binding.channelId);
+    const [x, y] = defaultCoordinates(binding.side, binding.shelf, binding.position);
+    return {
+      id: binding.channelId,
+      label: binding.label,
+      name: `${telemetry?.metric ?? "Канал"} · ${binding.channelId}`,
+      side: binding.side,
+      shelf: binding.shelf,
+      position: binding.position,
+      x,
+      y,
+      temperatureC: telemetry?.latestValue ?? null,
+      status: sensorStatus(telemetry?.quality),
+      updatedAt: telemetry?.capturedAt ?? binding.boundAt,
+      trend:
+        telemetry?.latestValue === null || telemetry?.latestValue === undefined
+          ? []
+          : [telemetry.latestValue],
+    };
+  });
+}
+
 export function RefrigerationDetailScreen({
   equipment: initialEquipment,
+  initialSnapshot,
 }: {
   equipment: RefrigerationEquipment;
+  initialSnapshot?: RefrigerationStructuralSnapshot | null;
 }) {
   const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
   const [equipmentRecord, setEquipmentRecord] = useState(initialEquipment);
-  const [bindings, setBindings] = useState<SensorBinding[]>([]);
-  const [channels, setChannels] = useState<AvailableSensor[]>([]);
-  const [bindingSensors, setBindingSensors] = useState<RefrigerationSensor[] | null>(null);
+  const [bindings, setBindings] = useState<SensorBinding[]>(initialSnapshot?.bindings ?? []);
+  const [channels, setChannels] = useState<AvailableSensor[]>(initialSnapshot?.channels ?? []);
+  const [bindingSensors, setBindingSensors] = useState<RefrigerationSensor[] | null>(() =>
+    initialSnapshot ? buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels) : null,
+  );
   const [channelError, setChannelError] = useState<string | null>(null);
   const [chamberLabel, setChamberLabel] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,11 +112,13 @@ export function RefrigerationDetailScreen({
   const [bindingEpoch, setBindingEpoch] = useState(0);
 
   useEffect(() => {
-    setEquipmentRecord(initialEquipment);
-    setBindingSensors(null);
-    setBindings([]);
-    setChannels([]);
-  }, [initialEquipment]);
+    setEquipmentRecord(initialSnapshot?.equipment ?? initialEquipment);
+    if (initialSnapshot) {
+      setBindings(initialSnapshot.bindings);
+      setChannels(initialSnapshot.channels);
+      setBindingSensors(buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels));
+    }
+  }, [initialEquipment, initialSnapshot]);
 
   useEffect(() => {
     if (!passportOpen) return;
@@ -149,12 +184,13 @@ export function RefrigerationDetailScreen({
   }, [runtime]);
 
   useEffect(() => {
+    const structural = runtime.structuralSnapshotRepository;
     const lifecycle = runtime.lifecycleRepository;
     const chamberId = equipmentRecord.climateChamberId;
-    if (!lifecycle || !chamberId) {
-      setBindingSensors(runtime.mode === "demo" ? null : []);
-      setBindings([]);
-      setChannels([]);
+    if (!structural && (!lifecycle || !chamberId)) {
+      if (bindingSensors === null) {
+        setBindingSensors(runtime.mode === "demo" ? null : []);
+      }
       setChannelError(
         runtime.mode === "live" && !chamberId ? "Для обладнання не вибрано кліматичну камеру." : null,
       );
@@ -162,54 +198,39 @@ export function RefrigerationDetailScreen({
     }
     let active = true;
     setChannelError(null);
-    void Promise.all([
-      lifecycle.listBindings(equipmentRecord.id),
-      lifecycle.listClimateChamberChannels(chamberId),
-    ])
-      .then(([loadedBindings, availableChannels]) => {
+    const request = structural
+      ? structural.get(equipmentRecord.id).then((snapshot) => ({
+          equipment: snapshot.equipment,
+          bindings: snapshot.bindings,
+          channels: snapshot.channels,
+        }))
+      : Promise.all([
+          lifecycle!.listBindings(equipmentRecord.id),
+          lifecycle!.listClimateChamberChannels(chamberId!),
+        ]).then(([loadedBindings, availableChannels]) => ({
+          equipment: equipmentRecord,
+          bindings: loadedBindings,
+          channels: availableChannels,
+        }));
+    void request
+      .then((loaded) => {
         if (!active) return;
-        const latest = new Map(availableChannels.map((sensor) => [sensor.channelId, sensor]));
-        setBindings(loadedBindings);
-        setChannels(availableChannels);
-        setBindingSensors(
-          loadedBindings.map((binding) => {
-            const telemetry = latest.get(binding.channelId);
-            const [x, y] = defaultCoordinates(binding.side, binding.shelf, binding.position);
-            return {
-              id: binding.channelId,
-              label: binding.label,
-              name: `${telemetry?.metric ?? "Канал"} · ${binding.channelId}`,
-              side: binding.side,
-              shelf: binding.shelf,
-              position: binding.position,
-              x,
-              y,
-              temperatureC: telemetry?.latestValue ?? null,
-              status: sensorStatus(telemetry?.quality),
-              updatedAt: telemetry?.capturedAt ?? binding.boundAt,
-              trend:
-                telemetry?.latestValue === null || telemetry?.latestValue === undefined
-                  ? []
-                  : [telemetry.latestValue],
-            };
-          }),
-        );
+        setEquipmentRecord(loaded.equipment);
+        setBindings(loaded.bindings);
+        setChannels(loaded.channels);
+        setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
       })
       .catch((cause) => {
         if (!active) return;
-        setBindings([]);
-        setChannels([]);
-        setBindingSensors([]);
+        if (bindingSensors === null) setBindingSensors([]);
         setChannelError(
-          cause instanceof Error
-            ? cause.message
-            : "Не вдалося завантажити датчики вибраної кліматичної камери.",
+          cause instanceof Error ? cause.message : "Не вдалося оновити структурний snapshot обладнання.",
         );
       });
     return () => {
       active = false;
     };
-  }, [bindingEpoch, equipmentRecord.climateChamberId, equipmentRecord.id, equipmentRecord.version, runtime]);
+  }, [bindingEpoch, bindingSensors, equipmentRecord.climateChamberId, equipmentRecord.id, runtime]);
 
   const equipment = useMemo(
     () => (bindingSensors === null ? equipmentRecord : { ...equipmentRecord, sensors: bindingSensors }),
