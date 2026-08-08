@@ -3,71 +3,60 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "POST-CHART-SPEC-STATE-RECONCILIATION",
-  "status": "state_only_ci_pending",
-  "timestamp": "2026-08-07T22:38:00+03:00",
-  "branch": "chore/387-chart-spec-state-reconciliation",
-  "base_main_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-  "issue": 387,
-  "recently_completed_work_package": {
-    "issue": 383,
-    "pull_request": 384,
-    "title": "Define the NEXOLAB Chart System technical specification",
-    "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
-    "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-    "final_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
-    "completion_classification": "documentation architecture verified; no production chart implementation and no Raspberry Pi chart hardware acceptance"
+  "task": "ISSUE-385-SOFTWARE-VERIFICATION",
+  "status": "software_verified_raspberry_pi_acceptance_pending",
+  "timestamp": "2026-08-08T13:34:00+03:00",
+  "branch": "feat/385-local-user-permissions",
+  "base_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
+  "issue": 385,
+  "pull_request": 390,
+  "verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+  "product_outcome": {
+    "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
+    "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
+    "ui": "/settings/users",
+    "session_revocation": "role, permission, password and account-state changes revoke affected sessions",
+    "audit": "safe immutable administration audit without secret material",
+    "runtime_identity": "local PostgreSQL + local JWT/session authority; no external identity provider required"
   },
-  "chart_system": {
-    "specification": "docs/architecture/nexolab-chart-system.md",
-    "next_ready_issue": 386,
-    "next_ready_title": "Establish chart-domain primitives and benchmark the local renderer",
-    "selected_for_implementation": false,
-    "selection_reason": "single active implementation slot remains occupied by critical Issue #368"
-  },
-  "active_work_package": {
-    "issue": 368,
-    "pull_request": 373,
-    "title": "Make telemetry latest reads independent of history volume",
-    "status": "current_main_reconciliation_and_hardware_acceptance_pending",
-    "previous_exact_software_head": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
-    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
-    "previous_reconciled_main": "329282496491d2ee27ab4f292e982a30af33c2b7",
-    "current_main_before_state_reconciliation": "72f32d387e0199f7b863a56931d40a411ebf999c",
-    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, freeze the new candidate, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
-  },
-  "prepared_ready_backlog": [
-    {
-      "issue": 385,
-      "title": "Add local Raspberry Pi user administration and role management"
+  "software_verification": {
+    "workflow_summary": "19 completed workflows, 19 success, 0 failures, 0 in-progress",
+    "offline_auth": {
+      "run_id": 31254031318,
+      "status": "GREEN",
+      "artifact": "offline-auth-acceptance-b7951011ebc337c23808b1f89deab5a7d99f7208",
+      "artifact_digest": "sha256:f85b69451e7d5648e9ce9b6cc5112a53564657ed7b0a0fee9e955edf363507e5",
+      "proved_flow": "administrator -> create engineer -> dashboard.read + telemetry.read -> engineer login -> exact permissions -> admin API 403",
+      "migration_round_trip": "GREEN"
     },
-    {
-      "issue": 386,
-      "title": "Establish chart-domain primitives and benchmark the local renderer"
+    "offline_bundle": {
+      "run_id": 31254031285,
+      "status": "GREEN",
+      "artifact": "nexolab-offline-amd64-b7951011ebc337c23808b1f89deab5a7d99f7208",
+      "artifact_digest": "sha256:4a7b0c7eb4ce97fac407848a69c1d4d7e1b704d9666939fa9cedbb8a37281a36",
+      "proved_flow": "build -> remove local runtime images -> block egress -> load/start with pulling disabled -> update/rollback data preservation"
     }
-  ],
+  },
   "hardware_evidence": {
-    "latest_completed_hardware_issue": 378,
-    "candidate_container": "9f03df0e798e",
-    "container_restarted": false,
-    "container_recreated": false,
-    "restart_count_before_after": "0 -> 0",
-    "device_before": "ttyUSB1",
-    "device_after": "ttyUSB0",
-    "postgres_final_observed_max_id": 2332624,
-    "chart_hardware_acceptance": "not performed",
+    "raspberry_pi_user_management_acceptance": "not performed",
+    "completion_classification": "software verified; Raspberry Pi local user-management acceptance pending",
     "modbus_write": "none",
-    "hardware_write": "none"
+    "hardware_write": "none",
+    "production_site_cutover": "none"
+  },
+  "sequencing": {
+    "selected_by_product_owner": 385,
+    "next_after_current": 389,
+    "paused_issue": 368,
+    "paused_issue_semantics": "blocked/paused by explicit Product Owner priority; not completed or cancelled"
   },
   "state_reconciliation": {
-    "scope": "four .project files only",
-    "runtime_code_changes": 0,
+    "scope": "CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md, LAST_CHECKPOINT.json",
+    "product_code_changes": 0,
     "dependency_changes": 0,
-    "database_changes": 0,
     "acquisition_changes": 0,
     "hardware_actions": 0,
-    "ci": "pending on final state-only head"
+    "final_state_head_ci": "required after this checkpoint commit"
   },
-  "downstream_runtime_sequence": [368, 369, 366, 289],
-  "next_action": "Complete state-only Issue #387 on GREEN, then return to PR #373 current-main reconciliation and controlled Issue #368 acceptance. Keep Issues #385 and #386 Ready but unselected while the single active implementation slot is occupied."
+  "next_action": "Run exact-head CI for the state-reconciled PR head, perform final PR/review/diff audit, then execute controlled Raspberry Pi local user-management acceptance. If physical access is unavailable, record that as the hard blocker and do not claim hardware verification."
 }

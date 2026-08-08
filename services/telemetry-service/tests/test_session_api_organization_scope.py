@@ -14,8 +14,10 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.main import create_app
 from app.model_registry import register_models
+from app.security.authorization import Role, effective_permissions
 from app.security.models import (
     SecurityIdentity,
+    SecurityMembershipPermission,
     SecurityMembershipRole,
     SecurityOrganization,
     SecurityOrganizationMembership,
@@ -108,8 +110,19 @@ def build_client(database_path: Path) -> TestClient:
                     membership,
                     SecurityMembershipRole(
                         membership_id=membership.id,
-                        role="engineer",
+                        role=Role.ENGINEER.value,
                         assigned_by="scope-test",
+                    ),
+                    *(
+                        SecurityMembershipPermission(
+                            membership_id=membership.id,
+                            permission=permission.value,
+                            assigned_by="scope-test",
+                        )
+                        for permission in sorted(
+                            effective_permissions({Role.ENGINEER}),
+                            key=lambda item: item.value,
+                        )
                     ),
                 ]
             )

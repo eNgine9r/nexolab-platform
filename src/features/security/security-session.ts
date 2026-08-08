@@ -1,8 +1,13 @@
-export type SecurityRole =
-  "administrator" | "laboratory_manager" | "engineer" | "operator" | "viewer" | "auditor";
+export type SecurityProductRole =
+  "administrator" | "laboratory_manager" | "engineer" | "laboratory_technician";
+
+export type SecurityLegacyRole = "operator" | "viewer" | "auditor";
+
+export type SecurityRole = SecurityProductRole | SecurityLegacyRole;
 
 export type SecurityPermission =
   | "dashboard.read"
+  | "live_dashboards.manage"
   | "telemetry.read"
   | "alerts.read"
   | "audit.read"
@@ -19,9 +24,10 @@ export type SecurityPermission =
   | "sessions.manage"
   | "sessions.operate"
   | "alerts.rules.manage"
-  | "alerts.acknowledge";
+  | "alerts.acknowledge"
+  | "project_versions.manage";
 
-export type SecurityEffectivePermission = SecurityPermission | "live_dashboards.manage";
+export type SecurityEffectivePermission = SecurityPermission;
 
 export type SecurityIdentity = {
   id: string;
@@ -315,6 +321,7 @@ function isSecurityRole(value: unknown): value is SecurityRole {
     value === "administrator" ||
     value === "laboratory_manager" ||
     value === "engineer" ||
+    value === "laboratory_technician" ||
     value === "operator" ||
     value === "viewer" ||
     value === "auditor"
@@ -341,7 +348,8 @@ function isSecurityPermission(value: unknown): value is SecurityEffectivePermiss
     value === "sessions.manage" ||
     value === "sessions.operate" ||
     value === "alerts.rules.manage" ||
-    value === "alerts.acknowledge"
+    value === "alerts.acknowledge" ||
+    value === "project_versions.manage"
   );
 }
 

@@ -29,12 +29,16 @@ function apiHeaders(accessToken: string): Record<string, string> {
   };
 }
 
-async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<BrowserLogin> {
+async function loginWithCredentials(
+  browser: Browser,
+  username: string,
+  accountPassword: string,
+): Promise<BrowserLogin> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/login", { waitUntil: "networkidle" });
-  await page.getByLabel("Логін або email").fill(accounts[role]);
-  await page.getByLabel("Пароль").fill(password);
+  await page.getByLabel("Логін або email").fill(username);
+  await page.getByLabel("Пароль").fill(accountPassword);
   await page.getByRole("button", { name: "Увійти" }).click();
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
   await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
@@ -48,6 +52,10 @@ async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<Br
   expect(storage.refreshPresent).toBe(true);
   expect(storage.localTokenKeys).toEqual([]);
   return { page, accessToken: storage.accessToken as string };
+}
+
+async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<BrowserLogin> {
+  return loginWithCredentials(browser, accounts[role], password);
 }
 
 test("authenticates local viewer, operator and administrator without an external identity service", async ({
@@ -109,6 +117,73 @@ test("authenticates local viewer, operator and administrator without an external
   writeFileSync(
     path.join(evidenceDirectory, "browser-role-evidence.json"),
     `${JSON.stringify(roleEvidence, null, 2)}\n`,
+    { encoding: "utf-8", mode: 0o600 },
+  );
+});
+
+test("administrator creates a four-role user with explicit permissions and non-admin stays blocked", async ({
+  browser,
+}) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const username = "issue385.engineer";
+  const { page: adminPage } = await loginThroughBrowser(browser, "administrator");
+  try {
+    await adminPage.goto("/settings/users", { waitUntil: "networkidle" });
+    await expect(adminPage.getByRole("heading", { name: "Користувачі та права" })).toBeVisible();
+    await adminPage.getByRole("button", { name: "Новий користувач" }).click();
+
+    const createPanel = adminPage
+      .getByRole("heading", { name: "Створити локального користувача" })
+      .locator("..");
+    await createPanel.getByLabel("Логін").fill(username);
+    await createPanel.getByLabel("Ім’я").fill("Issue 385 Engineer");
+    await createPanel.getByLabel("Початковий пароль").fill(password);
+    await createPanel.getByRole("combobox", { name: "Роль", exact: true }).selectOption("engineer");
+    await createPanel.getByRole("checkbox", { name: /Огляд/ }).check();
+    await createPanel.getByRole("checkbox", { name: /Перегляд телеметрії/ }).check();
+    await createPanel.getByRole("button", { name: "Створити" }).click();
+
+    await expect(adminPage.getByText(`Користувача ${username} створено.`)).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Issue 385 Engineer", exact: true })).toBeVisible();
+  } finally {
+    await adminPage.context().close();
+  }
+
+  const { page: engineerPage, accessToken } = await loginWithCredentials(browser, username, password);
+  try {
+    const sessionResponse = await engineerPage.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(accessToken),
+    });
+    expect(sessionResponse.status()).toBe(200);
+    const session = (await sessionResponse.json()) as {
+      memberships: Array<{ roles: string[]; permissions: string[] }>;
+    };
+    expect(session.memberships[0]?.roles).toEqual(["engineer"]);
+    expect(session.memberships[0]?.permissions).toEqual(["dashboard.read", "telemetry.read"]);
+
+    const adminApiResponse = await engineerPage.request.get(`${apiBaseUrl}/api/v1/admin/users`, {
+      headers: apiHeaders(accessToken),
+    });
+    expect(adminApiResponse.status()).toBe(403);
+
+    await engineerPage.goto("/settings/users", { waitUntil: "networkidle" });
+    await expect(engineerPage.getByRole("heading", { name: "Доступ заборонено" })).toBeVisible();
+  } finally {
+    await engineerPage.context().close();
+  }
+
+  writeFileSync(
+    path.join(evidenceDirectory, "user-admin-evidence.json"),
+    `${JSON.stringify(
+      {
+        username,
+        role: "engineer",
+        permissions: ["dashboard.read", "telemetry.read"],
+        non_admin_admin_api_status: 403,
+      },
+      null,
+      2,
+    )}\n`,
     { encoding: "utf-8", mode: 0o600 },
   );
 });

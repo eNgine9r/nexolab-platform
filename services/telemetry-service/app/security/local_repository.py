@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.db import Database
 from app.security.authentication import VerifiedIdentityClaims
-from app.security.authorization import Role
+from app.security.authorization import LEGACY_ROLES, GRANTABLE_PERMISSIONS, Role, effective_permissions
 from app.security.local_models import SecurityLocalAccount, SecurityLocalSession
 from app.security.models import (
     SecurityIdentity,
+    SecurityMembershipPermission,
     SecurityMembershipRole,
     SecurityOrganization,
     SecurityOrganizationMembership,
@@ -165,6 +166,27 @@ class LocalAuthRepository:
                         assigned_at=now,
                     )
                     for role in sorted(resolved_roles, key=lambda item: item.value)
+                )
+
+                # Compatibility-only path for legacy local accounts created by
+                # offline acceptance and older operational tooling. New product
+                # roles intentionally start with no explicit grants and must be
+                # configured through administrator-managed access controls.
+                legacy_roles = resolved_roles & LEGACY_ROLES
+                legacy_permissions = (
+                    effective_permissions(legacy_roles) & GRANTABLE_PERMISSIONS
+                )
+                session.add_all(
+                    SecurityMembershipPermission(
+                        membership_id=membership_id,
+                        permission=permission.value,
+                        assigned_by="local-auth-legacy-compatibility",
+                        assigned_at=now,
+                    )
+                    for permission in sorted(
+                        legacy_permissions,
+                        key=lambda item: item.value,
+                    )
                 )
 
         return self.get_account(normalized_username)
