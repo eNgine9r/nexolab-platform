@@ -144,7 +144,7 @@ test("administrator creates a four-role user with explicit permissions and non-a
     await createPanel.getByRole("button", { name: "Створити" }).click();
 
     await expect(adminPage.getByText(`Користувача ${username} створено.`)).toBeVisible();
-    await expect(adminPage.getByText("Issue 385 Engineer")).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Issue 385 Engineer", exact: true })).toBeVisible();
   } finally {
     await adminPage.context().close();
   }
