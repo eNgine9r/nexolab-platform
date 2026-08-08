@@ -168,8 +168,6 @@ export function UsersScreen() {
       setSelectedRole(selectedUser.role ?? "laboratory_technician");
       setSelectedPermissions(selectedUser.grantedPermissions);
       setResetPassword("");
-      setNotice(null);
-      setError(null);
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [selectedUser]);
@@ -501,7 +499,11 @@ export function UsersScreen() {
                     <button
                       key={user.id}
                       type="button"
-                      onClick={() => setSelectedId(user.id)}
+                      onClick={() => {
+                        setSelectedId(user.id);
+                        setNotice(null);
+                        setError(null);
+                      }}
                       className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === user.id ? "border-cyan-300/30 bg-cyan-400/[0.08]" : "border-white/8 bg-white/[0.025] hover:border-white/15"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
