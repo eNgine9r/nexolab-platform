@@ -1,54 +1,63 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-11
+Updated: 2026-08-08
 
-## Issue #368 — runtime and physical blockers resolved
+## Issue #385 — physical acceptance pending
 
-Issue #368 / PR #373 passed controlled Raspberry Pi physical acceptance and the full software content head `6c4955f73dde147f5f6797dbb04b99b1b67239ba` completed 17/17 workflows GREEN.
+Issue #385 / PR #390 is the selected Work Package after explicit Product Owner reprioritization.
 
-The original `>20 s` latest request is eliminated. Projection cardinality is `194/194`, latest p95 is 13–23 ms for normal unfiltered shapes, the query plan uses `telemetry_latest`, central smoke is GREEN, ingestion remains live and the PostgreSQL named volume is preserved.
+Software is verified on product head `b7951011ebc337c23808b1f89deab5a7d99f7208`:
 
-Post-hardware regression findings are resolved:
+```text
+19 completed workflows
+19 success
+0 failures
+0 in-progress
+```
 
-- delayed older gap rows no longer make startup reconciliation report repeated projection mutations; Telemetry Service PostgreSQL integration is GREEN;
-- authenticated-dashboard deterministic history fixtures now also seed the bounded latest projection; authenticated REST/history/WebSocket browser acceptance is GREEN;
-- the telemetry image HIGH-vulnerability blocker is resolved by merged Issue #396 / PR #397 without new exceptions.
+Offline Auth Acceptance is GREEN and proves local administrator login, creation of an engineer with explicit `dashboard.read` + `telemetry.read`, engineer login with exactly those effective permissions, and server-side `403` for the engineer against the user-administration API.
 
-The only remaining #368 gate is exact-head CI on the final four-file state checkpoint, followed by final focused-diff/review/base audit and merge.
+Offline Bundle is GREEN and proves disconnected startup plus update/rollback persistent-data preservation.
 
-## Alembic sequencing hazard — #368 and #385
+The remaining blocker is **physical Raspberry Pi acceptance**. No hardware/runtime acceptance claim may be made until the controlled Raspberry Pi actually exercises the local Users & Access flow.
 
-Issue #385 / PR #390 remains paused until #368 merges because both feature histories currently define revision `20260807_0023` from `20260805_0022`.
+This is a hard blocker only if the required Raspberry Pi access/evidence path is unavailable. It is not a software defect.
 
-The controlled production database already records `20260807_0023` as the physically verified #368 telemetry projection. Therefore #385 must not merge or be deployed with its current revision id.
+## Issue #389 — blocked by Issue #385
 
-Required safe sequence:
+Issue #389 (administrator-only local NEXOLAB Version Management) depends on the final administrator authorization boundary from #385.
 
-1. merge #368 only after final state exact-head GREEN;
-2. reconcile #385 with post-#368 `main`;
-3. rename the #385 migration to `20260807_0024` and set `down_revision = 20260807_0023`;
-4. rerun #385 exact-head migration/integration/offline/browser CI;
-5. run #385 physical acceptance in an isolated Raspberry Pi local-auth stack without touching production PostgreSQL volumes;
-6. merge #385 only after GREEN and physical evidence.
+It remains blocked until:
 
-No database downgrade, restore, history deletion or volume deletion is required or authorized to resolve this sequencing hazard.
+1. #385 controlled Raspberry Pi acceptance is complete;
+2. PR #390 remains GREEN and is merged;
+3. the merged administrator-only `project_versions.manage` capability is available on `main`.
 
-## Runtime sequencing
+After those conditions, #389 is the next selected Work Package for this product lane.
 
-- #368: software and physical acceptance GREEN; final state CI pending.
-- #385: software verified on its old head, paused only for migration ordering; resumes immediately after #368 merge.
-- #389: waits for #385 completion.
-- #369 waits until the selected Users & Access / Version Management lane permits the runtime sequence to resume.
-- #366 waits for #369.
-- #289 remains downstream after #366.
-- #245 remains a separate Raspberry Pi validation track.
-- #257 remains blocked by ESLint 10 compatibility.
-- #256 remains deferred pending TypeScript 7 ecosystem compatibility.
+## Issue #368 — paused by Product Owner priority
+
+Issue #368 remains open and repository-labelled `status:blocked`.
+
+Its telemetry-latest physical acceptance is paused because the Product Owner explicitly selected the local Users & Access / Version Management lane first. This is a sequencing decision, not completion or cancellation of #368.
+
+When the selected lane completes or priority changes again, resume the runtime sequence:
+
+```text
+#368 -> #369 -> #366 -> #289
+```
+
+## Other known boundaries
+
+- Issue #245 remains a separate Raspberry Pi validation track.
+- Issue #386 remains Ready but not selected.
+- Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
+- Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
 ## Security boundary
 
-The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Do not broaden it.
+The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #385 does not broaden it.
 
 ## Global hard-stop rules
 
-Stop before destructive data or volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, privileged hardware containers or unsupported physical acceptance claims.
+Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, privileged hardware containers or unsupported physical-acceptance claims.
