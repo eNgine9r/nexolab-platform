@@ -209,7 +209,12 @@ class LocalUserAdminService:
                         is_active=True,
                         created_at=now,
                     )
-                    session.add_all((identity, account, membership))
+                    # These mapped objects do not have ORM relationships linking their
+                    # dependency graph. Flush the identity first so PostgreSQL never sees
+                    # account/membership foreign keys before their parent identity row.
+                    session.add(identity)
+                    session.flush()
+                    session.add_all((account, membership))
                     session.flush()
                     session.add(
                         SecurityMembershipRole(
@@ -259,9 +264,11 @@ class LocalUserAdminService:
                         user_agent=user_agent,
                     )
         except IntegrityError as error:
-            raise LocalUserConflictError(
-                f"local username {normalized_username!r} already exists"
-            ) from error
+            if self._is_username_conflict(error):
+                raise LocalUserConflictError(
+                    f"local username {normalized_username!r} already exists"
+                ) from error
+            raise
 
         return self.get_user(
             organization_id=organization_id,
@@ -565,6 +572,18 @@ class LocalUserAdminService:
                     user_agent=user_agent,
                 )
                 return count
+
+    @staticmethod
+    def _is_username_conflict(error: IntegrityError) -> bool:
+        original = error.orig
+        diagnostic = getattr(original, "diag", None)
+        constraint_name = getattr(diagnostic, "constraint_name", None)
+        if constraint_name == "uq_security_local_accounts_username":
+            return True
+        return (
+            "UNIQUE constraint failed: security_local_accounts.username"
+            in str(original)
+        )
 
     @staticmethod
     def _product_role(value: str) -> Role:
