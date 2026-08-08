@@ -1,86 +1,63 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-07
+Updated: 2026-08-08
 
-## Resolved recovery blockers
+## Issue #385 — physical acceptance pending
 
-### Issue #378 — resolved and merged
+Issue #385 / PR #390 is the selected Work Package after explicit Product Owner reprioritization.
 
-Issue #378 / PR #380 is completed. Final exact head `5635df201a6cbd59227a8ebe181c44fa5167f67c` completed 14 checks with 0 failures and 0 in-progress, and PR #380 squash-merged as `6645af46a198ff454142df3b0a713984f4d71196`.
-
-Controlled Raspberry Pi hotplug acceptance passed on the same running Device Agent across `/dev/ttyUSB1 -> /dev/ttyUSB0` re-enumeration with restart count `0 -> 0` and resumed PostgreSQL telemetry.
-
-The RS-485 USB re-enumeration blocker is no longer active.
-
-### Issue #374 — regression parent resolved
-
-Issue #374 / PR #375 remains a valid merged partial fix. Its later USB re-enumeration regression is resolved by Issue #378 and same-container hardware evidence. It is not a current sequencing blocker.
-
-### Issue #381 — state reconciliation completed
-
-Issue #381 is closed completed through PR #382 / merge `329282496491d2ee27ab4f292e982a30af33c2b7`. It must not remain listed as an active or sequencing blocker.
-
-## Issue #368 — active validation track
-
-Issue #368 / PR #373 is the selected critical Work Package.
-
-The previously frozen software candidate is:
+Software is verified on product head `b7951011ebc337c23808b1f89deab5a7d99f7208`:
 
 ```text
-105ae34425a8937a6f61c172b52ce2c6fa09f3b3
-26 completed checks
+19 completed workflows
+19 success
 0 failures
 0 in-progress
-0 queued
 ```
 
-That result was exact for a branch reconciled through `main` at `329282496491d2ee27ab4f292e982a30af33c2b7`.
+Offline Auth Acceptance is GREEN and proves local administrator login, creation of an engineer with explicit `dashboard.read` + `telemetry.read`, engineer login with exactly those effective permissions, and server-side `403` for the engineer against the user-administration API.
 
-Current `main` advanced to `72f32d387e0199f7b863a56931d40a411ebf999c` through documentation-only Chart System PR #384. Therefore the older #368 CI result is not the final pre-hardware gate. Before Raspberry Pi migration-v2:
+Offline Bundle is GREEN and proves disconnected startup plus update/rollback persistent-data preservation.
 
-- reconcile PR #373 with current `main`;
-- rerun full exact-head CI;
-- freeze the new exact candidate;
-- recheck Raspberry Pi schema, acquisition freshness and advisory-lock state;
-- create a fresh database backup and checksum;
-- only then execute controlled migration-v2/latest-query acceptance.
+The remaining blocker is **physical Raspberry Pi acceptance**. No hardware/runtime acceptance claim may be made until the controlled Raspberry Pi actually exercises the local Users & Access flow.
 
-This is a sequencing/verification requirement, not a new hardware defect.
+This is a hard blocker only if the required Raspberry Pi access/evidence path is unavailable. It is not a software defect.
 
-## Runtime sequencing
+## Issue #389 — blocked by Issue #385
 
-- #368 is active and must complete current-main reconciliation, exact-head CI and controlled physical acceptance.
-- #369 waits for #368 physical migration/latest-query acceptance.
-- #366 waits for the #368 -> #369 runtime acceptance sequence.
-- #289 remains downstream after #366.
-- #245 remains a separate Raspberry Pi validation track.
-- #257 remains blocked by ESLint 10 compatibility.
-- #256 remains deferred pending TypeScript 7 ecosystem compatibility.
+Issue #389 (administrator-only local NEXOLAB Version Management) depends on the final administrator authorization boundary from #385.
 
-## Prepared Ready backlog
+It remains blocked until:
 
-Issue #385 — local Raspberry Pi user administration and role management — is Ready but not selected.
+1. #385 controlled Raspberry Pi acceptance is complete;
+2. PR #390 remains GREEN and is merged;
+3. the merged administrator-only `project_versions.manage` capability is available on `main`.
 
-Issue #386 — chart-domain primitives and local renderer benchmark — is Ready but not selected.
+After those conditions, #389 is the next selected Work Package for this product lane.
 
-The Sprint allows one active implementation task. Neither #385 nor #386 should start in parallel while #368 occupies that slot unless the Product Owner explicitly changes priority or #368 becomes blocked and the repository selection policy promotes an independent package.
+## Issue #368 — paused by Product Owner priority
 
-## Chart System status
+Issue #368 remains open and repository-labelled `status:blocked`.
 
-Issue #383 / PR #384 is completed and merged. There is no active chart-spec blocker.
+Its telemetry-latest physical acceptance is paused because the Product Owner explicitly selected the local Users & Access / Version Management lane first. This is a sequencing decision, not completion or cancellation of #368.
 
-Future chart implementation still requires:
+When the selected lane completes or priority changes again, resume the runtime sequence:
 
-- #386 shared chart-domain primitives and renderer benchmark;
-- later route-by-route migrations;
-- real Raspberry Pi performance and acquisition-invariant acceptance before claiming hardware verification.
+```text
+#368 -> #369 -> #366 -> #289
+```
 
-No chart hardware acceptance has been performed yet.
+## Other known boundaries
+
+- Issue #245 remains a separate Raspberry Pi validation track.
+- Issue #386 remains Ready but not selected.
+- Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
+- Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
 ## Security boundary
 
-The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Do not broaden it.
+The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #385 does not broaden it.
 
 ## Global hard-stop rules
 
-Stop before destructive data or volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, privileged hardware containers or unsupported physical acceptance claims.
+Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, privileged hardware containers or unsupported physical-acceptance claims.
