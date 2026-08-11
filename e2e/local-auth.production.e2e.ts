@@ -126,20 +126,13 @@ test("authenticates local viewer, operator and administrator without an external
   );
 });
 
-test("administrator provisions every product role with bounded server-side access", async ({
-  browser,
-}) => {
+test("administrator provisions every product role with bounded server-side access", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const username = "issue385.engineer";
-  const { page: adminPage, accessToken: adminToken } = await loginThroughBrowser(
-    browser,
-    "administrator",
-  );
+  const { page: adminPage, accessToken: adminToken } = await loginThroughBrowser(browser, "administrator");
   try {
     await adminPage.goto("/settings/users", { waitUntil: "networkidle" });
-    await expect(
-      adminPage.getByRole("heading", { name: "Користувачі та права" }),
-    ).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Користувачі та права" })).toBeVisible();
     const adminSession = await adminPage.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
       headers: apiHeaders(adminToken),
     });
@@ -155,19 +148,13 @@ test("administrator provisions every product role with bounded server-side acces
     await createPanel.getByLabel("Логін").fill(username);
     await createPanel.getByLabel("Ім’я").fill("Issue 385 Engineer");
     await createPanel.getByLabel("Початковий пароль").fill(password);
-    await createPanel
-      .getByRole("combobox", { name: "Роль", exact: true })
-      .selectOption("engineer");
+    await createPanel.getByRole("combobox", { name: "Роль", exact: true }).selectOption("engineer");
     await createPanel.getByRole("checkbox", { name: /Огляд/ }).check();
     await createPanel.getByRole("checkbox", { name: /Перегляд телеметрії/ }).check();
     await createPanel.getByRole("button", { name: "Створити" }).click();
 
-    await expect(
-      adminPage.getByText(`Користувача ${username} створено.`),
-    ).toBeVisible();
-    await expect(
-      adminPage.getByRole("heading", { name: "Issue 385 Engineer", exact: true }),
-    ).toBeVisible();
+    await expect(adminPage.getByText(`Користувача ${username} створено.`)).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Issue 385 Engineer", exact: true })).toBeVisible();
 
     for (const fixture of [
       {
@@ -214,11 +201,7 @@ test("administrator provisions every product role with bounded server-side acces
       permissions: ["telemetry.read"],
     },
   ]) {
-    const { page, accessToken } = await loginWithCredentials(
-      browser,
-      fixture.username,
-      password,
-    );
+    const { page, accessToken } = await loginWithCredentials(browser, fixture.username, password);
     try {
       const session = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
         headers: apiHeaders(accessToken),
@@ -237,11 +220,7 @@ test("administrator provisions every product role with bounded server-side acces
     }
   }
 
-  const { page: engineerPage, accessToken } = await loginWithCredentials(
-    browser,
-    username,
-    password,
-  );
+  const { page: engineerPage, accessToken } = await loginWithCredentials(browser, username, password);
   try {
     const sessionResponse = await engineerPage.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
       headers: apiHeaders(accessToken),
@@ -251,10 +230,7 @@ test("administrator provisions every product role with bounded server-side acces
       memberships: Array<{ roles: string[]; permissions: string[] }>;
     };
     expect(session.memberships[0]?.roles).toEqual(["engineer"]);
-    expect(session.memberships[0]?.permissions).toEqual([
-      "dashboard.read",
-      "telemetry.read",
-    ]);
+    expect(session.memberships[0]?.permissions).toEqual(["dashboard.read", "telemetry.read"]);
 
     const adminApiResponse = await engineerPage.request.get(`${apiBaseUrl}/api/v1/admin/users`, {
       headers: apiHeaders(accessToken),
