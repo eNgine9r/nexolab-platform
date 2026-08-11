@@ -103,7 +103,9 @@ function buildSeries(
   const identity = liveSampleChartIdentity(identitySample);
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[index % CHART_SERIES_TOKENS.length];
-  const samples = historySamples.filter((sample) => liveChannelKey(sample) === liveChannelKey(identitySample));
+  const samples = historySamples.filter(
+    (sample) => liveChannelKey(sample) === liveChannelKey(identitySample),
+  );
   const segments = liveHistorySegments(samples);
   const pins = transitionPins(samples);
 
@@ -119,8 +121,7 @@ function buildSeries(
       seriesKey: key,
       points: segment
         .filter(
-          (sample) =>
-            sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value),
+          (sample) => sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value),
         )
         .map((sample) => pointFromSample(sample, pins.get(sample.event_id))),
       ...(segmentIndex > 0 && segment[0]
@@ -165,14 +166,7 @@ export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartG
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const allSeries = options.selectedIdentities.map((identity, index) =>
-    buildSeries(
-      identity,
-      options.historySamples,
-      options.status,
-      index,
-      hiddenSeriesKeys,
-      soloSeriesKey,
-    ),
+    buildSeries(identity, options.historySamples, options.status, index, hiddenSeriesKeys, soloSeriesKey),
   );
   const byKey = new Map(allSeries.map((series) => [chartSeriesKey(series.identity), series]));
   const groups = groupCompatibleChartUnits(allSeries.map((series) => series.identity));

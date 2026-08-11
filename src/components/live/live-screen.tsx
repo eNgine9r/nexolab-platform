@@ -164,7 +164,7 @@ export function LiveScreen() {
         <main className="relative min-w-0 overflow-hidden p-3 sm:p-4 xl:p-5 2xl:p-6">
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
-          <div className="relative mx-auto min-w-0 max-w-[1800px]">
+          <div className="relative mx-auto max-w-[1800px] min-w-0">
             <nav
               className="mb-4 flex max-w-full flex-wrap gap-2 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-2"
               aria-label="Live workspace"
@@ -173,7 +173,7 @@ export function LiveScreen() {
                 type="button"
                 aria-current={effectiveWorkspace === "explorer" ? "page" : undefined}
                 onClick={() => switchWorkspace("explorer")}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300 ${effectiveWorkspace === "explorer" ? "bg-cyan-400/12 text-cyan-100" : "text-slate-400 hover:bg-white/[0.04] hover:text-white"}`}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${effectiveWorkspace === "explorer" ? "bg-cyan-400/12 text-cyan-100" : "text-slate-400 hover:bg-white/[0.04] hover:text-white"}`}
               >
                 <BarChart3 className="h-4 w-4" aria-hidden="true" />
                 Live Data
@@ -183,7 +183,7 @@ export function LiveScreen() {
                   type="button"
                   aria-current={effectiveWorkspace === "dashboards" ? "page" : undefined}
                   onClick={() => switchWorkspace("dashboards")}
-                  className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300 ${effectiveWorkspace === "dashboards" ? "bg-cyan-400/12 text-cyan-100" : "text-slate-400 hover:bg-white/[0.04] hover:text-white"}`}
+                  className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${effectiveWorkspace === "dashboards" ? "bg-cyan-400/12 text-cyan-100" : "text-slate-400 hover:bg-white/[0.04] hover:text-white"}`}
                 >
                   <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
                   Saved Dashboards
