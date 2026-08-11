@@ -16,7 +16,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/*
 
 COPY requirements.txt ./
-RUN python -m pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip uninstall --yes setuptools \
+    && ! python -m pip show setuptools >/dev/null 2>&1 \
+    && test "$(python -c 'import msgpack; print(msgpack.__version__)')" = "1.2.1" \
+    && python -m pip check
 
 COPY alembic.ini ./
 COPY migrations ./migrations

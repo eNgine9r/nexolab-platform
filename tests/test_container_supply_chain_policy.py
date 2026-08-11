@@ -163,6 +163,40 @@ def test_telemetry_image_installs_only_required_dynsec_client() -> None:
     assert "! command -v mosquitto_pub >/dev/null" in dockerfile
 
 
+def test_telemetry_image_hardens_python_supply_chain() -> None:
+    root = Path(__file__).resolve().parents[1]
+    requirements = (
+        root / "services/telemetry-service/requirements.txt"
+    ).read_text(encoding="utf-8")
+    dockerfile = (
+        root / "services/telemetry-service/Dockerfile"
+    ).read_text(encoding="utf-8")
+    exceptions = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+
+    assert "msgpack==1.2.1" in requirements.splitlines()
+    assert "python -m pip uninstall --yes setuptools" in dockerfile
+    assert "! python -m pip show setuptools >/dev/null 2>&1" in dockerfile
+    assert 'msgpack; print(msgpack.__version__)' in dockerfile
+    assert '"1.2.1"' in dockerfile
+    assert "python -m pip check" in dockerfile
+
+    telemetry_exceptions = [
+        entry
+        for entry in exceptions["exceptions"]
+        if entry["image_id"] == "telemetry-service"
+    ]
+    assert not any(
+        entry["vulnerability"] == "CVE-2025-47273"
+        for entry in telemetry_exceptions
+    )
+    assert not any(
+        entry["package"] in {"msgpack", "setuptools"}
+        for entry in telemetry_exceptions
+    )
+
+
 def test_workflow_refreshes_base_and_versions_device_agent_cache() -> None:
     workflow = (
         Path(__file__).resolve().parents[1]
