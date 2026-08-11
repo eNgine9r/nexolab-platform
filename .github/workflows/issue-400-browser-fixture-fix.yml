@@ -1,0 +1,57 @@
+name: Issue 400 browser fixture fixes
+
+on:
+  push:
+    branches:
+      - feat/400-live-data-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/400-live-data-chart-system
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Seed durable latest projection and clarify rolling-range state
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          e2e = Path('e2e/live-chart-system.production.e2e.ts')
+          text = e2e.read_text()
+          old = '''VALUES ${values.join(",\\n")};\n`);\n  return { equipmentId, channels };'''
+          new = '''VALUES ${values.join(",\\n")};\n\nINSERT INTO telemetry_latest (\n  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,\n  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at\n)\nSELECT DISTINCT ON (node_id, equipment_id, channel_id, metric)\n  id, event_id, node_id, captured_at, metric, value, unit, quality, source,\n  equipment_id, channel_id, alarm, raw_value, raw_status, NULL, received_at\nFROM telemetry_samples\nWHERE equipment_id = ${sqlString(equipmentId)}\nORDER BY node_id, equipment_id, channel_id, metric, captured_at DESC, id DESC;\n`);\n  return { equipmentId, channels };'''
+          if old not in text:
+              raise SystemExit('expected telemetry seed block not found')
+          e2e.write_text(text.replace(old, new, 1))
+
+          explorer = Path('src/components/live/live-telemetry-explorer.tsx')
+          text = explorer.read_text()
+          old = '''            {liveFollow && range === "live" ? (\n              <Play className="h-4 w-4 text-emerald-300" aria-hidden="true" />\n            ) : (\n              <Pause className="h-4 w-4 text-amber-300" aria-hidden="true" />\n            )}\n            <span>{liveFollow && range === "live" ? "Live Follow" : "Paused view"}</span>'''
+          new = '''            {liveFollow && range === "live" ? (\n              <Play className="h-4 w-4 text-emerald-300" aria-hidden="true" />\n            ) : range !== "live" && viewportDomain === null ? (\n              <Clock3 className="h-4 w-4 text-cyan-300" aria-hidden="true" />\n            ) : (\n              <Pause className="h-4 w-4 text-amber-300" aria-hidden="true" />\n            )}\n            <span>\n              {liveFollow && range === "live"\n                ? "Live Follow"\n                : range !== "live" && viewportDomain === null\n                  ? "Rolling range"\n                  : "Paused view"}\n            </span>'''
+          if old not in text:
+              raise SystemExit('expected live-state block not found')
+          explorer.write_text(text.replace(old, new, 1))
+          PY
+          npx prettier --write e2e/live-chart-system.production.e2e.ts src/components/live/live-telemetry-explorer.tsx
+      - name: Commit focused fixes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/live-chart-system.production.e2e.ts src/components/live/live-telemetry-explorer.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(live): harden chart acceptance fixture semantics"
+          git push origin HEAD:feat/400-live-data-chart-system
