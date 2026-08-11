@@ -1,0 +1,62 @@
+name: Issue 400 purity fix
+
+on:
+  push:
+    branches:
+      - feat/400-live-data-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/400-live-data-chart-system
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Apply deterministic render-time fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/live/live-telemetry-explorer.tsx')
+          text = path.read_text()
+          text = text.replace(
+              '  const initialTo = Date.now();\n',
+              '  const [initialTo] = useState(() => Date.now());\n',
+              1,
+          )
+          text = text.replace(
+              '  const historyToMs = telemetry.historyWindow?.to.getTime() ?? Date.now();\n',
+              '  const historyToMs = telemetry.historyWindow?.to.getTime() ?? initialTo;\n',
+              1,
+          )
+          old = '''    if (toMs > Date.now() + 30_000 || fromMs < Date.now() - CUSTOM_MAX_MS - 60_000) {\n      setCustomError("Custom interval має бути в межах доступного локального 7-денного history window.");\n      return;\n    }'''
+          new = '''    const historyNowMs = telemetry.historyWindow?.to.getTime() ?? initialTo;\n    if (toMs > historyNowMs + 30_000 || fromMs < historyNowMs - CUSTOM_MAX_MS - 60_000) {\n      setCustomError("Custom interval має бути в межах доступного локального 7-денного history window.");\n      return;\n    }'''
+          if old not in text:
+              raise SystemExit('expected custom-range block not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          npx prettier --write src/components/live/live-telemetry-explorer.tsx
+      - name: Commit focused fix
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src/components/live/live-telemetry-explorer.tsx; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/live/live-telemetry-explorer.tsx
+          git commit -m "fix(live): keep render time deterministic"
+          git push origin HEAD:feat/400-live-data-chart-system
