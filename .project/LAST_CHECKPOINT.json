@@ -3,69 +3,71 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-368-TELEMETRY-LATEST-PROJECTION",
-  "status": "reconciled_exact_head_ci_pending",
-  "timestamp": "2026-08-07T17:24:00+03:00",
-  "branch": "perf/368-telemetry-latest-projection",
-  "base_main_sha": "329282496491d2ee27ab4f292e982a30af33c2b7",
-  "issue": 368,
-  "pull_request": 373,
-  "reconciliation": {
-    "merge_commit": "3427df41fab06667904d127313723fa90e130fcd",
-    "previous_feature_head": "36ccb909ca3754cc395468382bed2da93743ee24",
-    "current_main_parent": "329282496491d2ee27ab4f292e982a30af33c2b7",
-    "strategy": "current main tree plus ten telemetry-specific Issue 368 blobs; two-parent non-force merge",
-    "pr_mergeable_after_reconciliation": true,
-    "force_push": false,
-    "main_mutation": false
+  "task": "POST-CHART-SPEC-STATE-RECONCILIATION",
+  "status": "state_only_ci_pending",
+  "timestamp": "2026-08-07T22:38:00+03:00",
+  "branch": "chore/387-chart-spec-state-reconciliation",
+  "base_main_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
+  "issue": 387,
+  "recently_completed_work_package": {
+    "issue": 383,
+    "pull_request": 384,
+    "title": "Define the NEXOLAB Chart System technical specification",
+    "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
+    "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
+    "final_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
+    "completion_classification": "documentation architecture verified; no production chart implementation and no Raspberry Pi chart hardware acceptance"
   },
-  "implementation": {
-    "latest_projection": "durable telemetry_latest keyed by canonical node/equipment/channel/metric identity",
-    "history": "immutable telemetry_samples retained",
-    "persistence": "history and latest updated transactionally with duplicate and out-of-order protection",
-    "migration_v2": "long initial backfill before exclusive advisory lock followed by bounded delta catch-up under final cutover lock",
-    "startup_reconciliation": "bounded deployment-gap reconciliation with fail-closed empty/oversized cases",
-    "polling_changes": 0,
-    "device_agent_changes_in_issue_368": 0,
-    "modbus_write": "none"
+  "chart_system": {
+    "specification": "docs/architecture/nexolab-chart-system.md",
+    "next_ready_issue": 386,
+    "next_ready_title": "Establish chart-domain primitives and benchmark the local renderer",
+    "selected_for_implementation": false,
+    "selection_reason": "single active implementation slot remains occupied by critical Issue #368"
   },
-  "verification": {
-    "historical_head": "36ccb909ca3754cc395468382bed2da93743ee24",
-    "historical_verification": "superseded; previous state metadata and current workflow-run history are not fully consistent",
-    "authoritative_gate": "full fresh exact-head CI on the branch head containing this checkpoint",
-    "physical_acceptance": "pending only after authoritative GREEN"
+  "active_work_package": {
+    "issue": 368,
+    "pull_request": 373,
+    "title": "Make telemetry latest reads independent of history volume",
+    "status": "current_main_reconciliation_and_hardware_acceptance_pending",
+    "previous_exact_software_head": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
+    "previous_reconciled_main": "329282496491d2ee27ab4f292e982a30af33c2b7",
+    "current_main_before_state_reconciliation": "72f32d387e0199f7b863a56931d40a411ebf999c",
+    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, freeze the new candidate, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
   },
-  "last_verified_raspberry_pi_preflight": {
-    "alembic": "20260805_0022",
-    "telemetry_latest": "absent",
-    "history": "preserved",
-    "named_volumes": "preserved",
-    "advisory_locks": "none",
-    "classification": "historical safe state; must be rechecked immediately before migration"
-  },
-  "hardware_dependency": {
-    "issue_378": "completed, merged and Raspberry Pi hardware verified",
-    "issue_374": "closed completed regression parent",
-    "acquisition_blocker": "resolved"
-  },
-  "physical_acceptance_plan": [
-    "verify exact candidate and fresh acquisition",
-    "create fresh PostgreSQL backup and checksum",
-    "prove migration-v2 initial backfill does not hold long exclusive advisory lock",
-    "prove ingestion continuity and bounded final delta catch-up",
-    "verify schema 20260807_0023 and projection cardinality",
-    "start exact candidate Telemetry Service",
-    "measure repeated latest-query p95 below 500 ms",
-    "capture query plan proving latest projection access",
-    "run central smoke and final history/volume/freshness audit"
+  "prepared_ready_backlog": [
+    {
+      "issue": 385,
+      "title": "Add local Raspberry Pi user administration and role management"
+    },
+    {
+      "issue": 386,
+      "title": "Establish chart-domain primitives and benchmark the local renderer"
+    }
   ],
-  "downstream_sequence": [368, 369, 366, 289],
-  "safety": {
+  "hardware_evidence": {
+    "latest_completed_hardware_issue": 378,
+    "candidate_container": "9f03df0e798e",
+    "container_restarted": false,
+    "container_recreated": false,
+    "restart_count_before_after": "0 -> 0",
+    "device_before": "ttyUSB1",
+    "device_after": "ttyUSB0",
+    "postgres_final_observed_max_id": 2332624,
+    "chart_hardware_acceptance": "not performed",
     "modbus_write": "none",
-    "hardware_write": "none",
-    "data_deletion": "none",
-    "volume_deletion": "none",
-    "production_site_cutover": "none"
+    "hardware_write": "none"
   },
-  "next_action": "Freeze branch content after this checkpoint. Require full fresh exact-head CI GREEN, then execute controlled Raspberry Pi migration-v2/latest-query acceptance from that exact candidate."
+  "state_reconciliation": {
+    "scope": "four .project files only",
+    "runtime_code_changes": 0,
+    "dependency_changes": 0,
+    "database_changes": 0,
+    "acquisition_changes": 0,
+    "hardware_actions": 0,
+    "ci": "pending on final state-only head"
+  },
+  "downstream_runtime_sequence": [368, 369, 366, 289],
+  "next_action": "Complete state-only Issue #387 on GREEN, then return to PR #373 current-main reconciliation and controlled Issue #368 acceptance. Keep Issues #385 and #386 Ready but unselected while the single active implementation slot is occupied."
 }

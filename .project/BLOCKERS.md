@@ -2,47 +2,80 @@
 
 Updated: 2026-08-07
 
-## Issue #378 / #374 recovery chain — resolved
+## Resolved recovery blockers
 
-Issue #378 / PR #380 is merged and hardware verified. Same-container CP2104 USB re-enumeration recovery passed on Raspberry Pi without restart/recreate, and Issue #374 is closed as the completed regression parent. RS-485 recovery no longer blocks #368.
+### Issue #378 — resolved and merged
 
-## Issue #368 — active; software gate pending
+Issue #378 / PR #380 is completed. Final exact head `5635df201a6cbd59227a8ebe181c44fa5167f67c` completed 14 checks with 0 failures and 0 in-progress, and PR #380 squash-merged as `6645af46a198ff454142df3b0a713984f4d71196`.
 
-Issue #368 / PR #373 has been reconciled with current `main` through non-force two-parent merge commit `3427df41fab06667904d127313723fa90e130fcd`.
+Controlled Raspberry Pi hotplug acceptance passed on the same running Device Agent across `/dev/ttyUSB1 -> /dev/ttyUSB0` re-enumeration with restart count `0 -> 0` and resumed PostgreSQL telemetry.
 
-Reconciliation policy:
+The RS-485 USB re-enumeration blocker is no longer active.
 
-- current `main` is authoritative for all #378/state files;
-- only the ten telemetry-specific #368 files are overlaid from the prior feature head;
-- no rebase, force push or `main` mutation;
-- PR is mergeable after reconciliation.
+### Issue #374 — regression parent resolved
 
-The previous `36ccb909...` verification record is historical and not accepted for the next physical run. Current workflow history and prior state metadata are not fully consistent on that old SHA, so the ambiguity is resolved by requiring **fresh exact-head CI on the branch head containing the current #368 checkpoint**.
+Issue #374 / PR #375 remains a valid merged partial fix. Its later USB re-enumeration regression is resolved by Issue #378 and same-container hardware evidence. It is not a current sequencing blocker.
 
-Do not run Raspberry Pi migration-v2 until that fresh CI is completely GREEN.
+### Issue #381 — state reconciliation completed
 
-### Physical preconditions after GREEN
+Issue #381 is closed completed through PR #382 / merge `329282496491d2ee27ab4f292e982a30af33c2b7`. It must not remain listed as an active or sequencing blocker.
 
-Immediately before migration verify again:
+## Issue #368 — active validation track
+
+Issue #368 / PR #373 is the selected critical Work Package.
+
+The previously frozen software candidate is:
 
 ```text
-Alembic = 20260805_0022
-telemetry_latest = absent
-acquisition newest_age <= 120 s
-no advisory lock 263000001 held/waiting unexpectedly
+105ae34425a8937a6f61c172b52ce2c6fa09f3b3
+26 completed checks
+0 failures
+0 in-progress
+0 queued
 ```
 
-Then create a fresh PostgreSQL backup before any schema migration. No destructive rollback, history deletion, volume deletion or Modbus write is permitted.
+That result was exact for a branch reconciled through `main` at `329282496491d2ee27ab4f292e982a30af33c2b7`.
 
-## Sequencing blockers
+Current `main` advanced to `72f32d387e0199f7b863a56931d40a411ebf999c` through documentation-only Chart System PR #384. Therefore the older #368 CI result is not the final pre-hardware gate. Before Raspberry Pi migration-v2:
 
-- #368: active; fresh exact-head CI required before physical migration-v2/latest-query acceptance.
-- #369 waits for #368 physical acceptance and merge.
+- reconcile PR #373 with current `main`;
+- rerun full exact-head CI;
+- freeze the new exact candidate;
+- recheck Raspberry Pi schema, acquisition freshness and advisory-lock state;
+- create a fresh database backup and checksum;
+- only then execute controlled migration-v2/latest-query acceptance.
+
+This is a sequencing/verification requirement, not a new hardware defect.
+
+## Runtime sequencing
+
+- #368 is active and must complete current-main reconciliation, exact-head CI and controlled physical acceptance.
+- #369 waits for #368 physical migration/latest-query acceptance.
 - #366 waits for the #368 -> #369 runtime acceptance sequence.
 - #289 remains downstream after #366.
 - #245 remains a separate Raspberry Pi validation track.
 - #257 remains blocked by ESLint 10 compatibility.
 - #256 remains deferred pending TypeScript 7 ecosystem compatibility.
+
+## Prepared Ready backlog
+
+Issue #385 — local Raspberry Pi user administration and role management — is Ready but not selected.
+
+Issue #386 — chart-domain primitives and local renderer benchmark — is Ready but not selected.
+
+The Sprint allows one active implementation task. Neither #385 nor #386 should start in parallel while #368 occupies that slot unless the Product Owner explicitly changes priority or #368 becomes blocked and the repository selection policy promotes an independent package.
+
+## Chart System status
+
+Issue #383 / PR #384 is completed and merged. There is no active chart-spec blocker.
+
+Future chart implementation still requires:
+
+- #386 shared chart-domain primitives and renderer benchmark;
+- later route-by-route migrations;
+- real Raspberry Pi performance and acquisition-invariant acceptance before claiming hardware verification.
+
+No chart hardware acceptance has been performed yet.
 
 ## Security boundary
 
@@ -50,4 +83,4 @@ The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **20
 
 ## Global hard-stop rules
 
-Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, privileged hardware containers, or unsupported physical acceptance claims.
+Stop before destructive data or volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, grouped migrations, privileged hardware containers or unsupported physical acceptance claims.
