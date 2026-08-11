@@ -2,65 +2,51 @@
 
 Updated: 2026-08-11
 
-## Issue #385 — physical blocker cleared
+## Issue #385 — completed
 
-Issue #385 / PR #390 is the selected Work Package.
+Issue #385 / PR #390 is merged as `e0b124e9a0152be50966daa131974b3543651e87`.
 
-Exact candidate `d37cf08af9560ffa0d18c102656301e667299836` has:
+Its software and Raspberry Pi acceptance gates are complete:
 
 ```text
-GitHub CI: 19/19 successful
+final exact-head CI: 19/19 GREEN
 Raspberry Pi acceptance: PASS
 architecture: aarch64 / linux/arm64
-Next.js production build: PASS
-local-auth production browser tests: 4 passed
+production build: PASS
+local-auth browser tests: 4 passed
 persistence/recreation test: 1 passed
 acceptance exit_code: 0
 ```
 
-Evidence directory:
+There is no remaining #385 blocker.
 
-```text
-/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z
-```
+## Issue #389 — unblocked and Ready
 
-The earlier loopback collision on port `18093` was an isolated environment conflict. The successful retry used alternate loopback-only ports and did not require stopping production services.
+Issue #389 (administrator-only local NEXOLAB Version Management) is now `status:ready`.
 
-There is **no remaining #385 hardware or product blocker**.
+Its #385 dependency is satisfied because `project_versions.manage` and the administrator-only authorization boundary are canonical on `main`.
 
-Remaining gates are procedural and repository-controlled:
+Before implementation, inventory the repository's existing deployment/update/rollback/offline contracts and narrow the permitted implementation paths. Do not create a second deployment engine.
 
-1. commit the state-only reconciliation;
-2. require fresh exact-head CI on that new state commit;
-3. perform final review/base/diff/migration audit;
-4. mark PR #390 Ready;
-5. squash merge with an expected-head lock.
+Hard stops specific to #389 remain:
 
-No merge may occur until the final state head is GREEN.
+- target package/version identity cannot be verified;
+- required PostgreSQL backup fails;
+- migration or rollback compatibility is unknown;
+- rollback would require destructive schema/data downgrade;
+- named volumes or edge SQLite cannot be preserved;
+- secrets would be exposed;
+- action would cross into unapproved production/site cutover.
 
-## Issue #389 — blocked only by Issue #385 merge
+## Remaining prepared sequence
 
-Issue #389 (administrator-only local NEXOLAB Version Management) depends on the administrator authorization boundary from #385.
-
-The physical acceptance dependency is now satisfied. It remains blocked only until:
-
-1. PR #390 is merged;
-2. the administrator-only `project_versions.manage` capability is canonical on `main`;
-3. project state is updated to select #389.
-
-After those conditions, #389 is the next selected Work Package for this product lane.
-
-## Issue #368 — completed and merged
-
-Issue #368 / PR #373 merged as `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4`. The canonical telemetry latest projection is revision `20260807_0023`; Issue #385 follows it with `20260807_0024`.
-
-When the selected local administration/version lane completes, continue:
+After the selected version-management lane:
 
 ```text
 #369 -> #366 -> #289
 ```
 
-## Other known boundaries
+Other known boundaries:
 
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #386 remains Ready but not selected.
@@ -69,7 +55,7 @@ When the selected local administration/version lane completes, continue:
 
 ## Security boundary
 
-The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #385 does not broaden it.
+The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #385 did not broaden it.
 
 ## Global hard-stop rules
 
