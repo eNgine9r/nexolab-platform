@@ -27,7 +27,7 @@
     "selected_issue": 385,
     "next_issue_after_selected": 389,
     "completed_issue": 368,
-    "completed_issue_semantics": "PR #373 merged as ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4; #385 must follow its telemetry revision with 20260807_0024"
+    "completed_issue_semantics": "PR #373 merged as ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4; #385 follows canonical telemetry revision 20260807_0023 with 20260807_0024"
   },
   "tasks": [
     {
@@ -118,22 +118,22 @@
       "issue": 385,
       "pull_request": 390,
       "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
-      "status": "software_verified_raspberry_pi_acceptance_pending",
+      "status": "software_and_raspberry_pi_verified_final_state_ci_pending",
       "priority": "high",
-      "pre_reconciliation_verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
-      "reconciled_candidate_sha": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
-      "software_ci": "19 completed workflows, 19 success, 0 failures, 0 in-progress",
-      "offline_auth_run": 31254031318,
-      "offline_auth_artifact_digest": "sha256:f85b69451e7d5648e9ce9b6cc5112a53564657ed7b0a0fee9e955edf363507e5",
-      "offline_bundle_run": 31254031285,
-      "offline_bundle_artifact_digest": "sha256:4a7b0c7eb4ce97fac407848a69c1d4d7e1b704d9666939fa9cedbb8a37281a36",
-      "hardware_acceptance": "pending on controlled Raspberry Pi"
+      "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+      "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
+      "software_ci": "19 completed workflows, 19 success, 0 failures, 0 queued, 0 in-progress",
+      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64",
+      "hardware_evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
+      "browser_acceptance": "4 local-auth production tests passed",
+      "persistence_acceptance": "1 controlled recreation persistence test passed",
+      "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; final state-only CI pending"
     },
     {
       "id": "NEXOLAB-389",
       "issue": 389,
       "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-      "status": "blocked_by_385_raspberry_pi_acceptance_and_merge",
+      "status": "blocked_until_385_merge",
       "priority": "high",
       "depends_on": [385]
     },
@@ -162,22 +162,22 @@
     "issue": 385,
     "pull_request": 390,
     "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
-    "status": "software_verified_raspberry_pi_acceptance_pending",
+    "status": "software_and_raspberry_pi_verified_final_state_ci_pending",
     "priority": "high",
     "assignee": "eNgine9r",
-    "selection_reason": "Explicit Product Owner reprioritization selected local Users & Access ahead of Issue #368 physical acceptance."
+    "selection_reason": "Explicit Product Owner reprioritization selected local Users & Access ahead of Version Management."
   },
   "next_ready_work_package": {
     "issue": 385,
     "pull_request": 390,
-    "title": "Complete controlled Raspberry Pi local user-management acceptance",
-    "status": "hardware_acceptance_pending",
+    "title": "Complete final state-only reconciliation, exact-head CI and merge",
+    "status": "state_reconciliation_and_final_ci_pending",
     "priority": "high"
   },
   "next_ready_after_current": {
     "issue": 389,
     "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-    "status": "blocked_until_385_acceptance_and_merge",
+    "status": "blocked_until_385_merge",
     "priority": "high"
   },
   "prepared_ready_backlog": [
@@ -188,22 +188,23 @@
     }
   ],
   "verification": {
-    "issue_385_pre_reconciliation_verified_product_head": "b7951011ebc337c23808b1f89deab5a7d99f7208",
-    "issue_385_reconciled_candidate": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
-    "issue_385_exact_workflows": "19 completed, 19 success, 0 failures, 0 in-progress",
-    "issue_385_offline_auth": "GREEN; administrator -> create engineer -> exact explicit permissions -> engineer login -> admin API 403",
-    "issue_385_migration": "pre-reconciliation PostgreSQL upgrade+downgrade GREEN for 20260807_0023; reconciled topology now exactly 20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
+    "issue_385_verified_candidate": "d37cf08af9560ffa0d18c102656301e667299836",
+    "issue_385_exact_workflows": "19 completed, 19 success, 0 failures, 0 queued, 0 in-progress",
+    "issue_385_offline_auth": "GREEN; four-role provisioning, admin-only capabilities, lifecycle/session revocation, password reset, last-admin protection, audit redaction and persistence",
+    "issue_385_migration": "exactly 20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
     "issue_385_offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
-    "issue_385_hardware": "not performed; controlled Raspberry Pi acceptance pending"
+    "issue_385_hardware": "PASS on controlled Raspberry Pi aarch64; production build PASS; 4 browser tests + 1 persistence test; exit_code=0",
+    "issue_385_hardware_evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
+    "issue_385_final_state_exact_head_ci": "required after state-only reconciliation commit"
   },
   "runtime_evidence": {
-    "issue_385_engineer_role": "engineer",
-    "issue_385_engineer_permissions": ["dashboard.read", "telemetry.read"],
-    "issue_385_non_admin_admin_api_status": 403,
     "issue_385_external_identity_provider_required": false,
-    "issue_385_external_egress_required": false
+    "issue_385_external_egress_required": false,
+    "issue_385_persistent_volume_deletion": false,
+    "issue_385_modbus_write": false,
+    "issue_385_hardware_write": false
   },
-  "next_selection_policy": "Push reconciled #385, require fresh exact-head CI, then complete controlled Raspberry Pi acceptance and merge PR #390 on GREEN; then unblock/select #389. Continue #369 -> #366 -> #289 after the selected local administration/version lane.",
+  "next_selection_policy": "Commit #385 state-only hardware evidence, require fresh exact-head CI, final audit and merge PR #390 on GREEN; then unblock/select #389. Continue #369 -> #366 -> #289 after the selected local administration/version lane.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

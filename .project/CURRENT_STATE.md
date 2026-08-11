@@ -6,19 +6,9 @@ Verified repository baseline on `main`: `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec
 
 Active Work Package: Issue #385 / PR #390 — local Raspberry Pi users, administrator-managed permissions and access lifecycle.
 
-Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and remains the active Work Package.
+Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and remains the active Work Package until the final state-only checkpoint, exact-head CI and merge complete.
 
 ## Issue #385 / PR #390
-
-Pre-reconciliation software evidence was verified on product head:
-
-```text
-b7951011ebc337c23808b1f89deab5a7d99f7208
-19 completed workflows
-19 success
-0 failures
-0 in-progress
-```
 
 Implemented product boundary:
 
@@ -37,71 +27,108 @@ Implemented product boundary:
 
 ### Exact software evidence
 
-Offline Auth Acceptance run `31254031318` is GREEN on `b7951011ebc337c23808b1f89deab5a7d99f7208`.
-
-Artifact:
+Frozen software/hardware candidate:
 
 ```text
-offline-auth-acceptance-b7951011ebc337c23808b1f89deab5a7d99f7208
-sha256:f85b69451e7d5648e9ce9b6cc5112a53564657ed7b0a0fee9e955edf363507e5
-```
-
-It proves the disconnected local flow:
-
-```text
-administrator login
--> open Users & Access
--> create issue385.engineer
--> role engineer
--> explicit permissions dashboard.read + telemetry.read
--> engineer login
--> session exposes exactly those permissions
--> GET /api/v1/admin/users returns server-side 403 for engineer
-```
-
-PostgreSQL migration upgrade and downgrade passed in the same acceptance line.
-
-Offline Bundle run `31254031285` is GREEN on the same product head. It built the linux/amd64 bundle, removed local runtime images, blocked container egress, loaded and started the transferred stack with pulling disabled, and completed update/rollback data-preservation verification.
-
-Artifact:
-
-```text
-nexolab-offline-amd64-b7951011ebc337c23808b1f89deab5a7d99f7208
-sha256:4a7b0c7eb4ce97fac407848a69c1d4d7e1b704d9666939fa9cedbb8a37281a36
-```
-
-The exact-head workflow set also includes GREEN CI, Telemetry Service, Security Browser, Authenticated Dashboard, Reports, Rendered Reports, Alerts, Test Sessions, Refrigeration, Nodes, Broker Control, Device Agent Fleet, MQTT TLS Fleet, Disaster Recovery Browser/TLS, Container Supply Chain and Capacity Release gates.
-
-Reconciled candidate:
-
-```text
-bfe1fcb9e69bd2db3588094e6b1d81d7a222def6
+d37cf08af9560ffa0d18c102656301e667299836
 base main ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4
-alembic heads: exactly 20260807_0024
 ```
 
-Completion classification remains:
+GitHub exact-head verification on this candidate:
 
 ```text
-software verified; Raspberry Pi local user-management acceptance pending
+19 completed workflows
+19 success
+0 failures
+0 queued
+0 in-progress
 ```
 
-No Raspberry Pi acceptance is claimed until the controlled physical runtime is actually exercised.
+Notable GREEN gates include CI, Telemetry Service, Offline Auth Acceptance, Security Browser Acceptance, Offline Bundle, Disaster Recovery TLS Fleet, Container Supply Chain and all remaining browser/fleet/capacity workflows.
+
+Offline Auth Acceptance on the exact candidate proved:
+
+- all four product roles;
+- non-admin server-side denial of administration;
+- administrator `memberships.manage` and `project_versions.manage`;
+- access-token and refresh-token revocation after permission changes;
+- role-change session revocation;
+- deactivate/reactivate lifecycle;
+- password-reset session revocation, old-password rejection and new-password acceptance;
+- last-active-administrator protection;
+- audit redaction;
+- explicit permission persistence;
+- two controlled full-stack recreations;
+- internal acceptance networking and blocked container egress;
+- production Next.js build.
+
+### Raspberry Pi hardware acceptance
+
+Hardware acceptance is **PASS** on the exact candidate `d37cf08af9560ffa0d18c102656301e667299836`.
+
+Controlled host evidence:
+
+```text
+host: nexolab-edge-01
+architecture: aarch64 / linux/arm64
+OS: Debian GNU/Linux 13.6 (trixie)
+kernel: 6.18.39+rpt-rpi-2712
+Docker Engine: 29.7.1
+candidate SHA: d37cf08af9560ffa0d18c102656301e667299836
+```
+
+Runtime acceptance:
+
+```text
+Next.js 16.2.12 production build: PASS
+local-auth production browser tests: 4 passed
+local-auth persistence/recreation test: 1 passed
+acceptance subprocess exit_code: 0
+```
+
+Evidence directory:
+
+```text
+/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z
+```
+
+The first physical attempt was blocked only by a pre-existing loopback-port collision on `127.0.0.1:18093`. The successful retry used isolated alternative loopback ports; no production service was stopped and no product defect was indicated.
+
+Completion classification:
+
+```text
+software verified; Raspberry Pi local user-management acceptance verified
+```
+
+### Migration state
+
+Verified linear chain and single head:
+
+```text
+20260805_0022
+  -> 20260807_0023 telemetry latest projection
+  -> 20260807_0024 local membership permissions (head)
+```
 
 ## Current sequencing
 
 ```text
-#385 controlled Raspberry Pi local user-management acceptance
-  -> final PR #390 audit / merge when hardware evidence is sufficient and checks remain GREEN
-  -> #389 administrator-only local NEXOLAB Version Management
+#385 hardware PASS
+  -> state-only reconciliation on PR #390
+  -> fresh exact-head CI on the state checkpoint
+  -> final PR review/base/diff audit
+  -> mark PR #390 Ready
+  -> squash merge with expected-head lock
+  -> verify canonical main
+  -> unblock/select #389 administrator-only local NEXOLAB Version Management
 ```
 
-Issue #389 remains blocked by #385 until the administrator-only authorization capability is physically accepted and merged.
+Issue #389 remains blocked only until PR #390 is merged and `project_versions.manage` is canonical on `main`.
 
-Issue #368 is complete and merged as `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4`. After the selected local administration/version lane, continue the remaining runtime sequence:
+After the selected local administration/version lane, continue the remaining runtime sequence:
 
 ```text
-#368 -> #369 -> #366 -> #289
+#369 -> #366 -> #289
 ```
 
 Issue #386 remains a prepared Ready chart-domain implementation package and is not selected while the current lane is active.
@@ -120,10 +147,10 @@ Issue #245 remains a separate Raspberry Pi validation track.
 - no telemetry-history deletion performed;
 - no named-volume deletion performed;
 - no production/site cutover performed;
-- no secret material is part of the PR evidence.
+- no secret material is part of the recorded evidence.
 
 The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on 2026-09-05 and is not broadened by Issue #385.
 
 ## Next action
 
-Push the reconciled #385 candidate, require fresh exact-head CI, then run controlled Raspberry Pi acceptance on that exact candidate. Do not claim the earlier `b795101` CI as verification of the rebased `0024` candidate.
+Commit this state-only hardware-acceptance reconciliation to PR #390, require a fresh complete exact-head CI cycle, then perform the final PR audit and squash merge only if every required check remains GREEN.

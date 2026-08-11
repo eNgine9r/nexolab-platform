@@ -3,47 +3,55 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-385-MIGRATION-RECONCILIATION",
-  "status": "reconciled_exact_head_ci_and_raspberry_pi_acceptance_pending",
-  "timestamp": "2026-08-11T11:20:00+03:00",
+  "task": "ISSUE-385-RASPBERRY-PI-ACCEPTANCE",
+  "status": "hardware_verified_state_reconciliation_pending",
+  "timestamp": "2026-08-11T12:48:00+03:00",
   "branch": "feat/385-local-user-permissions",
   "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
   "issue": 385,
   "pull_request": 390,
-  "pre_reconciliation_verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
-  "reconciled_candidate_sha": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
+  "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
   "product_outcome": {
-    "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
+    "roles": [
+      "administrator",
+      "laboratory_manager",
+      "engineer",
+      "laboratory_technician"
+    ],
     "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
     "ui": "/settings/users",
     "session_revocation": "role, permission, password and account-state changes revoke affected sessions",
     "audit": "safe immutable administration audit without secret material",
-    "runtime_identity": "local PostgreSQL + local JWT/session authority; no external identity provider required"
+    "runtime_identity": "local PostgreSQL + local JWT/session authority; no external identity provider required",
+    "version_management_capability": "administrator exposes project_versions.manage for dependent Issue #389"
   },
   "software_verification": {
-    "workflow_summary": "19 completed workflows, 19 success, 0 failures, 0 in-progress",
-    "offline_auth": {
-      "run_id": 31254031318,
-      "status": "GREEN",
-      "artifact": "offline-auth-acceptance-b7951011ebc337c23808b1f89deab5a7d99f7208",
-      "artifact_digest": "sha256:f85b69451e7d5648e9ce9b6cc5112a53564657ed7b0a0fee9e955edf363507e5",
-      "proved_flow": "administrator -> create engineer -> dashboard.read + telemetry.read -> engineer login -> exact permissions -> admin API 403",
-      "migration_round_trip": "GREEN"
-    },
-    "offline_bundle": {
-      "run_id": 31254031285,
-      "status": "GREEN",
-      "artifact": "nexolab-offline-amd64-b7951011ebc337c23808b1f89deab5a7d99f7208",
-      "artifact_digest": "sha256:4a7b0c7eb4ce97fac407848a69c1d4d7e1b704d9666939fa9cedbb8a37281a36",
-      "proved_flow": "build -> remove local runtime images -> block egress -> load/start with pulling disabled -> update/rollback data preservation"
-    }
+    "exact_head_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+    "workflow_summary": "19 completed workflows, 19 success, 0 failures, 0 queued, 0 in-progress",
+    "offline_auth": "GREEN; four-role provisioning, lifecycle/session revocation, password reset, last-admin protection, audit redaction and persistence coverage",
+    "offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
+    "migration_head": "20260807_0024"
   },
   "hardware_evidence": {
-    "raspberry_pi_user_management_acceptance": "not performed",
-    "completion_classification": "software verified; Raspberry Pi local user-management acceptance pending",
+    "raspberry_pi_user_management_acceptance": "PASS",
+    "candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+    "host": "nexolab-edge-01",
+    "architecture": "aarch64",
+    "docker_architecture": "linux/arm64",
+    "os": "Debian GNU/Linux 13.6 (trixie)",
+    "kernel": "6.18.39+rpt-rpi-2712",
+    "docker_engine": "29.7.1",
+    "production_build": "PASS",
+    "browser_tests": "4 passed",
+    "persistence_recreation_test": "1 passed",
+    "acceptance_exit_code": 0,
+    "evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
+    "initial_attempt_note": "first attempt stopped on loopback port 18093 already allocated; successful retry used isolated alternative loopback ports without stopping production",
+    "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified",
     "modbus_write": "none",
     "hardware_write": "none",
-    "production_site_cutover": "none"
+    "production_site_cutover": "none",
+    "volume_deletion": "none"
   },
   "sequencing": {
     "selected_by_product_owner": 385,
@@ -57,8 +65,8 @@
     "product_code_changes": 0,
     "dependency_changes": 0,
     "acquisition_changes": 0,
-    "hardware_actions": 0,
+    "hardware_actions_after_acceptance": 0,
     "final_state_head_ci": "required after this checkpoint commit"
   },
-  "next_action": "Push the reconciled #385 candidate and run fresh exact-head CI. After GREEN CI, execute controlled Raspberry Pi local user-management acceptance. If physical access is unavailable, record that as the hard blocker and do not claim hardware verification."
+  "next_action": "Commit the state-only Raspberry Pi acceptance reconciliation, require a fresh complete exact-head CI cycle, then perform final PR audit and squash merge PR #390 only if GREEN. After merge, unblock and select Issue #389."
 }
