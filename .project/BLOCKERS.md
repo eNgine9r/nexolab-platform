@@ -20,13 +20,13 @@ acceptance exit_code: 0
 
 There is no remaining #385 blocker.
 
-## Issue #386 — active; acquisition-invariant acceptance pending
+## Issue #386 — completed
 
-Issue #386 is `status:in-progress` on `feat/386-chart-domain-renderer-benchmark` after the Product Owner priority override.
+Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`.
 
-There is no software implementation blocker. Chart performance was measured on the controlled Raspberry Pi 5 arm64 host and passes the provisional renderer targets. The physical acquisition invariant cannot be proven by disconnected deterministic fixtures and remains pending a controlled Device Agent/Modbus request-rate test.
+There is no remaining #386 software blocker. Chart performance was measured on the controlled Raspberry Pi 5 arm64 host and passes the provisional renderer targets. Final exact-head CI was 11/11 GREEN, including Offline Bundle and repository acquisition-invariant integration acceptance.
 
-Local format, lint, typecheck, full unit/component tests, production build and the disconnected deterministic browser benchmark are GREEN. Focused PR #399 is open, and published head `6a63c04b6dee25a392a9dd370332098d9223cd20` passed all 11 GitHub checks, including Offline Bundle and acquisition-invariant integration acceptance. The state-only refresh must receive its own exact-head CI, and the final review-thread/main-freshness audit remains required before merge.
+Controlled physical Device Agent/Modbus request-rate acceptance was not performed by the deterministic foundation harness. It remains an explicit acceptance item in Issue #400, the first production Live Data consumer. This limitation does not authorize acquisition, polling, scheduler, registry, Device Agent, Modbus, or hardware changes.
 
 Hard boundaries:
 
@@ -65,7 +65,7 @@ The existing runtime sequence remains preserved and is not replanned by #386:
 Other known boundaries:
 
 - Issue #245 remains a separate Raspberry Pi validation track.
-- Issue #386 is the selected active Work Package.
+- Issue #400 is the selected next Ready Chart Work Package; no implementation Work Package is active during post-merge reconciliation.
 - Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
