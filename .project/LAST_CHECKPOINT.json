@@ -3,26 +3,25 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-385-POST-MERGE-RECONCILIATION",
-  "status": "issue_385_merged_issue_389_ready",
-  "timestamp": "2026-08-11T13:28:00+03:00",
-  "branch": "chore/385-post-merge-state",
-  "product_main_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+  "task": "ISSUE-386-CHART-DOMAIN-RENDERER-BENCHMARK",
+  "status": "implementation_complete_local_software_verified_pr_pending",
+  "timestamp": "2026-08-11T15:20:00+03:00",
+  "branch": "feat/386-chart-domain-renderer-benchmark",
+  "product_main_sha": "1a4ae8026f2b70c52a5fc41a1f8d22a99897463f",
   "completed_issue": 385,
   "completed_pull_request": 390,
   "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
   "hardware_tested_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
   "final_pr_head_sha": "5d4aacc8d6d2c7157ef42bf0356d102700f78960",
   "completion": {
-    "software_ci": "19/19 GREEN",
-    "raspberry_pi_user_management_acceptance": "PASS",
-    "architecture": "aarch64 / linux/arm64",
+    "local_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 76 files / 336 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN",
+    "exact_head_ci": "pending publication",
+    "architecture": "Raspberry Pi 5 Model B Rev 1.1; aarch64/arm64",
     "production_build": "PASS",
-    "browser_tests": "4 passed",
-    "persistence_recreation_test": "1 passed",
-    "acceptance_exit_code": 0,
-    "migration_head": "20260807_0024",
-    "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; merged"
+    "focused_chart_tests": "8 files / 34 tests passed",
+    "full_tests": "76 files / 336 tests passed",
+    "deterministic_browser_benchmark": "PASS for scenarios A-L with Docker network disabled",
+    "completion_classification": "software verified locally; Raspberry Pi chart performance verified; exact-head CI and acquisition-invariant acceptance pending"
   },
   "hardware_evidence": {
     "host": "nexolab-edge-01",
@@ -36,18 +35,34 @@
     "volume_deletion": "none"
   },
   "next_work_package": {
-    "issue": 389,
-    "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-    "github_status": "status:ready",
-    "phase": "repository_inventory_and_implementation_readiness",
-    "dependency": "Issue #385 satisfied"
+    "issue": null,
+    "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
+    "github_status": "pending issue creation after #386 GREEN merge",
+    "phase": "ready_audit_after_foundation_merge",
+    "dependency": "Issue #386 must merge GREEN"
   },
   "state_reconciliation": {
-    "scope": "CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md, LAST_CHECKPOINT.json",
-    "product_code_changes": 0,
-    "dependency_changes": 0,
+    "scope": "Product Owner priority override reconciled across CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md and LAST_CHECKPOINT.json",
+    "product_code_changes": "shared chart foundation only; no production route migration",
+    "dependency_changes": "exact echarts 6.1.0 plus lockfile transitives only",
     "acquisition_changes": 0,
     "hardware_actions": 0
   },
-  "next_action": "Merge the post-#385 state-only reconciliation on GREEN, then begin Issue #389 by inventorying existing deploy/update/rollback/offline contracts before implementation."
+  "benchmark_evidence": {
+    "renderer": "ECharts 6.1.0 Canvas",
+    "host": "Raspberry Pi 5 Model B Rev 1.1",
+    "runtime_architecture": "arm64",
+    "one_by_240_median_ms": 38.9,
+    "eight_by_240_median_ms": 103.8,
+    "eight_by_240_p95_ms": 169.0,
+    "incremental_100_median_ms": 12.3,
+    "incremental_100_p95_ms": 31.2,
+    "long_loop_1000_median_ms": 6.1,
+    "renderer_delta_bytes": 608623,
+    "renderer_delta_gzip_bytes": 202927,
+    "public_requests": 0,
+    "raspberry_pi_chart_performance_verified": true,
+    "acquisition_invariant_verified": false
+  },
+  "next_action": "Commit the locally verified implementation, publish the focused PR with Closes #386, obtain exact-head CI including Offline Bundle, resolve blocking review findings, and merge only while current with main and fully GREEN."
 }
