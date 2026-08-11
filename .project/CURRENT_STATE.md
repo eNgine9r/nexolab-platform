@@ -2,93 +2,160 @@
 
 Updated: 2026-08-11
 
-Verified repository baseline on `main`: `d75b353435e8c613203017cb68ee68c1f63d3268`.
+Verified repository baseline on `main`: `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4` (PR #373 squash merge).
 
-Active Work Package: Issue #368 / PR #373 — software and Raspberry Pi physical acceptance complete; final state-only exact-head CI pending before merge.
+Active Work Package: Issue #385 / PR #390 — local Raspberry Pi users, administrator-managed permissions and access lifecycle.
 
-## Issue #368 — physical acceptance PASS
+Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and is merge-ready after completed software and hardware acceptance.
 
-The frozen candidate `105ae34425a8937a6f61c172b52ce2c6fa09f3b3` passed the controlled Raspberry Pi migration-v2/latest-query acceptance on the existing long-running PostgreSQL database.
+## Issue #385 / PR #390
 
-Measured evidence:
+Implemented product boundary:
 
-```text
-migration 20260805_0022 -> 20260807_0023: rc=0, 330 s
-ingestion remained live during backfill
-projection rows / canonical series: 194 / 194
-latest limit=1 p95:      0.013076 s
-latest default p95:      0.023364 s
-latest limit=100 p95:    0.015271 s
-filtered series p95:     0.011519 s
-query plan: ix_telemetry_latest_order on telemetry_latest
-query execution: 0.136 ms
-central smoke: PASS
-final advisory lock audit: 0 granted exclusive / 0 waiting
-PostgreSQL volume: nexolab-central-postgres-data preserved
-Device Agent: ok, MQTT connected, no degraded/cooldown endpoints
-```
+- four product roles: `administrator`, `laboratory_manager`, `engineer`, `laboratory_technician`;
+- bounded typed permission catalog;
+- administrator receives the full canonical permission set implicitly;
+- laboratory manager, engineer and laboratory technician use explicit PostgreSQL permission grants;
+- local-only authenticated user administration API;
+- `/settings/users` Users & Access workspace;
+- create, role change, permission change, activate/deactivate, password reset and session revocation flows;
+- role, permission, password and account-state changes revoke affected sessions;
+- transactional last-active-administrator protection;
+- safe immutable audit events without passwords, hashes, tokens or signing material;
+- migration `20260807_0024` for explicit membership permissions and the laboratory-technician role, ordered after canonical telemetry `20260807_0023`;
+- controlled legacy-role compatibility/backfill without runtime fallback to static legacy permissions.
 
-The original controlled-host latest request exceeded 20 seconds. The physical candidate now answers normal latest reads in milliseconds without scanning retained history.
+### Exact software evidence
 
-No Modbus write, hardware write, telemetry truncation, history deletion or volume deletion occurred.
-
-## Final software acceptance GREEN
-
-Content head `6c4955f73dde147f5f6797dbb04b99b1b67239ba` completed **17/17 GitHub workflows GREEN**.
-
-This includes:
-
-- Quality: formatting, lint, typecheck, tests and production build;
-- Telemetry Service: PostgreSQL migrations, MQTT/REST/WebSocket/storage/dead-letter/retention, outage recovery, offline Alembic SQL and container build;
-- Container Supply Chain exact-image SBOM/Trivy/release-manifest/secret policy;
-- Authenticated Dashboard Acceptance;
-- Security, Refrigeration, Reports, Test Sessions and Disaster Recovery browser acceptances;
-- Device Agent and MQTT/DR TLS fleet gates;
-- Capacity Release Gate;
-- Offline Auth Acceptance;
-- Offline Bundle clean-host transfer, egress block, disconnected startup, update/rollback persistent-data preservation and evidence upload.
-
-Two post-hardware software findings were corrected without changing migration `20260807_0023` or the physical latest-order semantics:
-
-1. startup gap reconciliation now reports only actual latest-projection mutations, so a delayed older history row is not reported repeatedly after correctly losing to a newer projected sample;
-2. the authenticated-dashboard acceptance harness, which intentionally inserts deterministic historical samples directly through SQL, now seeds `telemetry_latest` consistently with those fixture rows instead of bypassing the bounded read model.
-
-The Telemetry Service integration suite and Authenticated Dashboard browser acceptance are GREEN on these fixes.
-
-## Security dependency complete
-
-Issue #396 / PR #397 removed newly reported HIGH Python findings caused by libraries vendored inside runtime `pip`. PR #397 merged as `d75b353435e8c613203017cb68ee68c1f63d3268`; #368 inherits that hardened telemetry image construction. No new vulnerability exception was added.
-
-## Repository reconciliation
-
-PR #373 is based on current `main=d75b353435e8c613203017cb68ee68c1f63d3268` through reconciliation commit `97917fe627c704f7aa7fd6d32c7cfb0c459d1256` and remains mergeable. Review threads and submitted reviews requiring action are zero.
-
-This final checkpoint changes only the four `.project` source-of-truth files after the fully GREEN content head. Runtime code is frozen. The final state head must itself receive exact-head CI before Ready/merge.
-
-## Alembic ordering hazard with Issue #385
-
-Issue #385 / PR #390 is software verified at `8bb31364a7523164fab95c29aef9d8a839283213`, but its unmerged migration also uses revision `20260807_0023` based on `20260805_0022`.
-
-The controlled production Raspberry Pi database records `20260807_0023` as the #368 telemetry projection migration. Therefore #368 must merge first. Afterward #385 must be reconciled and renumbered to `20260807_0024` with `down_revision=20260807_0023` before any further user-management acceptance.
-
-Safe ordering:
+Final merge-ready branch head:
 
 ```text
-#368 final state CI -> merge as canonical 20260807_0023
--> #385 reconcile with post-#368 main
--> renumber #385 migration to 20260807_0024, down_revision=20260807_0023
--> fresh #385 exact-head CI
--> isolated Raspberry Pi Users & Access acceptance
--> #385 merge
--> #389 Version Management
+f291afd144685b4da0a2b1b1d98986a83244008e
+base main ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4
 ```
 
-## Current safety boundary
+GitHub exact-head verification on this final state head:
 
-Do not run `deploy-current-head` on the controlled Pi until #368 is canonical in `main` and a controlled follow-up deployment path is prepared. Leave the already verified candidate Telemetry Service running.
+```text
+19 completed workflows
+19 success
+0 failures
+0 queued
+0 in-progress
+```
 
-Do not downgrade or restore the production database. Do not delete persistent volumes. No Modbus or other hardware write is authorized.
+Notable GREEN gates include CI, Telemetry Service, Offline Auth Acceptance, Security Browser Acceptance, Offline Bundle, Disaster Recovery TLS Fleet, Container Supply Chain and all remaining browser/fleet/capacity workflows.
+
+Hardware-tested product candidate:
+
+```text
+d37cf08af9560ffa0d18c102656301e667299836
+```
+
+The only changes after the physical acceptance candidate are `.project/*` state/checkpoint records and formatting; no product code, migrations, dependencies, polling or hardware behavior changed.
+
+Offline Auth Acceptance proved:
+
+- all four product roles;
+- non-admin server-side denial of administration;
+- administrator `memberships.manage` and `project_versions.manage`;
+- access-token and refresh-token revocation after permission changes;
+- role-change session revocation;
+- deactivate/reactivate lifecycle;
+- password-reset session revocation, old-password rejection and new-password acceptance;
+- last-active-administrator protection;
+- audit redaction;
+- explicit permission persistence;
+- two controlled full-stack recreations;
+- internal acceptance networking and blocked container egress;
+- production Next.js build.
+
+### Raspberry Pi hardware acceptance
+
+Hardware acceptance is **PASS** on product candidate `d37cf08af9560ffa0d18c102656301e667299836`.
+
+Controlled host evidence:
+
+```text
+host: nexolab-edge-01
+architecture: aarch64 / linux/arm64
+OS: Debian GNU/Linux 13.6 (trixie)
+kernel: 6.18.39+rpt-rpi-2712
+Docker Engine: 29.7.1
+```
+
+Runtime acceptance:
+
+```text
+Next.js 16.2.12 production build: PASS
+local-auth production browser tests: 4 passed
+local-auth persistence/recreation test: 1 passed
+acceptance subprocess exit_code: 0
+```
+
+Evidence directory:
+
+```text
+/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z
+```
+
+The first physical attempt was blocked only by a pre-existing loopback-port collision on `127.0.0.1:18093`. The successful retry used isolated alternative loopback ports; no production service was stopped and no product defect was indicated.
+
+Completion classification:
+
+```text
+software verified; Raspberry Pi local user-management acceptance verified; final exact-head CI GREEN
+```
+
+### Migration state
+
+Verified linear chain and single head:
+
+```text
+20260805_0022
+  -> 20260807_0023 telemetry latest projection
+  -> 20260807_0024 local membership permissions (head)
+```
+
+## Current sequencing
+
+```text
+#385 software + hardware + final exact-head CI GREEN
+  -> final PR review/base/diff audit
+  -> mark PR #390 Ready
+  -> squash merge with expected-head lock
+  -> verify canonical main
+  -> unblock/select #389 administrator-only local NEXOLAB Version Management
+```
+
+Issue #389 remains blocked only until PR #390 is merged and `project_versions.manage` is canonical on `main`.
+
+After the selected local administration/version lane, continue the remaining runtime sequence:
+
+```text
+#369 -> #366 -> #289
+```
+
+Issue #386 remains a prepared Ready chart-domain implementation package and is not selected while the current lane is active.
+
+Issue #245 remains a separate Raspberry Pi validation track.
+
+## Safety and runtime boundary
+
+- profile: `LOCAL_LAN`;
+- mandatory cloud identity/services: none;
+- runtime internet requirement: none;
+- PostgreSQL persistence remains local;
+- no Modbus write performed;
+- no hardware write performed;
+- no polling cadence change performed;
+- no telemetry-history deletion performed;
+- no named-volume deletion performed;
+- no production/site cutover performed;
+- no secret material is part of the recorded evidence.
+
+The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on 2026-09-05 and is not broadened by Issue #385.
 
 ## Next action
 
-Run exact-head CI on this final state checkpoint. If GREEN, perform the final focused-diff/review/base audit, mark PR #373 Ready and squash merge with locked expected head. Then immediately resume Issue #385 migration renumber/reconciliation.
+Mark PR #390 Ready, recheck the exact head/base lock, then squash merge only if the final `f291afd144685b4da0a2b1b1d98986a83244008e` checks remain GREEN. After merge, verify canonical `main` and unblock/select Issue #389.

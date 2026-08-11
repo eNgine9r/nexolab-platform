@@ -191,6 +191,10 @@ VALUES
 ON CONFLICT (membership_id, role) DO NOTHING;
 SQL
 
+compose exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+  < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+
 eval "$(python3 - <<'PY'
 import base64
 import hashlib

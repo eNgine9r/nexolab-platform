@@ -491,6 +491,10 @@ VALUES ('$MANAGER_MEMBERSHIP', 'laboratory_manager', 'fleet-acceptance')
 ON CONFLICT (membership_id, role) DO NOTHING;
 SQL
 
+compose exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+  < "$ROOT_DIR/scripts/security-acceptance-role-permissions.sql"
+
 MANAGER_TOKEN="$(jwt_token)"
 provision_node "$NODE_A"
 provision_node "$NODE_B"

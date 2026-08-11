@@ -3,61 +3,65 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-368-FINAL-STATE-CHECKPOINT",
-  "status": "final_state_exact_head_ci_pending",
-  "timestamp": "2026-08-11T10:00:00+03:00",
-  "branch": "perf/368-telemetry-latest-projection",
-  "base_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
-  "issue": 368,
-  "pull_request": 373,
-  "verified_content_head_sha": "6c4955f73dde147f5f6797dbb04b99b1b67239ba",
-  "verified_content_head_ci": "17/17 workflows GREEN",
-  "post_hardware_software_fixes": {
-    "reconciliation_idempotency": "delayed older gap rows are inspected but only actual latest-projection mutations are counted; Telemetry Service PostgreSQL integration GREEN",
-    "authenticated_dashboard_fixture": "direct SQL history fixture seeds telemetry_latest with canonical captured_at/sample_id ordering; Authenticated Dashboard Acceptance GREEN"
+  "task": "ISSUE-385-RASPBERRY-PI-ACCEPTANCE",
+  "status": "hardware_verified_state_reconciliation_pending",
+  "timestamp": "2026-08-11T12:48:00+03:00",
+  "branch": "feat/385-local-user-permissions",
+  "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
+  "issue": 385,
+  "pull_request": 390,
+  "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+  "product_outcome": {
+    "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
+    "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
+    "ui": "/settings/users",
+    "session_revocation": "role, permission, password and account-state changes revoke affected sessions",
+    "audit": "safe immutable administration audit without secret material",
+    "runtime_identity": "local PostgreSQL + local JWT/session authority; no external identity provider required",
+    "version_management_capability": "administrator exposes project_versions.manage for dependent Issue #389"
   },
-  "security_dependency": {
-    "issue": 396,
-    "pull_request": 397,
-    "verified_final_head_sha": "92be9b3364aedd01e6e830e4711c358a041f9781",
-    "merge_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
-    "verification": "13/13 workflows GREEN; telemetry Container Supply Chain and Offline Bundle GREEN; no new vulnerability exception"
+  "software_verification": {
+    "exact_head_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+    "workflow_summary": "19 completed workflows, 19 success, 0 failures, 0 queued, 0 in-progress",
+    "offline_auth": "GREEN; four-role provisioning, lifecycle/session revocation, password reset, last-admin protection, audit redaction and persistence coverage",
+    "offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
+    "migration_head": "20260807_0024"
   },
-  "physical_acceptance": {
-    "candidate_sha": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
-    "status": "PASS",
-    "migration_from": "20260805_0022",
-    "migration_to": "20260807_0023",
-    "migration_seconds": 330,
-    "ingestion_continued_during_backfill": true,
-    "projection_count": 194,
-    "canonical_series_count": 194,
-    "projection_sample_id_lag_at_sample": 0,
-    "latest_limit_1_p95_seconds": 0.013076,
-    "latest_default_p95_seconds": 0.023364,
-    "latest_limit_100_p95_seconds": 0.015271,
-    "filtered_series_p95_seconds": 0.011519,
-    "query_plan": "Index Scan Backward using ix_telemetry_latest_order on telemetry_latest; execution 0.136 ms",
-    "central_smoke": "PASS",
-    "postgres_volume": "nexolab-central-postgres-data",
-    "final_advisory_locks": "0 granted exclusive; 0 waiting",
-    "device_agent": "status ok; mqtt connected; last_error none; degraded 0; cooldown 0",
+  "hardware_evidence": {
+    "raspberry_pi_user_management_acceptance": "PASS",
+    "candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+    "host": "nexolab-edge-01",
+    "architecture": "aarch64",
+    "docker_architecture": "linux/arm64",
+    "os": "Debian GNU/Linux 13.6 (trixie)",
+    "kernel": "6.18.39+rpt-rpi-2712",
+    "docker_engine": "29.7.1",
+    "production_build": "PASS",
+    "browser_tests": "4 passed",
+    "persistence_recreation_test": "1 passed",
+    "acceptance_exit_code": 0,
+    "evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
+    "initial_attempt_note": "first attempt stopped on loopback port 18093 already allocated; successful retry used isolated alternative loopback ports without stopping production",
+    "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified",
     "modbus_write": "none",
-    "hardware_write": "none"
+    "hardware_write": "none",
+    "production_site_cutover": "none",
+    "volume_deletion": "none"
   },
-  "repository_reconciliation": {
-    "current_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
-    "merge_commit": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
-    "force_push": false,
-    "runtime_code_frozen_after_verified_content_head": true,
-    "state_checkpoint_after_green_content_head": true
+  "sequencing": {
+    "selected_by_product_owner": 385,
+    "next_after_current": 389,
+    "completed_issue": 368,
+    "completed_issue_merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
+    "migration_chain": "20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024"
   },
-  "migration_ordering": {
-    "conflicting_issue": 385,
-    "conflicting_pull_request": 390,
-    "conflicting_head_sha": "8bb31364a7523164fab95c29aef9d8a839283213",
-    "conflicting_revision": "20260807_0023",
-    "safe_resolution": "merge #368 first; then renumber #385 migration to 20260807_0024 with down_revision 20260807_0023 and rerun full exact-head verification"
+  "state_reconciliation": {
+    "scope": "CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md, LAST_CHECKPOINT.json",
+    "product_code_changes": 0,
+    "dependency_changes": 0,
+    "acquisition_changes": 0,
+    "hardware_actions_after_acceptance": 0,
+    "final_state_head_ci": "required after this checkpoint commit"
   },
-  "next_action": "Run exact-head CI on this final state checkpoint. On GREEN, perform final focused-diff/review/base audit, mark PR #373 Ready and merge with locked expected head; then resume #385 migration renumber/reconciliation and fresh CI before isolated Raspberry Pi acceptance."
+  "next_action": "Commit the state-only Raspberry Pi acceptance reconciliation, require a fresh complete exact-head CI cycle, then perform final PR audit and squash merge PR #390 only if GREEN. After merge, unblock and select Issue #389."
 }

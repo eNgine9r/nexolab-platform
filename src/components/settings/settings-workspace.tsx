@@ -72,6 +72,7 @@ const permissionGroups: readonly PermissionGroup[] = [
     title: "Операційні дії",
     description: "Керовані дії в канонічних робочих процесах.",
     permissions: [
+      "live_dashboards.manage",
       "sessions.manage",
       "sessions.operate",
       "alerts.rules.manage",
@@ -82,6 +83,7 @@ const permissionGroups: readonly PermissionGroup[] = [
       "layout.publish",
       "layout.restore",
       "memberships.manage",
+      "project_versions.manage",
     ],
   },
 ];
@@ -90,6 +92,7 @@ const roleLabels: Record<string, string> = {
   administrator: "Адміністратор",
   laboratory_manager: "Керівник лабораторії",
   engineer: "Інженер",
+  laboratory_technician: "Технік-лаборант",
   operator: "Оператор",
   viewer: "Спостерігач",
   auditor: "Аудитор",
@@ -97,6 +100,7 @@ const roleLabels: Record<string, string> = {
 
 const permissionLabels: Record<SecurityPermission, string> = {
   "dashboard.read": "Огляд dashboard",
+  "live_dashboards.manage": "Керування Live Dashboard",
   "telemetry.read": "Перегляд телеметрії",
   "alerts.read": "Перегляд тривог",
   "audit.read": "Перегляд аудиту",
@@ -104,7 +108,8 @@ const permissionLabels: Record<SecurityPermission, string> = {
   "nodes.read": "Перегляд вузлів",
   "reports.generate": "Формування звітів",
   "reports.approve": "Погодження звітів",
-  "memberships.manage": "Керування членством",
+  "memberships.manage": "Керування користувачами",
+  "project_versions.manage": "Керування версіями NEXOLAB",
   "equipment.manage": "Керування обладнанням",
   "nodes.manage": "Керування вузлами",
   "layout.draft.edit": "Редагування чернеток схем",
@@ -513,6 +518,27 @@ export function SettingsWorkspace({
             description="Settings не дублює вже реалізовані редактори та operations."
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {membership.permissions.includes("memberships.manage") ? (
+              <Link
+                href="/settings/users"
+                className="group rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-4 transition hover:border-cyan-300/30"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05]">
+                    <UsersRound className="h-5 w-5 text-cyan-200" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-medium text-slate-100">Користувачі та права</h3>
+                      <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Локальні користувачі, ролі, granular permissions і lifecycle access.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -551,7 +577,7 @@ export function SettingsWorkspace({
           />
           <ul className="mt-5 space-y-3 text-sm text-slate-400">
             {[
-              "Організації, memberships і ролі не редагуються на цій сторінці.",
+              "Користувачі, ролі та permissions адмініструються в окремому Users & Access workspace.",
               "Node credentials, Modbus/RS-485 parameters і device writes відсутні.",
               "Retention, backup, restore, CORS, TLS, DNS і VPN не змінюються з browser UI.",
               "Secret rotation і production/site cutover потребують окремого контрольованого Work Package.",

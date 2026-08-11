@@ -59,6 +59,11 @@ SELECT 'membership_roles_fingerprint=' || md5(COALESCE(string_agg(
 ), ''))
 FROM security_organization_memberships memberships
 JOIN security_membership_roles roles ON roles.membership_id = memberships.id;
+SELECT 'membership_permissions_count=' || count(*) FROM security_membership_permissions;
+SELECT 'membership_permissions_fingerprint=' || md5(COALESCE(string_agg(
+  concat_ws(':', membership_id, permission),
+  '|' ORDER BY membership_id, permission
+), '')) FROM security_membership_permissions;
 SELECT 'sessions_count=' || count(*) FROM security_local_sessions;
 SELECT 'sessions_fingerprint=' || md5(COALESCE(string_agg(
   concat_ws(':', id, account_id, expires_at::text, (revoked_at IS NOT NULL)::text),
@@ -142,8 +147,9 @@ test("preserves local accounts, memberships and refresh sessions through update 
 
   const volumeBefore = postgresVolumeIdentity();
   const stateBefore = postgresStateSnapshot();
-  expect(stateBefore).toContain("accounts_count=3");
-  expect(stateBefore).toContain("membership_roles_count=3");
+  expect(stateBefore).toContain("accounts_count=6");
+  expect(stateBefore).toContain("membership_roles_count=6");
+  expect(stateBefore).toMatch(/membership_permissions_count=[1-9][0-9]*/);
   expect(stateBefore).toMatch(/sessions_count=[1-9][0-9]*/);
 
   await recreateStack(request);

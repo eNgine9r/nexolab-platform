@@ -56,6 +56,10 @@ class SecurityDependencies:
     def authentication_required(self) -> bool:
         return self._mode != "disabled"
 
+    @property
+    def local_user_administration_enabled(self) -> bool:
+        return self._mode == "local"
+
     def current_session(
         self,
         authorization: str | None = Header(default=None, alias="Authorization"),

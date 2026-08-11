@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from app.security.authentication import VerifiedIdentityClaims
-from app.security.authorization import Permission, Role, effective_permissions
+from app.security.authorization import Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
+from app.security.local_admin_api import create_local_user_admin_router
+from app.security.local_admin_service import LocalUserAdminService
 from app.security.repository import AuditEventInput, SecurityRepository, SecuritySession
 
 
@@ -129,6 +132,18 @@ def create_security_router(
             "count": len(rows),
         }
 
+    if dependencies.local_user_administration_enabled:
+        database_view = SimpleNamespace(engine=repository._engine)  # noqa: SLF001
+        router.include_router(
+            create_local_user_admin_router(
+                LocalUserAdminService(  # type: ignore[arg-type]
+                    database_view,
+                    repository,
+                ),
+                dependencies,
+            )
+        )
+
     return router
 
 
@@ -156,7 +171,6 @@ def _membership_payload(membership: object) -> dict[str, Any]:
         "organization_name": membership.organization_name,
         "roles": sorted(role.value for role in membership.roles),
         "permissions": sorted(
-            permission.value
-            for permission in effective_permissions(membership.roles)
+            permission.value for permission in membership.permissions
         ),
     }

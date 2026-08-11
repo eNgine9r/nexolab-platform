@@ -82,6 +82,9 @@ def register_models() -> None:
         "test_report_approval_events"
     )
     assert _security_models.SecurityAuditEvent.__tablename__ == "security_audit_events"
+    assert _security_models.SecurityMembershipPermission.__tablename__ == (
+        "security_membership_permissions"
+    )
     assert _local_security_models.SecurityLocalAccount.__tablename__ == (
         "security_local_accounts"
     )
