@@ -244,11 +244,19 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       await assertNoPageOverflow(page);
     }
 
-    const explorerUrl = page.url();
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await page.goto(explorerUrl, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Saved Dashboards", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Saved Dashboards", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await page.getByRole("button", { name: "Live Data", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
-    await expect.poll(() => runtime.sockets.maximum).toBeLessThanOrEqual(1);
+    await expect(page.getByRole("button", { name: "Live Data", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect.poll(() => runtime.sockets.active).toBeLessThanOrEqual(1);
+    expect(runtime.sockets.maximum).toBeLessThanOrEqual(1);
     expect(runtime.acquisitionMutations).toEqual([]);
     expect(runtime.publicRequests).toEqual([]);
 
