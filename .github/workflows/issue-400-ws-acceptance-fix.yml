@@ -1,0 +1,71 @@
+name: Issue 400 websocket acceptance fix
+
+on:
+  push:
+    branches:
+      - feat/400-live-data-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/400-live-data-chart-system
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Replace full reload with sibling workspace lifecycle acceptance
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('e2e/live-chart-system.production.e2e.ts')
+          text = path.read_text()
+          old = '''    const explorerUrl = page.url();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto(explorerUrl, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
+    await expect.poll(() => runtime.sockets.maximum).toBeLessThanOrEqual(1);
+    expect(runtime.acquisitionMutations).toEqual([]);
+    expect(runtime.publicRequests).toEqual([]);
+'''
+          new = '''    await page.getByRole("button", { name: "Saved Dashboards", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Saved Dashboards", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await page.getByRole("button", { name: "Live Data", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Live Data", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect.poll(() => runtime.sockets.active).toBeLessThanOrEqual(1);
+    expect(runtime.sockets.maximum).toBeLessThanOrEqual(1);
+    expect(runtime.acquisitionMutations).toEqual([]);
+    expect(runtime.publicRequests).toEqual([]);
+'''
+          if old not in text:
+              raise SystemExit('expected navigation acceptance block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npx prettier --write e2e/live-chart-system.production.e2e.ts
+      - name: Commit focused acceptance fix
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/live-chart-system.production.e2e.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "test(live): verify concurrent workspace websocket lifecycle"
+          git push origin HEAD:feat/400-live-data-chart-system
