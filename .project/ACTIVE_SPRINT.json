@@ -142,7 +142,8 @@
     "issue_386_baseline": "origin/main 1a4ae8026f2b70c52a5fc41a1f8d22a99897463f; GitHub status:in-progress",
     "issue_386_local_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 76 files / 336 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN",
     "issue_386_benchmark": "Raspberry Pi 5 arm64 / Headless Chrome 151: 1x240 median 38.9 ms; 8x240 median 103.8 ms and p95 169.0 ms; incremental median 12.3 ms and p95 31.2 ms; long-loop median 6.1 ms; zero public requests with Docker network disabled",
-    "issue_386_bundle_delta": "608623 bytes minified / 202927 bytes gzip versus domain-only harness"
+    "issue_386_bundle_delta": "608623 bytes minified / 202927 bytes gzip versus domain-only harness",
+    "issue_386_exact_locally_tested_sha": "80ff2ebd3a51398578e90c7fe36c852ce95321b7"
   },
   "runtime_evidence": {
     "issue_385_external_identity_provider_required": false,

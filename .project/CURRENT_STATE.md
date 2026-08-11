@@ -72,6 +72,7 @@ Local software implementation and deterministic benchmark are complete on the fe
 - deterministic scenarios A–L, including a production bundle exercised with container networking disabled;
 - Raspberry Pi 5 arm64 measurements: 1×240 median 38.9 ms, 8×240 median 103.8 ms / p95 169.0 ms, 100-update median 12.3 ms / p95 31.2 ms, 1,000-update median 6.1 ms;
 - local gates: format, lint, typecheck, 76 files / 336 tests plus lint-staged compatibility, and the Next.js production build are GREEN.
+- exact locally tested implementation commit: `80ff2ebd3a51398578e90c7fe36c852ce95321b7`.
 
 The isolated renderer delta is 608,623 bytes minified / 202,927 bytes gzip. The browser observed zero public requests and no horizontal overflow at 360, 1280, 1440 or 1920 px. Exact-head GitHub CI, focused PR review and the repository Offline Bundle check remain pending publication.
 

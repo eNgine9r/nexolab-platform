@@ -6,7 +6,7 @@ Repository baseline: `origin/main@1a4ae8026f2b70c52a5fc41a1f8d22a99897463f`
 
 Feature branch: `feat/386-chart-domain-renderer-benchmark`
 
-Tested exact feature SHA: pending the evidence commit; the full gate must be rerun on that clean SHA before PR handoff.
+Tested exact feature SHA: `80ff2ebd3a51398578e90c7fe36c852ce95321b7`. Format, lint, typecheck, 76 files / 336 tests, lint-staged compatibility, and the Next.js production build were rerun successfully on this clean commit before PR publication. The later evidence-only commit records this SHA; GitHub CI is authoritative for the final PR head.
 
 ## Decision
 

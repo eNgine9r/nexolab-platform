@@ -8,6 +8,7 @@
   "timestamp": "2026-08-11T15:20:00+03:00",
   "branch": "feat/386-chart-domain-renderer-benchmark",
   "product_main_sha": "1a4ae8026f2b70c52a5fc41a1f8d22a99897463f",
+  "exact_locally_tested_sha": "80ff2ebd3a51398578e90c7fe36c852ce95321b7",
   "completed_issue": 385,
   "completed_pull_request": 390,
   "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
