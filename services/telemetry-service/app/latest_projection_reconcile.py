@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
 from typing import Any
 
@@ -17,6 +18,44 @@ LOGGER = logging.getLogger(__name__)
 MAX_STARTUP_RECONCILE_ROWS = 10_000
 
 
+def _normalized_datetime_pair(
+    existing: datetime,
+    incoming: datetime,
+) -> tuple[datetime, datetime]:
+    if existing.tzinfo is None and incoming.tzinfo is not None:
+        existing = existing.replace(tzinfo=UTC)
+    if incoming.tzinfo is None and existing.tzinfo is not None:
+        incoming = incoming.replace(tzinfo=UTC)
+    return existing, incoming
+
+
+def _would_advance_latest(
+    connection: Any,
+    *,
+    latest: Any,
+    row: Any,
+) -> bool:
+    existing = connection.execute(
+        select(latest.c.captured_at, latest.c.sample_id).where(
+            latest.c.node_id == row["node_id"],
+            latest.c.equipment_id == row["equipment_id"],
+            latest.c.channel_id == row["channel_id"],
+            latest.c.metric == row["metric"],
+        )
+    ).first()
+    if existing is None:
+        return True
+
+    existing_captured_at, incoming_captured_at = _normalized_datetime_pair(
+        existing.captured_at,
+        row["captured_at"],
+    )
+    return incoming_captured_at > existing_captured_at or (
+        incoming_captured_at == existing_captured_at
+        and int(row["id"]) > int(existing.sample_id)
+    )
+
+
 def reconcile_latest_projection(
     database: Database,
     *,
@@ -29,6 +68,11 @@ def reconcile_latest_projection(
     previous telemetry-service binary. A non-empty history with an empty latest
     projection is therefore treated as a failed/incomplete migration rather than
     silently rebuilding retained history during service startup.
+
+    The return value is the number of latest-projection mutations applied, not the
+    number of history rows inspected. Delayed older rows are intentionally scanned
+    within the bounded deployment gap but do not count as reconciled again when
+    they cannot advance canonical latest state.
     """
 
     if max_rows < 1:
@@ -77,7 +121,13 @@ def reconcile_latest_projection(
                 f"gap ({max_rows} rows); investigate migration/cutover state"
             )
 
+        reconciled = 0
         for row in rows:
+            will_advance = _would_advance_latest(
+                connection,
+                latest=latest,
+                row=row,
+            )
             raw_payload = row["raw_payload"]
             if not isinstance(raw_payload, dict):
                 raw_payload = {}
@@ -107,8 +157,9 @@ def reconcile_latest_projection(
                 dialect=dialect,
                 values=latest_values,
             )
+            if will_advance:
+                reconciled += 1
 
-    reconciled = len(rows)
     if reconciled:
         LOGGER.info(
             "Reconciled %s post-migration telemetry rows into telemetry_latest",
