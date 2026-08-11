@@ -1,7 +1,7 @@
 """add local membership permissions and laboratory technician role
 
-Revision ID: 20260807_0023
-Revises: 20260805_0022
+Revision ID: 20260807_0024
+Revises: 20260807_0023
 Create Date: 2026-08-07 23:10:00
 """
 from __future__ import annotations
@@ -10,12 +10,12 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20260807_0023"
-down_revision = "20260805_0022"
+revision = "20260807_0024"
+down_revision = "20260807_0023"
 branch_labels = None
 depends_on = None
 
-_MIGRATION_ACTOR = "migration:20260807_0023"
+_MIGRATION_ACTOR = "migration:20260807_0024"
 
 _ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "laboratory_manager": (
