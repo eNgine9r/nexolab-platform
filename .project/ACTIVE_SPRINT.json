@@ -43,7 +43,9 @@
       "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
       "status": "completed_regression_resolved_by_378",
       "priority": "critical",
-      "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1"
+      "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
+      "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1",
+      "completion_classification": "initial serial invalidation merged; later USB re-enumeration regression resolved and hardware verified by Issue #378"
     },
     {
       "id": "NEXOLAB-378",
@@ -54,7 +56,9 @@
       "priority": "critical",
       "verified_final_head_sha": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
       "merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi"
+      "software_ci": "14 completed, 0 failures, 0 in-progress",
+      "hardware_acceptance": "PASS on Raspberry Pi; same container recovered telemetry across ttyUSB1 -> ttyUSB0 re-enumeration",
+      "completion_classification": "software verified; Raspberry Pi USB re-enumeration recovery hardware verified; merged"
     },
     {
       "id": "NEXOLAB-381",
@@ -72,7 +76,10 @@
       "title": "Define the NEXOLAB Chart System technical specification",
       "status": "completed",
       "priority": "high",
-      "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c"
+      "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
+      "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
+      "software_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
+      "completion_classification": "documentation architecture verified; no runtime chart implementation or hardware acceptance"
     },
     {
       "id": "NEXOLAB-368",
@@ -121,6 +128,8 @@
       "title": "Audit and deduplicate monitoring-route read models",
       "status": "blocked_by_runtime_acceptance_sequence",
       "priority": "critical",
+      "assignee": "eNgine9r",
+      "parent_epic": 356,
       "depends_on": [314, 355, 357, 368, 369]
     },
     {
@@ -137,7 +146,8 @@
       "pull_request": 246,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "status": "needs_validation_parallel_runtime_track",
-      "priority": "critical"
+      "priority": "critical",
+      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
     },
     {
       "id": "NEXOLAB-386",
@@ -151,13 +161,15 @@
       "id": "NEXOLAB-257",
       "issue": 257,
       "title": "Migrate ESLint to 10",
-      "status": "blocked"
+      "status": "blocked",
+      "blocker": "resolved Next ESLint plugin graph does not yet provide the required ESLint 10 compatibility boundary"
     },
     {
       "id": "NEXOLAB-256",
       "issue": 256,
       "title": "Transition to TypeScript 7",
-      "status": "deferred"
+      "status": "deferred",
+      "blocker": "requires confirmed Next.js, Vitest/Vite and ESLint integration support for the selected TypeScript 7 line"
     }
   ],
   "active_work_package": {
@@ -176,6 +188,13 @@
     "status": "resume_after_368_merge_and_migration_renumber",
     "priority": "high"
   },
+  "prepared_ready_backlog": [
+    {
+      "issue": 386,
+      "title": "Establish chart-domain primitives and benchmark the local renderer",
+      "priority": "high"
+    }
+  ],
   "verification": {
     "issue_368_physical_candidate": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
     "issue_368_physical_acceptance": "PASS",
