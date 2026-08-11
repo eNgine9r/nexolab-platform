@@ -38,7 +38,7 @@ Hard boundaries:
 
 ## Issue #389 — unblocked, Ready and not selected
 
-Issue #389 (administrator-only local NEXOLAB Version Management) remains `status:ready`, but is `ready_not_selected` while #386 is the sole active implementation task.
+Issue #389 (administrator-only local NEXOLAB Version Management) remains `status:ready`, but is `ready_not_selected` while #400 is the sole active implementation task.
 
 Its #385 dependency is satisfied because `project_versions.manage` and the administrator-only authorization boundary are canonical on `main`.
 
@@ -65,7 +65,7 @@ The existing runtime sequence remains preserved and is not replanned by #386:
 Other known boundaries:
 
 - Issue #245 remains a separate Raspberry Pi validation track.
-- Issue #400 is the selected next Ready Chart Work Package; no implementation Work Package is active during post-merge reconciliation.
+- Issue #400 / PR #402 is the selected active Chart Work Package; no parallel implementation lane is allowed.
 - Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
@@ -76,3 +76,17 @@ The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **20
 ## Global hard-stop rules
 
 Stop before destructive data/volume operations, production/site cutover, Modbus or other hardware writes, secret exposure, mandatory online runtime dependencies, privileged hardware containers or unsupported physical-acceptance claims.
+
+## Issue #400 — software GREEN, physical acceptance pending
+
+There is no known software implementation blocker on the pre-state implementation head. Format, lint, typecheck, 77 files / 344 tests, production build, Authenticated Dashboard, Acquisition Scale and Refrigeration Browser gates are GREEN.
+
+The remaining hard acceptance dependency is physical evidence from the controlled Raspberry Pi after a final exact-head software/offline candidate is frozen:
+
+- equal-duration Device Agent request-rate baseline and chart-active observations;
+- eight selected channels and active chart interactions;
+- no scheduler/polling/registry change;
+- no Modbus or hardware write;
+- continued telemetry advancement and acceptable browser behavior.
+
+Do not claim production Live Data Raspberry Pi acquisition-invariant acceptance until that evidence is returned.

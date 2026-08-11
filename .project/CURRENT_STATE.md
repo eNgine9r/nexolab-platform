@@ -2,7 +2,7 @@
 
 Updated: 2026-08-11
 
-Canonical repository baseline on `main`: `3b34ec321c2453778b20b6bf8e4cc232970e5e1e` — Issue #386 / PR #399 canonical Chart System foundation merge.
+Canonical repository baseline on `main`: `61998415e334cb31555e54ae4013d938e7607b6e` — PR #401 post-#386 state reconciliation; Chart System foundation remains canonical.
 
 ## Completed Work Package — Issue #385
 
@@ -93,4 +93,24 @@ The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expire
 
 ## Next action
 
-Issue #400 is the next `status:ready` Chart Work Package: migrate Live Data to the canonical Chart System. Keep #389 Ready but not selected, and preserve #369 -> #366 -> #289 without product-scope changes. Raspberry Pi chart performance is verified; controlled physical Device Agent/Modbus request-rate acceptance remains for the production Live Data migration.
+Issue #400 / PR #402 is the sole active implementation lane. Software gates are GREEN on the pre-state implementation head and the deterministic authenticated browser acceptance proves the 8-channel canonical Live Data workspace. Run final exact-head CI/Offline Bundle after this state refresh, then freeze the candidate for controlled Raspberry Pi acquisition-invariant acceptance. Keep #389 Ready but not selected and preserve #369 -> #366 -> #289 without product-scope changes.
+
+## Active Work Package — Issue #400
+
+Issue #400 / draft PR #402 migrates the Live Data Explorer to the canonical Chart System while preserving Saved Live Dashboards as a sibling `/live` workspace.
+
+Implemented and software-verified before this state refresh:
+
+- canonical ECharts renderer path replaces the Explorer route-local SVG chart;
+- compatible-unit synchronized plot groups, shared cursor/x-domain, show/hide/solo and canonical time ranges;
+- Live Follow, Pause View, Return to Live, zoom/pan/reset remain display-only;
+- canonical evidence-preserving min/max reduction replaces last-point-per-bucket behavior;
+- explicit source gaps and alarm transition evidence remain truthful;
+- deterministic authenticated browser fixture selects 8 persisted channels (6 `degC`, 2 `V`) and verifies no public requests or acquisition mutation requests;
+- sibling `Live Data -> Saved Dashboards -> Live Data` lifecycle retains at most one concurrent telemetry WebSocket;
+- 360 / 1440 / 1920 browser widths have no page-level horizontal overflow;
+- pre-state implementation head `fb6cec76397da1dc6baf2b21c668c6b99f282bb0`: format/lint/typecheck/build GREEN, 77 files / 344 tests GREEN, Authenticated Dashboard GREEN, Acquisition Scale GREEN, Refrigeration Browser GREEN.
+
+No REST/WebSocket schema, database, retention, polling, scheduler, registry, Device Agent, Modbus or hardware behavior changes are in scope.
+
+Physical acceptance remains pending on the controlled Raspberry Pi. Existing pre-candidate baseline on `main=61998415...` is healthy with real RS-485 telemetry advancing; a frozen exact candidate must prove chart interaction does not change physical request cadence.

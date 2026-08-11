@@ -19,13 +19,13 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
-  "current_main_sha_semantics": "Issue #386 / PR #399 canonical Chart System foundation merge; local Users & Access and revision 20260807_0024 remain canonical",
+  "current_main_sha": "61998415e334cb31555e54ae4013d938e7607b6e",
+  "current_main_sha_semantics": "PR #401 post-#386 state reconciliation; Chart System foundation remains canonical and Issue #400 is the active production consumer",
   "product_owner_priority_override": {
     "active": true,
-    "decision": "Prioritize the Chart System track beginning with Issue #386; keep Issue #389 Ready but not selected.",
+    "decision": "Prioritize the Chart System track; Issue #400 is the sole active implementation lane and Issue #389 remains Ready but not selected.",
     "completed_issue": 385,
-    "selected_issue": 386
+    "selected_issue": 400
   },
   "tasks": [
     {
@@ -100,9 +100,10 @@
       "id": "NEXOLAB-400",
       "issue": 400,
       "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
-      "status": "ready_selected_next",
+      "status": "in_progress_software_green_hardware_acceptance_pending",
       "priority": "high",
-      "depends_on": [386]
+      "depends_on": [386],
+      "pull_request": 402
     },
     {
       "id": "NEXOLAB-245",
@@ -125,11 +126,19 @@
       "status": "deferred"
     }
   ],
-  "active_work_package": null,
-  "next_ready_work_package": {
+  "active_work_package": {
     "issue": 400,
+    "pull_request": 402,
     "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
-    "status": "ready_selected_next",
+    "status": "software_green_exact_head_refresh_and_hardware_acceptance_pending",
+    "priority": "high",
+    "assignee": "eNgine9r",
+    "selection_reason": "Direct Product Owner priority keeps the Chart System lane selected; Issue #386 is merged and Issue #400 is the first production consumer."
+  },
+  "next_ready_work_package": {
+    "issue": null,
+    "title": "Saved Live Dashboard canonical Chart System migration",
+    "status": "create_or_refine_after_issue_400_green_merge_and_ready_audit",
     "priority": "high"
   },
   "prepared_ready_backlog": [
@@ -154,7 +163,14 @@
     "issue_386_merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
     "issue_386_pull_request": 399,
     "issue_386_exact_head_ci": "11/11 GREEN including Offline Bundle and acquisition-invariant integration acceptance",
-    "issue_400_ready_audit": "created status:ready as the first production Chart System consumer; depends on merged Issue #386"
+    "issue_400_ready_audit": "created status:ready as the first production Chart System consumer; depends on merged Issue #386",
+    "issue_400_baseline": "origin/main 61998415e334cb31555e54ae4013d938e7607b6e",
+    "issue_400_pull_request": 402,
+    "issue_400_pre_state_software_sha": "fb6cec76397da1dc6baf2b21c668c6b99f282bb0",
+    "issue_400_pre_state_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 77 files / 344 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN",
+    "issue_400_pre_state_browser": "Authenticated Dashboard GREEN including deterministic 8-channel Live Data Chart System flow; Acquisition Scale GREEN; Refrigeration Browser GREEN",
+    "issue_400_route_topology": "preserve Saved Live Dashboards; expose Live Data Explorer as sibling /live workspace; migrate Explorer renderer only",
+    "issue_400_final_exact_head": "pending after audit/state refresh; Offline Bundle required"
   },
   "runtime_evidence": {
     "issue_385_external_identity_provider_required": false,
@@ -166,9 +182,15 @@
     "issue_386_modbus_write": false,
     "issue_386_hardware_write": false,
     "issue_386_polling_change": false,
-    "issue_386_raspberry_pi_chart_performance": "PASS on Raspberry Pi 5 Model B Rev 1.1, arm64; acquisition invariant pending"
+    "issue_386_raspberry_pi_chart_performance": "PASS on Raspberry Pi 5 Model B Rev 1.1, arm64; acquisition invariant pending",
+    "issue_400_external_egress_required": false,
+    "issue_400_modbus_write": false,
+    "issue_400_hardware_write": false,
+    "issue_400_polling_change": false,
+    "issue_400_raspberry_pi_baseline": "main 61998415 deployed PASS; API/dashboard/Device Agent healthy; real telemetry advancing; physical_requests_total baseline sample 818",
+    "issue_400_physical_acquisition_invariant": "pending frozen-candidate Raspberry Pi acceptance"
   },
-  "next_selection_policy": "Select Issue #400 as the next Chart Work Package after a fresh repository audit. Keep #389 Ready but not selected and preserve #369 -> #366 -> #289 without scope changes.",
+  "next_selection_policy": "Finish exact-head software/offline gates for PR #402, freeze the candidate, run controlled Raspberry Pi Live Data request-rate acceptance, then merge only while GREEN. After merge, audit/create the Saved Live Dashboard Chart System migration without changing #369 -> #366 -> #289 or #389.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
