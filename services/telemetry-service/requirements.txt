@@ -13,3 +13,4 @@ reportlab==4.4.9
 python-multipart>=0.0.20,<1
 PyJWT[crypto]>=2.10,<3
 cryptography>=50.0.0,<51
+msgpack==1.2.1
