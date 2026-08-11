@@ -19,8 +19,13 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-  "current_main_sha_semantics": "verified product/repository baseline immediately before this state-only reconciliation; the state-only merge commit itself is recorded by the following checkpoint rather than guessed before merge",
+  "current_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
+  "priority_context": {
+    "product_owner_selected_feature": 385,
+    "critical_bug_interrupt": 368,
+    "interrupt_reason": "Issue #368 physical acceptance is complete and the controlled production database now carries its unmerged Alembic revision 20260807_0023; Issue #385 uses the same revision id and cannot safely merge first without creating ambiguous migration history.",
+    "resume_after_interrupt": [385, 389]
+  },
   "tasks": [
     {
       "id": "NEXOLAB-357",
@@ -38,7 +43,6 @@
       "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
       "status": "completed_regression_resolved_by_378",
       "priority": "critical",
-      "verified_final_head_sha": "956df254a904c49e6a265101ab2fe0f959e3fbf3",
       "merge_sha": "442cd6bc37aefc11977f82f31423d052fe70ced1"
     },
     {
@@ -50,8 +54,7 @@
       "priority": "critical",
       "verified_final_head_sha": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
       "merge_sha": "6645af46a198ff454142df3b0a713984f4d71196",
-      "software_ci": "14 completed, 0 failures, 0 in-progress",
-      "hardware_acceptance": "PASS on Raspberry Pi; same container recovered telemetry across ttyUSB1 -> ttyUSB0 re-enumeration"
+      "hardware_acceptance": "PASS on controlled Raspberry Pi"
     },
     {
       "id": "NEXOLAB-381",
@@ -69,28 +72,46 @@
       "title": "Define the NEXOLAB Chart System technical specification",
       "status": "completed",
       "priority": "high",
-      "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
-      "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-      "software_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
-      "completion_classification": "documentation architecture verified; no runtime chart implementation or hardware acceptance"
+      "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c"
     },
     {
       "id": "NEXOLAB-368",
       "issue": 368,
       "pull_request": 373,
       "title": "Make telemetry latest reads independent of history volume",
-      "status": "in_progress_hardware_acceptance_pending",
+      "status": "physical_verified_final_ci_pending",
       "priority": "critical",
-      "verified_software_head_before_384_merge": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
-      "software_ci_before_384_merge": "26 completed, 0 failures, 0 in-progress, 0 queued",
-      "hardware_acceptance": "migration-v2/latest-query acceptance pending on controlled Raspberry Pi",
-      "next_required_step": "reconcile PR #373 with current main after documentation-only #384, rerun full exact-head CI, then execute controlled Raspberry Pi migration-v2/latest-query acceptance"
+      "physically_verified_candidate_sha": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+      "current_main_reconciliation_commit": "202afcb3f3d31bcabdcb3ed32edcc37505a77c26",
+      "physical_acceptance": "PASS on controlled Raspberry Pi; migration 330 s with live ingestion, projection 194/194, latest p95 13-23 ms, central smoke PASS",
+      "next_required_step": "run fresh exact-head CI after this state checkpoint, final review/base audit, then merge before Issue #385 to preserve linear Alembic history"
+    },
+    {
+      "id": "NEXOLAB-385",
+      "issue": 385,
+      "pull_request": 390,
+      "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
+      "status": "software_verified_paused_for_368_migration_ordering",
+      "priority": "high",
+      "verified_head_sha": "8bb31364a7523164fab95c29aef9d8a839283213",
+      "software_ci": "19 completed workflows, 19 success, 0 failures, 0 in-progress",
+      "migration_revision": "20260807_0023",
+      "migration_conflict": "same revision id as Issue #368 until #368 merges",
+      "next_required_step": "after #368 merge, reconcile with main, renumber migration to 20260807_0024 with down_revision 20260807_0023, rerun exact-head CI, then perform isolated Raspberry Pi local-user acceptance"
+    },
+    {
+      "id": "NEXOLAB-389",
+      "issue": 389,
+      "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
+      "status": "blocked_by_385_completion",
+      "priority": "high",
+      "depends_on": [385]
     },
     {
       "id": "NEXOLAB-369",
       "issue": 369,
       "title": "Run actual Raspberry Pi Live Dashboard browser inventory acceptance",
-      "status": "queued_after_368",
+      "status": "queued_after_selected_user_management_lane",
       "priority": "critical",
       "depends_on": [368]
     },
@@ -100,8 +121,6 @@
       "title": "Audit and deduplicate monitoring-route read models",
       "status": "blocked_by_runtime_acceptance_sequence",
       "priority": "critical",
-      "assignee": "eNgine9r",
-      "parent_epic": 356,
       "depends_on": [314, 355, 357, 368, 369]
     },
     {
@@ -118,15 +137,7 @@
       "pull_request": 246,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "status": "needs_validation_parallel_runtime_track",
-      "priority": "critical",
-      "software_merge_sha": "83b161ca7e26580c46789e76a7bbdc0d5e434c21"
-    },
-    {
-      "id": "NEXOLAB-385",
-      "issue": 385,
-      "title": "Add local Raspberry Pi user administration and role management",
-      "status": "ready_not_selected",
-      "priority": "high"
+      "priority": "critical"
     },
     {
       "id": "NEXOLAB-386",
@@ -140,69 +151,58 @@
       "id": "NEXOLAB-257",
       "issue": 257,
       "title": "Migrate ESLint to 10",
-      "status": "blocked",
-      "blocker": "resolved Next ESLint plugin graph does not yet provide the required ESLint 10 compatibility boundary"
+      "status": "blocked"
     },
     {
       "id": "NEXOLAB-256",
       "issue": 256,
       "title": "Transition to TypeScript 7",
-      "status": "deferred",
-      "blocker": "requires confirmed Next.js, Vitest/Vite and ESLint integration support for the selected TypeScript 7 line"
+      "status": "deferred"
     }
   ],
   "active_work_package": {
     "issue": 368,
     "pull_request": 373,
     "title": "Make telemetry latest reads independent of history volume",
-    "status": "in_progress_hardware_acceptance_pending",
+    "status": "physical_verified_final_ci_pending",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "selection_reason": "Critical monitoring-route latency blocker remains the selected runtime track; chart and local-user packages are prepared but do not consume the single active implementation slot."
+    "selection_reason": "Critical bug interrupt required to make repository Alembic history match the already verified controlled production database before resuming the Product Owner-selected Users & Access feature."
   },
   "next_ready_work_package": {
-    "issue": 368,
-    "pull_request": 373,
-    "title": "Make telemetry latest reads independent of history volume",
-    "status": "resume_after_state_reconciliation",
-    "priority": "critical"
+    "issue": 385,
+    "pull_request": 390,
+    "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
+    "status": "resume_after_368_merge_and_migration_renumber",
+    "priority": "high"
   },
-  "prepared_ready_backlog": [
-    {
-      "issue": 385,
-      "title": "Add local Raspberry Pi user administration and role management",
-      "priority": "high"
-    },
-    {
-      "issue": 386,
-      "title": "Establish chart-domain primitives and benchmark the local renderer",
-      "priority": "high"
-    }
-  ],
   "verification": {
-    "issue_378_final_exact_head": "5635df201a6cbd59227a8ebe181c44fa5167f67c",
-    "issue_378_final_ci": "14 completed, 0 failures, 0 in-progress",
-    "issue_378_hardware": "PASS; same container, restart 0 -> 0, ttyUSB1 -> ttyUSB0, PostgreSQL 2332589 -> 2332595 -> 2332624",
-    "issue_381_merge_sha": "329282496491d2ee27ab4f292e982a30af33c2b7",
-    "issue_383_final_head": "51d7164e6b6453d4e15883d432fbd170de79b784",
-    "issue_383_ci": "GREEN",
-    "issue_383_merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-    "issue_368_software_head_before_384_merge": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
-    "issue_368_software_ci_before_384_merge": "26 completed, 0 failures, 0 in-progress, 0 queued",
-    "issue_368_post_384_reconciliation_ci": "required before physical acceptance"
+    "issue_368_physical_candidate": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+    "issue_368_physical_acceptance": "PASS",
+    "issue_368_migration_seconds": 330,
+    "issue_368_projection_cardinality": "194/194",
+    "issue_368_latest_limit_1_p95_seconds": 0.013076,
+    "issue_368_latest_default_p95_seconds": 0.023364,
+    "issue_368_latest_limit_100_p95_seconds": 0.015271,
+    "issue_368_filtered_p95_seconds": 0.011519,
+    "issue_368_query_plan": "Index Scan Backward using ix_telemetry_latest_order on telemetry_latest; execution 0.136 ms",
+    "issue_368_central_smoke": "PASS",
+    "issue_368_reconciliation_commit": "202afcb3f3d31bcabdcb3ed32edcc37505a77c26",
+    "issue_368_final_exact_head_ci": "pending after state checkpoint",
+    "issue_385_previous_exact_head_ci": "19 completed workflows, 19 success, 0 failures, 0 in-progress; must rerun after renumber/reconciliation"
   },
   "runtime_evidence": {
-    "stable_rs485_path": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
-    "verified_candidate_container": "9f03df0e798e",
-    "container_restart_count_before_after": "0 -> 0",
-    "device_before": "ttyUSB1",
-    "device_after": "ttyUSB0",
-    "postgres_final_observed_max_id": 2332624,
-    "final_newest_age": "~18-21 seconds",
-    "issue_368_schema_before_migration": "20260805_0022",
-    "issue_368_projection_before_migration": "absent"
+    "controlled_pi_alembic": "20260807_0023 as Issue #368 telemetry projection revision",
+    "controlled_pi_telemetry_image": "nexolab-telemetry-service:issue-368-v2",
+    "controlled_pi_telemetry_container": "1c8e5473e75f",
+    "postgres_volume": "nexolab-central-postgres-data",
+    "projection_count": 194,
+    "canonical_series_count": 194,
+    "final_device_agent": "ok; mqtt connected; no degraded/cooldown endpoints",
+    "modbus_write": "none",
+    "hardware_write": "none"
   },
-  "next_selection_policy": "Complete state-only #387, then reconcile PR #373 with current main and rerun exact-head CI before controlled #368 Raspberry Pi migration-v2/latest-query acceptance; continue #369 -> #366 -> #289. Prepared #385 and #386 remain Ready backlog unless explicitly reprioritized.",
+  "next_selection_policy": "Complete #368 fresh exact-head CI and GREEN merge first to canonicalize revision 20260807_0023. Then resume Product Owner-selected #385, renumber its migration to 20260807_0024, reconcile and rerun CI before isolated Raspberry Pi acceptance; after #385 complete continue #389, then resume #369 -> #366 -> #289 unless Product Owner changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
@@ -217,7 +217,6 @@
     "polling_cadence_change": "none",
     "data_deletion": "none",
     "volume_deletion": "none",
-    "privileged_container": "none",
     "production_site_cutover": "none"
   }
 }
