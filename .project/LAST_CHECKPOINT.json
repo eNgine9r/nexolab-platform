@@ -3,71 +3,61 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "POST-CHART-SPEC-STATE-RECONCILIATION",
-  "status": "state_only_ci_pending",
-  "timestamp": "2026-08-07T22:38:00+03:00",
-  "branch": "chore/387-chart-spec-state-reconciliation",
-  "base_main_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-  "issue": 387,
-  "recently_completed_work_package": {
-    "issue": 383,
-    "pull_request": 384,
-    "title": "Define the NEXOLAB Chart System technical specification",
-    "verified_final_head_sha": "51d7164e6b6453d4e15883d432fbd170de79b784",
-    "merge_sha": "72f32d387e0199f7b863a56931d40a411ebf999c",
-    "final_ci": "runtime contracts, ADR registry, dependency policy, formatting, lint, typecheck, tests and production build GREEN",
-    "completion_classification": "documentation architecture verified; no production chart implementation and no Raspberry Pi chart hardware acceptance"
+  "task": "ISSUE-368-FINAL-STATE-CHECKPOINT",
+  "status": "final_state_exact_head_ci_pending",
+  "timestamp": "2026-08-11T10:00:00+03:00",
+  "branch": "perf/368-telemetry-latest-projection",
+  "base_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
+  "issue": 368,
+  "pull_request": 373,
+  "verified_content_head_sha": "6c4955f73dde147f5f6797dbb04b99b1b67239ba",
+  "verified_content_head_ci": "17/17 workflows GREEN",
+  "post_hardware_software_fixes": {
+    "reconciliation_idempotency": "delayed older gap rows are inspected but only actual latest-projection mutations are counted; Telemetry Service PostgreSQL integration GREEN",
+    "authenticated_dashboard_fixture": "direct SQL history fixture seeds telemetry_latest with canonical captured_at/sample_id ordering; Authenticated Dashboard Acceptance GREEN"
   },
-  "chart_system": {
-    "specification": "docs/architecture/nexolab-chart-system.md",
-    "next_ready_issue": 386,
-    "next_ready_title": "Establish chart-domain primitives and benchmark the local renderer",
-    "selected_for_implementation": false,
-    "selection_reason": "single active implementation slot remains occupied by critical Issue #368"
+  "security_dependency": {
+    "issue": 396,
+    "pull_request": 397,
+    "verified_final_head_sha": "92be9b3364aedd01e6e830e4711c358a041f9781",
+    "merge_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
+    "verification": "13/13 workflows GREEN; telemetry Container Supply Chain and Offline Bundle GREEN; no new vulnerability exception"
   },
-  "active_work_package": {
-    "issue": 368,
-    "pull_request": 373,
-    "title": "Make telemetry latest reads independent of history volume",
-    "status": "current_main_reconciliation_and_hardware_acceptance_pending",
-    "previous_exact_software_head": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
-    "previous_ci": "26 completed, 0 failures, 0 in-progress, 0 queued",
-    "previous_reconciled_main": "329282496491d2ee27ab4f292e982a30af33c2b7",
-    "current_main_before_state_reconciliation": "72f32d387e0199f7b863a56931d40a411ebf999c",
-    "next_required_step": "reconcile PR #373 with current main, rerun full exact-head CI, freeze the new candidate, then run controlled Raspberry Pi migration-v2/latest-query acceptance"
-  },
-  "prepared_ready_backlog": [
-    {
-      "issue": 385,
-      "title": "Add local Raspberry Pi user administration and role management"
-    },
-    {
-      "issue": 386,
-      "title": "Establish chart-domain primitives and benchmark the local renderer"
-    }
-  ],
-  "hardware_evidence": {
-    "latest_completed_hardware_issue": 378,
-    "candidate_container": "9f03df0e798e",
-    "container_restarted": false,
-    "container_recreated": false,
-    "restart_count_before_after": "0 -> 0",
-    "device_before": "ttyUSB1",
-    "device_after": "ttyUSB0",
-    "postgres_final_observed_max_id": 2332624,
-    "chart_hardware_acceptance": "not performed",
+  "physical_acceptance": {
+    "candidate_sha": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+    "status": "PASS",
+    "migration_from": "20260805_0022",
+    "migration_to": "20260807_0023",
+    "migration_seconds": 330,
+    "ingestion_continued_during_backfill": true,
+    "projection_count": 194,
+    "canonical_series_count": 194,
+    "projection_sample_id_lag_at_sample": 0,
+    "latest_limit_1_p95_seconds": 0.013076,
+    "latest_default_p95_seconds": 0.023364,
+    "latest_limit_100_p95_seconds": 0.015271,
+    "filtered_series_p95_seconds": 0.011519,
+    "query_plan": "Index Scan Backward using ix_telemetry_latest_order on telemetry_latest; execution 0.136 ms",
+    "central_smoke": "PASS",
+    "postgres_volume": "nexolab-central-postgres-data",
+    "final_advisory_locks": "0 granted exclusive; 0 waiting",
+    "device_agent": "status ok; mqtt connected; last_error none; degraded 0; cooldown 0",
     "modbus_write": "none",
     "hardware_write": "none"
   },
-  "state_reconciliation": {
-    "scope": "four .project files only",
-    "runtime_code_changes": 0,
-    "dependency_changes": 0,
-    "database_changes": 0,
-    "acquisition_changes": 0,
-    "hardware_actions": 0,
-    "ci": "pending on final state-only head"
+  "repository_reconciliation": {
+    "current_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
+    "merge_commit": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
+    "force_push": false,
+    "runtime_code_frozen_after_verified_content_head": true,
+    "state_checkpoint_after_green_content_head": true
   },
-  "downstream_runtime_sequence": [368, 369, 366, 289],
-  "next_action": "Complete state-only Issue #387 on GREEN, then return to PR #373 current-main reconciliation and controlled Issue #368 acceptance. Keep Issues #385 and #386 Ready but unselected while the single active implementation slot is occupied."
+  "migration_ordering": {
+    "conflicting_issue": 385,
+    "conflicting_pull_request": 390,
+    "conflicting_head_sha": "8bb31364a7523164fab95c29aef9d8a839283213",
+    "conflicting_revision": "20260807_0023",
+    "safe_resolution": "merge #368 first; then renumber #385 migration to 20260807_0024 with down_revision 20260807_0023 and rerun full exact-head verification"
+  },
+  "next_action": "Run exact-head CI on this final state checkpoint. On GREEN, perform final focused-diff/review/base audit, mark PR #373 Ready and merge with locked expected head; then resume #385 migration renumber/reconciliation and fresh CI before isolated Raspberry Pi acceptance."
 }

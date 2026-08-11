@@ -282,25 +282,45 @@ class SessionAwareDatabase(Database):
                 postgresql_insert(table)
                 .values(**values, received_at=func.clock_timestamp())
                 .on_conflict_do_nothing(index_elements=["event_id"])
-                .returning(table.c.event_id)
+                .returning(table.c.id, table.c.received_at)
             )
-            return connection.execute(statement).scalar_one_or_none() is not None
-        if dialect == "sqlite":
+            inserted = connection.execute(statement).first()
+        elif dialect == "sqlite":
             statement = (
                 sqlite_insert(table)
                 .values(**values)
                 .on_conflict_do_nothing(index_elements=["event_id"])
+                .returning(table.c.id, table.c.received_at)
             )
-            return connection.execute(statement).rowcount == 1
+            inserted = connection.execute(statement).first()
+        else:
+            existing = connection.execute(
+                select(TelemetrySample.id).where(
+                    TelemetrySample.event_id == values["event_id"]
+                )
+            ).first()
+            if existing is not None:
+                return False
+            result = connection.execute(table.insert().values(**values))
+            sample_id = int(result.inserted_primary_key[0])
+            inserted = connection.execute(
+                select(table.c.id, table.c.received_at).where(table.c.id == sample_id)
+            ).first()
 
-        existing = connection.execute(
-            select(TelemetrySample.id).where(
-                TelemetrySample.event_id == values["event_id"]
-            )
-        ).first()
-        if existing is not None:
+        if inserted is None:
             return False
-        connection.execute(table.insert().values(**values))
+
+        latest_values = self._latest_values(
+            values=values,
+            sample_id=int(inserted.id),
+            received_at=inserted.received_at,
+            raw_payload=values["raw_payload"],
+        )
+        self._upsert_latest(
+            connection,
+            dialect=dialect,
+            values=latest_values,
+        )
         return True
 
 

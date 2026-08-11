@@ -98,6 +98,10 @@ ORDER BY o.slug, i.subject;
 SELECT event_id, node_id, equipment_id, channel_id, metric, value, unit, quality, captured_at
 FROM telemetry_samples
 ORDER BY captured_at, event_id;
+
+SELECT sample_id, event_id, node_id, equipment_id, channel_id, metric, value, unit, quality, captured_at
+FROM telemetry_latest
+ORDER BY captured_at, event_id;
 SQL
 
   python3 - <<'PY' >"$EVIDENCE_DIR/dashboard-runtime.json" || true
@@ -296,6 +300,104 @@ VALUES
     '{}'::json
   )
 ON CONFLICT (event_id) DO NOTHING;
+
+-- This acceptance fixture seeds retained history directly so it can create
+-- deterministic 24-hour chart data without waiting in real time. Keep the
+-- bounded latest projection consistent with those fixture rows as production
+-- ingestion would do transactionally through Database.persist().
+INSERT INTO telemetry_latest (
+  sample_id,
+  event_id,
+  node_id,
+  captured_at,
+  metric,
+  value,
+  unit,
+  quality,
+  source,
+  equipment_id,
+  channel_id,
+  alarm,
+  raw_value,
+  raw_status,
+  stale_after_seconds,
+  received_at
+)
+SELECT
+  sample.id,
+  sample.event_id,
+  sample.node_id,
+  sample.captured_at,
+  sample.metric,
+  sample.value,
+  sample.unit,
+  sample.quality,
+  sample.source,
+  sample.equipment_id,
+  sample.channel_id,
+  sample.alarm,
+  sample.raw_value,
+  sample.raw_status,
+  NULL,
+  sample.received_at
+FROM (
+  SELECT DISTINCT ON (
+    node_id,
+    equipment_id,
+    channel_id,
+    metric
+  )
+    id,
+    event_id,
+    node_id,
+    captured_at,
+    metric,
+    value,
+    unit,
+    quality,
+    source,
+    equipment_id,
+    channel_id,
+    alarm,
+    raw_value,
+    raw_status,
+    received_at
+  FROM telemetry_samples
+  WHERE event_id IN (
+    '10000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000003',
+    '10000000-0000-4000-8000-000000000004',
+    '10000000-0000-4000-8000-000000000005'
+  )
+  ORDER BY
+    node_id,
+    equipment_id,
+    channel_id,
+    metric,
+    captured_at DESC,
+    id DESC
+) AS sample
+ON CONFLICT (node_id, equipment_id, channel_id, metric)
+DO UPDATE SET
+  sample_id = EXCLUDED.sample_id,
+  event_id = EXCLUDED.event_id,
+  captured_at = EXCLUDED.captured_at,
+  value = EXCLUDED.value,
+  unit = EXCLUDED.unit,
+  quality = EXCLUDED.quality,
+  source = EXCLUDED.source,
+  alarm = EXCLUDED.alarm,
+  raw_value = EXCLUDED.raw_value,
+  raw_status = EXCLUDED.raw_status,
+  stale_after_seconds = EXCLUDED.stale_after_seconds,
+  received_at = EXCLUDED.received_at
+WHERE
+  EXCLUDED.captured_at > telemetry_latest.captured_at
+  OR (
+    EXCLUDED.captured_at = telemetry_latest.captured_at
+    AND EXCLUDED.sample_id > telemetry_latest.sample_id
+  );
 SQL
 
 eval "$(python3 - <<'PY'

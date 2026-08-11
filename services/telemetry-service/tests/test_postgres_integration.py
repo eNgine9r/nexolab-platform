@@ -10,7 +10,7 @@ from sqlalchemy import delete
 
 from app.config import Settings
 from app.contracts import TelemetryEvent
-from app.db import TelemetrySample
+from app.db import TelemetryLatest, TelemetrySample
 from app.main import create_app
 
 
@@ -69,6 +69,14 @@ def test_postgres_migration_idempotency_and_rest_queries() -> None:
         def cleanup() -> None:
             with database.engine.begin() as connection:
                 connection.execute(
+                    delete(TelemetryLatest).where(
+                        TelemetryLatest.node_id == "integration-edge",
+                        TelemetryLatest.equipment_id == "K106",
+                        TelemetryLatest.channel_id == "106-04",
+                        TelemetryLatest.metric == "temperature.probe",
+                    )
+                )
+                connection.execute(
                     delete(TelemetrySample).where(
                         TelemetrySample.event_id.in_(
                             [str(value) for value in event_ids]
@@ -82,6 +90,7 @@ def test_postgres_migration_idempotency_and_rest_queries() -> None:
             assert database.persist(events[0], events[0].normalized_payload())
             assert not database.persist(events[0], events[0].normalized_payload())
             assert database.persist(events[1], events[1].normalized_payload())
+            assert database.count_latest_samples() >= 1
 
             latest = client.get(
                 "/api/v1/telemetry/latest",
