@@ -232,7 +232,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [range, setRange] = useState<CanonicalChartTimeRangeId>(() =>
     canonicalRangeFromParams(new URLSearchParams(searchParams.toString())),
   );
-  const initialTo = Date.now();
+  const [initialTo] = useState(() => Date.now());
   const [customFrom, setCustomFrom] = useState(
     () => searchParams.get("from") ?? toLocalInput(initialTo - 60 * 60_000),
   );
@@ -258,7 +258,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const availableKeys = useMemo(() => new Set(telemetry.samples.map(liveChannelKey)), [telemetry.samples]);
   const status = statusMessage(telemetry.status);
   const StatusIcon = status.icon;
-  const historyToMs = telemetry.historyWindow?.to.getTime() ?? Date.now();
+  const historyToMs = telemetry.historyWindow?.to.getTime() ?? initialTo;
   const customFromMs = fromLocalInput(customFrom);
   const customToMs = fromLocalInput(customTo);
   const resetDomain = useMemo(
@@ -341,7 +341,8 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
       setCustomError("Custom interval у цьому Live Data workspace обмежений 7 днями.");
       return;
     }
-    if (toMs > Date.now() + 30_000 || fromMs < Date.now() - CUSTOM_MAX_MS - 60_000) {
+    const historyNowMs = telemetry.historyWindow?.to.getTime() ?? initialTo;
+    if (toMs > historyNowMs + 30_000 || fromMs < historyNowMs - CUSTOM_MAX_MS - 60_000) {
       setCustomError("Custom interval має бути в межах доступного локального 7-денного history window.");
       return;
     }
