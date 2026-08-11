@@ -95,7 +95,7 @@ def test_reconcile_catches_only_post_migration_gap_and_is_idempotent(
     insert_history_only(database, newer)
     insert_history_only(database, delayed_older)
 
-    assert reconcile_latest_projection(database) == 2
+    assert reconcile_latest_projection(database) == 1
     assert reconcile_latest_projection(database) == 0
 
     latest = database.latest_samples(query=TelemetryQuery(), limit=10, offset=0)
@@ -103,6 +103,7 @@ def test_reconcile_catches_only_post_migration_gap_and_is_idempotent(
     assert latest[0].event_id == str(newer.event_id)
     assert latest[0].value == 3.2
     assert latest[0].stale_after_seconds == 15.0
+    assert database.count_samples() == 3
     database.dispose()
 
 
