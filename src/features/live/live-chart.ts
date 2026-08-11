@@ -65,8 +65,12 @@ function transitionPins(samples: readonly TelemetrySample[]): Map<string, ChartP
   let previous: TelemetrySample | null = null;
 
   for (const sample of samples) {
-    if (sample.alarm !== null) pins.set(sample.event_id, ["alarm"]);
-    if (previous && previous.alarm !== sample.alarm) {
+    if (previous === null) {
+      if (sample.alarm !== null) pins.set(sample.event_id, ["alarm"]);
+      previous = sample;
+      continue;
+    }
+    if (previous.alarm !== sample.alarm) {
       pins.set(previous.event_id, ["alarm"]);
       pins.set(sample.event_id, ["alarm"]);
     }
