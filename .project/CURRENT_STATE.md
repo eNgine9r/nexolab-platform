@@ -1,16 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-08
+Updated: 2026-08-11
 
-Verified repository baseline on `main`: `810f6a6b48fc3ce04eeb1174236df3bd5ed53380`
+Verified repository baseline on `main`: `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4` (PR #373 squash merge).
 
 Active Work Package: Issue #385 / PR #390 — local Raspberry Pi users, administrator-managed permissions and access lifecycle.
 
-Product Owner priority decision: the local Users & Access / Version Management lane is selected ahead of the previously active telemetry-latest physical acceptance lane. Issue #368 remains open and blocked/paused; it is not completed or cancelled.
+Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and remains the active Work Package.
 
 ## Issue #385 / PR #390
 
-Software implementation is verified on product head:
+Pre-reconciliation software evidence was verified on product head:
 
 ```text
 b7951011ebc337c23808b1f89deab5a7d99f7208
@@ -32,7 +32,7 @@ Implemented product boundary:
 - role, permission, password and account-state changes revoke affected sessions;
 - transactional last-active-administrator protection;
 - safe immutable audit events without passwords, hashes, tokens or signing material;
-- migration `20260807_0023` for explicit membership permissions and the laboratory-technician role;
+- migration `20260807_0024` for explicit membership permissions and the laboratory-technician role, ordered after canonical telemetry `20260807_0023`;
 - controlled legacy-role compatibility/backfill without runtime fallback to static legacy permissions.
 
 ### Exact software evidence
@@ -72,6 +72,14 @@ sha256:4a7b0c7eb4ce97fac407848a69c1d4d7e1b704d9666939fa9cedbb8a37281a36
 
 The exact-head workflow set also includes GREEN CI, Telemetry Service, Security Browser, Authenticated Dashboard, Reports, Rendered Reports, Alerts, Test Sessions, Refrigeration, Nodes, Broker Control, Device Agent Fleet, MQTT TLS Fleet, Disaster Recovery Browser/TLS, Container Supply Chain and Capacity Release gates.
 
+Reconciled candidate:
+
+```text
+bfe1fcb9e69bd2db3588094e6b1d81d7a222def6
+base main ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4
+alembic heads: exactly 20260807_0024
+```
+
 Completion classification remains:
 
 ```text
@@ -90,7 +98,7 @@ No Raspberry Pi acceptance is claimed until the controlled physical runtime is a
 
 Issue #389 remains blocked by #385 until the administrator-only authorization capability is physically accepted and merged.
 
-Issue #368 remains blocked/paused by the explicit Product Owner priority decision. After the selected local administration/version lane, reassess and resume the critical runtime sequence:
+Issue #368 is complete and merged as `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4`. After the selected local administration/version lane, continue the remaining runtime sequence:
 
 ```text
 #368 -> #369 -> #366 -> #289
@@ -118,4 +126,4 @@ The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expire
 
 ## Next action
 
-Run controlled Raspberry Pi acceptance for Issue #385 using the exact software candidate, proving local administrator/user management, explicit grants, session revocation, audit, persistence and offline behavior on the real Raspberry Pi. If physical access is unavailable, record that as the only hard blocker rather than claiming hardware verification.
+Push the reconciled #385 candidate, require fresh exact-head CI, then run controlled Raspberry Pi acceptance on that exact candidate. Do not claim the earlier `b795101` CI as verification of the rebased `0024` candidate.

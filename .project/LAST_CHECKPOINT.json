@@ -3,14 +3,15 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-385-SOFTWARE-VERIFICATION",
-  "status": "software_verified_raspberry_pi_acceptance_pending",
-  "timestamp": "2026-08-08T13:34:00+03:00",
+  "task": "ISSUE-385-MIGRATION-RECONCILIATION",
+  "status": "reconciled_exact_head_ci_and_raspberry_pi_acceptance_pending",
+  "timestamp": "2026-08-11T11:20:00+03:00",
   "branch": "feat/385-local-user-permissions",
-  "base_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
+  "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
   "issue": 385,
   "pull_request": 390,
-  "verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+  "pre_reconciliation_verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+  "reconciled_candidate_sha": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
   "product_outcome": {
     "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
     "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
@@ -47,8 +48,9 @@
   "sequencing": {
     "selected_by_product_owner": 385,
     "next_after_current": 389,
-    "paused_issue": 368,
-    "paused_issue_semantics": "blocked/paused by explicit Product Owner priority; not completed or cancelled"
+    "completed_issue": 368,
+    "completed_issue_merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
+    "migration_chain": "20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024"
   },
   "state_reconciliation": {
     "scope": "CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md, LAST_CHECKPOINT.json",
@@ -58,5 +60,5 @@
     "hardware_actions": 0,
     "final_state_head_ci": "required after this checkpoint commit"
   },
-  "next_action": "Run exact-head CI for the state-reconciled PR head, perform final PR/review/diff audit, then execute controlled Raspberry Pi local user-management acceptance. If physical access is unavailable, record that as the hard blocker and do not claim hardware verification."
+  "next_action": "Push the reconciled #385 candidate and run fresh exact-head CI. After GREEN CI, execute controlled Raspberry Pi local user-management acceptance. If physical access is unavailable, record that as the hard blocker and do not claim hardware verification."
 }

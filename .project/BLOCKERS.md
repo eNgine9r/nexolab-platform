@@ -1,12 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-08
+Updated: 2026-08-11
 
 ## Issue #385 — physical acceptance pending
 
 Issue #385 / PR #390 is the selected Work Package after explicit Product Owner reprioritization.
 
-Software is verified on product head `b7951011ebc337c23808b1f89deab5a7d99f7208`:
+Pre-reconciliation software evidence was verified on product head `b7951011ebc337c23808b1f89deab5a7d99f7208`:
 
 ```text
 19 completed workflows
@@ -19,7 +19,9 @@ Offline Auth Acceptance is GREEN and proves local administrator login, creation 
 
 Offline Bundle is GREEN and proves disconnected startup plus update/rollback persistent-data preservation.
 
-The remaining blocker is **physical Raspberry Pi acceptance**. No hardware/runtime acceptance claim may be made until the controlled Raspberry Pi actually exercises the local Users & Access flow.
+PR #373 merged as `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4`. The #385 branch is reconciled on that base and its local-membership migration is now `20260807_0024` after canonical telemetry `20260807_0023`. Fresh exact-head CI is required before physical Raspberry Pi acceptance.
+
+The remaining blocker is **physical Raspberry Pi acceptance**, after fresh CI. No hardware/runtime acceptance claim may be made until the controlled Raspberry Pi actually exercises the local Users & Access flow.
 
 This is a hard blocker only if the required Raspberry Pi access/evidence path is unavailable. It is not a software defect.
 
@@ -35,13 +37,11 @@ It remains blocked until:
 
 After those conditions, #389 is the next selected Work Package for this product lane.
 
-## Issue #368 — paused by Product Owner priority
+## Issue #368 — completed and merged
 
-Issue #368 remains open and repository-labelled `status:blocked`.
+Issue #368 / PR #373 merged as `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4`. The canonical telemetry latest projection is revision `20260807_0023`; no second `0023` may be introduced.
 
-Its telemetry-latest physical acceptance is paused because the Product Owner explicitly selected the local Users & Access / Version Management lane first. This is a sequencing decision, not completion or cancellation of #368.
-
-When the selected lane completes or priority changes again, resume the runtime sequence:
+When the selected lane completes, continue the runtime sequence:
 
 ```text
 #368 -> #369 -> #366 -> #289

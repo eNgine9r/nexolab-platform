@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
-  "current_main_sha_semantics": "verified repository baseline while Issue #385 remains in its feature branch; do not infer the future merge SHA",
+  "current_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
+  "current_main_sha_semantics": "Issue #368 / PR #373 squash-merged; telemetry latest projection is canonical revision 20260807_0023",
   "product_owner_priority_override": {
     "active": true,
     "decision": "Complete local Users & Access first, then administrator Version Management.",
     "selected_issue": 385,
     "next_issue_after_selected": 389,
-    "paused_issue": 368,
-    "paused_issue_semantics": "open and blocked/paused by explicit Product Owner reprioritization; not completed or cancelled"
+    "completed_issue": 368,
+    "completed_issue_semantics": "PR #373 merged as ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4; #385 must follow its telemetry revision with 20260807_0024"
   },
   "tasks": [
     {
@@ -77,9 +77,9 @@
       "issue": 368,
       "pull_request": 373,
       "title": "Make telemetry latest reads independent of history volume",
-      "status": "blocked_by_product_owner_reprioritization",
+      "status": "completed_merged",
       "priority": "critical",
-      "next_required_step": "after the selected local administration/version lane, reconcile with current main, rerun exact-head CI and resume controlled Raspberry Pi migration-v2/latest-query acceptance"
+      "merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4"
     },
     {
       "id": "NEXOLAB-369",
@@ -120,7 +120,8 @@
       "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
       "status": "software_verified_raspberry_pi_acceptance_pending",
       "priority": "high",
-      "verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+      "pre_reconciliation_verified_product_head_sha": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+      "reconciled_candidate_sha": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
       "software_ci": "19 completed workflows, 19 success, 0 failures, 0 in-progress",
       "offline_auth_run": 31254031318,
       "offline_auth_artifact_digest": "sha256:f85b69451e7d5648e9ce9b6cc5112a53564657ed7b0a0fee9e955edf363507e5",
@@ -187,10 +188,11 @@
     }
   ],
   "verification": {
-    "issue_385_verified_product_head": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+    "issue_385_pre_reconciliation_verified_product_head": "b7951011ebc337c23808b1f89deab5a7d99f7208",
+    "issue_385_reconciled_candidate": "bfe1fcb9e69bd2db3588094e6b1d81d7a222def6",
     "issue_385_exact_workflows": "19 completed, 19 success, 0 failures, 0 in-progress",
     "issue_385_offline_auth": "GREEN; administrator -> create engineer -> exact explicit permissions -> engineer login -> admin API 403",
-    "issue_385_migration": "PostgreSQL upgrade+downgrade GREEN for 20260807_0023",
+    "issue_385_migration": "pre-reconciliation PostgreSQL upgrade+downgrade GREEN for 20260807_0023; reconciled topology now exactly 20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
     "issue_385_offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
     "issue_385_hardware": "not performed; controlled Raspberry Pi acceptance pending"
   },
@@ -201,7 +203,7 @@
     "issue_385_external_identity_provider_required": false,
     "issue_385_external_egress_required": false
   },
-  "next_selection_policy": "Complete controlled Raspberry Pi acceptance for #385 and merge PR #390 on GREEN; then unblock/select #389. Keep #368 blocked/paused by the explicit Product Owner priority decision until the selected local administration/version lane is completed or reprioritized again.",
+  "next_selection_policy": "Push reconciled #385, require fresh exact-head CI, then complete controlled Raspberry Pi acceptance and merge PR #390 on GREEN; then unblock/select #389. Continue #369 -> #366 -> #289 after the selected local administration/version lane.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
