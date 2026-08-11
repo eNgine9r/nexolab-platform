@@ -6,7 +6,7 @@ Verified repository baseline on `main`: `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec
 
 Active Work Package: Issue #385 / PR #390 — local Raspberry Pi users, administrator-managed permissions and access lifecycle.
 
-Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and remains the active Work Package until the final state-only checkpoint, exact-head CI and merge complete.
+Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and is merge-ready after completed software and hardware acceptance.
 
 ## Issue #385 / PR #390
 
@@ -27,14 +27,14 @@ Implemented product boundary:
 
 ### Exact software evidence
 
-Frozen software/hardware candidate:
+Final merge-ready branch head:
 
 ```text
-d37cf08af9560ffa0d18c102656301e667299836
+f291afd144685b4da0a2b1b1d98986a83244008e
 base main ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4
 ```
 
-GitHub exact-head verification on this candidate:
+GitHub exact-head verification on this final state head:
 
 ```text
 19 completed workflows
@@ -46,7 +46,15 @@ GitHub exact-head verification on this candidate:
 
 Notable GREEN gates include CI, Telemetry Service, Offline Auth Acceptance, Security Browser Acceptance, Offline Bundle, Disaster Recovery TLS Fleet, Container Supply Chain and all remaining browser/fleet/capacity workflows.
 
-Offline Auth Acceptance on the exact candidate proved:
+Hardware-tested product candidate:
+
+```text
+d37cf08af9560ffa0d18c102656301e667299836
+```
+
+The only changes after the physical acceptance candidate are `.project/*` state/checkpoint records and formatting; no product code, migrations, dependencies, polling or hardware behavior changed.
+
+Offline Auth Acceptance proved:
 
 - all four product roles;
 - non-admin server-side denial of administration;
@@ -64,7 +72,7 @@ Offline Auth Acceptance on the exact candidate proved:
 
 ### Raspberry Pi hardware acceptance
 
-Hardware acceptance is **PASS** on the exact candidate `d37cf08af9560ffa0d18c102656301e667299836`.
+Hardware acceptance is **PASS** on product candidate `d37cf08af9560ffa0d18c102656301e667299836`.
 
 Controlled host evidence:
 
@@ -74,7 +82,6 @@ architecture: aarch64 / linux/arm64
 OS: Debian GNU/Linux 13.6 (trixie)
 kernel: 6.18.39+rpt-rpi-2712
 Docker Engine: 29.7.1
-candidate SHA: d37cf08af9560ffa0d18c102656301e667299836
 ```
 
 Runtime acceptance:
@@ -97,7 +104,7 @@ The first physical attempt was blocked only by a pre-existing loopback-port coll
 Completion classification:
 
 ```text
-software verified; Raspberry Pi local user-management acceptance verified
+software verified; Raspberry Pi local user-management acceptance verified; final exact-head CI GREEN
 ```
 
 ### Migration state
@@ -113,9 +120,7 @@ Verified linear chain and single head:
 ## Current sequencing
 
 ```text
-#385 hardware PASS
-  -> state-only reconciliation on PR #390
-  -> fresh exact-head CI on the state checkpoint
+#385 software + hardware + final exact-head CI GREEN
   -> final PR review/base/diff audit
   -> mark PR #390 Ready
   -> squash merge with expected-head lock
@@ -153,4 +158,4 @@ The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expire
 
 ## Next action
 
-Commit this state-only hardware-acceptance reconciliation to PR #390, require a fresh complete exact-head CI cycle, then perform the final PR audit and squash merge only if every required check remains GREEN.
+Mark PR #390 Ready, recheck the exact head/base lock, then squash merge only if the final `f291afd144685b4da0a2b1b1d98986a83244008e` checks remain GREEN. After merge, verify canonical `main` and unblock/select Issue #389.
