@@ -12,12 +12,7 @@
   "pull_request": 390,
   "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
   "product_outcome": {
-    "roles": [
-      "administrator",
-      "laboratory_manager",
-      "engineer",
-      "laboratory_technician"
-    ],
+    "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
     "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
     "ui": "/settings/users",
     "session_revocation": "role, permission, password and account-state changes revoke affected sessions",
