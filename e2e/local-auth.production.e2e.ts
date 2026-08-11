@@ -259,6 +259,191 @@ test("administrator provisions every product role with bounded server-side acces
   );
 });
 
+test("revokes sessions across access and account lifecycle changes", async ({ browser }) => {
+  test.setTimeout(300_000);
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const replacementPassword = `Reset-${password}`;
+  const { page: adminPage, accessToken: adminToken } = await loginThroughBrowser(browser, "administrator");
+  const lifecycleEvidence: Record<string, unknown> = {};
+
+  try {
+    const usersResponse = await adminPage.request.get(`${apiBaseUrl}/api/v1/admin/users`, {
+      headers: apiHeaders(adminToken),
+    });
+    expect(usersResponse.status()).toBe(200);
+    const users = (await usersResponse.json()) as {
+      items: Array<{ id: string; username: string; role: string; is_active: boolean }>;
+    };
+    const engineer = users.items.find((item) => item.username === "issue385.engineer");
+    const administrator = users.items.find((item) => item.username === accounts.administrator);
+    expect(engineer).toBeTruthy();
+    expect(administrator).toBeTruthy();
+
+    let engineerLogin = await loginWithCredentials(browser, "issue385.engineer", password);
+    const permissionsChanged = await adminPage.request.put(
+      `${apiBaseUrl}/api/v1/admin/users/${engineer?.id}/permissions`,
+      {
+        headers: apiHeaders(adminToken),
+        data: {
+          permissions: ["dashboard.read", "nodes.read"],
+          reason: "local production acceptance permission change",
+        },
+      },
+    );
+    expect(permissionsChanged.status()).toBe(200);
+    expect((await permissionsChanged.json()).effective_permissions).toEqual(["dashboard.read", "nodes.read"]);
+    expect(
+      (
+        await engineerLogin.page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+          headers: apiHeaders(engineerLogin.accessToken),
+        })
+      ).status(),
+    ).toBe(401);
+    expect(
+      (
+        await engineerLogin.page.request.post(`${apiBaseUrl}/api/v1/auth/local/refresh`, {
+          data: { refresh_token: engineerLogin.refreshToken },
+        })
+      ).status(),
+    ).toBe(401);
+    await engineerLogin.page.context().close();
+
+    engineerLogin = await loginWithCredentials(browser, "issue385.engineer", password);
+    const updatedSession = await engineerLogin.page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(engineerLogin.accessToken),
+    });
+    expect(updatedSession.status()).toBe(200);
+    expect((await updatedSession.json()).memberships[0]?.permissions).toEqual([
+      "dashboard.read",
+      "nodes.read",
+    ]);
+
+    const roleChanged = await adminPage.request.patch(`${apiBaseUrl}/api/v1/admin/users/${engineer?.id}`, {
+      headers: apiHeaders(adminToken),
+      data: {
+        role: "laboratory_technician",
+        reason: "local production acceptance role change",
+      },
+    });
+    expect(roleChanged.status()).toBe(200);
+    expect((await roleChanged.json()).role).toBe("laboratory_technician");
+    expect(
+      (
+        await engineerLogin.page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+          headers: apiHeaders(engineerLogin.accessToken),
+        })
+      ).status(),
+    ).toBe(401);
+    await engineerLogin.page.context().close();
+
+    engineerLogin = await loginWithCredentials(browser, "issue385.engineer", password);
+    const deactivated = await adminPage.request.patch(`${apiBaseUrl}/api/v1/admin/users/${engineer?.id}`, {
+      headers: apiHeaders(adminToken),
+      data: { is_active: false, reason: "local production acceptance deactivation" },
+    });
+    expect(deactivated.status()).toBe(200);
+    expect((await deactivated.json()).is_active).toBe(false);
+    expect(
+      (
+        await engineerLogin.page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+          headers: apiHeaders(engineerLogin.accessToken),
+        })
+      ).status(),
+    ).toBe(401);
+    expect(
+      (
+        await engineerLogin.page.request.post(`${apiBaseUrl}/api/v1/auth/local/refresh`, {
+          data: { refresh_token: engineerLogin.refreshToken },
+        })
+      ).status(),
+    ).toBe(401);
+    await engineerLogin.page.context().close();
+    const inactiveLogin = await adminPage.request.post(`${apiBaseUrl}/api/v1/auth/local/login`, {
+      data: { username: "issue385.engineer", password },
+    });
+    expect([401, 403]).toContain(inactiveLogin.status());
+
+    const reactivated = await adminPage.request.patch(`${apiBaseUrl}/api/v1/admin/users/${engineer?.id}`, {
+      headers: apiHeaders(adminToken),
+      data: { is_active: true, reason: "local production acceptance reactivation" },
+    });
+    expect(reactivated.status()).toBe(200);
+    expect((await reactivated.json()).is_active).toBe(true);
+    engineerLogin = await loginWithCredentials(browser, "issue385.engineer", password);
+
+    const passwordReset = await adminPage.request.post(
+      `${apiBaseUrl}/api/v1/admin/users/${engineer?.id}/reset-password`,
+      {
+        headers: apiHeaders(adminToken),
+        data: {
+          password: replacementPassword,
+          reason: "local production acceptance password reset",
+        },
+      },
+    );
+    expect(passwordReset.status()).toBe(204);
+    expect(await passwordReset.body()).toHaveLength(0);
+    expect(
+      (
+        await engineerLogin.page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+          headers: apiHeaders(engineerLogin.accessToken),
+        })
+      ).status(),
+    ).toBe(401);
+    await engineerLogin.page.context().close();
+    const oldPasswordLogin = await adminPage.request.post(`${apiBaseUrl}/api/v1/auth/local/login`, {
+      data: { username: "issue385.engineer", password },
+    });
+    expect(oldPasswordLogin.status()).toBe(401);
+    const replacementLogin = await loginWithCredentials(browser, "issue385.engineer", replacementPassword);
+    await replacementLogin.page.context().close();
+
+    for (const data of [
+      { is_active: false, reason: "local production acceptance final administrator deactivation" },
+      { role: "engineer", reason: "local production acceptance final administrator demotion" },
+    ]) {
+      const protectedResponse = await adminPage.request.patch(
+        `${apiBaseUrl}/api/v1/admin/users/${administrator?.id}`,
+        { headers: apiHeaders(adminToken), data },
+      );
+      expect(protectedResponse.status()).toBe(409);
+    }
+
+    const auditResponse = await adminPage.request.get(`${apiBaseUrl}/api/v1/audit/events`, {
+      headers: apiHeaders(adminToken),
+    });
+    expect(auditResponse.status()).toBe(200);
+    const auditText = await auditResponse.text();
+    expect(auditText).not.toContain(password);
+    expect(auditText).not.toContain(replacementPassword);
+    expect(auditText).not.toMatch(/scrypt\$|access_token|refresh_token|private_key/i);
+
+    Object.assign(lifecycleEvidence, {
+      username: "issue385.engineer",
+      permission_change_revoked_access_and_refresh: true,
+      effective_permissions_after_relogin: ["dashboard.read", "nodes.read"],
+      role_change_revoked_session: true,
+      role_after_change: "laboratory_technician",
+      deactivation_revoked_session_and_denied_login: true,
+      reactivation_restored_login: true,
+      password_reset_revoked_session: true,
+      old_password_denied: true,
+      new_password_accepted: true,
+      final_administrator_deactivation_status: 409,
+      final_administrator_demotion_status: 409,
+      audit_redaction: true,
+    });
+  } finally {
+    await adminPage.context().close();
+  }
+
+  writeFileSync(
+    path.join(evidenceDirectory, "user-lifecycle-evidence.json"),
+    `${JSON.stringify(lifecycleEvidence, null, 2)}\n`,
+    { encoding: "utf-8", mode: 0o600 },
+  );
+});
+
 test("rotates refresh tokens and rejects the previous access token after browser logout", async ({
   browser,
 }) => {

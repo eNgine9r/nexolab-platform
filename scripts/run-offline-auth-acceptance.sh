@@ -245,4 +245,5 @@ else
   npx playwright install chromium
 fi
 npm run build
-npx playwright test --config=playwright.local-auth.config.ts
+npx playwright test --config=playwright.local-auth.config.ts e2e/local-auth.production.e2e.ts
+npx playwright test --config=playwright.local-auth.config.ts e2e/local-auth-persistence.production.e2e.ts
