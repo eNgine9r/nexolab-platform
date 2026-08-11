@@ -3,14 +3,21 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-368-POST-PHYSICAL-RECONCILIATION",
+  "task": "ISSUE-368-FINAL-POST-SECURITY-RECONCILIATION",
   "status": "final_exact_head_ci_pending",
-  "timestamp": "2026-08-11T08:45:00+03:00",
+  "timestamp": "2026-08-11T09:32:42+03:00",
   "branch": "perf/368-telemetry-latest-projection",
-  "base_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
+  "base_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
   "issue": 368,
   "pull_request": 373,
-  "reconciliation_commit_before_state_checkpoint": "202afcb3f3d31bcabdcb3ed32edcc37505a77c26",
+  "reconciliation_commit_before_state_checkpoint": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
+  "security_dependency": {
+    "issue": 396,
+    "pull_request": 397,
+    "verified_final_head_sha": "92be9b3364aedd01e6e830e4711c358a041f9781",
+    "merge_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
+    "verification": "13/13 workflows GREEN; telemetry Container Supply Chain and Offline Bundle GREEN; no new vulnerability exception"
+  },
   "physical_acceptance": {
     "candidate_sha": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
     "status": "PASS",
@@ -34,11 +41,11 @@
     "hardware_write": "none"
   },
   "repository_reconciliation": {
-    "current_main_sha": "810f6a6b48fc3ce04eeb1174236df3bd5ed53380",
-    "merge_commit": "202afcb3f3d31bcabdcb3ed32edcc37505a77c26",
-    "strategy": "two-parent merge using current main tree plus ten physically verified telemetry-specific blobs",
+    "current_main_sha": "d75b353435e8c613203017cb68ee68c1f63d3268",
+    "merge_commit": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
+    "strategy": "two-parent merge using current main tree plus fourteen #368 files; telemetry runtime blobs remain physically verified and security hardening is inherited from main",
     "force_push": false,
-    "runtime_code_changed_after_physical_candidate": false,
+    "projection_runtime_code_changed_after_physical_candidate": false,
     "state_checkpoint_after_reconciliation": true
   },
   "migration_ordering": {

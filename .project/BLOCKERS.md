@@ -2,17 +2,23 @@
 
 Updated: 2026-08-11
 
-## Issue #368 — physical blocker resolved; final CI pending
+## Issue #396 — resolved
+
+The telemetry-service image security blocker discovered during #368 final CI is resolved and merged.
+
+Issue #396 / PR #397 removed runtime `pip` after dependency validation, retained fixed standalone `msgpack==1.2.1`, added regression coverage, and passed telemetry Container Supply Chain with no new vulnerability exception. PR #397 merged as `d75b353435e8c613203017cb68ee68c1f63d3268`.
+
+## Issue #368 — physical blocker resolved; final exact-head CI pending
 
 Issue #368 / PR #373 passed controlled Raspberry Pi physical acceptance on candidate `105ae34425a8937a6f61c172b52ce2c6fa09f3b3`.
 
 The original `>20 s` latest request is eliminated. Projection cardinality is `194/194`, latest p95 is 13–23 ms for normal unfiltered shapes, the query plan uses `telemetry_latest`, central smoke is GREEN, ingestion remains live and the PostgreSQL named volume is preserved.
 
-PR #373 is reconciled with current `main=810f6a6b48fc3ce04eeb1174236df3bd5ed53380` through two-parent commit `202afcb3f3d31bcabdcb3ed32edcc37505a77c26`. The remaining #368 gate is fresh exact-head CI plus final review/base audit.
+PR #373 is reconciled with current `main=d75b353435e8c613203017cb68ee68c1f63d3268` through two-parent commit `97917fe627c704f7aa7fd6d32c7cfb0c459d1256` and inherits merged #396 security hardening. The only remaining #368 gate is fresh exact-head CI plus final focused-diff/review/base audit.
 
 ## Alembic sequencing hazard — #368 and #385
 
-Issue #385 / PR #390 is software verified but paused until #368 merges because both unmerged branches currently define revision `20260807_0023` from `20260805_0022`.
+Issue #385 / PR #390 is software verified but paused until #368 merges because both feature histories currently define revision `20260807_0023` from `20260805_0022`.
 
 The controlled production database already records `20260807_0023` as the physically verified #368 telemetry projection. Therefore #385 must not merge or be deployed with its current revision id.
 

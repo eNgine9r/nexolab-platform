@@ -2,9 +2,17 @@
 
 Updated: 2026-08-11
 
-Verified repository baseline on `main`: `810f6a6b48fc3ce04eeb1174236df3bd5ed53380`.
+Verified repository baseline on `main`: `d75b353435e8c613203017cb68ee68c1f63d3268`.
 
-Active Work Package: Issue #368 / PR #373 — final repository reconciliation and exact-head CI after successful Raspberry Pi physical acceptance.
+Active Work Package: Issue #368 / PR #373 — final exact-head verification after successful Raspberry Pi physical acceptance and merged telemetry image security remediation.
+
+## Issue #396 — completed security dependency
+
+Issue #396 / PR #397 removed the fresh telemetry-image HIGH findings caused by vulnerable libraries vendored inside runtime `pip`.
+
+Final head `92be9b3364aedd01e6e830e4711c358a041f9781` completed 13/13 workflows GREEN. Telemetry Container Supply Chain passed exact image build, SBOM, Trivy policy, release-manifest and secret checks. Offline Bundle passed disconnected startup and update/rollback persistent-data preservation. No new vulnerability exception was added.
+
+PR #397 squash-merged as `d75b353435e8c613203017cb68ee68c1f63d3268`.
 
 ## Issue #368 — physical acceptance PASS
 
@@ -32,21 +40,21 @@ The original controlled-host latest request exceeded 20 seconds. The physical ca
 
 No Modbus write, hardware write, telemetry truncation, history deletion or volume deletion occurred.
 
-## Repository reconciliation
+## Final repository reconciliation
 
-Current `main` advanced to `810f6a6b48fc3ce04eeb1174236df3bd5ed53380` after the physical candidate was frozen. Those intervening repository changes contain no telemetry-service runtime overlap with #368.
+After #396 merged, PR #373 was reconciled again through two-parent commit `97917fe627c704f7aa7fd6d32c7cfb0c459d1256` using current `main=d75b353435e8c613203017cb68ee68c1f63d3268` as the base tree.
 
-PR #373 has therefore been reconciled by two-parent commit `202afcb3f3d31bcabdcb3ed32edcc37505a77c26`, using current `main` as the base tree and overlaying only the ten physically verified #368 telemetry implementation/test files.
+The reconciliation preserves the ten physically verified #368 telemetry implementation/test blobs byte-for-byte and inherits the hardened telemetry Dockerfile/requirements/security tests from merged #396.
 
-This state checkpoint is the only content change after that merge-tree. A fresh exact-head CI run is mandatory before Ready/merge.
+This checkpoint changes only the four `.project` source-of-truth files. A fresh exact-head CI run is mandatory before Ready/merge.
 
 ## Alembic ordering hazard with Issue #385
 
 Issue #385 / PR #390 is software verified at `8bb31364a7523164fab95c29aef9d8a839283213`, but its unmerged migration also uses revision `20260807_0023` based on `20260805_0022`.
 
-The controlled production Raspberry Pi database now records `20260807_0023` as the #368 telemetry projection migration. Merging #385 first would make the repository assign different schema meaning to the same revision id and could cause Alembic to skip the #385 permission migration on that database.
+The controlled production Raspberry Pi database records `20260807_0023` as the #368 telemetry projection migration. Merging #385 first would assign different schema meaning to the same revision id and could cause Alembic to skip the #385 permission migration on that database.
 
-Safe ordering is therefore:
+Safe ordering remains:
 
 ```text
 #368 final CI -> merge as canonical 20260807_0023
@@ -78,4 +86,4 @@ Do not downgrade or restore the production database. Do not delete persistent vo
 
 ## Next action
 
-Run fresh exact-head CI on the final #368 branch head containing this checkpoint. If GREEN, perform final 14-file/review/base audit and merge PR #373. Then immediately resume Issue #385 by reconciling PR #390 with post-#368 `main` and renumbering its migration to `20260807_0024` before any further Raspberry Pi user-management acceptance.
+Run fresh exact-head CI on the final #368 branch head containing this checkpoint. If GREEN, perform final focused-diff/review/base audit and merge PR #373. Then immediately resume Issue #385 by reconciling PR #390 with post-#368 `main` and renumbering its migration to `20260807_0024` before any further Raspberry Pi user-management acceptance.
