@@ -87,7 +87,8 @@
       "id": "NEXOLAB-386",
       "issue": 386,
       "title": "Establish chart-domain primitives and benchmark the local renderer",
-      "status": "implementation_complete_local_software_verified_pr_pending",
+      "pull_request": 399,
+      "status": "pr_open_exact_head_ci_green_state_refresh_pending",
       "priority": "high",
       "depends_on": [383]
     },
@@ -115,7 +116,8 @@
   "active_work_package": {
     "issue": 386,
     "title": "Establish chart-domain primitives and benchmark the local renderer",
-    "status": "implementation_complete_local_software_verified_pr_pending",
+    "pull_request": 399,
+    "status": "pr_open_exact_head_ci_green_state_refresh_pending",
     "priority": "high",
     "assignee": "eNgine9r",
     "selection_reason": "Direct Product Owner priority override selects the Chart System track first; max_parallel_implementation_tasks remains 1."
@@ -143,7 +145,10 @@
     "issue_386_local_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 76 files / 336 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN",
     "issue_386_benchmark": "Raspberry Pi 5 arm64 / Headless Chrome 151: 1x240 median 38.9 ms; 8x240 median 103.8 ms and p95 169.0 ms; incremental median 12.3 ms and p95 31.2 ms; long-loop median 6.1 ms; zero public requests with Docker network disabled",
     "issue_386_bundle_delta": "608623 bytes minified / 202927 bytes gzip versus domain-only harness",
-    "issue_386_exact_locally_tested_sha": "80ff2ebd3a51398578e90c7fe36c852ce95321b7"
+    "issue_386_exact_locally_tested_sha": "80ff2ebd3a51398578e90c7fe36c852ce95321b7",
+    "issue_386_published_head_sha": "6a63c04b6dee25a392a9dd370332098d9223cd20",
+    "issue_386_pull_request": 399,
+    "issue_386_exact_head_ci": "11/11 GREEN including Offline Bundle and acquisition-invariant integration acceptance"
   },
   "runtime_evidence": {
     "issue_385_external_identity_provider_required": false,
@@ -157,7 +162,7 @@
     "issue_386_polling_change": false,
     "issue_386_raspberry_pi_chart_performance": "PASS on Raspberry Pi 5 Model B Rev 1.1, arm64; acquisition invariant pending"
   },
-  "next_selection_policy": "Publish and land Issue #386 as one focused Chart System foundation PR after exact-head CI. Then create or refine the Live Data migration Work Package. Keep #389 Ready but not selected and preserve #369 -> #366 -> #289 without scope changes.",
+  "next_selection_policy": "Land PR #399 only after the state-refresh head is current with main, review-clean and exact-head CI is GREEN. Then create or refine the Live Data migration Work Package. Keep #389 Ready but not selected and preserve #369 -> #366 -> #289 without scope changes.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

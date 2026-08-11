@@ -4,11 +4,13 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-386-CHART-DOMAIN-RENDERER-BENCHMARK",
-  "status": "implementation_complete_local_software_verified_pr_pending",
-  "timestamp": "2026-08-11T15:20:00+03:00",
+  "status": "pr_open_exact_head_ci_green_state_refresh_pending",
+  "timestamp": "2026-08-11T15:56:29+03:00",
   "branch": "feat/386-chart-domain-renderer-benchmark",
   "product_main_sha": "1a4ae8026f2b70c52a5fc41a1f8d22a99897463f",
   "exact_locally_tested_sha": "80ff2ebd3a51398578e90c7fe36c852ce95321b7",
+  "pull_request": 399,
+  "published_head_sha": "6a63c04b6dee25a392a9dd370332098d9223cd20",
   "completed_issue": 385,
   "completed_pull_request": 390,
   "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
@@ -16,13 +18,13 @@
   "final_pr_head_sha": "5d4aacc8d6d2c7157ef42bf0356d102700f78960",
   "completion": {
     "local_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 76 files / 336 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN",
-    "exact_head_ci": "pending publication",
+    "exact_head_ci": "11/11 GREEN on published head 6a63c04b6dee25a392a9dd370332098d9223cd20; state-refresh exact-head rerun pending",
     "architecture": "Raspberry Pi 5 Model B Rev 1.1; aarch64/arm64",
     "production_build": "PASS",
     "focused_chart_tests": "8 files / 34 tests passed",
     "full_tests": "76 files / 336 tests passed",
     "deterministic_browser_benchmark": "PASS for scenarios A-L with Docker network disabled",
-    "completion_classification": "software verified locally; Raspberry Pi chart performance verified; exact-head CI and acquisition-invariant acceptance pending"
+    "completion_classification": "software verified; Raspberry Pi chart performance verified; repository acquisition-invariant integration acceptance verified; physical Device Agent/Modbus request-rate acceptance pending"
   },
   "hardware_evidence": {
     "host": "nexolab-edge-01",
@@ -65,5 +67,5 @@
     "raspberry_pi_chart_performance_verified": true,
     "acquisition_invariant_verified": false
   },
-  "next_action": "Commit the locally verified implementation, publish the focused PR with Closes #386, obtain exact-head CI including Offline Bundle, resolve blocking review findings, and merge only while current with main and fully GREEN."
+  "next_action": "Commit and publish this state refresh to PR #399, obtain exact-head CI including Offline Bundle, audit unresolved review threads and main freshness, and merge only while fully GREEN."
 }

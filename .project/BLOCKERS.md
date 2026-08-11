@@ -26,7 +26,7 @@ Issue #386 is `status:in-progress` on `feat/386-chart-domain-renderer-benchmark`
 
 There is no software implementation blocker. Chart performance was measured on the controlled Raspberry Pi 5 arm64 host and passes the provisional renderer targets. The physical acquisition invariant cannot be proven by disconnected deterministic fixtures and remains pending a controlled Device Agent/Modbus request-rate test.
 
-Local format, lint, typecheck, full unit/component tests, production build and the disconnected deterministic browser benchmark are GREEN. Publication, exact-head GitHub CI, the repository Offline Bundle job and review-thread audit are still pending and must not be reported as complete before they run.
+Local format, lint, typecheck, full unit/component tests, production build and the disconnected deterministic browser benchmark are GREEN. Focused PR #399 is open, and published head `6a63c04b6dee25a392a9dd370332098d9223cd20` passed all 11 GitHub checks, including Offline Bundle and acquisition-invariant integration acceptance. The state-only refresh must receive its own exact-head CI, and the final review-thread/main-freshness audit remains required before merge.
 
 Hard boundaries:
 

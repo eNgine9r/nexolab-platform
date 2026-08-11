@@ -72,9 +72,10 @@ Local software implementation and deterministic benchmark are complete on the fe
 - deterministic scenarios A–L, including a production bundle exercised with container networking disabled;
 - Raspberry Pi 5 arm64 measurements: 1×240 median 38.9 ms, 8×240 median 103.8 ms / p95 169.0 ms, 100-update median 12.3 ms / p95 31.2 ms, 1,000-update median 6.1 ms;
 - local gates: format, lint, typecheck, 76 files / 336 tests plus lint-staged compatibility, and the Next.js production build are GREEN.
-- exact locally tested implementation commit: `80ff2ebd3a51398578e90c7fe36c852ce95321b7`.
+- exact locally tested implementation commit: `80ff2ebd3a51398578e90c7fe36c852ce95321b7`;
+- focused draft PR #399 is open with `Closes #386`; published head `6a63c04b6dee25a392a9dd370332098d9223cd20` passed all 11 exact-head GitHub checks, including Offline Bundle and acquisition-invariant integration acceptance.
 
-The isolated renderer delta is 608,623 bytes minified / 202,927 bytes gzip. The browser observed zero public requests and no horizontal overflow at 360, 1280, 1440 or 1920 px. Exact-head GitHub CI, focused PR review and the repository Offline Bundle check remain pending publication.
+The isolated renderer delta is 608,623 bytes minified / 202,927 bytes gzip. The browser observed zero public requests and no horizontal overflow at 360, 1280, 1440 or 1920 px. Published exact-head GitHub CI is 11/11 GREEN. The first Offline Auth attempt failed before the acceptance script emitted a result; the unchanged exact-head migration round trip passed locally and its focused GitHub rerun passed, so no unrelated auth change was introduced.
 
 Issue #386 is limited to shared chart-domain, adapter, benchmark harness, tests and audit evidence. Production pages are not migrated. No REST/WebSocket, acquisition, polling, Device Agent, scheduler, registry, Modbus or hardware behavior changes are permitted.
 
@@ -92,4 +93,4 @@ The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expire
 
 ## Next action
 
-Commit the locally verified #386 implementation, publish one focused PR with `Closes #386`, and require exact-head CI including Offline Bundle to be GREEN before merge. Raspberry Pi chart performance is verified; the physical acquisition invariant remains pending a controlled Device Agent/Modbus request-rate test. After a GREEN merge, create or refine the first production-consumer Work Package: migrate Live Data to the canonical Chart System.
+Refresh the four state records on PR #399, obtain exact-head CI for that state-only commit, audit unresolved reviews and mergeability against current `main`, then merge only if every required check remains GREEN. Raspberry Pi chart performance is verified; the physical acquisition invariant remains pending a controlled Device Agent/Modbus request-rate test. After a GREEN merge, create or refine the first production-consumer Work Package: migrate Live Data to the canonical Chart System.
