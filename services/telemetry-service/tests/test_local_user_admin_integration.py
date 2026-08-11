@@ -241,9 +241,8 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
                 "reason": "integration password reset",
             },
         )
-        assert reset_response.status_code == 200, reset_response.text
-        assert REPLACEMENT_PASSWORD not in reset_response.text
-        assert "scrypt$" not in reset_response.text
+        assert reset_response.status_code == 204, reset_response.text
+        assert reset_response.content == b""
 
         revoked_after_reset = fixture.client.get(
             "/api/v1/auth/session",
