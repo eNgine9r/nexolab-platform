@@ -112,6 +112,17 @@ INSERT INTO telemetry_samples (
   equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
 )
 VALUES ${values.join(",\n")};
+
+INSERT INTO telemetry_latest (
+  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at
+)
+SELECT DISTINCT ON (node_id, equipment_id, channel_id, metric)
+  id, event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, NULL, received_at
+FROM telemetry_samples
+WHERE equipment_id = ${sqlString(equipmentId)}
+ORDER BY node_id, equipment_id, channel_id, metric, captured_at DESC, id DESC;
 `);
   return { equipmentId, channels };
 }

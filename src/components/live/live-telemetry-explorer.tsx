@@ -685,10 +685,18 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           <div className="flex items-center gap-2 text-xs text-slate-300">
             {liveFollow && range === "live" ? (
               <Play className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+            ) : range !== "live" && viewportDomain === null ? (
+              <Clock3 className="h-4 w-4 text-cyan-300" aria-hidden="true" />
             ) : (
               <Pause className="h-4 w-4 text-amber-300" aria-hidden="true" />
             )}
-            <span>{liveFollow && range === "live" ? "Live Follow" : "Paused view"}</span>
+            <span>
+              {liveFollow && range === "live"
+                ? "Live Follow"
+                : range !== "live" && viewportDomain === null
+                  ? "Rolling range"
+                  : "Paused view"}
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {liveFollow && range === "live" ? (
