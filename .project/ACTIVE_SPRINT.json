@@ -23,7 +23,7 @@
   "priority_context": {
     "product_owner_selected_feature": 385,
     "critical_bug_interrupt": 368,
-    "interrupt_reason": "Issue #368 is physically verified and the controlled production database now carries its unmerged Alembic revision 20260807_0023; Issue #385 uses the same revision id and cannot safely merge first.",
+    "interrupt_reason": "Issue #368 is physically and software verified and the controlled production database carries its unmerged Alembic revision 20260807_0023; Issue #385 uses the same revision id and cannot safely merge first.",
     "resume_after_interrupt": [385, 389]
   },
   "tasks": [
@@ -98,13 +98,16 @@
       "issue": 368,
       "pull_request": 373,
       "title": "Make telemetry latest reads independent of history volume",
-      "status": "physical_verified_final_ci_pending",
+      "status": "software_physical_verified_final_state_ci_pending",
       "priority": "critical",
       "physically_verified_candidate_sha": "105ae34425a8937a6f61c172b52ce2c6fa09f3b3",
+      "verified_content_head_sha": "6c4955f73dde147f5f6797dbb04b99b1b67239ba",
       "current_main_reconciliation_commit": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
       "physical_acceptance": "PASS on controlled Raspberry Pi; migration 330 s with live ingestion, projection 194/194, latest p95 13-23 ms, central smoke PASS",
+      "software_ci": "17/17 workflows GREEN on content head 6c4955f73dde147f5f6797dbb04b99b1b67239ba",
+      "post_hardware_fixes": "startup reconciliation counts only actual projection mutations for delayed older rows; authenticated-dashboard direct SQL fixture now seeds telemetry_latest consistently; both covered by regressions and GREEN integration/browser acceptance",
       "security_dependency": "Issue #396 / PR #397 merged as d75b353435e8c613203017cb68ee68c1f63d3268 and inherited by current reconciliation",
-      "next_required_step": "run fresh exact-head CI after this checkpoint, final review/base audit, then merge before Issue #385 to preserve linear Alembic history"
+      "next_required_step": "run exact-head CI on the final state-only checkpoint, final review/base audit, then merge before Issue #385 to preserve linear Alembic history"
     },
     {
       "id": "NEXOLAB-385",
@@ -189,7 +192,7 @@
     "issue": 368,
     "pull_request": 373,
     "title": "Make telemetry latest reads independent of history volume",
-    "status": "physical_verified_final_ci_pending",
+    "status": "software_physical_verified_final_state_ci_pending",
     "priority": "critical",
     "assignee": "eNgine9r",
     "selection_reason": "Critical bug interrupt required to make repository Alembic history match the already verified controlled production database before resuming the Product Owner-selected Users & Access feature."
@@ -222,8 +225,11 @@
     "issue_368_filtered_p95_seconds": 0.011519,
     "issue_368_query_plan": "Index Scan Backward using ix_telemetry_latest_order on telemetry_latest; execution 0.136 ms",
     "issue_368_central_smoke": "PASS",
-    "issue_368_reconciliation_commit": "97917fe627c704f7aa7fd6d32c7cfb0c459d1256",
-    "issue_368_final_exact_head_ci": "pending on branch head containing this checkpoint",
+    "issue_368_content_head": "6c4955f73dde147f5f6797dbb04b99b1b67239ba",
+    "issue_368_content_head_ci": "17/17 workflows GREEN",
+    "issue_368_reconciliation_idempotency_regression": "GREEN in Telemetry Service PostgreSQL integration suite",
+    "issue_368_authenticated_dashboard_projection_fixture": "GREEN browser acceptance",
+    "issue_368_final_state_exact_head_ci": "pending on branch head containing this checkpoint",
     "issue_385_previous_exact_head_ci": "19 completed workflows, 19 success, 0 failures, 0 in-progress; must rerun after renumber/reconciliation"
   },
   "runtime_evidence": {
@@ -237,7 +243,7 @@
     "modbus_write": "none",
     "hardware_write": "none"
   },
-  "next_selection_policy": "Complete #368 fresh exact-head CI and GREEN merge first to canonicalize revision 20260807_0023. Then resume Product Owner-selected #385, renumber its migration to 20260807_0024, reconcile and rerun CI before isolated Raspberry Pi acceptance; after #385 complete continue #389, then resume #369 -> #366 -> #289 unless Product Owner changes priority.",
+  "next_selection_policy": "Complete #368 final state exact-head CI and GREEN merge first to canonicalize revision 20260807_0023. Then resume Product Owner-selected #385, renumber its migration to 20260807_0024, reconcile and rerun CI before isolated Raspberry Pi acceptance; after #385 complete continue #389, then resume #369 -> #366 -> #289 unless Product Owner changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
