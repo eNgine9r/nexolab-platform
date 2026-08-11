@@ -26,6 +26,7 @@ ISSUER = "urn:nexolab:test-local-user-admin"
 AUDIENCE = "nexolab-test-api"
 ADMIN_PASSWORD = "Admin-Correct-Horse-47"
 ENGINEER_PASSWORD = "Engineer-Correct-Horse-47"
+REPLACEMENT_PASSWORD = "Engineer-Replacement-72"
 
 
 @dataclass(frozen=True)
@@ -230,5 +231,30 @@ def test_local_admin_can_create_and_revoke_explicit_engineer_access(
         assert reactivated_response.status_code == 200
         assert reactivated_response.json()["is_active"] is True
         assert login(fixture.client, "engineer.one", ENGINEER_PASSWORD)["access_token"]
+
+        active_before_reset = login(fixture.client, "engineer.one", ENGINEER_PASSWORD)
+        reset_response = fixture.client.post(
+            f"/api/v1/admin/users/{created['id']}/reset-password",
+            headers=admin_headers,
+            json={
+                "password": REPLACEMENT_PASSWORD,
+                "reason": "integration password reset",
+            },
+        )
+        assert reset_response.status_code == 200, reset_response.text
+        assert REPLACEMENT_PASSWORD not in reset_response.text
+        assert "scrypt$" not in reset_response.text
+
+        revoked_after_reset = fixture.client.get(
+            "/api/v1/auth/session",
+            headers=auth_headers(active_before_reset["access_token"]),
+        )
+        assert revoked_after_reset.status_code == 401
+        old_password_login = fixture.client.post(
+            "/api/v1/auth/local/login",
+            json={"username": "engineer.one", "password": ENGINEER_PASSWORD},
+        )
+        assert old_password_login.status_code == 401
+        assert login(fixture.client, "engineer.one", REPLACEMENT_PASSWORD)["access_token"]
     finally:
         fixture.close()

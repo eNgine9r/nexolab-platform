@@ -128,7 +128,7 @@ SQL
 
 cleanup() {
   if [[ "$STACK_STARTED" == "1" && "${KEEP_LOCAL_AUTH_STACK:-0}" != "1" ]]; then
-    compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+    compose down --remove-orphans >/dev/null 2>&1 || true
   fi
   rm -rf "$SECRET_DIR"
   unset NEXOLAB_LOCAL_AUTH_PASSWORD POSTGRES_PASSWORD MINIO_ROOT_PASSWORD

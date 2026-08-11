@@ -19,6 +19,7 @@ type RoleName = keyof typeof accounts;
 type BrowserLogin = {
   page: Page;
   accessToken: string;
+  refreshToken: string;
 };
 
 function apiHeaders(accessToken: string): Record<string, string> {
@@ -45,13 +46,17 @@ async function loginWithCredentials(
 
   const storage = await page.evaluate(() => ({
     accessToken: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
-    refreshPresent: Boolean(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")),
+    refreshToken: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
     localTokenKeys: Object.keys(window.localStorage).filter((key) => key.startsWith("nexolab.local-auth.")),
   }));
   expect(storage.accessToken).toBeTruthy();
-  expect(storage.refreshPresent).toBe(true);
+  expect(storage.refreshToken).toBeTruthy();
   expect(storage.localTokenKeys).toEqual([]);
-  return { page, accessToken: storage.accessToken as string };
+  return {
+    page,
+    accessToken: storage.accessToken as string,
+    refreshToken: storage.refreshToken as string,
+  };
 }
 
 async function loginThroughBrowser(browser: Browser, role: RoleName): Promise<BrowserLogin> {
@@ -121,15 +126,22 @@ test("authenticates local viewer, operator and administrator without an external
   );
 });
 
-test("administrator creates a four-role user with explicit permissions and non-admin stays blocked", async ({
+test("administrator provisions every product role with bounded server-side access", async ({
   browser,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const username = "issue385.engineer";
-  const { page: adminPage } = await loginThroughBrowser(browser, "administrator");
+  const { page: adminPage, accessToken: adminToken } = await loginThroughBrowser(browser, "administrator");
   try {
     await adminPage.goto("/settings/users", { waitUntil: "networkidle" });
     await expect(adminPage.getByRole("heading", { name: "Користувачі та права" })).toBeVisible();
+    const adminSession = await adminPage.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+      headers: apiHeaders(adminToken),
+    });
+    expect(adminSession.status()).toBe(200);
+    const adminPermissions = (await adminSession.json()).memberships[0]?.permissions as string[];
+    expect(adminPermissions).toContain("memberships.manage");
+    expect(adminPermissions).toContain("project_versions.manage");
     await adminPage.getByRole("button", { name: "Новий користувач" }).click();
 
     const createPanel = adminPage
@@ -145,8 +157,53 @@ test("administrator creates a four-role user with explicit permissions and non-a
 
     await expect(adminPage.getByText(`Користувача ${username} створено.`)).toBeVisible();
     await expect(adminPage.getByRole("heading", { name: "Issue 385 Engineer", exact: true })).toBeVisible();
+
+    for (const fixture of [
+      { username: "issue385.manager", role: "laboratory_manager", permissions: ["dashboard.read", "reports.read"] },
+      { username: "issue385.technician", role: "laboratory_technician", permissions: ["telemetry.read"] },
+    ]) {
+      const created = await adminPage.request.post(`${apiBaseUrl}/api/v1/admin/users`, {
+        headers: apiHeaders(adminToken),
+        data: {
+          username: fixture.username,
+          password,
+          display_name: `Issue 385 ${fixture.role}`,
+          role: fixture.role,
+          permissions: fixture.permissions,
+          reason: "deterministic local-auth production acceptance",
+        },
+      });
+      expect(created.status()).toBe(201);
+      const payload = await created.json();
+      expect(payload.role).toBe(fixture.role);
+      expect(payload.effective_permissions).toEqual(fixture.permissions);
+      expect(JSON.stringify(payload)).not.toContain(password);
+    }
   } finally {
     await adminPage.context().close();
+  }
+
+  for (const fixture of [
+    { username: "issue385.manager", role: "laboratory_manager", permissions: ["dashboard.read", "reports.read"] },
+    { username: "issue385.technician", role: "laboratory_technician", permissions: ["telemetry.read"] },
+  ]) {
+    const { page, accessToken } = await loginWithCredentials(browser, fixture.username, password);
+    try {
+      const session = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+        headers: apiHeaders(accessToken),
+      });
+      expect(session.status()).toBe(200);
+      expect((await session.json()).memberships[0]).toMatchObject({
+        roles: [fixture.role],
+        permissions: fixture.permissions,
+      });
+      const denied = await page.request.get(`${apiBaseUrl}/api/v1/admin/users`, {
+        headers: apiHeaders(accessToken),
+      });
+      expect(denied.status()).toBe(403);
+    } finally {
+      await page.context().close();
+    }
   }
 
   const { page: engineerPage, accessToken } = await loginWithCredentials(browser, username, password);
