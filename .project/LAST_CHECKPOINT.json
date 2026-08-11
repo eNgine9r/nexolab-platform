@@ -3,65 +3,51 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-385-RASPBERRY-PI-ACCEPTANCE",
-  "status": "hardware_verified_state_reconciliation_pending",
-  "timestamp": "2026-08-11T12:48:00+03:00",
-  "branch": "feat/385-local-user-permissions",
-  "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
-  "issue": 385,
-  "pull_request": 390,
-  "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
-  "product_outcome": {
-    "roles": ["administrator", "laboratory_manager", "engineer", "laboratory_technician"],
-    "permissions": "bounded typed catalog with explicit PostgreSQL grants for non-administrators and implicit full catalog for administrator",
-    "ui": "/settings/users",
-    "session_revocation": "role, permission, password and account-state changes revoke affected sessions",
-    "audit": "safe immutable administration audit without secret material",
-    "runtime_identity": "local PostgreSQL + local JWT/session authority; no external identity provider required",
-    "version_management_capability": "administrator exposes project_versions.manage for dependent Issue #389"
-  },
-  "software_verification": {
-    "exact_head_sha": "d37cf08af9560ffa0d18c102656301e667299836",
-    "workflow_summary": "19 completed workflows, 19 success, 0 failures, 0 queued, 0 in-progress",
-    "offline_auth": "GREEN; four-role provisioning, lifecycle/session revocation, password reset, last-admin protection, audit redaction and persistence coverage",
-    "offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
-    "migration_head": "20260807_0024"
-  },
-  "hardware_evidence": {
+  "task": "ISSUE-385-POST-MERGE-RECONCILIATION",
+  "status": "issue_385_merged_issue_389_ready",
+  "timestamp": "2026-08-11T13:28:00+03:00",
+  "branch": "chore/385-post-merge-state",
+  "product_main_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+  "completed_issue": 385,
+  "completed_pull_request": 390,
+  "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+  "hardware_tested_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+  "final_pr_head_sha": "5d4aacc8d6d2c7157ef42bf0356d102700f78960",
+  "completion": {
+    "software_ci": "19/19 GREEN",
     "raspberry_pi_user_management_acceptance": "PASS",
-    "candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
-    "host": "nexolab-edge-01",
-    "architecture": "aarch64",
-    "docker_architecture": "linux/arm64",
-    "os": "Debian GNU/Linux 13.6 (trixie)",
-    "kernel": "6.18.39+rpt-rpi-2712",
-    "docker_engine": "29.7.1",
+    "architecture": "aarch64 / linux/arm64",
     "production_build": "PASS",
     "browser_tests": "4 passed",
     "persistence_recreation_test": "1 passed",
     "acceptance_exit_code": 0,
+    "migration_head": "20260807_0024",
+    "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; merged"
+  },
+  "hardware_evidence": {
+    "host": "nexolab-edge-01",
+    "os": "Debian GNU/Linux 13.6 (trixie)",
+    "kernel": "6.18.39+rpt-rpi-2712",
+    "docker_engine": "29.7.1",
     "evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
-    "initial_attempt_note": "first attempt stopped on loopback port 18093 already allocated; successful retry used isolated alternative loopback ports without stopping production",
-    "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified",
     "modbus_write": "none",
     "hardware_write": "none",
     "production_site_cutover": "none",
     "volume_deletion": "none"
   },
-  "sequencing": {
-    "selected_by_product_owner": 385,
-    "next_after_current": 389,
-    "completed_issue": 368,
-    "completed_issue_merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
-    "migration_chain": "20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024"
+  "next_work_package": {
+    "issue": 389,
+    "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
+    "github_status": "status:ready",
+    "phase": "repository_inventory_and_implementation_readiness",
+    "dependency": "Issue #385 satisfied"
   },
   "state_reconciliation": {
     "scope": "CURRENT_STATE.md, ACTIVE_SPRINT.json, BLOCKERS.md, LAST_CHECKPOINT.json",
     "product_code_changes": 0,
     "dependency_changes": 0,
     "acquisition_changes": 0,
-    "hardware_actions_after_acceptance": 0,
-    "final_state_head_ci": "required after this checkpoint commit"
+    "hardware_actions": 0
   },
-  "next_action": "Commit the state-only Raspberry Pi acceptance reconciliation, require a fresh complete exact-head CI cycle, then perform final PR audit and squash merge PR #390 only if GREEN. After merge, unblock and select Issue #389."
+  "next_action": "Merge the post-#385 state-only reconciliation on GREEN, then begin Issue #389 by inventorying existing deploy/update/rollback/offline contracts before implementation."
 }

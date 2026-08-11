@@ -19,59 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
-  "current_main_sha_semantics": "Issue #368 / PR #373 squash-merged; telemetry latest projection is canonical revision 20260807_0023",
+  "current_main_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+  "current_main_sha_semantics": "Issue #385 / PR #390 squash-merged; local Users & Access and revision 20260807_0024 are canonical",
   "product_owner_priority_override": {
     "active": true,
     "decision": "Complete local Users & Access first, then administrator Version Management.",
-    "selected_issue": 385,
-    "next_issue_after_selected": 389,
-    "completed_issue": 368,
-    "completed_issue_semantics": "PR #373 merged as ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4; #385 follows canonical telemetry revision 20260807_0023 with 20260807_0024"
+    "completed_issue": 385,
+    "selected_issue": 389
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-357",
-      "issue": 357,
-      "pull_request": 364,
-      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-      "status": "completed",
-      "priority": "critical",
-      "completion_classification": "software verified; Raspberry Pi perceived-latency acceptance pending"
-    },
-    {
-      "id": "NEXOLAB-374",
-      "issue": 374,
-      "pull_request": 375,
-      "title": "Recover RS-485 acquisition after serial EIO without poisoning the bus session",
-      "status": "completed_regression_resolved_by_378",
-      "priority": "critical"
-    },
-    {
-      "id": "NEXOLAB-378",
-      "issue": 378,
-      "pull_request": 380,
-      "title": "Recover RS-485 after USB re-enumeration without recreating Device Agent",
-      "status": "completed",
-      "priority": "critical",
-      "software_ci": "14 completed, 0 failures",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi"
-    },
-    {
-      "id": "NEXOLAB-381",
-      "issue": 381,
-      "pull_request": 382,
-      "title": "Reconcile Issue #378 merge and resume Issue #368 acceptance",
-      "status": "completed"
-    },
-    {
-      "id": "NEXOLAB-383",
-      "issue": 383,
-      "pull_request": 384,
-      "title": "Define the NEXOLAB Chart System technical specification",
-      "status": "completed",
-      "priority": "high"
-    },
     {
       "id": "NEXOLAB-368",
       "issue": 368,
@@ -82,10 +38,32 @@
       "merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4"
     },
     {
+      "id": "NEXOLAB-385",
+      "issue": 385,
+      "pull_request": 390,
+      "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
+      "status": "completed_merged",
+      "priority": "high",
+      "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+      "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
+      "final_pr_head_sha": "5d4aacc8d6d2c7157ef42bf0356d102700f78960",
+      "software_ci": "19/19 GREEN",
+      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64",
+      "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; merged"
+    },
+    {
+      "id": "NEXOLAB-389",
+      "issue": 389,
+      "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
+      "status": "ready_selected",
+      "priority": "high",
+      "depends_on": [385]
+    },
+    {
       "id": "NEXOLAB-369",
       "issue": 369,
       "title": "Run actual Raspberry Pi Live Dashboard browser inventory acceptance",
-      "status": "queued_after_368",
+      "status": "queued_after_selected_version_lane",
       "priority": "critical",
       "depends_on": [368]
     },
@@ -106,44 +84,20 @@
       "depends_on": [283, 284, 285, 286, 287, 288, 314, 366]
     },
     {
-      "id": "NEXOLAB-245",
-      "issue": 245,
-      "pull_request": 246,
-      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "needs_validation_parallel_runtime_track",
-      "priority": "critical"
-    },
-    {
-      "id": "NEXOLAB-385",
-      "issue": 385,
-      "pull_request": 390,
-      "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
-      "status": "software_and_raspberry_pi_verified_final_state_ci_pending",
-      "priority": "high",
-      "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
-      "base_main_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4",
-      "software_ci": "19 completed workflows, 19 success, 0 failures, 0 queued, 0 in-progress",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64",
-      "hardware_evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
-      "browser_acceptance": "4 local-auth production tests passed",
-      "persistence_acceptance": "1 controlled recreation persistence test passed",
-      "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; final state-only CI pending"
-    },
-    {
-      "id": "NEXOLAB-389",
-      "issue": 389,
-      "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-      "status": "blocked_until_385_merge",
-      "priority": "high",
-      "depends_on": [385]
-    },
-    {
       "id": "NEXOLAB-386",
       "issue": 386,
       "title": "Establish chart-domain primitives and benchmark the local renderer",
       "status": "ready_not_selected",
       "priority": "high",
       "depends_on": [383]
+    },
+    {
+      "id": "NEXOLAB-245",
+      "issue": 245,
+      "pull_request": 246,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "status": "needs_validation_parallel_runtime_track",
+      "priority": "critical"
     },
     {
       "id": "NEXOLAB-257",
@@ -159,25 +113,17 @@
     }
   ],
   "active_work_package": {
-    "issue": 385,
-    "pull_request": 390,
-    "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
-    "status": "software_and_raspberry_pi_verified_final_state_ci_pending",
-    "priority": "high",
-    "assignee": "eNgine9r",
-    "selection_reason": "Explicit Product Owner reprioritization selected local Users & Access ahead of Version Management."
-  },
-  "next_ready_work_package": {
-    "issue": 385,
-    "pull_request": 390,
-    "title": "Complete final state-only reconciliation, exact-head CI and merge",
-    "status": "state_reconciliation_and_final_ci_pending",
-    "priority": "high"
-  },
-  "next_ready_after_current": {
     "issue": 389,
     "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-    "status": "blocked_until_385_merge",
+    "status": "ready_discovery_pending",
+    "priority": "high",
+    "assignee": "eNgine9r",
+    "selection_reason": "Issue #385 is merged and project_versions.manage is canonical on main."
+  },
+  "next_ready_work_package": {
+    "issue": 389,
+    "title": "Inventory existing deployment/update/rollback contracts and finalize implementation readiness",
+    "status": "ready",
     "priority": "high"
   },
   "prepared_ready_backlog": [
@@ -188,14 +134,11 @@
     }
   ],
   "verification": {
-    "issue_385_verified_candidate": "d37cf08af9560ffa0d18c102656301e667299836",
-    "issue_385_exact_workflows": "19 completed, 19 success, 0 failures, 0 queued, 0 in-progress",
-    "issue_385_offline_auth": "GREEN; four-role provisioning, admin-only capabilities, lifecycle/session revocation, password reset, last-admin protection, audit redaction and persistence",
-    "issue_385_migration": "exactly 20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
-    "issue_385_offline_bundle": "GREEN; disconnected startup plus update/rollback data preservation",
+    "issue_385_merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
+    "issue_385_final_head_ci": "19/19 GREEN",
     "issue_385_hardware": "PASS on controlled Raspberry Pi aarch64; production build PASS; 4 browser tests + 1 persistence test; exit_code=0",
-    "issue_385_hardware_evidence_directory": "/home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z",
-    "issue_385_final_state_exact_head_ci": "required after state-only reconciliation commit"
+    "issue_385_migration": "20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
+    "issue_389_dependency": "satisfied by Issue #385 merge"
   },
   "runtime_evidence": {
     "issue_385_external_identity_provider_required": false,
@@ -204,7 +147,7 @@
     "issue_385_modbus_write": false,
     "issue_385_hardware_write": false
   },
-  "next_selection_policy": "Commit #385 state-only hardware evidence, require fresh exact-head CI, final audit and merge PR #390 on GREEN; then unblock/select #389. Continue #369 -> #366 -> #289 after the selected local administration/version lane.",
+  "next_selection_policy": "Complete post-merge state reconciliation, then start Issue #389 with repository inventory before implementation. Continue #369 -> #366 -> #289 after the selected version-management lane.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

@@ -2,114 +2,47 @@
 
 Updated: 2026-08-11
 
-Verified repository baseline on `main`: `ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4` (PR #373 squash merge).
+Canonical product baseline on `main`: `e0b124e9a0152be50966daa131974b3543651e87` — PR #390 squash merge, closing Issue #385.
 
-Active Work Package: Issue #385 / PR #390 — local Raspberry Pi users, administrator-managed permissions and access lifecycle.
+## Completed Work Package — Issue #385
 
-Issue #368 / PR #373 is merged. Its telemetry-latest projection is the canonical `20260807_0023` migration. Issue #385 is rebased onto that main and is merge-ready after completed software and hardware acceptance.
+Issue #385 / PR #390 is completed and merged.
 
-## Issue #385 / PR #390
-
-Implemented product boundary:
+Delivered:
 
 - four product roles: `administrator`, `laboratory_manager`, `engineer`, `laboratory_technician`;
-- bounded typed permission catalog;
-- administrator receives the full canonical permission set implicitly;
-- laboratory manager, engineer and laboratory technician use explicit PostgreSQL permission grants;
-- local-only authenticated user administration API;
-- `/settings/users` Users & Access workspace;
-- create, role change, permission change, activate/deactivate, password reset and session revocation flows;
-- role, permission, password and account-state changes revoke affected sessions;
+- local-only Users & Access workspace at `/settings/users`;
+- bounded server-authoritative permission catalog;
+- administrator full access including `memberships.manage` and `project_versions.manage`;
+- explicit persisted permissions for non-administrator product roles;
+- role/permission/account/password lifecycle with affected-session revocation;
 - transactional last-active-administrator protection;
-- safe immutable audit events without passwords, hashes, tokens or signing material;
-- migration `20260807_0024` for explicit membership permissions and the laboratory-technician role, ordered after canonical telemetry `20260807_0023`;
-- controlled legacy-role compatibility/backfill without runtime fallback to static legacy permissions.
+- immutable redacted security audit events;
+- offline-local authentication and user management without mandatory cloud identity;
+- canonical migration `20260807_0024` after telemetry latest projection `20260807_0023`.
 
-### Exact software evidence
-
-Final merge-ready branch head:
+Verification:
 
 ```text
-f291afd144685b4da0a2b1b1d98986a83244008e
-base main ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4
+final PR head: 5d4aacc8d6d2c7157ef42bf0356d102700f78960
+PR #390 merge: e0b124e9a0152be50966daa131974b3543651e87
+final exact-head CI: 19/19 GREEN
+hardware-tested product candidate: d37cf08af9560ffa0d18c102656301e667299836
+Raspberry Pi: PASS, aarch64 / Debian 13.6 / Docker 29.7.1
+production browser acceptance: 4 passed
+persistence/recreation acceptance: 1 passed
+acceptance exit_code: 0
 ```
 
-GitHub exact-head verification on this final state head:
-
-```text
-19 completed workflows
-19 success
-0 failures
-0 queued
-0 in-progress
-```
-
-Notable GREEN gates include CI, Telemetry Service, Offline Auth Acceptance, Security Browser Acceptance, Offline Bundle, Disaster Recovery TLS Fleet, Container Supply Chain and all remaining browser/fleet/capacity workflows.
-
-Hardware-tested product candidate:
-
-```text
-d37cf08af9560ffa0d18c102656301e667299836
-```
-
-The only changes after the physical acceptance candidate are `.project/*` state/checkpoint records and formatting; no product code, migrations, dependencies, polling or hardware behavior changed.
-
-Offline Auth Acceptance proved:
-
-- all four product roles;
-- non-admin server-side denial of administration;
-- administrator `memberships.manage` and `project_versions.manage`;
-- access-token and refresh-token revocation after permission changes;
-- role-change session revocation;
-- deactivate/reactivate lifecycle;
-- password-reset session revocation, old-password rejection and new-password acceptance;
-- last-active-administrator protection;
-- audit redaction;
-- explicit permission persistence;
-- two controlled full-stack recreations;
-- internal acceptance networking and blocked container egress;
-- production Next.js build.
-
-### Raspberry Pi hardware acceptance
-
-Hardware acceptance is **PASS** on product candidate `d37cf08af9560ffa0d18c102656301e667299836`.
-
-Controlled host evidence:
-
-```text
-host: nexolab-edge-01
-architecture: aarch64 / linux/arm64
-OS: Debian GNU/Linux 13.6 (trixie)
-kernel: 6.18.39+rpt-rpi-2712
-Docker Engine: 29.7.1
-```
-
-Runtime acceptance:
-
-```text
-Next.js 16.2.12 production build: PASS
-local-auth production browser tests: 4 passed
-local-auth persistence/recreation test: 1 passed
-acceptance subprocess exit_code: 0
-```
-
-Evidence directory:
+Hardware evidence directory:
 
 ```text
 /home/nexolab/nexolab-385-hardware.VGhXYn/evidence-retry-20260811T094325Z
 ```
 
-The first physical attempt was blocked only by a pre-existing loopback-port collision on `127.0.0.1:18093`. The successful retry used isolated alternative loopback ports; no production service was stopped and no product defect was indicated.
+No Modbus write, hardware write, production/site cutover, named-volume deletion or mandatory online runtime dependency was introduced.
 
-Completion classification:
-
-```text
-software verified; Raspberry Pi local user-management acceptance verified; final exact-head CI GREEN
-```
-
-### Migration state
-
-Verified linear chain and single head:
+Canonical Alembic chain:
 
 ```text
 20260805_0022
@@ -117,45 +50,34 @@ Verified linear chain and single head:
   -> 20260807_0024 local membership permissions (head)
 ```
 
-## Current sequencing
+## Selected Next Work Package — Issue #389
 
-```text
-#385 software + hardware + final exact-head CI GREEN
-  -> final PR review/base/diff audit
-  -> mark PR #390 Ready
-  -> squash merge with expected-head lock
-  -> verify canonical main
-  -> unblock/select #389 administrator-only local NEXOLAB Version Management
-```
+Issue #389 — administrator-only local NEXOLAB version management and safe update/rollback — is now `status:ready` because its #385 authorization dependency is canonical on `main`.
 
-Issue #389 remains blocked only until PR #390 is merged and `project_versions.manage` is canonical on `main`.
+The next step is discovery and implementation-readiness review before code changes:
 
-After the selected local administration/version lane, continue the remaining runtime sequence:
+- inventory existing deploy/update/rollback scripts;
+- inventory offline bundle/release evidence contracts;
+- identify the trustworthy local version/SHA source;
+- map backup, migration-before-readiness and rollback compatibility gates;
+- preserve named volumes and edge SQLite;
+- define the smallest administrator-only API/UI wrapper around existing deployment contracts;
+- keep GitHub/internet optional rather than mandatory at runtime.
+
+Do not create a second deployment engine and do not expose arbitrary shell, arbitrary Git branch switching, destructive database downgrade, Modbus writes or unattended site cutover.
+
+After the selected local version-management lane, continue the prepared runtime sequence:
 
 ```text
 #369 -> #366 -> #289
 ```
 
-Issue #386 remains a prepared Ready chart-domain implementation package and is not selected while the current lane is active.
+Issue #386 remains Ready but not selected. Issue #245 remains a separate Raspberry Pi validation track.
 
-Issue #245 remains a separate Raspberry Pi validation track.
+## Security boundary
 
-## Safety and runtime boundary
-
-- profile: `LOCAL_LAN`;
-- mandatory cloud identity/services: none;
-- runtime internet requirement: none;
-- PostgreSQL persistence remains local;
-- no Modbus write performed;
-- no hardware write performed;
-- no polling cadence change performed;
-- no telemetry-history deletion performed;
-- no named-volume deletion performed;
-- no production/site cutover performed;
-- no secret material is part of the recorded evidence.
-
-The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on 2026-09-05 and is not broadened by Issue #385.
+The existing `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on 2026-09-05 and was not broadened by Issue #385.
 
 ## Next action
 
-Mark PR #390 Ready, recheck the exact head/base lock, then squash merge only if the final `f291afd144685b4da0a2b1b1d98986a83244008e` checks remain GREEN. After merge, verify canonical `main` and unblock/select Issue #389.
+Complete this post-merge state-only reconciliation, then begin Issue #389 repository inventory and implementation-readiness work from the reconciled `main` baseline.
