@@ -5,6 +5,10 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { TemperatureChart } from "./temperature-chart";
 
+vi.mock("@/components/dashboard/overview-chart-panel", () => ({
+  OverviewChartPanel: () => <div data-testid="overview-chart-panel" />,
+}));
+
 function sample(
   channelId: string,
   value: number | null,
@@ -54,6 +58,6 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("4,5 °C")).toBeInTheDocument();
     expect(screen.getByText("6,5 °C")).toBeInTheDocument();
     expect(screen.queryByText("101-01")).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Реальний графік історії температур XJP60D" })).toBeVisible();
+    expect(screen.getByTestId("overview-chart-panel")).toBeVisible();
   });
 });
