@@ -148,6 +148,14 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         width: 2.25,
         type: series.dashStyle,
       },
+      ...(series.areaFillOpacity !== undefined && series.areaFillOpacity > 0
+        ? {
+            areaStyle: {
+              color: series.colorToken,
+              opacity: Math.min(1, series.areaFillOpacity),
+            },
+          }
+        : {}),
       itemStyle: { color: series.colorToken },
       emphasis: { focus: "series" as const, lineStyle: { width: 3 } },
       ...(segmentIndex === 0 && (thresholds.length > 0 || (visibleSeriesIndex === 0 && scene.events?.length))
@@ -216,8 +224,10 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     legend: { show: false, data: legendNames },
     tooltip: {
       trigger: "axis",
-      axisPointer: { type: "cross", snap: false },
+      axisPointer: { type: "line", snap: false },
       appendToBody: false,
+      confine: true,
+      transitionDuration: 0,
     },
     xAxis: {
       type: "time",

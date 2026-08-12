@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
-  "current_main_sha_semantics": "Issue #406 / PR #407 Live Data chart continuity regression fix merged with exact-head software/browser/offline verification",
+  "current_main_sha": "f3462861db2a3593e2072a7bad70d557c009b323",
+  "current_main_sha_semantics": "Issue #408 / PR #409 post-#406 state reconciliation merged; Issue #404 remains the sole active Chart System implementation lane",
   "product_owner_priority_override": {
     "active": true,
-    "decision": "Continue the Chart System migration sequence. Issue #406 is completed; Issue #404 is now the sole selected implementation lane. Issue #389 remains Ready but not selected.",
-    "completed_issue": 406,
+    "decision": "Continue the Chart System migration sequence. Issue #404 is the sole active implementation lane. Issue #369 remains a distinct Saved Dashboard editor Raspberry Pi acceptance task and Issue #389 remains Ready but not selected.",
+    "completed_issue": 408,
     "selected_issue": 404
   },
   "tasks": [
@@ -57,36 +57,38 @@
       "hardware_acceptance": "PASS on controlled Raspberry Pi 2026-08-12"
     },
     {
-      "id": "NEXOLAB-403",
-      "issue": 403,
-      "pull_request": 405,
-      "title": "Reconcile Issue #400 merge and next Chart Work Package",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94"
-    },
-    {
       "id": "NEXOLAB-406",
       "issue": 406,
       "pull_request": 407,
       "title": "Keep Live Data charts mounted while live samples arrive",
       "status": "completed_merged",
       "priority": "critical",
-      "depends_on": [400],
-      "final_pr_head_sha": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
       "merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
-      "software_ci": "GREEN",
-      "browser_acceptance": "11/11 GREEN including real local MQTT live-point continuity regression and acquisition invariant",
-      "offline_bundle": "GREEN",
-      "hardware_acceptance": "not rerun; no new physical Raspberry Pi claim"
+      "exact_head_gates": "CI GREEN; Authenticated Dashboard 11/11 GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN"
+    },
+    {
+      "id": "NEXOLAB-408",
+      "issue": 408,
+      "pull_request": 409,
+      "title": "Reconcile Issue #406 merge and activate Issue #404",
+      "status": "completed_merged",
+      "priority": "high",
+      "merge_sha": "f3462861db2a3593e2072a7bad70d557c009b323"
     },
     {
       "id": "NEXOLAB-404",
       "issue": 404,
+      "pull_request": 410,
       "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-      "status": "ready_selected",
+      "status": "corrective_visual_continuity_verification_in_progress",
       "priority": "high",
-      "depends_on": [386, 400]
+      "depends_on": [386, 400],
+      "branch": "feat/404-saved-live-dashboard-chart-system",
+      "implementation": "canonical Chart Domain mapping; ChartShell/ChartRendererHost/ECharts line+area renderer; truthful continuity/reduction; saved colors/order; unit grouping; interactions; value/gauge regression protection; non-animated rolling Saved Dashboard scene updates",
+      "first_hardware_attempt": "candidate 2b508d8a1c22ab28069c24833b792261b16193e6: acquisition invariant PASS, chart visual continuity FAIL",
+      "corrective_source_head": "67846013a8c7d357716321e2149509a2fb526f43",
+      "corrective_verification": "CI GREEN; Authenticated Dashboard with real MQTT live-point continuity regression GREEN; Acquisition Scale GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
+      "hardware_acceptance": "repeat controlled Raspberry Pi visual-continuity acceptance pending on final exact corrective head"
     },
     {
       "id": "NEXOLAB-389",
@@ -144,17 +146,17 @@
   "active_work_package": {
     "issue": 404,
     "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-    "status": "ready_selected",
+    "status": "corrective_visual_continuity_verification_in_progress",
     "priority": "high",
     "assignee": "eNgine9r",
-    "selection_reason": "Product Owner Chart System priority; dependencies #386/#400 are merged and critical regression #406 is resolved."
+    "branch": "feat/404-saved-live-dashboard-chart-system",
+    "selection_reason": "Product Owner Chart System priority; #386/#400 dependencies are merged, #406 regression is resolved, and #404 remains the current vertical migration until physical visual continuity passes."
   },
   "next_ready_work_package": {
-    "issue": 404,
-    "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-    "status": "status:ready_selected",
-    "priority": "high",
-    "depends_on": [386, 400]
+    "issue": null,
+    "title": "Migrate Overview charts to the canonical NEXOLAB Chart System",
+    "status": "create_or_refine_after_issue_404_green_merge_and_ready_audit",
+    "priority": "high"
   },
   "prepared_ready_backlog": [
     {
@@ -171,23 +173,24 @@
     }
   ],
   "verification": {
-    "issue_400_merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
-    "issue_400_hardware_acceptance": "PASS 2026-08-12",
-    "issue_403_merge_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94",
-    "issue_406_final_head": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
-    "issue_406_merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
-    "issue_406_exact_head_gates": "CI GREEN; Authenticated Dashboard 11/11 GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
-    "issue_406_regression_evidence": "Real local MQTT sample advanced browser latest state while chart-renderer-host count stayed stable, history loading placeholder remained absent and no extra history request was made",
-    "issue_406_physical_hardware": "not rerun; no new Raspberry Pi physical acceptance claimed",
-    "issue_404_scope_boundary": "Saved Live Dashboard live renderer migration only; Issue #369 remains inventory/filter/select/save Raspberry Pi browser acceptance"
+    "issue_408_merge_sha": "f3462861db2a3593e2072a7bad70d557c009b323",
+    "issue_404_scope_boundary": "Saved Live Dashboard live renderer migration only; Issue #369 remains inventory/filter/select/save Raspberry Pi browser acceptance",
+    "issue_404_first_pi_attempt": "2b508d8a1c22ab28069c24833b792261b16193e6: acquisition PASS; chart_visual_continuity FAIL; baseline 156 physical requests/60s vs active 144/60s; targets 38->38; poll eligible 38->38",
+    "issue_404_acceptance_harness_cleanup": "orphan next-server from #400 handoff removed from port 3000; production dashboard restored active/running with NRestarts=0 before #404 baseline",
+    "issue_404_corrective_fix": "Saved Dashboard ChartRendererHost uses non-animated ECharts scene updates; production E2E publishes real MQTT sample and proves same host/canvas survive refresh interval without history reload",
+    "issue_404_corrective_source_head": "67846013a8c7d357716321e2149509a2fb526f43",
+    "issue_404_corrective_gates": "CI GREEN; Authenticated Dashboard GREEN; Acquisition Scale GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
+    "issue_404_final_exact_head": "pending after canonical checkpoint",
+    "issue_404_raspberry_pi_retest": "pending; separate continuous live-point phase from intentional close/reopen lifecycle"
   },
   "runtime_evidence": {
-    "issue_406_external_egress_required": false,
-    "issue_406_modbus_write": false,
-    "issue_406_hardware_write": false,
-    "issue_406_polling_change": false
+    "issue_404_external_egress_required": false,
+    "issue_404_modbus_write": false,
+    "issue_404_hardware_write": false,
+    "issue_404_polling_change": false,
+    "issue_404_first_pi_acquisition_invariant": "PASS"
   },
-  "next_selection_policy": "Merge state-only Issue #408 while GREEN, then start Issue #404 as the sole implementation lane. Preserve #389 Ready/not selected and runtime sequence #369 -> #366 -> #289 unless a fresh repository audit or Product Owner decision changes priority.",
+  "next_selection_policy": "Finish the #404 canonical checkpoint, run exact-head software/browser/offline verification, then repeat controlled Raspberry Pi Saved Dashboard visual continuity acceptance. Merge only after GREEN physical evidence. Reconcile main and run a fresh Ready audit before creating/refining the Overview chart migration. Preserve #369 and #389 lanes unless Product Owner changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

@@ -6,32 +6,55 @@ Updated: 2026-08-12
 
 Issue #400 / PR #402 is merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`. Raspberry Pi evidence remains at `/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`.
 
-## Issue #403 — completed
+## Issue #406 — completed
 
-Issue #403 / PR #405 is merged as `c5977f846b87d0a498f84feec5b2e8f966a61d94`.
+Issue #406 / PR #407 is merged as `457923927052ed91a23f396b2285e0cfaf6096ad`. The Live Data chart-disappearance regression is fixed; exact-head CI/browser/offline gates were GREEN. No new physical Raspberry Pi claim was made for #406.
 
-## Issue #406 — completed, no remaining blocker
+## Issue #408 — completed
 
-Issue #406 / PR #407 is squash-merged as `457923927052ed91a23f396b2285e0cfaf6096ad`.
+Issue #408 / PR #409 is merged as `f3462861db2a3593e2072a7bad70d557c009b323`.
 
-The Live Data chart lifecycle regression is fixed: incoming live samples no longer retrigger persisted-history loading solely because latest sample objects change.
+## Issue #404 — active merge blocker: Raspberry Pi visual continuity
 
-Final exact-head verification was GREEN:
+Issue #404 remains the sole active implementation lane for Saved Live Dashboard canonical Chart System migration. PR #410 remains Draft.
 
-- CI;
-- Authenticated Dashboard Acceptance 11/11, including real local MQTT live-point continuity regression and acquisition invariant;
-- Refrigeration Browser Acceptance;
-- Offline Bundle with disconnected load/start and update/rollback data preservation.
+The first controlled Raspberry Pi test of candidate `2b508d8a1c22ab28069c24833b792261b16193e6` produced a split result:
 
-No new Raspberry Pi physical acceptance was run for #406 and none is claimed. No backend, database, scheduler, polling, registry, Device Agent, Modbus or hardware mutation occurred.
+- acquisition invariant: **PASS**;
+- chart visual continuity: **FAIL**.
 
-## Issue #404 — Ready and selected
+Equal 60-second windows showed no browser-driven acquisition amplification: browser closed `156` physical requests / `2.600 req/s`; active Saved Dashboard `144` / `2.400 req/s`. Scheduler policy, 38 configured targets, 38 poll-eligible targets and 4 degraded/cooldown endpoints remained unchanged; telemetry advanced.
 
-Issue #404 is the sole selected implementation lane for Saved Live Dashboard canonical Chart System migration. Dependencies #386 and #400 are merged and #406 no longer blocks continuation.
+The visual failure blocks Ready/merge until a repeated physical acceptance passes.
 
-Issue #404 remains distinct from #369: #404 is the saved-dashboard live renderer migration; #369 is the Raspberry Pi inventory/filter/select/save editor acceptance.
+A corrective slice is implemented:
 
-## Issue #369 — Ready, preserved runtime sequence
+- Saved Dashboard ECharts rolling scene refreshes are non-animated to avoid blank transition frames on Raspberry Pi;
+- one mounted `ChartRendererHost` and one ECharts instance remain authoritative;
+- production browser acceptance now publishes a real local MQTT point across the dashboard refresh interval and asserts the same host and Canvas DOM nodes survive without an additional history reload.
+
+Corrective source head `67846013a8c7d357716321e2149509a2fb526f43` passed CI, Authenticated Dashboard Acceptance, Acquisition Scale Acceptance, Refrigeration Browser Acceptance and Offline Bundle. A final exact-head cycle is still required after the canonical state checkpoint, followed by a repeated Raspberry Pi test.
+
+The repeated physical acceptance must separate:
+
+1. continuous chart observation while new real points arrive, with no route/library navigation;
+2. intentional library close/reopen lifecycle, checked separately for cleanup/reinitialization.
+
+The first script mixed these phases, so intentional navigation could also cause an expected unmount. The original FAIL remains recorded; the repeat test removes that ambiguity.
+
+### Acceptance-harness cleanup
+
+An orphan `next-server` from the earlier #400 temporary handoff was found holding port 3000 and driving `nexolab-dashboard.service` into repeated `EADDRINUSE` restarts. It was terminated and production dashboard stability was restored (`active/running`, `NRestarts=0`, HTTP 200) before the #404 baseline. No production data, backend service, Device Agent configuration or hardware state was changed.
+
+No backend, database, polling, scheduler, registry, Device Agent, Modbus or hardware change is required to resolve #404.
+
+Known truthful limitation: the existing Saved Dashboard delivery hook reports `reconnecting` freshness but does not expose a timestamped reconnect event. The chart therefore does not invent a reconnect-break timestamp; it preserves reconnecting as freshness and uses actual missing/source-gap evidence for continuity.
+
+## Issue #369 — Ready, separate scope
+
+Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It is not absorbed by #404.
+
+Preserved runtime sequence:
 
 ```text
 #369 -> #366 -> #289
@@ -50,7 +73,7 @@ Issue #389 remains `status:ready` for administrator-only local Version Managemen
 
 ## Security boundary
 
-The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**.
+The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #404 does not broaden it.
 
 ## Global hard-stop rules
 

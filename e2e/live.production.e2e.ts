@@ -14,6 +14,7 @@ const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMP
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
+const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 
 type ObservedRequest = { url: string; method: string };
 type SocketEvidence = { opened: number; closed: number; active: number; maximum: number };
@@ -67,6 +68,59 @@ function postgres(sql: string): string {
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function publishSavedDashboardSample(dashboardId: string, channelId: string, value: number): void {
+  const selection = postgres(`
+SELECT metric || '|' || native_unit
+FROM live_dashboard_items
+WHERE dashboard_id = ${sqlString(dashboardId)}
+  AND channel_id = ${sqlString(channelId)}
+ORDER BY position
+LIMIT 1;
+`).trim();
+  const [metric, unit] = selection.split("|");
+  if (!metric || !unit) throw new Error("Saved Dashboard live-point identity was not found");
+
+  const payload = JSON.stringify({
+    event_id: randomUUID(),
+    node_id: "edge-chart-404",
+    captured_at: new Date().toISOString(),
+    metric,
+    value,
+    unit,
+    quality: "valid",
+    source: "issue-404-visual-continuity-regression",
+    equipment_id: "saved-dashboard-e2e",
+    channel_id: channelId,
+    alarm: null,
+    raw_value: Math.round(value * 10),
+    raw_status: null,
+  });
+
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      "mqtt",
+      "mosquitto_pub",
+      "-h",
+      "127.0.0.1",
+      "-t",
+      mqttTopic,
+      "-m",
+      payload,
+    ],
+    { stdio: "pipe" },
+  );
 }
 
 function seedNoSampleChannel(): string {
@@ -161,6 +215,128 @@ SELECT COUNT(*) FROM live_dashboard_items WHERE dashboard_id = ${sqlString(dashb
   return { dashboardId, dashboardName };
 }
 
+function seedChartSystemDashboard(): {
+  dashboardId: string;
+  dashboardName: string;
+  plottedChannels: string[];
+} {
+  const dashboardId = randomUUID();
+  const dashboardName = `Chart System ${Date.now()}`;
+  const itemIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  const output = postgres(`
+INSERT INTO live_dashboards (
+  id, organization_id, name, description, owner_subject, refresh_seconds, time_window,
+  version, status, created_by, updated_by, created_at, updated_at
+)
+VALUES (
+  ${sqlString(dashboardId)}, ${sqlString(organizationId)}, ${sqlString(dashboardName)},
+  'Issue 404 canonical renderer acceptance', 'acceptance-fixture', 2, '1h', 1, 'active',
+  'acceptance-fixture', 'acceptance-fixture', NOW(), NOW()
+);
+
+WITH group_choice AS (
+  SELECT metric_type, unit
+  FROM measurement_channels
+  WHERE organization_id = ${sqlString(organizationId)}
+    AND status = 'active'
+  GROUP BY metric_type, unit
+  HAVING COUNT(*) >= 4
+  ORDER BY CASE WHEN metric_type = 'temperature.probe' THEN 0 ELSE 1 END, metric_type, unit
+  LIMIT 1
+),
+ranked AS (
+  SELECT
+    channel.id,
+    channel.channel_id,
+    channel.metric_type,
+    channel.unit,
+    ROW_NUMBER() OVER (ORDER BY channel.channel_id, channel.id) AS position
+  FROM measurement_channels AS channel
+  JOIN group_choice
+    ON group_choice.metric_type = channel.metric_type
+   AND group_choice.unit = channel.unit
+  WHERE channel.organization_id = ${sqlString(organizationId)}
+    AND channel.status = 'active'
+)
+INSERT INTO live_dashboard_items (
+  id, organization_id, dashboard_id, position, channel_ref_id, channel_id, metric,
+  native_unit, visualization, color, display_unit
+)
+SELECT
+  CASE ranked.position
+    WHEN 1 THEN ${sqlString(itemIds[0])}
+    WHEN 2 THEN ${sqlString(itemIds[1])}
+    WHEN 3 THEN ${sqlString(itemIds[2])}
+    ELSE ${sqlString(itemIds[3])}
+  END,
+  ${sqlString(organizationId)},
+  ${sqlString(dashboardId)},
+  ranked.position,
+  ranked.id,
+  ranked.channel_id,
+  ranked.metric_type,
+  ranked.unit,
+  CASE ranked.position WHEN 1 THEN 'line' WHEN 2 THEN 'area' WHEN 3 THEN 'value' ELSE 'gauge' END,
+  CASE ranked.position WHEN 1 THEN '#00C6E0' WHEN 2 THEN '#7ED321' WHEN 3 THEN '#0077FF' ELSE '#A855F7' END,
+  ranked.unit
+FROM ranked
+WHERE ranked.position <= 4;
+
+INSERT INTO telemetry_samples (
+  event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
+)
+SELECT
+  md5(item.id || ':' || sample_index::text),
+  'edge-chart-404',
+  NOW() - ((5 - sample_index) * INTERVAL '5 minutes'),
+  item.metric,
+  (item.position * 10 + sample_index)::double precision,
+  item.native_unit,
+  'valid',
+  'issue-404-e2e',
+  'saved-dashboard-e2e',
+  item.channel_id,
+  CASE WHEN item.position = 1 AND sample_index = 3 THEN 'high' ELSE NULL END,
+  item.position * 100 + sample_index,
+  NULL,
+  '{}'::json
+FROM live_dashboard_items AS item
+CROSS JOIN generate_series(1, 4) AS sample_index
+WHERE item.dashboard_id = ${sqlString(dashboardId)};
+
+INSERT INTO telemetry_latest (
+  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at
+)
+SELECT DISTINCT ON (sample.channel_id, sample.metric)
+  sample.id, sample.event_id, sample.node_id, sample.captured_at, sample.metric, sample.value,
+  sample.unit, sample.quality, sample.source, sample.equipment_id, sample.channel_id, sample.alarm,
+  sample.raw_value, sample.raw_status, NULL, sample.received_at
+FROM telemetry_samples AS sample
+JOIN live_dashboard_items AS item
+  ON item.dashboard_id = ${sqlString(dashboardId)}
+ AND item.channel_id = sample.channel_id
+ AND item.metric = sample.metric
+WHERE sample.node_id = 'edge-chart-404'
+  AND sample.equipment_id = 'saved-dashboard-e2e'
+ORDER BY sample.channel_id, sample.metric, sample.captured_at DESC, sample.id DESC;
+
+SELECT
+  COUNT(*)::text || '|' ||
+  COALESCE(string_agg(channel_id, ',' ORDER BY position) FILTER (WHERE position <= 2), '')
+FROM live_dashboard_items
+WHERE dashboard_id = ${sqlString(dashboardId)};
+`);
+  const summary = output.trim().split(/\n/).at(-1)?.trim() ?? "";
+  const [count, channels = ""] = summary.split("|");
+  if (count !== "4") throw new Error(`Chart System dashboard seeded ${count || "0"} items instead of 4`);
+  const plottedChannels = channels.split(",").filter(Boolean);
+  if (plottedChannels.length !== 2)
+    throw new Error("Chart System dashboard did not seed two plotted channels");
+  return { dashboardId, dashboardName, plottedChannels };
+}
+
 function persistTemperature(value: number, minutesAgo: number): void {
   const eventId = randomUUID();
   const capturedAt = new Date(Date.now() - minutesAgo * 60_000).toISOString();
@@ -199,6 +375,24 @@ function observeRequests(page: Page): {
     if (mutating && acquisitionPath) acquisitionMutations.push(observed);
   });
   return { dashboard, telemetry, acquisitionMutations };
+}
+
+function observePublicRuntimeRequests(page: Page): ObservedRequest[] {
+  const publicRequests: ObservedRequest[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (!url.protocol.startsWith("http")) return;
+    const host = url.hostname;
+    const local =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (!local) publicRequests.push({ url: request.url(), method: request.method() });
+  });
+  return publicRequests;
 }
 
 function observeSockets(page: Page): SocketEvidence {
@@ -392,6 +586,160 @@ test("opens a persisted selected-series dashboard after service restart without 
           selectedTelemetryRequests: selectedRequests,
           websocket: sockets,
           acquisitionMutations: requests.acquisitionMutations,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } finally {
+    await context.close();
+  }
+});
+
+test("persisted Saved Dashboard uses canonical charts without renderer leaks or runtime mutation", async ({
+  browser,
+}) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const fixture = seedChartSystemDashboard();
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const requests = observeRequests(page);
+  const sockets = observeSockets(page);
+  const publicRequests = observePublicRuntimeRequests(page);
+
+  try {
+    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
+    await page
+      .locator("article")
+      .filter({ hasText: fixture.dashboardName })
+      .getByRole("button", { name: "Відкрити" })
+      .click();
+    await expect(page.getByRole("heading", { name: fixture.dashboardName, exact: true })).toBeVisible();
+
+    const panel = page.getByTestId("saved-dashboard-chart-panel");
+    await expect(panel).toHaveCount(1);
+    await expect(panel.getByTestId("chart-renderer-host")).toBeVisible();
+    await expect(panel.getByTestId("chart-accessible-summary")).toContainText("2 series");
+    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+    await expect(panel.locator("svg")).toHaveCount(0);
+    for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
+    await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
+    await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
+    await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");
+    await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");
+    await expect
+      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
+      .toBeGreaterThanOrEqual(4);
+
+    const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
+      item.url.includes("/history"),
+    ).length;
+    const hostBeforeLivePoint = panel.getByTestId("chart-renderer-host");
+    await hostBeforeLivePoint.evaluate((element) => {
+      element.setAttribute("data-continuity-token", "issue-404-stable-host");
+    });
+    const canvasBeforeLivePoint = panel.locator("canvas").first();
+    await canvasBeforeLivePoint.evaluate((element) => {
+      element.setAttribute("data-canvas-continuity-token", "issue-404-stable-canvas");
+    });
+    publishSavedDashboardSample(fixture.dashboardId, fixture.plottedChannels[0], 19.75);
+    await page.waitForTimeout(2_500);
+    await expect(panel).toHaveCount(1);
+    await expect(hostBeforeLivePoint).toBeVisible();
+    await expect(hostBeforeLivePoint).toHaveAttribute("data-continuity-token", "issue-404-stable-host");
+    await expect(canvasBeforeLivePoint).toHaveAttribute(
+      "data-canvas-continuity-token",
+      "issue-404-stable-canvas",
+    );
+    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+    expect(requests.telemetry.filter((item) => item.url.includes("/history")).length).toBe(
+      historyRequestsBeforeInteraction,
+    );
+
+    const dashboardMutationsBeforeInteraction = requests.dashboard.filter(
+      (item) => !["GET", "HEAD", "OPTIONS"].includes(item.method),
+    ).length;
+
+    await panel.getByRole("button", { name: "Hide" }).first().click();
+    await expect(panel.getByRole("button", { name: "Show" })).toHaveCount(1);
+    await panel.getByRole("button", { name: "Solo" }).first().click();
+
+    const host = panel.getByTestId("chart-renderer-host");
+    await host.scrollIntoViewIfNeeded();
+    const box = await host.boundingBox();
+    if (!box) throw new Error("Saved Dashboard chart host has no bounding box");
+    const cursorLayoutBefore = {
+      y: box.y,
+      height: box.height,
+      scrollY: await page.evaluate(() => window.scrollY),
+    };
+    for (const xFraction of [0.68, 0.75, 0.83, 0.91]) {
+      await page.mouse.move(box.x + box.width * xFraction, box.y + box.height * 0.5);
+      await page.waitForTimeout(75);
+      const cursorBox = await host.boundingBox();
+      if (!cursorBox) throw new Error("Saved Dashboard chart host disappeared during cursor inspection");
+      expect(Math.abs(cursorBox.y - cursorLayoutBefore.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(cursorBox.height - cursorLayoutBefore.height)).toBeLessThanOrEqual(1);
+      expect(await page.evaluate(() => window.scrollY)).toBe(cursorLayoutBefore.scrollY);
+    }
+    await page.mouse.wheel(0, -500);
+    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.5, { steps: 5 });
+    await page.mouse.up();
+    await panel.getByRole("button", { name: "Reset zoom" }).click();
+    await expect(host).toBeVisible();
+
+    for (const width of [360, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(host).toBeVisible();
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+        .toBe(true);
+    }
+
+    expect(
+      requests.dashboard.filter((item) => !["GET", "HEAD", "OPTIONS"].includes(item.method)).length,
+    ).toBe(dashboardMutationsBeforeInteraction);
+    expect(requests.acquisitionMutations).toEqual([]);
+    expect(publicRequests).toEqual([]);
+    expect(requests.telemetry.filter((item) => item.url.includes("/history")).length).toBe(
+      historyRequestsBeforeInteraction,
+    );
+
+    const maximumSocketsAfterOpen = sockets.maximum;
+    expect(maximumSocketsAfterOpen).toBeGreaterThan(0);
+    expect(maximumSocketsAfterOpen).toBeLessThanOrEqual(4);
+    await page.getByRole("button", { name: "До library" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect.poll(() => sockets.active).toBe(0);
+
+    await page
+      .locator("article")
+      .filter({ hasText: fixture.dashboardName })
+      .getByRole("button", { name: "Відкрити" })
+      .click();
+    await expect(page.getByTestId("saved-dashboard-chart-panel")).toHaveCount(1);
+    await expect.poll(() => sockets.active).toBeGreaterThan(0);
+    expect(sockets.maximum).toBeLessThanOrEqual(maximumSocketsAfterOpen);
+
+    await page.screenshot({
+      path: path.join(evidenceDirectory, "saved-dashboard-chart-system.png"),
+      fullPage: true,
+    });
+    writeFileSync(
+      path.join(evidenceDirectory, "saved-dashboard-chart-system-summary.json"),
+      `${JSON.stringify(
+        {
+          dashboardId: fixture.dashboardId,
+          dashboardName: fixture.dashboardName,
+          plottedChannels: fixture.plottedChannels,
+          websocket: sockets,
+          publicRequests,
+          acquisitionMutations: requests.acquisitionMutations,
+          dashboardRequests: requests.dashboard,
+          telemetryRequests: requests.telemetry,
         },
         null,
         2,

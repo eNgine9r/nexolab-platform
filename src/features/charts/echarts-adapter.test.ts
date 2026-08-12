@@ -74,6 +74,15 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(
       optionSeries(instance).every((series) => series.connectNulls === false && series.smooth === false),
     ).toBe(true);
+    expect(instance.options.at(-1)).toMatchObject({
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "line", snap: false },
+        appendToBody: false,
+        confine: true,
+        transitionDuration: 0,
+      },
+    });
   });
 
   it("reuses the instance for bounded incremental live-tail updates", () => {
