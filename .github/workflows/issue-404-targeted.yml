@@ -35,91 +35,51 @@ jobs:
               raise SystemExit("Issue 404 event-id expression not found")
           text = text.replace(before_event, after_event, 1)
 
-          projection_anchor = '''WHERE item.dashboard_id = ${sqlString(dashboardId)};
-
-SELECT
-  COUNT(*)::text || '|' ||
-'''
-          projection = '''WHERE item.dashboard_id = ${sqlString(dashboardId)};
-
-INSERT INTO telemetry_latest (
-  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,
-  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at
-)
-SELECT DISTINCT ON (sample.channel_id, sample.metric)
-  sample.id,
-  sample.event_id,
-  sample.node_id,
-  sample.captured_at,
-  sample.metric,
-  sample.value,
-  sample.unit,
-  sample.quality,
-  sample.source,
-  sample.equipment_id,
-  sample.channel_id,
-  sample.alarm,
-  sample.raw_value,
-  sample.raw_status,
-  NULL,
-  sample.received_at
-FROM telemetry_samples AS sample
-JOIN live_dashboard_items AS item
-  ON item.dashboard_id = ${sqlString(dashboardId)}
- AND item.channel_id = sample.channel_id
- AND item.metric = sample.metric
-WHERE sample.node_id = 'edge-chart-404'
-  AND sample.equipment_id = 'saved-dashboard-e2e'
-ORDER BY sample.channel_id, sample.metric, sample.captured_at DESC, sample.id DESC;
-
-SELECT
-  COUNT(*)::text || '|' ||
-'''
+          projection_anchor = "\n".join([
+              "WHERE item.dashboard_id = ${sqlString(dashboardId)};",
+              "",
+              "SELECT",
+              "  COUNT(*)::text || '|' ||",
+          ])
+          projection_lines = [
+              "WHERE item.dashboard_id = ${sqlString(dashboardId)};",
+              "",
+              "INSERT INTO telemetry_latest (",
+              "  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,",
+              "  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at",
+              ")",
+              "SELECT DISTINCT ON (sample.channel_id, sample.metric)",
+              "  sample.id, sample.event_id, sample.node_id, sample.captured_at, sample.metric, sample.value,",
+              "  sample.unit, sample.quality, sample.source, sample.equipment_id, sample.channel_id, sample.alarm,",
+              "  sample.raw_value, sample.raw_status, NULL, sample.received_at",
+              "FROM telemetry_samples AS sample",
+              "JOIN live_dashboard_items AS item",
+              "  ON item.dashboard_id = ${sqlString(dashboardId)}",
+              " AND item.channel_id = sample.channel_id",
+              " AND item.metric = sample.metric",
+              "WHERE sample.node_id = 'edge-chart-404'",
+              "  AND sample.equipment_id = 'saved-dashboard-e2e'",
+              "ORDER BY sample.channel_id, sample.metric, sample.captured_at DESC, sample.id DESC;",
+              "",
+              "SELECT",
+              "  COUNT(*)::text || '|' ||",
+          ]
           if projection_anchor not in text:
               raise SystemExit("Issue 404 projection insertion anchor not found")
-          text = text.replace(projection_anchor, projection, 1)
+          text = text.replace(projection_anchor, "\n".join(projection_lines), 1)
 
-          cards_anchor = '''    await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
-    await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
-
-    const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
-'''
-          cards = '''    await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
-    await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
-    await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");
-    await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");
-    await expect
-      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
-      .toBeGreaterThanOrEqual(4);
-
-    const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
-'''
-          if cards_anchor not in text:
-              raise SystemExit("Issue 404 cards assertion anchor not found")
-          text = text.replace(cards_anchor, cards, 1)
-
-          socket_anchor = '''    const maximumSocketsAfterOpen = sockets.maximum;
-    expect(maximumSocketsAfterOpen).toBeGreaterThan(0);
-    expect(maximumSocketsAfterOpen).toBeLessThanOrEqual(4);
-    await page.getByRole("button", { name: "До library" }).click();
-    await expect(panel).toHaveCount(0);
-    await expect.poll(() => sockets.active).toBe(0);
-
-    await page
-'''
-          socket = '''    const activeSocketsAfterOpen = sockets.active;
-    const maximumSocketsAfterOpen = sockets.maximum;
-    expect(activeSocketsAfterOpen).toBeGreaterThan(0);
-    expect(maximumSocketsAfterOpen).toBeLessThanOrEqual(4);
-    await page.getByRole("button", { name: "До library" }).click();
-    await expect(panel).toHaveCount(0);
-    await expect.poll(() => sockets.active).toBe(0);
-
-    await page
-'''
-          if socket_anchor not in text:
-              raise SystemExit("Issue 404 socket lifecycle anchor not found")
-          text = text.replace(socket_anchor, socket, 1)
+          gauge_line = '    await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);'
+          card_addition = "\n".join([
+              gauge_line,
+              '    await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");',
+              '    await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");',
+              '    await expect',
+              '      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)',
+              '      .toBeGreaterThanOrEqual(4);',
+          ])
+          if gauge_line not in text:
+              raise SystemExit("Issue 404 gauge assertion anchor not found")
+          text = text.replace(gauge_line, card_addition, 1)
 
           path.write_text(text)
           PY
