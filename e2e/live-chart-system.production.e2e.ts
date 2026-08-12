@@ -14,6 +14,7 @@ const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMP
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
+const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020";
 
 type ObservedRequest = { url: string; method: string };
@@ -68,6 +69,48 @@ function postgres(sql: string): string {
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function publishExplorerSample(equipmentId: string, channelId: string, value: number): void {
+  const payload = JSON.stringify({
+    event_id: randomUUID(),
+    node_id: "edge-live-issue-400",
+    captured_at: new Date().toISOString(),
+    metric: "temperature.probe",
+    value,
+    unit: "degC",
+    quality: "valid",
+    source: "issue-406-regression",
+    equipment_id: equipmentId,
+    channel_id: channelId,
+    alarm: null,
+    raw_value: Math.round(value * 10),
+    raw_status: null,
+  });
+
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      "mqtt",
+      "mosquitto_pub",
+      "-h",
+      "127.0.0.1",
+      "-t",
+      mqttTopic,
+      "-m",
+      payload,
+    ],
+    { stdio: "pipe" },
+  );
 }
 
 function seedExplorerTelemetry(): { equipmentId: string; channels: string[] } {
@@ -214,6 +257,20 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("Range Live");
     await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("6 series");
     await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+
+    const rendererHosts = page.getByTestId("chart-renderer-host");
+    await expect(rendererHosts).toHaveCount(2);
+    const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
+      request.url.includes("/history"),
+    ).length;
+
+    publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.9);
+    await expect(page.getByText(/9[,.]9 degC/).first()).toBeVisible();
+    await expect(rendererHosts).toHaveCount(2);
+    await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
+    await expect
+      .poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length)
+      .toBe(historyRequestsBeforeLivePoint);
 
     await expect.poll(() => runtime.sockets.maximum).toBe(1);
     expect(runtime.acquisitionMutations).toEqual([]);
