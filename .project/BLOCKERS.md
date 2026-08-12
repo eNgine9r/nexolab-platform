@@ -2,49 +2,67 @@
 
 Updated: 2026-08-12
 
-## Issue #385 — completed
+## Issue #400 — completed
 
-Issue #385 / PR #390 is merged as `e0b124e9a0152be50966daa131974b3543651e87`. Software and Raspberry Pi acceptance are complete. There is no remaining #385 blocker.
+Issue #400 / PR #402 is merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`.
 
-## Issue #386 — completed
+There is no remaining #400 blocker. Software, offline runtime and controlled Raspberry Pi acquisition-invariant acceptance are complete.
 
-Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`. Chart System software, offline runtime and Raspberry Pi renderer performance acceptance are complete. The production physical acquisition-invariant that was intentionally deferred from #386 is now verified by Issue #400.
-
-## Issue #400 — hardware acceptance PASS; final merge audit pending
-
-Issue #400 / PR #402 has no remaining product, software, offline-runtime or Raspberry Pi hardware blocker.
-
-Exact pre-hardware candidate `2da08a028f54884acb74ea71cf1fac741426687b` passed format, lint, typecheck, 77 files / 344 tests, production build, Authenticated Dashboard, Acquisition Scale, Refrigeration Browser and Offline Bundle.
-
-Controlled Raspberry Pi acceptance on 2026-08-12 is PASS:
+Raspberry Pi evidence:
 
 ```text
-60s browser-closed baseline: 180 physical requests / 3.000 req/s
+candidate: 2da08a028f54884acb74ea71cf1fac741426687b
+60s browser closed: 180 physical requests / 3.000 req/s
 60s active 8-channel chart: 181 physical requests / 3.017 req/s
 rate delta: +0.56%
 retries: 12 -> 12
 timeouts: 12 -> 12
 bus executions: 156 -> 157
-bus busy seconds: 11.928 -> 11.772
 scheduler policy: unchanged
 configured targets: 38 -> 38
 poll-eligible targets: 38 -> 38
-telemetry: continued advancing
+telemetry: advancing
 ```
 
 Evidence directory:
 
 `/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`
 
-The Device Agent remained in the same pre-existing degraded condition with three failing/cooldown endpoints; the Chart System did not increase failures, retries, timeouts, registry eligibility or request cadence. No Modbus write, hardware write, scheduler change, polling change, persistent-data deletion or site cutover occurred. Production dashboard service was restored after acceptance.
+No Modbus write, hardware write, polling/scheduler change, persistent-data deletion or site cutover occurred.
 
-The remaining control step is not a blocker: run final exact-head checks after the hardware-evidence/state commits, review the focused diff and review threads, then merge only while GREEN and current with `main`.
+## Issue #403 — state-only reconciliation
 
-## Issue #389 — unblocked, Ready and not selected
+Issue #403 has no product blocker. It exists only to reconcile the four canonical `.project` state files after the #400 merge and record the fresh Ready audit.
 
-Issue #389 (administrator-only local NEXOLAB Version Management) remains `status:ready`, but is `ready_not_selected` while the Chart System lane completes.
+No product code, dependency, runtime, database or hardware changes are permitted in #403.
 
-Its #385 dependency is satisfied because `project_versions.manage` and the administrator-only authorization boundary are canonical on `main`.
+## Issue #404 — Ready, selected next after #403
+
+Issue #404 migrates the persisted Saved Live Dashboard line/area history renderer to the canonical NEXOLAB Chart System.
+
+It is open, assigned, `priority:high` and `status:ready`.
+
+No implementation blocker is currently known. Dependencies #386 and #400 are merged.
+
+Important boundary: #404 does **not** absorb Issue #369. #369 remains the Raspberry Pi browser inventory/filter/select/save acceptance for the dashboard editor.
+
+Hardware acceptance for #404 must again be reported separately after software gates are GREEN; CI/mock evidence must not be called physical acceptance.
+
+## Issue #369 — Ready, preserved runtime sequence
+
+Issue #369 remains `status:ready` and covers actual Raspberry Pi browser acceptance for canonical Live Dashboard inventory, filtering, selection and save.
+
+Its product scope remains separate from #404 renderer migration.
+
+The preserved runtime sequence is:
+
+```text
+#369 -> #366 -> #289
+```
+
+## Issue #389 — Ready and not selected
+
+Issue #389 remains `status:ready` for administrator-only local NEXOLAB Version Management. Its #385 dependency is satisfied, but the Product Owner Chart System priority keeps it `ready_not_selected`.
 
 Hard stops specific to #389 remain:
 
@@ -56,20 +74,12 @@ Hard stops specific to #389 remain:
 - secrets would be exposed;
 - action would cross into unapproved production/site cutover.
 
-## Remaining prepared sequence
-
-The existing runtime sequence remains preserved:
-
-```text
-#369 -> #366 -> #289
-```
-
-Other known boundaries:
+## Other known boundaries
 
 - Issue #245 remains a separate Raspberry Pi validation track.
-- no parallel implementation lane is allowed while #400 is completing its final merge audit;
-- Issue #257 remains blocked by ESLint 10 ecosystem compatibility;
+- Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
+- `max_parallel_implementation_tasks` remains 1.
 
 ## Security boundary
 

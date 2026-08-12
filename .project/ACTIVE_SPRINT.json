@@ -19,13 +19,13 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "61998415e334cb31555e54ae4013d938e7607b6e",
-  "current_main_sha_semantics": "PR #401 post-#386 state reconciliation; Chart System foundation remains canonical and Issue #400 is the active production consumer",
+  "current_main_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
+  "current_main_sha_semantics": "Issue #400 / PR #402 Live Data canonical Chart System migration merged with software, offline and Raspberry Pi acquisition-invariant evidence",
   "product_owner_priority_override": {
     "active": true,
-    "decision": "Prioritize the Chart System track; Issue #400 is the sole active implementation lane and Issue #389 remains Ready but not selected.",
-    "completed_issue": 385,
-    "selected_issue": 400
+    "decision": "Continue the Chart System migration sequence; after state-only Issue #403, Issue #404 is the next sole implementation lane. Issue #389 remains Ready but not selected.",
+    "completed_issue": 400,
+    "selected_issue": 404
   },
   "tasks": [
     {
@@ -45,11 +45,46 @@
       "status": "completed_merged",
       "priority": "high",
       "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
-      "verified_candidate_sha": "d37cf08af9560ffa0d18c102656301e667299836",
-      "final_pr_head_sha": "5d4aacc8d6d2c7157ef42bf0356d102700f78960",
-      "software_ci": "19/19 GREEN",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64",
-      "completion_classification": "software verified; Raspberry Pi local user-management acceptance verified; merged"
+      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64"
+    },
+    {
+      "id": "NEXOLAB-386",
+      "issue": 386,
+      "pull_request": 399,
+      "title": "Establish chart-domain primitives and benchmark the local renderer",
+      "status": "completed_merged",
+      "priority": "high",
+      "merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
+      "completion_classification": "software verified; Raspberry Pi renderer performance verified; production acquisition invariant completed by Issue #400"
+    },
+    {
+      "id": "NEXOLAB-400",
+      "issue": 400,
+      "pull_request": 402,
+      "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
+      "status": "completed_merged",
+      "priority": "high",
+      "depends_on": [386],
+      "merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
+      "final_pr_head_sha": "4cdeae018348c5c831874321b0dad221f6113a98",
+      "hardware_tested_candidate_sha": "2da08a028f54884acb74ea71cf1fac741426687b",
+      "hardware_acceptance": "PASS on controlled Raspberry Pi 2026-08-12",
+      "completion_classification": "software verified; offline runtime verified; Raspberry Pi Live Data acquisition-invariant verified; merged"
+    },
+    {
+      "id": "NEXOLAB-403",
+      "issue": 403,
+      "title": "Reconcile Issue #400 merge and next Chart Work Package",
+      "status": "state_only_reconciliation_in_progress",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-404",
+      "issue": 404,
+      "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
+      "status": "ready_selected_next_after_state_reconciliation",
+      "priority": "high",
+      "depends_on": [386, 400]
     },
     {
       "id": "NEXOLAB-389",
@@ -63,7 +98,7 @@
       "id": "NEXOLAB-369",
       "issue": 369,
       "title": "Run actual Raspberry Pi Live Dashboard browser inventory acceptance",
-      "status": "queued_preserved_runtime_sequence",
+      "status": "ready_preserved_runtime_sequence",
       "priority": "critical",
       "depends_on": [368]
     },
@@ -82,31 +117,6 @@
       "status": "needs_validation",
       "priority": "critical",
       "depends_on": [283, 284, 285, 286, 287, 288, 314, 366]
-    },
-    {
-      "id": "NEXOLAB-386",
-      "issue": 386,
-      "title": "Establish chart-domain primitives and benchmark the local renderer",
-      "pull_request": 399,
-      "status": "completed_merged",
-      "priority": "high",
-      "depends_on": [383],
-      "merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
-      "final_pr_head_sha": "e3157a7e1ebd739656fdb57fc981df15edffe441",
-      "software_ci": "11/11 GREEN",
-      "completion_classification": "software verified; Raspberry Pi chart performance verified; production acquisition invariant completed by Issue #400"
-    },
-    {
-      "id": "NEXOLAB-400",
-      "issue": 400,
-      "pull_request": 402,
-      "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
-      "status": "hardware_verified_final_exact_head_audit_pending",
-      "priority": "high",
-      "depends_on": [386],
-      "frozen_software_candidate_sha": "2da08a028f54884acb74ea71cf1fac741426687b",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi 2026-08-12",
-      "completion_classification": "software verified; offline runtime verified; Raspberry Pi Live Data acquisition-invariant verified; final state/check audit pending"
     },
     {
       "id": "NEXOLAB-245",
@@ -130,55 +140,52 @@
     }
   ],
   "active_work_package": {
-    "issue": 400,
-    "pull_request": 402,
-    "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
-    "status": "hardware_verified_final_exact_head_audit_pending",
+    "issue": 403,
+    "title": "Reconcile Issue #400 merge and next Chart Work Package",
+    "status": "state_only_reconciliation_in_progress",
     "priority": "high",
     "assignee": "eNgine9r",
-    "selection_reason": "Product Owner priority keeps the Chart System lane selected; software/offline gates and real Raspberry Pi acquisition-invariant acceptance are complete."
+    "selection_reason": "Post-merge repository continuity requires canonical state reconciliation before opening the next implementation lane."
   },
   "next_ready_work_package": {
-    "issue": null,
-    "title": "Saved Live Dashboard canonical Chart System migration",
-    "status": "create_or_refine_after_issue_400_green_merge_and_ready_audit",
-    "priority": "high"
+    "issue": 404,
+    "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
+    "status": "status:ready_selected_after_issue_403_merge",
+    "priority": "high",
+    "depends_on": [386, 400]
   },
   "prepared_ready_backlog": [
     {
+      "issue": 369,
+      "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
+      "priority": "critical",
+      "lane": "preserved_runtime_sequence"
+    },
+    {
       "issue": 389,
       "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-      "priority": "high"
+      "priority": "high",
+      "lane": "ready_not_selected"
     }
   ],
   "verification": {
-    "issue_385_merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
-    "issue_385_final_head_ci": "19/19 GREEN",
-    "issue_385_hardware": "PASS on controlled Raspberry Pi aarch64; production build PASS; 4 browser tests + 1 persistence test; exit_code=0",
-    "issue_385_migration": "20260805_0022 -> telemetry 20260807_0023 -> local membership 20260807_0024",
-    "issue_389_dependency": "satisfied by Issue #385 merge; Ready but not selected",
-    "issue_386_merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
-    "issue_386_exact_head_ci": "11/11 GREEN including Offline Bundle and acquisition-invariant integration acceptance",
-    "issue_386_benchmark": "Raspberry Pi 5 arm64 / Headless Chrome 151: 1x240 median 38.9 ms; 8x240 median 103.8 ms and p95 169.0 ms; incremental median 12.3 ms and p95 31.2 ms; long-loop median 6.1 ms; zero public requests with Docker network disabled",
-    "issue_400_baseline": "origin/main 61998415e334cb31555e54ae4013d938e7607b6e",
-    "issue_400_pull_request": 402,
-    "issue_400_frozen_software_candidate": "2da08a028f54884acb74ea71cf1fac741426687b",
-    "issue_400_software_gates": "format GREEN; lint GREEN; typecheck GREEN; 77 files / 344 tests GREEN; lint-staged compatibility GREEN; Next.js production build GREEN; Authenticated Dashboard GREEN; Acquisition Scale GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
-    "issue_400_route_topology": "preserve Saved Live Dashboards; expose Live Data Explorer as sibling /live workspace; migrate Explorer renderer only",
+    "issue_400_merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
+    "issue_400_final_pr_head_sha": "4cdeae018348c5c831874321b0dad221f6113a98",
+    "issue_400_final_exact_head_gates": "CI GREEN; Authenticated Dashboard GREEN; Acquisition Scale GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
     "issue_400_hardware_acceptance": "PASS 2026-08-12; 60s baseline 180 physical requests / 3.000 req/s vs 60s active 181 / 3.017 req/s (+0.56%); retries 12 vs 12; timeouts 12 vs 12; bus executions 156 vs 157; scheduler policy unchanged; configured/poll-eligible targets 38/38 unchanged; telemetry advancing",
-    "issue_400_final_exact_head": "pending after hardware evidence/state commit"
+    "issue_400_raspberry_pi_evidence_directory": "/home/nexolab/nexolab-400-hardware.5B0rFp/evidence",
+    "post_400_ready_audit": "Open status:ready Issues are #369, #389 and newly created #404; no pre-existing Saved Live Dashboard Chart System migration Issue or open PR was found",
+    "issue_404_scope_boundary": "Saved Live Dashboard live renderer migration only; Issue #369 remains inventory/filter/select/save Raspberry Pi browser acceptance"
   },
   "runtime_evidence": {
     "issue_400_external_egress_required": false,
     "issue_400_modbus_write": false,
     "issue_400_hardware_write": false,
     "issue_400_polling_change": false,
-    "issue_400_raspberry_pi_evidence_directory": "/home/nexolab/nexolab-400-hardware.5B0rFp/evidence",
-    "issue_400_physical_acquisition_invariant": "PASS; +0.56% physical request-rate difference across equal 60-second windows with unchanged retry/timeout counts, scheduler policy and 38 eligible targets",
-    "issue_400_final_health": "Telemetry Service ready; database ready; MQTT ready; queue size 0; ingestion lag ~0.136s; Device Agent same pre-existing degraded state with 3 failing/cooldown endpoints; MQTT connected; queue depth 0",
+    "issue_400_physical_acquisition_invariant": "PASS",
     "issue_400_production_dashboard_restored": true
   },
-  "next_selection_policy": "Run final exact-head software/offline and review audit for PR #402 after hardware-evidence state updates, merge only while GREEN, then reconcile main and create/refine the Saved Live Dashboard Chart System migration. Preserve #389 Ready and preserve #369 -> #366 -> #289 unless Product Owner changes priority.",
+  "next_selection_policy": "Merge state-only Issue #403 while GREEN, then start Issue #404 as the sole implementation lane. Preserve #389 Ready/not selected and preserve runtime sequence #369 -> #366 -> #289 unless a fresh repository audit or explicit Product Owner priority change establishes a different order.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
