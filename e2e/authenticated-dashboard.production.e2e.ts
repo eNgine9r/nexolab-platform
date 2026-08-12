@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
@@ -16,9 +16,12 @@ const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 
 type ObservedRequest = {
   url: string;
+  method: string;
   authorization: boolean;
   organization: string | null;
 };
+
+type RuntimeRequest = { url: string; method: string };
 
 type WebSocketEvidence = {
   urls: string[];
@@ -51,11 +54,48 @@ function observeTelemetryRequests(page: Page): ObservedRequest[] {
     const headers = request.headers();
     requests.push({
       url,
+      method: request.method(),
       authorization: headers.authorization?.startsWith("Bearer ") ?? false,
       organization: headers["x-organization-id"] ?? null,
     });
   });
   return requests;
+}
+
+function observeAcquisitionMutations(page: Page): RuntimeRequest[] {
+  const mutations: RuntimeRequest[] = [];
+  page.on("request", (request) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method())) return;
+    const url = new URL(request.url());
+    const pathname = url.pathname.toLowerCase();
+    if (
+      pathname.includes("device-agent") ||
+      pathname.includes("/discovery") ||
+      pathname.includes("/configuration") ||
+      pathname.includes("/config/")
+    ) {
+      mutations.push({ url: request.url(), method: request.method() });
+    }
+  });
+  return mutations;
+}
+
+function observePublicRuntimeRequests(page: Page): RuntimeRequest[] {
+  const publicRequests: RuntimeRequest[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (!url.protocol.startsWith("http")) return;
+    const host = url.hostname;
+    const local =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if (!local) publicRequests.push({ url: request.url(), method: request.method() });
+  });
+  return publicRequests;
 }
 
 function observeWebSockets(page: Page): WebSocketEvidence {
@@ -153,10 +193,12 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
     }
   });
 
-  await test.step("load verified viewer inventory and history without leaking the bearer token", async () => {
+  await test.step("load verified viewer inventory and canonical Overview history without leaking credentials", async () => {
     const context = await authenticatedContext(browser);
     const page = await context.newPage();
     const requests = observeTelemetryRequests(page);
+    const acquisitionMutations = observeAcquisitionMutations(page);
+    const publicRequests = observePublicRuntimeRequests(page);
     const sockets = observeWebSockets(page);
     try {
       await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -167,10 +209,17 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await expect(page.getByText("K106", { exact: true })).toBeVisible();
       await expect(page.getByText("M200", { exact: true })).toBeVisible();
       await expect(page.getByText("PostgreSQL history", { exact: true })).toBeVisible();
-      await expect(
-        page.getByRole("img", { name: "Реальний графік історії температур XJP60D" }),
-      ).toBeVisible();
       await expect(page.getByText(/4[,.]5 °C/).first()).toBeVisible();
+
+      const panel = page.getByTestId("overview-chart-panel");
+      await expect(panel).toHaveCount(1);
+      const host = panel.getByTestId("chart-renderer-host");
+      await expect(host).toBeVisible();
+      await expect(panel.getByTestId("chart-accessible-summary")).toContainText(
+        "XJP60D temperature history",
+      );
+      await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+      await expect(panel.locator("svg")).toHaveCount(0);
 
       await expect.poll(() => sockets.sentTypes.includes("authenticate"), { timeout: 20_000 }).toBe(true);
       await expect
@@ -193,9 +242,79 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       const oneHourRequest = requests.filter((item) => item.url.includes("/history")).at(-1);
       expect(oneHourRequest).toBeDefined();
       expect(rangeMilliseconds(oneHourRequest?.url ?? "")).toBe(60 * 60 * 1000);
+      await expect(panel).toHaveCount(1);
+      await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+
+      const historyRequestsBeforeInteraction = requests.filter((item) =>
+        item.url.includes("/history"),
+      ).length;
+      const hostBeforeLivePoint = panel.getByTestId("chart-renderer-host");
+      await hostBeforeLivePoint.evaluate((element) => {
+        element.setAttribute("data-overview-continuity-token", "issue-413-stable-host");
+      });
+      const canvasBeforeLivePoint = panel.locator("canvas").first();
+      await canvasBeforeLivePoint.evaluate((element) => {
+        element.setAttribute("data-overview-canvas-token", "issue-413-stable-canvas");
+      });
 
       publishLiveTemperature(5.7);
       await expect(page.getByText(/5[,.]7 °C/).first()).toBeVisible();
+      await page.waitForTimeout(750);
+      await expect(hostBeforeLivePoint).toHaveAttribute(
+        "data-overview-continuity-token",
+        "issue-413-stable-host",
+      );
+      await expect(canvasBeforeLivePoint).toHaveAttribute(
+        "data-overview-canvas-token",
+        "issue-413-stable-canvas",
+      );
+      expect(requests.filter((item) => item.url.includes("/history")).length).toBe(
+        historyRequestsBeforeInteraction,
+      );
+
+      await panel.getByRole("button", { name: "Hide" }).first().click();
+      await expect(panel.getByRole("button", { name: "Show" })).toHaveCount(1);
+      await panel.getByRole("button", { name: "Solo" }).first().click();
+
+      await host.scrollIntoViewIfNeeded();
+      const box = await host.boundingBox();
+      if (!box) throw new Error("Overview chart host has no bounding box");
+      const cursorLayoutBefore = {
+        y: box.y,
+        height: box.height,
+        scrollY: await page.evaluate(() => window.scrollY),
+      };
+      for (const xFraction of [0.68, 0.75, 0.83, 0.91]) {
+        await page.mouse.move(box.x + box.width * xFraction, box.y + box.height * 0.5);
+        await page.waitForTimeout(75);
+        const cursorBox = await host.boundingBox();
+        if (!cursorBox) throw new Error("Overview chart host disappeared during cursor inspection");
+        expect(Math.abs(cursorBox.y - cursorLayoutBefore.y)).toBeLessThanOrEqual(1);
+        expect(Math.abs(cursorBox.height - cursorLayoutBefore.height)).toBeLessThanOrEqual(1);
+        expect(await page.evaluate(() => window.scrollY)).toBe(cursorLayoutBefore.scrollY);
+      }
+
+      await page.mouse.wheel(0, -500);
+      await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.5);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.5, { steps: 5 });
+      await page.mouse.up();
+      await panel.getByRole("button", { name: "Reset zoom" }).click();
+      await expect(host).toBeVisible();
+      expect(requests.filter((item) => item.url.includes("/history")).length).toBe(
+        historyRequestsBeforeInteraction,
+      );
+
+      for (const width of [360, 1440, 1920]) {
+        await page.setViewportSize({ width, height: 900 });
+        await expect(host).toBeVisible();
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+          .toBe(true);
+      }
+
+      expect(acquisitionMutations).toEqual([]);
+      expect(publicRequests).toEqual([]);
 
       await page.screenshot({
         path: path.join(evidenceDirectory, "authenticated-live-dashboard.png"),
@@ -213,6 +332,13 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             inventoryEquipment: ["K106", "M200"],
             initialHistoryRangeHours: 24,
             selectedHistoryRangeHours: 1,
+            canonicalOverviewChart: true,
+            overviewHistorySvg: false,
+            cursorLayoutStable: true,
+            liveCanvasIdentityStable: true,
+            historyRequestsAfterChartInteractions: historyRequestsBeforeInteraction,
+            acquisitionMutations,
+            publicRequests,
             websocketUrls: sockets.urls.map((value) => {
               const url = new URL(value);
               return { origin: url.origin, pathname: url.pathname, queryKeys: [...url.searchParams.keys()] };
