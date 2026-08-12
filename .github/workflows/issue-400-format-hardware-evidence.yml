@@ -1,0 +1,35 @@
+name: Issue 400 format hardware evidence
+
+on:
+  push:
+    branches:
+      - feat/400-live-data-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/400-live-data-chart-system
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - run: npx prettier --write docs/audits/issue-400-live-data-chart-system.md
+      - run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audits/issue-400-live-data-chart-system.md
+          git diff --cached --quiet && exit 0
+          git commit -m "docs: format Issue 400 hardware evidence"
+          git push origin HEAD:feat/400-live-data-chart-system
