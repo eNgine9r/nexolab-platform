@@ -14,20 +14,26 @@ Issue #411 / PR #412 state reconciliation is merged as `e89560cd2f52b59ed1c9fda4
 
 The required fresh Ready audit was completed after that merge and selected Issue #413.
 
-## Issue #413 — active verification boundary
+## Issue #413 — physical acceptance pending
 
 Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history from its custom SVG renderer to the canonical Chart System.
 
-No hard product blocker is currently known. The implementation is intentionally **not Ready for merge** until all of the following are complete:
+No software/offline product blocker is currently known. Clean checkpoint head `cb65b4b08cd0087ea6b405de72c0a16f561e7541` passed:
 
-- exact-head format/lint/typecheck/tests/build GREEN;
-- Authenticated Dashboard production browser acceptance GREEN;
-- acquisition-invariant regression GREEN;
-- Offline Bundle GREEN;
-- focused diff/review audit with no unresolved threads;
-- controlled Raspberry Pi Overview acceptance on the exact final candidate.
+- CI #2937 — GREEN;
+- Authenticated Dashboard Acceptance #1625 — GREEN, 12/12;
+- Refrigeration Browser Acceptance #1599 — GREEN;
+- Offline Bundle #1008 — GREEN.
 
-Raspberry Pi acceptance must verify a real Overview temperature series, browser-closed versus active-Overview physical acquisition counters, chart continuity through an exact real event, cursor layout stability, zoom/pan/reset, route reopen and clean production restoration.
+The earlier production-browser timeout was trace-diagnosed to a responsive shared `ChartShell` footer overlap: the inspector intercepted legend pointer events inside the narrow Overview card. The footer now remains stacked until `2xl`, and the full 12/12 production browser run passed without relaxing the interaction assertion or timeout.
+
+The branch is intentionally **not Ready for merge** until:
+
+- the final state/audit checkpoint head reruns required canonical gates GREEN;
+- focused diff/review audit confirms no unrelated files or unresolved threads;
+- controlled Raspberry Pi Overview acceptance passes on that exact frozen head.
+
+Raspberry Pi acceptance must verify a real active Overview temperature series, equal-duration browser-closed versus active-Overview physical acquisition counters, chart continuity through an exact real event, cursor layout stability, zoom/pan/reset, route reopen and clean production restoration.
 
 No synthetic-only fixture may be represented as physical acceptance.
 
