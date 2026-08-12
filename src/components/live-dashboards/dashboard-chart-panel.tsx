@@ -61,6 +61,7 @@ export function DashboardChartPanel({
         <ChartRendererHost
           adapter={adapter}
           scene={group.scene}
+          reducedMotion
           sharedCursorMs={sharedCursorMs}
           onCursor={(nextInspection) => {
             const truthful = withinTolerance(nextInspection);
