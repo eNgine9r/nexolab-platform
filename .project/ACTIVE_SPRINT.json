@@ -19,13 +19,13 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
-  "current_main_sha_semantics": "Issue #411 / PR #412 post-#404 state reconciliation merge; Issue #413 corrective product code is hardware accepted and awaiting final state-only exact-head merge audit",
+  "current_main_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
+  "current_main_sha_semantics": "Issue #413 / PR #414 Overview Chart System merged after GREEN exact-head gates and controlled Raspberry Pi acceptance PASS",
   "product_owner_priority_override": {
-    "active": true,
-    "decision": "Continue the Chart System migration sequence with Overview. Preserve #369 -> #366 -> #289 as a separate runtime acceptance lane and #389 as Ready/not selected.",
-    "completed_issue": 411,
-    "selected_issue": 413
+    "active": false,
+    "decision": "Issue #413 Chart System priority is completed. Run a fresh repository-backed Ready audit after Issue #417 reconciliation before selecting the next implementation package.",
+    "completed_issue": 413,
+    "selected_issue": null
   },
   "tasks": [
     {
@@ -72,16 +72,22 @@
       "issue": 413,
       "pull_request": 414,
       "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-      "status": "hardware_pass_final_merge_audit",
+      "status": "completed_merged",
       "priority": "high",
-      "depends_on": [386, 404],
-      "branch": "feat/413-overview-chart-system",
-      "first_frozen_head": "634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5",
-      "first_hardware_acceptance": "FAIL only cursor visual stability; all other UI/control-plane observations passed",
+      "merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
       "corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-      "corrective_product_gates": "CI #2944 GREEN; Authenticated Dashboard #1632 GREEN; Refrigeration Browser #1606 GREEN; Offline Bundle #1015 GREEN",
-      "hardware_acceptance": "PASS: cursor_vertical_jump=NO; graph_card_stays_fixed=YES; continuity/render/controls/ranges/reopen/usability PASS",
-      "product_scope_after_hardware_pass_changed": false
+      "final_pr_head": "a845e39b0daa628e20e551289a378dcc33ffef2b",
+      "verification": "CI #2950 GREEN; Authenticated Dashboard #1638 GREEN; Refrigeration Browser #1612 GREEN; Offline Bundle #1021 GREEN",
+      "hardware_acceptance": "PASS: cursor_vertical_jump=NO; graph_card_stays_fixed=YES; continuity/render/controls/ranges/reopen/usability PASS"
+    },
+    {
+      "id": "NEXOLAB-417",
+      "issue": 417,
+      "title": "Reconcile Issue #413 merge and Chart System follow-up state",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/417-reconcile-issue-413-state",
+      "depends_on": [413]
     },
     {
       "id": "NEXOLAB-415",
@@ -143,18 +149,17 @@
     }
   ],
   "active_work_package": {
-    "issue": 413,
-    "pull_request": 414,
-    "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-    "status": "hardware_pass_final_merge_audit",
+    "issue": 417,
+    "title": "Reconcile Issue #413 merge and Chart System follow-up state",
+    "status": "in_progress_state_only",
     "priority": "high",
     "assignee": "eNgine9r",
-    "branch": "feat/413-overview-chart-system"
+    "branch": "chore/417-reconcile-issue-413-state"
   },
   "next_ready_work_package": {
     "issue": null,
-    "title": "Reassess after Issue #413 merge and post-merge reconciliation",
-    "status": "blocked_by_active_work_package",
+    "title": "Fresh repository-backed Ready audit after Issue #417 merge",
+    "status": "required_before_selection",
     "priority": "high"
   },
   "prepared_backlog": [
@@ -175,11 +180,11 @@
     }
   ],
   "verification": {
-    "issue_413_base_main": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
+    "issue_413_merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
     "issue_413_corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-    "issue_413_corrective_product_gates": "CI #2944 GREEN; Authenticated Dashboard #1632 GREEN; Refrigeration Browser #1606 GREEN; Offline Bundle #1015 GREEN",
-    "issue_413_hardware": "PASS on corrective product code",
-    "issue_413_final_merge_head": "pending state-only completion head exact checks"
+    "issue_413_final_pr_head": "a845e39b0daa628e20e551289a378dcc33ffef2b",
+    "issue_413_final_gates": "CI #2950 GREEN; Authenticated Dashboard #1638 GREEN; Refrigeration Browser #1612 GREEN; Offline Bundle #1021 GREEN",
+    "issue_413_hardware": "PASS on corrective product code"
   },
   "runtime_evidence": {
     "issue_413_external_egress_required": false,
@@ -187,7 +192,7 @@
     "issue_413_hardware_write": false,
     "issue_413_polling_change": false
   },
-  "next_selection_policy": "Merge #413 only after final state-only exact-head CI/review audit. Then reconcile main and run a fresh Ready audit before selecting #369, #389, #415 or another dependency-backed package.",
+  "next_selection_policy": "Merge state-only #417 after GREEN CI, then run a fresh repository-backed Ready audit before selecting #369, #389, #415 or another dependency-backed package.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
