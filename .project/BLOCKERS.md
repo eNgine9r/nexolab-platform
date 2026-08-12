@@ -14,21 +14,39 @@ Issue #406 / PR #407 is merged as `457923927052ed91a23f396b2285e0cfaf6096ad`. Th
 
 Issue #408 / PR #409 is merged as `f3462861db2a3593e2072a7bad70d557c009b323`.
 
-## Issue #404 — active, no hard blocker
+## Issue #404 — active merge blocker: Raspberry Pi visual continuity
 
-Issue #404 is the sole active implementation lane for Saved Live Dashboard canonical Chart System migration.
+Issue #404 remains the sole active implementation lane for Saved Live Dashboard canonical Chart System migration. PR #410 remains Draft.
 
-Implementation is complete at the focused software layer and targeted checks are GREEN. Remaining work is verification, not a product blocker:
+The first controlled Raspberry Pi test of candidate `2b508d8a1c22ab28069c24833b792261b16193e6` produced a split result:
 
-- open focused PR and run exact-head repository CI;
-- run authenticated production Saved Dashboard browser acceptance;
-- run the existing acquisition-invariant browser gate;
-- run Offline Bundle;
-- review focused diff/review threads;
-- after software/browser/offline GREEN, run controlled Raspberry Pi Saved Dashboard acceptance with equal-duration physical acquisition counters;
-- record evidence and repeat final exact-head audit before merge.
+- acquisition invariant: **PASS**;
+- chart visual continuity: **FAIL**.
 
-No backend, database, polling, scheduler, registry, Device Agent, Modbus or hardware change is required.
+Equal 60-second windows showed no browser-driven acquisition amplification: browser closed `156` physical requests / `2.600 req/s`; active Saved Dashboard `144` / `2.400 req/s`. Scheduler policy, 38 configured targets, 38 poll-eligible targets and 4 degraded/cooldown endpoints remained unchanged; telemetry advanced.
+
+The visual failure blocks Ready/merge until a repeated physical acceptance passes.
+
+A corrective slice is implemented:
+
+- Saved Dashboard ECharts rolling scene refreshes are non-animated to avoid blank transition frames on Raspberry Pi;
+- one mounted `ChartRendererHost` and one ECharts instance remain authoritative;
+- production browser acceptance now publishes a real local MQTT point across the dashboard refresh interval and asserts the same host and Canvas DOM nodes survive without an additional history reload.
+
+Corrective source head `67846013a8c7d357716321e2149509a2fb526f43` passed CI, Authenticated Dashboard Acceptance, Acquisition Scale Acceptance, Refrigeration Browser Acceptance and Offline Bundle. A final exact-head cycle is still required after the canonical state checkpoint, followed by a repeated Raspberry Pi test.
+
+The repeated physical acceptance must separate:
+
+1. continuous chart observation while new real points arrive, with no route/library navigation;
+2. intentional library close/reopen lifecycle, checked separately for cleanup/reinitialization.
+
+The first script mixed these phases, so intentional navigation could also cause an expected unmount. The original FAIL remains recorded; the repeat test removes that ambiguity.
+
+### Acceptance-harness cleanup
+
+An orphan `next-server` from the earlier #400 temporary handoff was found holding port 3000 and driving `nexolab-dashboard.service` into repeated `EADDRINUSE` restarts. It was terminated and production dashboard stability was restored (`active/running`, `NRestarts=0`, HTTP 200) before the #404 baseline. No production data, backend service, Device Agent configuration or hardware state was changed.
+
+No backend, database, polling, scheduler, registry, Device Agent, Modbus or hardware change is required to resolve #404.
 
 Known truthful limitation: the existing Saved Dashboard delivery hook reports `reconnecting` freshness but does not expose a timestamped reconnect event. The chart therefore does not invent a reconnect-break timestamp; it preserves reconnecting as freshness and uses actual missing/source-gap evidence for continuity.
 
