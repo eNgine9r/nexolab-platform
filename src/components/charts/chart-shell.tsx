@@ -48,12 +48,8 @@ export function ChartShell({
     ? series.find((item) => chartSeriesKey(item.identity) === inspection.seriesKey)
     : undefined;
   const inspectedPoint = inspection?.point ?? null;
-  const inspectorTimestamp = inspectedPoint
-    ? new Date(inspectedPoint.timestampMs).toISOString()
-    : "—";
-  const inspectorSeriesName = inspectedPoint
-    ? (inspectedSeries?.name ?? inspection?.seriesKey ?? "—")
-    : "—";
+  const inspectorTimestamp = inspectedPoint ? new Date(inspectedPoint.timestampMs).toISOString() : "—";
+  const inspectorSeriesName = inspectedPoint ? (inspectedSeries?.name ?? inspection?.seriesKey ?? "—") : "—";
   const inspectorValue = inspectedPoint
     ? `${inspectedPoint.value} ${inspectedSeries?.identity.nativeUnit ?? ""}`
     : "—";
@@ -107,10 +103,7 @@ export function ChartShell({
                   style={{ backgroundColor: item.colorToken }}
                   aria-hidden="true"
                 />
-                <span
-                  className="min-w-0 flex-1 truncate text-xs tabular-nums"
-                  title={legendLabel}
-                >
+                <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
                   {legendLabel}
                 </span>
                 <button
@@ -139,9 +132,7 @@ export function ChartShell({
         >
           <p className="font-medium text-white">Exact inspector</p>
           <p className="mt-2 min-h-4 text-slate-500">
-            {inspectedPoint
-              ? "Exact measured sample."
-              : "Move the shared cursor or use keyboard inspection."}
+            {inspectedPoint ? "Exact measured sample." : "Move the shared cursor or use keyboard inspection."}
           </p>
           <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-slate-300">
             <dt>Timestamp</dt>
@@ -152,10 +143,7 @@ export function ChartShell({
               {inspectorTimestamp}
             </dd>
             <dt>Series</dt>
-            <dd
-              className="min-w-0 truncate"
-              title={inspectedPoint ? inspectorSeriesName : undefined}
-            >
+            <dd className="min-w-0 truncate" title={inspectedPoint ? inspectorSeriesName : undefined}>
               {inspectorSeriesName}
             </dd>
             <dt>Value</dt>
