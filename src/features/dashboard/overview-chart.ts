@@ -139,7 +139,9 @@ function buildSeries(
   soloSeriesKey: string | null,
 ): ChartSeries {
   const samples = orderedUniqueSamples(source);
-  const identity = overviewChartIdentity(samples[0]);
+  const firstSample = samples[0];
+  if (!firstSample) throw new Error("Overview chart series requires at least one sample");
+  const identity = overviewChartIdentity(firstSample);
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[visualIndex % CHART_SERIES_TOKENS.length];
   const pins = transitionPins(samples);
@@ -224,7 +226,7 @@ export function buildOverviewChartGroups(options: OverviewChartBuildOptions): Ov
       };
     })
     .sort((left, right) => left.firstIndex - right.firstIndex)
-    .map(({ firstIndex: _firstIndex, ...group }) => group);
+    .map(({ id, nativeUnit, physicalQuantity, scene }) => ({ id, nativeUnit, physicalQuantity, scene }));
 }
 
 export function overviewResetDomain(
