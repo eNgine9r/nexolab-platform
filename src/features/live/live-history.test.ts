@@ -136,6 +136,42 @@ describe("live history downsampling", () => {
     expect(result.at(-1)?.event_id).toBe("event-19");
   });
 
+  it("preserves both short local extrema instead of a last-point-only bucket", () => {
+    const samples = Array.from({ length: 40 }, (_, index) =>
+      sample({
+        event_id: `event-${index}`,
+        captured_at: new Date(window.from.getTime() + index * 5_000).toISOString(),
+        value: index === 18 ? -12 : index === 19 ? 31 : 4 + index / 100,
+      }),
+    );
+
+    const result = downsampleLiveHistory(samples, window, 10);
+    const values = result.map((item) => item.value);
+
+    expect(values).toContain(-12);
+    expect(values).toContain(31);
+    expect(result.length).toBeLessThanOrEqual(10);
+  });
+
+  it("preserves alarm entry and recovery context under reduction", () => {
+    const samples = Array.from({ length: 40 }, (_, index) =>
+      sample({
+        event_id: `event-${index}`,
+        captured_at: new Date(window.from.getTime() + index * 5_000).toISOString(),
+        value: index,
+        alarm: index >= 18 && index <= 20 ? "high" : null,
+      }),
+    );
+
+    const result = downsampleLiveHistory(samples, window, 10);
+    const eventIds = result.map((item) => item.event_id.replace("nexolab-live-segment:", ""));
+
+    expect(eventIds).toContain("event-17");
+    expect(eventIds).toContain("event-18");
+    expect(eventIds).toContain("event-20");
+    expect(eventIds).toContain("event-21");
+  });
+
   it("preserves a communication failure as a separate recovery segment", () => {
     const samples = [
       sample({ event_id: "before", captured_at: "2026-08-03T21:00:00.000Z", value: 4.1 }),

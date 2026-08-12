@@ -1,48 +1,50 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 ## Issue #385 — completed
 
-Issue #385 / PR #390 is merged as `e0b124e9a0152be50966daa131974b3543651e87`.
-
-Its software and Raspberry Pi acceptance gates are complete:
-
-```text
-final exact-head CI: 19/19 GREEN
-Raspberry Pi acceptance: PASS
-architecture: aarch64 / linux/arm64
-production build: PASS
-local-auth browser tests: 4 passed
-persistence/recreation test: 1 passed
-acceptance exit_code: 0
-```
-
-There is no remaining #385 blocker.
+Issue #385 / PR #390 is merged as `e0b124e9a0152be50966daa131974b3543651e87`. Software and Raspberry Pi acceptance are complete. There is no remaining #385 blocker.
 
 ## Issue #386 — completed
 
-Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`.
+Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`. Chart System software, offline runtime and Raspberry Pi renderer performance acceptance are complete. The production physical acquisition-invariant that was intentionally deferred from #386 is now verified by Issue #400.
 
-There is no remaining #386 software blocker. Chart performance was measured on the controlled Raspberry Pi 5 arm64 host and passes the provisional renderer targets. Final exact-head CI was 11/11 GREEN, including Offline Bundle and repository acquisition-invariant integration acceptance.
+## Issue #400 — hardware acceptance PASS; final merge audit pending
 
-Controlled physical Device Agent/Modbus request-rate acceptance was not performed by the deterministic foundation harness. It remains an explicit acceptance item in Issue #400, the first production Live Data consumer. This limitation does not authorize acquisition, polling, scheduler, registry, Device Agent, Modbus, or hardware changes.
+Issue #400 / PR #402 has no remaining product, software, offline-runtime or Raspberry Pi hardware blocker.
 
-Hard boundaries:
+Exact pre-hardware candidate `2da08a028f54884acb74ea71cf1fac741426687b` passed format, lint, typecheck, 77 files / 344 tests, production build, Authenticated Dashboard, Acquisition Scale, Refrigeration Browser and Offline Bundle.
 
-- no production-page migration in this Work Package;
-- no public CDN, cloud renderer, remote font or runtime network import;
-- no REST/WebSocket, polling, scheduler, registry, Device Agent or Modbus changes;
-- no hardware or Modbus writes;
-- keep Raspberry Pi renderer evidence separate from the still-pending physical acquisition invariant.
+Controlled Raspberry Pi acceptance on 2026-08-12 is PASS:
+
+```text
+60s browser-closed baseline: 180 physical requests / 3.000 req/s
+60s active 8-channel chart: 181 physical requests / 3.017 req/s
+rate delta: +0.56%
+retries: 12 -> 12
+timeouts: 12 -> 12
+bus executions: 156 -> 157
+bus busy seconds: 11.928 -> 11.772
+scheduler policy: unchanged
+configured targets: 38 -> 38
+poll-eligible targets: 38 -> 38
+telemetry: continued advancing
+```
+
+Evidence directory:
+
+`/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`
+
+The Device Agent remained in the same pre-existing degraded condition with three failing/cooldown endpoints; the Chart System did not increase failures, retries, timeouts, registry eligibility or request cadence. No Modbus write, hardware write, scheduler change, polling change, persistent-data deletion or site cutover occurred. Production dashboard service was restored after acceptance.
+
+The remaining control step is not a blocker: run final exact-head checks after the hardware-evidence/state commits, review the focused diff and review threads, then merge only while GREEN and current with `main`.
 
 ## Issue #389 — unblocked, Ready and not selected
 
-Issue #389 (administrator-only local NEXOLAB Version Management) remains `status:ready`, but is `ready_not_selected` while #386 is the sole active implementation task.
+Issue #389 (administrator-only local NEXOLAB Version Management) remains `status:ready`, but is `ready_not_selected` while the Chart System lane completes.
 
 Its #385 dependency is satisfied because `project_versions.manage` and the administrator-only authorization boundary are canonical on `main`.
-
-Before implementation, inventory the repository's existing deployment/update/rollback/offline contracts and narrow the permitted implementation paths. Do not create a second deployment engine.
 
 Hard stops specific to #389 remain:
 
@@ -56,7 +58,7 @@ Hard stops specific to #389 remain:
 
 ## Remaining prepared sequence
 
-The existing runtime sequence remains preserved and is not replanned by #386:
+The existing runtime sequence remains preserved:
 
 ```text
 #369 -> #366 -> #289
@@ -65,13 +67,13 @@ The existing runtime sequence remains preserved and is not replanned by #386:
 Other known boundaries:
 
 - Issue #245 remains a separate Raspberry Pi validation track.
-- Issue #400 is the selected next Ready Chart Work Package; no implementation Work Package is active during post-merge reconciliation.
-- Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
+- no parallel implementation lane is allowed while #400 is completing its final merge audit;
+- Issue #257 remains blocked by ESLint 10 ecosystem compatibility;
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
 
 ## Security boundary
 
-The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #385 did not broaden it.
+The exact `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #400 did not broaden it.
 
 ## Global hard-stop rules
 

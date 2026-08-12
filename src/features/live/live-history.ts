@@ -1,3 +1,5 @@
+import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
+import { reduceChartSegments } from "@/features/charts/reduction";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
@@ -95,16 +97,25 @@ function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetryS
   return annotated;
 }
 
-function mergeBucketSample(
-  current: TelemetrySample | undefined,
-  candidate: TelemetrySample,
-): TelemetrySample {
-  if (!current) return candidate;
-  const selected =
-    parsedTimestamp(candidate.captured_at) >= parsedTimestamp(current.captured_at) ? candidate : current;
-  const startsSegment = isLiveHistorySegmentStart(current) || isLiveHistorySegmentStart(candidate);
-  const normalized = clearSegmentStart(selected);
-  return startsSegment ? markSegmentStart(normalized) : normalized;
+function alarmTransitionPins(samples: readonly TelemetrySample[]): Set<string> {
+  const pins = new Set<string>();
+  let previous: TelemetrySample | null = null;
+
+  for (const sample of samples) {
+    if (previous === null) {
+      if (sample.alarm !== null) pins.add(sourceEventId(sample.event_id));
+      previous = sample;
+      continue;
+    }
+
+    if (previous.alarm !== sample.alarm) {
+      pins.add(sourceEventId(previous.event_id));
+      pins.add(sourceEventId(sample.event_id));
+    }
+    previous = sample;
+  }
+
+  return pins;
 }
 
 function downsampleChannel(
@@ -114,33 +125,46 @@ function downsampleChannel(
 ): TelemetrySample[] {
   const annotated = annotateSourceSegments(samples);
   if (annotated.length <= maximumPoints) return annotated;
-  if (maximumPoints <= 1) return [annotated.at(-1)!];
-  if (maximumPoints === 2) return [annotated[0], annotated.at(-1)!];
 
-  const first = annotated[0];
-  const last = annotated.at(-1)!;
-  const rangeMs = Math.max(1, window.to.getTime() - window.from.getTime());
-  const interiorBucketCount = maximumPoints - 2;
-  const bucketMs = Math.max(1, Math.ceil(rangeMs / interiorBucketCount));
-  const buckets = new Map<number, TelemetrySample>();
+  const seriesKey = annotated[0] ? liveChannelKey(annotated[0]) : "unknown";
+  const pins = alarmTransitionPins(annotated);
+  const originals = new Map(
+    annotated.map((sample) => [sourceEventId(sample.event_id), clearSegmentStart(sample)] as const),
+  );
+  const segments: ChartSegment[] = liveHistorySegments(annotated).map((segment, index) => {
+    const points: ChartPoint[] = segment.map((sample) => {
+      const id = sourceEventId(sample.event_id);
+      return {
+        id,
+        timestampMs: parsedTimestamp(sample.captured_at),
+        value: sample.value!,
+        quality: sample.quality,
+        sourceEventId: id,
+        ...(pins.has(id) ? { pinReasons: ["alarm"] as const } : {}),
+      };
+    });
+    return {
+      id: `${seriesKey}:segment:${index}`,
+      seriesKey,
+      points,
+      ...(index > 0 && points[0]
+        ? { precedingBreak: { reason: "explicit_gap" as const, atMs: points[0].timestampMs } }
+        : {}),
+    };
+  });
 
-  for (const sample of annotated.slice(1, -1)) {
-    const bucket = Math.floor((parsedTimestamp(sample.captured_at) - window.from.getTime()) / bucketMs);
-    buckets.set(bucket, mergeBucketSample(buckets.get(bucket), sample));
-  }
+  const reduced = reduceChartSegments(segments, {
+    maximumPoints,
+    bucketOriginMs: window.from.getTime(),
+  });
 
-  const sampled = [
-    first,
-    ...[...buckets.values()].sort(
-      (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
-    ),
-    last,
-  ];
-  const unique = new Map<string, TelemetrySample>();
-  for (const sample of sampled) unique.set(sourceEventId(sample.event_id), sample);
-  return [...unique.values()]
-    .sort((left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at))
-    .slice(0, maximumPoints);
+  return reduced.flatMap((segment, segmentIndex) =>
+    segment.points.flatMap((point, pointIndex) => {
+      const original = originals.get(point.id);
+      if (!original) return [];
+      return segmentIndex > 0 && pointIndex === 0 ? [markSegmentStart(original)] : [original];
+    }),
+  );
 }
 
 export function downsampleLiveHistory(
