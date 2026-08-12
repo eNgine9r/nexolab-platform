@@ -6,10 +6,7 @@ import { AlertTriangle, LoaderCircle, RotateCcw, Thermometer } from "lucide-reac
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
 import type { ChartXDomain } from "@/features/charts/domain";
-import {
-  buildOverviewChartGroups,
-  overviewResetDomain,
-} from "@/features/dashboard/overview-chart";
+import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
@@ -85,7 +82,8 @@ function HistoryChart({
       count +
       group.scene.series.reduce(
         (seriesTotal, series) =>
-          seriesTotal + series.segments.reduce((segmentTotal, segment) => segmentTotal + segment.points.length, 0),
+          seriesTotal +
+          series.segments.reduce((segmentTotal, segment) => segmentTotal + segment.points.length, 0),
         0,
       ),
     0,

@@ -215,9 +215,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await expect(panel).toHaveCount(1);
       const host = panel.getByTestId("chart-renderer-host");
       await expect(host).toBeVisible();
-      await expect(panel.getByTestId("chart-accessible-summary")).toContainText(
-        "XJP60D temperature history",
-      );
+      await expect(panel.getByTestId("chart-accessible-summary")).toContainText("XJP60D temperature history");
       await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
       await expect(panel.locator("svg")).toHaveCount(0);
 

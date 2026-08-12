@@ -236,7 +236,10 @@ export function overviewResetDomain(
     .filter(isTemperatureProbeSample)
     .reduce((latest, sample) => Math.max(latest, timestamp(sample)), Number.NEGATIVE_INFINITY);
   const windowAnchor = historyWindow ? Date.parse(historyWindow.to) : Number.NEGATIVE_INFINITY;
-  const toMs = Math.max(sampleAnchor, Number.isFinite(windowAnchor) ? windowAnchor : Number.NEGATIVE_INFINITY);
+  const toMs = Math.max(
+    sampleAnchor,
+    Number.isFinite(windowAnchor) ? windowAnchor : Number.NEGATIVE_INFINITY,
+  );
   const safeToMs = Number.isFinite(toMs) ? toMs : Date.now();
   return { fromMs: safeToMs - HISTORY_RANGE_MS[range], toMs: safeToMs };
 }

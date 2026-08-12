@@ -90,7 +90,7 @@ Live temperature cards remain separate from the canonical history plot.
 Added mapping tests for:
 
 - communication-error continuity break;
-- >30-second source gap;
+- > 30-second source gap;
 - overlapping history/live event deduplication;
 - stable identity/color order regardless of input order;
 - canonical bounded reduction with extrema preservation;
