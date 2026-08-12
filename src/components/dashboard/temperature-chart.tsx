@@ -1,9 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, RotateCcw, Thermometer } from "lucide-react";
 
+import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
+import type { ChartXDomain } from "@/features/charts/domain";
+import {
+  buildOverviewChartGroups,
+  overviewResetDomain,
+} from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
@@ -33,62 +39,12 @@ function formatValue(sample: TelemetrySample): string {
   }).format(sample.value)} ${displayUnit(sample.unit)}`;
 }
 
-function channelColor(channelId: string): string {
-  const hue = [...channelId].reduce((value, character) => (value * 31 + character.charCodeAt(0)) % 360, 0);
-  return `hsl(${hue} 78% 60%)`;
-}
-
-type Series = {
-  channelId: string;
-  path: string;
-  points: Array<{ id: string; x: number; y: number }>;
-};
-
-function buildSeries(samples: readonly TelemetrySample[]): Series[] {
-  const accepted = samples
-    .filter(isTemperatureProbeSample)
-    .filter(
-      (sample): sample is TelemetrySample & { value: number } =>
-        sample.quality === "valid" &&
-        sample.value !== null &&
-        Number.isFinite(sample.value) &&
-        Number.isFinite(Date.parse(sample.captured_at)),
-    )
-    .sort((left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at));
-  if (accepted.length === 0) return [];
-
-  const times = accepted.map((sample) => Date.parse(sample.captured_at));
-  const values = accepted.map((sample) => sample.value);
-  const from = Math.min(...times);
-  const to = Math.max(...times);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const timeSpan = Math.max(1, to - from);
-  const valueSpan = Math.max(1, maximum - minimum);
-  const channelIds = [...new Set(accepted.map((sample) => sample.channel_id))].sort(compareChannels);
-
-  return channelIds.map((channelId) => {
-    const points = accepted
-      .filter((sample) => sample.channel_id === channelId)
-      .map((sample) => ({
-        id: sample.event_id,
-        x: 32 + ((Date.parse(sample.captured_at) - from) / timeSpan) * 568,
-        y: 20 + (1 - (sample.value - minimum) / valueSpan) * 135,
-      }));
-    return {
-      channelId,
-      points,
-      path: points
-        .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-        .join(" "),
-    };
-  });
-}
-
 function HistoryChart({
   samples,
   range,
   status,
+  telemetryStatus,
+  historyWindow,
   error,
   onRangeChange,
   onRetry,
@@ -96,18 +52,79 @@ function HistoryChart({
   samples: TelemetrySample[];
   range: DashboardHistoryRange;
   status: DashboardHistoryStatus;
+  telemetryStatus: DashboardTelemetryStatus;
+  historyWindow: { from: string; to: string } | null;
   error: Error | null;
   onRangeChange: (range: DashboardHistoryRange) => void;
   onRetry: () => void;
 }) {
-  const series = useMemo(() => buildSeries(samples), [samples]);
+  const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
+  const [soloSeriesKey, setSoloSeriesKey] = useState<string | null>(null);
+  const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
+  const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
+  const historyViewKey = `${range}:${historyWindow?.from ?? "pending"}:${historyWindow?.to ?? "pending"}`;
+  const resetDomain = useMemo(
+    () => overviewResetDomain(range, historyWindow, samples),
+    [historyWindow, range, samples],
+  );
+  const effectiveDomain = viewportDomain ?? resetDomain;
+  const groups = useMemo(
+    () =>
+      buildOverviewChartGroups({
+        samples,
+        status: telemetryStatus,
+        xDomain: effectiveDomain,
+        hiddenSeriesKeys,
+        soloSeriesKey,
+      }),
+    [effectiveDomain, hiddenSeriesKeys, samples, soloSeriesKey, telemetryStatus],
+  );
+  const seriesCount = groups.reduce((count, group) => count + group.scene.series.length, 0);
+  const renderedPointCount = groups.reduce(
+    (count, group) =>
+      count +
+      group.scene.series.reduce(
+        (seriesTotal, series) =>
+          seriesTotal + series.segments.reduce((segmentTotal, segment) => segmentTotal + segment.points.length, 0),
+        0,
+      ),
+    0,
+  );
+  const rangeLabel = ranges.find((item) => item.value === range)?.label ?? range;
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setHiddenSeriesKeys(new Set());
+      setSoloSeriesKey(null);
+      setSharedCursorMs(null);
+      setViewportDomain(null);
+    });
+  }, [historyViewKey]);
+
+  const toggleSeries = (seriesKey: string) => {
+    setSoloSeriesKey(null);
+    setHiddenSeriesKeys((current) => {
+      const next = new Set(current);
+      if (next.has(seriesKey)) next.delete(seriesKey);
+      else next.add(seriesKey);
+      return next;
+    });
+  };
+
+  const soloSeries = (seriesKey: string) => {
+    setSoloSeriesKey((current) => (current === seriesKey ? null : seriesKey));
+  };
+
   return (
-    <section className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3">
+    <section
+      className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3"
+      data-testid="overview-history-chart-system"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-medium text-slate-200">PostgreSQL history</p>
           <p className="mt-0.5 text-[9px] text-slate-500">
-            {samples.length} записів · {series.length} температурних каналів
+            {samples.length} записів · {seriesCount} температурних каналів
           </p>
         </div>
         <div className="flex gap-1 rounded-xl border border-white/[0.06] p-1">
@@ -137,53 +154,25 @@ function HistoryChart({
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
-      ) : series.length === 0 ? (
+      ) : renderedPointCount === 0 ? (
         <p className="mt-4 text-[10px] text-slate-500">Немає валідної температурної історії.</p>
       ) : (
-        <>
-          <svg
-            viewBox="0 0 630 180"
-            className="mt-3 h-[190px] w-full"
-            role="img"
-            aria-label="Реальний графік історії температур XJP60D"
-          >
-            {[20, 47, 74, 101, 128, 155].map((y) => (
-              <line key={y} x1="32" y1={y} x2="600" y2={y} stroke="rgba(148,163,184,.1)" />
-            ))}
-            {series.map((item) => (
-              <g key={item.channelId}>
-                <path
-                  d={item.path}
-                  fill="none"
-                  stroke={channelColor(item.channelId)}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {item.points.map((point) => (
-                  <circle
-                    key={point.id}
-                    cx={point.x}
-                    cy={point.y}
-                    r="2"
-                    fill="#071a35"
-                    stroke={channelColor(item.channelId)}
-                  />
-                ))}
-              </g>
-            ))}
-          </svg>
-          <div className="flex flex-wrap gap-2">
-            {series.map((item) => (
-              <span
-                key={item.channelId}
-                className="rounded-full border border-white/[0.06] px-2 py-1 text-[8px] text-slate-400"
-              >
-                {item.channelId} · {item.points.length}
-              </span>
-            ))}
-          </div>
-        </>
+        <div className="mt-3 grid min-w-0 gap-3">
+          {groups.map((group) => (
+            <OverviewChartPanel
+              key={group.id}
+              group={group}
+              rangeLabel={rangeLabel}
+              sharedCursorMs={sharedCursorMs}
+              resetDomain={resetDomain}
+              onSharedCursorChange={setSharedCursorMs}
+              onXDomainChange={setViewportDomain}
+              onResetView={() => setViewportDomain(null)}
+              onToggleSeries={toggleSeries}
+              onSoloSeries={soloSeries}
+            />
+          ))}
+        </div>
       )}
     </section>
   );
@@ -195,6 +184,7 @@ function LiveTemperatureGrid({
   historySamples,
   historyRange,
   historyStatus,
+  historyWindow,
   historyError,
   onHistoryRangeChange,
   onHistoryRetry,
@@ -204,6 +194,7 @@ function LiveTemperatureGrid({
   historySamples: TelemetrySample[];
   historyRange: DashboardHistoryRange;
   historyStatus: DashboardHistoryStatus;
+  historyWindow: { from: string; to: string } | null;
   historyError: Error | null;
   onHistoryRangeChange: (range: DashboardHistoryRange) => void;
   onHistoryRetry: () => void;
@@ -273,6 +264,8 @@ function LiveTemperatureGrid({
         samples={[...historySamples, ...samples]}
         range={historyRange}
         status={historyStatus}
+        telemetryStatus={status}
+        historyWindow={historyWindow}
         error={historyError}
         onRangeChange={onHistoryRangeChange}
         onRetry={onHistoryRetry}
@@ -288,6 +281,7 @@ export function TemperatureChart({
   historySamples = [],
   historyRange = "24h",
   historyStatus = "idle",
+  historyWindow = null,
   historyError = null,
   onHistoryRangeChange = () => undefined,
   onHistoryRetry = () => undefined,
@@ -311,6 +305,7 @@ export function TemperatureChart({
         historySamples={historySamples}
         historyRange={historyRange}
         historyStatus={historyStatus}
+        historyWindow={historyWindow}
         historyError={historyError}
         onHistoryRangeChange={onHistoryRangeChange}
         onHistoryRetry={onHistoryRetry}
