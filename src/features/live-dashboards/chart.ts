@@ -222,7 +222,12 @@ export function buildSavedDashboardChartGroups(
       };
     })
     .sort((left, right) => left.firstPosition - right.firstPosition)
-    .map(({ firstPosition: _firstPosition, ...group }) => group);
+    .map((group) => ({
+      id: group.id,
+      nativeUnit: group.nativeUnit,
+      physicalQuantity: group.physicalQuantity,
+      scene: group.scene,
+    }));
 }
 
 export function savedDashboardResetDomain(
