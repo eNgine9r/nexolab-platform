@@ -2,41 +2,44 @@
 
 Updated: 2026-08-12
 
-## Issue #413 — one physical cursor-stability blocker remains
+## Issue #413 — physical cursor blocker resolved
 
 Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history to the canonical Chart System.
 
-The first frozen final candidate `634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5` passed CI #2942, Authenticated Dashboard #1630, Refrigeration #1604 and Offline Bundle #1013, but controlled Raspberry Pi acceptance produced a clean product defect:
+The first frozen candidate `634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5` passed software/browser/offline gates but controlled Raspberry Pi acceptance exposed `cursor_vertical_jump=YES` while the graph/card itself remained fixed.
+
+Corrective product head `0b0b239911c729e31c791c8fa2eb2c6f433bfcce` removed duplicate moving ECharts tooltip content while preserving the vertical axis pointer and canonical Exact inspector.
+
+Corrective gates are GREEN:
+
+- CI #2944;
+- Authenticated Dashboard Acceptance #1632;
+- Refrigeration Browser Acceptance #1606;
+- Offline Bundle #1015.
+
+Targeted controlled Raspberry Pi retest passed:
 
 ```text
-cursor_vertical_jump=YES
+cursor_vertical_jump=NO
 graph_card_stays_fixed=YES
+chart_visual_continuity=PASS
+post_event_overview_render=PASS
+hide_show_solo=PASS
+zoom_pan_reset=PASS
+range_1h_6h_24h=PASS
+route_reopen=PASS
+dashboard_remains_usable=YES
 ```
 
-All other physical UI observations passed: exact real-series history continuity, post-event usability, Hide/Show/Solo, zoom/pan/reset, 1h/6h/24h and route reopen. Production restored cleanly with no restart drift.
+No #413 physical UI blocker remains. The prior full acquisition/control-plane evidence remains applicable because the corrective product diff is renderer/test-only and does not touch telemetry, Device Agent, scheduler, registry, polling cadence or hardware state.
 
-Physical acquisition evidence on that candidate showed 144 requests / 60 s browser-closed versus 153 / 60 s active Overview. Successful requests were identical at 132 in both windows; the active window had more timeout/retry activity. The acceptance harness therefore classified the raw rate comparison `REVIEW_EQUAL_DURATION_COUNTERS`. Control-plane safety evidence remained clean:
+PR #414 still requires a final exact-head state-only CI/review audit before Ready/merge.
 
-- discovery delta 0;
-- configuration mutation delta 0;
-- Modbus write attempts 0;
-- polling policy unchanged;
-- configured targets `38 -> 38`;
-- registry revision/summary unchanged;
-- service-operation delta `{}`.
+## Issue #415 — follow-up UX enhancement
 
-The cursor defect is isolated from physical acquisition: `graph_card_stays_fixed=YES` means the earlier ChartShell responsive reflow defect did not recur. The leading cause is the duplicate ECharts moving HTML axis-tooltip content; NEXOLAB already renders a stable canonical `Exact inspector`.
+Issue #415 records a new Product Owner request for natural left-button drag-to-pan on canonical desktop charts. This is not a blocker for #413 and must not mutate the already accepted #413 product code.
 
-Corrective head `0b0b239911c729e31c791c8fa2eb2c6f433bfcce` disables renderer tooltip content while preserving the vertical axis pointer and exact inspector. CI #2944, Authenticated Dashboard #1632 and Refrigeration #1606 are GREEN; Offline Bundle #1015 was still running when this checkpoint was prepared.
-
-PR #414 remains **Draft/not Ready** until:
-
-1. the final corrective state/audit head is exact-head GREEN across CI, Authenticated Dashboard, Refrigeration and Offline Bundle;
-2. focused diff/review audit remains clean;
-3. a targeted controlled Raspberry Pi cursor retest on that exact head records `cursor_vertical_jump=NO` and `graph_card_stays_fixed=YES`;
-4. production restores cleanly.
-
-Because the corrective product diff is renderer-tooltip/test-only, the already completed 60-second acquisition, exact real-series continuity, controls, range and route-reopen evidence may be carried forward under proportional verification. If the final diff expands into telemetry, acquisition, scheduler, registry, API or hardware-related code, the full physical acquisition matrix must be rerun.
+Select #415 only after #413 merge/post-merge reconciliation and a fresh Ready audit.
 
 ## Issue #369 — Ready, separate scope
 
