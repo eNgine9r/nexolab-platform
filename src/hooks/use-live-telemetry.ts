@@ -477,7 +477,7 @@ export function useLiveTelemetry({
     const to = new Date();
     const from = new Date(to.getTime() - RANGE_HOURS[historyRange] * 60 * 60 * 1_000);
     const requestedWindow = { from, to };
-    const selected = new Set(reconciledSelectedKeys);
+    const selected = new Set(selectedKey ? selectedKey.split("\u001f") : []);
     let disposed = false;
 
     orderingStateRef.current = seedLiveHistoryOrderingState([
@@ -526,7 +526,6 @@ export function useLiveTelemetry({
     historyGeneration,
     historyRange,
     liveCoverageScopeKey,
-    reconciledSelectedKeys,
     runtime.config,
     scopeKey,
     selectedKey,
