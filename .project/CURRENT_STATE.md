@@ -2,7 +2,7 @@
 
 Updated: 2026-08-12
 
-Canonical repository baseline on `main`: `f3462861db2a3593e2072a7bad70d557c009b323` — Issue #408 / PR #409 post-#406 state reconciliation merge.
+Canonical repository baseline on `main`: `d4068e28402aa113f4485dc3afecb1f8eb44bd7b` — Issue #404 / PR #410 Saved Live Dashboard canonical Chart System merge.
 
 ## Completed — Issue #385
 
@@ -14,106 +14,89 @@ Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`. Ca
 
 ## Completed — Issue #400
 
-Issue #400 / PR #402 is merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`. Live Data uses the canonical Chart System. Controlled Raspberry Pi acquisition-invariant acceptance was PASS. Evidence remains at `/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`.
+Issue #400 / PR #402 is merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`. Live Data uses the canonical Chart System. Controlled Raspberry Pi acquisition-invariant acceptance was PASS.
 
 ## Completed — Issue #406
 
-Issue #406 / PR #407 is merged as `457923927052ed91a23f396b2285e0cfaf6096ad`. The Live Data chart-disappearance regression is fixed and protected by a real local MQTT -> browser continuity regression. Exact-head CI, Authenticated Dashboard 11/11, Refrigeration Browser and Offline Bundle were GREEN. No new physical Raspberry Pi acceptance was claimed for #406.
+Issue #406 / PR #407 is merged as `457923927052ed91a23f396b2285e0cfaf6096ad`. The Live Data chart-disappearance regression is fixed and protected by real local MQTT browser continuity coverage.
 
 ## Completed — Issue #408
 
-Issue #408 / PR #409 is completed and merged as `f3462861db2a3593e2072a7bad70d557c009b323`. It reconciled #406 and selected Issue #404.
+Issue #408 / PR #409 is merged as `f3462861db2a3593e2072a7bad70d557c009b323`. It reconciled #406 and selected Issue #404.
 
-## Active Work Package — Issue #404
+## Completed — Issue #404
 
-Issue #404 — **Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System** — remains the sole active implementation lane on `feat/404-saved-live-dashboard-chart-system`. PR #410 remains Draft and must not merge until the repeated controlled Raspberry Pi visual-continuity acceptance passes.
+Issue #404 / PR #410 is squash-merged as `d4068e28402aa113f4485dc3afecb1f8eb44bd7b`.
 
-Implemented product scope:
+Final product head before squash merge: `ce2356cfb142e241684a7a68a08969cab884c2f5`.
 
-- persisted Saved Dashboard `line` and `area` series map into canonical Chart Domain;
-- legacy `SeriesChart` SVG is removed from the Saved Dashboard live view;
-- line/area rendering uses `ChartShell`, `ChartRendererHost` and the local `EChartsRendererAdapter`;
-- persisted order and saved colors remain stable;
-- canonical quality/freshness/continuity separation is preserved;
-- invalid-quality and >30-second source gaps break continuity instead of being bridged;
-- alarm transitions pin adjacent evidence points and expose canonical event markers;
-- canonical evidence-preserving reduction targets 240 points and falls back to already-bounded source history rather than deleting mandatory evidence;
-- compatible exact native units share synchronized plot groups; incompatible quantities remain separate;
-- `Wh`/`kWh` and energy metrics are classified as cumulative counters and are not mixed with instantaneous power semantics;
-- Saved Dashboard `area` uses an optional canonical `areaFillOpacity`; existing line consumers remain unchanged;
-- shared cursor, show/hide, solo, zoom/pan and Reset zoom are wired through the canonical chart path;
-- persisted `dashboard.time_window` remains the reset/initial viewport;
-- `refresh_seconds` remains display-only in the existing selected-series telemetry hook;
-- value/gauge remain separate truthful current-value cards with no invented gauge range;
-- renderer adapter lifecycle remains mount-scoped and disposed by the canonical host;
-- no Saved Dashboard CRUD/version/ETag or telemetry API contract changed.
+Product result:
 
-### First controlled Raspberry Pi attempt
+- persisted Saved Dashboard `line` and `area` series use the canonical Chart System;
+- legacy independent SVG history renderer is removed;
+- persisted order, saved colors and native units remain stable;
+- quality, freshness and continuity remain independent;
+- invalid-quality and source-gap events create truthful gaps instead of erasing or bridging history;
+- alarm evidence pins and bounded evidence-preserving reduction remain canonical;
+- compatible-unit grouping and cumulative-energy semantics are preserved;
+- shared cursor, show/hide/solo, zoom/pan/reset are canonical;
+- persisted `time_window` remains the initial/reset viewport;
+- `refresh_seconds` remains display-only and does not alter physical acquisition;
+- value/gauge remain truthful current-value cards;
+- rolling Saved Dashboard updates are non-animated through the persistent Canvas renderer;
+- cursor/tooltip interaction is layout-stable with no vertical card/chart jump.
 
-The exact pre-fix candidate `2b508d8a1c22ab28069c24833b792261b16193e6` built successfully on the controlled Raspberry Pi. Equal 60-second windows proved the acquisition boundary remained UI-independent:
+Final exact-head software gates on `ce2356cf...`:
 
-| Metric              | Browser closed | Active Saved Dashboard |
-| ------------------- | -------------: | ---------------------: |
-| physical requests   |            156 |                    144 |
-| physical requests/s |          2.600 |                  2.400 |
-| retries             |             18 |                     12 |
-| timeouts            |             24 |                     12 |
-| bus executions      |            126 |                    120 |
-| bus busy seconds    |         13.819 |                 10.110 |
+- CI #2910: GREEN;
+- Authenticated Dashboard Acceptance #1607: GREEN, 12/12 production Playwright;
+- Acquisition Scale Acceptance #84: GREEN;
+- Refrigeration Browser Acceptance #1581: GREEN;
+- Offline Bundle #990: GREEN;
+- unresolved review threads: 0;
+- final compare: ahead 48, behind 0 against `f3462861...`.
 
-Scheduler policy remained unchanged, configured targets remained `38 -> 38`, poll-eligible targets remained `38 -> 38`, degraded/cooldown endpoints remained `4 -> 4`, service-operation mutation counters remained empty and telemetry advanced through the active window.
+Controlled Raspberry Pi evidence:
 
-Acquisition classification: **PASS**.
+- browser-closed acquisition: 192 physical requests / 3.200 req/s;
+- active Saved Dashboard: 181 physical requests / 3.017 req/s;
+- scheduler policy unchanged;
+- configured targets `38 -> 38`;
+- poll-eligible targets `38 -> 38`;
+- service operations unchanged;
+- real Saved Dashboard `111`, series `104-03 / temperature.probe`, received exact `dixell-xjp60d` events at `10:47:34`, `10:47:39`, and `10:47:44 UTC` with truthful `communication_error` quality;
+- existing 24 h graph stayed visible through those events;
+- dashboard remained usable;
+- library -> reopen PASS;
+- final Pi cursor retest on `ce2356cf...`: no vertical jump, graph/card fixed, zoom/pan/reset PASS;
+- transient candidate stopped cleanly and production restored `active/running`, `NRestarts 0 -> 0`, HTTP 200.
 
-The operator recorded `chart_visual_continuity=FAIL`, so #404 did not pass physical acceptance and PR #410 remained Draft.
+No Modbus write, hardware write, database mutation, polling/scheduler/registry change, mandatory public runtime dependency or site cutover occurred.
 
-The first manual script also mixed continuous rendering with an intentional `library -> reopen` navigation inside one observation window. That intentional navigation necessarily unmounts the chart, so the repeated acceptance separates continuous live-point observation from close/reopen lifecycle verification. The original FAIL remains recorded rather than being silently reclassified.
+## Active Work Package
 
-### Operational cleanup discovered during acceptance
+Issue #411 — **Reconcile Issue #404 merge and Chart System continuation** — is the current state-only Work Package on `chore/411-reconcile-issue-404-state`.
 
-An orphan `next-server` from the earlier #400 temporary dashboard handoff was found holding port 3000 and causing repeated `EADDRINUSE` restarts of `nexolab-dashboard.service`. The orphan was terminated, port 3000 was released and the production service was restored to `ActiveState=active`, `SubState=running`, `NRestarts=0`, HTTP 200 before the #404 baseline. This was an acceptance-harness/runtime cleanup issue, not a #404 product-code failure.
+No product/runtime implementation is active while #411 is open.
 
-### Corrective visual-continuity slice
+## Preserved lanes
 
-The Saved Dashboard chart path now uses non-animated ECharts scene updates through the canonical host. This preserves the same mounted React host and ECharts instance while avoiding an animated full-series transition on each `refresh_seconds` rolling scene update.
+Issue #369 remains Ready and separate for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance.
 
-The production Saved Dashboard browser acceptance now publishes a real local MQTT telemetry point and waits across the dashboard refresh interval. It verifies:
-
-- the same `ChartRendererHost` DOM node remains mounted;
-- the same ECharts Canvas DOM node remains mounted;
-- Canvas remains present after the live point;
-- no extra history request is triggered by that live point;
-- existing dashboard/acquisition mutation, public-network and WebSocket lifecycle assertions remain enforced.
-
-Corrective source head `67846013a8c7d357716321e2149509a2fb526f43` passed:
-
-- CI — format, zero-warning lint, TypeScript, full tests and production build: GREEN;
-- Authenticated Dashboard Acceptance with the new Saved Dashboard MQTT continuity regression: GREEN;
-- Acquisition Scale Acceptance: GREEN;
-- Refrigeration Browser Acceptance: GREEN;
-- Offline Bundle including clean-host simulation, blocked egress, disconnected startup and update/rollback persistent-data preservation: GREEN.
-
-A final exact-head gate is still required after this canonical checkpoint is committed. Then the new exact SHA must be re-tested on the controlled Raspberry Pi.
-
-## Scope boundary
-
-Issue #404 does not change backend schema/API, database migrations, telemetry retention, polling, scheduler, registry, Device Agent, Modbus or hardware state. No dependency version changed and no mandatory public runtime dependency was added.
-
-Issue #404 remains distinct from Issue #369:
-
-- #404 = persisted Saved Dashboard live renderer migration;
-- #369 = Raspberry Pi inventory/filter/select/save editor acceptance.
-
-Issue #389 remains Ready/not selected. Preserved runtime sequence remains:
+Preserved runtime sequence:
 
 ```text
 #369 -> #366 -> #289
 ```
 
+Issue #389 remains Ready/not selected for administrator-only Version Management.
+
+Issue #245 remains a separate Raspberry Pi validation track. Issue #257 remains blocked. Issue #256 remains deferred.
+
 ## Security boundary
 
-The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on 2026-09-05. Issue #404 does not broaden it.
+The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on 2026-09-05. Issue #404 did not broaden it.
 
 ## Next action
 
-Create the final pre-hardware exact candidate after this checkpoint, run CI + Authenticated Dashboard + Acquisition Scale + Refrigeration Browser + Offline Bundle on that exact SHA, then repeat controlled Raspberry Pi acceptance in two separate phases: (1) continuous live-point observation without navigation and (2) close/reopen lifecycle. Merge only if both product behavior and acquisition invariants pass.
+Complete and merge state-only Issue #411, then run a fresh repository-backed Ready audit across open `status:ready` Issues, blockers, dependencies, open PRs, CI and current `main`. The Product Owner priority is to continue Chart System migration with Overview, but the Overview Work Package must be created/refined only after that audit confirms it is the next unblocked package.
