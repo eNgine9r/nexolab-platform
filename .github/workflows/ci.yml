@@ -74,28 +74,6 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Format Issue 413 scoped files for capture
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx prettier --write \
-            docs/audits/issue-413-overview-chart-system.md \
-            e2e/authenticated-dashboard.production.e2e.ts \
-            src/components/dashboard/temperature-chart.tsx \
-            src/features/dashboard/overview-chart.ts
-
-      - name: Upload exact Issue 413 formatter output
-        uses: actions/upload-artifact@v7
-        with:
-          name: issue-413-prettier-output-${{ github.sha }}
-          path: |
-            docs/audits/issue-413-overview-chart-system.md
-            e2e/authenticated-dashboard.production.e2e.ts
-            src/components/dashboard/temperature-chart.tsx
-            src/features/dashboard/overview-chart.ts
-          if-no-files-found: error
-          retention-days: 3
-
       - name: Check repository formatting
         shell: bash
         run: |
