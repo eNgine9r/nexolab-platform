@@ -4,18 +4,12 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-413-OVERVIEW-CHART-SYSTEM",
-  "status": "corrective_cursor_fix_state_checkpoint_committed_exact_head_verification_pending",
-  "timestamp": "2026-08-12T21:54:23+03:00",
+  "status": "hardware_pass_final_merge_audit",
+  "timestamp": "2026-08-12T21:52:00+03:00",
   "branch": "feat/413-overview-chart-system",
   "pull_request": 414,
   "base_main_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
   "active_issue": 413,
-  "selection_audit": {
-    "status": "PASS",
-    "open_ready_issues": [369, 389],
-    "selected_issue": 413,
-    "preserved_runtime_sequence": [369, 366, 289]
-  },
   "implementation": {
     "overview_custom_history_svg_removed": true,
     "canonical_chart_domain_mapping": true,
@@ -33,97 +27,62 @@
     "moving_echarts_tooltip_content_disabled": true,
     "live_cards_preserved": true,
     "history_ranges_preserved": ["1h", "6h", "24h"],
-    "sensor_management_contract_changed": false,
     "telemetry_api_contract_changed": false,
-    "backend_schema_changed": false
-  },
-  "first_frozen_candidate": {
-    "sha": "634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5",
-    "gates": {
-      "ci": "#2942 GREEN",
-      "authenticated_dashboard": "#1630 GREEN including acquisition invariant",
-      "refrigeration_browser": "#1604 GREEN",
-      "offline_bundle": "#1013 GREEN"
-    },
-    "physical_acceptance": {
-      "classification": "FAIL_CURSOR_VISUAL_STABILITY",
-      "target": {
-        "channel": "126-04",
-        "metric": "temperature.probe",
-        "source": "dixell-xjp60d",
-        "events_10m": 120,
-        "valid_24h": 16594
-      },
-      "no_browser": {
-        "window_seconds": 60,
-        "physical_requests": 144,
-        "requests_per_second": 2.4,
-        "success": 132,
-        "timeout": 12,
-        "retry_attempts": 12,
-        "bus_busy_seconds": 9.92298
-      },
-      "active_overview": {
-        "window_seconds": 60,
-        "physical_requests": 153,
-        "requests_per_second": 2.55,
-        "success": 132,
-        "timeout": 21,
-        "retry_attempts": 17,
-        "bus_busy_seconds": 12.871187
-      },
-      "acquisition_rate_classification": "REVIEW_EQUAL_DURATION_COUNTERS",
-      "control_plane": {
-        "discovery_delta": 0,
-        "configuration_mutation_delta": 0,
-        "modbus_write_attempts": 0,
-        "polling_policy_unchanged": true,
-        "configured_targets_before": 38,
-        "configured_targets_after": 38,
-        "registry_revision_unchanged": true,
-        "registry_summary_unchanged": true,
-        "service_operation_delta": {}
-      },
-      "real_event": {
-        "old_event": "1b19f5f5-4f4f-4734-83d6-b896d9a61438",
-        "old_timestamp": "2026-08-12 18:35:03.216544+00",
-        "new_event": "508e5cf9-be2f-44dc-8a61-f15fd089fcab",
-        "new_timestamp": "2026-08-12 18:35:08.227509+00",
-        "quality": "valid",
-        "value": 25.9
-      },
-      "visual": {
-        "chart_visual_continuity": "PASS",
-        "post_event_overview_render": "PASS",
-        "cursor_vertical_jump": "YES",
-        "graph_card_stays_fixed": "YES",
-        "hide_show_solo": "PASS",
-        "zoom_pan_reset": "PASS",
-        "range_1h_6h_24h": "PASS",
-        "route_reopen": "PASS",
-        "dashboard_remains_usable": "YES"
-      },
-      "production_restore": "PASS: NRestarts 0 -> 0; production dashboard restored; no orphan candidate"
-    }
+    "device_agent_changed": false,
+    "scheduler_changed": false,
+    "registry_changed": false
   },
   "corrective_product_head": {
     "sha": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-    "root_cause_classification": "graph/card remained fixed; duplicate moving ECharts HTML axis-tooltip content was isolated as the remaining cursor visual movement source",
-    "fix": "disable ECharts tooltip content and showTip dispatch while preserving vertical axis pointer and canonical Exact inspector",
-    "unit_regression": "tooltip.showContent=false and shared cursor dispatches updateAxisPointer without showTip",
-    "verification_at_checkpoint": {
+    "fix": "disable ECharts moving tooltip content and showTip dispatch while preserving vertical axis pointer and canonical Exact inspector",
+    "gates": {
       "ci": "#2944 GREEN",
       "authenticated_dashboard": "#1632 GREEN including acquisition invariant",
       "refrigeration_browser": "#1606 GREEN",
-      "offline_bundle": "#1015 running at checkpoint creation"
+      "offline_bundle": "#1015 GREEN"
     }
   },
+  "hardware_acceptance": {
+    "classification": "PASS",
+    "carried_forward_full_physical_evidence_from_first_candidate": true,
+    "carry_forward_reason": "corrective product diff is renderer-tooltip/test-only and does not touch telemetry, Device Agent, scheduler, registry, polling or hardware behavior",
+    "target": {
+      "channel": "126-04",
+      "metric": "temperature.probe",
+      "source": "dixell-xjp60d"
+    },
+    "visual_retest": {
+      "chart_visual_continuity": "PASS",
+      "post_event_overview_render": "PASS",
+      "cursor_vertical_jump": "NO",
+      "graph_card_stays_fixed": "YES",
+      "hide_show_solo": "PASS",
+      "zoom_pan_reset": "PASS",
+      "range_1h_6h_24h": "PASS",
+      "route_reopen": "PASS",
+      "dashboard_remains_usable": "YES"
+    },
+    "prior_control_plane_evidence": {
+      "discovery_delta": 0,
+      "configuration_mutation_delta": 0,
+      "modbus_write_attempts": 0,
+      "polling_policy_unchanged": true,
+      "configured_targets_before": 38,
+      "configured_targets_after": 38,
+      "registry_revision_unchanged": true,
+      "registry_summary_unchanged": true,
+      "service_operation_delta": {}
+    }
+  },
+  "follow_up": {
+    "issue": 415,
+    "title": "Add left-button drag panning to canonical NEXOLAB charts",
+    "classification": "UX enhancement, not #413 blocker",
+    "status": "open_pending_fresh_ready_audit"
+  },
   "review_boundary": {
-    "expected_changed_files_after_corrective_fix": 14,
-    "new_corrective_files_vs_first_freeze": [
-      "src/features/charts/echarts-adapter.ts",
-      "src/features/charts/echarts-adapter.test.ts"
-    ],
+    "product_code_changed_after_hardware_pass": false,
+    "state_audit_only_commits_after_hardware_pass": true,
     "workflow_files_changed": false
   },
   "safety": {
@@ -137,6 +96,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "ready_not_selected": [389],
-  "next_action": "Verify all canonical workflows GREEN on the resulting corrective state/audit head, freeze that exact SHA, confirm focused 14-file diff and zero unresolved review threads, then run a targeted controlled Raspberry Pi cursor retest. Require cursor_vertical_jump=NO and graph_card_stays_fixed=YES before Ready/merge. Carry forward prior acquisition/continuity/control evidence only while final product diff remains renderer-tooltip-only."
+  "next_action": "Run final exact-head CI/review audit on the state-only completion head. If GREEN and main has no drift, mark PR #414 Ready and squash-merge with exact-head guard. Then reconcile post-merge state and run a fresh Ready audit before selecting the next package."
 }
