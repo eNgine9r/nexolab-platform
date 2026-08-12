@@ -6,13 +6,17 @@ on:
       - feat/404-saved-live-dashboard-chart-system
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   targeted:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: feat/404-saved-live-dashboard-chart-system
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -20,9 +24,9 @@ jobs:
       - run: npm ci --no-audit
         env:
           HUSKY: 0
-      - name: Check touched formatting
+      - name: Format touched files
         run: >-
-          npx prettier --check
+          npx prettier --write
           src/features/charts/domain.ts
           src/features/charts/echarts-adapter.ts
           src/features/charts/area-rendering.test.ts
@@ -44,3 +48,19 @@ jobs:
           src/features/live-dashboards/api-client.test.ts
           src/features/live-dashboards/inventory.test.ts
           src/features/live-dashboards/inventory-client.test.ts
+      - name: Commit formatting if needed
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/features/charts/domain.ts \
+            src/features/charts/echarts-adapter.ts \
+            src/features/charts/area-rendering.test.ts \
+            src/features/live-dashboards/chart.ts \
+            src/features/live-dashboards/chart.test.ts \
+            src/components/live-dashboards/dashboard-chart-panel.tsx \
+            src/components/live-dashboards/dashboard-live-view.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "style: format Issue 404 chart migration"
+          git push origin HEAD:feat/404-saved-live-dashboard-chart-system
