@@ -61,7 +61,7 @@ export function DashboardChartPanel({
         <ChartRendererHost
           adapter={adapter}
           scene={group.scene}
-          // Saved Dashboard scenes refresh on a display cadence; keep the persistent Canvas visible between points.
+          // Rolling display refreshes must preserve the mounted Canvas without animated blank transitions.
           reducedMotion
           sharedCursorMs={sharedCursorMs}
           onCursor={(nextInspection) => {
