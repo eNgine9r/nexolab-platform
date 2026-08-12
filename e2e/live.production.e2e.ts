@@ -14,6 +14,7 @@ const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMP
 const postgresUser = requiredEnvironment("POSTGRES_USER");
 const postgresDatabase = requiredEnvironment("POSTGRES_DB");
 const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
+const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 
 type ObservedRequest = { url: string; method: string };
 type SocketEvidence = { opened: number; closed: number; active: number; maximum: number };
@@ -67,6 +68,59 @@ function postgres(sql: string): string {
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function publishSavedDashboardSample(dashboardId: string, channelId: string, value: number): void {
+  const selection = postgres(`
+SELECT metric || '|' || native_unit
+FROM live_dashboard_items
+WHERE dashboard_id = ${sqlString(dashboardId)}
+  AND channel_id = ${sqlString(channelId)}
+ORDER BY position
+LIMIT 1;
+`).trim();
+  const [metric, unit] = selection.split("|");
+  if (!metric || !unit) throw new Error("Saved Dashboard live-point identity was not found");
+
+  const payload = JSON.stringify({
+    event_id: randomUUID(),
+    node_id: "edge-chart-404",
+    captured_at: new Date().toISOString(),
+    metric,
+    value,
+    unit,
+    quality: "valid",
+    source: "issue-404-visual-continuity-regression",
+    equipment_id: "saved-dashboard-e2e",
+    channel_id: channelId,
+    alarm: null,
+    raw_value: Math.round(value * 10),
+    raw_status: null,
+  });
+
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      "mqtt",
+      "mosquitto_pub",
+      "-h",
+      "127.0.0.1",
+      "-t",
+      mqttTopic,
+      "-m",
+      payload,
+    ],
+    { stdio: "pipe" },
+  );
 }
 
 function seedNoSampleChannel(): string {
@@ -581,6 +635,28 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
       item.url.includes("/history"),
     ).length;
+    const hostBeforeLivePoint = panel.getByTestId("chart-renderer-host");
+    await hostBeforeLivePoint.evaluate((element) => {
+      element.setAttribute("data-continuity-token", "issue-404-stable-host");
+    });
+    const canvasBeforeLivePoint = panel.locator("canvas").first();
+    await canvasBeforeLivePoint.evaluate((element) => {
+      element.setAttribute("data-canvas-continuity-token", "issue-404-stable-canvas");
+    });
+    publishSavedDashboardSample(fixture.dashboardId, fixture.plottedChannels[0], 19.75);
+    await page.waitForTimeout(2_500);
+    await expect(panel).toHaveCount(1);
+    await expect(hostBeforeLivePoint).toBeVisible();
+    await expect(hostBeforeLivePoint).toHaveAttribute("data-continuity-token", "issue-404-stable-host");
+    await expect(canvasBeforeLivePoint).toHaveAttribute(
+      "data-canvas-continuity-token",
+      "issue-404-stable-canvas",
+    );
+    await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+    expect(requests.telemetry.filter((item) => item.url.includes("/history")).length).toBe(
+      historyRequestsBeforeInteraction,
+    );
+
     const dashboardMutationsBeforeInteraction = requests.dashboard.filter(
       (item) => !["GET", "HEAD", "OPTIONS"].includes(item.method),
     ).length;
