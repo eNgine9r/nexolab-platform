@@ -19,24 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94",
-  "current_main_sha_semantics": "Issue #403 / PR #405 post-#400 state reconciliation merged; Issue #406 is a critical Live Data chart lifecycle regression interrupt before Issue #404",
+  "current_main_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
+  "current_main_sha_semantics": "Issue #406 / PR #407 Live Data chart continuity regression fix merged with exact-head software/browser/offline verification",
   "product_owner_priority_override": {
     "active": true,
-    "decision": "Fix the reported Live Data chart disappearance regression first as Issue #406, then resume the Chart System migration sequence with Issue #404. Issue #389 remains Ready but not selected.",
-    "completed_issue": 403,
-    "selected_issue": 406
+    "decision": "Continue the Chart System migration sequence. Issue #406 is completed; Issue #404 is now the sole selected implementation lane. Issue #389 remains Ready but not selected.",
+    "completed_issue": 406,
+    "selected_issue": 404
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-368",
-      "issue": 368,
-      "pull_request": 373,
-      "title": "Make telemetry latest reads independent of history volume",
-      "status": "completed_merged",
-      "priority": "critical",
-      "merge_sha": "ba2441a3a5a2dcdfb748b53c2513cb3cbbb6fec4"
-    },
     {
       "id": "NEXOLAB-385",
       "issue": 385,
@@ -44,8 +35,7 @@
       "title": "Add local Raspberry Pi users, administrator-managed permissions and access lifecycle",
       "status": "completed_merged",
       "priority": "high",
-      "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87",
-      "hardware_acceptance": "PASS on controlled Raspberry Pi aarch64"
+      "merge_sha": "e0b124e9a0152be50966daa131974b3543651e87"
     },
     {
       "id": "NEXOLAB-386",
@@ -54,8 +44,7 @@
       "title": "Establish chart-domain primitives and benchmark the local renderer",
       "status": "completed_merged",
       "priority": "high",
-      "merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e",
-      "completion_classification": "software verified; Raspberry Pi renderer performance verified; production acquisition invariant completed by Issue #400"
+      "merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e"
     },
     {
       "id": "NEXOLAB-400",
@@ -64,10 +53,7 @@
       "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
       "status": "completed_merged",
       "priority": "high",
-      "depends_on": [386],
       "merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
-      "final_pr_head_sha": "4cdeae018348c5c831874321b0dad221f6113a98",
-      "hardware_tested_candidate_sha": "2da08a028f54884acb74ea71cf1fac741426687b",
       "hardware_acceptance": "PASS on controlled Raspberry Pi 2026-08-12"
     },
     {
@@ -82,19 +68,23 @@
     {
       "id": "NEXOLAB-406",
       "issue": 406,
+      "pull_request": 407,
       "title": "Keep Live Data charts mounted while live samples arrive",
-      "status": "in_progress",
+      "status": "completed_merged",
       "priority": "critical",
       "depends_on": [400],
-      "branch": "fix/406-live-chart-history-continuity",
-      "root_cause": "Persisted-history effect depended on mutable selected identity arrays rebuilt for every latest/live sample, causing history reload and ChartRendererHost unmount/remount",
-      "targeted_verification": "typecheck GREEN; focused live-history/live-chart tests GREEN"
+      "final_pr_head_sha": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
+      "merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
+      "software_ci": "GREEN",
+      "browser_acceptance": "11/11 GREEN including real local MQTT live-point continuity regression and acquisition invariant",
+      "offline_bundle": "GREEN",
+      "hardware_acceptance": "not rerun; no new physical Raspberry Pi claim"
     },
     {
       "id": "NEXOLAB-404",
       "issue": 404,
       "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-      "status": "ready_selected_next_after_406",
+      "status": "ready_selected",
       "priority": "high",
       "depends_on": [386, 400]
     },
@@ -152,18 +142,17 @@
     }
   ],
   "active_work_package": {
-    "issue": 406,
-    "title": "Keep Live Data charts mounted while live samples arrive",
-    "status": "in_progress",
-    "priority": "critical",
+    "issue": 404,
+    "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
+    "status": "ready_selected",
+    "priority": "high",
     "assignee": "eNgine9r",
-    "branch": "fix/406-live-chart-history-continuity",
-    "selection_reason": "Product Owner reported a production-visible lifecycle regression in the just-merged Live Data Chart System; critical bugfix interrupts #404 under the sprint operating standard."
+    "selection_reason": "Product Owner Chart System priority; dependencies #386/#400 are merged and critical regression #406 is resolved."
   },
   "next_ready_work_package": {
     "issue": 404,
     "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-    "status": "status:ready_selected_after_issue_406_merge",
+    "status": "status:ready_selected",
     "priority": "high",
     "depends_on": [386, 400]
   },
@@ -183,12 +172,13 @@
   ],
   "verification": {
     "issue_400_merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
-    "issue_400_hardware_acceptance": "PASS 2026-08-12; +0.56% physical request-rate difference across equal 60-second windows with unchanged retry/timeout counts, scheduler policy and 38 eligible targets",
-    "issue_400_raspberry_pi_evidence_directory": "/home/nexolab/nexolab-400-hardware.5B0rFp/evidence",
+    "issue_400_hardware_acceptance": "PASS 2026-08-12",
     "issue_403_merge_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94",
-    "issue_406_root_cause": "history effect reran on every new sample because selected identity arrays were mutable effect dependencies",
-    "issue_406_targeted_checks": "Prettier touched files GREEN; TypeScript typecheck GREEN; focused live-history/live-chart tests GREEN",
-    "issue_406_browser_regression": "pending full authenticated production acceptance; fixture publishes a local MQTT sample and requires stable chart-renderer-host count and no extra history request",
+    "issue_406_final_head": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
+    "issue_406_merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
+    "issue_406_exact_head_gates": "CI GREEN; Authenticated Dashboard 11/11 GREEN; Refrigeration Browser GREEN; Offline Bundle GREEN",
+    "issue_406_regression_evidence": "Real local MQTT sample advanced browser latest state while chart-renderer-host count stayed stable, history loading placeholder remained absent and no extra history request was made",
+    "issue_406_physical_hardware": "not rerun; no new Raspberry Pi physical acceptance claimed",
     "issue_404_scope_boundary": "Saved Live Dashboard live renderer migration only; Issue #369 remains inventory/filter/select/save Raspberry Pi browser acceptance"
   },
   "runtime_evidence": {
@@ -197,7 +187,7 @@
     "issue_406_hardware_write": false,
     "issue_406_polling_change": false
   },
-  "next_selection_policy": "Complete Issue #406 with exact-head software/browser/offline gates and focused review, merge while GREEN, reconcile main, then start Issue #404 as the sole implementation lane. Preserve #389 Ready/not selected and runtime sequence #369 -> #366 -> #289 unless a fresh repository audit or Product Owner decision changes priority.",
+  "next_selection_policy": "Merge state-only Issue #408 while GREEN, then start Issue #404 as the sole implementation lane. Preserve #389 Ready/not selected and runtime sequence #369 -> #366 -> #289 unless a fresh repository audit or Product Owner decision changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

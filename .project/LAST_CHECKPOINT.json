@@ -3,46 +3,28 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-406-LIVE-CHART-HISTORY-CONTINUITY",
-  "status": "implementation_targeted_checks_green_full_pr_verification_pending",
-  "timestamp": "2026-08-12T08:58:00+03:00",
-  "branch": "fix/406-live-chart-history-continuity",
-  "product_main_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94",
-  "completed_state_issue": 403,
-  "completed_state_merge_sha": "c5977f846b87d0a498f84feec5b2e8f966a61d94",
-  "active_issue": 406,
-  "root_cause": {
-    "file": "src/hooks/use-live-telemetry.ts",
-    "summary": "Persisted-history loading depended on selected identity arrays rebuilt from mutable latest samples; each live sample could restart history loading, clear history state and unmount the chart.",
-    "chart_host_fault": false,
-    "history_effect_dependency_fault": true
+  "task": "ISSUE-408-POST-406-STATE-RECONCILIATION",
+  "status": "state_reconciliation_ready_for_ci",
+  "timestamp": "2026-08-12T09:13:00+03:00",
+  "branch": "chore/408-post-406-state",
+  "product_main_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
+  "completed_issue": 406,
+  "completed_pull_request": 407,
+  "final_pr_head_sha": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
+  "merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
+  "root_cause": "Persisted-history loading depended on mutable selected identity arrays; normal live sample arrival could restart history loading and unmount the chart.",
+  "verification": {
+    "ci": "GREEN",
+    "authenticated_dashboard": "11/11 GREEN including local MQTT live-point continuity regression and acquisition invariant",
+    "refrigeration_browser": "GREEN",
+    "offline_bundle": "GREEN including disconnected load/start and update/rollback persistent-data preservation",
+    "review_threads": 0,
+    "main_drift_before_merge": false
   },
-  "implementation": {
-    "selected_identity_ref": true,
-    "stable_selection_trigger": "selectedKey",
-    "mutable_selected_identities_removed_from_history_dependencies": true,
-    "rebuilt_reconciled_selected_keys_removed_from_history_dependencies": true,
-    "real_selection_range_retry_scope_reload_preserved": true,
-    "websocket_tail_reconciliation_preserved": true,
-    "browser_regression": "Local MQTT sample -> latest value advances -> chart-renderer-host count remains stable -> loading placeholder absent -> telemetry history request count unchanged",
-    "temporary_patch_workflow_removed": true
-  },
-  "targeted_verification": {
-    "prettier_touched_files": "GREEN",
-    "typecheck": "GREEN",
-    "focused_tests": "GREEN: src/features/live/live-history.test.ts and src/features/live/live-chart.test.ts"
-  },
-  "required_before_merge": {
-    "format_check": "pending",
-    "lint": "pending",
-    "full_typecheck": "pending final branch head",
-    "full_tests": "pending",
-    "production_build": "pending",
-    "authenticated_dashboard_acceptance": "pending",
-    "acquisition_scale_acceptance": "pending",
-    "offline_bundle": "pending",
-    "focused_diff_review": "pending",
-    "review_threads": "pending"
+  "hardware_evidence": {
+    "new_raspberry_pi_acceptance_for_issue_406": false,
+    "claim": "no new physical hardware acceptance claimed",
+    "existing_issue_400_evidence_directory": "/home/nexolab/nexolab-400-hardware.5B0rFp/evidence"
   },
   "safety": {
     "backend_schema_change": false,
@@ -59,9 +41,9 @@
     "issue": 404,
     "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
     "github_status": "status:ready",
-    "phase": "selected_after_issue_406_green_merge",
+    "phase": "selected_after_issue_408_state_merge",
     "depends_on": [386, 400]
   },
   "preserved_runtime_sequence": [369, 366, 289],
-  "next_action": "Open focused PR for Issue #406, run exact-head software/browser/acquisition/offline gates, resolve any findings, merge only while GREEN, reconcile main, then start Issue #404."
+  "next_action": "Run state-only CI for Issue #408, merge while GREEN/current with main, then begin Issue #404 as the sole implementation lane."
 }
