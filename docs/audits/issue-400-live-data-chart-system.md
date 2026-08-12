@@ -1,6 +1,6 @@
 # Issue #400 — Live Data canonical Chart System migration audit
 
-Date: 2026-08-11
+Date: 2026-08-12
 
 ## Scope
 
@@ -80,9 +80,9 @@ Focused tests prove:
 
 ## Browser acceptance
 
-A new deterministic production browser flow is included in the existing authenticated dashboard acceptance lane.
+A deterministic production browser flow is included in the existing authenticated dashboard acceptance lane.
 
-The fixture persists eight real telemetry series into the local PostgreSQL history/latest read models:
+The fixture persists eight telemetry series into the local PostgreSQL history/latest read models:
 
 - six temperature series (`degC`);
 - two voltage series (`V`).
@@ -103,11 +103,11 @@ The browser acceptance verifies:
 - no page-level horizontal overflow at 360, 1440 or 1920 px;
 - evidence screenshot and JSON request/socket summary are captured by CI.
 
-The initial browser version used full-document `page.goto` navigation and incorrectly treated two sequential WebSocket lifecycles as concurrent because it asserted a cumulative maximum. The acceptance was corrected to exercise the actual sibling SPA workspace transition and assert active concurrency. The corrected browser gate is GREEN on the implementation head.
+The initial browser version used full-document `page.goto` navigation and incorrectly treated two sequential WebSocket lifecycles as concurrent because it asserted a cumulative maximum. The acceptance was corrected to exercise the actual sibling SPA workspace transition and assert active concurrency. The corrected browser gate is GREEN.
 
-## Software verification before final state refresh
+## Frozen software candidate
 
-Implementation head `fb6cec76397da1dc6baf2b21c668c6b99f282bb0` produced:
+Candidate `2da08a028f54884acb74ea71cf1fac741426687b` passed the complete pre-hardware exact-head verification cycle:
 
 - repository formatting: GREEN;
 - ESLint: GREEN;
@@ -116,41 +116,60 @@ Implementation head `fb6cec76397da1dc6baf2b21c668c6b99f282bb0` produced:
 - Next.js 16.2.12 production build: GREEN;
 - Authenticated Dashboard Acceptance: GREEN, including the new Live Chart System flow and existing acquisition-invariant flow;
 - Acquisition Scale Acceptance: GREEN;
-- Refrigeration Browser Acceptance: GREEN.
+- Refrigeration Browser Acceptance: GREEN;
+- Offline Bundle: GREEN, including disconnected load/start plus update/rollback persistent-data preservation.
 
-A new exact-head verification cycle is required after this audit/state refresh. Offline Bundle must be GREEN on that exact candidate before hardware handoff/Ready classification.
+No mandatory public runtime dependency was introduced.
 
-## Existing Raspberry Pi baseline
+## Controlled Raspberry Pi acceptance
 
-Before Issue #400 candidate deployment, the Product Owner deployed `main=61998415e334cb31555e54ae4013d938e7607b6e` on the controlled Raspberry Pi in `lan` mode.
+On 2026-08-12 the Product Owner tested the exact candidate `2da08a028f54884acb74ea71cf1fac741426687b` on the controlled Raspberry Pi host while keeping the existing Telemetry Service, PostgreSQL, MQTT and Device Agent runtime unchanged. Only the dashboard process was temporarily replaced, then the production dashboard service was restored.
 
-Observed baseline:
+Evidence directory retained on the host:
 
-- controlled deployment: PASS;
-- dashboard: active;
-- Telemetry Service: healthy;
-- API/database/MQTT readiness: ready;
-- Device Agent: healthy;
-- MQTT connected;
-- queue depth: 0;
-- real RS-485 telemetry advancing;
-- configured/poll-eligible targets: 38;
-- sampled acquisition counters: `physical_requests_total=818`, `success=657`, `timeout=161`, `retry_attempts_total=161`;
-- no Modbus or hardware writes were performed.
+`/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`
 
-These counters are a pre-#400 runtime baseline only; they are not yet proof of the candidate acquisition invariant.
+The candidate production build passed on the Raspberry Pi before the runtime observation.
 
-## Hardware acceptance still required
+### Equal-duration physical request-rate comparison
 
-Before Issue #400 can claim full production acceptance, run the frozen exact candidate on the controlled Raspberry Pi and record equal-duration request-rate observations for:
+Both windows were 60 seconds.
 
-1. dashboard/browser idle baseline;
-2. Live Data explorer open with eight channels;
-3. active chart interaction (range, show/hide, solo, zoom/pan, Pause/Return Live);
-4. sibling workspace transition away/back.
+| Metric | Browser closed baseline | 8-channel active Chart System | Delta |
+| --- | ---: | ---: | ---: |
+| physical requests | 180 | 181 | +1 |
+| physical requests/s | 3.000 | 3.017 | +0.017 (+0.56%) |
+| retry attempts | 12 | 12 | 0 |
+| successful requests | 168 | 169 | +1 |
+| timeouts | 12 | 12 | 0 |
+| bus executions | 156 | 157 | +1 |
+| bus executions/s | 2.600 | 2.617 | +0.017 (+0.65%) |
+| bus busy seconds | 11.928 | 11.772 | -0.156 |
 
-Acceptance requires no chart-driven change to Device Agent scheduler policy, registry eligibility or physical request cadence beyond normal scheduler variation, no Modbus writes, continued telemetry advancement and acceptable browser performance.
+During the active window the operator exercised the 8-channel Live Data chart with range changes, Hide/Show, Solo, zoom/pan, Pause View, Return to Live and the `Saved Dashboards -> Live Data` sibling workspace transition.
 
-Until that physical test is completed, use:
+Acquisition invariants remained stable:
 
-`software verified; production Live Data Raspberry Pi acquisition-invariant acceptance pending`
+- scheduler policy unchanged in both windows;
+- configured targets remained `38 -> 38`;
+- poll-eligible targets remained `38 -> 38`;
+- retry count remained 12 in each 60-second window;
+- timeout count remained 12 in each 60-second window;
+- physical request-rate difference was +0.56%, consistent with normal scheduler phase variation rather than a browser-driven polling change;
+- bus busy time did not increase;
+- telemetry continued advancing through the active window;
+- final Telemetry Service readiness was `ready`, database `ready`, MQTT `ready`, queue size 0 and ingestion lag about 0.136 s;
+- final Device Agent remained in the same pre-existing degraded condition with 3 failing/cooldown endpoints, 38 configured targets, 38 poll-eligible targets, MQTT connected and queue depth 0;
+- no chart/acquisition configuration mutation was performed;
+- no Modbus write or hardware write was performed;
+- the production dashboard service was restored after the test.
+
+`observed_modbus_functions=[]` in the health snapshot is not treated as proof that no Modbus reads occurred; the request counters themselves prove ongoing physical acquisition. The safety conclusion is based on the unchanged read-only product scope, unchanged scheduler/registry state, equal-duration request counters and absence of any write/configuration action.
+
+## Acceptance conclusion
+
+Issue #400 hardware acceptance is **PASS**.
+
+Completion classification:
+
+`software verified; offline runtime verified; Raspberry Pi Live Data acquisition-invariant verified; no Modbus/hardware write; ready for final exact-head state/check audit and merge`
