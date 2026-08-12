@@ -3,47 +3,67 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-408-POST-406-STATE-RECONCILIATION",
-  "status": "state_reconciliation_ready_for_ci",
-  "timestamp": "2026-08-12T09:13:00+03:00",
-  "branch": "chore/408-post-406-state",
-  "product_main_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
-  "completed_issue": 406,
-  "completed_pull_request": 407,
-  "final_pr_head_sha": "4b82acf750fbd52b2c4e5b7eca0210742a6b0fe2",
-  "merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad",
-  "root_cause": "Persisted-history loading depended on mutable selected identity arrays; normal live sample arrival could restart history loading and unmount the chart.",
-  "verification": {
-    "ci": "GREEN",
-    "authenticated_dashboard": "11/11 GREEN including local MQTT live-point continuity regression and acquisition invariant",
-    "refrigeration_browser": "GREEN",
-    "offline_bundle": "GREEN including disconnected load/start and update/rollback persistent-data preservation",
-    "review_threads": 0,
-    "main_drift_before_merge": false
+  "task": "ISSUE-404-SAVED-LIVE-DASHBOARD-CANONICAL-CHART-SYSTEM",
+  "status": "implementation_complete_targeted_checks_green_pr_verification_pending",
+  "timestamp": "2026-08-12T09:48:00+03:00",
+  "branch": "feat/404-saved-live-dashboard-chart-system",
+  "product_main_sha": "f3462861db2a3593e2072a7bad70d557c009b323",
+  "active_issue": 404,
+  "scope": "Persisted Saved Live Dashboard line/area renderer migration only; Issue #369 editor inventory/filter/select/save acceptance remains separate.",
+  "implementation": {
+    "legacy_series_chart_svg_removed": true,
+    "canonical_chart_domain_mapping": true,
+    "chart_shell": true,
+    "chart_renderer_host": true,
+    "echarts_canvas": true,
+    "optional_area_fill": true,
+    "persisted_order_and_colors": true,
+    "truthful_continuity": true,
+    "evidence_preserving_reduction": true,
+    "compatible_unit_groups": true,
+    "cumulative_energy_semantics": true,
+    "shared_cursor": true,
+    "show_hide_solo": true,
+    "zoom_pan_reset": true,
+    "persisted_time_window_reset_domain": true,
+    "value_gauge_regression_protection": true,
+    "dashboard_crud_contract_changed": false,
+    "telemetry_api_contract_changed": false
+  },
+  "targeted_verification": {
+    "prettier": "GREEN",
+    "typecheck": "GREEN",
+    "focused_tests": "GREEN",
+    "browser_fixture_typecheck": "GREEN",
+    "browser_fixture": "persisted line+area+value+gauge; deterministic bounded history/latest projection; Canvas/no legacy SVG; interactions; responsive widths; no public/acquisition/dashboard mutation; close/reopen lifecycle"
+  },
+  "required_before_merge": {
+    "exact_head_ci": "pending",
+    "authenticated_production_browser": "pending",
+    "acquisition_invariant": "pending",
+    "offline_bundle": "pending",
+    "focused_diff_review": "pending",
+    "review_threads": "pending",
+    "raspberry_pi_saved_dashboard_acceptance": "pending"
   },
   "hardware_evidence": {
-    "new_raspberry_pi_acceptance_for_issue_406": false,
-    "claim": "no new physical hardware acceptance claimed",
-    "existing_issue_400_evidence_directory": "/home/nexolab/nexolab-400-hardware.5B0rFp/evidence"
+    "issue_404_raspberry_pi_acceptance": false,
+    "claim": "not run; no physical acceptance claimed"
   },
   "safety": {
     "backend_schema_change": false,
-    "database_change": false,
+    "database_migration": false,
     "polling_change": false,
     "scheduler_change": false,
     "registry_change": false,
     "device_agent_change": false,
     "modbus_write": "none",
     "hardware_write": "none",
-    "production_site_cutover": "none"
+    "production_site_cutover": "none",
+    "mandatory_public_runtime_dependency": "none"
   },
-  "next_work_package": {
-    "issue": 404,
-    "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-    "github_status": "status:ready",
-    "phase": "selected_after_issue_408_state_merge",
-    "depends_on": [386, 400]
-  },
+  "known_truthful_boundary": "Saved Dashboard reconnecting delivery state has no timestamped reconnect event in the existing hook, so no synthetic reconnect-break timestamp is invented; actual source gaps remain continuity evidence.",
+  "next_chart_migration_after_merge": "Overview",
   "preserved_runtime_sequence": [369, 366, 289],
-  "next_action": "Run state-only CI for Issue #408, merge while GREEN/current with main, then begin Issue #404 as the sole implementation lane."
+  "next_action": "Open focused draft PR, run exact-head CI/browser/offline gates, resolve findings, then perform controlled Raspberry Pi Saved Dashboard acceptance before final Ready/merge."
 }
