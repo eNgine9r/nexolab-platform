@@ -77,6 +77,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(instance.options.at(-1)).toMatchObject({
       tooltip: {
         trigger: "axis",
+        showContent: false,
         axisPointer: { type: "line", snap: false },
         appendToBody: false,
         confine: true,
@@ -118,7 +119,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(data).toHaveLength(240);
   });
 
-  it("translates cursor events and clears handlers on dispose", () => {
+  it("translates cursor events without opening a moving renderer tooltip and clears handlers on dispose", () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const onXDomainChange = vi.fn();
@@ -150,7 +151,9 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setSharedCursor(BENCHMARK_START_MS);
     adapter.dispose();
     expect(instance.resizeCount).toBe(1);
-    expect(instance.actions).toHaveLength(2);
+    expect(instance.actions).toEqual([
+      { type: "updateAxisPointer", xAxisIndex: 0, value: BENCHMARK_START_MS },
+    ]);
     expect(instance.handlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);

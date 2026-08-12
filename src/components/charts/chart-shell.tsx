@@ -81,7 +81,7 @@ export function ChartShell({
       </p>
       <div className="min-w-0 p-3 sm:p-4">{children}</div>
 
-      <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
+      <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
         <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label="Chart legend">
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);

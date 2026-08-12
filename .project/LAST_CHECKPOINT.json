@@ -3,118 +3,89 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-411-POST-404-STATE-RECONCILIATION",
-  "status": "state_reconciliation_pr_open",
-  "timestamp": "2026-08-12T15:19:00+03:00",
-  "branch": "chore/411-reconcile-issue-404-state",
-  "pull_request": 412,
-  "product_main_sha": "d4068e28402aa113f4485dc3afecb1f8eb44bd7b",
-  "active_issue": 411,
-  "completed_product_issue": 404,
-  "issue_404": {
-    "pull_request": 410,
-    "final_product_head": "ce2356cfb142e241684a7a68a08969cab884c2f5",
-    "merge_sha": "d4068e28402aa113f4485dc3afecb1f8eb44bd7b",
-    "merge_method": "squash",
-    "result": "PASS",
-    "scope": "Persisted Saved Live Dashboard line/area renderer migration to the canonical Chart System; Issue #369 editor inventory/filter/select/save acceptance remains separate."
-  },
+  "task": "ISSUE-413-OVERVIEW-CHART-SYSTEM",
+  "status": "hardware_pass_final_merge_audit",
+  "timestamp": "2026-08-12T21:52:00+03:00",
+  "branch": "feat/413-overview-chart-system",
+  "pull_request": 414,
+  "base_main_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
+  "active_issue": 413,
   "implementation": {
-    "legacy_series_chart_svg_removed": true,
+    "overview_custom_history_svg_removed": true,
     "canonical_chart_domain_mapping": true,
+    "invalid_quality_continuity_breaks": true,
+    "source_gap_threshold_ms": 30000,
+    "canonical_reduction_target_points": 240,
     "chart_shell": true,
     "chart_renderer_host": true,
     "echarts_canvas": true,
-    "optional_area_fill": true,
-    "persisted_order_and_colors": true,
-    "truthful_continuity": true,
-    "evidence_preserving_reduction": true,
-    "compatible_unit_groups": true,
-    "cumulative_energy_semantics": true,
-    "shared_cursor": true,
+    "persistent_non_animated_renderer": true,
+    "shared_cursor_inspector": true,
     "show_hide_solo": true,
     "zoom_pan_reset": true,
-    "persisted_time_window_reset_domain": true,
-    "value_gauge_regression_protection": true,
-    "non_animated_saved_dashboard_scene_updates": true,
-    "mqtt_live_point_continuity_regression": true,
-    "cursor_layout_stability_fix": true,
-    "dashboard_crud_contract_changed": false,
-    "telemetry_api_contract_changed": false
+    "responsive_footer_fix": true,
+    "moving_echarts_tooltip_content_disabled": true,
+    "live_cards_preserved": true,
+    "history_ranges_preserved": ["1h", "6h", "24h"],
+    "telemetry_api_contract_changed": false,
+    "device_agent_changed": false,
+    "scheduler_changed": false,
+    "registry_changed": false
   },
-  "exact_head_verification": {
-    "head": "ce2356cfb142e241684a7a68a08969cab884c2f5",
-    "ci": "GREEN run #2910",
-    "authenticated_dashboard": "GREEN run #1607; 12/12 production Playwright",
-    "acquisition_scale": "GREEN run #84",
-    "refrigeration_browser": "GREEN run #1581",
-    "offline_bundle": "GREEN run #990 including disconnected startup and update/rollback persistence",
-    "review_threads": 0,
-    "compare": "ahead 48, behind 0 against base f3462861db2a3593e2072a7bad70d557c009b323"
-  },
-  "hardware_evidence": {
-    "issue_404_raspberry_pi_acceptance": true,
-    "acquisition_invariant": {
-      "status": "PASS",
-      "browser_closed_window_seconds": 60,
-      "active_dashboard_window_seconds": 60,
-      "browser_closed_physical_requests": 192,
-      "active_dashboard_physical_requests": 181,
-      "browser_closed_requests_per_second": 3.2,
-      "active_dashboard_requests_per_second": 3.017,
-      "browser_closed_retries": 18,
-      "active_dashboard_retries": 12,
-      "browser_closed_success": 168,
-      "active_dashboard_success": 169,
-      "browser_closed_timeouts": 24,
-      "active_dashboard_timeouts": 12,
-      "browser_closed_bus_executions": 162,
-      "active_dashboard_bus_executions": 157,
-      "scheduler_policy_unchanged": true,
-      "configured_targets": "38 -> 38",
-      "poll_eligible_targets": "38 -> 38",
-      "degraded_endpoints": "3 -> 3",
-      "cooldown_endpoints": "3 -> 3",
-      "service_operations_unchanged": true,
-      "aggregate_telemetry_advanced": true
-    },
-    "visual_continuity": {
-      "status": "PASS",
-      "dashboard": "111",
-      "channel_id": "104-03",
-      "metric": "temperature.probe",
-      "source": "dixell-xjp60d",
-      "observed_events_utc": [
-        "2026-08-12T10:47:34.583778Z",
-        "2026-08-12T10:47:39.583776Z",
-        "2026-08-12T10:47:44.583766Z"
-      ],
-      "observed_quality": "communication_error",
-      "graph_disappeared": false,
-      "existing_24h_graph_stayed_visible": true,
-      "dashboard_remained_usable": true,
-      "library_reopen": "PASS"
-    },
-    "cursor_retest": {
-      "status": "PASS",
-      "candidate_head": "ce2356cfb142e241684a7a68a08969cab884c2f5",
-      "vertical_jump": false,
-      "graph_card_stayed_fixed": true,
-      "zoom_pan_reset": "PASS",
-      "dashboard_remained_usable": true
-    },
-    "production_restore": {
-      "status": "PASS",
-      "active_state": "active",
-      "sub_state": "running",
-      "result": "success",
-      "nrestarts": "0 -> 0",
-      "http": 200,
-      "transient_candidate_left_orphan": false
+  "corrective_product_head": {
+    "sha": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
+    "fix": "disable ECharts moving tooltip content and showTip dispatch while preserving vertical axis pointer and canonical Exact inspector",
+    "gates": {
+      "ci": "#2944 GREEN",
+      "authenticated_dashboard": "#1632 GREEN including acquisition invariant",
+      "refrigeration_browser": "#1606 GREEN",
+      "offline_bundle": "#1015 GREEN"
     }
   },
+  "hardware_acceptance": {
+    "classification": "PASS",
+    "carried_forward_full_physical_evidence_from_first_candidate": true,
+    "carry_forward_reason": "corrective product diff is renderer-tooltip/test-only and does not touch telemetry, Device Agent, scheduler, registry, polling or hardware behavior",
+    "target": {
+      "channel": "126-04",
+      "metric": "temperature.probe",
+      "source": "dixell-xjp60d"
+    },
+    "visual_retest": {
+      "chart_visual_continuity": "PASS",
+      "post_event_overview_render": "PASS",
+      "cursor_vertical_jump": "NO",
+      "graph_card_stays_fixed": "YES",
+      "hide_show_solo": "PASS",
+      "zoom_pan_reset": "PASS",
+      "range_1h_6h_24h": "PASS",
+      "route_reopen": "PASS",
+      "dashboard_remains_usable": "YES"
+    },
+    "prior_control_plane_evidence": {
+      "discovery_delta": 0,
+      "configuration_mutation_delta": 0,
+      "modbus_write_attempts": 0,
+      "polling_policy_unchanged": true,
+      "configured_targets_before": 38,
+      "configured_targets_after": 38,
+      "registry_revision_unchanged": true,
+      "registry_summary_unchanged": true,
+      "service_operation_delta": {}
+    }
+  },
+  "follow_up": {
+    "issue": 415,
+    "title": "Add left-button drag panning to canonical NEXOLAB charts",
+    "classification": "UX enhancement, not #413 blocker",
+    "status": "open_pending_fresh_ready_audit"
+  },
+  "review_boundary": {
+    "product_code_changed_after_hardware_pass": false,
+    "state_audit_only_commits_after_hardware_pass": true,
+    "workflow_files_changed": false
+  },
   "safety": {
-    "backend_schema_change": false,
     "database_migration": false,
     "polling_change": false,
     "scheduler_change": false,
@@ -125,20 +96,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "state_reconciliation": {
-    "issue": 411,
-    "pull_request": 412,
-    "required_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json",
-      "docs/audits/issue-404-saved-live-dashboard-chart-system.md"
-    ],
-    "product_runtime_code_change_allowed": false,
-    "next_step_after_merge": "fresh repository-backed Ready audit"
-  },
-  "next_chart_migration_preference": "Overview after fresh Ready audit",
-  "preserved_runtime_sequence": [369, 366, 289],
-  "next_action": "Run PR #412 exact-head CI and merge if GREEN, then perform the required repository-backed Ready audit before selecting/creating the next implementation package."
+  "next_action": "Run final exact-head CI/review audit on the state-only completion head. If GREEN and main has no drift, mark PR #414 Ready and squash-merge with exact-head guard. Then reconcile post-merge state and run a fresh Ready audit before selecting the next package."
 }

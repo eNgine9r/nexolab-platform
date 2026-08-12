@@ -2,38 +2,48 @@
 
 Updated: 2026-08-12
 
-## Issue #404 — completed, blockers resolved
+## Issue #413 — physical cursor blocker resolved
 
-Issue #404 / PR #410 is squash-merged as `d4068e28402aa113f4485dc3afecb1f8eb44bd7b` from final product head `ce2356cfb142e241684a7a68a08969cab884c2f5`.
+Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history to the canonical Chart System.
 
-The earlier Raspberry Pi visual-continuity failure is resolved. Final controlled evidence established:
+The first frozen candidate `634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5` passed software/browser/offline gates but controlled Raspberry Pi acceptance exposed `cursor_vertical_jump=YES` while the graph/card itself remained fixed.
 
-- acquisition invariant PASS: browser closed `192` physical requests / `3.200 req/s` versus active Saved Dashboard `181` / `3.017 req/s`;
-- scheduler policy unchanged;
-- configured targets `38 -> 38`;
-- poll-eligible targets `38 -> 38`;
-- service operations unchanged;
-- real Saved Dashboard `111`, series `104-03 / temperature.probe`, received exact `dixell-xjp60d` events while the existing 24 h chart stayed visible;
-- dashboard remained usable;
-- library -> reopen PASS;
-- final cursor retest on `ce2356cf...`: no vertical jump, graph/card fixed, zoom/pan/reset PASS;
-- transient candidate stopped cleanly and production restored `active/running`, `NRestarts 0 -> 0`, HTTP 200.
+Corrective product head `0b0b239911c729e31c791c8fa2eb2c6f433bfcce` removed duplicate moving ECharts tooltip content while preserving the vertical axis pointer and canonical Exact inspector.
 
-The previous acceptance-harness orphan `next-server`/`EADDRINUSE` problem is also resolved. The final candidate was run as a transient systemd unit and left no orphan process.
+Corrective gates are GREEN:
 
-No #404 product or merge blocker remains.
+- CI #2944;
+- Authenticated Dashboard Acceptance #1632;
+- Refrigeration Browser Acceptance #1606;
+- Offline Bundle #1015.
 
-## Issue #411 — active state-only reconciliation
+Targeted controlled Raspberry Pi retest passed:
 
-Issue #411 reconciles durable repository state after #404 merge. This is not a product/runtime blocker. Permitted changes are limited to `.project/**` and `docs/audits/issue-404-saved-live-dashboard-chart-system.md`.
+```text
+cursor_vertical_jump=NO
+graph_card_stays_fixed=YES
+chart_visual_continuity=PASS
+post_event_overview_render=PASS
+hide_show_solo=PASS
+zoom_pan_reset=PASS
+range_1h_6h_24h=PASS
+route_reopen=PASS
+dashboard_remains_usable=YES
+```
 
-After #411 merges, a fresh repository-backed Ready audit is required before the next implementation package is selected.
+No #413 physical UI blocker remains. The prior full acquisition/control-plane evidence remains applicable because the corrective product diff is renderer/test-only and does not touch telemetry, Device Agent, scheduler, registry, polling cadence or hardware state.
+
+PR #414 still requires a final exact-head state-only CI/review audit before Ready/merge.
+
+## Issue #415 — follow-up UX enhancement
+
+Issue #415 records a new Product Owner request for natural left-button drag-to-pan on canonical desktop charts. This is not a blocker for #413 and must not mutate the already accepted #413 product code.
+
+Select #415 only after #413 merge/post-merge reconciliation and a fresh Ready audit.
 
 ## Issue #369 — Ready, separate scope
 
-Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It was not absorbed by #404.
-
-Preserved runtime sequence:
+Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. Preserved runtime sequence:
 
 ```text
 #369 -> #366 -> #289
@@ -41,7 +51,7 @@ Preserved runtime sequence:
 
 ## Issue #389 — Ready and not selected
 
-Issue #389 remains Ready for administrator-only local Version Management. Product Owner priority currently favors continuing the Chart System sequence, subject to the required fresh Ready audit.
+Issue #389 remains Ready for administrator-only local Version Management and is not mixed into #413.
 
 ## Other known boundaries
 
@@ -52,7 +62,7 @@ Issue #389 remains Ready for administrator-only local Version Management. Produc
 
 ## Security boundary
 
-The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #404 did not broaden it.
+The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #413 does not broaden it.
 
 ## Global hard-stop rules
 
