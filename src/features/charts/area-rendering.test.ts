@@ -51,9 +51,7 @@ function scene(areaFillOpacity?: number): ChartRendererScene {
           {
             id: "segment",
             seriesKey: "series",
-            points: [
-              { id: "point", timestampMs: 1_500, value: 4.2, quality: "valid" },
-            ],
+            points: [{ id: "point", timestampMs: 1_500, value: 4.2, quality: "valid" }],
           },
         ],
       },
@@ -74,7 +72,9 @@ describe("canonical area rendering", () => {
     });
 
     adapter.setScene(scene(0.14));
-    const areaOption = instance.options.at(-1) as { series: Array<{ areaStyle?: { color: string; opacity: number } }> };
+    const areaOption = instance.options.at(-1) as {
+      series: Array<{ areaStyle?: { color: string; opacity: number } }>;
+    };
     expect(areaOption.series[0].areaStyle).toEqual({ color: "#123456", opacity: 0.14 });
 
     adapter.setScene(scene());

@@ -15,14 +15,8 @@ import {
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
 import type { ChartXDomain } from "@/features/charts/domain";
-import {
-  buildSavedDashboardChartGroups,
-  savedDashboardResetDomain,
-} from "@/features/live-dashboards/chart";
-import type {
-  LiveDashboard,
-  LiveDashboardTelemetryStatus,
-} from "@/features/live-dashboards/types";
+import { buildSavedDashboardChartGroups, savedDashboardResetDomain } from "@/features/live-dashboards/chart";
+import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";

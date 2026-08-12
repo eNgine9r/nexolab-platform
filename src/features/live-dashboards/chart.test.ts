@@ -131,10 +131,20 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     });
 
     expect(groups).toHaveLength(2);
-    const temperatureSeries = groups.flatMap((group) => group.scene.series).find((entry) => entry.identity.channelId === "T-1")!;
-    const energySeries = groups.flatMap((group) => group.scene.series).find((entry) => entry.identity.channelId === "E-1")!;
-    expect(temperatureSeries.segments.flatMap((segment) => segment.points).some((point) => point.pinReasons?.includes("alarm"))).toBe(true);
-    expect(groups.flatMap((group) => group.scene.events ?? []).some((event) => event.severity === "alarm")).toBe(true);
+    const temperatureSeries = groups
+      .flatMap((group) => group.scene.series)
+      .find((entry) => entry.identity.channelId === "T-1")!;
+    const energySeries = groups
+      .flatMap((group) => group.scene.series)
+      .find((entry) => entry.identity.channelId === "E-1")!;
+    expect(
+      temperatureSeries.segments
+        .flatMap((segment) => segment.points)
+        .some((point) => point.pinReasons?.includes("alarm")),
+    ).toBe(true);
+    expect(
+      groups.flatMap((group) => group.scene.events ?? []).some((event) => event.severity === "alarm"),
+    ).toBe(true);
     expect(temperatureSeries.freshness).toBe("stale");
     expect(energySeries.semanticMode).toBe("cumulative_counter");
   });

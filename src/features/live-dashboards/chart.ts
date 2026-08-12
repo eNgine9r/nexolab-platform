@@ -95,9 +95,7 @@ function alarmEvents(series: readonly ChartSeries[]): ChartEventMarker[] {
   );
 }
 
-export function savedDashboardChartFreshness(
-  status: LiveDashboardTelemetryStatus,
-): ChartFreshnessState {
+export function savedDashboardChartFreshness(status: LiveDashboardTelemetryStatus): ChartFreshnessState {
   if (status === "live") return "live";
   if (status === "stale") return "stale";
   if (status === "connecting") return "connecting";
@@ -183,10 +181,10 @@ export function buildSavedDashboardChartGroups(
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const plotted = options.series
-    .filter(
-      (item) => item.item.visualization === "line" || item.item.visualization === "area",
-    )
-    .sort((left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id));
+    .filter((item) => item.item.visualization === "line" || item.item.visualization === "area")
+    .sort(
+      (left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
+    );
   const entries = plotted.map((source, index) => ({
     source,
     index,
