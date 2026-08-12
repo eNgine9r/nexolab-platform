@@ -2,7 +2,7 @@
 
 Updated: 2026-08-12
 
-Canonical repository baseline on `main`: `afdfa387a7aa988a49e010d75c27d59a7cdf74d2` — Issue #400 / PR #402 Live Data canonical Chart System migration merge.
+Canonical repository baseline on `main`: `c5977f846b87d0a498f84feec5b2e8f966a61d94` — Issue #403 / PR #405 post-#400 state reconciliation merge.
 
 ## Completed — Issue #385
 
@@ -14,103 +14,70 @@ Local users, four product roles, administrator-managed permissions, session revo
 
 Issue #386 / PR #399 is merged as `3b34ec321c2453778b20b6bf8e4cc232970e5e1e`.
 
-The canonical NEXOLAB Chart System foundation is production-available:
-
-- Chart Domain identity, quality, freshness and continuity contracts;
-- compatible-unit grouping;
-- evidence-preserving segment-aware reduction;
-- ECharts `6.1.0` local Canvas adapter;
-- reusable Chart Shell and renderer host;
-- Raspberry Pi 5 renderer benchmark and offline bundle proof.
+The canonical NEXOLAB Chart System foundation is production-available: Chart Domain identity/quality/freshness/continuity contracts, compatible-unit grouping, evidence-preserving reduction, ECharts 6.1.0 local Canvas adapter, Chart Shell and renderer host.
 
 ## Completed — Issue #400
 
-Issue #400 / PR #402 is completed and squash-merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`.
+Issue #400 / PR #402 is squash-merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`.
 
-Delivered:
+Live Data uses the canonical Chart System. Final exact-head software/browser/offline gates were GREEN. Controlled Raspberry Pi acquisition-invariant acceptance was PASS against candidate `2da08a028f54884acb74ea71cf1fac741426687b`.
 
-- `/live?workspace=explorer` exposes Live Data as a sibling of Saved Live Dashboards;
-- the Live Data route-local SVG renderer is replaced by the canonical Chart System;
-- up to eight channels, compatible-unit synchronized groups, shared cursor/x-domain, show/hide/solo and canonical time controls are supported;
-- source gaps, alarm evidence, measurement quality and freshness remain truthful and independent;
-- Live Follow, Pause View, Return to Live, zoom/pan/reset remain display-only;
-- existing REST/history/WebSocket reconciliation remains authoritative;
-- no REST/WebSocket schema, database, retention, scheduler, registry, Device Agent, Modbus or hardware behavior changed.
-
-Final exact PR head before merge:
-
-`4cdeae018348c5c831874321b0dad221f6113a98`
-
-Final exact-head gates were GREEN:
-
-- CI — format, lint, typecheck, 77 test files / 344 tests and production build;
-- Authenticated Dashboard Acceptance;
-- Acquisition Scale Acceptance;
-- Refrigeration Browser Acceptance;
-- Offline Bundle including disconnected start and update/rollback persistent-data preservation.
-
-### Raspberry Pi acquisition-invariant evidence
-
-Hardware-tested candidate:
-
-`2da08a028f54884acb74ea71cf1fac741426687b`
-
-Evidence directory:
+Evidence remains at:
 
 `/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`
 
-Equal 60-second observations:
+Equal 60-second observations were 180 physical requests / 3.000 req/s with browser closed versus 181 / 3.017 req/s with an active eight-channel chart (+0.56%), with identical retry/timeout counts, unchanged scheduler policy and 38 configured/poll-eligible targets.
 
-```text
-browser closed:
-  physical requests: 180
-  request rate: 3.000/s
-  retries: 12
-  timeouts: 12
-  bus executions: 156
-  bus busy: 11.928s
+## Completed — Issue #403
 
-active 8-channel Chart System:
-  physical requests: 181
-  request rate: 3.017/s
-  retries: 12
-  timeouts: 12
-  bus executions: 157
-  bus busy: 11.772s
-```
+Issue #403 / PR #405 is completed and squash-merged as `c5977f846b87d0a498f84feec5b2e8f966a61d94`.
 
-Physical request-rate delta was +0.56%. Scheduler policy was unchanged, configured targets stayed 38, poll-eligible targets stayed 38, retry/timeout counts were unchanged and telemetry continued advancing. Telemetry Service/database/MQTT were ready, queue size was 0, and the Device Agent remained in the same pre-existing degraded condition with three failing/cooldown endpoints. Production dashboard service was restored after the test. No Modbus write or hardware write occurred.
+The repository state was reconciled after #400 and Issue #404 was established as the next Saved Live Dashboard Chart System migration.
 
-Issue #400 hardware acceptance: **PASS**.
+## Active critical regression — Issue #406
 
-## Current control task — Issue #403
+Product Owner reported that the Live Data chart repeatedly disappears while new points arrive.
 
-Issue #403 is a state-only post-merge reconciliation. Branch: `chore/403-post-400-state`.
+Issue #406 — **Keep Live Data charts mounted while live samples arrive** — is the sole active implementation lane on branch `fix/406-live-chart-history-continuity`.
 
-No product code, dependency, runtime, database or hardware changes are permitted in #403.
+Repository-backed root cause:
 
-Fresh repository audit after #400 merge found open `status:ready` Issues:
+- `selectedIdentities` was derived from mutable latest `TelemetrySample` objects;
+- `reconciledSelectedKeys` was also rebuilt whenever `view.samples` changed;
+- the persisted-history effect depended on those rebuilt arrays;
+- every normal live point could therefore abort/restart `loadCompleteLiveHistory`, clear `historySamples`, set `historyStatus=loading`, and cause the UI to replace the chart with the loading placeholder.
 
-- #369 — Raspberry Pi browser acceptance for canonical Live Dashboard inventory;
-- #389 — administrator-only local version management;
-- #404 — Saved Live Dashboard canonical Chart System renderer migration.
+Focused correction implemented:
 
-No existing open Issue or PR duplicated the Saved Live Dashboard renderer migration, so Issue #404 was created as the next focused Chart Work Package.
+- keep selected identity samples in a ref updated independently from the history loader;
+- use stable `selectedKey` as the history selection trigger;
+- remove mutable `selectedIdentities` and rebuilt `reconciledSelectedKeys` from the history-effect dependency boundary;
+- preserve history reloads for actual selection, range, retry, scope/configuration and live-coverage changes;
+- preserve WebSocket-tail reconciliation and all gap/quality/alarm semantics;
+- add a production browser regression that publishes a real acceptance sample through local MQTT and requires the existing ChartRendererHost instances to remain mounted with no extra `/telemetry/history` request.
 
-## Next selected Chart Work Package
+Targeted implementation verification already run on the feature branch:
+
+- Prettier touched files: GREEN;
+- TypeScript typecheck: GREEN;
+- focused `live-history` and `live-chart` tests: GREEN.
+
+Full PR/browser/offline verification is still required before merge.
+
+No backend schema, database, retention, polling, scheduler, registry, Device Agent, Modbus or hardware change is in scope.
+
+## Next selected Chart Work Package after #406
 
 **Issue #404 — Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System.**
 
-It is open, assigned, `priority:high` and `status:ready`.
+It remains open, assigned, `priority:high` and `status:ready`, but implementation is paused while the critical #406 regression is resolved.
 
-The package is intentionally distinct from #369:
+Issue #404 remains distinct from #369:
 
-- #404 migrates the persisted Saved Dashboard line/area history renderer to the canonical Chart System;
+- #404 migrates the persisted Saved Dashboard line/area renderer;
 - #369 remains the Raspberry Pi inventory/filter/select/save acceptance for the dashboard editor.
 
-Issue #389 remains Ready but not selected while the Product Owner Chart System priority is active.
-
-The preserved runtime sequence remains:
+Issue #389 remains Ready/not selected. The preserved runtime sequence remains:
 
 ```text
 #369 -> #366 -> #289
@@ -118,8 +85,8 @@ The preserved runtime sequence remains:
 
 ## Security boundary
 
-The existing `telemetry-service/libcjson1/CVE-2026-67216` exception expires on 2026-09-05. Issue #400 did not broaden it.
+The existing `telemetry-service/libcjson1/CVE-2026-67216` exception expires on 2026-09-05. Issue #406 does not broaden it.
 
 ## Next action
 
-Complete and merge state-only Issue #403 while GREEN. Then select Issue #404 as the sole implementation lane. Keep #389 Ready/not selected and preserve #369 -> #366 -> #289 unless a later repository audit or explicit Product Owner priority change establishes a different order.
+Complete Issue #406 with focused PR, full format/lint/typecheck/tests/build, deterministic Live Chart browser acceptance, acquisition-invariant checks and Offline Bundle. Merge only while exact-head checks are GREEN and the diff is focused. Reconcile state after merge, then start Issue #404 as the sole implementation lane.
