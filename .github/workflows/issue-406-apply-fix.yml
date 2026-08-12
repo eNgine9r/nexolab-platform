@@ -1,0 +1,176 @@
+name: Issue 406 apply live chart continuity fix
+
+on:
+  push:
+    branches:
+      - fix/406-live-chart-history-continuity
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/406-live-chart-history-continuity
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Apply focused regression fix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          hook = Path("src/hooks/use-live-telemetry.ts")
+          text = hook.read_text()
+
+          old = '''  const selectedIdentities = useMemo(() => {
+    const selected = new Set(reconciledSelectedKeys);
+    return view.samples.filter((sample) => selected.has(liveChannelKey(sample)));
+  }, [reconciledSelectedKeys, view.samples]);
+  const selectedKey = reconciledSelectedKeys.join("\\u001f");
+'''
+          new = '''  const selectedIdentities = useMemo(() => {
+    const selected = new Set(reconciledSelectedKeys);
+    return view.samples.filter((sample) => selected.has(liveChannelKey(sample)));
+  }, [reconciledSelectedKeys, view.samples]);
+  const selectedKey = reconciledSelectedKeys.join("\\u001f");
+  const historyIdentitySignature = selectedIdentities.map(liveChannelKey).join("\\u001f");
+  const historyIdentitiesRef = useRef<TelemetrySample[]>([]);
+  const historyIdentitySignatureRef = useRef("");
+
+  if (historyIdentitySignatureRef.current !== historyIdentitySignature) {
+    historyIdentitySignatureRef.current = historyIdentitySignature;
+    historyIdentitiesRef.current = selectedIdentities;
+  }
+'''
+          if old not in text:
+              raise SystemExit("expected selected identity block not found")
+          text = text.replace(old, new, 1)
+
+          old = '''      selectedIdentities.length === 0
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const adapter = securedAdapter(config, selectedOrganizationId);
+'''
+          new = '''      historyIdentitiesRef.current.length === 0
+    ) {
+      return;
+    }
+
+    const historyIdentities = historyIdentitiesRef.current;
+    const controller = new AbortController();
+    const adapter = securedAdapter(config, selectedOrganizationId);
+'''
+          if old not in text:
+              raise SystemExit("expected history guard block not found")
+          text = text.replace(old, new, 1)
+
+          text = text.replace(
+              '''      ...selectedIdentities,\n      ...historySamplesRef.current,\n''',
+              '''      ...historyIdentities,\n      ...historySamplesRef.current,\n''',
+              1,
+          )
+          text = text.replace(
+              '''    void loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)\n''',
+              '''    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)\n''',
+              1,
+          )
+          text = text.replace(
+              '''          orderingStateRef.current = seedLiveHistoryOrderingState([...selectedIdentities, ...next]);\n''',
+              '''          orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);\n''',
+              1,
+          )
+          old_dep = '''    scopeKey,
+    selectedIdentities,
+    selectedKey,
+    selectedOrganizationId,
+'''
+          new_dep = '''    scopeKey,
+    historyIdentitySignature,
+    selectedKey,
+    selectedOrganizationId,
+'''
+          if old_dep not in text:
+              raise SystemExit("expected history dependency block not found")
+          text = text.replace(old_dep, new_dep, 1)
+          hook.write_text(text)
+
+          e2e = Path("e2e/live-chart-system.production.e2e.ts")
+          text = e2e.read_text()
+          anchor = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+
+    await expect.poll(() => runtime.sockets.maximum).toBe(1);
+'''
+          replacement = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+
+    const rendererHosts = page.getByTestId("chart-renderer-host");
+    await expect(rendererHosts).toHaveCount(2);
+    const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
+      request.url.includes("/history"),
+    ).length;
+
+    const nextCapturedAt = new Date().toISOString();
+    postgres(`
+INSERT INTO telemetry_samples (
+  event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
+)
+VALUES (
+  ${sqlString(randomUUID())},
+  'edge-live-issue-400',
+  ${sqlString(nextCapturedAt)}::timestamptz,
+  'temperature.probe',
+  9.9,
+  'degC',
+  'valid',
+  'issue-406-regression',
+  ${sqlString(fixture.equipmentId)},
+  ${sqlString(fixture.channels[0])},
+  NULL,
+  99,
+  NULL,
+  '{}'::json
+);
+`);
+
+    await expect.poll(() => page.getByText(/9[,.]9 degC/).count()).toBeGreaterThan(0);
+    await expect(rendererHosts).toHaveCount(2);
+    await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
+    await expect.poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length).toBe(
+      historyRequestsBeforeLivePoint,
+    );
+
+    await expect.poll(() => runtime.sockets.maximum).toBe(1);
+'''
+          if anchor not in text:
+              raise SystemExit("expected e2e anchor not found")
+          text = text.replace(anchor, replacement, 1)
+          e2e.write_text(text)
+      - name: Install dependencies
+        run: npm ci --no-audit
+        env:
+          HUSKY: 0
+      - name: Format touched files
+        run: npx prettier --write src/hooks/use-live-telemetry.ts e2e/live-chart-system.production.e2e.ts
+      - name: Targeted verification
+        run: |
+          npm run typecheck
+          npm test -- src/features/live/live-history.test.ts src/features/live/live-chart.test.ts
+      - name: Commit focused fix
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/hooks/use-live-telemetry.ts e2e/live-chart-system.production.e2e.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(live): keep chart mounted across live samples"
+          git push origin HEAD:fix/406-live-chart-history-continuity
