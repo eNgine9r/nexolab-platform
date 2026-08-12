@@ -29,7 +29,7 @@ Product Owner Chart System priority therefore selected a new focused Overview mi
 
 Issue #413 — **Migrate Overview temperature history to the canonical NEXOLAB Chart System** — is active on branch `feat/413-overview-chart-system`, Draft PR #414.
 
-Current implementation slice:
+Implemented product slice:
 
 - pure Overview temperature telemetry -> canonical Chart Domain mapper;
 - exact stable node/equipment/channel/metric/unit identity;
@@ -40,9 +40,21 @@ Current implementation slice:
 - shared exact cursor/inspector, show/hide/solo, zoom/pan/reset;
 - rolling live updates use the persistent non-animated renderer path;
 - live value cards, active XJP60D sensor-management selection and existing 1h/6h/24h history query contract remain separate and unchanged;
-- authenticated production browser coverage now checks Canvas/no-SVG, exact range request count, live host/canvas continuity, cursor layout stability, interaction side effects, responsive overflow and zero public runtime requests.
+- authenticated production browser coverage checks Canvas/no-SVG, exact range request count, live host/canvas continuity, cursor layout stability, interaction side effects, responsive overflow and zero public runtime requests;
+- shared `ChartShell` footer remains stacked until `2xl`, preventing the inspector from overlapping legend controls inside the narrower Overview card.
 
-Initial exact-head gates for the implementation checkpoint are running on PR #414. Controlled Raspberry Pi acceptance remains mandatory after software/browser/offline gates are GREEN.
+### GREEN software/offline checkpoint
+
+Clean product/state head `cb65b4b08cd0087ea6b405de72c0a16f561e7541` passed:
+
+- CI #2937 — GREEN: formatting, zero-warning lint, strict typecheck, 357 tests and production build;
+- Authenticated Dashboard Acceptance #1625 — GREEN, 12/12 production Playwright;
+- Refrigeration Browser Acceptance #1599 — GREEN;
+- Offline Bundle #1008 — GREEN, including clean transferred-host simulation, blocked container egress, disconnected startup and update/rollback persistent-data preservation.
+
+The earlier Authenticated Dashboard timeout on `373a9ac8...` was trace-diagnosed rather than timeout-relaxed. The Overview `Hide` control was overlapped by the shared Chart inspector because viewport `lg` enabled a two-column footer inside a narrow half-width chart card. The canonical footer now switches to two columns only at `2xl`. The next Authenticated Dashboard run passed 12/12 with the original interaction assertion intact.
+
+The state/audit checkpoint recording these GREEN results changes branch SHA once more. All required canonical gates must rerun on that final checkpoint head before it is frozen for Raspberry Pi acceptance.
 
 ## Preserved independent lanes
 
@@ -66,4 +78,4 @@ The `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on 2026
 
 ## Next action
 
-Finish Issue #413 exact-head software/browser/offline verification, resolve any focused regressions, record a canonical checkpoint, then run controlled Raspberry Pi Overview acceptance on the exact final candidate before Ready/merge. Preserve #369, #389 and all hardware/write safety boundaries.
+Complete the final state/audit checkpoint, rerun all canonical exact-head software/browser/offline gates, and freeze the resulting SHA only if GREEN. Then run controlled Raspberry Pi Overview acceptance on that exact frozen candidate before Ready/merge. Preserve #369, #389 and all hardware/write safety boundaries.
