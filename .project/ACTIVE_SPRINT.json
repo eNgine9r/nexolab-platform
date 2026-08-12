@@ -103,12 +103,14 @@
       "issue": 413,
       "pull_request": 414,
       "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-      "status": "in_progress",
+      "status": "final_checkpoint_verification",
       "priority": "high",
       "depends_on": [386, 404],
       "branch": "feat/413-overview-chart-system",
-      "implementation": "Overview temperature history -> canonical Chart Domain/ChartShell/ECharts; truthful continuity/reduction; persistent live renderer; cursor/zoom interactions; live cards and sensor-management contracts preserved",
-      "verification": "initial exact-head CI/browser/offline gates running; controlled Raspberry Pi acceptance pending after GREEN software gates"
+      "implementation": "Overview temperature history -> canonical Chart Domain/ChartShell/ECharts; truthful continuity/reduction; persistent live renderer; cursor/zoom interactions; responsive ChartShell footer; live cards and sensor-management contracts preserved",
+      "software_checkpoint_head": "cb65b4b08cd0087ea6b405de72c0a16f561e7541",
+      "software_checkpoint_gates": "CI #2937 GREEN; Authenticated Dashboard #1625 12/12 GREEN; Refrigeration Browser #1599 GREEN; Offline Bundle #1008 GREEN",
+      "hardware_acceptance": "pending after final state/audit checkpoint exact-head rerun"
     },
     {
       "id": "NEXOLAB-389",
@@ -167,7 +169,7 @@
     "issue": 413,
     "pull_request": 414,
     "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-    "status": "in_progress",
+    "status": "final_checkpoint_verification",
     "priority": "high",
     "assignee": "eNgine9r",
     "branch": "feat/413-overview-chart-system",
@@ -197,8 +199,10 @@
     "issue_411_merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
     "issue_413_base_main": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
     "issue_413_scope_boundary": "Overview temperature-history renderer only; Live Dashboard editor acceptance #369 remains separate",
-    "issue_413_software": "in progress",
-    "issue_413_hardware": "pending after exact-head software gates"
+    "issue_413_software_checkpoint_head": "cb65b4b08cd0087ea6b405de72c0a16f561e7541",
+    "issue_413_software_checkpoint": "CI #2937 GREEN; Authenticated Dashboard #1625 12/12 GREEN; Refrigeration Browser #1599 GREEN; Offline Bundle #1008 GREEN",
+    "issue_413_final_exact_head": "pending after state/audit checkpoint commits",
+    "issue_413_hardware": "pending after final exact-head software gates"
   },
   "runtime_evidence": {
     "issue_413_external_egress_required": false,
@@ -206,7 +210,7 @@
     "issue_413_hardware_write": false,
     "issue_413_polling_change": false
   },
-  "next_selection_policy": "Finish #413 with exact-head software/browser/offline and controlled Raspberry Pi evidence, reconcile main after merge, then run a fresh Ready audit. Preserve #369 -> #366 -> #289 and #389 unless Product Owner or dependency state changes priority.",
+  "next_selection_policy": "Finish #413 final checkpoint exact-head gates, freeze the exact SHA, run controlled Raspberry Pi acceptance, merge only after GREEN physical evidence, reconcile main after merge, then run a fresh Ready audit. Preserve #369 -> #366 -> #289 and #389 unless Product Owner or dependency state changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
