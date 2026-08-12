@@ -20,7 +20,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "current_main_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
-  "current_main_sha_semantics": "Issue #411 / PR #412 post-#404 state reconciliation merged after CI #2918 GREEN; fresh Ready audit selected Issue #413 Overview Chart System migration",
+  "current_main_sha_semantics": "Issue #411 / PR #412 post-#404 state reconciliation merged after CI #2918 GREEN; Issue #413 remains active in corrective physical-acceptance phase",
   "product_owner_priority_override": {
     "active": true,
     "decision": "Continue the Chart System migration sequence with Overview. Preserve #369 -> #366 -> #289 as a separate runtime acceptance lane and #389 as Ready/not selected.",
@@ -57,35 +57,14 @@
       "hardware_acceptance": "PASS on controlled Raspberry Pi 2026-08-12"
     },
     {
-      "id": "NEXOLAB-406",
-      "issue": 406,
-      "pull_request": 407,
-      "title": "Keep Live Data charts mounted while live samples arrive",
-      "status": "completed_merged",
-      "priority": "critical",
-      "merge_sha": "457923927052ed91a23f396b2285e0cfaf6096ad"
-    },
-    {
-      "id": "NEXOLAB-408",
-      "issue": 408,
-      "pull_request": 409,
-      "title": "Reconcile Issue #406 merge and activate Issue #404",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "f3462861db2a3593e2072a7bad70d557c009b323"
-    },
-    {
       "id": "NEXOLAB-404",
       "issue": 404,
       "pull_request": 410,
       "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
       "status": "completed_merged",
       "priority": "high",
-      "depends_on": [386, 400],
-      "final_product_head": "ce2356cfb142e241684a7a68a08969cab884c2f5",
       "merge_sha": "d4068e28402aa113f4485dc3afecb1f8eb44bd7b",
-      "exact_head_gates": "CI #2910 GREEN; Authenticated Dashboard #1607 12/12 GREEN; Acquisition Scale #84 GREEN; Refrigeration Browser #1581 GREEN; Offline Bundle #990 GREEN",
-      "hardware_acceptance": "PASS: physical acquisition invariant, exact-series live continuity, library reopen and final cursor-layout retest on controlled Raspberry Pi"
+      "hardware_acceptance": "PASS: physical acquisition invariant, exact-series live continuity, library reopen and cursor-layout acceptance"
     },
     {
       "id": "NEXOLAB-411",
@@ -94,23 +73,25 @@
       "title": "Reconcile Issue #404 merge and Chart System continuation",
       "status": "completed_merged",
       "priority": "high",
-      "depends_on": [404],
       "merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
-      "verification": "state-only CI #2918 GREEN"
+      "verification": "CI #2918 GREEN"
     },
     {
       "id": "NEXOLAB-413",
       "issue": 413,
       "pull_request": 414,
       "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-      "status": "final_checkpoint_verification",
+      "status": "corrective_cursor_fix_final_checkpoint",
       "priority": "high",
       "depends_on": [386, 404],
       "branch": "feat/413-overview-chart-system",
-      "implementation": "Overview temperature history -> canonical Chart Domain/ChartShell/ECharts; truthful continuity/reduction; persistent live renderer; cursor/zoom interactions; responsive ChartShell footer; live cards and sensor-management contracts preserved",
-      "software_checkpoint_head": "cb65b4b08cd0087ea6b405de72c0a16f561e7541",
-      "software_checkpoint_gates": "CI #2937 GREEN; Authenticated Dashboard #1625 12/12 GREEN; Refrigeration Browser #1599 GREEN; Offline Bundle #1008 GREEN",
-      "hardware_acceptance": "pending after final state/audit checkpoint exact-head rerun"
+      "implementation": "Canonical Overview history plus focused shared cursor correction: ECharts moving tooltip content disabled while vertical axis pointer and Exact inspector remain",
+      "first_frozen_head": "634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5",
+      "first_frozen_gates": "CI #2942 GREEN; Authenticated Dashboard #1630 GREEN; Refrigeration Browser #1604 GREEN; Offline Bundle #1013 GREEN",
+      "first_hardware_acceptance": "PARTIAL PASS / PRODUCT FAIL: real-series continuity, controls, range/reopen and control-plane safety passed; cursor_vertical_jump=YES while graph_card_stays_fixed=YES",
+      "corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
+      "corrective_gates_at_checkpoint": "CI #2944 GREEN; Authenticated Dashboard #1632 GREEN; Refrigeration Browser #1606 GREEN; Offline Bundle #1015 running",
+      "hardware_acceptance": "targeted exact-head Raspberry Pi cursor retest pending after final state/audit gates"
     },
     {
       "id": "NEXOLAB-389",
@@ -169,11 +150,11 @@
     "issue": 413,
     "pull_request": 414,
     "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-    "status": "final_checkpoint_verification",
+    "status": "corrective_cursor_fix_final_checkpoint",
     "priority": "high",
     "assignee": "eNgine9r",
     "branch": "feat/413-overview-chart-system",
-    "selection_reason": "Fresh post-#411 Ready audit confirmed Overview is an independent remaining custom SVG Chart System surface; Product Owner Chart System priority selected it while preserving #369 and #389 lanes."
+    "selection_reason": "Fresh post-#411 Ready audit selected Overview under Product Owner Chart System priority while preserving #369 and #389 lanes."
   },
   "next_ready_work_package": {
     "issue": null,
@@ -196,13 +177,14 @@
     }
   ],
   "verification": {
-    "issue_411_merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
     "issue_413_base_main": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
-    "issue_413_scope_boundary": "Overview temperature-history renderer only; Live Dashboard editor acceptance #369 remains separate",
-    "issue_413_software_checkpoint_head": "cb65b4b08cd0087ea6b405de72c0a16f561e7541",
-    "issue_413_software_checkpoint": "CI #2937 GREEN; Authenticated Dashboard #1625 12/12 GREEN; Refrigeration Browser #1599 GREEN; Offline Bundle #1008 GREEN",
-    "issue_413_final_exact_head": "pending after state/audit checkpoint commits",
-    "issue_413_hardware": "pending after final exact-head software gates"
+    "issue_413_first_frozen_head": "634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5",
+    "issue_413_first_frozen_gates": "CI #2942 GREEN; Authenticated Dashboard #1630 GREEN; Refrigeration Browser #1604 GREEN; Offline Bundle #1013 GREEN",
+    "issue_413_first_hardware": "FAIL only cursor visual stability; all other UI/control-plane observations passed",
+    "issue_413_corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
+    "issue_413_corrective_product_gates": "CI #2944 GREEN; Authenticated Dashboard #1632 GREEN; Refrigeration Browser #1606 GREEN; Offline Bundle #1015 running at state checkpoint creation",
+    "issue_413_final_exact_head": "pending after this batched state/audit checkpoint",
+    "issue_413_hardware": "targeted cursor retest pending on final exact head"
   },
   "runtime_evidence": {
     "issue_413_external_egress_required": false,
@@ -210,7 +192,7 @@
     "issue_413_hardware_write": false,
     "issue_413_polling_change": false
   },
-  "next_selection_policy": "Finish #413 final checkpoint exact-head gates, freeze the exact SHA, run controlled Raspberry Pi acceptance, merge only after GREEN physical evidence, reconcile main after merge, then run a fresh Ready audit. Preserve #369 -> #366 -> #289 and #389 unless Product Owner or dependency state changes priority.",
+  "next_selection_policy": "Finish #413 final corrective checkpoint exact-head gates, freeze the exact SHA, run targeted Raspberry Pi cursor retest, merge only after cursor PASS, reconcile main after merge, then run a fresh Ready audit. Preserve #369 -> #366 -> #289 and #389 unless Product Owner or dependency state changes priority.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

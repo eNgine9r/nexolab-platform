@@ -2,46 +2,45 @@
 
 Updated: 2026-08-12
 
-## Issue #404 — completed, blockers resolved
+## Issue #413 — one physical cursor-stability blocker remains
 
-Issue #404 / PR #410 is squash-merged as `d4068e28402aa113f4485dc3afecb1f8eb44bd7b` from final product head `ce2356cfb142e241684a7a68a08969cab884c2f5`.
+Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history to the canonical Chart System.
 
-Final controlled Raspberry Pi evidence passed acquisition invariants, exact-series visual continuity, library reopen and cursor-layout stability. No #404 product or merge blocker remains.
+The first frozen final candidate `634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5` passed CI #2942, Authenticated Dashboard #1630, Refrigeration #1604 and Offline Bundle #1013, but controlled Raspberry Pi acceptance produced a clean product defect:
 
-## Issue #411 — completed
+```text
+cursor_vertical_jump=YES
+graph_card_stays_fixed=YES
+```
 
-Issue #411 / PR #412 state reconciliation is merged as `e89560cd2f52b59ed1c9fda4adca38e4c634a3b7` after CI #2918 GREEN.
+All other physical UI observations passed: exact real-series history continuity, post-event usability, Hide/Show/Solo, zoom/pan/reset, 1h/6h/24h and route reopen. Production restored cleanly with no restart drift.
 
-The required fresh Ready audit was completed after that merge and selected Issue #413.
+Physical acquisition evidence on that candidate showed 144 requests / 60 s browser-closed versus 153 / 60 s active Overview. Successful requests were identical at 132 in both windows; the active window had more timeout/retry activity. The acceptance harness therefore classified the raw rate comparison `REVIEW_EQUAL_DURATION_COUNTERS`. Control-plane safety evidence remained clean:
 
-## Issue #413 — physical acceptance pending
+- discovery delta 0;
+- configuration mutation delta 0;
+- Modbus write attempts 0;
+- polling policy unchanged;
+- configured targets `38 -> 38`;
+- registry revision/summary unchanged;
+- service-operation delta `{}`.
 
-Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history from its custom SVG renderer to the canonical Chart System.
+The cursor defect is isolated from physical acquisition: `graph_card_stays_fixed=YES` means the earlier ChartShell responsive reflow defect did not recur. The leading cause is the duplicate ECharts moving HTML axis-tooltip content; NEXOLAB already renders a stable canonical `Exact inspector`.
 
-No software/offline product blocker is currently known. Clean checkpoint head `cb65b4b08cd0087ea6b405de72c0a16f561e7541` passed:
+Corrective head `0b0b239911c729e31c791c8fa2eb2c6f433bfcce` disables renderer tooltip content while preserving the vertical axis pointer and exact inspector. CI #2944, Authenticated Dashboard #1632 and Refrigeration #1606 are GREEN; Offline Bundle #1015 was still running when this checkpoint was prepared.
 
-- CI #2937 — GREEN;
-- Authenticated Dashboard Acceptance #1625 — GREEN, 12/12;
-- Refrigeration Browser Acceptance #1599 — GREEN;
-- Offline Bundle #1008 — GREEN.
+PR #414 remains **Draft/not Ready** until:
 
-The earlier production-browser timeout was trace-diagnosed to a responsive shared `ChartShell` footer overlap: the inspector intercepted legend pointer events inside the narrow Overview card. The footer now remains stacked until `2xl`, and the full 12/12 production browser run passed without relaxing the interaction assertion or timeout.
+1. the final corrective state/audit head is exact-head GREEN across CI, Authenticated Dashboard, Refrigeration and Offline Bundle;
+2. focused diff/review audit remains clean;
+3. a targeted controlled Raspberry Pi cursor retest on that exact head records `cursor_vertical_jump=NO` and `graph_card_stays_fixed=YES`;
+4. production restores cleanly.
 
-The branch is intentionally **not Ready for merge** until:
-
-- the final state/audit checkpoint head reruns required canonical gates GREEN;
-- focused diff/review audit confirms no unrelated files or unresolved threads;
-- controlled Raspberry Pi Overview acceptance passes on that exact frozen head.
-
-Raspberry Pi acceptance must verify a real active Overview temperature series, equal-duration browser-closed versus active-Overview physical acquisition counters, chart continuity through an exact real event, cursor layout stability, zoom/pan/reset, route reopen and clean production restoration.
-
-No synthetic-only fixture may be represented as physical acceptance.
+Because the corrective product diff is renderer-tooltip/test-only, the already completed 60-second acquisition, exact real-series continuity, controls, range and route-reopen evidence may be carried forward under proportional verification. If the final diff expands into telemetry, acquisition, scheduler, registry, API or hardware-related code, the full physical acquisition matrix must be rerun.
 
 ## Issue #369 — Ready, separate scope
 
-Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It is independent from #413.
-
-Preserved runtime sequence:
+Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. Preserved runtime sequence:
 
 ```text
 #369 -> #366 -> #289
@@ -49,7 +48,7 @@ Preserved runtime sequence:
 
 ## Issue #389 — Ready and not selected
 
-Issue #389 remains Ready for administrator-only local Version Management. Product Owner priority currently keeps the Chart System migration active through #413.
+Issue #389 remains Ready for administrator-only local Version Management and is not mixed into #413.
 
 ## Other known boundaries
 

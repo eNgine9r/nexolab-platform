@@ -4,219 +4,171 @@ Updated: 2026-08-12
 
 ## Status
 
-**Software verified through a clean checkpoint; final exact-head rerun and controlled Raspberry Pi acceptance pending — Draft PR #414.**
+**Corrective cursor fix implemented and software/browser verified; final exact-head rerun plus targeted Raspberry Pi cursor retest pending — Draft PR #414.**
 
 Base `main`: `e89560cd2f52b59ed1c9fda4adca38e4c634a3b7`.
 
-Controlled Raspberry Pi acceptance is intentionally separate from CI and remains required before Ready/merge.
+## Product scope delivered
 
-## Selection evidence
+Issue #413 replaces the independent Overview XJP60D temperature-history SVG with the canonical NEXOLAB Chart System while preserving the existing Overview product and acquisition contracts.
 
-Fresh repository-backed Ready audit after Issue #411 / PR #412 found:
+Delivered behavior:
 
-- Issue #369 remains `status:ready`, critical and separate for Live Dashboard editor inventory/filter/select/save Raspberry Pi acceptance;
-- Issue #389 remains `status:ready`, high and not selected for administrator-only local Version Management;
-- no conflicting product PR is open;
-- Overview still owned an independent telemetry-history SVG in `src/components/dashboard/temperature-chart.tsx`;
-- that SVG filtered invalid/non-renderable samples before path construction and could visually connect valid points across a real communication/quality gap;
-- Overview already has its own authenticated latest/history/WebSocket path through `useDashboardTelemetry`, so it does not depend on #369.
+- exact stable node/equipment/channel/metric/native-unit identity;
+- truthful invalid-quality and >30 s source-gap continuity boundaries;
+- canonical evidence-preserving reduction with 240-point target;
+- deterministic series identity/color and compatible-unit grouping;
+- `ChartShell` + `ChartRendererHost` + local ECharts Canvas;
+- persistent non-animated live updates;
+- canonical exact cursor/inspector;
+- show/hide/solo and zoom/pan/reset;
+- existing live value cards unchanged;
+- existing XJP60D sensor-management selection unchanged;
+- existing 1h/6h/24h history contract unchanged;
+- no extra history requests from cursor/visibility/zoom/live updates;
+- no chart-driven acquisition mutation;
+- zero mandatory public runtime requests.
 
-Product Owner Chart System priority selected #413 while preserving:
+A shared responsive correction keeps ChartShell legend and inspector stacked until `2xl`, preventing the inspector from overlapping `Hide` in narrow Overview cards.
+
+## Initial final software freeze
+
+Exact head `634dcdfd8561d7e0ebe844b871ffa9f44d9fbcb5` passed:
+
+- CI #2942 — GREEN;
+- Authenticated Dashboard Acceptance #1630 — GREEN, including acquisition invariant;
+- Refrigeration Browser Acceptance #1604 — GREEN;
+- Offline Bundle #1013 — GREEN, including disconnected startup and update/rollback persistent-data preservation;
+- focused diff and zero unresolved review threads before physical cutover.
+
+## Controlled Raspberry Pi acceptance on `634dcdfd...`
+
+### Real target
+
+Read-only inventory selected:
+
+- channel `126-04`;
+- metric `temperature.probe`;
+- source `dixell-xjp60d`;
+- 120 real events / preceding 10 minutes;
+- 16,594 valid samples / preceding 24 hours.
+
+### Equal-duration acquisition evidence
+
+| Metric | Browser closed | Active Overview |
+| --- | ---: | ---: |
+| Window | 60 s | 60 s |
+| Physical requests | 144 | 153 |
+| Requests/s | 2.400 | 2.550 |
+| Success | 132 | 132 |
+| Timeout | 12 | 21 |
+| Retry attempts | 12 | 17 |
+| Bus busy seconds | 9.92298 | 12.871187 |
+
+The acceptance harness classified the raw request-rate comparison `REVIEW_EQUAL_DURATION_COUNTERS`, not automatic PASS/FAIL. The active window did **not** add successful polls: success remained exactly 132. Its higher raw request count coincided with additional timeout/retry activity.
+
+Control-plane invariants were unchanged:
+
+- discovery delta 0;
+- configuration mutation delta 0;
+- Modbus write attempts 0;
+- polling policy remained `priority_adaptive_v1`;
+- configured targets `38 -> 38`;
+- registry revision unchanged;
+- registry summary unchanged;
+- service-operation delta `{}`.
+
+This evidence does not show a browser-driven scheduler/registry mutation. The corrective code below is presentation-only, so the full 60-second acquisition drill is carried forward under proportional verification unless later diff expansion touches runtime/acquisition code.
+
+### Exact real-series continuity
+
+The exact real series advanced while Overview remained open:
+
+- old event `1b19f5f5-4f4f-4734-83d6-b896d9a61438` — `2026-08-12 18:35:03.216544+00`, valid, 25.9 °C;
+- new event `508e5cf9-be2f-44dc-8a61-f15fd089fcab` — `2026-08-12 18:35:08.227509+00`, valid, 25.9 °C.
+
+Results:
+
+- existing graph stayed visible — PASS;
+- post-event Overview remained usable — PASS;
+- Hide/Show/Solo — PASS;
+- zoom/pan/reset — PASS;
+- 1h -> 6h -> 24h — PASS;
+- route reopen — PASS;
+- dashboard remained usable — YES;
+- graph/card stayed fixed — YES;
+- **cursor vertical jump — YES**.
+
+Production restored cleanly after the test with `NRestarts 0 -> 0` and no orphan candidate process.
+
+### Classification
+
+The physical result is **PRODUCT FAIL for cursor visual stability**. PR #414 correctly remains Draft and was not merged.
+
+## Cursor defect diagnosis and correction
+
+The physical answers distinguish two different effects:
 
 ```text
-#369 -> #366 -> #289
-#389
+cursor_vertical_jump=YES
+graph_card_stays_fixed=YES
 ```
 
-## Product scope
+Therefore the earlier responsive ChartShell reflow defect did not recur. The remaining moving visual element was the renderer-owned ECharts HTML axis tooltip. That tooltip duplicated information already rendered in NEXOLAB's canonical stable `Exact inspector` and ECharts could reposition it vertically as the cursor moved.
 
-The Work Package migrates only the Overview XJP60D temperature-history visualization to the canonical NEXOLAB Chart System.
+Focused shared correction on product head `0b0b239911c729e31c791c8fa2eb2c6f433bfcce`:
 
-Preserved behavior:
+- keep ECharts `trigger: "axis"` so the vertical time pointer and `updateAxisPointer` events remain available;
+- set `tooltip.showContent = false` so ECharts does not create moving tooltip content;
+- stop dispatching `showTip` from `setSharedCursor`;
+- continue to drive canonical exact inspection from `updateAxisPointer` into the external `Exact inspector`;
+- add a unit regression that locks this contract.
 
-- active temperature channels remain controlled by existing XJP60D sensor management;
-- live value cards remain the existing truthful valid/error cards;
-- Overview keeps the existing 1h / 6h / 24h history range subset;
-- history remains the existing authenticated `/telemetry/history` contract;
-- latest and WebSocket delivery remain the existing Overview adapter path;
-- no chart interaction changes physical acquisition.
+This correction changes no data mapping, y-scale, continuity, API, WebSocket, Device Agent, scheduler, registry, discovery, polling or hardware state.
 
-Out of scope:
+## Corrective software/browser verification
 
-- Live Dashboard editor acceptance #369;
-- backend schema or PostgreSQL migrations;
-- telemetry REST/WebSocket schema changes;
-- Device Agent, scheduler, registry, discovery or Modbus changes;
-- dependency upgrades;
-- Energy, Sessions or Reports chart migrations.
+On `0b0b239911c729e31c791c8fa2eb2c6f433bfcce`:
 
-## Implementation
+- CI #2944 — GREEN: format, lint, strict typecheck, full unit tests and production build;
+- Authenticated Dashboard Acceptance #1632 — GREEN, including JWT REST/history/WebSocket and acquisition-invariant flow;
+- Refrigeration Browser Acceptance #1606 — GREEN;
+- Offline Bundle #1015 was still running when this batched state checkpoint was created.
 
-### Canonical mapping
+The browser regression therefore confirms that removing renderer tooltip content preserves the canonical cursor event path, exact inspector, Canvas lifecycle and telemetry/acquisition boundary.
 
-`src/features/dashboard/overview-chart.ts` now:
+## Final corrective freeze protocol
 
-- maps real `temperature.probe` samples into full canonical `nodeId/equipmentId/channelId/metric/nativeUnit` identities;
-- deterministically groups and orders series;
-- applies canonical series tokens;
-- deduplicates overlapping history/live events by `event_id`;
-- uses `buildChartSegments` with a 30-second maximum source gap;
-- converts `sensor_error`, `communication_error`, unknown quality and missing values into explicit continuity boundaries through the canonical continuity helper;
-- uses canonical `reduceChartSegments` with a 240-point target and evidence-safe fallback;
-- preserves alarm transition evidence pins;
-- groups only compatible exact native units;
-- keeps temperature series `instantaneous`.
+After this audit/state commit:
 
-### Renderer migration
+1. read exact PR #414 head from GitHub;
+2. confirm `main` remains `e89560cd2f52b59ed1c9fda4adca38e4c634a3b7`;
+3. confirm focused changed-file boundary is 14 files and no workflow file is modified;
+4. require CI, Authenticated Dashboard, Refrigeration and Offline Bundle GREEN on that exact head;
+5. confirm zero unresolved review threads;
+6. freeze the branch with no further commits;
+7. run only the affected controlled Raspberry Pi cursor retest on that exact head.
 
-`src/components/dashboard/temperature-chart.tsx` no longer constructs a telemetry-history SVG path.
+Targeted physical PASS requires:
 
-Overview history now uses:
+```text
+cursor_vertical_jump=NO
+graph_card_stays_fixed=YES
+dashboard_remains_usable=YES
+```
 
-- `ChartShell`;
-- `ChartRendererHost`;
-- local `EChartsRendererAdapter` Canvas;
-- persistent non-animated live scene updates;
-- shared exact cursor/inspector;
-- show/hide and solo;
-- zoom/pan/reset;
-- canonical accessibility summary;
-- requested history range as reset-domain semantics.
-
-Live temperature cards remain separate from the canonical history plot.
-
-### Focused unit coverage
-
-Added mapping tests for:
-
-- communication-error continuity break;
-- > 30-second source gap;
-- overlapping history/live event deduplication;
-- stable identity/color order regardless of input order;
-- canonical bounded reduction with extrema preservation;
-- reset-domain anchoring to the newest real sample.
-
-The pre-existing `temperature-chart` component test is intentionally isolated from ECharts browser internals by mocking the new Overview chart panel. Canvas lifecycle and browser APIs are verified in production Playwright rather than simulated as a false JSDOM renderer acceptance.
-
-### Production browser coverage
-
-`e2e/authenticated-dashboard.production.e2e.ts` now verifies:
-
-- authenticated Overview renders canonical chart panel and ECharts Canvas;
-- no SVG exists inside the Overview chart panel;
-- 1h range change creates exactly one additional history request with exact one-hour boundaries;
-- a real local MQTT `temperature.probe` point updates the live value while the same chart host and Canvas stay mounted;
-- live point arrival does not trigger another history request;
-- show/hide/solo remain presentation-only;
-- cursor movement does not change chart host top/height or `window.scrollY`;
-- zoom/pan/reset do not trigger another history request;
-- 360 / 1440 / 1920 widths have no page-level horizontal overflow;
-- chart interaction creates no acquisition mutation request;
-- the Overview runtime makes no mandatory public-network request.
-
-## Responsive regression found during acceptance
-
-The first full production-browser attempt did not fail on telemetry, MQTT or Canvas continuity. Playwright trace showed the `Chart inspector` physically overlapping the legend area inside the narrow Overview chart card and intercepting pointer events intended for the `Hide` control.
-
-Root cause:
-
-- shared `ChartShell` switched its footer to two columns at the viewport `lg` breakpoint;
-- Overview occupies only a narrower half-width content card even when the overall viewport is large enough for `lg`;
-- the inspector column therefore overlaid legend controls despite the page itself having sufficient viewport width.
-
-Focused reusable correction:
-
-- keep the ChartShell legend and inspector stacked through ordinary desktop widths;
-- enable the two-column footer only at `2xl`;
-- retain the original interaction assertion and workflow timeout.
-
-No test was weakened and no timeout was increased to make the failure disappear.
-
-Corrective proof: Authenticated Dashboard Acceptance #1625 subsequently passed **12/12** production Playwright flows with the `Hide` interaction intact.
+Also verify the vertical time pointer still moves, the `Exact inspector` still updates to measured values, and production restores cleanly. The already proven exact real-series continuity, controls/range/reopen and acquisition control-plane evidence may be carried forward only while the final product diff remains limited to renderer-tooltip presentation.
 
 ## Safety boundary
 
-No backend schema, database migration, telemetry API contract, Device Agent, scheduler, registry, discovery, Modbus, hardware or dependency change is part of #413.
+No backend schema, database migration, telemetry API, Device Agent, scheduler, registry, discovery, Modbus, hardware or dependency change is part of #413.
 
-No Modbus write, hardware write, destructive volume/data operation or production/site cutover is permitted.
-
-No mandatory CDN, remote font, analytics, cloud renderer, external API or paid runtime service is introduced.
-
-## Software and offline verification
-
-### Clean product/state checkpoint
-
-Exact head `cb65b4b08cd0087ea6b405de72c0a16f561e7541` passed:
-
-- **CI #2937 — GREEN**: repository formatting, zero-warning lint, strict TypeScript, full Vitest suite and production build;
-- **Authenticated Dashboard Acceptance #1625 — GREEN, 12/12** production Playwright flows;
-- **Refrigeration Browser Acceptance #1599 — GREEN**;
-- **Offline Bundle #1008 — GREEN**, including clean transferred-host simulation, blocked container egress, disconnected startup, and update/rollback persistent-data preservation.
-
-This is the clean software checkpoint for the completed product implementation and responsive correction.
-
-### State checkpoint regression proof
-
-After recording `CURRENT_STATE`, `ACTIVE_SPRINT` and `BLOCKERS`, intermediate head `f6032354e15248194c71e14c3d476705a6144a31` independently passed:
-
-- CI #2940 — GREEN;
-- Authenticated Dashboard Acceptance #1628 — GREEN;
-- Refrigeration Browser Acceptance #1602 — GREEN;
-- Offline Bundle #1011 — GREEN.
-
-Thus the state checkpoint itself did not introduce a software/offline regression.
-
-## Focused diff and review boundary
-
-Before the final checkpoint commit:
-
-- PR #414 remained Draft, open and mergeable;
-- base remained exact `main=e89560cd2f52b59ed1c9fda4adca38e4c634a3b7` with no main drift;
-- changed-file boundary remained exactly 12 files: four `.project` files, this audit, one authenticated production E2E file, the focused shared `ChartShell` compatibility fix, and five Overview mapper/component/test files;
-- no `.github` workflow change remained in the PR;
-- unresolved review threads: 0.
-
-Temporary formatter-capture workflow edits used during diagnosis were restored byte-for-byte to canonical `main` and are absent from the final PR diff.
-
-## Final freeze protocol
-
-The final checkpoint consists only of durable state/audit documentation after the already GREEN implementation. Because embedding the final commit SHA into a file would create a self-referential extra commit, the authoritative final candidate SHA is the **PR #414 head after this audit commit**.
-
-Before Raspberry Pi acceptance:
-
-1. read that exact PR head from GitHub;
-2. confirm `main` has not drifted;
-3. confirm the same focused 12-file diff and zero unresolved review threads;
-4. rerun and require GREEN canonical CI, Authenticated Dashboard, Refrigeration Browser and Offline Bundle on that exact head;
-5. freeze the branch with no further commits;
-6. record the exact frozen SHA and workflow evidence in the PR conversation without changing branch content.
-
-Only then may physical acceptance start.
-
-## Raspberry Pi acceptance still required
-
-Controlled physical acceptance must use the exact frozen final head and one real active Overview XJP60D temperature series. It must separately prove:
-
-1. exact candidate SHA and stable production baseline;
-2. equal-duration browser-closed versus active Overview acquisition counters;
-3. one exact real-series telemetry event advancing while Overview remains open;
-4. existing history remains visible through a valid event or truthful `communication_error`/gap event;
-5. cursor movement does not cause chart/card vertical movement or browser scroll jump;
-6. zoom, pan and reset remain usable without acquisition side effects;
-7. 1h / 6h / 24h range interactions remain usable;
-8. route navigation away and back restores the Overview chart cleanly;
-9. candidate teardown restores the production dashboard without orphan processes or restart drift.
-
-If no exact real series event occurs during the bounded observation window, classify the physical result **INCONCLUSIVE**, not PASS or product FAIL.
-
-CI fixtures and synthetic-only MQTT telemetry must never be represented as Raspberry Pi physical acceptance.
+No Modbus write, hardware write, destructive data/volume operation or production/site cutover is permitted. No mandatory CDN, remote font, analytics, cloud renderer, external API or paid runtime dependency is introduced.
 
 ## Completion classification
 
-Current classification:
-
 ```text
-software verified; final exact-head rerun pending; Raspberry Pi hardware acceptance pending
+software/browser verified on corrective product head; final exact-head state gate and targeted Raspberry Pi cursor acceptance pending
 ```
 
-Issue #413 remains Draft/not Ready until the final exact head is GREEN and controlled Raspberry Pi evidence passes.
+Issue #413 remains Draft/not Ready until the corrective exact head is GREEN and the controlled Pi cursor retest passes.
