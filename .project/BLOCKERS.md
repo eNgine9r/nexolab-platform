@@ -6,32 +6,34 @@ Updated: 2026-08-12
 
 Issue #404 / PR #410 is squash-merged as `d4068e28402aa113f4485dc3afecb1f8eb44bd7b` from final product head `ce2356cfb142e241684a7a68a08969cab884c2f5`.
 
-The earlier Raspberry Pi visual-continuity failure is resolved. Final controlled evidence established:
+Final controlled Raspberry Pi evidence passed acquisition invariants, exact-series visual continuity, library reopen and cursor-layout stability. No #404 product or merge blocker remains.
 
-- acquisition invariant PASS: browser closed `192` physical requests / `3.200 req/s` versus active Saved Dashboard `181` / `3.017 req/s`;
-- scheduler policy unchanged;
-- configured targets `38 -> 38`;
-- poll-eligible targets `38 -> 38`;
-- service operations unchanged;
-- real Saved Dashboard `111`, series `104-03 / temperature.probe`, received exact `dixell-xjp60d` events while the existing 24 h chart stayed visible;
-- dashboard remained usable;
-- library -> reopen PASS;
-- final cursor retest on `ce2356cf...`: no vertical jump, graph/card fixed, zoom/pan/reset PASS;
-- transient candidate stopped cleanly and production restored `active/running`, `NRestarts 0 -> 0`, HTTP 200.
+## Issue #411 — completed
 
-The previous acceptance-harness orphan `next-server`/`EADDRINUSE` problem is also resolved. The final candidate was run as a transient systemd unit and left no orphan process.
+Issue #411 / PR #412 state reconciliation is merged as `e89560cd2f52b59ed1c9fda4adca38e4c634a3b7` after CI #2918 GREEN.
 
-No #404 product or merge blocker remains.
+The required fresh Ready audit was completed after that merge and selected Issue #413.
 
-## Issue #411 — active state-only reconciliation
+## Issue #413 — active verification boundary
 
-Issue #411 reconciles durable repository state after #404 merge. This is not a product/runtime blocker. Permitted changes are limited to `.project/**` and `docs/audits/issue-404-saved-live-dashboard-chart-system.md`.
+Issue #413 / Draft PR #414 migrates Overview XJP60D temperature history from its custom SVG renderer to the canonical Chart System.
 
-After #411 merges, a fresh repository-backed Ready audit is required before the next implementation package is selected.
+No hard product blocker is currently known. The implementation is intentionally **not Ready for merge** until all of the following are complete:
+
+- exact-head format/lint/typecheck/tests/build GREEN;
+- Authenticated Dashboard production browser acceptance GREEN;
+- acquisition-invariant regression GREEN;
+- Offline Bundle GREEN;
+- focused diff/review audit with no unresolved threads;
+- controlled Raspberry Pi Overview acceptance on the exact final candidate.
+
+Raspberry Pi acceptance must verify a real Overview temperature series, browser-closed versus active-Overview physical acquisition counters, chart continuity through an exact real event, cursor layout stability, zoom/pan/reset, route reopen and clean production restoration.
+
+No synthetic-only fixture may be represented as physical acceptance.
 
 ## Issue #369 — Ready, separate scope
 
-Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It was not absorbed by #404.
+Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It is independent from #413.
 
 Preserved runtime sequence:
 
@@ -41,7 +43,7 @@ Preserved runtime sequence:
 
 ## Issue #389 — Ready and not selected
 
-Issue #389 remains Ready for administrator-only local Version Management. Product Owner priority currently favors continuing the Chart System sequence, subject to the required fresh Ready audit.
+Issue #389 remains Ready for administrator-only local Version Management. Product Owner priority currently keeps the Chart System migration active through #413.
 
 ## Other known boundaries
 
@@ -52,7 +54,7 @@ Issue #389 remains Ready for administrator-only local Version Management. Produc
 
 ## Security boundary
 
-The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #404 did not broaden it.
+The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #413 does not broaden it.
 
 ## Global hard-stop rules
 
