@@ -446,6 +446,11 @@ export function useLiveTelemetry({
     return view.samples.filter((sample) => selected.has(liveChannelKey(sample)));
   }, [reconciledSelectedKeys, view.samples]);
   const selectedKey = reconciledSelectedKeys.join("\u001f");
+  const selectedIdentitiesRef = useRef(selectedIdentities);
+
+  useEffect(() => {
+    selectedIdentitiesRef.current = selectedIdentities;
+  }, [selectedIdentities]);
 
   useEffect(() => {
     if (!hasLoadedSnapshot) return;
@@ -461,21 +466,22 @@ export function useLiveTelemetry({
       !enabled ||
       scopeKey === null ||
       liveCoverageScopeKey !== scopeKey ||
-      selectedIdentities.length === 0
+      selectedIdentitiesRef.current.length === 0
     ) {
       return;
     }
 
+    const historyIdentities = selectedIdentitiesRef.current;
     const controller = new AbortController();
     const adapter = securedAdapter(config, selectedOrganizationId);
     const to = new Date();
     const from = new Date(to.getTime() - RANGE_HOURS[historyRange] * 60 * 60 * 1_000);
     const requestedWindow = { from, to };
-    const selected = new Set(reconciledSelectedKeys);
+    const selected = new Set(selectedKey ? selectedKey.split("\u001f") : []);
     let disposed = false;
 
     orderingStateRef.current = seedLiveHistoryOrderingState([
-      ...selectedIdentities,
+      ...historyIdentities,
       ...historySamplesRef.current,
     ]);
     historyWindowRef.current = requestedWindow;
@@ -490,13 +496,13 @@ export function useLiveTelemetry({
       setHistoryError(null);
     });
 
-    void loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)
+    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)
       .then((result) => {
         if (disposed) return;
         setHistorySamples((current) => {
           const next = mergeLiveHistoryTail(result.samples, current, selected, requestedWindow);
           historySamplesRef.current = next;
-          orderingStateRef.current = seedLiveHistoryOrderingState([...selectedIdentities, ...next]);
+          orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);
           return next;
         });
         setHistorySnapshotAt(result.snapshotAt);
@@ -520,10 +526,8 @@ export function useLiveTelemetry({
     historyGeneration,
     historyRange,
     liveCoverageScopeKey,
-    reconciledSelectedKeys,
     runtime.config,
     scopeKey,
-    selectedIdentities,
     selectedKey,
     selectedOrganizationId,
   ]);
