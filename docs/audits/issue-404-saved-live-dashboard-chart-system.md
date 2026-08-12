@@ -76,14 +76,14 @@ Candidate `2b508d8a1c22ab28069c24833b792261b16193e6` built on the controlled Ras
 
 Equal 60-second windows:
 
-| Metric | Browser closed | Active Saved Dashboard |
-| --- | ---: | ---: |
-| physical requests | 156 | 144 |
-| physical requests/s | 2.600 | 2.400 |
-| retries | 18 | 12 |
-| timeouts | 24 | 12 |
-| bus executions | 126 | 120 |
-| bus busy seconds | 13.819 | 10.110 |
+| Metric              | Browser closed | Active Saved Dashboard |
+| ------------------- | -------------: | ---------------------: |
+| physical requests   |            156 |                    144 |
+| physical requests/s |          2.600 |                  2.400 |
+| retries             |             18 |                     12 |
+| timeouts            |             24 |                     12 |
+| bus executions      |            126 |                    120 |
+| bus busy seconds    |         13.819 |                 10.110 |
 
 Scheduler policy, configured targets `38 -> 38`, poll eligibility `38 -> 38`, degraded/cooldown endpoints `4 -> 4`, service-operation counters and telemetry progression remained stable.
 
@@ -105,16 +105,16 @@ Later candidate runs were moved to a transient systemd unit to guarantee cleanup
 
 On the corrective lineage, equal 60-second windows produced:
 
-| Metric | Browser closed | Active Saved Dashboard |
-| --- | ---: | ---: |
-| physical requests | 192 | 181 |
-| physical requests/s | 3.200 | 3.017 |
-| retries | 18 | 12 |
-| success | 168 | 169 |
-| timeouts | 24 | 12 |
-| bus executions | 162 | 157 |
-| bus executions/s | 2.700 | 2.617 |
-| bus busy seconds | 15.564 | 11.653 |
+| Metric              | Browser closed | Active Saved Dashboard |
+| ------------------- | -------------: | ---------------------: |
+| physical requests   |            192 |                    181 |
+| physical requests/s |          3.200 |                  3.017 |
+| retries             |             18 |                     12 |
+| success             |            168 |                    169 |
+| timeouts            |             24 |                     12 |
+| bus executions      |            162 |                    157 |
+| bus executions/s    |          2.700 |                  2.617 |
+| bus busy seconds    |         15.564 |                 11.653 |
 
 Invariants:
 
