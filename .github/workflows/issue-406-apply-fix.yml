@@ -29,18 +29,8 @@ jobs:
           hook = Path("src/hooks/use-live-telemetry.ts")
           text = hook.read_text()
 
-          old = '''  const selectedIdentities = useMemo(() => {
-            const selected = new Set(reconciledSelectedKeys);
-            return view.samples.filter((sample) => selected.has(liveChannelKey(sample)));
-          }, [reconciledSelectedKeys, view.samples]);
-          const selectedKey = reconciledSelectedKeys.join("\\u001f");
-          '''
-          new = '''  const selectedIdentities = useMemo(() => {
-            const selected = new Set(reconciledSelectedKeys);
-            return view.samples.filter((sample) => selected.has(liveChannelKey(sample)));
-          }, [reconciledSelectedKeys, view.samples]);
-          const selectedKey = reconciledSelectedKeys.join("\\u001f");
-          const historyIdentitySignature = selectedIdentities.map(liveChannelKey).join("\\u001f");
+          needle = '  const selectedKey = reconciledSelectedKeys.join("\\u001f");\n'
+          insertion = '''  const historyIdentitySignature = selectedIdentities.map(liveChannelKey).join("\\u001f");
           const historyIdentitiesRef = useRef<TelemetrySample[]>([]);
           const historyIdentitySignatureRef = useRef("");
 
@@ -49,72 +39,105 @@ jobs:
             historyIdentitiesRef.current = selectedIdentities;
           }
           '''
-          if old not in text:
-              raise SystemExit("expected selected identity block not found")
-          text = text.replace(old, new, 1)
-
-          old = '''      selectedIdentities.length === 0
-            ) {
-              return;
-            }
-
-            const controller = new AbortController();
-            const adapter = securedAdapter(config, selectedOrganizationId);
-          '''
-          new = '''      historyIdentitiesRef.current.length === 0
-            ) {
-              return;
-            }
-
-            const historyIdentities = historyIdentitiesRef.current;
-            const controller = new AbortController();
-            const adapter = securedAdapter(config, selectedOrganizationId);
-          '''
-          if old not in text:
-              raise SystemExit("expected history guard block not found")
-          text = text.replace(old, new, 1)
+          if needle not in text:
+              raise SystemExit("selectedKey anchor not found")
+          text = text.replace(needle, needle + insertion, 1)
 
           replacements = [
+              ('      selectedIdentities.length === 0\n', '      historyIdentitiesRef.current.length === 0\n'),
               (
-                  '''      ...selectedIdentities,\n      ...historySamplesRef.current,\n''',
-                  '''      ...historyIdentities,\n      ...historySamplesRef.current,\n''',
+                  '    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);\n',
+                  '    const historyIdentities = historyIdentitiesRef.current;\n    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);\n',
+              ),
+              ('      ...selectedIdentities,\n      ...historySamplesRef.current,\n', '      ...historyIdentities,\n      ...historySamplesRef.current,\n'),
+              (
+                  '    void loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)\n',
+                  '    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)\n',
               ),
               (
-                  '''    void loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)\n''',
-                  '''    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)\n''',
+                  '          orderingStateRef.current = seedLiveHistoryOrderingState([...selectedIdentities, ...next]);\n',
+                  '          orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);\n',
               ),
               (
-                  '''          orderingStateRef.current = seedLiveHistoryOrderingState([...selectedIdentities, ...next]);\n''',
-                  '''          orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);\n''',
+                  '    selectedIdentities,\n    selectedKey,\n',
+                  '    historyIdentitySignature,\n    selectedKey,\n',
               ),
           ]
           for before, after in replacements:
               if before not in text:
-                  raise SystemExit(f"expected hook replacement not found: {before!r}")
+                  raise SystemExit(f"hook anchor not found: {before!r}")
               text = text.replace(before, after, 1)
-
-          old_dep = '''    scopeKey,
-            selectedIdentities,
-            selectedKey,
-            selectedOrganizationId,
-          '''
-          new_dep = '''    scopeKey,
-            historyIdentitySignature,
-            selectedKey,
-            selectedOrganizationId,
-          '''
-          if old_dep not in text:
-              raise SystemExit("expected history dependency block not found")
-          text = text.replace(old_dep, new_dep, 1)
           hook.write_text(text)
 
           e2e = Path("e2e/live-chart-system.production.e2e.ts")
           text = e2e.read_text()
-          anchor = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+
+          mqtt_anchor = 'const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");\n'
+          if mqtt_anchor not in text:
+              raise SystemExit("mqtt constant anchor not found")
+          text = text.replace(
+              mqtt_anchor,
+              mqtt_anchor + 'const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";\n',
+              1,
+          )
+
+          helper_anchor = '''function sqlString(value: string): string {
+            return `'${value.replaceAll("'", "''")}'`;
+          }
+
+          '''
+          helper = '''function publishExplorerSample(equipmentId: string, channelId: string, value: number): void {
+            const payload = JSON.stringify({
+              event_id: randomUUID(),
+              node_id: "edge-live-issue-400",
+              captured_at: new Date().toISOString(),
+              metric: "temperature.probe",
+              value,
+              unit: "degC",
+              quality: "valid",
+              source: "issue-406-regression",
+              equipment_id: equipmentId,
+              channel_id: channelId,
+              alarm: null,
+              raw_value: Math.round(value * 10),
+              raw_status: null,
+            });
+
+            execFileSync(
+              "docker",
+              [
+                "compose",
+                "--project-name",
+                composeProject,
+                "--file",
+                baseCompose,
+                "--file",
+                acceptanceCompose,
+                "exec",
+                "-T",
+                "mqtt",
+                "mosquitto_pub",
+                "-h",
+                "127.0.0.1",
+                "-t",
+                mqttTopic,
+                "-m",
+                payload,
+              ],
+              { stdio: "pipe" },
+            );
+          }
+
+          '''
+          if helper_anchor not in text:
+              raise SystemExit("helper anchor not found")
+          text = text.replace(helper_anchor, helper_anchor + helper, 1)
+
+          test_anchor = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
 
             await expect.poll(() => runtime.sockets.maximum).toBe(1);
           '''
-          replacement = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+          test_insert = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
 
             const rendererHosts = page.getByTestId("chart-renderer-host");
             await expect(rendererHosts).toHaveCount(2);
@@ -122,31 +145,8 @@ jobs:
               request.url.includes("/history"),
             ).length;
 
-            const nextCapturedAt = new Date().toISOString();
-            postgres(`
-          INSERT INTO telemetry_samples (
-            event_id, node_id, captured_at, metric, value, unit, quality, source,
-            equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
-          )
-          VALUES (
-            ${sqlString(randomUUID())},
-            'edge-live-issue-400',
-            ${sqlString(nextCapturedAt)}::timestamptz,
-            'temperature.probe',
-            9.9,
-            'degC',
-            'valid',
-            'issue-406-regression',
-            ${sqlString(fixture.equipmentId)},
-            ${sqlString(fixture.channels[0])},
-            NULL,
-            99,
-            NULL,
-            '{}'::json
-          );
-          `);
-
-            await expect.poll(() => page.getByText(/9[,.]9 degC/).count()).toBeGreaterThan(0);
+            publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.9);
+            await expect(page.getByText(/9[,.]9 degC/).first()).toBeVisible();
             await expect(rendererHosts).toHaveCount(2);
             await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
             await expect.poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length).toBe(
@@ -155,9 +155,9 @@ jobs:
 
             await expect.poll(() => runtime.sockets.maximum).toBe(1);
           '''
-          if anchor not in text:
-              raise SystemExit("expected e2e anchor not found")
-          text = text.replace(anchor, replacement, 1)
+          if test_anchor not in text:
+              raise SystemExit("test anchor not found")
+          text = text.replace(test_anchor, test_insert, 1)
           e2e.write_text(text)
           PY
       - name: Install dependencies
