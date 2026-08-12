@@ -4,11 +4,11 @@ Updated: 2026-08-12
 
 ## Status
 
-**In progress — Draft PR #414.**
+**Software verified through a clean checkpoint; final exact-head rerun and controlled Raspberry Pi acceptance pending — Draft PR #414.**
 
 Base `main`: `e89560cd2f52b59ed1c9fda4adca38e4c634a3b7`.
 
-Controlled Raspberry Pi acceptance is intentionally pending until exact-head software/browser/offline gates are GREEN.
+Controlled Raspberry Pi acceptance is intentionally separate from CI and remains required before Ready/merge.
 
 ## Selection evidence
 
@@ -50,7 +50,7 @@ Out of scope:
 - dependency upgrades;
 - Energy, Sessions or Reports chart migrations.
 
-## Implementation checkpoint
+## Implementation
 
 ### Canonical mapping
 
@@ -96,6 +96,8 @@ Added mapping tests for:
 - canonical bounded reduction with extrema preservation;
 - reset-domain anchoring to the newest real sample.
 
+The pre-existing `temperature-chart` component test is intentionally isolated from ECharts browser internals by mocking the new Overview chart panel. Canvas lifecycle and browser APIs are verified in production Playwright rather than simulated as a false JSDOM renderer acceptance.
+
 ### Production browser coverage
 
 `e2e/authenticated-dashboard.production.e2e.ts` now verifies:
@@ -112,6 +114,26 @@ Added mapping tests for:
 - chart interaction creates no acquisition mutation request;
 - the Overview runtime makes no mandatory public-network request.
 
+## Responsive regression found during acceptance
+
+The first full production-browser attempt did not fail on telemetry, MQTT or Canvas continuity. Playwright trace showed the `Chart inspector` physically overlapping the legend area inside the narrow Overview chart card and intercepting pointer events intended for the `Hide` control.
+
+Root cause:
+
+- shared `ChartShell` switched its footer to two columns at the viewport `lg` breakpoint;
+- Overview occupies only a narrower half-width content card even when the overall viewport is large enough for `lg`;
+- the inspector column therefore overlaid legend controls despite the page itself having sufficient viewport width.
+
+Focused reusable correction:
+
+- keep the ChartShell legend and inspector stacked through ordinary desktop widths;
+- enable the two-column footer only at `2xl`;
+- retain the original interaction assertion and workflow timeout.
+
+No test was weakened and no timeout was increased to make the failure disappear.
+
+Corrective proof: Authenticated Dashboard Acceptance #1625 subsequently passed **12/12** production Playwright flows with the `Hide` interaction intact.
+
 ## Safety boundary
 
 No backend schema, database migration, telemetry API contract, Device Agent, scheduler, registry, discovery, Modbus, hardware or dependency change is part of #413.
@@ -120,25 +142,81 @@ No Modbus write, hardware write, destructive volume/data operation or production
 
 No mandatory CDN, remote font, analytics, cloud renderer, external API or paid runtime service is introduced.
 
-## Verification status
+## Software and offline verification
 
-Initial Draft PR #414 implementation checkpoint started:
+### Clean product/state checkpoint
 
-- CI #2920;
-- Authenticated Dashboard Acceptance #1608;
-- Refrigeration Browser Acceptance #1582;
-- Offline Bundle #991.
+Exact head `cb65b4b08cd0087ea6b405de72c0a16f561e7541` passed:
 
-These runs are not final because state/audit checkpoint commits followed the initial product commit. Final exact-head runs must be GREEN before Raspberry Pi acceptance.
+- **CI #2937 — GREEN**: repository formatting, zero-warning lint, strict TypeScript, full Vitest suite and production build;
+- **Authenticated Dashboard Acceptance #1625 — GREEN, 12/12** production Playwright flows;
+- **Refrigeration Browser Acceptance #1599 — GREEN**;
+- **Offline Bundle #1008 — GREEN**, including clean transferred-host simulation, blocked container egress, disconnected startup, and update/rollback persistent-data preservation.
 
-## Remaining acceptance
+This is the clean software checkpoint for the completed product implementation and responsive correction.
 
-1. Inspect/fix focused exact-head CI/browser/offline findings.
-2. Confirm focused diff and no unrelated product/runtime changes.
-3. Freeze a final candidate with required GREEN gates.
-4. Run controlled Raspberry Pi Overview acceptance using one real plotted XJP60D temperature series.
-5. Compare browser-closed versus active Overview acquisition counters.
-6. Observe an exact real-series event while the chart remains visible.
-7. Verify cursor stability and zoom/pan/reset on Pi.
-8. Restore production cleanly with no orphan candidate.
-9. Record exact hardware evidence before Ready/merge.
+### State checkpoint regression proof
+
+After recording `CURRENT_STATE`, `ACTIVE_SPRINT` and `BLOCKERS`, intermediate head `f6032354e15248194c71e14c3d476705a6144a31` independently passed:
+
+- CI #2940 — GREEN;
+- Authenticated Dashboard Acceptance #1628 — GREEN;
+- Refrigeration Browser Acceptance #1602 — GREEN;
+- Offline Bundle #1011 — GREEN.
+
+Thus the state checkpoint itself did not introduce a software/offline regression.
+
+## Focused diff and review boundary
+
+Before the final checkpoint commit:
+
+- PR #414 remained Draft, open and mergeable;
+- base remained exact `main=e89560cd2f52b59ed1c9fda4adca38e4c634a3b7` with no main drift;
+- changed-file boundary remained exactly 12 files: four `.project` files, this audit, one authenticated production E2E file, the focused shared `ChartShell` compatibility fix, and five Overview mapper/component/test files;
+- no `.github` workflow change remained in the PR;
+- unresolved review threads: 0.
+
+Temporary formatter-capture workflow edits used during diagnosis were restored byte-for-byte to canonical `main` and are absent from the final PR diff.
+
+## Final freeze protocol
+
+The final checkpoint consists only of durable state/audit documentation after the already GREEN implementation. Because embedding the final commit SHA into a file would create a self-referential extra commit, the authoritative final candidate SHA is the **PR #414 head after this audit commit**.
+
+Before Raspberry Pi acceptance:
+
+1. read that exact PR head from GitHub;
+2. confirm `main` has not drifted;
+3. confirm the same focused 12-file diff and zero unresolved review threads;
+4. rerun and require GREEN canonical CI, Authenticated Dashboard, Refrigeration Browser and Offline Bundle on that exact head;
+5. freeze the branch with no further commits;
+6. record the exact frozen SHA and workflow evidence in the PR conversation without changing branch content.
+
+Only then may physical acceptance start.
+
+## Raspberry Pi acceptance still required
+
+Controlled physical acceptance must use the exact frozen final head and one real active Overview XJP60D temperature series. It must separately prove:
+
+1. exact candidate SHA and stable production baseline;
+2. equal-duration browser-closed versus active Overview acquisition counters;
+3. one exact real-series telemetry event advancing while Overview remains open;
+4. existing history remains visible through a valid event or truthful `communication_error`/gap event;
+5. cursor movement does not cause chart/card vertical movement or browser scroll jump;
+6. zoom, pan and reset remain usable without acquisition side effects;
+7. 1h / 6h / 24h range interactions remain usable;
+8. route navigation away and back restores the Overview chart cleanly;
+9. candidate teardown restores the production dashboard without orphan processes or restart drift.
+
+If no exact real series event occurs during the bounded observation window, classify the physical result **INCONCLUSIVE**, not PASS or product FAIL.
+
+CI fixtures and synthetic-only MQTT telemetry must never be represented as Raspberry Pi physical acceptance.
+
+## Completion classification
+
+Current classification:
+
+```text
+software verified; final exact-head rerun pending; Raspberry Pi hardware acceptance pending
+```
+
+Issue #413 remains Draft/not Ready until the final exact head is GREEN and controlled Raspberry Pi evidence passes.
