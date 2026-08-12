@@ -224,6 +224,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     legend: { show: false, data: legendNames },
     tooltip: {
       trigger: "axis",
+      showContent: false,
       axisPointer: { type: "line", snap: false },
       appendToBody: false,
       confine: true,
@@ -332,7 +333,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       return;
     }
     this.instance.dispatchAction({ type: "updateAxisPointer", xAxisIndex: 0, value: timestampMs });
-    this.instance.dispatchAction({ type: "showTip", xAxisIndex: 0, value: timestampMs });
   }
 
   setSharedXDomain(domain: ChartRendererScene["xDomain"]): void {
