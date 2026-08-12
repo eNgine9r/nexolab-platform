@@ -4,9 +4,10 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-404-SAVED-LIVE-DASHBOARD-CANONICAL-CHART-SYSTEM",
-  "status": "implementation_complete_targeted_checks_green_pr_verification_pending",
-  "timestamp": "2026-08-12T09:48:00+03:00",
+  "status": "corrective_visual_continuity_fix_green_raspberry_pi_retest_pending",
+  "timestamp": "2026-08-12T11:15:00+03:00",
   "branch": "feat/404-saved-live-dashboard-chart-system",
+  "pull_request": 410,
   "product_main_sha": "f3462861db2a3593e2072a7bad70d557c009b323",
   "active_issue": 404,
   "scope": "Persisted Saved Live Dashboard line/area renderer migration only; Issue #369 editor inventory/filter/select/save acceptance remains separate.",
@@ -27,28 +28,70 @@
     "zoom_pan_reset": true,
     "persisted_time_window_reset_domain": true,
     "value_gauge_regression_protection": true,
+    "non_animated_saved_dashboard_scene_updates": true,
+    "mqtt_live_point_continuity_regression": true,
     "dashboard_crud_contract_changed": false,
     "telemetry_api_contract_changed": false
   },
-  "targeted_verification": {
+  "first_hardware_attempt": {
+    "candidate_sha": "2b508d8a1c22ab28069c24833b792261b16193e6",
+    "acquisition_invariant": "PASS",
+    "visual_continuity": "FAIL",
+    "baseline_window_seconds": 60,
+    "active_window_seconds": 60,
+    "baseline_physical_requests": 156,
+    "active_physical_requests": 144,
+    "baseline_requests_per_second": 2.6,
+    "active_requests_per_second": 2.4,
+    "baseline_retries": 18,
+    "active_retries": 12,
+    "baseline_timeouts": 24,
+    "active_timeouts": 12,
+    "baseline_bus_executions": 126,
+    "active_bus_executions": 120,
+    "baseline_bus_busy_seconds": 13.819,
+    "active_bus_busy_seconds": 10.11,
+    "scheduler_policy_unchanged": true,
+    "configured_targets": "38 -> 38",
+    "poll_eligible_targets": "38 -> 38",
+    "degraded_endpoints": "4 -> 4",
+    "cooldown_endpoints": "4 -> 4",
+    "telemetry_advanced": true,
+    "service_operations_mutation_observed": false
+  },
+  "acceptance_harness_cleanup": {
+    "orphan_process": "next-server from #400 temporary handoff",
+    "port": 3000,
+    "effect": "production dashboard systemd restart churn with EADDRINUSE",
+    "resolved": true,
+    "production_dashboard_after_cleanup": "active/running, NRestarts=0, HTTP 200"
+  },
+  "corrective_verification": {
+    "source_head": "67846013a8c7d357716321e2149509a2fb526f43",
     "prettier": "GREEN",
+    "lint": "GREEN",
     "typecheck": "GREEN",
-    "focused_tests": "GREEN",
-    "browser_fixture_typecheck": "GREEN",
-    "browser_fixture": "persisted line+area+value+gauge; deterministic bounded history/latest projection; Canvas/no legacy SVG; interactions; responsive widths; no public/acquisition/dashboard mutation; close/reopen lifecycle"
+    "full_tests": "GREEN",
+    "production_build": "GREEN",
+    "authenticated_dashboard": "GREEN with real MQTT Saved Dashboard live-point continuity regression",
+    "acquisition_scale": "GREEN",
+    "refrigeration_browser": "GREEN",
+    "offline_bundle": "GREEN including blocked egress, disconnected startup and update/rollback persistence",
+    "continuity_regression": "same ChartRendererHost and same ECharts Canvas DOM node survive refresh interval; no additional history reload"
   },
   "required_before_merge": {
-    "exact_head_ci": "pending",
-    "authenticated_production_browser": "pending",
-    "acquisition_invariant": "pending",
-    "offline_bundle": "pending",
+    "final_exact_head_ci": "pending after canonical checkpoint",
+    "final_authenticated_production_browser": "pending after canonical checkpoint",
+    "final_acquisition_invariant": "pending after canonical checkpoint",
+    "final_offline_bundle": "pending after canonical checkpoint",
     "focused_diff_review": "pending",
     "review_threads": "pending",
-    "raspberry_pi_saved_dashboard_acceptance": "pending"
+    "raspberry_pi_saved_dashboard_retest": "pending"
   },
   "hardware_evidence": {
     "issue_404_raspberry_pi_acceptance": false,
-    "claim": "not run; no physical acceptance claimed"
+    "claim": "first physical attempt acquisition PASS but visual continuity FAIL; repeated physical acceptance required",
+    "repeat_protocol": "phase A: stay on same dashboard while real points arrive; phase B: intentional library close/reopen tested separately"
   },
   "safety": {
     "backend_schema_change": false,
@@ -65,5 +108,5 @@
   "known_truthful_boundary": "Saved Dashboard reconnecting delivery state has no timestamped reconnect event in the existing hook, so no synthetic reconnect-break timestamp is invented; actual source gaps remain continuity evidence.",
   "next_chart_migration_after_merge": "Overview",
   "preserved_runtime_sequence": [369, 366, 289],
-  "next_action": "Open focused draft PR, run exact-head CI/browser/offline gates, resolve findings, then perform controlled Raspberry Pi Saved Dashboard acceptance before final Ready/merge."
+  "next_action": "Create the final exact corrective candidate, run all proportional CI/browser/offline gates, then repeat controlled Raspberry Pi Saved Dashboard visual continuity acceptance with live-point and navigation phases separated."
 }
