@@ -1,0 +1,56 @@
+name: Issue 413 Temporary Formatter
+
+on:
+  push:
+    branches:
+      - feat/413-overview-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/413-overview-chart-system
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install repository dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Apply repository formatter to Issue 413 files
+        run: |
+          npx prettier --write \
+            docs/audits/issue-413-overview-chart-system.md \
+            e2e/authenticated-dashboard.production.e2e.ts \
+            src/components/dashboard/temperature-chart.tsx \
+            src/features/dashboard/overview-chart.ts
+
+      - name: Commit mechanical formatting if needed
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/audits/issue-413-overview-chart-system.md \
+            e2e/authenticated-dashboard.production.e2e.ts \
+            src/components/dashboard/temperature-chart.tsx \
+            src/features/dashboard/overview-chart.ts
+          git commit -m "style(overview): apply canonical formatting"
+          git push origin HEAD:feat/413-overview-chart-system
