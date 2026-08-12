@@ -48,6 +48,16 @@ export function ChartShell({
     ? series.find((item) => chartSeriesKey(item.identity) === inspection.seriesKey)
     : undefined;
   const inspectedPoint = inspection?.point ?? null;
+  const inspectorTimestamp = inspectedPoint
+    ? new Date(inspectedPoint.timestampMs).toISOString()
+    : "—";
+  const inspectorSeriesName = inspectedPoint
+    ? (inspectedSeries?.name ?? inspection?.seriesKey ?? "—")
+    : "—";
+  const inspectorValue = inspectedPoint
+    ? `${inspectedPoint.value} ${inspectedSeries?.identity.nativeUnit ?? ""}`
+    : "—";
+  const inspectorFreshness = inspection ? freshnessLabel(inspection.freshness) : "—";
   const units = [...new Set(series.map((item) => item.identity.nativeUnit))].join(", ");
   const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}.`;
 
@@ -81,6 +91,12 @@ export function ChartShell({
             const key = chartSeriesKey(item.identity);
             const inspected =
               inspection?.seriesKey === key ? inspectedPoint : item.segments.at(-1)?.points.at(-1);
+            const legendLabel = [
+              item.name,
+              `${inspected ? inspected.value.toFixed(2) : "—"} ${item.identity.nativeUnit}`,
+              inspected?.quality ?? "unknown",
+              freshnessLabel(item.freshness),
+            ].join(" · ");
             return (
               <div
                 key={key}
@@ -93,10 +109,9 @@ export function ChartShell({
                 />
                 <span
                   className="min-w-0 flex-1 truncate text-xs tabular-nums"
-                  title={`${item.name} · ${inspected ? inspected.value.toFixed(2) : "—"} ${item.identity.nativeUnit} · ${inspected?.quality ?? "unknown"} · ${freshnessLabel(item.freshness)}`}
+                  title={legendLabel}
                 >
-                  {item.name} · {inspected ? inspected.value.toFixed(2) : "—"} {item.identity.nativeUnit} ·{" "}
-                  {inspected?.quality ?? "unknown"} · {freshnessLabel(item.freshness)}
+                  {legendLabel}
                 </span>
                 <button
                   type="button"
@@ -124,25 +139,31 @@ export function ChartShell({
         >
           <p className="font-medium text-white">Exact inspector</p>
           <p className="mt-2 min-h-4 text-slate-500">
-            {inspectedPoint ? "Exact measured sample." : "Move the shared cursor or use keyboard inspection."}
+            {inspectedPoint
+              ? "Exact measured sample."
+              : "Move the shared cursor or use keyboard inspection."}
           </p>
           <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-slate-300">
             <dt>Timestamp</dt>
-            <dd className="min-w-0 truncate tabular-nums" title={inspectedPoint ? new Date(inspectedPoint.timestampMs).toISOString() : undefined}>
-              {inspectedPoint ? new Date(inspectedPoint.timestampMs).toISOString() : "—"}
+            <dd
+              className="min-w-0 truncate tabular-nums"
+              title={inspectedPoint ? inspectorTimestamp : undefined}
+            >
+              {inspectorTimestamp}
             </dd>
             <dt>Series</dt>
-            <dd className="min-w-0 truncate" title={inspectedPoint ? inspectedSeries?.name ?? inspection?.seriesKey : undefined}>
-              {inspectedPoint ? inspectedSeries?.name ?? inspection?.seriesKey : "—"}
+            <dd
+              className="min-w-0 truncate"
+              title={inspectedPoint ? inspectorSeriesName : undefined}
+            >
+              {inspectorSeriesName}
             </dd>
             <dt>Value</dt>
-            <dd className="min-w-0 truncate tabular-nums">
-              {inspectedPoint ? `${inspectedPoint.value} ${inspectedSeries?.identity.nativeUnit ?? ""}` : "—"}
-            </dd>
+            <dd className="min-w-0 truncate tabular-nums">{inspectorValue}</dd>
             <dt>Quality</dt>
             <dd className="min-w-0 truncate">{inspectedPoint?.quality ?? "—"}</dd>
             <dt>Freshness</dt>
-            <dd className="min-w-0 truncate">{inspection ? freshnessLabel(inspection.freshness) : "—"}</dd>
+            <dd className="min-w-0 truncate">{inspectorFreshness}</dd>
           </dl>
         </aside>
       </div>
