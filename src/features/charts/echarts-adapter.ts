@@ -224,8 +224,10 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     legend: { show: false, data: legendNames },
     tooltip: {
       trigger: "axis",
-      axisPointer: { type: "cross", snap: false },
+      axisPointer: { type: "line", snap: false },
       appendToBody: false,
+      confine: true,
+      transitionDuration: 0,
     },
     xAxis: {
       type: "time",
