@@ -135,16 +135,16 @@ The candidate production build passed on the Raspberry Pi before the runtime obs
 
 Both windows were 60 seconds.
 
-| Metric | Browser closed baseline | 8-channel active Chart System | Delta |
-| --- | ---: | ---: | ---: |
-| physical requests | 180 | 181 | +1 |
-| physical requests/s | 3.000 | 3.017 | +0.017 (+0.56%) |
-| retry attempts | 12 | 12 | 0 |
-| successful requests | 168 | 169 | +1 |
-| timeouts | 12 | 12 | 0 |
-| bus executions | 156 | 157 | +1 |
-| bus executions/s | 2.600 | 2.617 | +0.017 (+0.65%) |
-| bus busy seconds | 11.928 | 11.772 | -0.156 |
+| Metric              | Browser closed baseline | 8-channel active Chart System |           Delta |
+| ------------------- | ----------------------: | ----------------------------: | --------------: |
+| physical requests   |                     180 |                           181 |              +1 |
+| physical requests/s |                   3.000 |                         3.017 | +0.017 (+0.56%) |
+| retry attempts      |                      12 |                            12 |               0 |
+| successful requests |                     168 |                           169 |              +1 |
+| timeouts            |                      12 |                            12 |               0 |
+| bus executions      |                     156 |                           157 |              +1 |
+| bus executions/s    |                   2.600 |                         2.617 | +0.017 (+0.65%) |
+| bus busy seconds    |                  11.928 |                        11.772 |          -0.156 |
 
 During the active window the operator exercised the 8-channel Live Data chart with range changes, Hide/Show, Solo, zoom/pan, Pause View, Return to Live and the `Saved Dashboards -> Live Data` sibling workspace transition.
 
