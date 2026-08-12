@@ -233,7 +233,7 @@ INSERT INTO telemetry_samples (
   equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload
 )
 SELECT
-  item.id || '-' || sample_index::text,
+  md5(item.id || ':' || sample_index::text),
   'edge-chart-404',
   NOW() - ((5 - sample_index) * INTERVAL '5 minutes'),
   item.metric,
@@ -250,6 +250,23 @@ SELECT
 FROM live_dashboard_items AS item
 CROSS JOIN generate_series(1, 4) AS sample_index
 WHERE item.dashboard_id = ${sqlString(dashboardId)};
+
+INSERT INTO telemetry_latest (
+  sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,
+  equipment_id, channel_id, alarm, raw_value, raw_status, stale_after_seconds, received_at
+)
+SELECT DISTINCT ON (sample.channel_id, sample.metric)
+  sample.id, sample.event_id, sample.node_id, sample.captured_at, sample.metric, sample.value,
+  sample.unit, sample.quality, sample.source, sample.equipment_id, sample.channel_id, sample.alarm,
+  sample.raw_value, sample.raw_status, NULL, sample.received_at
+FROM telemetry_samples AS sample
+JOIN live_dashboard_items AS item
+  ON item.dashboard_id = ${sqlString(dashboardId)}
+ AND item.channel_id = sample.channel_id
+ AND item.metric = sample.metric
+WHERE sample.node_id = 'edge-chart-404'
+  AND sample.equipment_id = 'saved-dashboard-e2e'
+ORDER BY sample.channel_id, sample.metric, sample.captured_at DESC, sample.id DESC;
 
 SELECT
   COUNT(*)::text || '|' ||
@@ -555,6 +572,11 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
     await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
+    await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");
+    await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");
+    await expect
+      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
+      .toBeGreaterThanOrEqual(4);
 
     const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
       item.url.includes("/history"),
