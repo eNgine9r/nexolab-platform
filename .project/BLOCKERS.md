@@ -6,32 +6,37 @@ Updated: 2026-08-12
 
 Issue #400 / PR #402 is merged as `afdfa387a7aa988a49e010d75c27d59a7cdf74d2`. Raspberry Pi evidence remains at `/home/nexolab/nexolab-400-hardware.5B0rFp/evidence`.
 
-## Issue #403 — completed
+## Issue #406 — completed
 
-Issue #403 / PR #405 is merged as `c5977f846b87d0a498f84feec5b2e8f966a61d94`.
+Issue #406 / PR #407 is merged as `457923927052ed91a23f396b2285e0cfaf6096ad`. The Live Data chart-disappearance regression is fixed; exact-head CI/browser/offline gates were GREEN. No new physical Raspberry Pi claim was made for #406.
 
-## Issue #406 — completed, no remaining blocker
+## Issue #408 — completed
 
-Issue #406 / PR #407 is squash-merged as `457923927052ed91a23f396b2285e0cfaf6096ad`.
+Issue #408 / PR #409 is merged as `f3462861db2a3593e2072a7bad70d557c009b323`.
 
-The Live Data chart lifecycle regression is fixed: incoming live samples no longer retrigger persisted-history loading solely because latest sample objects change.
+## Issue #404 — active, no hard blocker
 
-Final exact-head verification was GREEN:
+Issue #404 is the sole active implementation lane for Saved Live Dashboard canonical Chart System migration.
 
-- CI;
-- Authenticated Dashboard Acceptance 11/11, including real local MQTT live-point continuity regression and acquisition invariant;
-- Refrigeration Browser Acceptance;
-- Offline Bundle with disconnected load/start and update/rollback data preservation.
+Implementation is complete at the focused software layer and targeted checks are GREEN. Remaining work is verification, not a product blocker:
 
-No new Raspberry Pi physical acceptance was run for #406 and none is claimed. No backend, database, scheduler, polling, registry, Device Agent, Modbus or hardware mutation occurred.
+- open focused PR and run exact-head repository CI;
+- run authenticated production Saved Dashboard browser acceptance;
+- run the existing acquisition-invariant browser gate;
+- run Offline Bundle;
+- review focused diff/review threads;
+- after software/browser/offline GREEN, run controlled Raspberry Pi Saved Dashboard acceptance with equal-duration physical acquisition counters;
+- record evidence and repeat final exact-head audit before merge.
 
-## Issue #404 — Ready and selected
+No backend, database, polling, scheduler, registry, Device Agent, Modbus or hardware change is required.
 
-Issue #404 is the sole selected implementation lane for Saved Live Dashboard canonical Chart System migration. Dependencies #386 and #400 are merged and #406 no longer blocks continuation.
+Known truthful limitation: the existing Saved Dashboard delivery hook reports `reconnecting` freshness but does not expose a timestamped reconnect event. The chart therefore does not invent a reconnect-break timestamp; it preserves reconnecting as freshness and uses actual missing/source-gap evidence for continuity.
 
-Issue #404 remains distinct from #369: #404 is the saved-dashboard live renderer migration; #369 is the Raspberry Pi inventory/filter/select/save editor acceptance.
+## Issue #369 — Ready, separate scope
 
-## Issue #369 — Ready, preserved runtime sequence
+Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard inventory/filter/select/save editor acceptance. It is not absorbed by #404.
+
+Preserved runtime sequence:
 
 ```text
 #369 -> #366 -> #289
@@ -50,7 +55,7 @@ Issue #389 remains `status:ready` for administrator-only local Version Managemen
 
 ## Security boundary
 
-The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**.
+The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on **2026-09-05**. Issue #404 does not broaden it.
 
 ## Global hard-stop rules
 
