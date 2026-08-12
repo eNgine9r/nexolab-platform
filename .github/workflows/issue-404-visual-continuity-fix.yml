@@ -1,0 +1,169 @@
+name: Issue 404 visual continuity fix
+
+on:
+  push:
+    branches:
+      - feat/404-saved-live-dashboard-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/404-saved-live-dashboard-chart-system
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Add Saved Dashboard live-point regression
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/live.production.e2e.ts")
+          text = path.read_text(encoding="utf-8")
+
+          old = 'const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");\n'
+          new = old + 'const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";\n'
+          if 'const mqttTopic = process.env.MQTT_TOPIC' not in text:
+              if old not in text:
+                  raise SystemExit("apiBaseUrl anchor not found")
+              text = text.replace(old, new, 1)
+
+          anchor = '''function sqlString(value: string): string {
+            return `'${value.replaceAll("'", "''")}'`;
+          }
+          '''
+          helper = '''function sqlString(value: string): string {
+            return `'${value.replaceAll("'", "''")}'`;
+          }
+
+          function publishSavedDashboardSample(dashboardId: string, channelId: string, value: number): void {
+            const selection = postgres(`
+          SELECT metric || '|' || native_unit
+          FROM live_dashboard_items
+          WHERE dashboard_id = ${sqlString(dashboardId)}
+            AND channel_id = ${sqlString(channelId)}
+          ORDER BY position
+          LIMIT 1;
+          `).trim();
+            const [metric, unit] = selection.split("|");
+            if (!metric || !unit) throw new Error("Saved Dashboard live-point identity was not found");
+
+            const payload = JSON.stringify({
+              event_id: randomUUID(),
+              node_id: "edge-chart-404",
+              captured_at: new Date().toISOString(),
+              metric,
+              value,
+              unit,
+              quality: "valid",
+              source: "issue-404-visual-continuity-regression",
+              equipment_id: "saved-dashboard-e2e",
+              channel_id: channelId,
+              alarm: null,
+              raw_value: Math.round(value * 10),
+              raw_status: null,
+            });
+
+            execFileSync(
+              "docker",
+              [
+                "compose",
+                "--project-name",
+                composeProject,
+                "--file",
+                baseCompose,
+                "--file",
+                acceptanceCompose,
+                "exec",
+                "-T",
+                "mqtt",
+                "mosquitto_pub",
+                "-h",
+                "127.0.0.1",
+                "-t",
+                mqttTopic,
+                "-m",
+                payload,
+              ],
+              { stdio: "pipe" },
+            );
+          }
+          '''
+          if 'function publishSavedDashboardSample(' not in text:
+              if anchor not in text:
+                  raise SystemExit("sqlString anchor not found")
+              text = text.replace(anchor, helper, 1)
+
+          old_block = '''    const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
+              item.url.includes("/history"),
+            ).length;
+            const dashboardMutationsBeforeInteraction = requests.dashboard.filter(
+          '''
+          new_block = '''    const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
+              item.url.includes("/history"),
+            ).length;
+
+            const hostBeforeLivePoint = panel.getByTestId("chart-renderer-host");
+            await hostBeforeLivePoint.evaluate((element) => {
+              element.setAttribute("data-continuity-token", "issue-404-stable-host");
+            });
+            publishSavedDashboardSample(fixture.dashboardId, fixture.plottedChannels[0], 19.75);
+            await page.waitForTimeout(2_500);
+            await expect(panel).toHaveCount(1);
+            await expect(hostBeforeLivePoint).toBeVisible();
+            await expect(hostBeforeLivePoint).toHaveAttribute(
+              "data-continuity-token",
+              "issue-404-stable-host",
+            );
+            await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
+            expect(requests.telemetry.filter((item) => item.url.includes("/history")).length).toBe(
+              historyRequestsBeforeInteraction,
+            );
+
+            const dashboardMutationsBeforeInteraction = requests.dashboard.filter(
+          '''
+          if 'issue-404-stable-host' not in text:
+              if old_block not in text:
+                  raise SystemExit("Saved Dashboard interaction anchor not found")
+              text = text.replace(old_block, new_block, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Install dependencies
+        run: HUSKY=0 npm ci --no-audit
+
+      - name: Format and verify focused slice
+        run: |
+          npx prettier --write \
+            src/components/live-dashboards/dashboard-chart-panel.tsx \
+            e2e/live.production.e2e.ts
+          npm run typecheck
+          npm test -- \
+            src/features/live-dashboards/chart.test.ts \
+            src/features/charts/area-rendering.test.ts
+          git diff --check
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/live-dashboards/dashboard-chart-panel.tsx \
+            e2e/live.production.e2e.ts
+          if git diff --cached --quiet; then
+            echo "No product/test changes to commit"
+            exit 0
+          fi
+          git commit -m "test(live-dashboards): cover visual continuity on live points"
+          git push origin HEAD:feat/404-saved-live-dashboard-chart-system
