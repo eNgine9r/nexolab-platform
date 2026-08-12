@@ -74,6 +74,17 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
+      - name: Format ChartShell for capture
+        run: npx prettier --write src/components/charts/chart-shell.tsx
+
+      - name: Upload exact ChartShell formatter output
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-413-chart-shell-prettier-${{ github.sha }}
+          path: src/components/charts/chart-shell.tsx
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Check repository formatting
         shell: bash
         run: |
