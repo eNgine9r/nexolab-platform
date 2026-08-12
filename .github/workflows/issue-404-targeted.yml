@@ -1,0 +1,46 @@
+name: Issue 404 targeted verification
+
+on:
+  push:
+    branches:
+      - feat/404-saved-live-dashboard-chart-system
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm ci --no-audit
+        env:
+          HUSKY: 0
+      - name: Check touched formatting
+        run: >-
+          npx prettier --check
+          src/features/charts/domain.ts
+          src/features/charts/echarts-adapter.ts
+          src/features/charts/area-rendering.test.ts
+          src/features/live-dashboards/chart.ts
+          src/features/live-dashboards/chart.test.ts
+          src/components/live-dashboards/dashboard-chart-panel.tsx
+          src/components/live-dashboards/dashboard-live-view.tsx
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Focused tests
+        run: >-
+          npm test --
+          src/features/live-dashboards/chart.test.ts
+          src/features/charts/area-rendering.test.ts
+          src/features/charts/continuity.test.ts
+          src/features/charts/reduction.test.ts
+          src/features/charts/echarts-adapter.test.ts
+          src/features/live-dashboards/model.test.ts
+          src/features/live-dashboards/api-client.test.ts
+          src/features/live-dashboards/inventory.test.ts
+          src/features/live-dashboards/inventory-client.test.ts
