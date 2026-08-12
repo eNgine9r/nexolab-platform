@@ -21,133 +21,43 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-      - name: Apply focused regression fix
+      - name: Apply final stable-selection correction
         run: |
           python - <<'PY'
           from pathlib import Path
 
           hook = Path("src/hooks/use-live-telemetry.ts")
           text = hook.read_text()
-
-          anchor = '  const selectedKey = reconciledSelectedKeys.join("\\u001f");\n'
-          addition = '''  const selectedIdentitiesRef = useRef(selectedIdentities);
-
-          useEffect(() => {
-            selectedIdentitiesRef.current = selectedIdentities;
-          }, [selectedIdentities]);
-          '''
-          if anchor not in text:
-              raise SystemExit("selectedKey anchor not found")
-          text = text.replace(anchor, anchor + addition, 1)
-
-          history_start = text.index('  useEffect(() => {\n    const config = runtime.config;\n    if (\n      !config ||\n      config.mode === "demo" ||\n      !enabled ||\n      scopeKey === null ||\n      liveCoverageScopeKey !== scopeKey ||\n      selectedIdentities.length === 0')
+          history_start = text.index('  useEffect(() => {\n    const config = runtime.config;\n    if (\n      !config ||\n      config.mode === "demo" ||\n      !enabled ||\n      scopeKey === null ||\n      liveCoverageScopeKey !== scopeKey ||\n      selectedIdentitiesRef.current.length === 0')
           history_end = text.index('\n  useEffect(() => {\n    if (\n      !enabled ||', history_start)
           block = text[history_start:history_end]
-          block = block.replace('      selectedIdentities.length === 0', '      selectedIdentitiesRef.current.length === 0', 1)
-          block = block.replace(
-              '    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);',
-              '    const historyIdentities = selectedIdentitiesRef.current;\n    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);',
-              1,
-          )
-          block = block.replace('      ...selectedIdentities,', '      ...historyIdentities,', 1)
-          block = block.replace('loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)', 'loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)', 1)
-          block = block.replace('seedLiveHistoryOrderingState([...selectedIdentities, ...next])', 'seedLiveHistoryOrderingState([...historyIdentities, ...next])', 1)
-          block = block.replace('    selectedIdentities,\n', '', 1)
+          before = '    const selected = new Set(reconciledSelectedKeys);\n'
+          after = '    const selected = new Set(selectedKey ? selectedKey.split("\\u001f") : []);\n'
+          if before not in block:
+              raise SystemExit("selected set anchor not found")
+          block = block.replace(before, after, 1)
+          if '    reconciledSelectedKeys,\n' not in block:
+              raise SystemExit("reconciled dependency anchor not found")
+          block = block.replace('    reconciledSelectedKeys,\n', '', 1)
           text = text[:history_start] + block + text[history_end:]
           hook.write_text(text)
-
-          e2e = Path("e2e/live-chart-system.production.e2e.ts")
-          text = e2e.read_text()
-          api_anchor = 'const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");\n'
-          if api_anchor not in text:
-              raise SystemExit("api anchor not found")
-          text = text.replace(api_anchor, api_anchor + 'const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";\n', 1)
-
-          seed_anchor = 'function seedExplorerTelemetry(): { equipmentId: string; channels: string[] } {\n'
-          helper = '''function publishExplorerSample(equipmentId: string, channelId: string, value: number): void {
-            const payload = JSON.stringify({
-              event_id: randomUUID(),
-              node_id: "edge-live-issue-400",
-              captured_at: new Date().toISOString(),
-              metric: "temperature.probe",
-              value,
-              unit: "degC",
-              quality: "valid",
-              source: "issue-406-regression",
-              equipment_id: equipmentId,
-              channel_id: channelId,
-              alarm: null,
-              raw_value: Math.round(value * 10),
-              raw_status: null,
-            });
-
-            execFileSync(
-              "docker",
-              [
-                "compose",
-                "--project-name",
-                composeProject,
-                "--file",
-                baseCompose,
-                "--file",
-                acceptanceCompose,
-                "exec",
-                "-T",
-                "mqtt",
-                "mosquitto_pub",
-                "-h",
-                "127.0.0.1",
-                "-t",
-                mqttTopic,
-                "-m",
-                payload,
-              ],
-              { stdio: "pipe" },
-            );
-          }
-
-          '''
-          if seed_anchor not in text:
-              raise SystemExit("seed anchor not found")
-          text = text.replace(seed_anchor, helper + seed_anchor, 1)
-
-          socket_anchor = '    await expect.poll(() => runtime.sockets.maximum).toBe(1);\n'
-          test_addition = '''    const rendererHosts = page.getByTestId("chart-renderer-host");
-            await expect(rendererHosts).toHaveCount(2);
-            const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
-              request.url.includes("/history"),
-            ).length;
-
-            publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.9);
-            await expect(page.getByText(/9[,.]9 degC/).first()).toBeVisible();
-            await expect(rendererHosts).toHaveCount(2);
-            await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
-            await expect.poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length).toBe(
-              historyRequestsBeforeLivePoint,
-            );
-
-          '''
-          if socket_anchor not in text:
-              raise SystemExit("socket assertion anchor not found")
-          text = text.replace(socket_anchor, test_addition + socket_anchor, 1)
-          e2e.write_text(text)
           PY
       - name: Install dependencies
         run: npm ci --no-audit
         env:
           HUSKY: 0
-      - name: Format touched files
-        run: npx prettier --write src/hooks/use-live-telemetry.ts e2e/live-chart-system.production.e2e.ts
+      - name: Format touched file
+        run: npx prettier --write src/hooks/use-live-telemetry.ts
       - name: Targeted verification
         run: |
           npm run typecheck
           npm test -- src/features/live/live-history.test.ts src/features/live/live-chart.test.ts
-      - name: Commit focused fix
+      - name: Commit focused correction
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/hooks/use-live-telemetry.ts e2e/live-chart-system.production.e2e.ts
+          git config user.email "41898282+eNgine9r@users.noreply.github.com"
+          git add src/hooks/use-live-telemetry.ts
           git diff --cached --quiet && exit 0
-          git commit -m "fix(live): keep chart mounted across live samples"
+          git commit -m "fix(live): stabilize history selection trigger"
           git push origin HEAD:fix/406-live-chart-history-continuity
