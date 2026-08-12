@@ -26,9 +26,9 @@ Issue #408 / PR #409 is completed and merged as `f3462861db2a3593e2072a7bad70d55
 
 ## Active Work Package — Issue #404
 
-Issue #404 — **Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System** — is the sole active implementation lane on `feat/404-saved-live-dashboard-chart-system`.
+Issue #404 — **Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System** — remains the sole active implementation lane on `feat/404-saved-live-dashboard-chart-system`. PR #410 remains Draft and must not merge until the repeated controlled Raspberry Pi visual-continuity acceptance passes.
 
-Implementation is complete at the focused software level:
+Implemented product scope:
 
 - persisted Saved Dashboard `line` and `area` series map into canonical Chart Domain;
 - legacy `SeriesChart` SVG is removed from the Saved Dashboard live view;
@@ -48,29 +48,52 @@ Implementation is complete at the focused software level:
 - renderer adapter lifecycle remains mount-scoped and disposed by the canonical host;
 - no Saved Dashboard CRUD/version/ETag or telemetry API contract changed.
 
-Focused tests cover persisted order/colors, line/area, unit grouping, invalid/source gaps, alarm pins, cumulative energy, hide/solo, persisted viewport and ECharts area rendering.
+### First controlled Raspberry Pi attempt
 
-A production browser acceptance fixture is authored in `e2e/live.production.e2e.ts`. It creates a persisted four-item dashboard (line, area, value, gauge), deterministic bounded history and an explicit local latest projection. The flow verifies canonical Canvas rendering, no legacy SVG in the chart panel, truthful value/gauge cards, interactions, responsive widths, no dashboard/acquisition mutations, zero public runtime requests and bounded close/reopen WebSocket lifecycle.
+The exact pre-fix candidate `2b508d8a1c22ab28069c24833b792261b16193e6` built successfully on the controlled Raspberry Pi. Equal 60-second windows proved the acquisition boundary remained UI-independent:
 
-### Verification status
+| Metric | Browser closed | Active Saved Dashboard |
+| --- | ---: | ---: |
+| physical requests | 156 | 144 |
+| physical requests/s | 2.600 | 2.400 |
+| retries | 18 | 12 |
+| timeouts | 24 | 12 |
+| bus executions | 126 | 120 |
+| bus busy seconds | 13.819 | 10.110 |
 
-Completed on the feature branch:
+Scheduler policy remained unchanged, configured targets remained `38 -> 38`, poll-eligible targets remained `38 -> 38`, degraded/cooldown endpoints remained `4 -> 4`, service-operation mutation counters remained empty and telemetry advanced through the active window.
 
-- touched-file Prettier: GREEN;
-- TypeScript typecheck: GREEN;
-- focused canonical chart and Saved Dashboard tests: GREEN;
-- browser fixture code typecheck: GREEN.
+Acquisition classification: **PASS**.
 
-Still required before Ready/merge:
+The operator recorded `chart_visual_continuity=FAIL`, so #404 did not pass physical acceptance and PR #410 remained Draft.
 
-- exact-head repository format/lint/typecheck/full tests/build;
-- authenticated production Saved Dashboard browser acceptance on the PR head;
-- existing acquisition-invariant browser gate;
-- Offline Bundle;
-- focused diff/review audit;
-- controlled Raspberry Pi Saved Dashboard acceptance after software/offline gates are GREEN.
+The first manual script also mixed continuous rendering with an intentional `library -> reopen` navigation inside one observation window. That intentional navigation necessarily unmounts the chart, so the repeated acceptance separates continuous live-point observation from close/reopen lifecycle verification. The original FAIL remains recorded rather than being silently reclassified.
 
-No Raspberry Pi #404 acceptance has been run yet and none is claimed.
+### Operational cleanup discovered during acceptance
+
+An orphan `next-server` from the earlier #400 temporary dashboard handoff was found holding port 3000 and causing repeated `EADDRINUSE` restarts of `nexolab-dashboard.service`. The orphan was terminated, port 3000 was released and the production service was restored to `ActiveState=active`, `SubState=running`, `NRestarts=0`, HTTP 200 before the #404 baseline. This was an acceptance-harness/runtime cleanup issue, not a #404 product-code failure.
+
+### Corrective visual-continuity slice
+
+The Saved Dashboard chart path now uses non-animated ECharts scene updates through the canonical host. This preserves the same mounted React host and ECharts instance while avoiding an animated full-series transition on each `refresh_seconds` rolling scene update.
+
+The production Saved Dashboard browser acceptance now publishes a real local MQTT telemetry point and waits across the dashboard refresh interval. It verifies:
+
+- the same `ChartRendererHost` DOM node remains mounted;
+- the same ECharts Canvas DOM node remains mounted;
+- Canvas remains present after the live point;
+- no extra history request is triggered by that live point;
+- existing dashboard/acquisition mutation, public-network and WebSocket lifecycle assertions remain enforced.
+
+Corrective source head `67846013a8c7d357716321e2149509a2fb526f43` passed:
+
+- CI — format, zero-warning lint, TypeScript, full tests and production build: GREEN;
+- Authenticated Dashboard Acceptance with the new Saved Dashboard MQTT continuity regression: GREEN;
+- Acquisition Scale Acceptance: GREEN;
+- Refrigeration Browser Acceptance: GREEN;
+- Offline Bundle including clean-host simulation, blocked egress, disconnected startup and update/rollback persistent-data preservation: GREEN.
+
+A final exact-head gate is still required after this canonical checkpoint is committed. Then the new exact SHA must be re-tested on the controlled Raspberry Pi.
 
 ## Scope boundary
 
@@ -93,4 +116,4 @@ The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on 2026-09-05
 
 ## Next action
 
-Open the focused Issue #404 PR from the current feature branch, run exact-head CI/browser/offline gates, resolve findings without broadening scope, then perform controlled Raspberry Pi Saved Dashboard acceptance before final Ready/merge. After #404, the next Chart System migration is Overview.
+Create the final pre-hardware exact candidate after this checkpoint, run CI + Authenticated Dashboard + Acquisition Scale + Refrigeration Browser + Offline Bundle on that exact SHA, then repeat controlled Raspberry Pi acceptance in two separate phases: (1) continuous live-point observation without navigation and (2) close/reopen lifecycle. Merge only if both product behavior and acquisition invariants pass.
