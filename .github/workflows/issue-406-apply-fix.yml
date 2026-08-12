@@ -29,63 +29,41 @@ jobs:
           hook = Path("src/hooks/use-live-telemetry.ts")
           text = hook.read_text()
 
-          needle = '  const selectedKey = reconciledSelectedKeys.join("\\u001f");\n'
-          insertion = '''  const historyIdentitySignature = selectedIdentities.map(liveChannelKey).join("\\u001f");
-          const historyIdentitiesRef = useRef<TelemetrySample[]>([]);
-          const historyIdentitySignatureRef = useRef("");
+          anchor = '  const selectedKey = reconciledSelectedKeys.join("\\u001f");\n'
+          addition = '''  const selectedIdentitiesRef = useRef(selectedIdentities);
 
-          if (historyIdentitySignatureRef.current !== historyIdentitySignature) {
-            historyIdentitySignatureRef.current = historyIdentitySignature;
-            historyIdentitiesRef.current = selectedIdentities;
-          }
+          useEffect(() => {
+            selectedIdentitiesRef.current = selectedIdentities;
+          }, [selectedIdentities]);
           '''
-          if needle not in text:
+          if anchor not in text:
               raise SystemExit("selectedKey anchor not found")
-          text = text.replace(needle, needle + insertion, 1)
+          text = text.replace(anchor, anchor + addition, 1)
 
-          replacements = [
-              ('      selectedIdentities.length === 0\n', '      historyIdentitiesRef.current.length === 0\n'),
-              (
-                  '    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);\n',
-                  '    const historyIdentities = historyIdentitiesRef.current;\n    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);\n',
-              ),
-              ('      ...selectedIdentities,\n      ...historySamplesRef.current,\n', '      ...historyIdentities,\n      ...historySamplesRef.current,\n'),
-              (
-                  '    void loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)\n',
-                  '    void loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)\n',
-              ),
-              (
-                  '          orderingStateRef.current = seedLiveHistoryOrderingState([...selectedIdentities, ...next]);\n',
-                  '          orderingStateRef.current = seedLiveHistoryOrderingState([...historyIdentities, ...next]);\n',
-              ),
-              (
-                  '    selectedIdentities,\n    selectedKey,\n',
-                  '    historyIdentitySignature,\n    selectedKey,\n',
-              ),
-          ]
-          for before, after in replacements:
-              if before not in text:
-                  raise SystemExit(f"hook anchor not found: {before!r}")
-              text = text.replace(before, after, 1)
+          history_start = text.index('  useEffect(() => {\n    const config = runtime.config;\n    if (\n      !config ||\n      config.mode === "demo" ||\n      !enabled ||\n      scopeKey === null ||\n      liveCoverageScopeKey !== scopeKey ||\n      selectedIdentities.length === 0')
+          history_end = text.index('\n  useEffect(() => {\n    if (\n      !enabled ||', history_start)
+          block = text[history_start:history_end]
+          block = block.replace('      selectedIdentities.length === 0', '      selectedIdentitiesRef.current.length === 0', 1)
+          block = block.replace(
+              '    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);',
+              '    const historyIdentities = selectedIdentitiesRef.current;\n    const controller = new AbortController();\n    const adapter = securedAdapter(config, selectedOrganizationId);',
+              1,
+          )
+          block = block.replace('      ...selectedIdentities,', '      ...historyIdentities,', 1)
+          block = block.replace('loadCompleteLiveHistory(adapter, selectedIdentities, requestedWindow, controller.signal)', 'loadCompleteLiveHistory(adapter, historyIdentities, requestedWindow, controller.signal)', 1)
+          block = block.replace('seedLiveHistoryOrderingState([...selectedIdentities, ...next])', 'seedLiveHistoryOrderingState([...historyIdentities, ...next])', 1)
+          block = block.replace('    selectedIdentities,\n', '', 1)
+          text = text[:history_start] + block + text[history_end:]
           hook.write_text(text)
 
           e2e = Path("e2e/live-chart-system.production.e2e.ts")
           text = e2e.read_text()
+          api_anchor = 'const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");\n'
+          if api_anchor not in text:
+              raise SystemExit("api anchor not found")
+          text = text.replace(api_anchor, api_anchor + 'const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";\n', 1)
 
-          mqtt_anchor = 'const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");\n'
-          if mqtt_anchor not in text:
-              raise SystemExit("mqtt constant anchor not found")
-          text = text.replace(
-              mqtt_anchor,
-              mqtt_anchor + 'const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";\n',
-              1,
-          )
-
-          helper_anchor = '''function sqlString(value: string): string {
-            return `'${value.replaceAll("'", "''")}'`;
-          }
-
-          '''
+          seed_anchor = 'function seedExplorerTelemetry(): { equipmentId: string; channels: string[] } {\n'
           helper = '''function publishExplorerSample(equipmentId: string, channelId: string, value: number): void {
             const payload = JSON.stringify({
               event_id: randomUUID(),
@@ -129,17 +107,12 @@ jobs:
           }
 
           '''
-          if helper_anchor not in text:
-              raise SystemExit("helper anchor not found")
-          text = text.replace(helper_anchor, helper_anchor + helper, 1)
+          if seed_anchor not in text:
+              raise SystemExit("seed anchor not found")
+          text = text.replace(seed_anchor, helper + seed_anchor, 1)
 
-          test_anchor = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
-
-            await expect.poll(() => runtime.sockets.maximum).toBe(1);
-          '''
-          test_insert = '''    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
-
-            const rendererHosts = page.getByTestId("chart-renderer-host");
+          socket_anchor = '    await expect.poll(() => runtime.sockets.maximum).toBe(1);\n'
+          test_addition = '''    const rendererHosts = page.getByTestId("chart-renderer-host");
             await expect(rendererHosts).toHaveCount(2);
             const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
               request.url.includes("/history"),
@@ -153,11 +126,10 @@ jobs:
               historyRequestsBeforeLivePoint,
             );
 
-            await expect.poll(() => runtime.sockets.maximum).toBe(1);
           '''
-          if test_anchor not in text:
-              raise SystemExit("test anchor not found")
-          text = text.replace(test_anchor, test_insert, 1)
+          if socket_anchor not in text:
+              raise SystemExit("socket assertion anchor not found")
+          text = text.replace(socket_anchor, test_addition + socket_anchor, 1)
           e2e.write_text(text)
           PY
       - name: Install dependencies
