@@ -666,9 +666,23 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await panel.getByRole("button", { name: "Solo" }).first().click();
 
     const host = panel.getByTestId("chart-renderer-host");
+    await host.scrollIntoViewIfNeeded();
     const box = await host.boundingBox();
     if (!box) throw new Error("Saved Dashboard chart host has no bounding box");
-    await host.hover();
+    const cursorLayoutBefore = {
+      y: box.y,
+      height: box.height,
+      scrollY: await page.evaluate(() => window.scrollY),
+    };
+    for (const xFraction of [0.68, 0.75, 0.83, 0.91]) {
+      await page.mouse.move(box.x + box.width * xFraction, box.y + box.height * 0.5);
+      await page.waitForTimeout(75);
+      const cursorBox = await host.boundingBox();
+      if (!cursorBox) throw new Error("Saved Dashboard chart host disappeared during cursor inspection");
+      expect(Math.abs(cursorBox.y - cursorLayoutBefore.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(cursorBox.height - cursorLayoutBefore.height)).toBeLessThanOrEqual(1);
+      expect(await page.evaluate(() => window.scrollY)).toBe(cursorLayoutBefore.scrollY);
+    }
     await page.mouse.wheel(0, -500);
     await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.5);
     await page.mouse.down();
