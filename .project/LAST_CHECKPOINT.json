@@ -4,10 +4,10 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-411-POST-404-STATE-RECONCILIATION",
-  "status": "state_reconciliation_in_progress_after_issue_404_merge",
-  "timestamp": "2026-08-12T15:15:00+03:00",
+  "status": "state_reconciliation_pr_open",
+  "timestamp": "2026-08-12T15:19:00+03:00",
   "branch": "chore/411-reconcile-issue-404-state",
-  "pull_request": null,
+  "pull_request": 412,
   "product_main_sha": "d4068e28402aa113f4485dc3afecb1f8eb44bd7b",
   "active_issue": 411,
   "completed_product_issue": 404,
@@ -127,6 +127,7 @@
   },
   "state_reconciliation": {
     "issue": 411,
+    "pull_request": 412,
     "required_files": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
@@ -139,5 +140,5 @@
   },
   "next_chart_migration_preference": "Overview after fresh Ready audit",
   "preserved_runtime_sequence": [369, 366, 289],
-  "next_action": "Finish state-only Issue #411, run focused CI and merge if GREEN, then perform the required repository-backed Ready audit before selecting/creating the next implementation package."
+  "next_action": "Run PR #412 exact-head CI and merge if GREEN, then perform the required repository-backed Ready audit before selecting/creating the next implementation package."
 }
