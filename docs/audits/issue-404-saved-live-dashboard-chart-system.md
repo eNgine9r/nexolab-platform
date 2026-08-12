@@ -141,16 +141,16 @@ This was an acceptance-harness/runtime cleanup issue and did not change backend 
 
 Both windows were 60 seconds.
 
-| Metric | Browser closed baseline | Active Saved Dashboard |
-| --- | ---: | ---: |
-| physical requests | 156 | 144 |
-| physical requests/s | 2.600 | 2.400 |
-| retry attempts | 18 | 12 |
-| successful requests | 132 | 132 |
-| timeouts | 24 | 12 |
-| bus executions | 126 | 120 |
-| bus executions/s | 2.100 | 2.000 |
-| bus busy seconds | 13.819 | 10.110 |
+| Metric              | Browser closed baseline | Active Saved Dashboard |
+| ------------------- | ----------------------: | ---------------------: |
+| physical requests   |                     156 |                    144 |
+| physical requests/s |                   2.600 |                  2.400 |
+| retry attempts      |                      18 |                     12 |
+| successful requests |                     132 |                    132 |
+| timeouts            |                      24 |                     12 |
+| bus executions      |                     126 |                    120 |
+| bus executions/s    |                   2.100 |                  2.000 |
+| bus busy seconds    |                  13.819 |                 10.110 |
 
 Acquisition state remained stable:
 

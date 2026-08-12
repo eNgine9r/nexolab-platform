@@ -52,14 +52,14 @@ Implemented product scope:
 
 The exact pre-fix candidate `2b508d8a1c22ab28069c24833b792261b16193e6` built successfully on the controlled Raspberry Pi. Equal 60-second windows proved the acquisition boundary remained UI-independent:
 
-| Metric | Browser closed | Active Saved Dashboard |
-| --- | ---: | ---: |
-| physical requests | 156 | 144 |
-| physical requests/s | 2.600 | 2.400 |
-| retries | 18 | 12 |
-| timeouts | 24 | 12 |
-| bus executions | 126 | 120 |
-| bus busy seconds | 13.819 | 10.110 |
+| Metric              | Browser closed | Active Saved Dashboard |
+| ------------------- | -------------: | ---------------------: |
+| physical requests   |            156 |                    144 |
+| physical requests/s |          2.600 |                  2.400 |
+| retries             |             18 |                     12 |
+| timeouts            |             24 |                     12 |
+| bus executions      |            126 |                    120 |
+| bus busy seconds    |         13.819 |                 10.110 |
 
 Scheduler policy remained unchanged, configured targets remained `38 -> 38`, poll-eligible targets remained `38 -> 38`, degraded/cooldown endpoints remained `4 -> 4`, service-operation mutation counters remained empty and telemetry advanced through the active window.
 
