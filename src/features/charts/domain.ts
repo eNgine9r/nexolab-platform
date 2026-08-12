@@ -55,6 +55,7 @@ export interface ChartSeries {
   segments: readonly ChartSegment[];
   visible: boolean;
   semanticMode: "instantaneous" | "cumulative_counter";
+  areaFillOpacity?: number;
 }
 
 export interface ChartThreshold {
