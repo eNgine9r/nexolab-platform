@@ -1,0 +1,53 @@
+name: Issue 404 format checkpoint
+
+on:
+  push:
+    branches:
+      - feat/404-saved-live-dashboard-chart-system
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-clean:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/404-saved-live-dashboard-chart-system
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: HUSKY=0 npm ci --no-audit
+
+      - name: Format canonical checkpoint
+        run: |
+          npx prettier --write \
+            .project/CURRENT_STATE.md \
+            docs/audits/issue-404-saved-live-dashboard-chart-system.md
+          npx prettier --check \
+            .project/CURRENT_STATE.md \
+            .project/ACTIVE_SPRINT.json \
+            .project/BLOCKERS.md \
+            .project/LAST_CHECKPOINT.json \
+            docs/audits/issue-404-saved-live-dashboard-chart-system.md \
+            src/components/live-dashboards/dashboard-chart-panel.tsx \
+            e2e/live.production.e2e.ts
+          git diff --check
+
+      - name: Commit formatted checkpoint and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/issue-404-format-checkpoint.yml
+          git add \
+            .project/CURRENT_STATE.md \
+            docs/audits/issue-404-saved-live-dashboard-chart-system.md
+          git commit -m "chore(project): format Issue 404 corrective checkpoint"
+          git push origin HEAD:feat/404-saved-live-dashboard-chart-system
