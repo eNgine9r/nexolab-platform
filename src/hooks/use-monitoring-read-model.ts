@@ -78,10 +78,7 @@ export function useMonitoringReadModel<T>({
   }, [enabled, key, load, scope, stableCache, synchronize]);
 
   useEffect(() => {
-    if (!enabled) {
-      setSnapshot(emptySnapshot<T>());
-      return;
-    }
+    if (!enabled) return;
 
     let active = true;
     const sync = () => {
