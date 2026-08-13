@@ -4,11 +4,13 @@ set -Eeuo pipefail
 CENTRAL_ENV=""
 EDGE_ENV=""
 SKIP_EDGE=false
+LOCAL_AUTH=false
 while (($#)); do
   case "$1" in
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --skip-edge) SKIP_EDGE=true; shift ;;
+    --local-auth) LOCAL_AUTH=true; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -41,6 +43,9 @@ DASHBOARD_BIND="$(env_value "$CENTRAL_ENV" DASHBOARD_BIND_ADDRESS 127.0.0.1)"
 DASHBOARD_PORT="$(env_value "$CENTRAL_ENV" DASHBOARD_PORT 3000)"
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_BASE" -f "$CENTRAL_OFFLINE")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
+fi
 "${CENTRAL[@]}" ps --format json > /tmp/nexolab-offline-central-ps.json
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready" >/tmp/nexolab-offline-ready.json
 curl --fail --silent --show-error "http://${DASHBOARD_BIND}:${DASHBOARD_PORT}/" >/dev/null
@@ -48,8 +53,10 @@ curl --fail --silent --show-error "http://${CENTRAL_BIND}:${OBJECT_PORT}/minio/h
 "${CENTRAL[@]}" exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 "${CENTRAL[@]}" exec -T mqtt sh -ec "mosquitto_sub -h 127.0.0.1 -t '\$SYS/broker/version' -C 1 -W 5 >/dev/null"
 
-"${CENTRAL[@]}" exec -T dashboard node - <<'NODE'
+export NEXOLAB_OFFLINE_SMOKE_LOCAL_AUTH="$LOCAL_AUTH"
+"${CENTRAL[@]}" exec -T -e NEXOLAB_OFFLINE_SMOKE_LOCAL_AUTH dashboard node - <<'NODE'
 const socket = new WebSocket("ws://telemetry-service:8082/api/v1/telemetry/live");
+const localAuth = process.env.NEXOLAB_OFFLINE_SMOKE_LOCAL_AUTH === "true";
 const timeout = setTimeout(() => {
   console.error("WebSocket smoke timed out before application-level evidence");
   socket.close(4000, "smoke timeout");
@@ -58,6 +65,11 @@ const timeout = setTimeout(() => {
 socket.addEventListener("message", (event) => {
   try {
     const payload = JSON.parse(String(event.data));
+    if (localAuth && payload.type === "error" && payload.code === "missing_bearer_token") {
+      clearTimeout(timeout);
+      socket.close(1000, "offline protected websocket verified");
+      process.exit(0);
+    }
     if (["heartbeat", "sample", "authenticated"].includes(payload.type)) {
       clearTimeout(timeout);
       socket.close(1000, "offline smoke complete");
@@ -66,6 +78,11 @@ socket.addEventListener("message", (event) => {
   } catch (error) {
     console.error(error);
     process.exit(1);
+  }
+});
+socket.addEventListener("open", () => {
+  if (localAuth) {
+    socket.send(JSON.stringify({ type: "authenticate", access_token: "", organization_id: "" }));
   }
 });
 socket.addEventListener("error", () => {

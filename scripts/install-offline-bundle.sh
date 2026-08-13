@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge]
+Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth]
 
 Loads the verified image archive and starts NEXOLAB with Docker Compose
 `--pull never`. Existing named volumes are preserved. This script never adds
@@ -14,11 +14,13 @@ EOF
 CENTRAL_ENV=""
 EDGE_ENV=""
 SKIP_EDGE=false
+LOCAL_AUTH=false
 while (($#)); do
   case "$1" in
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --skip-edge) SKIP_EDGE=true; shift ;;
+    --local-auth) LOCAL_AUTH=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -82,6 +84,9 @@ if env.get("AUTH_MODE", "disabled") != "disabled" and env.get("AUTH_JWT_JWKS_URL
 PY
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_BASE" -f "$CENTRAL_OFFLINE")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
+fi
 "${CENTRAL[@]}" config --quiet
 "${CENTRAL[@]}" up -d --no-build --pull never --wait
 
@@ -92,6 +97,9 @@ if [[ "$SKIP_EDGE" == false ]]; then
 fi
 
 SMOKE_ARGS=(--central-env "$CENTRAL_ENV")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  SMOKE_ARGS+=(--local-auth)
+fi
 if [[ "$SKIP_EDGE" == true ]]; then
   SMOKE_ARGS+=(--skip-edge)
 else

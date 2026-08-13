@@ -55,6 +55,9 @@ def main() -> int:
     parser.add_argument("--bundle-version", required=True)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--platform", required=True, choices=("linux/amd64", "linux/arm64"))
+    parser.add_argument("--schema-head", required=True)
+    parser.add_argument("--upgrade-from-schema-head", action="append", default=[])
+    parser.add_argument("--runtime-compatible-schema-head", action="append", default=[])
     parser.add_argument("--dashboard-api-base-url", required=True)
     parser.add_argument("--dashboard-websocket-url", required=True)
     parser.add_argument("--dashboard-origin", required=True)
@@ -70,6 +73,13 @@ def main() -> int:
     bundle_root = args.bundle_root.resolve()
     if not bundle_root.is_dir():
         raise SystemExit(f"Bundle root does not exist: {bundle_root}")
+    for label, values in (
+        ("schema head", [args.schema_head]),
+        ("upgrade schema head", args.upgrade_from_schema_head),
+        ("runtime-compatible schema head", args.runtime_compatible_schema_head),
+    ):
+        if any(not value.strip() or len(value) > 128 for value in values):
+            raise SystemExit(f"Invalid {label}")
 
     expected_arch = args.platform.split("/", maxsplit=1)[1]
     images: list[dict[str, Any]] = []
@@ -165,6 +175,20 @@ def main() -> int:
             "packaged": False,
             "delete_volumes": False,
             "compose_down_v_allowed": False,
+        },
+        "version_management": {
+            "bundle_id": f"{args.bundle_version}-{expected_arch}-{args.source_commit[:12]}",
+            "database_schema": {
+                "head": args.schema_head,
+                "upgrade_from": sorted(set(args.upgrade_from_schema_head or [args.schema_head])),
+                "runtime_compatible_schema_heads": sorted(
+                    set(args.runtime_compatible_schema_head or [args.schema_head])
+                ),
+            },
+            "backup_required": True,
+            "migration_before_readiness": True,
+            "preserve_named_volumes": True,
+            "preserve_edge_sqlite": True,
         },
     }
 

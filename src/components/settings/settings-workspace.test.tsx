@@ -69,6 +69,32 @@ describe("SettingsWorkspace", () => {
     );
     expect(screen.getByRole("link", { name: /Тривоги/ })).toHaveAttribute("href", "/alerts");
     expect(screen.getByRole("link", { name: /Звіти/ })).toHaveAttribute("href", "/reports");
+    expect(screen.queryByRole("link", { name: /Версія NEXOLAB/ })).not.toBeInTheDocument();
+  });
+
+  it("exposes version management only with its administrator permission", () => {
+    render(
+      <SettingsWorkspace
+        session={session}
+        membership={{
+          ...membership,
+          roles: ["administrator"],
+          permissions: [...membership.permissions, "project_versions.manage"],
+        }}
+        diagnostics={diagnostics}
+        preferences={createDefaultSettingsPreferences()}
+        preferencesLoaded
+        preferencesRecovered={false}
+        preferenceRecoveryReason={null}
+        onPreferenceChange={() => undefined}
+        onPreferencesReset={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Версія NEXOLAB/ })).toHaveAttribute(
+      "href",
+      "/settings/system/version",
+    );
   });
 
   it("emits validated local preference changes and reset actions", () => {

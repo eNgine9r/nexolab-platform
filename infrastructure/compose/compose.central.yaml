@@ -25,6 +25,7 @@ x-telemetry-environment: &telemetry-environment
   DEAD_LETTER_PAYLOAD_MAX_BYTES: ${DEAD_LETTER_PAYLOAD_MAX_BYTES:-65536}
   INGESTION_SPOOL_ENABLED: ${INGESTION_SPOOL_ENABLED:-true}
   INGESTION_SPOOL_PATH: /app/data/telemetry-ingestion/spool.db
+  VERSION_MANAGEMENT_ROOT: /app/data/version-management
   INGESTION_SPOOL_MAX_RECORDS: ${INGESTION_SPOOL_MAX_RECORDS:-500000}
   INGESTION_SPOOL_MAX_BYTES: ${INGESTION_SPOOL_MAX_BYTES:-4294967296}
   INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS: ${INGESTION_SPOOL_BUSY_TIMEOUT_SECONDS:-5}
@@ -168,6 +169,7 @@ services:
       - "${CENTRAL_BIND_ADDRESS:-127.0.0.1}:${CENTRAL_API_PORT:-8082}:8082"
     volumes:
       - central-telemetry-ingestion-data:/app/data/telemetry-ingestion
+      - ${VERSION_MANAGEMENT_HOST_ROOT:-../../runtime/version-management}:/app/data/version-management
     depends_on:
       mqtt:
         condition: service_healthy

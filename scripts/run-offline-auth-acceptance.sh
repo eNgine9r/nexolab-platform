@@ -8,6 +8,7 @@ LOCAL_AUTH_COMPOSE="$COMPOSE_DIR/compose.local-auth.yaml"
 ACCEPTANCE_COMPOSE="$COMPOSE_DIR/compose.local-auth-acceptance.yaml"
 RUN_SUFFIX="$(date -u +%Y%m%dt%H%M%Sz)-$$"
 SECRET_DIR="$(mktemp -d)"
+VERSION_MANAGEMENT_DIR="$(mktemp -d)"
 PASSWORD_FILE="$SECRET_DIR/operator-password"
 PRIVATE_KEY_FILE="$SECRET_DIR/private.pem"
 PUBLIC_KEY_FILE="$SECRET_DIR/public.pem"
@@ -39,6 +40,7 @@ export CORS_ALLOWED_ORIGINS="http://127.0.0.1:$LOCAL_AUTH_WEB_PORT"
 export CORS_ALLOW_CREDENTIALS="false"
 export RETENTION_ENABLED="false"
 export TELEMETRY_SERVICE_IMAGE="nexolab-telemetry-service:local-auth-acceptance"
+export VERSION_MANAGEMENT_HOST_ROOT="$VERSION_MANAGEMENT_DIR"
 
 export AUTH_MODE="disabled"
 export AUTH_DEFAULT_ORGANIZATION_ID="11111111-1111-1111-1111-111111111111"
@@ -72,6 +74,7 @@ export NEXOLAB_LOCAL_AUTH_EVIDENCE_DIR="$EVIDENCE_DIR"
 mkdir -p "$EVIDENCE_DIR"
 printf 'project=%s\nstatus=started\n' "$COMPOSE_PROJECT_NAME" >"$EVIDENCE_DIR/preflight.txt"
 chmod 0700 "$SECRET_DIR"
+chmod 0755 "$VERSION_MANAGEMENT_DIR"
 printf '%s' "$NEXOLAB_LOCAL_AUTH_PASSWORD" >"$PASSWORD_FILE"
 chmod 0600 "$PASSWORD_FILE"
 
@@ -131,6 +134,7 @@ cleanup() {
     compose down --remove-orphans >/dev/null 2>&1 || true
   fi
   rm -rf "$SECRET_DIR"
+  rm -rf "$VERSION_MANAGEMENT_DIR"
   unset NEXOLAB_LOCAL_AUTH_PASSWORD POSTGRES_PASSWORD MINIO_ROOT_PASSWORD
 }
 
@@ -247,3 +251,4 @@ fi
 npm run build
 npx playwright test --config=playwright.local-auth.config.ts e2e/local-auth.production.e2e.ts
 npx playwright test --config=playwright.local-auth.config.ts e2e/local-auth-persistence.production.e2e.ts
+npx playwright test --config=playwright.local-auth.config.ts e2e/settings-version.production.e2e.ts

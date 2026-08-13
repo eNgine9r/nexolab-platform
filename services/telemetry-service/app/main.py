@@ -63,6 +63,10 @@ from app.sessions.configuration_api import create_session_configuration_router
 from app.sessions.telemetry_api import create_session_telemetry_router
 from app.sessions.telemetry_attribution import SessionAwareDatabase
 from app.state import RuntimeState
+from app.version_management import (
+    VersionManagementStore,
+    create_version_management_router,
+)
 
 
 SERVICE_VERSION = "0.19.0"
@@ -99,6 +103,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved,
         database,
         security_repository,
+    )
+    version_management_store = VersionManagementStore(
+        resolved.version_management_root,
+        catalog_limit=resolved.version_management_catalog_limit,
     )
     broker_control_repository, broker_control_worker = _create_broker_control(
         resolved,
@@ -244,6 +252,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.security_repository = security_repository
     app.state.security_dependencies = security_dependencies
     app.state.local_auth_service = local_auth_service
+    app.state.version_management_store = version_management_store
     app.state.object_storage = object_storage
     app.state.runtime = state
     app.state.ingestor = ingestor
@@ -252,6 +261,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if local_auth_service is not None:
         app.include_router(create_local_auth_router(local_auth_service))
     app.include_router(create_security_router(security_repository, security_dependencies))
+    app.include_router(
+        create_version_management_router(
+            version_management_store,
+            security_dependencies,
+            security_repository,
+        )
+    )
     app.include_router(create_node_router(node_repository, security_dependencies))
     app.include_router(
         create_broker_control_router(

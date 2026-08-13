@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   MonitorCog,
   Network,
+  PackageCheck,
   RefreshCcw,
   Refrigerator,
   Settings2,
@@ -518,6 +519,27 @@ export function SettingsWorkspace({
             description="Settings не дублює вже реалізовані редактори та operations."
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {membership.permissions.includes("project_versions.manage") ? (
+              <Link
+                href="/settings/system/version"
+                className="group rounded-2xl border border-amber-300/15 bg-amber-400/[0.035] p-4 transition hover:border-amber-300/30"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-300/10 bg-amber-400/[0.05]">
+                    <PackageCheck className="h-5 w-5 text-amber-200" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-medium text-slate-100">Версія NEXOLAB</h3>
+                      <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-amber-300" />
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Validated offline packages, update, rollback та history.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
             {membership.permissions.includes("memberships.manage") ? (
               <Link
                 href="/settings/users"
