@@ -3,85 +3,149 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-421-POST-369-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_ci_pending",
-  "timestamp": "2026-08-13T09:52:00+03:00",
-  "branch": "chore/421-reconcile-issue-369-state",
-  "active_issue": 421,
-  "base_main_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
-  "completed_issue": {
-    "issue": 369,
-    "pull_request": 420,
-    "merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
-    "final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
-    "final_exact_head_gates": {
-      "ci": "#2965 GREEN",
-      "authenticated_dashboard": "#1644 GREEN",
-      "offline_bundle": "#1027 GREEN"
-    },
-    "hardware_acceptance": {
-      "classification": "PASS",
-      "runtime": "controlled Raspberry Pi LOCAL_LAN Chromium browser",
-      "inventory_request": {
-        "method": "GET",
-        "path": "/api/v1/live-dashboards/channel-inventory?limit=500&offset=0",
-        "host": "172.18.48.34:8082",
-        "status": 200,
-        "content_length_bytes": 52713,
-        "duration_ms_approx": 44.84,
-        "server_wait_ms_approx": 34.19,
-        "total_items": 162,
-        "limit": 500,
-        "offset": 0
-      },
-      "operator_flow": {
-        "search": "PASS",
-        "filter": "PASS",
-        "select_two_channels": "PASS",
-        "reorder": "PASS",
-        "configuration_valid": "YES",
-        "save": "PASS",
-        "reopen": "PASS"
-      },
-      "generic_telemetry_latest_inventory_dependency": false
-    },
-    "runtime_product_code_changed": false
+  "task": "ISSUE-366-MONITORING-READ-MODEL-DEDUPLICATION",
+  "status": "in_progress_checkpoint_after_session_deduplication",
+  "timestamp": "2026-08-13T11:24:00+03:00",
+  "branch": "perf/366-monitoring-read-model-deduplication",
+  "active_issue": 366,
+  "pull_request": 423,
+  "base_main_sha": "3a91a180ff6b842321c18a2273f405bcdd42e149",
+  "last_verified_product_head": "f8e3003ceb36accf0fa527473097c37be22318ec",
+  "verification": {
+    "ci": "#3004 GREEN: formatting, ESLint, strict TypeScript, tests and production build",
+    "authenticated_dashboard": "#1676 GREEN",
+    "refrigeration_browser": "#1646 GREEN",
+    "nodes_browser": "#679 GREEN",
+    "test_sessions_browser": "#846 GREEN",
+    "offline_auth": "#397 in progress at checkpoint",
+    "offline_bundle": "#1063 in progress at checkpoint",
+    "disaster_recovery": "#705 in progress at checkpoint"
   },
-  "fresh_ready_audit": {
-    "selected_issue": 366,
-    "reason": "Issue #366 is priority:critical; its explicit #368 dependency hold is resolved and the preserved #369 acceptance prerequisite is now completed. Issue #389 remains independent priority:high Ready/not selected.",
-    "issue_366_branch": "perf/366-monitoring-read-model-deduplication",
-    "issue_366_branch_compare": {
-      "ahead_by": 0,
-      "behind_by": 23,
-      "status": "behind",
-      "merge_base": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a"
+  "implemented_slices": {
+    "generic_non_telemetry_cache": {
+      "status": "implemented_verified",
+      "properties": [
+        "organization/stable-key scope",
+        "fresh/stale TTL",
+        "stale-while-revalidate",
+        "in-flight request deduplication",
+        "retained stale value on refresh failure",
+        "bounded entries/scopes",
+        "targeted invalidation",
+        "scope/all clearing",
+        "request-count inspection"
+      ]
     },
-    "issue_389_status": "independent_status_ready_not_selected",
-    "issue_289_status": "downstream_pending_366"
+    "telemetry_boundary": {
+      "status": "preserved",
+      "owner": "Issue #314 route-persistent telemetry runtime",
+      "second_telemetry_cache_added": false
+    },
+    "refrigeration_structural_boundary": {
+      "status": "reused_verified",
+      "owner": "Issue #357 refrigeration structural cache",
+      "equipment_catalog_cross_runtime_cache": true,
+      "equipment_layouts_reuses_existing_cache": true,
+      "targeted_layout_equipment_invalidation": true
+    },
+    "equipment_layouts_composed_catalog": {
+      "status": "retained_across_remounts",
+      "fallback_fabrication": false
+    },
+    "live_dashboard_inventory": {
+      "status": "retained_across_editor_remounts",
+      "canonical_endpoint_preserved": true,
+      "telemetry_latest_inventory_dependency": false
+    },
+    "security_session": {
+      "status": "route_transition_deduplication_verified",
+      "fresh_ttl_ms": 5000,
+      "stale_authorization_reuse": false,
+      "retry_forces_fresh_request": true,
+      "logout_and_org_switch_clear_retained_models": true
+    },
+    "overview_sessions": {
+      "status": "exact_query_remount_duplicate_removed",
+      "fresh_ttl_ms": 10000,
+      "stale_ttl_ms": 60000,
+      "intentional_polling_ms": 10000,
+      "mutation_invalidation": ["session create", "session lifecycle/stage/note mutation"]
+    }
   },
-  "state_reconciliation": {
-    "issue": 421,
-    "permitted_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
+  "browser_evidence": {
+    "sequence": [
+      "overview",
+      "refrigeration",
+      "energy",
+      "live",
+      "nodes",
+      "sessions",
+      "overview"
     ],
-    "product_runtime_change": false,
-    "workflow_change": false,
-    "dependency_change": false
+    "before_session_slice": {
+      "source": "Authenticated Dashboard #1667",
+      "session_list_total": 3,
+      "overview_exact_session_query_count": 2,
+      "node_list_reads": 1,
+      "node_operational_reads": 2,
+      "equipment_catalog_reads": 1,
+      "websocket_opened": 1,
+      "websocket_max_concurrent": 1,
+      "acquisition_mutations": 0
+    },
+    "after_session_slice": {
+      "source": "Authenticated Dashboard #1676",
+      "route_durations_ms": {
+        "refrigeration": 349,
+        "energy": 146,
+        "live": 97,
+        "nodes": 115,
+        "sessions": 119,
+        "overview_return": 181
+      },
+      "latest_requests": 1,
+      "history_requests": 3,
+      "session_list_total": 2,
+      "overview_exact_session_query_count": 1,
+      "node_list_reads": 1,
+      "node_operational_reads": 2,
+      "equipment_catalog_reads": 1,
+      "layout_draft_reads": 8,
+      "layout_published_reads": 8,
+      "security_session_reads": 2,
+      "websocket_opened": 1,
+      "websocket_max_concurrent": 1,
+      "acquisition_mutations": 0
+    },
+    "interpretation": "The exact Overview session read was reduced from two requests to one across the route cycle. Nodes showed no proven duplicate and remain unchanged. Each observed equipment layout draft/published key appeared once in the after artifact."
   },
+  "next_proven_gap": {
+    "surface": "Overview alerts summary",
+    "evidence": "Authenticated Dashboard #1676",
+    "duplicate_reads": {
+      "GET /api/v1/alerts?state=active&limit=20&offset=0": 2,
+      "GET /api/v1/alerts?state=acknowledged&limit=20&offset=0": 2
+    },
+    "baseline_behavior": "AlarmsPanel polls every 5 seconds but also performs a fresh cold load on Overview remount, creating an immediate duplicate within the polling freshness window.",
+    "next_action": "Implement a narrow retained Overview active+acknowledged alerts read model with 5-second fresh TTL, preserve explicit 5-second polling, retain the last valid snapshot on refresh failure, invalidate after acknowledge/close, then rerun the six-route gate and lock the proven request-count invariant."
+  },
+  "not_selected_for_cache": {
+    "nodes": "Single route-cycle evidence showed one node-list request and one operational-state request per node; no duplicate was proven, so no Nodes cache was added.",
+    "telemetry": "Already owned by Issue #314.",
+    "refrigeration_structural": "Already owned by Issue #357."
+  },
+  "audit_document": "docs/audits/issue-366-monitoring-route-read-models.md",
   "safety": {
     "database_migration": false,
-    "polling_change": false,
+    "polling_policy_change": false,
     "scheduler_change": false,
     "registry_change": false,
-    "device_agent_change": false,
+    "device_agent_configuration_change": false,
+    "device_agent_discovery_change": false,
     "modbus_write": "none",
     "hardware_write": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Create a focused four-file PR for Issue #421, require GREEN state-only CI, merge it, fast-forward the empty #366 feature branch to reconciled main, move #366 out of stale blocked state and resume evidence-first implementation."
+  "resume_instruction": "Continue Issue #366 / Draft PR #423 from the Overview alerts duplicate proven by Authenticated Dashboard #1676. Do not cache Nodes without new evidence. After the alerts slice, rerun exact-head CI and six-route browser evidence, update the audit and four project-state files, verify Offline Auth/Offline Bundle/required browser gates, review focused diff, then Ready/merge if GREEN."
 }
