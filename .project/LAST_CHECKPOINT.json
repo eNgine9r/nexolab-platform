@@ -5,12 +5,12 @@
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-432-ROUTE-PREFETCH-TIME-TO-USABLE",
   "status": "implementation_complete_pr_open_software_browser_verified",
-  "timestamp": "2026-08-13T22:58:00+03:00",
+  "timestamp": "2026-08-13T23:38:00+03:00",
   "branch": "perf/432-route-prefetch-time-to-usable",
   "active_issue": 432,
   "pull_request": 437,
   "base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
-  "evidence_head": "6719e3ed58f70a6ee41d3e742895b58f9190a2a5",
+  "evidence_head": "a15026fe61cbc44e5deb19cd7fdd2f897c614522",
   "outcome": {
     "product_implementation_required": false,
     "reason": "Installed Next.js 16.2.12 automatic Link prefetch already warms every canonical static monitoring route and all measured warm medians pass the 1000 ms target.",
@@ -18,12 +18,12 @@
   },
   "browser_evidence": {
     "warm_median_ms": {
-      "overview": 398,
-      "refrigeration": 259,
-      "energy": 254,
-      "live": 207,
-      "nodes": 282,
-      "sessions": 236
+      "overview": 375,
+      "refrigeration": 293,
+      "energy": 270,
+      "live": 180,
+      "nodes": 309,
+      "sessions": 190
     },
     "overview_issue_366_reference_ms": 334,
     "document_loads": 1,
@@ -33,6 +33,10 @@
     "asserted_pre_navigation_rsc_paths": ["/refrigeration", "/energy", "/live", "/nodes", "/sessions"],
     "eager_channel_inventory_reads": 0,
     "eager_node_inventory_reads": 0,
+    "retained_equipment_and_layout_reads_grew_during_warm_cycles": false,
+    "final_node_list_reads": 4,
+    "final_node_operational_reads": 8,
+    "final_session_list_reads": 5,
     "websocket_max_concurrent": 1,
     "acquisition_mutations": 0
   },
@@ -49,7 +53,7 @@
     "production_build": "PASS"
   },
   "exact_head_verification": {
-    "head": "6719e3ed58f70a6ee41d3e742895b58f9190a2a5",
+    "head": "a15026fe61cbc44e5deb19cd7fdd2f897c614522",
     "status": "green_after_offline_auth_runner_transient_rerun",
     "ci": "PASS",
     "acquisition_scale": "PASS",

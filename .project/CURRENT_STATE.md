@@ -40,20 +40,21 @@ installed Next.js 16.2.12 automatic `<Link>` prefetch already warms all six
 canonical static monitoring routes, so no product navigation correction was
 required.
 
-Review-corrected warm median time-to-usable was `398 ms` Overview, `259 ms`
-Refrigeration, `254 ms` Energy, `207 ms` Live Data, `282 ms` Nodes and `236 ms`
+Review-corrected warm median time-to-usable was `375 ms` Overview, `293 ms`
+Refrigeration, `270 ms` Energy, `180 ms` Live Data, `309 ms` Nodes and `190 ms`
 Sessions. Overview completion now requires seeded node `edge-live-01` and a
 rendered `°C` value; all five non-Overview routes must prove an exact-path RSC
 resource with `_rsc` before their first click. The
 complete repeated route cycle kept one document load, no visible loading
 transition, no eager channel or Node inventory fetch from visible links,
+no retained equipment/layout read growth across warm remounts,
 `websocket_max_concurrent = 1` and zero acquisition mutations.
 
 Local verification passed format, lint, typecheck, all 89 frontend test files /
 384 tests, lint-staged behavior, production build, the focused production route
 matrix, the 13-scenario Authenticated Dashboard/acquisition-invariant gate, and
 Offline Auth migration/browser/persistence gates. Exact evidence head
-`6719e3ed58f70a6ee41d3e742895b58f9190a2a5` passed CI, Acquisition Scale,
+`a15026fe61cbc44e5deb19cd7fdd2f897c614522` passed CI, Acquisition Scale,
 Authenticated Dashboard, Refrigeration Browser and the complete disconnected
 Offline Bundle with update/rollback volume preservation. Offline Auth passed on
 rerun after an initial runner image-pull failure before migration acceptance.

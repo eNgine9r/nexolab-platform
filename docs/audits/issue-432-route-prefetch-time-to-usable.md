@@ -53,19 +53,19 @@ recorded RSC prefetches for every non-Overview canonical route, including
 
 The focused production acceptance used the isolated seeded Compose profile and
 Chromium. Evidence is stored locally at
-`runtime/evidence/issue-432-navigation-review-final/` for evidence head
-`6719e3ed58f70a6ee41d3e742895b58f9190a2a5`.
+`runtime/evidence/issue-432-navigation-final-evidence/` for evidence head
+`a15026fe61cbc44e5deb19cd7fdd2f897c614522`.
 
 ### Cold time-to-usable
 
 | Route         | Cold time-to-usable |
 | ------------- | ------------------: |
-| Overview      |            1,959 ms |
-| Refrigeration |              687 ms |
-| Energy        |              838 ms |
-| Live Data     |              501 ms |
-| Nodes         |              730 ms |
-| Sessions      |              716 ms |
+| Overview      |            1,656 ms |
+| Refrigeration |              670 ms |
+| Energy        |              681 ms |
+| Live Data     |              565 ms |
+| Nodes         |              942 ms |
+| Sessions      |              598 ms |
 
 Cold routes rendered truthful live, stale or empty states. No demo preview was
 used and no acquisition mutation was observed.
@@ -74,15 +74,15 @@ used and no acquisition mutation was observed.
 
 | Route         | First visit | Warm samples       | Warm median |
 | ------------- | ----------: | ------------------ | ----------: |
-| Overview      |      434 ms | 566 / 398 / 384 ms |      398 ms |
-| Refrigeration |      384 ms | 302 / 259 / 252 ms |      259 ms |
-| Energy        |      367 ms | 291 / 254 / 243 ms |      254 ms |
-| Live Data     |      331 ms | 207 / 223 / 195 ms |      207 ms |
-| Nodes         |      297 ms | 460 / 263 / 282 ms |      282 ms |
-| Sessions      |      244 ms | 255 / 236 / 184 ms |      236 ms |
+| Overview      |      405 ms | 415 / 375 / 373 ms |      375 ms |
+| Refrigeration |      423 ms | 293 / 271 / 340 ms |      293 ms |
+| Energy        |      473 ms | 321 / 270 / 240 ms |      270 ms |
+| Live Data     |      261 ms | 266 / 180 / 173 ms |      180 ms |
+| Nodes         |      469 ms | 342 / 278 / 309 ms |      309 ms |
+| Sessions      |      260 ms | 190 / 210 / 170 ms |      190 ms |
 
-Every warm median is below the required `1,000 ms`. Overview at `398 ms` is
-approximately `19.2%` above the Issue #366 reference of `334 ms`, so it remains
+Every warm median is below the required `1,000 ms`. Overview at `375 ms` is
+approximately `12.3%` above the Issue #366 reference of `334 ms`, so it remains
 inside the allowed 20% regression boundary while now including retained telemetry
 content in the completion condition.
 
@@ -97,8 +97,12 @@ content in the completion condition.
 - Node inventory reads before navigation: `0`;
 - telemetry latest reads across the repeated cycle: `1`;
 - equipment catalog reads across the repeated cycle: `1`;
-- layout draft/published reads across the repeated cycle: `3 / 3`, one per seeded
-  equipment, preserving the Issue #366 composed catalog ownership;
+- focused-run layout draft/published reads were `3 / 3` after the first route
+  cycle and remained `3 / 3` after all warm cycles; the complete 13-test matrix
+  began and ended at `8 / 8` after its larger seeded catalog, proving no warm-remount
+  growth while preserving the Issue #366 composed catalog ownership;
+- route-local Node list, Node operational-state and Sessions reads finished at the
+  asserted `4`, `8` and `5` bounds after three warm cycles;
 - WebSockets opened: `1`;
 - `websocket_max_concurrent`: `1`;
 - navigation-driven acquisition mutations: `0`.
@@ -119,15 +123,15 @@ The only repository changes for Issue #432 are deterministic acceptance
 instrumentation, a focused test-selection option for local evidence runs, this
 audit, and final project-state reconciliation.
 
-Local verification at evidence head `6719e3ed58f70a6ee41d3e742895b58f9190a2a5`
+Local verification at evidence head `a15026fe61cbc44e5deb19cd7fdd2f897c614522`
 passed the focused production navigation matrix (`3/3`), the complete
 Authenticated Dashboard/acquisition-invariant matrix (`13/13`), Offline Auth
 migration plus browser/persistence/version gates (`4 + 1 + 1` browser tests),
 format, lint, typecheck, all `89` frontend test files / `384` tests, the
 lint-staged contract and the production build. Exact-head CI, Acquisition Scale,
 Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle
-also passed. Offline Auth passed on rerun after an initial runner image-pull
-failure before migration acceptance executed.
+also passed. The required exact-head workflows were rerun for the corrected
+read-model assertion head before project-state reconciliation.
 
 ## Safety and offline result
 
