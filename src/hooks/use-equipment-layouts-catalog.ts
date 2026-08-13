@@ -2,14 +2,13 @@
 
 import { useCallback, useMemo } from "react";
 
-import {
-  isLayoutCatalogAbort,
-  loadLayoutCatalog,
-  type LayoutCatalogItem,
-} from "@/features/equipment-layouts/layout-catalog";
+import { loadLayoutCatalog, type LayoutCatalogItem } from "@/features/equipment-layouts/layout-catalog";
 import { createEquipmentLayoutsRuntime } from "@/features/equipment-layouts/runtime";
 import { RefrigerationEquipmentRepositoryError } from "@/features/refrigeration/equipment-repository";
-import { useMonitoringReadModel } from "@/hooks/use-monitoring-read-model";
+import {
+  useMonitoringReadModel,
+  type MonitoringReadModelStatus,
+} from "@/hooks/use-monitoring-read-model";
 
 export type EquipmentLayoutsCatalogState = "idle" | "loading" | "refreshing" | "ready" | "error";
 
@@ -36,16 +35,11 @@ export function useEquipmentLayoutsCatalog({
   const runtimeUnavailable = !equipmentRepository || !layoutRepository || !runtime.cacheScope;
   const load = useCallback(async (): Promise<LayoutCatalogItem[]> => {
     if (!equipmentRepository || !layoutRepository) return [];
-    try {
-      return await loadLayoutCatalog({
-        equipmentRepository,
-        layoutRepository,
-        concurrency: 4,
-      });
-    } catch (error) {
-      if (isLayoutCatalogAbort(error)) throw error;
-      throw error;
-    }
+    return loadLayoutCatalog({
+      equipmentRepository,
+      layoutRepository,
+      concurrency: 4,
+    });
   }, [equipmentRepository, layoutRepository]);
   const catalog = useMonitoringReadModel({
     enabled: enabled && !runtimeUnavailable,
@@ -74,7 +68,7 @@ export function useEquipmentLayoutsCatalog({
   };
 }
 
-function mapState(status: ReturnType<typeof useMonitoringReadModel<LayoutCatalogItem[]>>["status"]): EquipmentLayoutsCatalogState {
+function mapState(status: MonitoringReadModelStatus): EquipmentLayoutsCatalogState {
   if (status === "idle") return "idle";
   if (status === "loading") return "loading";
   if (status === "ready") return "ready";
