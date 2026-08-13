@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 
+import { invalidateSessionListReadModels } from "@/features/test-sessions/use-session-list-read-model";
 import {
   createIdempotencyKey,
   createOperatorCommand,
@@ -83,6 +84,7 @@ export function SessionWizard() {
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
         setCreatedSessionId(sessionId);
+        invalidateSessionListReadModels();
       }
 
       await client.addProductionBindings(
@@ -240,7 +242,7 @@ export function SessionWizard() {
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              Створити реальну сесію
+              {createdSessionId ? "Повторити без дублювання" : "Створити реальний draft"}
             </button>
           )}
         </div>
