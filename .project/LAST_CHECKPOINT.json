@@ -4,11 +4,13 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-433-SENSOR-ENROLLMENT-RECOVERY",
-  "status": "implementation_locally_verified_pending_exact_head_ci",
-  "timestamp": "2026-08-13T16:28:39+03:00",
+  "status": "software_exact_head_verified_pending_review",
+  "timestamp": "2026-08-13T16:44:18+03:00",
   "branch": "fix/433-sensor-enrollment-recovery",
   "active_issue": 433,
+  "pull_request": 434,
   "base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
+  "product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
   "local_verification": {
     "focused_device_agent": "30 PASS",
     "complete_device_agent": "120 PASS",
@@ -33,7 +35,16 @@
     "post_change_raspberry_pi_acceptance": "not_performed_not_claimed"
   },
   "exact_head_verification": {
-    "status": "pending_push_and_pull_request"
+    "status": "green",
+    "passed_checks": 15,
+    "intentional_skips": 1,
+    "ci_quality_build": "PASS",
+    "device_agent_image": "PASS",
+    "scheduler_scale": "PASS",
+    "acquisition_invariant": "PASS",
+    "secure_fleet_and_tls_recovery": "PASS",
+    "offline_bundle_disconnected_runtime": "PASS",
+    "offline_bundle_persistent_data_preservation": "PASS"
   },
   "safety": {
     "modbus_write": "none",
@@ -44,6 +55,6 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Commit and push the focused Issue #433 implementation, open a draft PR, and require exact-head CI/offline/browser gates before merge.",
-  "resume_instruction": "Continue Issue #433 exact-head verification and PR review; do not claim post-change Raspberry Pi acceptance. Resume Ready Issue #432 only after #433 is GREEN, reconciled and merged."
+  "next_action": "Complete focused review and merge draft PR #434 after the final state-only tip is GREEN; then reconcile the merge before resuming Ready Issue #432.",
+  "resume_instruction": "Continue Issue #433 PR #434 review/merge; product head 1c138d0c is exact-head GREEN. Do not claim post-change Raspberry Pi acceptance. Resume Ready Issue #432 only after #433 is merged and post-merge state is reconciled."
 }

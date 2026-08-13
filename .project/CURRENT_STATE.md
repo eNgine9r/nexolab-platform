@@ -7,9 +7,10 @@ Canonical `main` is `aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c`
 
 ## Active critical Work Package — Issue #433
 
-Issue #433 is implemented and locally verified on branch
-`fix/433-sensor-enrollment-recovery`; exact-head GitHub workflow verification
-and focused PR review are pending.
+Issue #433 is implemented on branch `fix/433-sensor-enrollment-recovery` and
+published as draft PR #434. Product head
+`1c138d0c87ea09847ea5d3311a11b405470a3682` passed all 15 triggered checks;
+one image-attestation publish matrix entry was intentionally skipped.
 
 The recovered implementation provides:
 
@@ -27,6 +28,9 @@ Local verification is GREEN: 30 focused Device Agent tests, all 120 Device
 Agent tests, 4 focused UI tests, all 384 frontend tests, formatting, lint,
 typecheck and production build. The before-change Raspberry Pi read-only
 baseline is preserved in `docs/audits/issue-433-sensor-enrollment-recovery.md`.
+The exact-head gates include CI quality/build, Device Agent and service images,
+the acquisition invariant, deterministic scheduler scale, secure fleet outage
+and TLS recovery, and disconnected Offline Bundle startup/data preservation.
 Post-change physical acceptance has not been performed and is not claimed.
 
 ## Next Ready Work Package — Issue #432

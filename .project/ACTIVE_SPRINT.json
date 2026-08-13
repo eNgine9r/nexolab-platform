@@ -172,12 +172,14 @@
     {
       "id": "NEXOLAB-433",
       "issue": 433,
+      "pull_request": 434,
       "title": "Make sensor enrollment and acquisition recovery self-healing",
-      "status": "implementation_locally_verified_pending_exact_head_ci",
+      "status": "software_exact_head_verified_pending_review",
       "priority": "critical",
       "branch": "fix/433-sensor-enrollment-recovery",
       "depends_on": [284, 285, 378],
-      "verification": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS; post-change Raspberry Pi acceptance not performed"
+      "product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
+      "verification": "15/15 exact product-head checks GREEN with one intentional attestation-publish skip; 30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; post-change Raspberry Pi acceptance not performed"
     },
     {
       "id": "NEXOLAB-415",
@@ -210,7 +212,7 @@
   "active_work_package": {
     "issue": 433,
     "title": "Make sensor enrollment and acquisition recovery self-healing",
-    "status": "implementation_locally_verified_pending_exact_head_ci",
+    "status": "software_exact_head_verified_pending_review",
     "priority": "critical",
     "assignee": "eNgine9r",
     "branch": "fix/433-sensor-enrollment-recovery"
@@ -236,7 +238,8 @@
   "verification": {
     "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
     "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
-    "issue_433_exact_head_gates": "pending push and focused pull request",
+    "issue_433_product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
+    "issue_433_exact_head_gates": "15/15 GREEN; one intentional image-attestation publish matrix skip",
     "issue_433_classification": "software locally verified; post-change Raspberry Pi acceptance not performed",
     "issue_389_final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
     "issue_389_merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",

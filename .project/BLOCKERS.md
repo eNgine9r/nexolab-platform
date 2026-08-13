@@ -2,11 +2,12 @@
 
 Updated: 2026-08-13
 
-## Issue #433 — locally verified, exact-head workflows pending
+## Issue #433 / PR #434 — software verified, no CI blocker
 
-The implementation has no local software blocker. Focused and complete Device
-Agent/frontend suites, formatting, lint, typecheck and production build pass.
-The focused PR and its exact-head GitHub/offline/browser gates remain pending.
+Product head `1c138d0c87ea09847ea5d3311a11b405470a3682`
+passed all 15 triggered checks; one image-attestation publish matrix entry was
+intentionally skipped. Focused and complete local suites are also GREEN.
+Review/merge remains pending, not blocked.
 
 Post-change Raspberry Pi enrollment/recovery acceptance was not performed and
 is not claimed. Any physical unplug/replug or sensor manipulation remains a
