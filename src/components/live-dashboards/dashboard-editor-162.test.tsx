@@ -2,14 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createEmptyLiveDashboardDraft,
-  validateLiveDashboardDraft,
-} from "@/features/live-dashboards/model";
-import type {
-  LiveDashboardDraft,
-  LiveDashboardInventoryItem,
-} from "@/features/live-dashboards/types";
+import { createEmptyLiveDashboardDraft, validateLiveDashboardDraft } from "@/features/live-dashboards/model";
+import type { LiveDashboardDraft, LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 
 import { DashboardEditor } from "./dashboard-editor";
 
