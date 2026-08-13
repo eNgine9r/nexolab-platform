@@ -63,14 +63,10 @@ the acquisition-invariant conclusion.
 
 Equal-duration 60-second windows:
 
-| Metric | Browser closed | Active Overview |
-| --- | ---: | ---: |
-| Physical requests | 144 | 153 |
-| Requests/s | 2.400 | 2.550 |
-| Successful requests | 132 | 132 |
-| Timeouts | 12 | 21 |
-| Retry attempts | 12 | 17 |
-| Bus busy seconds | 9.92298 | 12.871187 |
+- browser closed: 144 physical requests, 2.400 req/s, 132 successful requests,
+  12 timeouts, 12 retry attempts, 9.92298 s bus busy;
+- active Overview: 153 physical requests, 2.550 req/s, 132 successful requests,
+  21 timeouts, 17 retry attempts, 12.871187 s bus busy.
 
 The raw request-rate comparison was classified `REVIEW_EQUAL_DURATION_COUNTERS`,
 not automatic PASS/FAIL. Successful polls remained exactly 132 in both windows;
