@@ -12,6 +12,10 @@ type ObservedRequest = {
   method: string;
 };
 
+type ApiReadEvidence = ObservedRequest & {
+  key: string;
+};
+
 type WebSocketEvidence = {
   opened: number;
   closed: number;
@@ -35,14 +39,23 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
 
 function observeRequests(page: Page): {
   telemetry: ObservedRequest[];
+  apiReads: ApiReadEvidence[];
   acquisitionMutations: ObservedRequest[];
 } {
   const telemetry: ObservedRequest[] = [];
+  const apiReads: ApiReadEvidence[] = [];
   const acquisitionMutations: ObservedRequest[] = [];
   page.on("request", (request) => {
     const observed = { url: request.url(), method: request.method() };
-    const pathname = new URL(observed.url).pathname.toLowerCase();
+    const parsed = new URL(observed.url);
+    const pathname = parsed.pathname.toLowerCase();
     if (pathname.includes("/api/v1/telemetry/")) telemetry.push(observed);
+    if (["GET", "HEAD"].includes(observed.method) && pathname.startsWith("/api/")) {
+      apiReads.push({
+        ...observed,
+        key: `${observed.method} ${parsed.pathname}${parsed.search}`,
+      });
+    }
 
     const mutating = !["GET", "HEAD", "OPTIONS"].includes(observed.method);
     const acquisitionPath =
@@ -52,7 +65,7 @@ function observeRequests(page: Page): {
       pathname.includes("/config/");
     if (mutating && acquisitionPath) acquisitionMutations.push(observed);
   });
-  return { telemetry, acquisitionMutations };
+  return { telemetry, apiReads, acquisitionMutations };
 }
 
 function observeWebSockets(page: Page): WebSocketEvidence {
@@ -93,7 +106,21 @@ function countRequests(requests: ObservedRequest[], fragment: string): number {
   return requests.filter((request) => request.url.includes(fragment)).length;
 }
 
-test("keeps telemetry usable and network work bounded across repeated route transitions", async ({
+function apiReadCounts(requests: ApiReadEvidence[]): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const request of requests) counts.set(request.key, (counts.get(request.key) ?? 0) + 1);
+  return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function apiReadCount(requests: ApiReadEvidence[], predicate: (request: ApiReadEvidence) => boolean): number {
+  return requests.filter(predicate).length;
+}
+
+function apiPath(request: ApiReadEvidence): string {
+  return new URL(request.url).pathname;
+}
+
+test("keeps telemetry usable and read-model work bounded across repeated route transitions", async ({
   browser,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -128,6 +155,24 @@ test("keeps telemetry usable and network work bounded across repeated route tran
       page.getByRole("heading", { name: "Енергомоніторинг", exact: true }),
     );
     await expect(page.getByRole("heading", { name: "W1", exact: true })).toBeVisible();
+    routeDurationsMs.live = await navigateAndMeasure(
+      page,
+      "Live дані",
+      /\/live(?:\?.*)?$/,
+      page.getByRole("button", { name: "Saved Dashboards", exact: true }),
+    );
+    routeDurationsMs.nodes = await navigateAndMeasure(
+      page,
+      "Вузли",
+      /\/nodes$/,
+      page.getByTestId("nodes-workspace"),
+    );
+    routeDurationsMs.sessions = await navigateAndMeasure(
+      page,
+      "Сесії випробувань",
+      /\/sessions$/,
+      page.getByRole("heading", { name: "Лабораторні випробування", exact: true }),
+    );
     routeDurationsMs.overviewReturn = await navigateAndMeasure(
       page,
       "Огляд",
@@ -135,6 +180,31 @@ test("keeps telemetry usable and network work bounded across repeated route tran
       page.getByText("edge-live-01", { exact: true }),
     );
     await expect(page.getByText(/°C/).first()).toBeVisible();
+
+    const readCounts = apiReadCounts(requests.apiReads);
+    const securitySessionReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request) === "/api/v1/auth/session",
+    );
+    const equipmentCatalogReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request) === "/api/v1/equipment",
+    );
+    const layoutDraftReads = apiReadCount(requests.apiReads, (request) => apiPath(request).endsWith("/layout/draft"));
+    const layoutPublishedReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request).endsWith("/layout/published"),
+    );
+    const nodeListReads = apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/nodes");
+    const nodeOperationalReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request).endsWith("/operational-state"),
+    );
+    const sessionListReads = apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/sessions");
+    const liveDashboardInventoryReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
+    );
 
     expect(routeDurationsMs.overviewReturn).toBeLessThan(5_000);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
@@ -154,9 +224,21 @@ test("keeps telemetry usable and network work bounded across repeated route tran
       `${JSON.stringify(
         {
           organizationId,
+          routeSequence: ["overview", "refrigeration", "energy", "live", "nodes", "sessions", "overview"],
           routeDurationsMs,
           latestRequests: countRequests(requests.telemetry, "/latest"),
           historyRequests: countRequests(requests.telemetry, "/history"),
+          readModelCounts: {
+            securitySessionReads,
+            equipmentCatalogReads,
+            layoutDraftReads,
+            layoutPublishedReads,
+            nodeListReads,
+            nodeOperationalReads,
+            sessionListReads,
+            liveDashboardInventoryReads,
+          },
+          apiReadCounts: readCounts,
           websocket: sockets,
           acquisitionMutations: requests.acquisitionMutations,
         },
