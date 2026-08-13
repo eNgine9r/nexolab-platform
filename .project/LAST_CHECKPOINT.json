@@ -32,17 +32,8 @@
     "visible_loading_transitions": 0,
     "warm_loading_transitions_asserted_empty": true,
     "live_library_terminal_state_required": true,
-    "overview_content_assertions": [
-      "edge-live-01",
-      "rendered °C value"
-    ],
-    "asserted_pre_navigation_rsc_paths": [
-      "/refrigeration",
-      "/energy",
-      "/live",
-      "/nodes",
-      "/sessions"
-    ],
+    "overview_content_assertions": ["edge-live-01", "rendered °C value"],
+    "asserted_pre_navigation_rsc_paths": ["/refrigeration", "/energy", "/live", "/nodes", "/sessions"],
     "eager_channel_inventory_reads": 0,
     "eager_node_inventory_reads": 0,
     "retained_equipment_and_layout_reads_grew_during_warm_cycles": false,
@@ -70,16 +61,7 @@
   "ready_audit": {
     "selected_issue": 289,
     "selected_issue_status": "status:ready",
-    "dependencies_closed": [
-      283,
-      284,
-      285,
-      286,
-      287,
-      314,
-      288,
-      432
-    ],
+    "dependencies_closed": [283, 284, 285, 286, 287, 314, 288, 432],
     "open_dependency_prs_selected": false,
     "hardware_performance_acceptance": "pending_not_started"
   },
