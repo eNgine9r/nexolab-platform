@@ -66,6 +66,8 @@ function sessionReadModelScope(organizationId: string): string {
   return `sessions:${organizationId}`;
 }
 
-function sessionListKey(query: Required<Pick<SessionListQuery, "limit" | "offset">> & SessionListQuery): string {
+function sessionListKey(
+  query: Required<Pick<SessionListQuery, "limit" | "offset">> & SessionListQuery,
+): string {
   return `${SESSION_LIST_PREFIX}state=${query.state ?? "all"}|node=${query.nodeId ?? "all"}|limit=${query.limit}|offset=${query.offset}`;
 }
