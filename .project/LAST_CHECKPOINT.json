@@ -3,158 +3,65 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-427-POST-366-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_locally_verified",
-  "timestamp": "2026-08-13T12:48:00+03:00",
-  "branch": "chore/427-reconcile-issue-366-state",
-  "active_issue": 427,
-  "base_main_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
-  "previous_verified_product_head": "f8e3003ceb36accf0fa527473097c37be22318ec",
-  "overview_alerts_product_head": "625355c988a286bd007e9c84c48384f2473c0ba6",
-  "verified_pr_head": "11a58e99a69ec04eea38316553724cdad4c83493",
-  "current_local_state": "post_merge_reconciliation_uncommitted",
-  "completed_issue": {
-    "issue": 366,
-    "pull_request": 423,
-    "final_pr_head": "11a58e99a69ec04eea38316553724cdad4c83493",
-    "merge_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
-    "classification": "software verified; Raspberry Pi perceived-latency acceptance pending under #356/#289"
-  },
-  "implemented_slices": {
-    "generic_non_telemetry_cache": "implemented_verified",
-    "telemetry_boundary": {
-      "status": "preserved",
-      "owner": "Issue #314 route-persistent telemetry runtime",
-      "second_telemetry_cache_added": false
-    },
-    "refrigeration_structural_boundary": {
-      "status": "reused_verified",
-      "owner": "Issue #357 refrigeration structural cache"
-    },
-    "equipment_layouts_composed_catalog": "retained_across_remounts",
-    "live_dashboard_inventory": "retained_across_editor_remounts",
-    "security_session": "route_transition_deduplication_verified",
-    "overview_sessions": "exact_query_remount_duplicate_removed",
-    "overview_alerts": {
-      "status": "locally_verified",
-      "scope": "organization",
-      "fresh_ttl_ms": 5000,
-      "stale_ttl_ms": 30000,
-      "intentional_polling_ms": 5000,
-      "retains_last_valid_on_refresh_error": true,
-      "mutation_invalidation": ["acknowledge", "close"]
-    }
+  "task": "ISSUE-389-LOCAL-VERSION-MANAGEMENT",
+  "status": "software_locally_verified_pr_pending",
+  "timestamp": "2026-08-13T14:10:00+03:00",
+  "branch": "feat/389-local-version-management",
+  "active_issue": 389,
+  "base_main_sha": "4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a",
+  "implementation": {
+    "admin_only_read_model": true,
+    "exact_confirmation_actions": ["update", "rollback"],
+    "rollback_target": "previous_verified_bundle_only",
+    "host_executor": "locked_bounded_requests",
+    "backup_before_mutation": true,
+    "backup_archive_verified": true,
+    "migration_before_readiness": true,
+    "exact_schema_verification": true,
+    "runtime_unknown_after_post_mutation_failure": true,
+    "preserve_named_volumes": true,
+    "preserve_edge_sqlite": true,
+    "volume_deletion_path": false
   },
   "local_verification": {
-    "targeted_vitest": "12/12 GREEN",
-    "format": "GREEN",
-    "eslint": "GREEN",
-    "strict_typescript": "GREEN",
-    "full_tests": "86 files / 375 tests GREEN; lint-staged v17 contract GREEN",
+    "version_manager_tests": "8/8 GREEN",
+    "version_api_tests": "6/6 GREEN",
+    "focused_frontend_tests": "8/8 GREEN",
+    "full_frontend_tests": "88 files / 381 tests GREEN",
+    "format_eslint_typescript_lint_staged": "GREEN",
     "production_build": "GREEN",
-    "authenticated_dashboard": "12/12 GREEN in 5.2m via canonical acquisition-invariant entrypoint"
-  },
-  "exact_head_verification": {
-    "head": "11a58e99a69ec04eea38316553724cdad4c83493",
-    "ci": "GREEN",
-    "authenticated_dashboard": "GREEN",
-    "alerts_browser": "GREEN",
-    "nodes_browser": "GREEN",
-    "test_sessions_browser": "GREEN",
-    "refrigeration_browser": "GREEN",
-    "offline_auth": "GREEN",
-    "offline_bundle": "GREEN",
-    "disaster_recovery_contract": "GREEN",
-    "disaster_recovery_browser": "GREEN"
+    "host_executor_contract": "GREEN",
+    "systemd_units": "GREEN",
+    "offline_auth_existing": "4/4 GREEN",
+    "offline_auth_persistence": "1/1 GREEN",
+    "offline_auth_version_route": "1/1 GREEN"
   },
   "browser_evidence": {
-    "evidence_directory": "/tmp/nexolab-366-overview-alerts-evidence",
-    "sequence": ["overview", "refrigeration", "energy", "live", "nodes", "sessions", "overview"],
-    "before_alert_slice": {
-      "source": "Authenticated Dashboard #1676",
-      "active_alert_reads": 2,
-      "acknowledged_alert_reads": 2
-    },
-    "after_alert_slice": {
-      "source": "local canonical Authenticated Dashboard acceptance",
-      "route_durations_ms": {
-        "refrigeration": 764,
-        "energy": 303,
-        "live": 358,
-        "nodes": 253,
-        "sessions": 308,
-        "overview_return": 334
-      },
-      "latest_requests": 1,
-      "history_requests": 3,
-      "active_alert_reads": 1,
-      "acknowledged_alert_reads": 1,
-      "session_list_total": 2,
-      "node_list_reads": 1,
-      "node_operational_reads": 2,
-      "equipment_catalog_reads": 1,
-      "layout_draft_reads": 8,
-      "layout_published_reads": 8,
-      "security_session_reads": 2,
-      "websocket_opened": 1,
-      "websocket_max_concurrent": 1,
-      "acquisition_mutations": 0
-    },
-    "acquisition_invariant": {
-      "expected_requests_per_second": 20,
-      "browser_navigation_did_not_amplify_physical_acquisition": true,
-      "authenticated_contexts": 7,
-      "open_pages": 8
-    }
+    "directory": "/tmp/nexolab-389-local-auth-evidence",
+    "administrator_status": 200,
+    "non_admin_status": 403,
+    "offline": true,
+    "catalog_count": 0,
+    "mutation_requested": false
   },
-  "not_selected_for_cache": {
-    "nodes": "One node-list request and one operational-state request per node; no duplicate proven.",
-    "telemetry": "Already owned by Issue #314.",
-    "refrigeration_structural": "Already owned by Issue #357."
+  "classification": {
+    "software": "locally_verified",
+    "physical_raspberry_pi_update_rollback": "pending_separate_acceptance"
   },
-  "harness_notes": [
-    "Direct dashboard script attempt did not start because its uppercase generated Compose project name was rejected locally.",
-    "Second direct attempt reached Playwright but omitted the required acquisition fixture.",
-    "Canonical run-acquisition-invariant-browser-acceptance.sh invocation with a lowercase isolated project name passed 12/12."
-  ],
-  "safety": {
-    "database_migration": false,
-    "polling_policy_change": false,
-    "scheduler_change": false,
-    "registry_change": false,
-    "device_agent_configuration_change": false,
-    "device_agent_discovery_change": false,
-    "modbus_write": "none",
-    "hardware_write": "none",
-    "production_site_cutover": "none",
-    "mandatory_public_runtime_dependency": "none"
-  },
-  "pr_review": {
-    "files_changed": 27,
-    "permitted_scope_only": true,
-    "mergeable": true,
-    "merge_state": "CLEAN",
-    "review_comments": 0,
-    "unresolved_threads": 0
-  },
-  "post_merge_ready_audit": {
-    "issue_289": "needs_validation_pending_focused_356_route_prefetch_time_to_usable_slice_and_hardware_matrix",
-    "issue_389": "ready_selected_after_427_merge",
+  "ready_work_audit": {
+    "issue_289": "needs_validation_pending_focused_356_route_prefetch_time_to_usable_slice",
     "issue_415": "open_not_selected",
     "issue_245": "separate_raspberry_pi_validation_track"
   },
-  "state_reconciliation": {
-    "issue": 427,
-    "permitted_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json",
-      "docs/audits/issue-366-monitoring-route-read-models.md"
-    ],
-    "product_runtime_change": false,
-    "workflow_change": false
+  "safety": {
+    "modbus_write": "none",
+    "hardware_write": "none",
+    "polling_policy_change": "none",
+    "persistent_data_deletion": "none",
+    "volume_deletion": "none",
+    "production_site_cutover": "none",
+    "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Validate and publish the focused five-file Issue #427 reconciliation, require GREEN state-only CI, merge it, then Issue #389 is the next Ready Work Package. Prepare a separate focused #356 route-prefetch/time-to-usable child before final #289 acceptance.",
-  "resume_instruction": "Continue state-only Issue #427. Do not change product/runtime code and do not begin #389 until #427 merges."
+  "next_action": "Publish Issue #389 PR, require all exact-head gates GREEN, then merge and reconcile state without claiming physical Raspberry Pi acceptance.",
+  "resume_instruction": "Continue Issue #389 on feat/389-local-version-management from this software-verified checkpoint."
 }

@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
-  "current_main_sha_semantics": "Issue #366 / PR #423 monitoring-route read-model deduplication merged after complete GREEN exact-head gates",
+  "current_main_sha": "4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a",
+  "current_main_sha_semantics": "Issue #427 / PR #428 post-#366 state reconciliation merged",
   "selection_state": {
     "last_ready_audit_result": "After #366 merge, #289 remains needs-validation pending a focused #356 route-prefetch/time-to-usable child and final hardware matrix. #389 is the only independently labeled Ready package.",
     "selected_issue": 389,
-    "selection_status": "selected_after_427_merge"
+    "selection_status": "issue_389_in_progress_software_locally_verified"
   },
   "tasks": [
     {
@@ -123,9 +123,11 @@
       "id": "NEXOLAB-427",
       "issue": 427,
       "title": "Reconcile Issue #366 merge and select downstream continuation",
-      "status": "in_progress_state_only",
+      "status": "completed_merged",
       "priority": "high",
-      "branch": "chore/427-reconcile-issue-366-state"
+      "branch": "chore/427-reconcile-issue-366-state",
+      "pull_request": 428,
+      "merge_sha": "4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a"
     },
     {
       "id": "NEXOLAB-289",
@@ -139,9 +141,10 @@
       "id": "NEXOLAB-389",
       "issue": 389,
       "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-      "status": "ready_not_selected",
+      "status": "in_progress_software_locally_verified",
       "priority": "high",
-      "depends_on": [385]
+      "depends_on": [385],
+      "branch": "feat/389-local-version-management"
     },
     {
       "id": "NEXOLAB-415",
@@ -172,18 +175,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 427,
-    "title": "Reconcile Issue #366 merge and select downstream continuation",
-    "status": "in_progress_state_only",
-    "priority": "high",
-    "assignee": "eNgine9r",
-    "branch": "chore/427-reconcile-issue-366-state"
-  },
-  "next_ready_work_package": {
     "issue": 389,
     "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-    "status": "selected_after_427_merge",
-    "priority": "high"
+    "status": "software_locally_verified_pr_pending",
+    "priority": "high",
+    "assignee": "eNgine9r",
+    "branch": "feat/389-local-version-management"
+  },
+  "next_ready_work_package": {
+    "issue": null,
+    "title": "No independently Ready package selected while Issue #389 is active",
+    "status": "audit_after_issue_389",
+    "priority": null
   },
   "prepared_backlog": [
     {
@@ -228,7 +231,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Complete state-only #427, then start Ready Issue #389. Separately prepare a focused #356 route-prefetch/time-to-usable Work Package before final #289 hardware/performance acceptance.",
+  "next_selection_policy": "Complete Issue #389 exact-head verification and merge. Keep #289 needs-validation until a separate focused #356 route-prefetch/time-to-usable child is prepared before final hardware/performance acceptance.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

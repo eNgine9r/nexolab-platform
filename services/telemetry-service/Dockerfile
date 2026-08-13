@@ -36,7 +36,7 @@ RUN find /app -type d -exec chmod 0755 {} + \
     && find /app -type f -exec chmod 0644 {} + \
     && chmod 0755 /usr/local/bin/nexolab-dynsec-admin \
     && useradd --create-home --uid 10001 nexolab \
-    && mkdir -p /app/data/telemetry-ingestion \
+    && mkdir -p /app/data/telemetry-ingestion /app/data/version-management \
     && chown -R nexolab:nexolab /app/data
 USER nexolab
 

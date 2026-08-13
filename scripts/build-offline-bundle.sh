@@ -5,6 +5,8 @@ usage() {
   cat <<'EOF'
 Usage: build-offline-bundle.sh --version VERSION --platform linux/amd64|linux/arm64 \
   --dashboard-origin URL --api-base-url URL --websocket-url URL \
+  [--schema-head REVISION] [--upgrade-from-schema-head REVISION] \
+  [--runtime-compatible-schema-head REVISION] \
   [--auth-provider disabled|local|acceptance|supabase] [--output DIR]
 
 Builds a versioned NEXOLAB offline bundle. This command is intentionally run on a
@@ -19,6 +21,9 @@ DASHBOARD_ORIGIN=""
 API_BASE_URL=""
 WEBSOCKET_URL=""
 AUTH_PROVIDER="disabled"
+SCHEMA_HEAD=""
+UPGRADE_FROM_SCHEMA_HEADS=()
+RUNTIME_COMPATIBLE_SCHEMA_HEADS=()
 OUTPUT_DIR="${PWD}/dist/offline"
 TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.69.3}"
 
@@ -30,6 +35,9 @@ while (($#)); do
     --api-base-url) API_BASE_URL="${2:?}"; shift 2 ;;
     --websocket-url) WEBSOCKET_URL="${2:?}"; shift 2 ;;
     --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
+    --schema-head) SCHEMA_HEAD="${2:?}"; shift 2 ;;
+    --upgrade-from-schema-head) UPGRADE_FROM_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
+    --runtime-compatible-schema-head) RUNTIME_COMPATIBLE_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
     --output) OUTPUT_DIR="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -60,6 +68,42 @@ git diff --quiet -- . ':!dist' || {
 }
 
 SOURCE_COMMIT="$(git rev-parse HEAD)"
+if [[ -z "$SCHEMA_HEAD" ]]; then
+  SCHEMA_HEAD="$(python3 - <<'PY'
+import ast
+from pathlib import Path
+
+revisions = set()
+parents = set()
+for path in Path("services/telemetry-service/migrations/versions").glob("*.py"):
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    values = {}
+    for node in tree.body:
+        name = None
+        value = None
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            name = node.targets[0].id
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            value = node.value
+        if name in {"revision", "down_revision"} and value is not None:
+            values[name] = ast.literal_eval(value)
+    revision = values.get("revision")
+    parent = values.get("down_revision")
+    if revision:
+        revisions.add(revision)
+    if isinstance(parent, str):
+        parents.add(parent)
+    elif isinstance(parent, (tuple, list)):
+        parents.update(parent)
+heads = sorted(revisions - parents)
+if len(heads) != 1:
+    raise SystemExit(f"Expected one Alembic head, found {heads}")
+print(heads[0])
+PY
+)"
+fi
 ARCH="${PLATFORM#linux/}"
 BUNDLE_NAME="nexolab-offline-${VERSION}-${ARCH}"
 OUTPUT_DIR="$(mkdir -p "$OUTPUT_DIR" && cd "$OUTPUT_DIR" && pwd)"
@@ -153,10 +197,15 @@ cp infrastructure/compose/.env.central.example "$STAGING/deploy/compose/env.cent
 cp infrastructure/compose/.env.edge.example "$STAGING/deploy/compose/env.edge.example"
 cp infrastructure/offline/compose.central.offline.yaml "$STAGING/deploy/offline/"
 cp infrastructure/offline/compose.edge.offline.yaml "$STAGING/deploy/offline/"
+cp infrastructure/offline/nexolab-version-manager.service "$STAGING/deploy/offline/"
+cp infrastructure/offline/nexolab-version-manager.path "$STAGING/deploy/offline/"
 cp scripts/verify-offline-bundle.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
+cp scripts/nexolab-version-manager.py "$STAGING/scripts/"
+cp scripts/deploy-version-manager-service.sh "$STAGING/scripts/"
 cp docs/operations/offline-installation.md "$STAGING/docs/"
+cp docs/operations/local-version-management.md "$STAGING/docs/"
 cp docs/security/local-operator-authentication.md "$STAGING/docs/"
 chmod 0755 "$STAGING/scripts/"*.sh "$STAGING/scripts/"*.py
 
@@ -187,11 +236,24 @@ MANIFEST_ARGS=()
 for record in "${IMAGE_RECORDS[@]}"; do
   MANIFEST_ARGS+=(--image "$record")
 done
+if ((${#UPGRADE_FROM_SCHEMA_HEADS[@]} == 0)); then
+  UPGRADE_FROM_SCHEMA_HEADS+=("$SCHEMA_HEAD")
+fi
+if ((${#RUNTIME_COMPATIBLE_SCHEMA_HEADS[@]} == 0)); then
+  RUNTIME_COMPATIBLE_SCHEMA_HEADS+=("$SCHEMA_HEAD")
+fi
+for revision in "${UPGRADE_FROM_SCHEMA_HEADS[@]}"; do
+  MANIFEST_ARGS+=(--upgrade-from-schema-head "$revision")
+done
+for revision in "${RUNTIME_COMPATIBLE_SCHEMA_HEADS[@]}"; do
+  MANIFEST_ARGS+=(--runtime-compatible-schema-head "$revision")
+done
 python3 scripts/generate-offline-bundle-manifest.py \
   --bundle-root "$STAGING" \
   --bundle-version "$VERSION" \
   --source-commit "$SOURCE_COMMIT" \
   --platform "$PLATFORM" \
+  --schema-head "$SCHEMA_HEAD" \
   --dashboard-origin "$DASHBOARD_ORIGIN" \
   --dashboard-api-base-url "$API_BASE_URL" \
   --dashboard-websocket-url "$WEBSOCKET_URL" \

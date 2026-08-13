@@ -58,6 +58,23 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
     require(manifest.get("runtime_network_required") is False, "Bundle requires runtime network")
     require(manifest.get("paid_runtime_service_required") is False, "Bundle requires paid runtime")
     require(manifest.get("secrets_included") is False, "Manifest claims bundled secrets")
+    management = manifest.get("version_management")
+    require(isinstance(management, dict), "Missing version management contract")
+    require(isinstance(management.get("bundle_id"), str) and management["bundle_id"], "Missing bundle ID")
+    schema = management.get("database_schema")
+    require(isinstance(schema, dict), "Missing database schema compatibility")
+    require(isinstance(schema.get("head"), str) and schema["head"], "Missing schema head")
+    for field in ("upgrade_from", "runtime_compatible_schema_heads"):
+        require(
+            isinstance(schema.get(field), list)
+            and bool(schema[field])
+            and all(isinstance(value, str) and value for value in schema[field]),
+            f"Invalid database schema field: {field}",
+        )
+    require(management.get("backup_required") is True, "Version update does not require backup")
+    require(management.get("migration_before_readiness") is True, "Migration ordering is unsafe")
+    require(management.get("preserve_named_volumes") is True, "Named volumes are not preserved")
+    require(management.get("preserve_edge_sqlite") is True, "Edge SQLite is not preserved")
 
     dashboard = manifest.get("dashboard")
     require(isinstance(dashboard, dict), "Missing dashboard configuration")

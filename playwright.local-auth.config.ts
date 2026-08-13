@@ -8,7 +8,11 @@ const webPort = new URL(webUrl).port || "13011";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["local-auth.production.e2e.ts", "local-auth-persistence.production.e2e.ts"],
+  testMatch: [
+    "local-auth.production.e2e.ts",
+    "local-auth-persistence.production.e2e.ts",
+    "settings-version.production.e2e.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   retries: 0,

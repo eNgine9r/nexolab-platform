@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     service_name: str = "nexolab-telemetry-service"
     log_level: str = "INFO"
 
+    version_management_root: str = "data/version-management"
+    version_management_catalog_limit: int = Field(default=20, ge=1, le=100)
+
     database_url: str = (
         "postgresql+psycopg://nexolab:nexolab@postgres:5432/nexolab"
     )
@@ -210,6 +213,8 @@ class Settings(BaseSettings):
             )
         if not self.ingestion_spool_path.strip():
             raise ValueError("INGESTION_SPOOL_PATH must not be empty")
+        if not self.version_management_root.strip():
+            raise ValueError("VERSION_MANAGEMENT_ROOT must not be empty")
         if (
             self.broker_control_retry_max_seconds
             < self.broker_control_retry_initial_seconds
