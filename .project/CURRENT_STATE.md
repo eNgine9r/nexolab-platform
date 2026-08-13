@@ -6,11 +6,11 @@ Canonical Issue #366 baseline on `main`:
 `3a91a180ff6b842321c18a2273f405bcdd42e149` — Issue #421 / PR #422
 post-#369 reconciliation and #366 selection.
 
-## Active Work Package — Issue #366 / Draft PR #423
+## Completed Work Package — Issue #366 / PR #423
 
 Issue #366 audits and deduplicates non-telemetry monitoring-route read models.
-The active branch is `perf/366-monitoring-read-model-deduplication`; Draft PR
-#423 remains the focused implementation vehicle.
+PR #423 was squash-merged as
+`a8daee3468e2384c505f988eb006fca05c2afa3f`; Issue #366 is closed.
 
 Verified slices on the branch before the current Overview alerts correction:
 
@@ -74,9 +74,9 @@ used an uppercase auto-generated Compose project name rejected by local Docker
 Compose, and one omitted the required acquisition fixture. The canonical
 `run-acquisition-invariant-browser-acceptance.sh` entrypoint then passed.
 
-## Exact-head verification
+## Final exact-head verification
 
-PR head `78ba940f4f4936dc1810f58c7891362816dcc387` passed every triggered
+Final PR head `11a58e99a69ec04eea38316553724cdad4c83493` passed every triggered
 exact-head gate:
 
 - CI;
@@ -89,16 +89,27 @@ exact-head gate:
 - Offline Bundle;
 - both Disaster Recovery Browser jobs.
 
-The PR-wide diff contains 27 files, all within Issue #366 permitted directories.
-There are no review comments, requested changes or unresolved threads; GitHub
-reports the Draft PR mergeable and CLEAN.
+Offline Auth initially hit a runner/container-start transient immediately after
+pulling `postgres:16-alpine`; the targeted rerun passed as workflow #402 without
+code changes. Offline Bundle passed as #1068.
 
-## Remaining action
+## Active state-only reconciliation — Issue #427
 
-Publish this final docs-only reconciliation, require GREEN exact-head gates on
-that final head, mark PR #423 Ready and merge. Raspberry Pi perceived-latency
-acceptance remains downstream under #356/#289 and is not a #366
-software-completion requirement.
+Issue #427 records the #366 merge and post-merge Ready audit in exactly four
+`.project` files plus this audit. No product/runtime change belongs in #427.
+
+The fresh audit establishes:
+
+- Issue #289 remains `status:needs-validation`; its own repository comment
+  requires a focused #356 route-prefetch/time-to-usable slice before final
+  physical/performance measurement, and no such child Work Package exists yet;
+- Issue #389 remains the only independently labeled `status:ready` package;
+- #415 remains an unselected Chart System UX follow-up;
+- #245 remains a separate Raspberry Pi validation lane.
+
+Therefore #389 is the next repository-backed Ready Work Package after #427
+merges. Planning a focused #356 route-prefetch/time-to-usable child remains a
+separate critical backlog action before #289 final acceptance.
 
 ## Safety boundary
 

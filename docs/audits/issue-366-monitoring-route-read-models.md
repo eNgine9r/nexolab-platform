@@ -143,6 +143,10 @@ lint-staged contract and production build are GREEN. Exact-head CI remains
 required after the final docs-only reconciliation is committed and pushed. PR
 head `78ba940f4f4936dc1810f58c7891362816dcc387` passed CI, all relevant
 browser gates, Offline Auth, Offline Bundle and both Disaster Recovery jobs.
+Final PR head `11a58e99a69ec04eea38316553724cdad4c83493` repeated the complete
+matrix GREEN; Offline Auth required one runner-transient rerun without code
+changes. PR #423 was squash-merged as
+`a8daee3468e2384c505f988eb006fca05c2afa3f`.
 
 ## Invalidation policy
 

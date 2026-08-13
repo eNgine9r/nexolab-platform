@@ -2,7 +2,7 @@
 
 Updated: 2026-08-13
 
-## Issue #366 / Draft PR #423 — final reconciliation, no blocker
+## Issue #366 / PR #423 — completed, no blocker
 
 The Overview alerts read-model duplicate proven by Authenticated Dashboard #1676
 is corrected in product/state commit
@@ -11,15 +11,14 @@ is corrected in product/state commit
 full route cycle, one WebSocket maximum concurrent, and zero acquisition
 mutations.
 
-PR head `78ba940f4f4936dc1810f58c7891362816dcc387` passed CI, all relevant
-browser gates, Offline Auth and Offline Bundle. The PR-wide diff is confined to
-27 permitted files; GitHub reports it CLEAN and mergeable with no review threads.
+Final head `11a58e99a69ec04eea38316553724cdad4c83493` passed CI, all relevant
+browser gates, Offline Auth and Offline Bundle. PR #423 is squash-merged as
+`a8daee3468e2384c505f988eb006fca05c2afa3f`; Issue #366 is closed.
 
-Remaining action:
+## Issue #427 — active state-only reconciliation
 
-- publish this final docs-only reconciliation;
-- require GREEN checks on the resulting final head;
-- mark PR #423 Ready and merge.
+The only remaining #366 continuity work is the focused five-file post-merge
+state/audit reconciliation. No product/runtime code is permitted.
 
 ## Local harness note — not a product blocker
 
@@ -31,8 +30,9 @@ lowercase isolated project name passed. No runtime product defect was observed.
 
 ## Downstream and independent lanes
 
-- Issue #289 remains downstream of #366.
-- Issue #389 remains independent Ready/not selected.
+- Issue #289 remains `status:needs-validation` pending a separately prepared
+  focused #356 route-prefetch/time-to-usable slice and final hardware matrix.
+- Issue #389 is the next independently Ready package after #427 merges.
 - Issue #415 remains an open Chart System UX follow-up.
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #257 remains blocked; Issue #256 remains deferred.
