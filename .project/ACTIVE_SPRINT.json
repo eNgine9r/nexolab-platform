@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf",
-  "current_main_sha_semantics": "Issue #417 / PR #418 post-#413 project-state reconciliation merged",
+  "current_main_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
+  "current_main_sha_semantics": "Issue #369 / PR #420 Raspberry Pi Live Dashboard inventory acceptance merged after GREEN exact-head gates and physical browser acceptance PASS",
   "selection_state": {
-    "last_ready_audit_result": "Issue #369 selected as the critical runtime-sequence package after PR #418 merge; Issue #389 remained the only independent status:ready package.",
-    "selected_issue": 369,
-    "selection_status": "acceptance_pass_merge_pending"
+    "last_ready_audit_result": "After #369 merge, #366 dependency holds are resolved: #368 and #369 are completed. #366 remains priority:critical and is selected ahead of independent priority:high #389 after state-only #421 reconciliation.",
+    "selected_issue": 366,
+    "selection_status": "selected_after_421_merge"
   },
   "tasks": [
     {
@@ -89,21 +89,30 @@
       "issue": 369,
       "pull_request": 420,
       "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
-      "status": "acceptance_pass_merge_pending",
+      "status": "completed_merged",
       "priority": "critical",
-      "branch": "fix/369-live-dashboard-inventory-browser",
-      "depends_on": [368],
-      "pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
-      "verification": "CI #2961 GREEN; Authenticated Dashboard #1640 GREEN; Offline Bundle #1023 GREEN",
+      "merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
+      "final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
+      "verification": "CI #2965 GREEN; Authenticated Dashboard #1644 GREEN; Offline Bundle #1027 GREEN",
       "hardware_acceptance": "PASS: inventory 200, total 162, ~44.84 ms; search/filter/select/reorder/save/reopen PASS; no telemetry/latest inventory dependency"
+    },
+    {
+      "id": "NEXOLAB-421",
+      "issue": 421,
+      "title": "Reconcile Issue #369 merge and select Issue #366 continuation",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/421-reconcile-issue-369-state"
     },
     {
       "id": "NEXOLAB-366",
       "issue": 366,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "blocked_until_369_merge_and_ready_audit",
+      "status": "next_ready_after_421_merge",
       "priority": "critical",
-      "depends_on": [369]
+      "branch": "perf/366-monitoring-read-model-deduplication",
+      "branch_state": "ahead_by=0; stale behind main; fast-forward before implementation",
+      "resolved_dependencies": [368, 369]
     },
     {
       "id": "NEXOLAB-289",
@@ -150,25 +159,25 @@
     }
   ],
   "active_work_package": {
-    "issue": 369,
-    "pull_request": 420,
-    "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
-    "status": "acceptance_pass_merge_pending",
-    "priority": "critical",
+    "issue": 421,
+    "title": "Reconcile Issue #369 merge and select Issue #366 continuation",
+    "status": "in_progress_state_only",
+    "priority": "high",
     "assignee": "eNgine9r",
-    "branch": "fix/369-live-dashboard-inventory-browser"
+    "branch": "chore/421-reconcile-issue-369-state"
   },
   "next_ready_work_package": {
-    "issue": null,
-    "title": "Fresh repository-backed Ready audit after Issue #369 merge",
-    "status": "required_before_selection",
-    "priority": "critical"
+    "issue": 366,
+    "title": "Audit and deduplicate monitoring-route read models",
+    "status": "selected_after_421_merge",
+    "priority": "critical",
+    "branch": "perf/366-monitoring-read-model-deduplication"
   },
   "prepared_backlog": [
     {
       "issue": 366,
       "priority": "critical",
-      "lane": "runtime_sequence_dependency_reaudit_after_369_merge"
+      "lane": "next_runtime_read_model_deduplication"
     },
     {
       "issue": 389,
@@ -182,25 +191,26 @@
     }
   ],
   "verification": {
-    "issue_369_pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
-    "issue_369_pre_state_gates": "CI #2961 GREEN; Authenticated Dashboard #1640 GREEN; Offline Bundle #1023 GREEN",
+    "issue_369_final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
+    "issue_369_merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
+    "issue_369_final_gates": "CI #2965 GREEN; Authenticated Dashboard #1644 GREEN; Offline Bundle #1027 GREEN",
     "issue_369_browser_hardware": "PASS on controlled Raspberry Pi LOCAL_LAN runtime",
     "issue_369_inventory": {
       "status": 200,
       "total": 162,
       "duration_ms_approx": 44.84,
       "generic_telemetry_latest_inventory_dependency": false
-    },
-    "state_commit_exact_head_recheck_required": true
+    }
   },
   "runtime_evidence": {
     "issue_369_external_egress_required": false,
     "issue_369_modbus_write": false,
     "issue_369_hardware_write": false,
     "issue_369_polling_change": false,
-    "issue_369_runtime_product_code_changed": false
+    "issue_369_runtime_product_code_changed": false,
+    "issue_421_runtime_product_code_changed": false
   },
-  "next_selection_policy": "Require fresh exact-head checks and merge PR #420 first; then audit current labels, dependencies, blockers, open PRs and CI before selecting #366, #389, #415 or another package.",
+  "next_selection_policy": "Merge state-only #421 after GREEN focused CI, fast-forward the empty #366 feature branch to reconciled main, move #366 out of stale blocked state and resume evidence-first implementation. Keep #389 independent Ready/not selected.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
