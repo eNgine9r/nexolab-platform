@@ -2,12 +2,19 @@
 
 Updated: 2026-08-13
 
-## Issue #369 — product acceptance passed, merge gates pending
+## Issue #369 — completed, blockers resolved
 
-Issue #369 / PR #420 has completed the mandatory real Raspberry Pi browser
-acceptance for the canonical Live Dashboard inventory.
+Issue #369 / PR #420 is completed and squash-merged as
+`4a266d73c451e191f2fab683dd07aa4c02d17b7d`.
 
-Physical browser evidence:
+Final exact-head gates on
+`808ecc64c7e5f5282d666636eecb5b5efcd9657e` were GREEN:
+
+- CI #2965;
+- Authenticated Dashboard Acceptance #1644;
+- Offline Bundle #1027.
+
+Controlled Raspberry Pi / Chromium acceptance passed:
 
 ```text
 inventory_http_status=200
@@ -23,47 +30,41 @@ reopen=PASS
 telemetry_latest_inventory_dependency=NO
 ```
 
-Automated gates on the pre-state head
-`d037b732a8ae87a8d9f79f31cffeddde01a5eec9` were GREEN:
+No #369 product, hardware or merge blocker remains.
 
-- CI #2961;
-- Authenticated Dashboard Acceptance #1640;
-- Offline Bundle #1023.
+## Issue #421 — active state-only reconciliation
 
-No hardware acceptance blocker remains for #369. The remaining merge blocker is
-procedural: the `.project` reconciliation changes the PR head, so the resulting
-exact head must pass required checks before Ready transition and merge.
+Issue #421 only reconciles the completed #369 merge and the fresh Ready audit in
+four `.project` files. No product/runtime code is permitted.
 
-## Non-blocking browser-console observation
+Remaining gate: focused state-only CI and merge.
 
-The acceptance screenshots show repeated `404 Not Found` requests for equipment
-`.../layout/published` resources, including examples for `showcase-107-02` and
-`cold-room-201`.
+## Issue #366 — dependency holds resolved; selected next
 
-These requests are outside the Live Dashboard inventory path and did not affect
-#369 search/filter/select/reorder/save/reopen behavior. They are recorded as an
-observation, not misclassified as a #369 failure and not silently described as a
-clean console.
+The historical #366 hold required Issue #368 to complete before broad route
+read-model work. Issue #368 is closed/completed. The preserved runtime sequence
+also required #369 acceptance first; #369 is now completed and merged.
 
-No corrective change for those layout requests is included in PR #420.
+The existing branch `perf/366-monitoring-read-model-deduplication` contains no
+feature commits (`ahead_by=0`) and is only stale behind current `main`. After #421
+merges, fast-forward that branch to the reconciled `main`, move #366 out of its
+stale `status:blocked` label and resume the evidence-first implementation.
 
-## Issue #366 — dependency blocked until #369 merge
-
-Issue #366 remains `status:blocked` while #369 is unmerged. After #369 merges, run
-a repository-backed dependency and Ready audit before changing #366 status or
-starting implementation.
-
-Preserved runtime sequence:
-
-```text
-#369 -> #366 -> #289
-```
+The repeated `.../layout/published` 404 read pattern observed during #369 is
+recorded as #366 audit evidence. The `layout_not_published` response remains a
+truthful empty-state contract; the task is to determine whether equivalent reads
+are unnecessarily repeated across route/remount consumers.
 
 ## Issue #389 — independent Ready package
 
 Issue #389 remains `status:ready` for administrator-only local Version
-Management. It is independent of #369, but must not be selected until the
-post-merge Ready audit confirms priority and dependencies.
+Management. It is independent and valid, but is `priority:high`; #366 is the
+selected `priority:critical` continuation after #421.
+
+## Issue #289 — downstream
+
+Issue #289 remains downstream of #366 and must not start before the #366
+read-model lifecycle/deduplication work is resolved.
 
 ## Other known boundaries
 
@@ -71,12 +72,13 @@ post-merge Ready audit confirms priority and dependencies.
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
+- Open PRs are dependency-update lanes and do not block #366.
 - `max_parallel_implementation_tasks` remains 1.
 
 ## Security boundary
 
 The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on
-**2026-09-05**. Issue #369 does not broaden it.
+**2026-09-05**. Issues #369 and #421 do not broaden it.
 
 ## Global hard-stop rules
 
