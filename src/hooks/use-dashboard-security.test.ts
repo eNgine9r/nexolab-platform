@@ -1,7 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as refrigerationCache from "@/features/refrigeration/refrigeration-structural-cache";
 import { getSecurityCredentials, setSecurityCredentials } from "@/features/security/security-session";
+import * as readModelCache from "@/lib/monitoring-read-model-cache";
 
 const authState = vi.hoisted(() => ({
   signOut: vi.fn(),
@@ -60,6 +62,8 @@ function sessionResponse(): Response {
 describe("useDashboardSecurity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    readModelCache.clearAllMonitoringReadModels();
+    refrigerationCache.clearAllRefrigerationStructuralCaches();
     window.localStorage.clear();
     window.sessionStorage.clear();
     setSecurityCredentials({ accessToken: null, organizationId: null });
@@ -74,11 +78,32 @@ describe("useDashboardSecurity", () => {
   });
 
   afterEach(() => {
+    readModelCache.clearAllMonitoringReadModels();
+    refrigerationCache.clearAllRefrigerationStructuralCaches();
     vi.unstubAllGlobals();
+  });
+
+  it("deduplicates the verified session across rapid route consumers", async () => {
+    const fetchMock = vi.fn(async () => sessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = renderHook(() => useDashboardSecurity());
+    const second = renderHook(() => useDashboardSecurity());
+
+    await waitFor(() => {
+      expect(first.result.current.state).toBe("ready");
+      expect(second.result.current.state).toBe("ready");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    second.unmount();
   });
 
   it("loads the verified session and switches only between returned memberships", async () => {
     window.localStorage.setItem("nexolab.selectedOrganizationId", "org-2");
+    const clearReadModels = vi.spyOn(readModelCache, "clearAllMonitoringReadModels");
+    const clearRefrigeration = vi.spyOn(refrigerationCache, "clearAllRefrigerationStructuralCaches");
     const { result } = renderHook(() => useDashboardSecurity());
 
     await waitFor(() => {
@@ -97,6 +122,8 @@ describe("useDashboardSecurity", () => {
     });
     expect(result.current.membership?.organizationId).toBe("org-1");
     expect(getSecurityCredentials().organizationId).toBe("org-1");
+    expect(clearReadModels).toHaveBeenCalledTimes(1);
+    expect(clearRefrigeration).toHaveBeenCalledTimes(1);
 
     act(() => {
       result.current.selectOrganization("foreign-org");
@@ -155,16 +182,22 @@ describe("useDashboardSecurity", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("clears credentials and persisted organization on logout", async () => {
+  it("clears credentials, persisted organization and retained read models on logout", async () => {
     window.localStorage.setItem("nexolab.selectedOrganizationId", "org-1");
+    const clearReadModels = vi.spyOn(readModelCache, "clearAllMonitoringReadModels");
+    const clearRefrigeration = vi.spyOn(refrigerationCache, "clearAllRefrigerationStructuralCaches");
     const { result } = renderHook(() => useDashboardSecurity());
     await waitFor(() => expect(result.current.state).toBe("ready"));
 
+    clearReadModels.mockClear();
+    clearRefrigeration.mockClear();
     await act(async () => {
       await result.current.signOut();
     });
 
     expect(authState.signOut).toHaveBeenCalledOnce();
+    expect(clearReadModels).toHaveBeenCalledTimes(1);
+    expect(clearRefrigeration).toHaveBeenCalledTimes(1);
     expect(result.current.state).toBe("unauthenticated");
     expect(result.current.errorCode).toBeNull();
     expect(window.localStorage.getItem("nexolab.selectedOrganizationId")).toBeNull();
