@@ -5,10 +5,7 @@ import { useCallback } from "react";
 import { loadLiveDashboardInventory } from "@/features/live-dashboards/inventory";
 import { createLiveDashboardInventoryClient } from "@/features/live-dashboards/inventory-client";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
-import {
-  useMonitoringReadModel,
-  type MonitoringReadModelStatus,
-} from "@/hooks/use-monitoring-read-model";
+import { useMonitoringReadModel, type MonitoringReadModelStatus } from "@/hooks/use-monitoring-read-model";
 
 export type LiveDashboardInventoryStatus = "idle" | "loading" | "ready" | "error";
 
