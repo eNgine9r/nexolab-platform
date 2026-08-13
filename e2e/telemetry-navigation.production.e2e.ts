@@ -128,6 +128,21 @@ async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
   }
   if (route === "live") {
     await expect(page.getByRole("button", { name: "Saved Dashboards", exact: true })).toBeVisible();
+    await expect(page.getByText("Завантаження з локальної бази…", { exact: true })).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        const terminalStates = [
+          page.locator('section[aria-labelledby="live-dashboard-library-title"] article').first(),
+          page.getByRole("heading", { name: "Збережених Dashboard ще немає", exact: true }),
+          page.getByRole("heading", { name: "Доступ до Live Dashboards заборонено", exact: true }),
+          page.getByRole("heading", { name: "Library недоступна", exact: true }),
+        ];
+        for (const terminalState of terminalStates) {
+          if ((await terminalState.count()) > 0 && (await terminalState.isVisible())) return true;
+        }
+        return false;
+      })
+      .toBe(true);
     return;
   }
   if (route === "nodes") {
@@ -145,6 +160,13 @@ async function loadingTransitions(page: Page): Promise<LoadingTransition[]> {
       (window as Window & { __nexolabLoadingTransitions?: LoadingTransition[] })
         .__nexolabLoadingTransitions ?? [],
   );
+}
+
+async function clearLoadingTransitions(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as Window & { __nexolabLoadingTransitions?: LoadingTransition[] }).__nexolabLoadingTransitions =
+      [];
+  });
 }
 
 async function documentLoadCount(page: Page): Promise<number> {
@@ -407,6 +429,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(firstCycleCounts.layoutPublished).toBeGreaterThanOrEqual(3);
     expect(firstCycleCounts.nodeList).toBe(1);
     expect(firstCycleCounts.sessions).toBe(2);
+    await clearLoadingTransitions(page);
 
     const warmReturnSamplesMs = Object.fromEntries(
       canonicalRoutes.map((route) => [route.key, [] as number[]]),
@@ -451,6 +474,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     );
     const activeAlertReads = overviewAlertReadCount(requests.apiReads, "active");
     const acknowledgedAlertReads = overviewAlertReadCount(requests.apiReads, "acknowledged");
+    const warmLoadingTransitions = await loadingTransitions(page);
 
     const summary = {
       organizationId,
@@ -461,7 +485,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       preNavigationApiReadCounts,
       preNavigationRouteResources,
       routeResources: await routeResourceTimings(page),
-      loadingTransitions: await loadingTransitions(page),
+      loadingTransitions: warmLoadingTransitions,
       documentLoads: await documentLoadCount(page),
       firstCycleCounts,
       latestRequests: countRequests(requests.telemetry, "/latest"),
@@ -501,6 +525,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(nodeOperationalReads).toBe(8);
     expect(sessionListReads).toBe(5);
     expect(liveDashboardInventoryReads).toBe(0);
+    expect(warmLoadingTransitions).toEqual([]);
     expect(sockets.opened).toBe(1);
     expect(sockets.closed).toBe(0);
     expect(sockets.active).toBe(1);

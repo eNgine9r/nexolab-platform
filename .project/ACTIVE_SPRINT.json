@@ -274,11 +274,11 @@
   "runtime_evidence": {
     "issue_432_warm_median_ms": {
       "overview": 398,
-      "refrigeration": 259,
-      "energy": 254,
-      "live": 207,
-      "nodes": 282,
-      "sessions": 236
+      "refrigeration": 231,
+      "energy": 273,
+      "live": 314,
+      "nodes": 306,
+      "sessions": 201
     },
     "issue_432_document_loads": 1,
     "issue_432_loading_transitions": 0,
