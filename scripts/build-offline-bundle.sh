@@ -79,15 +79,24 @@ for path in Path("services/telemetry-service/migrations/versions").glob("*.py"):
     tree = ast.parse(path.read_text(encoding="utf-8"))
     values = {}
     for node in tree.body:
+        name = None
+        value = None
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            if node.targets[0].id in {"revision", "down_revision"}:
-                values[node.targets[0].id] = ast.literal_eval(node.value)
+            name = node.targets[0].id
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            value = node.value
+        if name in {"revision", "down_revision"} and value is not None:
+            values[name] = ast.literal_eval(value)
     revision = values.get("revision")
     parent = values.get("down_revision")
     if revision:
         revisions.add(revision)
     if isinstance(parent, str):
         parents.add(parent)
+    elif isinstance(parent, (tuple, list)):
+        parents.update(parent)
 heads = sorted(revisions - parents)
 if len(heads) != 1:
     raise SystemExit(f"Expected one Alembic head, found {heads}")
