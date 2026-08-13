@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
 import { loadLiveDashboardInventory } from "@/features/live-dashboards/inventory";
 import { createLiveDashboardInventoryClient } from "@/features/live-dashboards/inventory-client";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
+import { useMonitoringReadModel } from "@/hooks/use-monitoring-read-model";
 
 export type LiveDashboardInventoryStatus = "idle" | "loading" | "ready" | "error";
 
@@ -16,6 +17,8 @@ export interface LiveDashboardInventoryModel {
 }
 
 const DEFAULT_SCOPE = "__default_organization__";
+const INVENTORY_CACHE_KEY = "live-dashboard:channel-inventory";
+const INVENTORY_CACHE = { freshTtlMs: 10_000, staleTtlMs: 60_000, maxEntriesPerScope: 8 } as const;
 
 export function useLiveDashboardInventory({
   enabled,
@@ -24,58 +27,30 @@ export function useLiveDashboardInventory({
   enabled: boolean;
   organizationId: string | null;
 }): LiveDashboardInventoryModel {
-  const scopeKey = enabled ? (organizationId ?? DEFAULT_SCOPE) : null;
-  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
-  const [items, setItems] = useState<LiveDashboardInventoryItem[]>([]);
-  const [status, setStatus] = useState<LiveDashboardInventoryStatus>("idle");
-  const [error, setError] = useState<Error | null>(null);
-  const [generation, setGeneration] = useState(0);
+  const scopeKey = organizationId ?? DEFAULT_SCOPE;
+  const load = useCallback(async () => {
+    const client = createLiveDashboardInventoryClient(organizationId);
+    return loadLiveDashboardInventory(client);
+  }, [organizationId]);
+  const inventory = useMonitoringReadModel({
+    enabled,
+    scope: `live-dashboard-inventory:${scopeKey}`,
+    key: INVENTORY_CACHE_KEY,
+    load,
+    cache: INVENTORY_CACHE,
+  });
 
-  const retry = useCallback(() => {
-    if (enabled) setGeneration((value) => value + 1);
-  }, [enabled]);
-
-  useEffect(() => {
-    if (!enabled || scopeKey === null) return;
-
-    const controller = new AbortController();
-    void Promise.resolve().then(() => {
-      if (controller.signal.aborted) return;
-      setActiveScopeKey(scopeKey);
-      setStatus("loading");
-      setError(null);
-    });
-
-    try {
-      const client = createLiveDashboardInventoryClient(organizationId);
-      void loadLiveDashboardInventory(client, controller.signal)
-        .then((nextItems) => {
-          setItems(nextItems);
-          setStatus("ready");
-        })
-        .catch((nextError: unknown) => {
-          if (controller.signal.aborted) return;
-          setError(nextError instanceof Error ? nextError : new Error("Channel inventory failed to load."));
-          setStatus("error");
-        });
-    } catch (nextError) {
-      void Promise.resolve().then(() => {
-        if (controller.signal.aborted) return;
-        setError(
-          nextError instanceof Error ? nextError : new Error("Channel inventory configuration failed."),
-        );
-        setStatus("error");
-      });
-    }
-
-    return () => controller.abort();
-  }, [enabled, generation, organizationId, scopeKey]);
-
-  const visible = enabled && scopeKey !== null && activeScopeKey === scopeKey;
   return {
-    items: visible ? items : [],
-    status: visible ? status : enabled ? "loading" : "idle",
-    error: visible ? error : null,
-    retry,
+    items: inventory.value ?? [],
+    status: mapStatus(inventory.status),
+    error: inventory.error,
+    retry: inventory.retry,
   };
+}
+
+function mapStatus(status: ReturnType<typeof useMonitoringReadModel<LiveDashboardInventoryItem[]>>["status"]): LiveDashboardInventoryStatus {
+  if (status === "idle") return "idle";
+  if (status === "loading") return "loading";
+  if (status === "error") return "error";
+  return "ready";
 }
