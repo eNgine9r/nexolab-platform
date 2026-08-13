@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
-import {
-  isLayoutCatalogAbort,
-  loadLayoutCatalog,
-  type LayoutCatalogItem,
-} from "@/features/equipment-layouts/layout-catalog";
+import { loadLayoutCatalog, type LayoutCatalogItem } from "@/features/equipment-layouts/layout-catalog";
 import { createEquipmentLayoutsRuntime } from "@/features/equipment-layouts/runtime";
 import { RefrigerationEquipmentRepositoryError } from "@/features/refrigeration/equipment-repository";
+import { useMonitoringReadModel, type MonitoringReadModelStatus } from "@/hooks/use-monitoring-read-model";
 
 export type EquipmentLayoutsCatalogState = "idle" | "loading" | "refreshing" | "ready" | "error";
 
@@ -20,6 +17,8 @@ export type UseEquipmentLayoutsCatalogResult = {
   retry: () => void;
 };
 
+const CATALOG_CACHE_KEY = "equipment-layouts:catalog";
+
 export function useEquipmentLayoutsCatalog({
   enabled,
   organizationId,
@@ -30,60 +29,48 @@ export function useEquipmentLayoutsCatalog({
   const runtime = useMemo(() => createEquipmentLayoutsRuntime({ organizationId }), [organizationId]);
   const equipmentRepository = runtime.equipmentRepository;
   const layoutRepository = runtime.layoutRepository;
-  const [items, setItems] = useState<LayoutCatalogItem[]>([]);
-  const [state, setState] = useState<EquipmentLayoutsCatalogState>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [epoch, setEpoch] = useState(0);
-  const runtimeUnavailable = !equipmentRepository || !layoutRepository;
-
-  useEffect(() => {
-    if (!enabled || !equipmentRepository || !layoutRepository) return;
-
-    const controller = new AbortController();
-    const startId = window.setTimeout(() => {
-      setState((current) => (current === "ready" ? "refreshing" : "loading"));
-      setError(null);
-
-      void loadLayoutCatalog({
-        equipmentRepository,
-        layoutRepository,
-        concurrency: 4,
-        signal: controller.signal,
-      })
-        .then((loadedItems) => {
-          if (controller.signal.aborted) return;
-          setItems(loadedItems);
-          setState("ready");
-        })
-        .catch((loadError: unknown) => {
-          if (isLayoutCatalogAbort(loadError)) return;
-          setState("error");
-          setError(catalogErrorMessage(loadError));
-        });
-    }, 0);
-
-    return () => {
-      window.clearTimeout(startId);
-      controller.abort();
-    };
-  }, [enabled, epoch, equipmentRepository, layoutRepository]);
+  const runtimeUnavailable = !equipmentRepository || !layoutRepository || !runtime.cacheScope;
+  const load = useCallback(async (): Promise<LayoutCatalogItem[]> => {
+    if (!equipmentRepository || !layoutRepository) return [];
+    return loadLayoutCatalog({
+      equipmentRepository,
+      layoutRepository,
+      concurrency: 4,
+    });
+  }, [equipmentRepository, layoutRepository]);
+  const catalog = useMonitoringReadModel({
+    enabled: enabled && !runtimeUnavailable,
+    scope: runtime.cacheScope ?? "equipment-layouts:unavailable",
+    key: CATALOG_CACHE_KEY,
+    load,
+  });
 
   const effectiveState: EquipmentLayoutsCatalogState = !enabled
     ? "idle"
     : runtimeUnavailable
       ? "error"
-      : state;
+      : mapState(catalog.status);
   const effectiveError = runtimeUnavailable
     ? (runtime.error ?? "Сховище схем обладнання не налаштоване.")
-    : error;
+    : catalog.error
+      ? catalogErrorMessage(catalog.error)
+      : null;
 
   return {
     mode: runtime.mode,
     state: effectiveState,
-    items,
+    items: catalog.value ?? [],
     error: effectiveError,
-    retry: () => setEpoch((current) => current + 1),
+    retry: catalog.retry,
   };
+}
+
+function mapState(status: MonitoringReadModelStatus): EquipmentLayoutsCatalogState {
+  if (status === "idle") return "idle";
+  if (status === "loading") return "loading";
+  if (status === "ready") return "ready";
+  if (status === "error") return "error";
+  return "refreshing";
 }
 
 function catalogErrorMessage(error: unknown): string {

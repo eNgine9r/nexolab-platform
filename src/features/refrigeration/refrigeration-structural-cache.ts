@@ -1,4 +1,5 @@
 import type { EquipmentLifecycleRepository } from "./equipment-lifecycle-repository";
+import type { RefrigerationEquipmentRepository } from "./equipment-repository";
 import type {
   PublishLayoutDraftInput,
   RefrigerationLayoutRepository,
@@ -80,6 +81,10 @@ function trim(current: CacheBucket): void {
   for (const [key] of oldest) current.values.delete(key);
 }
 
+function invalidateKey(scope: string, key: string): void {
+  buckets.get(scope)?.values.delete(key);
+}
+
 export function invalidateRefrigerationStructuralCache(scope: string, equipmentId?: string): void {
   if (!equipmentId) {
     buckets.delete(scope);
@@ -91,6 +96,41 @@ export function invalidateRefrigerationStructuralCache(scope: string, equipmentI
   for (const key of current.values.keys()) {
     if (key.includes(encoded)) current.values.delete(key);
   }
+}
+
+export function clearAllRefrigerationStructuralCaches(): void {
+  buckets.clear();
+}
+
+export function createCachedRefrigerationEquipmentRepository(
+  repository: RefrigerationEquipmentRepository,
+  scope: string,
+): RefrigerationEquipmentRepository {
+  const catalogKey = "equipment:catalog";
+  const recordKey = (equipmentId: string) => `equipment:${encodeURIComponent(equipmentId)}:record`;
+  const invalidateEquipment = (equipmentId: string) => {
+    invalidateKey(scope, catalogKey);
+    invalidateRefrigerationStructuralCache(scope, equipmentId);
+  };
+
+  return {
+    list: () => cached(scope, catalogKey, () => repository.list()),
+    get: (equipmentId) => cached(scope, recordKey(equipmentId), () => repository.get(equipmentId)),
+    create: async (input) => {
+      const result = await repository.create(input);
+      invalidateKey(scope, catalogKey);
+      return result;
+    },
+    update: async (equipmentId, input, expectedVersion) => {
+      const result = await repository.update(equipmentId, input, expectedVersion);
+      invalidateEquipment(equipmentId);
+      return result;
+    },
+    remove: async (equipmentId, expectedVersion) => {
+      await repository.remove(equipmentId, expectedVersion);
+      invalidateEquipment(equipmentId);
+    },
+  };
 }
 
 export function createCachedEquipmentLifecycleRepository(

@@ -190,7 +190,7 @@ export function DashboardShell() {
                 action={<PanelAction label="Всі тривоги" href="/alerts" />}
                 className="xl:col-span-3"
               >
-                <AlarmsPanel mode={telemetry.mode} samples={liveSamples} />
+                <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
               </Panel>
             </section>
 
@@ -200,7 +200,7 @@ export function DashboardShell() {
                 action={<PanelAction label="Всі сесії" href="/sessions" />}
                 className="xl:col-span-4"
               >
-                <SessionsPanel />
+                <SessionsPanel organizationId={organizationId} />
               </Panel>
               <Panel
                 title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}

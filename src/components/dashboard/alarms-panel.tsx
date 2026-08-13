@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, BellRing, CheckCircle2, Info, LoaderCircle, RefreshCw, Timer } from "lucide-react";
 
 import { alarms } from "@/data/dashboard";
-import { createAlertApiClient } from "@/lib/alerts/api-client";
+import { useOverviewAlertsReadModel } from "@/features/overview/use-overview-alerts-read-model";
 import type { AlertInstance, AlertSeverity } from "@/lib/alerts/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -63,54 +63,25 @@ function alertTime(alert: AlertInstance): string {
   }).format(new Date(alert.triggered_at));
 }
 
-export function AlarmsPanel({ mode = "demo" }: { mode?: "demo" | "live"; samples?: TelemetrySample[] }) {
-  const [liveAlerts, setLiveAlerts] = useState<AlertInstance[]>([]);
-  const [loading, setLoading] = useState(mode === "live");
-  const [error, setError] = useState<Error | null>(null);
-
-  const loadAlerts = useCallback(
-    async (signal: AbortSignal) => {
-      if (mode !== "live") return;
-      try {
-        const client = createAlertApiClient();
-        const [active, acknowledged] = await Promise.all([
-          client.listAlerts({ state: "active", limit: 20 }, signal),
-          client.listAlerts({ state: "acknowledged", limit: 20 }, signal),
-        ]);
-        const combined = [...active.items, ...acknowledged.items]
-          .sort(
-            (left, right) => new Date(right.triggered_at).getTime() - new Date(left.triggered_at).getTime(),
-          )
-          .slice(0, 8);
-        setLiveAlerts(combined);
-        setError(null);
-      } catch (nextError) {
-        if (!signal.aborted) {
-          setError(
-            nextError instanceof Error ? nextError : new Error("Не вдалося завантажити production alerts."),
-          );
-        }
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
-    },
-    [mode],
-  );
+export function AlarmsPanel({
+  mode = "demo",
+  organizationId = null,
+}: {
+  mode?: "demo" | "live";
+  organizationId?: string | null;
+  samples?: TelemetrySample[];
+}) {
+  const alertsModel = useOverviewAlertsReadModel({ enabled: mode === "live", organizationId });
+  const liveAlerts = alertsModel.value ?? [];
 
   useEffect(() => {
     if (mode !== "live") return;
-    const controller = new AbortController();
-    const initial = window.setTimeout(() => void loadAlerts(controller.signal), 0);
-    const refresh = window.setInterval(() => void loadAlerts(controller.signal), 5_000);
-    return () => {
-      controller.abort();
-      window.clearTimeout(initial);
-      window.clearInterval(refresh);
-    };
-  }, [loadAlerts, mode]);
+    const refresh = window.setInterval(alertsModel.retry, 5_000);
+    return () => window.clearInterval(refresh);
+  }, [alertsModel.retry, mode]);
 
   if (mode === "live") {
-    if (loading) {
+    if (alertsModel.status === "loading" && alertsModel.value === null) {
       return (
         <div className="grid min-h-48 place-items-center p-5 text-center">
           <div>
@@ -121,22 +92,15 @@ export function AlarmsPanel({ mode = "demo" }: { mode?: "demo" | "live"; samples
       );
     }
 
-    if (error) {
+    if (alertsModel.error && alertsModel.value === null) {
       return (
         <div className="flex min-h-48 flex-col items-center justify-center p-5 text-center">
           <span className="grid h-10 w-10 place-items-center rounded-xl border border-amber-300/15 bg-amber-400/[0.05] text-amber-300">
             <AlertTriangle className="h-4 w-4" />
           </span>
           <p className="mt-3 text-[11px] font-medium text-slate-200">Alerts API недоступний</p>
-          <p className="mt-1 max-w-60 text-[9px] leading-5 text-slate-500">{error.message}</p>
-          <button
-            className="secondary-button mt-3"
-            onClick={() => {
-              setLoading(true);
-              const controller = new AbortController();
-              void loadAlerts(controller.signal);
-            }}
-          >
+          <p className="mt-1 max-w-60 text-[9px] leading-5 text-slate-500">{alertsModel.error.message}</p>
+          <button className="secondary-button mt-3" onClick={alertsModel.retry}>
             <RefreshCw className="h-3.5 w-3.5" />
             Повторити
           </button>
@@ -154,12 +118,22 @@ export function AlarmsPanel({ mode = "demo" }: { mode?: "demo" | "live"; samples
           <p className="mt-1 max-w-52 text-[9px] leading-5 text-slate-500">
             Перевірено organization-scoped alert instances у central backend.
           </p>
+          {alertsModel.error ? (
+            <p className="mt-2 text-[9px] text-amber-300">
+              Оновлення не вдалося; показано останній валідний snapshot.
+            </p>
+          ) : null}
         </div>
       );
     }
 
     return (
       <div className="space-y-2 p-3 sm:p-4">
+        {alertsModel.error ? (
+          <div className="rounded-xl border border-amber-300/15 bg-amber-400/[0.045] px-3 py-2 text-[9px] text-amber-200">
+            Оновлення не вдалося; показано останній валідний snapshot.
+          </div>
+        ) : null}
         {liveAlerts.map((alert) => {
           const style = severityStyles[visualSeverity(alert.severity)];
           const Icon = style.component;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { invalidateSessionListReadModels } from "@/features/test-sessions/use-session-list-read-model";
 import {
   createIdempotencyKey,
   createOperatorCommand,
@@ -147,6 +148,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
       try {
         await execute(key);
         mutationKeys.current.delete(scope);
+        invalidateSessionListReadModels();
         refresh();
       } catch (nextError) {
         setError(nextError instanceof Error ? nextError : new Error("Session operation failed."));

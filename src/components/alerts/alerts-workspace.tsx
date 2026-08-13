@@ -14,6 +14,7 @@ import {
   WifiOff,
 } from "lucide-react";
 
+import { invalidateOverviewAlertsReadModel } from "@/features/overview/use-overview-alerts-read-model";
 import {
   createAlertApiClient,
   createAlertIdempotencyKey,
@@ -222,6 +223,7 @@ export function AlertsWorkspace() {
       ]);
       setReason("");
       setLastSuccessfulAt(Date.now());
+      invalidateOverviewAlertsReadModel();
     } catch (nextError) {
       setActionError(nextError instanceof Error ? nextError : new Error("Операцію не виконано."));
     } finally {

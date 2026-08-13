@@ -2,110 +2,106 @@
 
 Updated: 2026-08-13
 
-Canonical repository baseline on `main`:
-`4a266d73c451e191f2fab683dd07aa4c02d17b7d` — Issue #369 / PR #420
-Raspberry Pi Live Dashboard inventory acceptance merged.
+Canonical Issue #366 baseline on `main`:
+`3a91a180ff6b842321c18a2273f405bcdd42e149` — Issue #421 / PR #422
+post-#369 reconciliation and #366 selection.
 
-## Completed Work Package — Issue #369 / PR #420
+## Active Work Package — Issue #366 / Draft PR #423
 
-Issue #369 is completed and closed. PR #420 was squash-merged as
-`4a266d73c451e191f2fab683dd07aa4c02d17b7d`.
+Issue #366 audits and deduplicates non-telemetry monitoring-route read models.
+The active branch is `perf/366-monitoring-read-model-deduplication`; Draft PR
+#423 remains the focused implementation vehicle.
 
-Final PR head:
-`808ecc64c7e5f5282d666636eecb5b5efcd9657e`.
+Verified slices on the branch before the current Overview alerts correction:
 
-Final exact-head gates were GREEN:
+- one bounded organization-scoped non-telemetry SWR/deduplication contract;
+- reuse of the #357 refrigeration structural cache for equipment/layout reads;
+- retained composed Equipment Layouts catalog;
+- retained canonical Live Dashboard inventory;
+- route-transition security-session deduplication;
+- retained exact-query Overview session list with mutation invalidation.
 
-- CI #2965;
-- Authenticated Dashboard Acceptance #1644;
-- Offline Bundle #1027.
+The #314 route-persistent telemetry runtime remains the only telemetry cache.
+Nodes remain uncached because browser evidence showed no duplicate node-list or
+operational-state reads.
 
-Controlled Raspberry Pi / Chromium LOCAL_LAN acceptance passed:
+## Overview alerts proven gap — corrected
+
+Authenticated Dashboard #1676 proved that one six-route cycle issued two exact
+active-alert reads and two exact acknowledged-alert reads. The current local
+correction adds a narrow Overview alerts read model with:
+
+- organization-scoped keying;
+- 5-second fresh and 30-second stale TTLs;
+- the existing explicit 5-second polling cadence;
+- retained last-valid content with truthful refresh error state;
+- targeted invalidation after acknowledge/close;
+- no second telemetry cache and no fabricated fallback.
+
+Local canonical Authenticated Dashboard acceptance passed all 12 scenarios. The
+route cycle recorded:
 
 ```text
-inventory_http_status=200
-inventory_total=162
-inventory_duration_ms~=44.84
-search=PASS
-filter=PASS
-select_two_channels=PASS
-reorder=PASS
-configuration_valid=YES
-save=PASS
-reopen=PASS
-telemetry_latest_inventory_dependency=NO
+active_alert_reads=1
+acknowledged_alert_reads=1
+overview_return_ms=334
+latest_requests=1
+history_requests=3
+websocket_opened=1
+websocket_max_concurrent=1
+acquisition_mutations=0
 ```
 
-The product/runtime implementation was unchanged by PR #420; the product diff
-added deterministic 162-channel regressions plus durable project-state updates.
-No Device Agent, scheduler, registry, polling, Modbus or hardware-write behavior
-changed.
+The locally verified product/state commit is
+`625355c988a286bd007e9c84c48384f2473c0ba6`.
 
-The browser session also exposed repeated `.../layout/published` 404 requests.
-Repository code intentionally treats `layout_not_published` as an empty published
-layout, so this was not a #369 failure. The repeated read pattern is recorded as
-evidence for #366.
+Acquisition invariant phases remained near the fixture's 20 requests/second
+rate, including browser navigation, multiple authenticated contexts, WebSocket
+reconnect and telemetry-service restart.
 
-## Active Work Package — Issue #421
+## Software verification on the local alerts correction
 
-Issue #421 is a state-only reconciliation of the completed #369 merge and fresh
-Ready/dependency audit.
+- targeted Vitest: 12/12 GREEN;
+- formatting: GREEN;
+- ESLint: GREEN;
+- strict TypeScript: GREEN;
+- full Vitest/lint-staged: 86 files / 375 tests GREEN;
+- production build: GREEN;
+- canonical Authenticated Dashboard acceptance: 12/12 GREEN in 5.2 minutes.
 
-Branch:
-`chore/421-reconcile-issue-369-state`
+The first two direct harness attempts did not execute product browser tests: one
+used an uppercase auto-generated Compose project name rejected by local Docker
+Compose, and one omitted the required acquisition fixture. The canonical
+`run-acquisition-invariant-browser-acceptance.sh` entrypoint then passed.
 
-Permitted changes are exactly:
+## Exact-head verification
 
-- `.project/CURRENT_STATE.md`;
-- `.project/ACTIVE_SPRINT.json`;
-- `.project/BLOCKERS.md`;
-- `.project/LAST_CHECKPOINT.json`.
+PR head `78ba940f4f4936dc1810f58c7891362816dcc387` passed every triggered
+exact-head gate:
 
-No product/runtime code, workflow, dependency, database, telemetry or hardware
-change belongs in #421.
+- CI;
+- Authenticated Dashboard Acceptance;
+- Alerts Browser Acceptance;
+- Nodes Browser Acceptance;
+- Test Sessions Browser Acceptance;
+- Refrigeration Browser Acceptance;
+- Offline Auth Acceptance;
+- Offline Bundle;
+- both Disaster Recovery Browser jobs.
 
-## Fresh Ready/dependency audit
+The PR-wide diff contains 27 files, all within Issue #366 permitted directories.
+There are no review comments, requested changes or unresolved threads; GitHub
+reports the Draft PR mergeable and CLEAN.
 
-The post-#369 repository-backed audit establishes:
+## Remaining action
 
-- Issue #368, the explicit dependency hold recorded on #366, is completed;
-- Issue #369 is completed and merged;
-- Issue #366 remains open with `priority:critical`;
-- existing branch `perf/366-monitoring-read-model-deduplication` has no feature
-  commits (`ahead_by=0`) and is only stale behind current `main`;
-- Issue #389 remains the only independently labeled `status:ready` package and is
-  `priority:high`;
-- Issue #289 remains downstream of #366;
-- open PRs are dependency-update lanes and do not block the critical runtime lane.
-
-Therefore the next product Work Package after #421 merges is **Issue #366 — Audit
-and deduplicate monitoring-route read models**.
-
-Before #366 implementation, fast-forward its empty feature branch to the
-reconciled `main`, then resume the evidence-first audit. Do not cache around
-telemetry/runtime defects and do not change acquisition behavior.
-
-## Preserved lanes
-
-- #366 — next critical product Work Package after #421 merge;
-- #289 — downstream of #366;
-- #389 — independent Ready/not selected administrator Version Management;
-- #415 — open Chart System UX follow-up;
-- #245 — separate Raspberry Pi standalone validation track;
-- #257 — blocked;
-- #256 — deferred.
+Publish this final docs-only reconciliation, require GREEN exact-head gates on
+that final head, mark PR #423 Ready and merge. Raspberry Pi perceived-latency
+acceptance remains downstream under #356/#289 and is not a #366
+software-completion requirement.
 
 ## Safety boundary
 
-No Modbus write, hardware write, destructive database/volume operation,
-production/site cutover, mandatory cloud dependency or polling-policy change was
-performed by #369 or #421.
-
-The `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on
-2026-09-05.
-
-## Next action
-
-Complete #421 with a four-file focused diff and GREEN state-only CI, merge it,
-fast-forward `perf/366-monitoring-read-model-deduplication` to the reconciled
-`main`, move #366 out of its stale blocked state, and resume Issue #366.
+No database migration, Device Agent configuration/discovery, scheduler, registry,
+polling-policy, Modbus, hardware, persistent-data, dependency or site-cutover
+change is included. Core runtime remains LOCAL_LAN and offline-capable.
