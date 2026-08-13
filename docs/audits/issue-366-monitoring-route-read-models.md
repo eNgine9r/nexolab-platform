@@ -140,7 +140,9 @@ acknowledge/close.
 
 Local format, ESLint, strict TypeScript, full Vitest (86 files / 375 tests),
 lint-staged contract and production build are GREEN. Exact-head CI remains
-required after the local correction is committed and pushed.
+required after the final docs-only reconciliation is committed and pushed. PR
+head `78ba940f4f4936dc1810f58c7891362816dcc387` passed CI, all relevant
+browser gates, Offline Auth, Offline Bundle and both Disaster Recovery jobs.
 
 ## Invalidation policy
 

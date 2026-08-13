@@ -74,13 +74,31 @@ used an uppercase auto-generated Compose project name rejected by local Docker
 Compose, and one omitted the required acquisition fixture. The canonical
 `run-acquisition-invariant-browser-acceptance.sh` entrypoint then passed.
 
-## Remaining gates
+## Exact-head verification
 
-Push the Overview alerts correction, require exact-head CI and
-relevant browser/offline gates, review the focused PR diff, then reconcile all
-four `.project` files and the audit for Issue #366 completion. Raspberry Pi
-perceived-latency acceptance remains downstream under #356/#289 and is not a
-#366 software-completion requirement.
+PR head `78ba940f4f4936dc1810f58c7891362816dcc387` passed every triggered
+exact-head gate:
+
+- CI;
+- Authenticated Dashboard Acceptance;
+- Alerts Browser Acceptance;
+- Nodes Browser Acceptance;
+- Test Sessions Browser Acceptance;
+- Refrigeration Browser Acceptance;
+- Offline Auth Acceptance;
+- Offline Bundle;
+- both Disaster Recovery Browser jobs.
+
+The PR-wide diff contains 27 files, all within Issue #366 permitted directories.
+There are no review comments, requested changes or unresolved threads; GitHub
+reports the Draft PR mergeable and CLEAN.
+
+## Remaining action
+
+Publish this final docs-only reconciliation, require GREEN exact-head gates on
+that final head, mark PR #423 Ready and merge. Raspberry Pi perceived-latency
+acceptance remains downstream under #356/#289 and is not a #366
+software-completion requirement.
 
 ## Safety boundary
 

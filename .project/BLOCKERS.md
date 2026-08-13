@@ -2,7 +2,7 @@
 
 Updated: 2026-08-13
 
-## Issue #366 / Draft PR #423 — active, no product blocker
+## Issue #366 / Draft PR #423 — final reconciliation, no blocker
 
 The Overview alerts read-model duplicate proven by Authenticated Dashboard #1676
 is corrected in product/state commit
@@ -11,12 +11,15 @@ is corrected in product/state commit
 full route cycle, one WebSocket maximum concurrent, and zero acquisition
 mutations.
 
-Remaining gates are procedural/exact-head verification:
+PR head `78ba940f4f4936dc1810f58c7891362816dcc387` passed CI, all relevant
+browser gates, Offline Auth and Offline Bundle. The PR-wide diff is confined to
+27 permitted files; GitHub reports it CLEAN and mergeable with no review threads.
 
-- push the committed alerts slice;
-- require GREEN exact-head CI, browser and offline gates;
-- review the final focused diff and resolve review threads;
-- reconcile the Issue #366 audit and project state before Ready/merge.
+Remaining action:
+
+- publish this final docs-only reconciliation;
+- require GREEN checks on the resulting final head;
+- mark PR #423 Ready and merge.
 
 ## Local harness note — not a product blocker
 
