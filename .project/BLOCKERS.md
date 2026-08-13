@@ -1,50 +1,57 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-12
+Updated: 2026-08-13
 
-## Issue #413 — completed, blockers resolved
+## Issue #369 — product acceptance passed, merge gates pending
 
-Issue #413 / PR #414 is merged as
-`ecd61dfc8682f5aa0c7231b8a73341d1d292f03a`.
+Issue #369 / PR #420 has completed the mandatory real Raspberry Pi browser
+acceptance for the canonical Live Dashboard inventory.
 
-Hardware-tested corrective product head:
-`0b0b239911c729e31c791c8fa2eb2c6f433bfcce`.
-
-The controlled Raspberry Pi retest passed:
+Physical browser evidence:
 
 ```text
-cursor_vertical_jump=NO
-graph_card_stays_fixed=YES
-chart_visual_continuity=PASS
-post_event_overview_render=PASS
-hide_show_solo=PASS
-zoom_pan_reset=PASS
-range_1h_6h_24h=PASS
-route_reopen=PASS
-dashboard_remains_usable=YES
+inventory_http_status=200
+inventory_total=162
+inventory_duration_ms~=44.84
+search=PASS
+filter=PASS
+select_two_channels=PASS
+reorder=PASS
+configuration_valid=YES
+save=PASS
+reopen=PASS
+telemetry_latest_inventory_dependency=NO
 ```
 
-Final PR head `a845e39b0daa628e20e551289a378dcc33ffef2b` passed CI #2950,
-Authenticated Dashboard #1638, Refrigeration #1612 and Offline Bundle #1021.
-No #413 product, hardware or merge blocker remains.
+Automated gates on the pre-state head
+`d037b732a8ae87a8d9f79f31cffeddde01a5eec9` were GREEN:
 
-## Issue #417 — active state-only reconciliation
+- CI #2961;
+- Authenticated Dashboard Acceptance #1640;
+- Offline Bundle #1023.
 
-Issue #417 records the completed #413 merge in four `.project` files plus the
-#413 audit. No product/runtime code is permitted in this Work Package.
+No hardware acceptance blocker remains for #369. The remaining merge blocker is
+procedural: the `.project` reconciliation changes the PR head, so the resulting
+exact head must pass required checks before Ready transition and merge.
 
-The only remaining gate is focused state-only CI and merge, followed by the
-mandatory fresh Ready audit.
+## Non-blocking browser-console observation
 
-## Issue #415 — follow-up UX enhancement
+The acceptance screenshots show repeated `404 Not Found` requests for equipment
+`.../layout/published` resources, including examples for `showcase-107-02` and
+`cold-room-201`.
 
-Issue #415 requests natural left-button drag-to-pan on canonical desktop charts.
-It is not a #413 blocker and remains pending the fresh Ready audit after #417.
+These requests are outside the Live Dashboard inventory path and did not affect
+#369 search/filter/select/reorder/save/reopen behavior. They are recorded as an
+observation, not misclassified as a #369 failure and not silently described as a
+clean console.
 
-## Issue #369 — Ready, separate scope
+No corrective change for those layout requests is included in PR #420.
 
-Issue #369 remains `status:ready` for Raspberry Pi Live Dashboard
-inventory/filter/select/save editor acceptance.
+## Issue #366 — dependency blocked until #369 merge
+
+Issue #366 remains `status:blocked` while #369 is unmerged. After #369 merges, run
+a repository-backed dependency and Ready audit before changing #366 status or
+starting implementation.
 
 Preserved runtime sequence:
 
@@ -52,12 +59,15 @@ Preserved runtime sequence:
 #369 -> #366 -> #289
 ```
 
-## Issue #389 — Ready and not selected
+## Issue #389 — independent Ready package
 
-Issue #389 remains Ready for administrator-only local Version Management.
+Issue #389 remains `status:ready` for administrator-only local Version
+Management. It is independent of #369, but must not be selected until the
+post-merge Ready audit confirms priority and dependencies.
 
 ## Other known boundaries
 
+- Issue #415 remains an open Chart System UX follow-up.
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #257 remains blocked by ESLint 10 ecosystem compatibility.
 - Issue #256 remains deferred pending TypeScript 7 ecosystem compatibility.
@@ -66,7 +76,7 @@ Issue #389 remains Ready for administrator-only local Version Management.
 ## Security boundary
 
 The `telemetry-service/libcjson1/CVE-2026-67216` exception expires on
-**2026-09-05**. Issue #417 does not broaden it.
+**2026-09-05**. Issue #369 does not broaden it.
 
 ## Global hard-stop rules
 
