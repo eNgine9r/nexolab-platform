@@ -100,14 +100,14 @@ function layoutRepository(draft: RefrigerationLayoutDraft): RefrigerationLayoutR
     getPublished: vi.fn(async () => success(null)),
     saveDraft: vi.fn(async () => success({ ...draft, version: draft.version + 1 })),
     publishDraft: vi.fn(async () => ({
-      ok: false,
-      error: { code: "LAYOUT_NOT_FOUND", equipmentId: draft.equipmentId },
+      ok: false as const,
+      error: { code: "LAYOUT_NOT_FOUND" as const, equipmentId: draft.equipmentId },
     })),
     listHistory: vi.fn(async () => success([])),
     restoreRevision: vi.fn(async () => success(draft)),
     uploadImage: vi.fn(async () => ({
-      ok: false,
-      error: { code: "LAYOUT_NOT_FOUND", equipmentId: draft.equipmentId },
+      ok: false as const,
+      error: { code: "LAYOUT_NOT_FOUND" as const, equipmentId: draft.equipmentId },
     })),
   };
 }
