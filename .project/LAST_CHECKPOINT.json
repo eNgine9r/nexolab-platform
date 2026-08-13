@@ -4,8 +4,8 @@
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-417-POST-413-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_ci_pending",
-  "timestamp": "2026-08-12T22:25:00+03:00",
+  "status": "state_only_reconciliation_review_fix_ci_pending",
+  "timestamp": "2026-08-13T06:34:00+03:00",
   "branch": "chore/417-reconcile-issue-413-state",
   "active_issue": 417,
   "base_main_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
@@ -23,15 +23,65 @@
     },
     "hardware_acceptance": {
       "classification": "PASS",
-      "cursor_vertical_jump": "NO",
-      "graph_card_stays_fixed": "YES",
-      "chart_visual_continuity": "PASS",
-      "post_event_overview_render": "PASS",
-      "hide_show_solo": "PASS",
-      "zoom_pan_reset": "PASS",
-      "range_1h_6h_24h": "PASS",
-      "route_reopen": "PASS",
-      "dashboard_remains_usable": "YES"
+      "target": {
+        "channel": "126-04",
+        "metric": "temperature.probe",
+        "source": "dixell-xjp60d"
+      },
+      "equal_duration_acquisition": {
+        "window_seconds": 60,
+        "browser_closed": {
+          "physical_requests": 144,
+          "requests_per_second": 2.4,
+          "successful_requests": 132,
+          "timeouts": 12,
+          "retry_attempts": 12,
+          "bus_busy_seconds": 9.92298
+        },
+        "active_overview": {
+          "physical_requests": 153,
+          "requests_per_second": 2.55,
+          "successful_requests": 132,
+          "timeouts": 21,
+          "retry_attempts": 17,
+          "bus_busy_seconds": 12.871187
+        },
+        "classification": "REVIEW_EQUAL_DURATION_COUNTERS",
+        "interpretation": "successful polls remained 132 in both windows; additional active raw requests coincided with additional timeout/retry activity"
+      },
+      "control_plane": {
+        "discovery_delta": 0,
+        "configuration_mutation_delta": 0,
+        "modbus_write_attempts": 0,
+        "polling_policy": "priority_adaptive_v1",
+        "polling_policy_unchanged": true,
+        "configured_targets_before": 38,
+        "configured_targets_after": 38,
+        "registry_revision_unchanged": true,
+        "registry_summary_unchanged": true,
+        "service_operation_delta": {}
+      },
+      "exact_real_series_event": {
+        "old_event_id": "1b19f5f5-4f4f-4734-83d6-b896d9a61438",
+        "old_timestamp": "2026-08-12 18:35:03.216544+00",
+        "old_quality": "valid",
+        "old_value_deg_c": 25.9,
+        "new_event_id": "508e5cf9-be2f-44dc-8a61-f15fd089fcab",
+        "new_timestamp": "2026-08-12 18:35:08.227509+00",
+        "new_quality": "valid",
+        "new_value_deg_c": 25.9
+      },
+      "visual_retest": {
+        "cursor_vertical_jump": "NO",
+        "graph_card_stays_fixed": "YES",
+        "chart_visual_continuity": "PASS",
+        "post_event_overview_render": "PASS",
+        "hide_show_solo": "PASS",
+        "zoom_pan_reset": "PASS",
+        "range_1h_6h_24h": "PASS",
+        "route_reopen": "PASS",
+        "dashboard_remains_usable": "YES"
+      }
     },
     "product_code_changed_after_hardware_pass": false
   },
@@ -42,6 +92,7 @@
   },
   "state_reconciliation": {
     "issue": 417,
+    "pull_request": 418,
     "permitted_files": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
@@ -50,7 +101,9 @@
       "docs/audits/issue-413-overview-chart-system.md"
     ],
     "product_runtime_change": false,
-    "workflow_change": false
+    "workflow_change": false,
+    "review_blocker": "P1 request to preserve raw #413 hardware evidence",
+    "review_blocker_resolution": "exact acquisition counters, control-plane deltas and real event IDs/timestamps restored in audit and checkpoint"
   },
   "preserved_lanes": {
     "runtime_sequence": [369, 366, 289],
@@ -68,5 +121,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Open focused state-only PR for Issue #417, require GREEN CI and clean five-file diff, merge it, then run a fresh repository-backed Ready audit before selecting the next implementation Work Package."
+  "next_action": "Require GREEN CI on the review-fix head, resolve the P1 review thread after verifying the preserved evidence, confirm the focused five-file diff and unchanged main, merge PR #418, then run the fresh repository-backed Ready audit."
 }
