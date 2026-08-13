@@ -5,14 +5,15 @@ Updated: 2026-08-13
 ## Issue #366 / Draft PR #423 — active, no product blocker
 
 The Overview alerts read-model duplicate proven by Authenticated Dashboard #1676
-is corrected locally. Canonical local Authenticated Dashboard acceptance passed
+is corrected in product/state commit
+`625355c988a286bd007e9c84c48384f2473c0ba6`. Canonical local Authenticated Dashboard acceptance passed
 12/12 scenarios with one active and one acknowledged exact alert query across the
 full route cycle, one WebSocket maximum concurrent, and zero acquisition
 mutations.
 
 Remaining gates are procedural/exact-head verification:
 
-- commit and push the local alerts slice;
+- push the committed alerts slice;
 - require GREEN exact-head CI, browser and offline gates;
 - review the final focused diff and resolve review threads;
 - reconcile the Issue #366 audit and project state before Ready/merge.

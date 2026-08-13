@@ -110,10 +110,11 @@
       "issue": 366,
       "pull_request": 423,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "in_progress_overview_alerts_locally_verified",
+      "status": "in_progress_overview_alerts_committed",
       "priority": "critical",
       "branch": "perf/366-monitoring-read-model-deduplication",
       "resolved_dependencies": [368, 369],
+      "product_head": "625355c988a286bd007e9c84c48384f2473c0ba6",
       "verification": "Local format/lint/typecheck/build GREEN; 86 files / 375 tests GREEN; Authenticated Dashboard 12/12 GREEN; exact-head CI pending"
     },
     {
@@ -164,7 +165,7 @@
     "issue": 366,
     "pull_request": 423,
     "title": "Audit and deduplicate monitoring-route read models",
-    "status": "in_progress_overview_alerts_locally_verified",
+    "status": "in_progress_overview_alerts_committed",
     "priority": "critical",
     "assignee": "eNgine9r",
     "branch": "perf/366-monitoring-read-model-deduplication"

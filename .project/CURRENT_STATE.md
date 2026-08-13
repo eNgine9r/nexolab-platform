@@ -25,7 +25,7 @@ The #314 route-persistent telemetry runtime remains the only telemetry cache.
 Nodes remain uncached because browser evidence showed no duplicate node-list or
 operational-state reads.
 
-## Overview alerts proven gap — corrected locally
+## Overview alerts proven gap — corrected
 
 Authenticated Dashboard #1676 proved that one six-route cycle issued two exact
 active-alert reads and two exact acknowledged-alert reads. The current local
@@ -52,6 +52,9 @@ websocket_max_concurrent=1
 acquisition_mutations=0
 ```
 
+The locally verified product/state commit is
+`625355c988a286bd007e9c84c48384f2473c0ba6`.
+
 Acquisition invariant phases remained near the fixture's 20 requests/second
 rate, including browser navigation, multiple authenticated contexts, WebSocket
 reconnect and telemetry-service restart.
@@ -73,7 +76,7 @@ Compose, and one omitted the required acquisition fixture. The canonical
 
 ## Remaining gates
 
-Commit and push the Overview alerts correction, require exact-head CI and
+Push the Overview alerts correction, require exact-head CI and
 relevant browser/offline gates, review the focused PR diff, then reconcile all
 four `.project` files and the audit for Issue #366 completion. Raspberry Pi
 perceived-latency acceptance remains downstream under #356/#289 and is not a
