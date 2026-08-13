@@ -200,7 +200,7 @@ export function DashboardShell() {
                 action={<PanelAction label="Всі сесії" href="/sessions" />}
                 className="xl:col-span-4"
               >
-                <SessionsPanel />
+                <SessionsPanel organizationId={organizationId} />
               </Panel>
               <Panel
                 title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
