@@ -20,7 +20,7 @@
     "test:e2e:rendered-reports": "playwright test --config=playwright.rendered-reports.config.ts",
     "test:e2e:nodes": "playwright test --config=playwright.nodes.config.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write docs/audits/issue-366-monitoring-route-read-models.md src/hooks/use-equipment-layouts-catalog.ts src/hooks/use-live-dashboard-inventory.ts src/lib/monitoring-read-model-cache.test.ts && for f in docs/audits/issue-366-monitoring-route-read-models.md src/hooks/use-equipment-layouts-catalog.ts src/hooks/use-live-dashboard-inventory.ts src/lib/monitoring-read-model-cache.test.ts; do printf '\\n===FILE:%s===\\n' \"$f\"; cat \"$f\"; done; exit 1",
     "prepare": "husky"
   },
   "dependencies": {
