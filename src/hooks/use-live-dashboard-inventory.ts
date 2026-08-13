@@ -5,7 +5,10 @@ import { useCallback } from "react";
 import { loadLiveDashboardInventory } from "@/features/live-dashboards/inventory";
 import { createLiveDashboardInventoryClient } from "@/features/live-dashboards/inventory-client";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
-import { useMonitoringReadModel } from "@/hooks/use-monitoring-read-model";
+import {
+  useMonitoringReadModel,
+  type MonitoringReadModelStatus,
+} from "@/hooks/use-monitoring-read-model";
 
 export type LiveDashboardInventoryStatus = "idle" | "loading" | "ready" | "error";
 
@@ -48,7 +51,7 @@ export function useLiveDashboardInventory({
   };
 }
 
-function mapStatus(status: ReturnType<typeof useMonitoringReadModel<LiveDashboardInventoryItem[]>>["status"]): LiveDashboardInventoryStatus {
+function mapStatus(status: MonitoringReadModelStatus): LiveDashboardInventoryStatus {
   if (status === "idle") return "idle";
   if (status === "loading") return "loading";
   if (status === "error") return "error";
