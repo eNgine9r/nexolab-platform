@@ -120,6 +120,18 @@ function apiPath(request: ApiReadEvidence): string {
   return new URL(request.url).pathname;
 }
 
+function overviewAlertReadCount(requests: ApiReadEvidence[], state: "active" | "acknowledged"): number {
+  return apiReadCount(requests, (request) => {
+    const parsed = new URL(request.url);
+    return (
+      parsed.pathname === "/api/v1/alerts" &&
+      parsed.searchParams.get("state") === state &&
+      parsed.searchParams.get("limit") === "20" &&
+      parsed.searchParams.get("offset") === "0"
+    );
+  });
+}
+
 test("keeps telemetry usable and read-model work bounded across repeated route transitions", async ({
   browser,
 }) => {
@@ -137,9 +149,13 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     await expect.poll(() => sockets.active, { timeout: 20_000 }).toBe(1);
     await expect.poll(() => countRequests(requests.telemetry, "/latest")).toBe(1);
     await expect.poll(() => countRequests(requests.telemetry, "/history")).toBe(1);
+    await expect.poll(() => overviewAlertReadCount(requests.apiReads, "active")).toBe(1);
+    await expect.poll(() => overviewAlertReadCount(requests.apiReads, "acknowledged")).toBe(1);
 
     const initialLatestRequests = countRequests(requests.telemetry, "/latest");
     const initialHistoryRequests = countRequests(requests.telemetry, "/history");
+    const initialActiveAlertReads = overviewAlertReadCount(requests.apiReads, "active");
+    const initialAcknowledgedAlertReads = overviewAlertReadCount(requests.apiReads, "acknowledged");
     const routeDurationsMs: Record<string, number> = {};
 
     routeDurationsMs.refrigeration = await navigateAndMeasure(
@@ -208,10 +224,14 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
     );
+    const activeAlertReads = overviewAlertReadCount(requests.apiReads, "active");
+    const acknowledgedAlertReads = overviewAlertReadCount(requests.apiReads, "acknowledged");
 
     expect(routeDurationsMs.overviewReturn).toBeLessThan(5_000);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
     expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests + 2);
+    expect(activeAlertReads).toBe(initialActiveAlertReads);
+    expect(acknowledgedAlertReads).toBe(initialAcknowledgedAlertReads);
     expect(sockets.opened).toBe(1);
     expect(sockets.closed).toBe(0);
     expect(sockets.active).toBe(1);
@@ -240,6 +260,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
             nodeOperationalReads,
             sessionListReads,
             liveDashboardInventoryReads,
+            activeAlertReads,
+            acknowledgedAlertReads,
           },
           apiReadCounts: readCounts,
           websocket: sockets,

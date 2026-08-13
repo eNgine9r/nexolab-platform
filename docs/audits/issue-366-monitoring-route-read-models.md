@@ -132,8 +132,15 @@ The active branch currently introduces:
 - Live Dashboard canonical inventory retained with a short bounded freshness
   window, without changing its endpoint or falling back to `/telemetry/latest`.
 
-These changes remain **software under verification** until exact-head format,
-lint, typecheck, tests, production build and browser gates are GREEN.
+The branch also adds a narrow Overview active+acknowledged alerts read model after
+Authenticated Dashboard #1676 proved two copies of each exact query across one
+route cycle. It uses a 5-second fresh TTL, preserves explicit 5-second polling,
+retains the last valid snapshot on refresh failure and is invalidated after
+acknowledge/close.
+
+Local format, ESLint, strict TypeScript, full Vitest (86 files / 375 tests),
+lint-staged contract and production build are GREEN. Exact-head CI remains
+required after the local correction is committed and pushed.
 
 ## Invalidation policy
 
@@ -160,9 +167,9 @@ Do not place the following in the generic #366 cache:
 - provisioning or credential secrets;
 - fabricated fallback/demo values for unavailable production APIs.
 
-## Pending browser measurement
+## Browser request-count evidence
 
-The final #366 browser evidence must exercise:
+The canonical local Authenticated Dashboard gate exercised:
 
 ```text
 Overview
@@ -174,17 +181,31 @@ Overview
 -> Overview
 ```
 
-The evidence must group and count:
+The 12-scenario gate passed and recorded:
 
-- unique cold read-only REST requests;
-- warm-return requests;
-- background reconciliation requests;
-- equivalent in-flight requests deduplicated;
-- WebSocket opened/closed/max-concurrent counts;
-- Device Agent configuration/discovery mutations, expected `0`.
+```text
+active_alert_reads=1
+acknowledged_alert_reads=1
+overview_return_ms=334
+latest_requests=1
+history_requests=3
+session_list_total=2
+node_list_reads=1
+node_operational_reads=2
+equipment_catalog_reads=1
+layout_draft_reads=8
+layout_published_reads=8
+security_session_reads=2
+websocket_opened=1
+websocket_max_concurrent=1
+acquisition_mutations=0
+```
 
-Until that browser gate runs, exact repeated counts for Nodes, Sessions and the
-Live Dashboard library remain **Pending measurement**, not assumed facts.
+This reduces the proven Overview alerts duplicate from `2 + 2` exact reads to
+`1 + 1` while preserving the polling cadence. Nodes remain unchanged because the
+measured route cycle still shows no duplicate node-list read. The acquisition
+invariant also passed across navigation, multiple authenticated contexts,
+WebSocket reconnect and telemetry-service restart.
 
 ## Safety result
 

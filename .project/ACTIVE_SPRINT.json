@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
-  "current_main_sha_semantics": "Issue #369 / PR #420 Raspberry Pi Live Dashboard inventory acceptance merged after GREEN exact-head gates and physical browser acceptance PASS",
+  "current_main_sha": "3a91a180ff6b842321c18a2273f405bcdd42e149",
+  "current_main_sha_semantics": "Issue #421 / PR #422 reconciled the Issue #369 merge and selected Issue #366",
   "selection_state": {
     "last_ready_audit_result": "After #369 merge, #366 dependency holds are resolved: #368 and #369 are completed. #366 remains priority:critical and is selected ahead of independent priority:high #389 after state-only #421 reconciliation.",
     "selected_issue": 366,
-    "selection_status": "selected_after_421_merge"
+    "selection_status": "active_in_draft_pr_423"
   },
   "tasks": [
     {
@@ -99,20 +99,22 @@
     {
       "id": "NEXOLAB-421",
       "issue": 421,
+      "pull_request": 422,
       "title": "Reconcile Issue #369 merge and select Issue #366 continuation",
-      "status": "in_progress_state_only",
+      "status": "completed_merged",
       "priority": "high",
-      "branch": "chore/421-reconcile-issue-369-state"
+      "merge_sha": "3a91a180ff6b842321c18a2273f405bcdd42e149"
     },
     {
       "id": "NEXOLAB-366",
       "issue": 366,
+      "pull_request": 423,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "next_ready_after_421_merge",
+      "status": "in_progress_overview_alerts_locally_verified",
       "priority": "critical",
       "branch": "perf/366-monitoring-read-model-deduplication",
-      "branch_state": "ahead_by=0; stale behind main; fast-forward before implementation",
-      "resolved_dependencies": [368, 369]
+      "resolved_dependencies": [368, 369],
+      "verification": "Local format/lint/typecheck/build GREEN; 86 files / 375 tests GREEN; Authenticated Dashboard 12/12 GREEN; exact-head CI pending"
     },
     {
       "id": "NEXOLAB-289",
@@ -159,19 +161,19 @@
     }
   ],
   "active_work_package": {
-    "issue": 421,
-    "title": "Reconcile Issue #369 merge and select Issue #366 continuation",
-    "status": "in_progress_state_only",
-    "priority": "high",
+    "issue": 366,
+    "pull_request": 423,
+    "title": "Audit and deduplicate monitoring-route read models",
+    "status": "in_progress_overview_alerts_locally_verified",
+    "priority": "critical",
     "assignee": "eNgine9r",
-    "branch": "chore/421-reconcile-issue-369-state"
+    "branch": "perf/366-monitoring-read-model-deduplication"
   },
   "next_ready_work_package": {
-    "issue": 366,
-    "title": "Audit and deduplicate monitoring-route read models",
-    "status": "selected_after_421_merge",
-    "priority": "critical",
-    "branch": "perf/366-monitoring-read-model-deduplication"
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "status": "downstream_pending_366_completion",
+    "priority": "critical"
   },
   "prepared_backlog": [
     {
@@ -208,9 +210,15 @@
     "issue_369_hardware_write": false,
     "issue_369_polling_change": false,
     "issue_369_runtime_product_code_changed": false,
-    "issue_421_runtime_product_code_changed": false
+    "issue_421_runtime_product_code_changed": false,
+    "issue_366_overview_alert_reads": {
+      "active": 1,
+      "acknowledged": 1
+    },
+    "issue_366_websocket_max_concurrent": 1,
+    "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Merge state-only #421 after GREEN focused CI, fast-forward the empty #366 feature branch to reconciled main, move #366 out of stale blocked state and resume evidence-first implementation. Keep #389 independent Ready/not selected.",
+  "next_selection_policy": "Complete Issue #366 exact-head CI/browser/offline verification and focused PR review before selecting downstream #289. Keep #389 independent Ready/not selected.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
