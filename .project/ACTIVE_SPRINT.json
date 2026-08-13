@@ -168,8 +168,8 @@
       "status": "implementation_complete_pr_open_software_browser_verified",
       "priority": "critical",
       "branch": "perf/432-route-prefetch-time-to-usable",
-      "evidence_head": "a15026fe61cbc44e5deb19cd7fdd2f897c614522",
-      "verification": "Review-corrected warm medians 180..375 ms; truthful Overview content, exact-path RSC prefetch, pre-navigation inventory laziness and post-warm read bounds pass; required local and exact-head gates GREEN",
+      "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
+      "verification": "Review-corrected warm medians 201..398 ms; truthful Overview and Live library content, exact-path RSC prefetch, pre-navigation inventory laziness, zero warm loading transitions and post-warm read bounds pass; required local and exact-head gates GREEN",
       "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
       "depends_on": [433]
     },
@@ -223,7 +223,7 @@
     "priority": "critical",
     "assignee": "eNgine9r",
     "branch": "perf/432-route-prefetch-time-to-usable",
-    "evidence_head": "a15026fe61cbc44e5deb19cd7fdd2f897c614522"
+    "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266"
   },
   "next_ready_work_package": {
     "issue": 289,
@@ -245,7 +245,7 @@
   ],
   "verification": {
     "issue_432_base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
-    "issue_432_evidence_head": "a15026fe61cbc44e5deb19cd7fdd2f897c614522",
+    "issue_432_evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
     "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus 4 + 1 + 1 browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
     "issue_432_exact_head_gates": "CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN on the corrected evidence head",
     "issue_432_classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",

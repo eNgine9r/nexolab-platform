@@ -40,8 +40,8 @@ installed Next.js 16.2.12 automatic `<Link>` prefetch already warms all six
 canonical static monitoring routes, so no product navigation correction was
 required.
 
-Review-corrected warm median time-to-usable was `375 ms` Overview, `293 ms`
-Refrigeration, `270 ms` Energy, `180 ms` Live Data, `309 ms` Nodes and `190 ms`
+Review-corrected warm median time-to-usable was `398 ms` Overview, `231 ms`
+Refrigeration, `273 ms` Energy, `314 ms` Live Data, `306 ms` Nodes and `201 ms`
 Sessions. Overview completion now requires seeded node `edge-live-01` and a
 rendered `°C` value; all five non-Overview routes must prove an exact-path RSC
 resource with `_rsc` before their first click. The
@@ -49,12 +49,14 @@ complete repeated route cycle kept one document load, no visible loading
 transition, no eager channel or Node inventory fetch from visible links,
 no retained equipment/layout read growth across warm remounts,
 `websocket_max_concurrent = 1` and zero acquisition mutations.
+Live Data timing also waits for the saved-dashboard library to reach a rendered
+terminal state, and warm loading observations are now a failing assertion.
 
 Local verification passed format, lint, typecheck, all 89 frontend test files /
 384 tests, lint-staged behavior, production build, the focused production route
 matrix, the 13-scenario Authenticated Dashboard/acquisition-invariant gate, and
 Offline Auth migration/browser/persistence gates. Exact evidence head
-`a15026fe61cbc44e5deb19cd7fdd2f897c614522` passed CI, Acquisition Scale,
+`5390bc42cde8de6885267eabe3df421fa32b7266` passed CI, Acquisition Scale,
 Authenticated Dashboard, Refrigeration Browser and the complete disconnected
 Offline Bundle with update/rollback volume preservation. Offline Auth passed on
 rerun after an initial runner image-pull failure before migration acceptance.

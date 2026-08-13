@@ -53,19 +53,19 @@ recorded RSC prefetches for every non-Overview canonical route, including
 
 The focused production acceptance used the isolated seeded Compose profile and
 Chromium. Evidence is stored locally at
-`runtime/evidence/issue-432-navigation-final-evidence/` for evidence head
-`a15026fe61cbc44e5deb19cd7fdd2f897c614522`.
+`runtime/evidence/issue-432-navigation-live-final-2/` for evidence head
+`5390bc42cde8de6885267eabe3df421fa32b7266`.
 
 ### Cold time-to-usable
 
 | Route         | Cold time-to-usable |
 | ------------- | ------------------: |
-| Overview      |            1,656 ms |
-| Refrigeration |              670 ms |
-| Energy        |              681 ms |
-| Live Data     |              565 ms |
-| Nodes         |              942 ms |
-| Sessions      |              598 ms |
+| Overview      |            1,568 ms |
+| Refrigeration |              673 ms |
+| Energy        |              623 ms |
+| Live Data     |              833 ms |
+| Nodes         |              735 ms |
+| Sessions      |              606 ms |
 
 Cold routes rendered truthful live, stale or empty states. No demo preview was
 used and no acquisition mutation was observed.
@@ -74,15 +74,15 @@ used and no acquisition mutation was observed.
 
 | Route         | First visit | Warm samples       | Warm median |
 | ------------- | ----------: | ------------------ | ----------: |
-| Overview      |      405 ms | 415 / 375 / 373 ms |      375 ms |
-| Refrigeration |      423 ms | 293 / 271 / 340 ms |      293 ms |
-| Energy        |      473 ms | 321 / 270 / 240 ms |      270 ms |
-| Live Data     |      261 ms | 266 / 180 / 173 ms |      180 ms |
-| Nodes         |      469 ms | 342 / 278 / 309 ms |      309 ms |
-| Sessions      |      260 ms | 190 / 210 / 170 ms |      190 ms |
+| Overview      |      394 ms | 398 / 475 / 387 ms |      398 ms |
+| Refrigeration |      461 ms | 244 / 231 / 214 ms |      231 ms |
+| Energy        |      275 ms | 312 / 273 / 232 ms |      273 ms |
+| Live Data     |      277 ms | 346 / 314 / 300 ms |      314 ms |
+| Nodes         |      244 ms | 277 / 340 / 306 ms |      306 ms |
+| Sessions      |      264 ms | 201 / 306 / 199 ms |      201 ms |
 
-Every warm median is below the required `1,000 ms`. Overview at `375 ms` is
-approximately `12.3%` above the Issue #366 reference of `334 ms`, so it remains
+Every warm median is below the required `1,000 ms`. Overview at `398 ms` is
+approximately `19.2%` above the Issue #366 reference of `334 ms`, so it remains
 inside the allowed 20% regression boundary while now including retained telemetry
 content in the completion condition.
 
@@ -90,6 +90,8 @@ content in the completion condition.
 
 - browser document loads across the complete repeated route cycle: `1`;
 - captured visible loading transitions on warm navigation: `0`;
+- warm timing starts only after cold observations are cleared, and the acceptance
+  fails if any subsequent visible loading transition is captured;
 - route resources recorded before the first click: `73`;
 - exact-path RSC prefetches with `_rsc` present before the first click:
   `/refrigeration`, `/energy`, `/live`, `/nodes` and `/sessions`;
@@ -103,6 +105,9 @@ content in the completion condition.
   growth while preserving the Issue #366 composed catalog ownership;
 - route-local Node list, Node operational-state and Sessions reads finished at the
   asserted `4`, `8` and `5` bounds after three warm cycles;
+- Live Data usability requires the saved-dashboard library loading state to end
+  and a rendered dashboard, truthful empty state, forbidden state or error state
+  to be visible before the timer stops;
 - WebSockets opened: `1`;
 - `websocket_max_concurrent`: `1`;
 - navigation-driven acquisition mutations: `0`.
@@ -123,7 +128,7 @@ The only repository changes for Issue #432 are deterministic acceptance
 instrumentation, a focused test-selection option for local evidence runs, this
 audit, and final project-state reconciliation.
 
-Local verification at evidence head `a15026fe61cbc44e5deb19cd7fdd2f897c614522`
+Local verification at evidence head `5390bc42cde8de6885267eabe3df421fa32b7266`
 passed the focused production navigation matrix (`3/3`), the complete
 Authenticated Dashboard/acquisition-invariant matrix (`13/13`), Offline Auth
 migration plus browser/persistence/version gates (`4 + 1 + 1` browser tests),

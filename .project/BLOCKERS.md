@@ -14,11 +14,11 @@ is not claimed.
 
 ## Issue #432 / PR #437 — software/browser verified
 
-PR #437 is open. Review-corrected warm navigation passed at `180..375 ms` median across the six
+PR #437 is open. Review-corrected warm navigation passed at `201..398 ms` median across the six
 canonical routes with one document load, `websocket_max_concurrent = 1`, no
 eager full-inventory fetch, no retained equipment/layout read growth across warm
 remounts and zero acquisition mutations. Exact evidence head
-`a15026fe61cbc44e5deb19cd7fdd2f897c614522` passed the required local software,
+`5390bc42cde8de6885267eabe3df421fa32b7266` passed the required local software,
 browser and offline gates, including disconnected Offline Bundle update/rollback
 volume preservation. Exact-head Offline Auth passed on rerun after an initial
 runner image-pull failure before the migration test executed.
