@@ -37,6 +37,16 @@ function formatTemperature(point: DisplayPoint): string {
   }).format(point.value)} °C`;
 }
 
+function diagnosticLabel(state: string, recoveryState: string): string {
+  if (state === "initializing") return "Ініціалізація — очікується перша спроба";
+  if (recoveryState === "cooldown") return "Тимчасова втрата зв’язку — cooldown";
+  if (state === "communication_error") return "Помилка зв’язку";
+  if (state === "sensor_error") return "Помилка входу датчика";
+  if (recoveryState === "recovered") return "Зв’язок відновлено";
+  if (state === "valid") return "Активний моніторинг";
+  return state;
+}
+
 export function SensorManagementDialog(props: SensorManagementDialogProps) {
   if (!props.open) return null;
   return <SensorManagementDialogContent {...props} />;
@@ -74,6 +84,11 @@ function SensorManagementDialogContent({
   }, [management.activeChannelIds, management.configuration?.last_discovery]);
 
   const discovery = management.configuration?.last_discovery;
+  const diagnostics = useMemo(
+    () =>
+      new Map((management.configuration?.target_diagnostics ?? []).map((item) => [item.channel_id, item])),
+    [management.configuration?.target_diagnostics],
+  );
   const toggle = (channelId: string) => {
     setSelected((current) =>
       current.includes(channelId)
@@ -174,6 +189,8 @@ function SensorManagementDialogContent({
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {points.map((point) => {
                 const checked = selected.includes(point.channel_id);
+                const active = management.activeChannelIds.includes(point.channel_id);
+                const diagnostic = active ? diagnostics.get(point.channel_id) : undefined;
                 const unavailable = point.quality !== "valid";
                 const disabled = !canManage || (unavailable && !checked);
                 return (
@@ -197,15 +214,26 @@ function SensorManagementDialogContent({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[10px] font-semibold text-white">{point.channel_id}</p>
-                        {point.quality === "valid" ? (
+                        {diagnostic?.state === "initializing" ? (
+                          <LoaderCircle className="h-3.5 w-3.5 animate-spin text-cyan-300" />
+                        ) : point.quality === "valid" ? (
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
                         ) : (
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
                         )}
                       </div>
                       <p className="mt-1 text-[8px] text-slate-500">
-                        {chamberLabel(point.unit_id)} · вхід {point.channel} · {point.quality}
+                        {chamberLabel(point.unit_id)} · вхід {point.channel} ·{" "}
+                        {diagnostic
+                          ? diagnosticLabel(diagnostic.state, diagnostic.recovery_state)
+                          : point.quality}
                       </p>
+                      {diagnostic ? (
+                        <p className="mt-1 text-[8px] text-slate-600">
+                          {diagnostic.outcomes.attempts} спроб · {diagnostic.outcomes.successes} успішних ·{" "}
+                          {diagnostic.consecutive_failures} послідовних помилок
+                        </p>
+                      ) : null}
                     </div>
                     <span className="text-[10px] font-medium text-slate-200">{formatTemperature(point)}</span>
                   </label>

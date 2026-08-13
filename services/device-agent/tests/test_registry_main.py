@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import threading
+import tempfile
+from dataclasses import replace
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from acquisition_registry import (
     AcquisitionRegistry,
+    AcquisitionRegistryStore,
     LifecycleMutation,
     build_initial_document,
 )
 from main import Settings
+from managed_main import ManagedDeviceAgent
 from registry_main import RegistryManagedDeviceAgent
 
 
@@ -61,6 +65,55 @@ def agent_with_registry(value: AcquisitionRegistry) -> RegistryManagedDeviceAgen
 
 
 class RegistryPollingTests(unittest.TestCase):
+    def test_discovery_enrolls_only_responsive_configured_units(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "edge.db"
+            current_settings = replace(settings(), database_path=database)
+            store = AcquisitionRegistryStore(database)
+            current = store.load_or_migrate(
+                current_settings,
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            agent = agent_with_registry(current)
+            agent.settings = current_settings
+            agent.discovery_units = (106, 126, 127)
+            agent._registry_store = store
+            agent._point_store = Mock()
+            agent._configuration_lock = threading.Lock()
+            discovery = {
+                "available_points": [
+                    {"unit_id": 126, "raw_status": 0x1102},
+                ],
+                "unavailable_points": [
+                    {"unit_id": 127, "raw_status": 0x1103},
+                    {"unit_id": 128, "raw_status": None},
+                ],
+            }
+
+            agent._point_store.load_last_discovery.return_value = discovery
+            with patch.object(
+                ManagedDeviceAgent,
+                "discover_xjp60d",
+                return_value={"last_discovery": discovery},
+            ):
+                result = agent.discover_xjp60d()
+
+            self.assertEqual(result["registry_revision"], 2)
+            self.assertEqual(agent._registry.revision, 2)
+            self.assertEqual(
+                {
+                    item.unit_id
+                    for item in agent._registry.document.devices
+                    if item.device_family == "xjp60d"
+                },
+                {106, 126, 127},
+            )
+            self.assertEqual(
+                agent._registry.eligible_xjp60d_points(),
+                ((106, 3), (106, 4)),
+            )
+
     def test_xjp_sampling_calls_only_registry_eligible_points(self) -> None:
         current = registry()
         document, _ = current.with_mutations(

@@ -472,6 +472,107 @@ class AdaptiveAcquisitionScheduler:
             f"{degraded} endpoint(s) failing or in cooldown"
         )
 
+    def target_diagnostics(
+        self,
+        *,
+        device_family: str | None = None,
+    ) -> list[dict[str, Any]]:
+        now = self._clock()
+        with self._condition:
+            jobs = [
+                job
+                for job in self._jobs.values()
+                if device_family is None
+                or job.target.device_family == device_family
+            ]
+            runtime = {
+                job.target.target_id: {
+                    "cooldown": self._endpoints[
+                        (job.target.bus_id, job.target.unit_id)
+                    ].cooldown_until
+                    > now,
+                    "cooldown_remaining_seconds": round(
+                        max(
+                            0.0,
+                            self._endpoints[
+                                (job.target.bus_id, job.target.unit_id)
+                            ].cooldown_until
+                            - now,
+                        ),
+                        6,
+                    ),
+                    "next_due_in_seconds": round(
+                        max(0.0, self._effective_deadline(job) - now),
+                        6,
+                    ),
+                }
+                for job in jobs
+            }
+            targets = {job.target.target_id: job.target for job in jobs}
+
+        latest = self._latest_store.payloads_for(list(targets))
+        diagnostics: list[dict[str, Any]] = []
+        for target_id in sorted(targets):
+            target = targets[target_id]
+            item = latest.get(target_id)
+            target_runtime = runtime[target_id]
+            if item is None:
+                state = "initializing"
+                recovery_state = "initializing"
+            else:
+                quality = item.get("quality")
+                state = (
+                    str(quality)
+                    if quality
+                    in {"valid", "sensor_error", "communication_error"}
+                    else "unknown"
+                )
+                if target_runtime["cooldown"]:
+                    recovery_state = "cooldown"
+                elif int(item.get("consecutive_failures", 0)) > 0:
+                    recovery_state = "failing"
+                elif item.get("last_recovered_at") == item.get(
+                    "last_attempt_at"
+                ):
+                    recovery_state = "recovered"
+                else:
+                    recovery_state = "steady"
+            diagnostics.append(
+                {
+                    "target_id": target_id,
+                    "channel_id": target.telemetry_channel_id,
+                    "state": state,
+                    "recovery_state": recovery_state,
+                    "last_attempt_at": (
+                        item.get("last_attempt_at") if item else None
+                    ),
+                    "last_success_at": (
+                        item.get("last_success_at") if item else None
+                    ),
+                    "last_error": item.get("last_error") if item else None,
+                    "consecutive_failures": int(
+                        item.get("consecutive_failures", 0)
+                        if item
+                        else 0
+                    ),
+                    "outcomes": {
+                        "attempts": int(
+                            item.get("attempts_total", 0) if item else 0
+                        ),
+                        "successes": int(
+                            item.get("successes_total", 0) if item else 0
+                        ),
+                        "communication_failures": int(
+                            item.get("communication_failures_total", 0)
+                            if item
+                            else 0
+                        ),
+                    },
+                    **target_runtime,
+                }
+            )
+        return diagnostics
+
     def snapshot(self) -> dict[str, Any]:
         now = self._clock()
         with self._condition:

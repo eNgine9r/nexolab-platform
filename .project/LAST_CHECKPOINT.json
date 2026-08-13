@@ -3,52 +3,48 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-430-POST-389-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_locally_verified",
-  "timestamp": "2026-08-13T14:31:00+03:00",
-  "branch": "chore/430-reconcile-issue-389-state",
-  "active_issue": 430,
-  "base_main_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
-  "completed_issue": {
-    "issue": 389,
-    "pull_request": 429,
-    "final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
-    "merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
-    "classification": "software verified; Raspberry Pi version-management acceptance pending"
+  "task": "ISSUE-433-SENSOR-ENROLLMENT-RECOVERY",
+  "status": "software_exact_head_verified_pending_review",
+  "timestamp": "2026-08-13T16:44:18+03:00",
+  "branch": "fix/433-sensor-enrollment-recovery",
+  "active_issue": 433,
+  "pull_request": 434,
+  "base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
+  "product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
+  "local_verification": {
+    "focused_device_agent": "30 PASS",
+    "complete_device_agent": "120 PASS",
+    "focused_dashboard": "4 PASS",
+    "complete_frontend": "89 files / 384 tests PASS",
+    "format": "PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "production_build": "PASS"
+  },
+  "implementation": {
+    "late_enrollment": "atomic audited discovery_only FC03 inventory",
+    "discovery_polling_delta": 0,
+    "activation": "existing mutation plus live scheduler reconciliation",
+    "diagnostics": "bounded target attempt/success/failure/cooldown/recovery state",
+    "first_sample_ui": "truthful initializing state",
+    "polling_policy_changed": false,
+    "retry_policy_changed": false
+  },
+  "hardware_evidence": {
+    "before_change_raspberry_pi_baseline": "captured read-only at base main SHA",
+    "post_change_raspberry_pi_acceptance": "not_performed_not_claimed"
   },
   "exact_head_verification": {
-    "workflow_count": 21,
-    "all_green": true,
-    "ci": "#3014 GREEN",
-    "telemetry_service": "#1539 GREEN",
-    "offline_auth": "#404 GREEN",
-    "offline_bundle": "#1070 GREEN",
-    "authenticated_dashboard": "#1683 GREEN",
-    "security_and_supply_chain": "GREEN",
-    "browser_and_disaster_recovery": "GREEN",
-    "capacity_and_observability": "GREEN"
-  },
-  "offline_bundle_evidence": {
-    "clean_host_transfer": "PASS",
-    "blocked_egress_startup": "PASS",
-    "update_rollback_volume_preservation": "PASS"
-  },
-  "post_merge_ready_audit": {
-    "open_status_ready_count": 0,
-    "issue_289": "needs_validation_pending_focused_356_route_prefetch_time_to_usable_slice",
-    "issue_415": "open_not_selected",
-    "issue_245": "separate_raspberry_pi_validation_track"
-  },
-  "state_reconciliation": {
-    "issue": 430,
-    "permitted_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "product_runtime_change": false,
-    "workflow_change": false
+    "status": "green",
+    "passed_checks": 15,
+    "intentional_skips": 1,
+    "ci_quality_build": "PASS",
+    "device_agent_image": "PASS",
+    "scheduler_scale": "PASS",
+    "acquisition_invariant": "PASS",
+    "secure_fleet_and_tls_recovery": "PASS",
+    "offline_bundle_disconnected_runtime": "PASS",
+    "offline_bundle_persistent_data_preservation": "PASS"
   },
   "safety": {
     "modbus_write": "none",
@@ -59,6 +55,6 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Publish and merge the four-file Issue #430 reconciliation. Then define a separate focused #356 route-prefetch/time-to-usable Work Package before #289 can leave needs-validation.",
-  "resume_instruction": "Continue state-only Issue #430; do not implement #289 or claim physical version-management acceptance."
+  "next_action": "Complete focused review and merge draft PR #434 after the final state-only tip is GREEN; then reconcile the merge before resuming Ready Issue #432.",
+  "resume_instruction": "Continue Issue #433 PR #434 review/merge; product head 1c138d0c is exact-head GREEN. Do not claim post-change Raspberry Pi acceptance. Resume Ready Issue #432 only after #433 is merged and post-merge state is reconciled."
 }

@@ -8,6 +8,7 @@ import { chartSeries } from "@/data/dashboard";
 import type { ChartXDomain } from "@/features/charts/domain";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
+import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -186,6 +187,7 @@ function LiveTemperatureGrid({
   historyError,
   onHistoryRangeChange,
   onHistoryRetry,
+  targetDiagnostics,
 }: {
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
@@ -196,13 +198,21 @@ function LiveTemperatureGrid({
   historyError: Error | null;
   onHistoryRangeChange: (range: DashboardHistoryRange) => void;
   onHistoryRetry: () => void;
+  targetDiagnostics: Xjp60dTargetDiagnostic[];
 }) {
   const visible = samples
     .filter(isTemperatureProbeSample)
     .filter(
       (sample) =>
-        sample.quality === "valid" || sample.quality === "communication_error" || sample.alarm !== null,
+        sample.quality === "valid" ||
+        sample.quality === "sensor_error" ||
+        sample.quality === "communication_error" ||
+        sample.alarm !== null,
     )
+    .sort((left, right) => compareChannels(left.channel_id, right.channel_id));
+  const visibleChannels = new Set(visible.map((sample) => sample.channel_id));
+  const awaitingFirstSample = targetDiagnostics
+    .filter((item) => item.state === "initializing" && !visibleChannels.has(item.channel_id))
     .sort((left, right) => compareChannels(left.channel_id, right.channel_id));
 
   return (
@@ -219,7 +229,7 @@ function LiveTemperatureGrid({
         </span>
       </div>
 
-      {visible.length === 0 ? (
+      {visible.length === 0 && awaitingFirstSample.length === 0 ? (
         <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
           <div>
             <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
@@ -231,6 +241,21 @@ function LiveTemperatureGrid({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {awaitingFirstSample.map((diagnostic) => (
+            <article
+              key={diagnostic.target_id}
+              className="rounded-2xl border border-cyan-300/10 bg-[#071a35]/70 p-4"
+            >
+              <div className="flex items-center gap-3">
+                <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" />
+                <div>
+                  <p className="text-[10px] font-semibold text-white">{diagnostic.channel_id}</p>
+                  <p className="text-[9px] text-cyan-200">Ініціалізація</p>
+                </div>
+              </div>
+              <p className="mt-4 text-[10px] text-slate-400">Очікується перша планова спроба зчитування.</p>
+            </article>
+          ))}
           {visible.map((sample) => {
             const problem = sample.quality !== "valid" || sample.alarm !== null;
             return (
@@ -283,6 +308,7 @@ export function TemperatureChart({
   historyError = null,
   onHistoryRangeChange = () => undefined,
   onHistoryRetry = () => undefined,
+  targetDiagnostics = [],
 }: {
   mode?: "demo" | "live";
   status?: DashboardTelemetryStatus;
@@ -294,6 +320,7 @@ export function TemperatureChart({
   historyError?: Error | null;
   onHistoryRangeChange?: (range: DashboardHistoryRange) => void;
   onHistoryRetry?: () => void;
+  targetDiagnostics?: Xjp60dTargetDiagnostic[];
 }) {
   if (mode === "live") {
     return (
@@ -307,6 +334,7 @@ export function TemperatureChart({
         historyError={historyError}
         onHistoryRangeChange={onHistoryRangeChange}
         onHistoryRetry={onHistoryRetry}
+        targetDiagnostics={targetDiagnostics}
       />
     );
   }
