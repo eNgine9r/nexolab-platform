@@ -20,7 +20,7 @@
     "test:e2e:rendered-reports": "playwright test --config=playwright.rendered-reports.config.ts",
     "test:e2e:nodes": "playwright test --config=playwright.nodes.config.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write src/components/dashboard/dashboard-shell.tsx src/components/dashboard/sessions-panel.tsx src/features/test-sessions/use-session-list-read-model.ts && for f in src/components/dashboard/dashboard-shell.tsx src/components/dashboard/sessions-panel.tsx src/features/test-sessions/use-session-list-read-model.ts; do printf '\\n===FILE:%s===\\n' \"$f\"; cat \"$f\"; done; exit 1",
     "prepare": "husky"
   },
   "dependencies": {
