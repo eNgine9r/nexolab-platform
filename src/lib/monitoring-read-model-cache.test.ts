@@ -51,12 +51,8 @@ describe("monitoring read-model cache", () => {
   it("serves a fresh value without another request", async () => {
     const loader = vi.fn().mockResolvedValue("first");
 
-    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe(
-      "first",
-    );
-    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe(
-      "first",
-    );
+    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe("first");
+    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe("first");
 
     expect(loader).toHaveBeenCalledTimes(1);
     expect(peekMonitoringReadModel<string>(scope, "sessions:list", options)).toMatchObject({
@@ -71,9 +67,7 @@ describe("monitoring read-model cache", () => {
     vi.advanceTimersByTime(1_500);
 
     const refreshed = vi.fn().mockResolvedValue("v2");
-    await expect(readMonitoringReadModel(scope, "layouts:catalog", refreshed, options)).resolves.toBe(
-      "v1",
-    );
+    await expect(readMonitoringReadModel(scope, "layouts:catalog", refreshed, options)).resolves.toBe("v1");
     await Promise.resolve();
     await Promise.resolve();
 
