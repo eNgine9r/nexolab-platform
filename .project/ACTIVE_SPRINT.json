@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "3a91a180ff6b842321c18a2273f405bcdd42e149",
-  "current_main_sha_semantics": "Issue #421 / PR #422 reconciled the Issue #369 merge and selected Issue #366",
+  "current_main_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
+  "current_main_sha_semantics": "Issue #366 / PR #423 monitoring-route read-model deduplication merged after complete GREEN exact-head gates",
   "selection_state": {
-    "last_ready_audit_result": "After #369 merge, #366 dependency holds are resolved: #368 and #369 are completed. #366 remains priority:critical and is selected ahead of independent priority:high #389 after state-only #421 reconciliation.",
-    "selected_issue": 366,
-    "selection_status": "active_in_draft_pr_423"
+    "last_ready_audit_result": "After #366 merge, #289 remains needs-validation pending a focused #356 route-prefetch/time-to-usable child and final hardware matrix. #389 is the only independently labeled Ready package.",
+    "selected_issue": 389,
+    "selection_status": "selected_after_427_merge"
   },
   "tasks": [
     {
@@ -110,18 +110,28 @@
       "issue": 366,
       "pull_request": 423,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "ready_for_review_final_state_ci_pending",
+      "status": "completed_merged",
       "priority": "critical",
       "branch": "perf/366-monitoring-read-model-deduplication",
       "resolved_dependencies": [368, 369],
       "product_head": "625355c988a286bd007e9c84c48384f2473c0ba6",
-      "verification": "Head 78ba940f: CI, Authenticated Dashboard, Alerts, Nodes, Test Sessions, Refrigeration, Offline Auth, Offline Bundle and Disaster Recovery GREEN"
+      "final_pr_head": "11a58e99a69ec04eea38316553724cdad4c83493",
+      "merge_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
+      "verification": "Final head: CI, Authenticated Dashboard, Alerts, Nodes, Test Sessions, Refrigeration, Offline Auth, Offline Bundle and Disaster Recovery GREEN"
+    },
+    {
+      "id": "NEXOLAB-427",
+      "issue": 427,
+      "title": "Reconcile Issue #366 merge and select downstream continuation",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/427-reconcile-issue-366-state"
     },
     {
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "downstream_pending_366",
+      "status": "needs_validation_pending_356_prefetch_slice",
       "priority": "critical",
       "depends_on": [366]
     },
@@ -162,30 +172,29 @@
     }
   ],
   "active_work_package": {
-    "issue": 366,
-    "pull_request": 423,
-    "title": "Audit and deduplicate monitoring-route read models",
-    "status": "ready_for_review_final_state_ci_pending",
-    "priority": "critical",
+    "issue": 427,
+    "title": "Reconcile Issue #366 merge and select downstream continuation",
+    "status": "in_progress_state_only",
+    "priority": "high",
     "assignee": "eNgine9r",
-    "branch": "perf/366-monitoring-read-model-deduplication"
+    "branch": "chore/427-reconcile-issue-366-state"
   },
   "next_ready_work_package": {
-    "issue": 289,
-    "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "downstream_pending_366_completion",
-    "priority": "critical"
+    "issue": 389,
+    "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
+    "status": "selected_after_427_merge",
+    "priority": "high"
   },
   "prepared_backlog": [
-    {
-      "issue": 366,
-      "priority": "critical",
-      "lane": "next_runtime_read_model_deduplication"
-    },
     {
       "issue": 389,
       "priority": "high",
       "lane": "independent_status_ready"
+    },
+    {
+      "issue": 289,
+      "priority": "critical",
+      "lane": "needs_validation_after_focused_356_prefetch_slice"
     },
     {
       "issue": 415,
@@ -219,7 +228,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Publish final Issue #366 state reconciliation, require GREEN final-head gates, mark PR #423 Ready and merge before selecting downstream #289. Keep #389 independent Ready/not selected.",
+  "next_selection_policy": "Complete state-only #427, then start Ready Issue #389. Separately prepare a focused #356 route-prefetch/time-to-usable Work Package before final #289 hardware/performance acceptance.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
