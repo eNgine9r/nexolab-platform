@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a",
-  "current_main_sha_semantics": "Issue #427 / PR #428 post-#366 state reconciliation merged",
+  "current_main_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
+  "current_main_sha_semantics": "Issue #389 / PR #429 safe local version management merged after 21/21 GREEN exact-head workflows",
   "selection_state": {
     "last_ready_audit_result": "After #366 merge, #289 remains needs-validation pending a focused #356 route-prefetch/time-to-usable child and final hardware matrix. #389 is the only independently labeled Ready package.",
     "selected_issue": 389,
-    "selection_status": "issue_389_in_progress_software_locally_verified"
+    "selection_status": "no_open_status_ready_after_389_merge"
   },
   "tasks": [
     {
@@ -140,11 +140,23 @@
     {
       "id": "NEXOLAB-389",
       "issue": 389,
+      "pull_request": 429,
       "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-      "status": "in_progress_software_locally_verified",
+      "status": "completed_merged_software_verified",
       "priority": "high",
       "depends_on": [385],
-      "branch": "feat/389-local-version-management"
+      "branch": "feat/389-local-version-management",
+      "final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
+      "merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
+      "verification": "21/21 exact-head workflows GREEN; physical Raspberry Pi acceptance pending separately"
+    },
+    {
+      "id": "NEXOLAB-430",
+      "issue": 430,
+      "title": "Reconcile Issue #389 merge and post-merge Ready audit",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/430-reconcile-issue-389-state"
     },
     {
       "id": "NEXOLAB-415",
@@ -175,25 +187,20 @@
     }
   ],
   "active_work_package": {
-    "issue": 389,
-    "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
-    "status": "software_locally_verified_pr_pending",
+    "issue": 430,
+    "title": "Reconcile Issue #389 merge and post-merge Ready audit",
+    "status": "in_progress_state_only",
     "priority": "high",
     "assignee": "eNgine9r",
-    "branch": "feat/389-local-version-management"
+    "branch": "chore/430-reconcile-issue-389-state"
   },
   "next_ready_work_package": {
     "issue": null,
-    "title": "No independently Ready package selected while Issue #389 is active",
-    "status": "audit_after_issue_389",
+    "title": "No open status:ready product package after Issue #389 merge",
+    "status": "none_found_by_post_389_audit",
     "priority": null
   },
   "prepared_backlog": [
-    {
-      "issue": 389,
-      "priority": "high",
-      "lane": "independent_status_ready"
-    },
     {
       "issue": 289,
       "priority": "critical",
@@ -206,6 +213,10 @@
     }
   ],
   "verification": {
+    "issue_389_final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
+    "issue_389_merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
+    "issue_389_final_gates": "21/21 exact-head workflows GREEN including CI #3014, Telemetry service #1539, Offline Auth #404 and Offline Bundle #1070",
+    "issue_389_classification": "software verified; Raspberry Pi version-management acceptance pending",
     "issue_369_final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
     "issue_369_merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
     "issue_369_final_gates": "CI #2965 GREEN; Authenticated Dashboard #1644 GREEN; Offline Bundle #1027 GREEN",
@@ -218,6 +229,9 @@
     }
   },
   "runtime_evidence": {
+    "issue_389_offline_bundle_disconnected_runtime": true,
+    "issue_389_update_rollback_volume_preservation": true,
+    "issue_389_physical_raspberry_pi_acceptance": "pending",
     "issue_369_external_egress_required": false,
     "issue_369_modbus_write": false,
     "issue_369_hardware_write": false,
@@ -231,7 +245,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Complete Issue #389 exact-head verification and merge. Keep #289 needs-validation until a separate focused #356 route-prefetch/time-to-usable child is prepared before final hardware/performance acceptance.",
+  "next_selection_policy": "Complete state-only #430. No Ready product package is selected. Define a separate focused #356 route-prefetch/time-to-usable child before #289 can leave needs-validation or begin final hardware/performance acceptance.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
