@@ -1,58 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { AlertTriangle, Clock3, LoaderCircle } from "lucide-react";
 
-import { createSessionApiClient } from "@/lib/sessions/api-client";
-import type { LaboratorySession } from "@/lib/sessions/types";
+import { useSessionListReadModel } from "@/features/test-sessions/use-session-list-read-model";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
-export function SessionsPanel() {
-  const [sessions, setSessions] = useState<LaboratorySession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function SessionsPanel({ organizationId }: { organizationId: string | null }) {
+  const sessionsModel = useSessionListReadModel({
+    organizationId,
+    query: { nodeId: "edge-01", limit: 50 },
+  });
+  const sessions = useMemo(
+    () =>
+      (sessionsModel.value?.items ?? [])
+        .filter((item) => item.state === "running" || item.state === "paused" || item.state === "ready")
+        .slice(0, 5),
+    [sessionsModel.value],
+  );
 
   useEffect(() => {
-    const controller = new AbortController();
-    const load = async () => {
-      try {
-        const client = createSessionApiClient();
-        const page = await client.listSessions({ nodeId: "edge-01", limit: 50 }, controller.signal);
-        setSessions(
-          page.items
-            .filter((item) => item.state === "running" || item.state === "paused" || item.state === "ready")
-            .slice(0, 5),
-        );
-        setError(null);
-      } catch (nextError) {
-        if (!controller.signal.aborted) {
-          setError(nextError instanceof Error ? nextError : new Error("Sessions API failed."));
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-    void load();
-    const timer = window.setInterval(() => void load(), 10_000);
-    return () => {
-      controller.abort();
-      window.clearInterval(timer);
-    };
-  }, []);
+    const timer = window.setInterval(sessionsModel.retry, 10_000);
+    return () => window.clearInterval(timer);
+  }, [sessionsModel.retry]);
 
-  if (loading) {
+  if (sessionsModel.status === "loading" && sessionsModel.value === null) {
     return (
       <div className="grid min-h-48 place-items-center">
         <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />
       </div>
     );
   }
-  if (error) {
+  if (sessionsModel.error && sessionsModel.value === null) {
     return (
       <div className="m-4 rounded-xl border border-amber-300/15 bg-amber-400/[0.04] p-4 text-[10px] leading-5 text-slate-400">
         <AlertTriangle className="mr-2 inline h-4 w-4 text-amber-300" />
-        {error.message}
+        {sessionsModel.error.message}
         <p className="mt-2 text-[9px] text-slate-600">Demo sessions are disabled.</p>
       </div>
     );
@@ -61,6 +45,9 @@ export function SessionsPanel() {
     return (
       <div className="grid min-h-48 place-items-center px-5 text-center">
         <div>
+          {sessionsModel.error ? (
+            <p className="mb-2 text-[9px] text-amber-300">Оновлення не вдалося; показано останній відомий стан.</p>
+          ) : null}
           <p className="text-[11px] font-semibold text-white">Активних сесій немає</p>
           <Link
             href="/sessions/new"
@@ -75,6 +62,9 @@ export function SessionsPanel() {
 
   return (
     <div className="divide-y divide-white/[0.045] px-4 py-1 sm:px-5">
+      {sessionsModel.error ? (
+        <div className="py-2 text-[9px] text-amber-300">Оновлення не вдалося; показано останній валідний список.</div>
+      ) : null}
       {sessions.map((session) => (
         <Link key={session.id} href={`/sessions/${session.id}`} className="group block w-full py-3 text-left">
           <div className="flex items-center justify-between gap-3">
