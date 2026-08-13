@@ -12,15 +12,22 @@ matrix entry was intentionally skipped.
 Post-change Raspberry Pi enrollment/recovery acceptance was not performed and
 is not claimed.
 
-## Issue #432 — selected Ready Work Package
+## Issue #432 / PR #437 — software/browser verified
 
-Issue #432 is the only open `status:ready` product package in the fresh audit
-and is selected next after this state-only reconciliation.
+PR #437 is open. Warm navigation passed at `198..282 ms` median across the six
+canonical routes with one document load, `websocket_max_concurrent = 1`, no
+eager full-inventory fetch and zero acquisition mutations. Exact evidence head
+`cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2` passed all required software,
+browser and offline gates, including disconnected Offline Bundle update/rollback
+volume preservation.
+
+No Issue #432 implementation blocker remains. Raspberry Pi performance evidence
+is intentionally deferred to Issue #289 and is not claimed.
 
 ## Ready/dependency audit
 
-- Issue #432 is selected next.
-- Issue #289 remains `status:needs-validation` pending #432 and final physical measurement.
+- Issue #432 / PR #437 is ready for review and merge.
+- Issue #289 remains `status:needs-validation` pending the #432 merge and final physical measurement.
 - Issue #415 remains an unselected Chart System UX follow-up.
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #257 remains blocked; Issue #256 remains deferred.

@@ -3,53 +3,76 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-435-POST-433-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_in_progress",
-  "timestamp": "2026-08-13T17:06:00+03:00",
-  "branch": "chore/435-reconcile-issue-433-state",
-  "active_issue": 435,
-  "base_main_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
-  "completed_issue": {
-    "issue": 433,
-    "pull_request": 434,
-    "final_pr_head": "236019f9929aa230ff1f2f6ff0954ecee3bde6f1",
-    "merge_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
-    "classification": "software verified; post-change Raspberry Pi sensor enrollment/recovery acceptance pending"
+  "task": "ISSUE-432-ROUTE-PREFETCH-TIME-TO-USABLE",
+  "status": "implementation_complete_pr_open_software_browser_verified",
+  "timestamp": "2026-08-13T21:53:00+03:00",
+  "branch": "perf/432-route-prefetch-time-to-usable",
+  "active_issue": 432,
+  "pull_request": 437,
+  "base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
+  "evidence_head": "cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2",
+  "outcome": {
+    "product_implementation_required": false,
+    "reason": "Installed Next.js 16.2.12 automatic Link prefetch already warms every canonical static monitoring route and all measured warm medians pass the 1000 ms target.",
+    "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289"
+  },
+  "browser_evidence": {
+    "warm_median_ms": {
+      "overview": 263,
+      "refrigeration": 275,
+      "energy": 282,
+      "live": 198,
+      "nodes": 265,
+      "sessions": 208
+    },
+    "overview_issue_366_reference_ms": 334,
+    "document_loads": 1,
+    "visible_loading_transitions": 0,
+    "pre_navigation_route_resources": 73,
+    "eager_channel_inventory_reads": 0,
+    "eager_node_inventory_reads": 0,
+    "websocket_max_concurrent": 1,
+    "acquisition_mutations": 0
   },
   "local_verification": {
-    "focused_device_agent": "30 PASS",
-    "complete_device_agent": "120 PASS",
-    "focused_dashboard": "4 PASS",
+    "focused_navigation_production": "3 PASS",
+    "authenticated_dashboard_and_acquisition_invariant": "13 PASS",
+    "offline_auth_migration_roundtrip": "PASS",
+    "offline_auth_browser_and_persistence": "6 PASS",
     "complete_frontend": "89 files / 384 tests PASS",
+    "lint_staged_contract": "PASS",
     "format": "PASS",
     "lint": "PASS",
     "typecheck": "PASS",
     "production_build": "PASS"
   },
   "exact_head_verification": {
+    "head": "cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2",
     "status": "green",
-    "passed_checks": 15,
-    "intentional_skips": 1,
-    "offline_bundle_disconnected_runtime": "PASS"
+    "ci": "PASS",
+    "acquisition_scale": "PASS",
+    "authenticated_dashboard": "PASS",
+    "refrigeration_browser": "PASS",
+    "offline_auth": "PASS",
+    "offline_bundle_disconnected_runtime": "PASS",
+    "update_rollback_volume_preservation": "PASS"
   },
   "hardware_evidence": {
-    "before_change_raspberry_pi_baseline": "captured read-only",
-    "post_change_raspberry_pi_acceptance": "not_performed_not_claimed"
-  },
-  "ready_audit": {
-    "open_status_ready_count": 1,
-    "selected_issue": 432,
-    "issue_289": "needs_validation_pending_432_and_final_physical_measurement"
+    "raspberry_pi_performance_acceptance": "not_performed_not_claimed",
+    "remaining_issue": 289
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
+    "scheduler_change": "none",
+    "registry_change": "none",
     "polling_policy_change": "none",
+    "dependency_upgrade": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Merge focused state-only Issue #435 reconciliation, then start selected Ready Issue #432 from current main.",
-  "resume_instruction": "Complete Issue #435 state-only reconciliation. After merge, fast-forward perf/432-route-prefetch-time-to-usable to current main and implement Issue #432 evidence-first."
+  "next_action": "Review and merge focused PR #437, reconcile the Issue #432 merge, then reassess Issue #289 for controlled Raspberry Pi physical/performance acceptance.",
+  "resume_instruction": "Resume from PR #437 on perf/432-route-prefetch-time-to-usable. Do not add manual prefetch without new measured evidence; preserve the verified Next.js default behavior and all acquisition/read-model invariants."
 }

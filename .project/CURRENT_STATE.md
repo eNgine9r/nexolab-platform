@@ -2,8 +2,8 @@
 
 Updated: 2026-08-13
 
-Canonical product `main` baseline is `06f78b178acfed72033bf607099d827eca1a9f9a`
-(Issue #433 / PR #434 sensor enrollment and acquisition recovery).
+Canonical product `main` baseline is `9ddef4445b2894f25a6e93267f497d0e5b09b970`
+(Issue #433 merge reconciled by Issue #435 / PR #436).
 
 ## Completed critical Work Package — Issue #433 / PR #434
 
@@ -32,15 +32,38 @@ typecheck and production build. Evidence is recorded in
 Classification: software verified; post-change Raspberry Pi sensor enrollment
 and recovery acceptance remains pending and is not claimed.
 
-## Selected Next Ready Work Package — Issue #432
+## Completed software/browser Work Package — Issue #432 / PR #437
 
-Issue #432 is the only open `status:ready` product Work Package in the fresh
-audit and is selected next. It will measure and correct warm-navigation
-time-to-usable behavior for Overview, Refrigeration, Energy, Live Data, Nodes
-and Sessions without changing physical acquisition.
+Issue #432 is implemented on `perf/432-route-prefetch-time-to-usable`; focused
+PR #437 is open. Deterministic production-browser evidence proved that the
+installed Next.js 16.2.12 automatic `<Link>` prefetch already warms all six
+canonical static monitoring routes, so no product navigation correction was
+required.
 
-Issue #289 remains `status:needs-validation` until #432 is complete and the
-remaining physical Raspberry Pi performance matrix is captured.
+Warm median time-to-usable was `263 ms` Overview, `275 ms` Refrigeration,
+`282 ms` Energy, `198 ms` Live Data, `265 ms` Nodes and `208 ms` Sessions. The
+complete repeated route cycle kept one document load, no visible loading
+transition, no eager channel or Node inventory fetch from visible links,
+`websocket_max_concurrent = 1` and zero acquisition mutations.
+
+Local verification passed format, lint, typecheck, all 89 frontend test files /
+384 tests, lint-staged behavior, production build, the focused production route
+matrix, the 13-scenario Authenticated Dashboard/acquisition-invariant gate, and
+Offline Auth migration/browser/persistence gates. Exact evidence head
+`cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2` passed CI, Acquisition Scale,
+Authenticated Dashboard, Refrigeration Browser, Offline Auth and the complete
+disconnected Offline Bundle with update/rollback volume preservation.
+
+Evidence is recorded in
+`docs/audits/issue-432-route-prefetch-time-to-usable.md`.
+
+Classification: software/browser route-prefetch verified; Raspberry Pi
+performance acceptance remains pending under Issue #289 and is not claimed.
+
+## Next continuation
+
+Merge PR #437, reconcile the Issue #432 merge, then reassess Issue #289 for the
+remaining controlled Raspberry Pi physical/performance matrix.
 
 ## Safety boundary
 
