@@ -56,6 +56,48 @@ Because the graph/card itself remained fixed, the defect was isolated from the
 responsive ChartShell layout and traced to duplicate renderer-owned moving
 ECharts tooltip content.
 
+## Preserved physical acquisition evidence
+
+The completed #413 audit retains the exact hardware measurements used to support
+the acquisition-invariant conclusion.
+
+Equal-duration 60-second windows:
+
+| Metric | Browser closed | Active Overview |
+| --- | ---: | ---: |
+| Physical requests | 144 | 153 |
+| Requests/s | 2.400 | 2.550 |
+| Successful requests | 132 | 132 |
+| Timeouts | 12 | 21 |
+| Retry attempts | 12 | 17 |
+| Bus busy seconds | 9.92298 | 12.871187 |
+
+The raw request-rate comparison was classified `REVIEW_EQUAL_DURATION_COUNTERS`,
+not automatic PASS/FAIL. Successful polls remained exactly 132 in both windows;
+the higher active raw request count coincided with additional timeout/retry
+activity.
+
+Control-plane evidence remained unchanged:
+
+- discovery delta: `0`;
+- configuration mutation delta: `0`;
+- Modbus write attempts: `0`;
+- polling policy: `priority_adaptive_v1` unchanged;
+- configured targets: `38 -> 38`;
+- registry revision: unchanged;
+- registry summary: unchanged;
+- service-operation delta: `{}`.
+
+Exact real-series continuity evidence:
+
+- old event `1b19f5f5-4f4f-4734-83d6-b896d9a61438` at
+  `2026-08-12 18:35:03.216544+00`, quality `valid`, value `25.9 °C`;
+- new event `508e5cf9-be2f-44dc-8a61-f15fd089fcab` at
+  `2026-08-12 18:35:08.227509+00`, quality `valid`, value `25.9 °C`.
+
+No browser-driven scheduler, registry, discovery, configuration or hardware
+mutation was observed.
+
 ## Corrective renderer fix
 
 Corrective product head:
