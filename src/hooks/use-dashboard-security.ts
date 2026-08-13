@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { clearAllRefrigerationStructuralCaches } from "@/features/refrigeration/refrigeration-structural-cache";
 import { createRuntimeCredentialProvider, signOut as signOutRuntime } from "@/features/security/auth-runtime";
 import {
   createAuthenticatedFetch,
@@ -12,10 +13,18 @@ import {
   type SecuritySession,
   type SecuritySessionDiagnostics,
   type SecuritySessionErrorCode,
+  type SecuritySessionFailure,
 } from "@/features/security/security-session";
+import {
+  clearAllMonitoringReadModels,
+  invalidateMonitoringReadModel,
+  readMonitoringReadModel,
+} from "@/lib/monitoring-read-model-cache";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 const STORAGE_KEY = "nexolab.selectedOrganizationId";
+const SECURITY_SESSION_CACHE_KEY = "security:session";
+const SECURITY_SESSION_CACHE = { freshTtlMs: 5_000, staleTtlMs: 5_000, maxEntriesPerScope: 1 } as const;
 
 export type DashboardSecurityState = "demo" | "loading" | "ready" | "unauthenticated" | "forbidden" | "error";
 
@@ -48,6 +57,16 @@ type Runtime =
       configuredOrganizationId: string | null;
       error: string | null;
     };
+
+class SecuritySessionLoadError extends Error {
+  readonly failure: SecuritySessionFailure;
+
+  constructor(failure: SecuritySessionFailure) {
+    super(failure.message);
+    this.name = "SecuritySessionLoadError";
+    this.failure = failure;
+  }
+}
 
 function loadRuntime(): Runtime {
   try {
@@ -115,6 +134,21 @@ function chooseMembership(
   return session.memberships[0] ?? null;
 }
 
+function securitySessionScope(apiBaseUrl: string): string {
+  return `security-session:${apiBaseUrl}`;
+}
+
+function clearRetainedReadModels(): void {
+  clearAllMonitoringReadModels();
+  clearAllRefrigerationStructuralCaches();
+}
+
+async function loadSecuritySession(client: HttpSecuritySessionClient): Promise<SecuritySession> {
+  const result = await client.getSession();
+  if (!result.ok) throw new SecuritySessionLoadError(result.error);
+  return result.value;
+}
+
 export function useDashboardSecurity(): DashboardSecurityModel {
   const [runtime] = useState<Runtime>(loadRuntime);
   const [state, setState] = useState<DashboardSecurityState>(() =>
@@ -144,6 +178,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       setDiagnostics(null);
       return;
     }
+    invalidateMonitoringReadModel(securitySessionScope(runtime.apiBaseUrl), SECURITY_SESSION_CACHE_KEY);
     setState("loading");
     clearFailure();
     setGeneration((value) => value + 1);
@@ -163,47 +198,61 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       fetchImpl: authenticatedFetch,
     });
 
-    void client.getSession().then(async (result) => {
-      if (cancelled) return;
-      if (!result.ok) {
+    void readMonitoringReadModel(
+      securitySessionScope(runtime.apiBaseUrl),
+      SECURITY_SESSION_CACHE_KEY,
+      () => loadSecuritySession(client),
+      SECURITY_SESSION_CACHE,
+    )
+      .then(async (nextSession) => {
+        if (cancelled) return;
+        const selected = chooseMembership(nextSession, runtime.configuredOrganizationId);
+        if (!selected) {
+          setSession(nextSession);
+          setMembership(null);
+          setError("Вибрана організація відсутня у перевіреній сесії користувача.");
+          setErrorCode("ORGANIZATION_NOT_AVAILABLE");
+          setDiagnostics(null);
+          setState("forbidden");
+          return;
+        }
+
+        const credentials = await credentialProvider();
+        if (cancelled) return;
+        setSecurityCredentials({
+          accessToken: credentials.accessToken,
+          organizationId: selected.organizationId,
+        });
+        persistOrganizationId(selected.organizationId);
+        setSession(nextSession);
+        setMembership(selected);
+        clearFailure();
+        setState("ready");
+      })
+      .catch((nextError: unknown) => {
+        if (cancelled) return;
+        if (nextError instanceof SecuritySessionLoadError) {
+          setSession(null);
+          setMembership(null);
+          setError(nextError.failure.message);
+          setErrorCode(nextError.failure.code);
+          setDiagnostics(nextError.failure.diagnostics);
+          setState(
+            nextError.failure.code === "AUTHENTICATION_REQUIRED"
+              ? "unauthenticated"
+              : nextError.failure.code === "ACCESS_DENIED"
+                ? "forbidden"
+                : "error",
+          );
+          return;
+        }
         setSession(null);
         setMembership(null);
-        setError(result.error.message);
-        setErrorCode(result.error.code);
-        setDiagnostics(result.error.diagnostics);
-        setState(
-          result.error.code === "AUTHENTICATION_REQUIRED"
-            ? "unauthenticated"
-            : result.error.code === "ACCESS_DENIED"
-              ? "forbidden"
-              : "error",
-        );
-        return;
-      }
-
-      const selected = chooseMembership(result.value, runtime.configuredOrganizationId);
-      if (!selected) {
-        setSession(result.value);
-        setMembership(null);
-        setError("Вибрана організація відсутня у перевіреній сесії користувача.");
-        setErrorCode("ORGANIZATION_NOT_AVAILABLE");
+        setError(nextError instanceof Error ? nextError.message : "Не вдалося перевірити захищену сесію.");
+        setErrorCode("SESSION_API_ERROR");
         setDiagnostics(null);
-        setState("forbidden");
-        return;
-      }
-
-      const credentials = await credentialProvider();
-      if (cancelled) return;
-      setSecurityCredentials({
-        accessToken: credentials.accessToken,
-        organizationId: selected.organizationId,
+        setState("error");
       });
-      persistOrganizationId(selected.organizationId);
-      setSession(result.value);
-      setMembership(selected);
-      clearFailure();
-      setState("ready");
-    });
 
     return () => {
       cancelled = true;
@@ -221,6 +270,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
         setState("forbidden");
         return;
       }
+      clearRetainedReadModels();
       const credentials = getSecurityCredentials();
       setSecurityCredentials({
         accessToken: credentials.accessToken,
@@ -235,6 +285,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
   );
 
   const signOut = useCallback(async () => {
+    clearRetainedReadModels();
     await signOutRuntime(runtime.apiBaseUrl);
     clearPersistedOrganizationId();
     setSecurityCredentials({ accessToken: null, organizationId: null });
