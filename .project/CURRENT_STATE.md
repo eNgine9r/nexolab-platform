@@ -2,42 +2,45 @@
 
 Updated: 2026-08-13
 
-Canonical `main` is `aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c`
-(Issue #430 / PR #431 post-#389 state reconciliation).
+Canonical product `main` baseline is `06f78b178acfed72033bf607099d827eca1a9f9a`
+(Issue #433 / PR #434 sensor enrollment and acquisition recovery).
 
-## Active critical Work Package — Issue #433
+## Completed critical Work Package — Issue #433 / PR #434
 
-Issue #433 is implemented on branch `fix/433-sensor-enrollment-recovery` and
-published as draft PR #434. Product head
-`1c138d0c87ea09847ea5d3311a11b405470a3682` passed all 15 triggered checks;
-one image-attestation publish matrix entry was intentionally skipped.
+Issue #433 is closed and PR #434 is squash-merged. Final PR head
+`236019f9929aa230ff1f2f6ff0954ecee3bde6f1` passed the required exact-head
+verification: 15 checks passed, the disconnected Offline Bundle runtime passed,
+and one image-attestation publish matrix entry was intentionally skipped.
 
-The recovered implementation provides:
+The merged LOCAL_LAN implementation provides:
 
 - atomic audited enrollment of newly discovered configured XJP60D Unit IDs into
   the existing #284 registry as `discovery_only` FC03 inventory;
 - zero new scheduler jobs until explicit operator activation;
-- live #285 scheduler reconciliation after enrollment/activation with existing
-  cadence, fairness, retry and cooldown policy unchanged;
+- live #285 scheduler reconciliation after enrollment/activation with cadence,
+  fairness, retry and cooldown policy unchanged;
 - bounded per-target attempt/success/failure/cooldown/recovery diagnostics;
-- truthful initializing UI before the first sample, plus visible sensor and
+- truthful initializing UI before the first sample and explicit sensor /
   communication error states without demo fallback;
-- unchanged #378 stable `/dev/serial/by-id/...` handle recovery.
+- unchanged #378 stable `/dev/serial/by-id/...` transport recovery.
 
-Local verification is GREEN: 30 focused Device Agent tests, all 120 Device
+Local verification was GREEN: 30 focused Device Agent tests, all 120 Device
 Agent tests, 4 focused UI tests, all 384 frontend tests, formatting, lint,
-typecheck and production build. The before-change Raspberry Pi read-only
-baseline is preserved in `docs/audits/issue-433-sensor-enrollment-recovery.md`.
-The exact-head gates include CI quality/build, Device Agent and service images,
-the acquisition invariant, deterministic scheduler scale, secure fleet outage
-and TLS recovery, and disconnected Offline Bundle startup/data preservation.
-Post-change physical acceptance has not been performed and is not claimed.
+typecheck and production build. Evidence is recorded in
+`docs/audits/issue-433-sensor-enrollment-recovery.md`.
 
-## Next Ready Work Package — Issue #432
+Classification: software verified; post-change Raspberry Pi sensor enrollment
+and recovery acceptance remains pending and is not claimed.
 
-Issue #432 remains prepared and `status:ready`, but sequencing explicitly keeps
-it unchanged until #433 is GREEN, reconciled and merged. It is the next focused
-route-prefetch/time-to-usable package before final #289 physical validation.
+## Selected Next Ready Work Package — Issue #432
+
+Issue #432 is the only open `status:ready` product Work Package in the fresh
+audit and is selected next. It will measure and correct warm-navigation
+time-to-usable behavior for Overview, Refrigeration, Energy, Live Data, Nodes
+and Sessions without changing physical acquisition.
+
+Issue #289 remains `status:needs-validation` until #432 is complete and the
+remaining physical Raspberry Pi performance matrix is captured.
 
 ## Safety boundary
 
