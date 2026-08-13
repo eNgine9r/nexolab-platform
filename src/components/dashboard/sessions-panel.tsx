@@ -46,7 +46,9 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
       <div className="grid min-h-48 place-items-center px-5 text-center">
         <div>
           {sessionsModel.error ? (
-            <p className="mb-2 text-[9px] text-amber-300">Оновлення не вдалося; показано останній відомий стан.</p>
+            <p className="mb-2 text-[9px] text-amber-300">
+              Оновлення не вдалося; показано останній відомий стан.
+            </p>
           ) : null}
           <p className="text-[11px] font-semibold text-white">Активних сесій немає</p>
           <Link
@@ -63,7 +65,9 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
   return (
     <div className="divide-y divide-white/[0.045] px-4 py-1 sm:px-5">
       {sessionsModel.error ? (
-        <div className="py-2 text-[9px] text-amber-300">Оновлення не вдалося; показано останній валідний список.</div>
+        <div className="py-2 text-[9px] text-amber-300">
+          Оновлення не вдалося; показано останній валідний список.
+        </div>
       ) : null}
       {sessions.map((session) => (
         <Link key={session.id} href={`/sessions/${session.id}`} className="group block w-full py-3 text-left">
