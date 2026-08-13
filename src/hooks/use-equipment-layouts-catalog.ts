@@ -5,10 +5,7 @@ import { useCallback, useMemo } from "react";
 import { loadLayoutCatalog, type LayoutCatalogItem } from "@/features/equipment-layouts/layout-catalog";
 import { createEquipmentLayoutsRuntime } from "@/features/equipment-layouts/runtime";
 import { RefrigerationEquipmentRepositoryError } from "@/features/refrigeration/equipment-repository";
-import {
-  useMonitoringReadModel,
-  type MonitoringReadModelStatus,
-} from "@/hooks/use-monitoring-read-model";
+import { useMonitoringReadModel, type MonitoringReadModelStatus } from "@/hooks/use-monitoring-read-model";
 
 export type EquipmentLayoutsCatalogState = "idle" | "loading" | "refreshing" | "ready" | "error";
 
