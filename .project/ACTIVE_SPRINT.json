@@ -19,13 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-  "current_main_sha_semantics": "Issue #413 / PR #414 Overview Chart System merged after GREEN exact-head gates and controlled Raspberry Pi acceptance PASS",
-  "product_owner_priority_override": {
-    "active": false,
-    "decision": "Issue #413 Chart System priority is completed. Run a fresh repository-backed Ready audit after Issue #417 reconciliation before selecting the next implementation package.",
-    "completed_issue": 413,
-    "selected_issue": null
+  "current_main_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf",
+  "current_main_sha_semantics": "Issue #417 / PR #418 post-#413 project-state reconciliation merged",
+  "selection_state": {
+    "last_ready_audit_result": "Issue #369 selected as the critical runtime-sequence package after PR #418 merge; Issue #389 remained the only independent status:ready package.",
+    "selected_issue": 369,
+    "selection_status": "acceptance_pass_merge_pending"
   },
   "tasks": [
     {
@@ -64,8 +63,7 @@
       "title": "Reconcile Issue #404 merge and Chart System continuation",
       "status": "completed_merged",
       "priority": "high",
-      "merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7",
-      "verification": "CI #2918 GREEN"
+      "merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7"
     },
     {
       "id": "NEXOLAB-413",
@@ -75,41 +73,35 @@
       "status": "completed_merged",
       "priority": "high",
       "merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-      "corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-      "final_pr_head": "a845e39b0daa628e20e551289a378dcc33ffef2b",
-      "verification": "CI #2950 GREEN; Authenticated Dashboard #1638 GREEN; Refrigeration Browser #1612 GREEN; Offline Bundle #1021 GREEN",
-      "hardware_acceptance": "PASS: cursor_vertical_jump=NO; graph_card_stays_fixed=YES; continuity/render/controls/ranges/reopen/usability PASS"
+      "hardware_acceptance": "PASS"
     },
     {
       "id": "NEXOLAB-417",
       "issue": 417,
+      "pull_request": 418,
       "title": "Reconcile Issue #413 merge and Chart System follow-up state",
-      "status": "in_progress_state_only",
+      "status": "completed_merged",
       "priority": "high",
-      "branch": "chore/417-reconcile-issue-413-state",
-      "depends_on": [413]
-    },
-    {
-      "id": "NEXOLAB-415",
-      "issue": 415,
-      "title": "Add left-button drag panning to canonical NEXOLAB charts",
-      "status": "backlog_pending_fresh_ready_audit",
-      "priority": "medium",
-      "depends_on": [413]
+      "merge_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf"
     },
     {
       "id": "NEXOLAB-369",
       "issue": 369,
-      "title": "Run actual Raspberry Pi Live Dashboard browser inventory acceptance",
-      "status": "ready_preserved_runtime_sequence",
+      "pull_request": 420,
+      "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
+      "status": "acceptance_pass_merge_pending",
       "priority": "critical",
-      "depends_on": [368]
+      "branch": "fix/369-live-dashboard-inventory-browser",
+      "depends_on": [368],
+      "pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
+      "verification": "CI #2961 GREEN; Authenticated Dashboard #1640 GREEN; Offline Bundle #1023 GREEN",
+      "hardware_acceptance": "PASS: inventory 200, total 162, ~44.84 ms; search/filter/select/reorder/save/reopen PASS; no telemetry/latest inventory dependency"
     },
     {
       "id": "NEXOLAB-366",
       "issue": 366,
       "title": "Audit and deduplicate monitoring-route read models",
-      "status": "blocked_by_runtime_acceptance_sequence",
+      "status": "blocked_until_369_merge_and_ready_audit",
       "priority": "critical",
       "depends_on": [369]
     },
@@ -117,7 +109,7 @@
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "needs_validation",
+      "status": "downstream_pending_366",
       "priority": "critical",
       "depends_on": [366]
     },
@@ -126,7 +118,16 @@
       "issue": 389,
       "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
       "status": "ready_not_selected",
-      "priority": "high"
+      "priority": "high",
+      "depends_on": [385]
+    },
+    {
+      "id": "NEXOLAB-415",
+      "issue": 415,
+      "title": "Add left-button drag panning to canonical NEXOLAB charts",
+      "status": "open_not_selected",
+      "priority": "medium",
+      "depends_on": [413]
     },
     {
       "id": "NEXOLAB-245",
@@ -149,50 +150,57 @@
     }
   ],
   "active_work_package": {
-    "issue": 417,
-    "title": "Reconcile Issue #413 merge and Chart System follow-up state",
-    "status": "in_progress_state_only",
-    "priority": "high",
+    "issue": 369,
+    "pull_request": 420,
+    "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
+    "status": "acceptance_pass_merge_pending",
+    "priority": "critical",
     "assignee": "eNgine9r",
-    "branch": "chore/417-reconcile-issue-413-state"
+    "branch": "fix/369-live-dashboard-inventory-browser"
   },
   "next_ready_work_package": {
     "issue": null,
-    "title": "Fresh repository-backed Ready audit after Issue #417 merge",
+    "title": "Fresh repository-backed Ready audit after Issue #369 merge",
     "status": "required_before_selection",
-    "priority": "high"
+    "priority": "critical"
   },
   "prepared_backlog": [
     {
-      "issue": 369,
+      "issue": 366,
       "priority": "critical",
-      "lane": "preserved_runtime_sequence"
+      "lane": "runtime_sequence_dependency_reaudit_after_369_merge"
     },
     {
       "issue": 389,
       "priority": "high",
-      "lane": "ready_not_selected"
+      "lane": "independent_status_ready"
     },
     {
       "issue": 415,
       "priority": "medium",
-      "lane": "chart_system_ux_follow_up_pending_ready_audit"
+      "lane": "chart_system_ux_follow_up"
     }
   ],
   "verification": {
-    "issue_413_merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-    "issue_413_corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-    "issue_413_final_pr_head": "a845e39b0daa628e20e551289a378dcc33ffef2b",
-    "issue_413_final_gates": "CI #2950 GREEN; Authenticated Dashboard #1638 GREEN; Refrigeration Browser #1612 GREEN; Offline Bundle #1021 GREEN",
-    "issue_413_hardware": "PASS on corrective product code"
+    "issue_369_pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
+    "issue_369_pre_state_gates": "CI #2961 GREEN; Authenticated Dashboard #1640 GREEN; Offline Bundle #1023 GREEN",
+    "issue_369_browser_hardware": "PASS on controlled Raspberry Pi LOCAL_LAN runtime",
+    "issue_369_inventory": {
+      "status": 200,
+      "total": 162,
+      "duration_ms_approx": 44.84,
+      "generic_telemetry_latest_inventory_dependency": false
+    },
+    "state_commit_exact_head_recheck_required": true
   },
   "runtime_evidence": {
-    "issue_413_external_egress_required": false,
-    "issue_413_modbus_write": false,
-    "issue_413_hardware_write": false,
-    "issue_413_polling_change": false
+    "issue_369_external_egress_required": false,
+    "issue_369_modbus_write": false,
+    "issue_369_hardware_write": false,
+    "issue_369_polling_change": false,
+    "issue_369_runtime_product_code_changed": false
   },
-  "next_selection_policy": "Merge state-only #417 after GREEN CI, then run a fresh repository-backed Ready audit before selecting #369, #389, #415 or another dependency-backed package.",
+  "next_selection_policy": "Require fresh exact-head checks and merge PR #420 first; then audit current labels, dependencies, blockers, open PRs and CI before selecting #366, #389, #415 or another package.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

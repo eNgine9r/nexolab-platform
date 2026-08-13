@@ -3,114 +3,61 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-417-POST-413-STATE-RECONCILIATION",
-  "status": "state_only_reconciliation_review_fix_ci_pending",
-  "timestamp": "2026-08-13T06:39:00+03:00",
-  "branch": "chore/417-reconcile-issue-413-state",
-  "active_issue": 417,
-  "base_main_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-  "completed_issue": {
-    "issue": 413,
-    "pull_request": 414,
-    "merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-    "corrective_product_head": "0b0b239911c729e31c791c8fa2eb2c6f433bfcce",
-    "final_pr_head": "a845e39b0daa628e20e551289a378dcc33ffef2b",
-    "final_exact_head_gates": {
-      "ci": "#2950 GREEN",
-      "authenticated_dashboard": "#1638 GREEN",
-      "refrigeration_browser": "#1612 GREEN",
-      "offline_bundle": "#1021 GREEN"
-    },
-    "hardware_acceptance": {
-      "classification": "PASS",
-      "target": {
-        "channel": "126-04",
-        "metric": "temperature.probe",
-        "source": "dixell-xjp60d",
-        "real_events_10m": 120,
-        "valid_samples_24h": 16594
-      },
-      "equal_duration_acquisition": {
-        "window_seconds": 60,
-        "browser_closed": {
-          "physical_requests": 144,
-          "requests_per_second": 2.4,
-          "successful_requests": 132,
-          "timeouts": 12,
-          "retry_attempts": 12,
-          "bus_busy_seconds": 9.92298
-        },
-        "active_overview": {
-          "physical_requests": 153,
-          "requests_per_second": 2.55,
-          "successful_requests": 132,
-          "timeouts": 21,
-          "retry_attempts": 17,
-          "bus_busy_seconds": 12.871187
-        },
-        "classification": "REVIEW_EQUAL_DURATION_COUNTERS",
-        "interpretation": "successful polls remained 132 in both windows; additional active raw requests coincided with additional timeout/retry activity"
-      },
-      "control_plane": {
-        "discovery_delta": 0,
-        "configuration_mutation_delta": 0,
-        "modbus_write_attempts": 0,
-        "polling_policy": "priority_adaptive_v1",
-        "polling_policy_unchanged": true,
-        "configured_targets_before": 38,
-        "configured_targets_after": 38,
-        "registry_revision_unchanged": true,
-        "registry_summary_unchanged": true,
-        "service_operation_delta": {}
-      },
-      "exact_real_series_event": {
-        "old_event_id": "1b19f5f5-4f4f-4734-83d6-b896d9a61438",
-        "old_timestamp": "2026-08-12 18:35:03.216544+00",
-        "old_quality": "valid",
-        "old_value_deg_c": 25.9,
-        "new_event_id": "508e5cf9-be2f-44dc-8a61-f15fd089fcab",
-        "new_timestamp": "2026-08-12 18:35:08.227509+00",
-        "new_quality": "valid",
-        "new_value_deg_c": 25.9
-      },
-      "visual_retest": {
-        "cursor_vertical_jump": "NO",
-        "graph_card_stays_fixed": "YES",
-        "chart_visual_continuity": "PASS",
-        "post_event_overview_render": "PASS",
-        "hide_show_solo": "PASS",
-        "zoom_pan_reset": "PASS",
-        "range_1h_6h_24h": "PASS",
-        "route_reopen": "PASS",
-        "dashboard_remains_usable": "YES"
-      }
-    },
-    "product_code_changed_after_hardware_pass": false
-  },
-  "follow_up": {
-    "issue": 415,
-    "title": "Add left-button drag panning to canonical NEXOLAB charts",
-    "status": "open_pending_fresh_ready_audit"
-  },
-  "state_reconciliation": {
-    "issue": 417,
-    "pull_request": 418,
-    "permitted_files": [
+  "task": "ISSUE-369-LIVE-DASHBOARD-INVENTORY-BROWSER-ACCEPTANCE",
+  "status": "acceptance_pass_exact_head_recheck_pending",
+  "timestamp": "2026-08-13T09:36:00+03:00",
+  "branch": "fix/369-live-dashboard-inventory-browser",
+  "active_issue": 369,
+  "pull_request": 420,
+  "base_main_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf",
+  "pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
+  "scope": {
+    "runtime_product_code_changed": false,
+    "test_files_added": [
+      "src/features/live-dashboards/inventory-162.test.ts",
+      "src/components/live-dashboards/dashboard-editor-162.test.tsx"
+    ],
+    "project_state_files_updated": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
       ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json",
-      "docs/audits/issue-413-overview-chart-system.md"
-    ],
-    "product_runtime_change": false,
-    "workflow_change": false,
-    "review_blocker": "P1 requests to preserve complete raw #413 hardware evidence",
-    "review_blocker_resolution": "exact series volume, acquisition counters, control-plane deltas and real event IDs/timestamps restored in audit and checkpoint"
+      ".project/LAST_CHECKPOINT.json"
+    ]
   },
-  "preserved_lanes": {
-    "runtime_sequence": [369, 366, 289],
-    "version_management_ready": 389,
-    "standalone_pi_validation": 245
+  "software_verification": {
+    "head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
+    "ci": "#2961 GREEN",
+    "authenticated_dashboard": "#1640 GREEN",
+    "offline_bundle": "#1023 GREEN",
+    "inventory_regression": "PASS: exactly 162 canonical inventory items, one dedicated channel-inventory request, zero generic telemetry/latest inventory requests",
+    "editor_regression": "PASS: render/search/select/reorder/valid/save workflow over 162 channels"
+  },
+  "hardware_acceptance": {
+    "classification": "PASS",
+    "runtime": "controlled Raspberry Pi LOCAL_LAN browser",
+    "inventory_request": {
+      "method": "GET",
+      "path": "/api/v1/live-dashboards/channel-inventory?limit=500&offset=0",
+      "host": "172.18.48.34:8082",
+      "status": 200,
+      "content_length_bytes": 52713,
+      "duration_ms_approx": 44.84,
+      "server_wait_ms_approx": 34.19,
+      "total_items": 162,
+      "limit": 500,
+      "offset": 0
+    },
+    "operator_flow": {
+      "search": "PASS",
+      "filter": "PASS",
+      "select_two_channels": "PASS",
+      "reorder": "PASS",
+      "configuration_valid": "YES",
+      "save": "PASS",
+      "reopen": "PASS"
+    },
+    "generic_telemetry_latest_inventory_dependency": false,
+    "console_observation": "Unrelated equipment .../layout/published requests returned 404; they did not block the accepted Live Dashboard flow and no corrective change is included in #420."
   },
   "safety": {
     "database_migration": false,
@@ -123,5 +70,16 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Require GREEN CI on the complete evidence-preservation head, resolve all review threads after verification, confirm the focused five-file diff and unchanged main, merge PR #418, then run the fresh repository-backed Ready audit."
+  "merge_gate": {
+    "draft_pr": true,
+    "state_reconciliation_changes_head": true,
+    "required": "Fresh exact-head CI, Authenticated Dashboard and Offline Bundle checks must be GREEN before Ready transition and merge."
+  },
+  "preserved_lanes": {
+    "runtime_sequence": [369, 366, 289],
+    "version_management_ready": 389,
+    "chart_system_follow_up": 415,
+    "standalone_pi_validation": 245
+  },
+  "next_action": "Wait for exact-head checks on the state-reconciled PR #420 head, audit focused diff and review threads, mark Ready only if GREEN, merge #420, close #369, update main, then run a fresh repository-backed Ready audit."
 }
