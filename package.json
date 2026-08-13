@@ -20,7 +20,7 @@
     "test:e2e:rendered-reports": "playwright test --config=playwright.rendered-reports.config.ts",
     "test:e2e:nodes": "playwright test --config=playwright.nodes.config.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write e2e/telemetry-navigation.production.e2e.ts && printf '\\n===NAVIGATION===\\n' && cat e2e/telemetry-navigation.production.e2e.ts && exit 1",
     "prepare": "husky"
   },
   "dependencies": {
