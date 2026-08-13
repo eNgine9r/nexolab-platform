@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
-  "current_main_sha_semantics": "Issue #433 / PR #434 sensor enrollment and acquisition recovery merged; software verified, post-change Raspberry Pi acceptance pending",
+  "current_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
+  "current_main_sha_semantics": "Issue #433 merge reconciled by Issue #435 / PR #436; Issue #432 branch is based on this exact main",
   "selection_state": {
     "last_ready_audit_result": "After #433 merge, Issue #432 is the only open status:ready product package; #289 remains needs-validation pending #432 and final physical measurement.",
     "selected_issue": 432,
-    "selection_status": "selected_ready_after_433_merge"
+    "selection_status": "implementation_complete_pr_437_open_software_browser_verified"
   },
   "tasks": [
     {
@@ -163,10 +163,14 @@
     {
       "id": "NEXOLAB-432",
       "issue": 432,
+      "pull_request": 437,
       "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
-      "status": "ready_selected_after_433_merge",
+      "status": "implementation_complete_pr_open_software_browser_verified",
       "priority": "critical",
       "branch": "perf/432-route-prefetch-time-to-usable",
+      "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
+      "verification": "Review-corrected warm medians 201..398 ms; truthful Overview and Live library content, exact-path RSC prefetch, pre-navigation inventory laziness, zero warm loading transitions and post-warm read bounds pass; required local and exact-head gates GREEN",
+      "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
       "depends_on": [433]
     },
     {
@@ -213,16 +217,18 @@
   ],
   "active_work_package": {
     "issue": 432,
+    "pull_request": 437,
     "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
-    "status": "ready_selected_after_433_merge",
+    "status": "implementation_complete_pr_open_software_browser_verified",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "branch": "perf/432-route-prefetch-time-to-usable"
+    "branch": "perf/432-route-prefetch-time-to-usable",
+    "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266"
   },
   "next_ready_work_package": {
-    "issue": 432,
-    "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
-    "status": "selected_ready",
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "status": "needs_validation_after_432_merge",
     "priority": "critical"
   },
   "prepared_backlog": [
@@ -238,6 +244,11 @@
     }
   ],
   "verification": {
+    "issue_432_base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
+    "issue_432_evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
+    "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus 4 + 1 + 1 browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
+    "issue_432_exact_head_gates": "CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN on the corrected evidence head",
+    "issue_432_classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
     "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
     "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
     "issue_433_product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
@@ -261,6 +272,24 @@
     }
   },
   "runtime_evidence": {
+    "issue_432_warm_median_ms": {
+      "overview": 398,
+      "refrigeration": 231,
+      "energy": 273,
+      "live": 314,
+      "nodes": 306,
+      "sessions": 201
+    },
+    "issue_432_document_loads": 1,
+    "issue_432_loading_transitions": 0,
+    "issue_432_eager_channel_inventory_reads": 0,
+    "issue_432_eager_node_inventory_reads": 0,
+    "issue_432_websocket_max_concurrent": 1,
+    "issue_432_acquisition_mutations": 0,
+    "issue_432_product_code_changed": false,
+    "issue_432_offline_bundle_disconnected_runtime": true,
+    "issue_432_update_rollback_volume_preservation": true,
+    "issue_432_physical_raspberry_pi_acceptance": "pending_not_claimed",
     "issue_433_before_change_raspberry_pi_baseline": "captured read-only",
     "issue_433_post_change_raspberry_pi_acceptance": "not_performed_not_claimed",
     "issue_433_modbus_write": false,
@@ -283,7 +312,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Implement selected Ready Issue #432 evidence-first. After #432 is GREEN, reconciled and merged, reassess Issue #289 for final Raspberry Pi physical/performance acceptance.",
+  "next_selection_policy": "Review and merge focused PR #437, reconcile Issue #432, then reassess Issue #289 for final Raspberry Pi physical/performance acceptance.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
