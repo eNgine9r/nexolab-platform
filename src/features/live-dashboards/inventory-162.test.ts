@@ -74,7 +74,7 @@ describe("Raspberry Pi-sized Live Dashboard inventory", () => {
     const result = await loadLiveDashboardInventory(client);
 
     expect(result).toHaveLength(INVENTORY_SIZE);
-    expect(new Set(result.map((item) => item.key))).toHaveLength(INVENTORY_SIZE);
+    expect(new Set(result.map((item) => item.key)).size).toBe(INVENTORY_SIZE);
     expect(result.some((item) => item.quality === "valid")).toBe(true);
     expect(result.some((item) => item.quality === "sensor_error")).toBe(true);
     expect(result.some((item) => item.quality === "communication_error")).toBe(true);
