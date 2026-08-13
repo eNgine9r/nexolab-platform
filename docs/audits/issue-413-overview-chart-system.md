@@ -124,7 +124,7 @@ closed as completed.
 ## Follow-up UX
 
 Issue #415 records the Product Owner request for natural desktop left-button
- drag-to-pan on canonical charts. It is intentionally separate from #413 and
+drag-to-pan on canonical charts. It is intentionally separate from #413 and
 requires fresh Ready-audit selection before implementation.
 
 ## Safety boundary
