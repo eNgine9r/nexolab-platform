@@ -3,44 +3,24 @@
 Updated: 2026-08-13
 
 Canonical repository baseline on `main`:
-`28cbe0aa9552a43ed3069818c60ad218f350d0bf` — Issue #417 / PR #418
-post-#413 state reconciliation merged.
+`4a266d73c451e191f2fab683dd07aa4c02d17b7d` — Issue #369 / PR #420
+Raspberry Pi Live Dashboard inventory acceptance merged.
 
-## Active Work Package — Issue #369 / PR #420
+## Completed Work Package — Issue #369 / PR #420
 
-Issue #369 validates the canonical Live Dashboard channel inventory on the actual
-Raspberry Pi browser and adds deterministic 162-channel regression coverage.
+Issue #369 is completed and closed. PR #420 was squash-merged as
+`4a266d73c451e191f2fab683dd07aa4c02d17b7d`.
 
-Branch:
-`fix/369-live-dashboard-inventory-browser`
+Final PR head:
+`808ecc64c7e5f5282d666636eecb5b5efcd9657e`.
 
-Pre-state product/test head:
-`d037b732a8ae87a8d9f79f31cffeddde01a5eec9`.
+Final exact-head gates were GREEN:
 
-The PR product surface is test-only:
+- CI #2965;
+- Authenticated Dashboard Acceptance #1644;
+- Offline Bundle #1027.
 
-- `src/features/live-dashboards/inventory-162.test.ts`;
-- `src/components/live-dashboards/dashboard-editor-162.test.tsx`.
-
-No runtime/API schema, Device Agent, scheduler, registry, polling, Modbus or
-hardware-write behavior was changed.
-
-## Issue #369 automated evidence
-
-Exact-head gates on `d037b732a8ae87a8d9f79f31cffeddde01a5eec9` were GREEN:
-
-- CI #2961;
-- Authenticated Dashboard Acceptance #1640;
-- Offline Bundle #1023.
-
-The regression proves a realistic 162-channel canonical inventory loads through
-`/api/v1/live-dashboards/channel-inventory`, supports editor search/select/reorder/
-validation/save behavior, and does not use generic `/api/v1/telemetry/latest` as
-an inventory dependency.
-
-## Issue #369 Raspberry Pi browser acceptance
-
-Controlled LOCAL_LAN browser acceptance on the real Raspberry Pi runtime passed:
+Controlled Raspberry Pi / Chromium LOCAL_LAN acceptance passed:
 
 ```text
 inventory_http_status=200
@@ -56,54 +36,76 @@ reopen=PASS
 telemetry_latest_inventory_dependency=NO
 ```
 
-Observed request:
-`GET /api/v1/live-dashboards/channel-inventory?limit=500&offset=0`.
+The product/runtime implementation was unchanged by PR #420; the product diff
+added deterministic 162-channel regressions plus durable project-state updates.
+No Device Agent, scheduler, registry, polling, Modbus or hardware-write behavior
+changed.
 
-Browser preview showed `items[0..161]`, `limit: 500`, `offset: 0`, `total: 162`.
+The browser session also exposed repeated `.../layout/published` 404 requests.
+Repository code intentionally treats `layout_not_published` as an empty published
+layout, so this was not a #369 failure. The repeated read pattern is recorded as
+evidence for #366.
 
-The browser console also showed unrelated `404 Not Found` responses for equipment
-`.../layout/published` resources. They did not affect the Live Dashboard
-inventory/search/select/reorder/save/reopen acceptance and are not being hidden
-as a clean-console result.
+## Active Work Package — Issue #421
 
-Completion classification for the product acceptance:
+Issue #421 is a state-only reconciliation of the completed #369 merge and fresh
+Ready/dependency audit.
 
-```text
-software verified; Raspberry Pi browser verified
-```
+Branch:
+`chore/421-reconcile-issue-369-state`
 
-## Current merge state
+Permitted changes are exactly:
 
-PR #420 remains Draft while this durable `.project` reconciliation is added.
-Because state commits change the PR head, required exact-head checks must be GREEN
-again before Ready transition and merge.
+- `.project/CURRENT_STATE.md`;
+- `.project/ACTIVE_SPRINT.json`;
+- `.project/BLOCKERS.md`;
+- `.project/LAST_CHECKPOINT.json`.
 
-Issue #369 must remain open until PR #420 is GREEN and merged.
+No product/runtime code, workflow, dependency, database, telemetry or hardware
+change belongs in #421.
 
-## Preserved dependency lanes
+## Fresh Ready/dependency audit
 
-- Issue #366 remains blocked until #369 is merged; then its dependency state must
-  be re-audited before selection.
-- Issue #289 remains downstream of #366.
-- Issue #389 remains `status:ready` for administrator-only local Version
-  Management and is independent of the runtime sequence.
-- Issue #415 remains an open Chart System UX follow-up.
-- Issue #245 remains a separate Raspberry Pi validation track.
-- Issue #257 remains blocked.
-- Issue #256 remains deferred.
+The post-#369 repository-backed audit establishes:
+
+- Issue #368, the explicit dependency hold recorded on #366, is completed;
+- Issue #369 is completed and merged;
+- Issue #366 remains open with `priority:critical`;
+- existing branch `perf/366-monitoring-read-model-deduplication` has no feature
+  commits (`ahead_by=0`) and is only stale behind current `main`;
+- Issue #389 remains the only independently labeled `status:ready` package and is
+  `priority:high`;
+- Issue #289 remains downstream of #366;
+- open PRs are dependency-update lanes and do not block the critical runtime lane.
+
+Therefore the next product Work Package after #421 merges is **Issue #366 — Audit
+and deduplicate monitoring-route read models**.
+
+Before #366 implementation, fast-forward its empty feature branch to the
+reconciled `main`, then resume the evidence-first audit. Do not cache around
+telemetry/runtime defects and do not change acquisition behavior.
+
+## Preserved lanes
+
+- #366 — next critical product Work Package after #421 merge;
+- #289 — downstream of #366;
+- #389 — independent Ready/not selected administrator Version Management;
+- #415 — open Chart System UX follow-up;
+- #245 — separate Raspberry Pi standalone validation track;
+- #257 — blocked;
+- #256 — deferred.
 
 ## Safety boundary
 
 No Modbus write, hardware write, destructive database/volume operation,
 production/site cutover, mandatory cloud dependency or polling-policy change was
-performed by Issue #369.
+performed by #369 or #421.
 
 The `telemetry-service/libcjson1/CVE-2026-67216` exception still expires on
 2026-09-05.
 
 ## Next action
 
-Complete the four-file `.project` reconciliation on PR #420, require fresh
-exact-head GREEN CI/browser/offline gates, audit the focused diff and review
-threads, mark PR #420 Ready, merge it, close Issue #369, update `main`, then run a
-fresh repository-backed Ready audit before selecting the next Work Package.
+Complete #421 with a four-file focused diff and GREEN state-only CI, merge it,
+fast-forward `perf/366-monitoring-read-model-deduplication` to the reconciled
+`main`, move #366 out of its stale blocked state, and resume Issue #366.

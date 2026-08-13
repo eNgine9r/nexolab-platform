@@ -3,61 +3,74 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-369-LIVE-DASHBOARD-INVENTORY-BROWSER-ACCEPTANCE",
-  "status": "acceptance_pass_exact_head_recheck_pending",
-  "timestamp": "2026-08-13T09:36:00+03:00",
-  "branch": "fix/369-live-dashboard-inventory-browser",
-  "active_issue": 369,
-  "pull_request": 420,
-  "base_main_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf",
-  "pre_state_head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
-  "scope": {
-    "runtime_product_code_changed": false,
-    "test_files_added": [
-      "src/features/live-dashboards/inventory-162.test.ts",
-      "src/components/live-dashboards/dashboard-editor-162.test.tsx"
-    ],
-    "project_state_files_updated": [
+  "task": "ISSUE-421-POST-369-STATE-RECONCILIATION",
+  "status": "state_only_reconciliation_ci_pending",
+  "timestamp": "2026-08-13T09:52:00+03:00",
+  "branch": "chore/421-reconcile-issue-369-state",
+  "active_issue": 421,
+  "base_main_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
+  "completed_issue": {
+    "issue": 369,
+    "pull_request": 420,
+    "merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
+    "final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
+    "final_exact_head_gates": {
+      "ci": "#2965 GREEN",
+      "authenticated_dashboard": "#1644 GREEN",
+      "offline_bundle": "#1027 GREEN"
+    },
+    "hardware_acceptance": {
+      "classification": "PASS",
+      "runtime": "controlled Raspberry Pi LOCAL_LAN Chromium browser",
+      "inventory_request": {
+        "method": "GET",
+        "path": "/api/v1/live-dashboards/channel-inventory?limit=500&offset=0",
+        "host": "172.18.48.34:8082",
+        "status": 200,
+        "content_length_bytes": 52713,
+        "duration_ms_approx": 44.84,
+        "server_wait_ms_approx": 34.19,
+        "total_items": 162,
+        "limit": 500,
+        "offset": 0
+      },
+      "operator_flow": {
+        "search": "PASS",
+        "filter": "PASS",
+        "select_two_channels": "PASS",
+        "reorder": "PASS",
+        "configuration_valid": "YES",
+        "save": "PASS",
+        "reopen": "PASS"
+      },
+      "generic_telemetry_latest_inventory_dependency": false
+    },
+    "runtime_product_code_changed": false
+  },
+  "fresh_ready_audit": {
+    "selected_issue": 366,
+    "reason": "Issue #366 is priority:critical; its explicit #368 dependency hold is resolved and the preserved #369 acceptance prerequisite is now completed. Issue #389 remains independent priority:high Ready/not selected.",
+    "issue_366_branch": "perf/366-monitoring-read-model-deduplication",
+    "issue_366_branch_compare": {
+      "ahead_by": 0,
+      "behind_by": 23,
+      "status": "behind",
+      "merge_base": "6c0fe1a65521cfa48ab16fb582ed7df100673b9a"
+    },
+    "issue_389_status": "independent_status_ready_not_selected",
+    "issue_289_status": "downstream_pending_366"
+  },
+  "state_reconciliation": {
+    "issue": 421,
+    "permitted_files": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
       ".project/BLOCKERS.md",
       ".project/LAST_CHECKPOINT.json"
-    ]
-  },
-  "software_verification": {
-    "head": "d037b732a8ae87a8d9f79f31cffeddde01a5eec9",
-    "ci": "#2961 GREEN",
-    "authenticated_dashboard": "#1640 GREEN",
-    "offline_bundle": "#1023 GREEN",
-    "inventory_regression": "PASS: exactly 162 canonical inventory items, one dedicated channel-inventory request, zero generic telemetry/latest inventory requests",
-    "editor_regression": "PASS: render/search/select/reorder/valid/save workflow over 162 channels"
-  },
-  "hardware_acceptance": {
-    "classification": "PASS",
-    "runtime": "controlled Raspberry Pi LOCAL_LAN browser",
-    "inventory_request": {
-      "method": "GET",
-      "path": "/api/v1/live-dashboards/channel-inventory?limit=500&offset=0",
-      "host": "172.18.48.34:8082",
-      "status": 200,
-      "content_length_bytes": 52713,
-      "duration_ms_approx": 44.84,
-      "server_wait_ms_approx": 34.19,
-      "total_items": 162,
-      "limit": 500,
-      "offset": 0
-    },
-    "operator_flow": {
-      "search": "PASS",
-      "filter": "PASS",
-      "select_two_channels": "PASS",
-      "reorder": "PASS",
-      "configuration_valid": "YES",
-      "save": "PASS",
-      "reopen": "PASS"
-    },
-    "generic_telemetry_latest_inventory_dependency": false,
-    "console_observation": "Unrelated equipment .../layout/published requests returned 404; they did not block the accepted Live Dashboard flow and no corrective change is included in #420."
+    ],
+    "product_runtime_change": false,
+    "workflow_change": false,
+    "dependency_change": false
   },
   "safety": {
     "database_migration": false,
@@ -70,16 +83,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "merge_gate": {
-    "draft_pr": true,
-    "state_reconciliation_changes_head": true,
-    "required": "Fresh exact-head CI, Authenticated Dashboard and Offline Bundle checks must be GREEN before Ready transition and merge."
-  },
-  "preserved_lanes": {
-    "runtime_sequence": [369, 366, 289],
-    "version_management_ready": 389,
-    "chart_system_follow_up": 415,
-    "standalone_pi_validation": 245
-  },
-  "next_action": "Wait for exact-head checks on the state-reconciled PR #420 head, audit focused diff and review threads, mark Ready only if GREEN, merge #420, close #369, update main, then run a fresh repository-backed Ready audit."
+  "next_action": "Create a focused four-file PR for Issue #421, require GREEN state-only CI, merge it, fast-forward the empty #366 feature branch to reconciled main, move #366 out of stale blocked state and resume evidence-first implementation."
 }
