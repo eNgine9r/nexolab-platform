@@ -3,6 +3,10 @@ import { HttpRefrigerationLayoutRepository } from "@/features/refrigeration/http
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import type { RefrigerationLayoutRepository } from "@/features/refrigeration/layout-repository";
 import {
+  createCachedLayoutRepository,
+  createCachedRefrigerationEquipmentRepository,
+} from "@/features/refrigeration/refrigeration-structural-cache";
+import {
   createAuthenticatedFetch,
   type SecurityCredentialProvider,
 } from "@/features/security/security-session";
@@ -13,6 +17,7 @@ export type EquipmentLayoutsRuntime = {
   mode: "demo" | "live";
   equipmentRepository: RefrigerationEquipmentRepository | null;
   layoutRepository: RefrigerationLayoutRepository | null;
+  cacheScope: string | null;
   error: string | null;
 };
 
@@ -34,26 +39,34 @@ export function createEquipmentLayoutsRuntime(
         mode: "demo",
         equipmentRepository: null,
         layoutRepository: null,
+        cacheScope: null,
         error: "Каталог схем доступний лише в live mode і не підміняє відсутній API демонстраційними даними.",
       };
     }
 
+    const organizationId = normalizeOrganizationId(input.organizationId);
     const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
-    const credentialProvider =
-      input.credentialProvider ??
-      createRuntimeCredentialProvider(normalizeOrganizationId(input.organizationId));
+    const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
     const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
+    const cacheScope = `${config.apiBaseUrl}|${organizationId ?? "default"}`;
 
     return {
       mode: "live",
-      equipmentRepository: new HttpRefrigerationEquipmentRepository({
-        apiBaseUrl: config.apiBaseUrl,
-        fetchImpl: authenticatedFetch,
-      }),
-      layoutRepository: new HttpRefrigerationLayoutRepository({
-        apiBaseUrl: config.apiBaseUrl,
-        fetchImpl: authenticatedFetch,
-      }),
+      equipmentRepository: createCachedRefrigerationEquipmentRepository(
+        new HttpRefrigerationEquipmentRepository({
+          apiBaseUrl: config.apiBaseUrl,
+          fetchImpl: authenticatedFetch,
+        }),
+        cacheScope,
+      ),
+      layoutRepository: createCachedLayoutRepository(
+        new HttpRefrigerationLayoutRepository({
+          apiBaseUrl: config.apiBaseUrl,
+          fetchImpl: authenticatedFetch,
+        }),
+        cacheScope,
+      ),
+      cacheScope,
       error: null,
     };
   } catch (error) {
@@ -61,6 +74,7 @@ export function createEquipmentLayoutsRuntime(
       mode: input.mode === "live" ? "live" : "demo",
       equipmentRepository: null,
       layoutRepository: null,
+      cacheScope: null,
       error: error instanceof Error ? error.message : "Не вдалося налаштувати каталог схем обладнання.",
     };
   }
