@@ -63,21 +63,21 @@ Evidence class: **Repository fact**.
 
 ## Route/read-model inventory
 
-| Route / surface | Read model | Baseline owner | Baseline remount behavior | #366 classification |
-| --- | --- | --- | --- | --- |
-| Overview | latest telemetry + WebSocket | #314 route-persistent telemetry runtime | shared below route hook | keep existing owner |
-| Overview | equipment layout summary (`LabMap`) | Equipment Layouts hook + raw equipment/layout repositories | local items start empty; mount loads equipment then draft + published per equipment | proven cache bypass; reuse #357 + retain composed catalog |
-| Overview | active sessions panel | route-local `SessionApiClient.listSessions` | local state starts empty; polls every 10 s | pending exact-query cache/browser count |
-| Refrigeration | equipment catalog | raw `HttpRefrigerationEquipmentRepository` | local items load on mount | proven non-telemetry candidate; reuse #357 scope |
-| Refrigeration | lifecycle channels/bindings/images | #357 cached lifecycle repository | shared scope cache | keep existing owner |
-| Refrigeration | structural snapshot | #357 structural snapshot repository | shared scope cache | keep existing owner |
-| Energy | latest telemetry + WebSocket | #314 route-persistent telemetry runtime | shared below route hook | keep existing owner |
-| Energy | bounded selected-metric history | Energy route hook | route-owned bounded history | no generic cache migration without separate proof |
-| Live Data / Live Dashboard | selected telemetry | #314 route-persistent telemetry runtime | shared below route hook | keep existing owner |
-| Live Dashboard editor | canonical channel inventory | route-local inventory hook | local items start empty and canonical inventory reloads when editor remounts | proven warm-remount candidate; bounded retained inventory |
-| Live Dashboard library | dashboard definitions | route-local library hook | local list reset on effect/remount | pending browser count and mutation-invalidation integration |
-| Nodes | node list + per-node operational state | route-local Nodes workspace | local state starts empty; list + per-node operational reads on mount | pending route-cycle measurement; likely exact-query candidate |
-| Test Sessions | sessions list | route-local Sessions screen | local state starts empty; list call on mount/filter | pending route-cycle measurement; exact-query candidate |
+| Route / surface            | Read model                             | Baseline owner                                             | Baseline remount behavior                                                           | #366 classification                                           |
+| -------------------------- | -------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Overview                   | latest telemetry + WebSocket           | #314 route-persistent telemetry runtime                    | shared below route hook                                                             | keep existing owner                                           |
+| Overview                   | equipment layout summary (`LabMap`)    | Equipment Layouts hook + raw equipment/layout repositories | local items start empty; mount loads equipment then draft + published per equipment | proven cache bypass; reuse #357 + retain composed catalog     |
+| Overview                   | active sessions panel                  | route-local `SessionApiClient.listSessions`                | local state starts empty; polls every 10 s                                          | pending exact-query cache/browser count                       |
+| Refrigeration              | equipment catalog                      | raw `HttpRefrigerationEquipmentRepository`                 | local items load on mount                                                           | proven non-telemetry candidate; reuse #357 scope              |
+| Refrigeration              | lifecycle channels/bindings/images     | #357 cached lifecycle repository                           | shared scope cache                                                                  | keep existing owner                                           |
+| Refrigeration              | structural snapshot                    | #357 structural snapshot repository                        | shared scope cache                                                                  | keep existing owner                                           |
+| Energy                     | latest telemetry + WebSocket           | #314 route-persistent telemetry runtime                    | shared below route hook                                                             | keep existing owner                                           |
+| Energy                     | bounded selected-metric history        | Energy route hook                                          | route-owned bounded history                                                         | no generic cache migration without separate proof             |
+| Live Data / Live Dashboard | selected telemetry                     | #314 route-persistent telemetry runtime                    | shared below route hook                                                             | keep existing owner                                           |
+| Live Dashboard editor      | canonical channel inventory            | route-local inventory hook                                 | local items start empty and canonical inventory reloads when editor remounts        | proven warm-remount candidate; bounded retained inventory     |
+| Live Dashboard library     | dashboard definitions                  | route-local library hook                                   | local list reset on effect/remount                                                  | pending browser count and mutation-invalidation integration   |
+| Nodes                      | node list + per-node operational state | route-local Nodes workspace                                | local state starts empty; list + per-node operational reads on mount                | pending route-cycle measurement; likely exact-query candidate |
+| Test Sessions              | sessions list                          | route-local Sessions screen                                | local state starts empty; list call on mount/filter                                 | pending route-cycle measurement; exact-query candidate        |
 
 ## Physical browser evidence carried from Issue #369
 
