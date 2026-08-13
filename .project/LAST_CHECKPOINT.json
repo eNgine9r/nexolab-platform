@@ -3,14 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-433-SENSOR-ENROLLMENT-RECOVERY",
-  "status": "software_exact_head_verified_pending_review",
-  "timestamp": "2026-08-13T16:44:18+03:00",
-  "branch": "fix/433-sensor-enrollment-recovery",
-  "active_issue": 433,
-  "pull_request": 434,
-  "base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
-  "product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
+  "task": "ISSUE-435-POST-433-STATE-RECONCILIATION",
+  "status": "state_only_reconciliation_in_progress",
+  "timestamp": "2026-08-13T17:06:00+03:00",
+  "branch": "chore/435-reconcile-issue-433-state",
+  "active_issue": 435,
+  "base_main_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
+  "completed_issue": {
+    "issue": 433,
+    "pull_request": 434,
+    "final_pr_head": "236019f9929aa230ff1f2f6ff0954ecee3bde6f1",
+    "merge_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
+    "classification": "software verified; post-change Raspberry Pi sensor enrollment/recovery acceptance pending"
+  },
   "local_verification": {
     "focused_device_agent": "30 PASS",
     "complete_device_agent": "120 PASS",
@@ -21,30 +26,20 @@
     "typecheck": "PASS",
     "production_build": "PASS"
   },
-  "implementation": {
-    "late_enrollment": "atomic audited discovery_only FC03 inventory",
-    "discovery_polling_delta": 0,
-    "activation": "existing mutation plus live scheduler reconciliation",
-    "diagnostics": "bounded target attempt/success/failure/cooldown/recovery state",
-    "first_sample_ui": "truthful initializing state",
-    "polling_policy_changed": false,
-    "retry_policy_changed": false
-  },
-  "hardware_evidence": {
-    "before_change_raspberry_pi_baseline": "captured read-only at base main SHA",
-    "post_change_raspberry_pi_acceptance": "not_performed_not_claimed"
-  },
   "exact_head_verification": {
     "status": "green",
     "passed_checks": 15,
     "intentional_skips": 1,
-    "ci_quality_build": "PASS",
-    "device_agent_image": "PASS",
-    "scheduler_scale": "PASS",
-    "acquisition_invariant": "PASS",
-    "secure_fleet_and_tls_recovery": "PASS",
-    "offline_bundle_disconnected_runtime": "PASS",
-    "offline_bundle_persistent_data_preservation": "PASS"
+    "offline_bundle_disconnected_runtime": "PASS"
+  },
+  "hardware_evidence": {
+    "before_change_raspberry_pi_baseline": "captured read-only",
+    "post_change_raspberry_pi_acceptance": "not_performed_not_claimed"
+  },
+  "ready_audit": {
+    "open_status_ready_count": 1,
+    "selected_issue": 432,
+    "issue_289": "needs_validation_pending_432_and_final_physical_measurement"
   },
   "safety": {
     "modbus_write": "none",
@@ -55,6 +50,6 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Complete focused review and merge draft PR #434 after the final state-only tip is GREEN; then reconcile the merge before resuming Ready Issue #432.",
-  "resume_instruction": "Continue Issue #433 PR #434 review/merge; product head 1c138d0c is exact-head GREEN. Do not claim post-change Raspberry Pi acceptance. Resume Ready Issue #432 only after #433 is merged and post-merge state is reconciled."
+  "next_action": "Merge focused state-only Issue #435 reconciliation, then start selected Ready Issue #432 from current main.",
+  "resume_instruction": "Complete Issue #435 state-only reconciliation. After merge, fast-forward perf/432-route-prefetch-time-to-usable to current main and implement Issue #432 evidence-first."
 }
