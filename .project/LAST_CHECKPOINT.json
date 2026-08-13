@@ -5,7 +5,7 @@
   "sprint": "ENGINEERING-HARDENING-1",
   "task": "ISSUE-417-POST-413-STATE-RECONCILIATION",
   "status": "state_only_reconciliation_review_fix_ci_pending",
-  "timestamp": "2026-08-13T06:34:00+03:00",
+  "timestamp": "2026-08-13T06:39:00+03:00",
   "branch": "chore/417-reconcile-issue-413-state",
   "active_issue": 417,
   "base_main_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
@@ -26,7 +26,9 @@
       "target": {
         "channel": "126-04",
         "metric": "temperature.probe",
-        "source": "dixell-xjp60d"
+        "source": "dixell-xjp60d",
+        "real_events_10m": 120,
+        "valid_samples_24h": 16594
       },
       "equal_duration_acquisition": {
         "window_seconds": 60,
@@ -102,8 +104,8 @@
     ],
     "product_runtime_change": false,
     "workflow_change": false,
-    "review_blocker": "P1 request to preserve raw #413 hardware evidence",
-    "review_blocker_resolution": "exact acquisition counters, control-plane deltas and real event IDs/timestamps restored in audit and checkpoint"
+    "review_blocker": "P1 requests to preserve complete raw #413 hardware evidence",
+    "review_blocker_resolution": "exact series volume, acquisition counters, control-plane deltas and real event IDs/timestamps restored in audit and checkpoint"
   },
   "preserved_lanes": {
     "runtime_sequence": [369, 366, 289],
@@ -121,5 +123,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Require GREEN CI on the review-fix head, resolve the P1 review thread after verifying the preserved evidence, confirm the focused five-file diff and unchanged main, merge PR #418, then run the fresh repository-backed Ready audit."
+  "next_action": "Require GREEN CI on the complete evidence-preservation head, resolve all review threads after verification, confirm the focused five-file diff and unchanged main, merge PR #418, then run the fresh repository-backed Ready audit."
 }
