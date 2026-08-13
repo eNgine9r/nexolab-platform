@@ -43,9 +43,10 @@ passed CI #2942, Authenticated Dashboard #1630, Refrigeration #1604 and Offline
 Bundle #1013.
 
 Controlled Raspberry Pi acceptance used real channel `126-04`, metric
-`temperature.probe`, source `dixell-xjp60d`. It proved real-series history
-continuity and unchanged acquisition/control-plane behavior, but exposed one
-visual defect:
+`temperature.probe`, source `dixell-xjp60d`, with 120 real events in the
+preceding 10 minutes and 16,594 valid samples in the preceding 24 hours. It
+proved real-series history continuity and unchanged acquisition/control-plane
+behavior, but exposed one visual defect:
 
 ```text
 cursor_vertical_jump=YES
