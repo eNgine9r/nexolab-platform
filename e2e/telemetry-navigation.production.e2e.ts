@@ -96,7 +96,7 @@ async function navigateAndMeasure(
   usableContent: Locator,
 ): Promise<number> {
   const startedAt = Date.now();
-  await page.getByRole("link", { name: linkName, exact: true }).click();
+  await page.getByLabel("Головна навігація").getByRole("link", { name: linkName, exact: true }).click();
   await expect(page).toHaveURL(expectedPath);
   await expect(usableContent).toBeVisible();
   return Date.now() - startedAt;
