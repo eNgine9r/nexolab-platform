@@ -110,6 +110,8 @@ async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
   if (route === "overview") {
     await expect(page.getByRole("heading", { name: "XJP60D температури", exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Стан live telemetry" })).not.toContainText("Connecting");
+    await expect(page.getByText("edge-live-01", { exact: true })).toBeVisible();
+    await expect(page.getByText(/°C/).first()).toBeVisible();
     return;
   }
   if (route === "refrigeration") {
@@ -357,6 +359,15 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     await page.waitForTimeout(500);
     const preNavigationApiReadCounts = apiReadCounts(requests.apiReads);
     const preNavigationRouteResources = await routeResourceTimings(page);
+    for (const route of canonicalRoutes.slice(1)) {
+      expect(
+        preNavigationRouteResources.some((resource) => {
+          const url = new URL(resource.url);
+          return url.pathname === route.href && url.searchParams.has("_rsc");
+        }),
+        `expected an automatic RSC prefetch for ${route.href} before its first navigation`,
+      ).toBe(true);
+    }
     expect(
       apiReadCount(
         requests.apiReads,
