@@ -112,7 +112,10 @@ function apiReadCounts(requests: ApiReadEvidence[]): Record<string, number> {
   return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)));
 }
 
-function apiReadCount(requests: ApiReadEvidence[], predicate: (request: ApiReadEvidence) => boolean): number {
+function apiReadCount(
+  requests: ApiReadEvidence[],
+  predicate: (request: ApiReadEvidence) => boolean,
+): number {
   return requests.filter(predicate).length;
 }
 
@@ -190,17 +193,26 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/equipment",
     );
-    const layoutDraftReads = apiReadCount(requests.apiReads, (request) => apiPath(request).endsWith("/layout/draft"));
+    const layoutDraftReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request).endsWith("/layout/draft"),
+    );
     const layoutPublishedReads = apiReadCount(
       requests.apiReads,
       (request) => apiPath(request).endsWith("/layout/published"),
     );
-    const nodeListReads = apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/nodes");
+    const nodeListReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request) === "/api/v1/nodes",
+    );
     const nodeOperationalReads = apiReadCount(
       requests.apiReads,
       (request) => apiPath(request).endsWith("/operational-state"),
     );
-    const sessionListReads = apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/sessions");
+    const sessionListReads = apiReadCount(
+      requests.apiReads,
+      (request) => apiPath(request) === "/api/v1/sessions",
+    );
     const liveDashboardInventoryReads = apiReadCount(
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
@@ -224,7 +236,15 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       `${JSON.stringify(
         {
           organizationId,
-          routeSequence: ["overview", "refrigeration", "energy", "live", "nodes", "sessions", "overview"],
+          routeSequence: [
+            "overview",
+            "refrigeration",
+            "energy",
+            "live",
+            "nodes",
+            "sessions",
+            "overview",
+          ],
           routeDurationsMs,
           latestRequests: countRequests(requests.telemetry, "/latest"),
           historyRequests: countRequests(requests.telemetry, "/history"),
