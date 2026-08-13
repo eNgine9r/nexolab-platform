@@ -51,8 +51,12 @@ describe("monitoring read-model cache", () => {
   it("serves a fresh value without another request", async () => {
     const loader = vi.fn().mockResolvedValue("first");
 
-    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe("first");
-    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe("first");
+    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe(
+      "first",
+    );
+    await expect(readMonitoringReadModel(scope, "sessions:list", loader, options)).resolves.toBe(
+      "first",
+    );
 
     expect(loader).toHaveBeenCalledTimes(1);
     expect(peekMonitoringReadModel<string>(scope, "sessions:list", options)).toMatchObject({
@@ -67,7 +71,9 @@ describe("monitoring read-model cache", () => {
     vi.advanceTimersByTime(1_500);
 
     const refreshed = vi.fn().mockResolvedValue("v2");
-    await expect(readMonitoringReadModel(scope, "layouts:catalog", refreshed, options)).resolves.toBe("v1");
+    await expect(readMonitoringReadModel(scope, "layouts:catalog", refreshed, options)).resolves.toBe(
+      "v1",
+    );
     await Promise.resolve();
     await Promise.resolve();
 
@@ -125,7 +131,12 @@ describe("monitoring read-model cache", () => {
 
   it("clears organization-scoped data deterministically", async () => {
     await readMonitoringReadModel(scope, "nodes:list", () => Promise.resolve(["edge-01"]), options);
-    await readMonitoringReadModel("http://nexolab.local|org-b", "nodes:list", () => Promise.resolve(["edge-02"]), options);
+    await readMonitoringReadModel(
+      "http://nexolab.local|org-b",
+      "nodes:list",
+      () => Promise.resolve(["edge-02"]),
+      options,
+    );
 
     clearMonitoringReadModelScope(scope);
 
