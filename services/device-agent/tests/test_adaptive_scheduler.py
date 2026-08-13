@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from acquisition_registry import (
     AcquisitionRegistry,
+    DeviceLifecycleMutation,
     LifecycleMutation,
     build_initial_document,
 )
@@ -242,6 +243,51 @@ class AdaptiveSchedulerTests(unittest.TestCase):
         )
         self.assertNotIn("xjp60d:106-01", targets)
 
+    def test_enrollment_adds_no_job_until_explicit_running_activation(self) -> None:
+        current = registry(self.database_path)
+        enrolled_document, _ = current.with_xjp60d_enrollment((126,))
+        enrolled = AcquisitionRegistry(enrolled_document)
+        harness = SchedulerHarness(enrolled, self.database_path)
+
+        self.assertNotIn(
+            "xjp60d:126-04",
+            {item["target_id"] for item in harness.scheduler.snapshot()["targets"]},
+        )
+
+        active_document, _ = enrolled.with_mutations(
+            device_mutations=(
+                DeviceLifecycleMutation("xjp60d-126", "active"),
+            ),
+            target_mutations=(
+                LifecycleMutation("xjp60d:126-04", "active"),
+            ),
+        )
+        harness.scheduler.reconcile(AcquisitionRegistry(active_document))
+        targets = {
+            item["target_id"]: item
+            for item in harness.scheduler.snapshot()["targets"]
+        }
+
+        self.assertIn("xjp60d:126-04", targets)
+        self.assertGreater(targets["xjp60d:126-04"]["next_due_in_seconds"], 0)
+        self.assertLessEqual(targets["xjp60d:126-04"]["next_due_in_seconds"], 1)
+
+        harness.clock.advance(1)
+        for _ in range(len(targets)):
+            if "xjp60d:126-04" in harness.calls:
+                break
+            self.assertTrue(harness.scheduler.run_once("rs485-main"))
+        self.assertIn("xjp60d:126-04", harness.calls)
+        diagnostic = next(
+            item
+            for item in harness.scheduler.target_diagnostics(
+                device_family="xjp60d"
+            )
+            if item["target_id"] == "xjp60d:126-04"
+        )
+        self.assertEqual(diagnostic["state"], "valid")
+        self.assertEqual(diagnostic["outcomes"]["attempts"], 1)
+
     def test_priority_and_bounded_low_fairness(self) -> None:
         current = registry(
             self.database_path,
@@ -381,6 +427,48 @@ class AdaptiveSchedulerTests(unittest.TestCase):
         self.assertEqual(item["last_attempt_at"], failure_at)
         self.assertEqual(item["quality"], "communication_error")
         self.assertEqual(item["last_error"], "timeout")
+        self.assertEqual(item["attempts_total"], 2)
+        self.assertEqual(item["successes_total"], 1)
+        self.assertEqual(item["communication_failures_total"], 1)
+        self.assertEqual(item["consecutive_failures"], 1)
+
+    def test_target_diagnostics_distinguish_initial_failure_and_recovery(self) -> None:
+        current = registry(
+            self.database_path,
+            active_target_ids={"xjp60d:106-03"},
+        )
+        harness = SchedulerHarness(current, self.database_path)
+        target = harness.scheduler._jobs[  # noqa: SLF001
+            "xjp60d:106-03"
+        ].target
+
+        initial = harness.scheduler.target_diagnostics(
+            device_family="xjp60d"
+        )[0]
+        self.assertEqual(initial["state"], "initializing")
+        self.assertEqual(initial["outcomes"]["attempts"], 0)
+
+        harness.store.record_attempt(
+            target,
+            failure_result(target, "2026-08-05T00:00:00+00:00"),
+        )
+        failing = harness.scheduler.target_diagnostics(
+            device_family="xjp60d"
+        )[0]
+        self.assertEqual(failing["state"], "communication_error")
+        self.assertEqual(failing["recovery_state"], "failing")
+        self.assertEqual(failing["consecutive_failures"], 1)
+
+        harness.store.record_attempt(
+            target,
+            success_result(target, "2026-08-05T00:00:05+00:00"),
+        )
+        recovered = harness.scheduler.target_diagnostics(
+            device_family="xjp60d"
+        )[0]
+        self.assertEqual(recovered["state"], "valid")
+        self.assertEqual(recovered["recovery_state"], "recovered")
+        self.assertEqual(recovered["consecutive_failures"], 0)
 
     def test_restart_uses_latest_attempt_and_staggers_startup(self) -> None:
         current = registry(

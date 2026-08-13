@@ -47,6 +47,19 @@ class LatestValueStore:
                 (target.target_id,),
             ).fetchone()
             previous = json.loads(str(row[0])) if row else {}
+            attempts_total = int(previous.get("attempts_total", 0)) + 1
+            successes_total = int(previous.get("successes_total", 0))
+            communication_failures_total = int(
+                previous.get("communication_failures_total", 0)
+            )
+            consecutive_failures = int(
+                previous.get("consecutive_failures", 0)
+            )
+            if result.communication_failed:
+                communication_failures_total += 1
+                consecutive_failures += 1
+            else:
+                successes_total += 1
             payload = {
                 **previous,
                 "target_id": target.target_id,
@@ -64,11 +77,17 @@ class LatestValueStore:
                 "last_error": (
                     result.error if result.communication_failed else None
                 ),
+                "attempts_total": attempts_total,
+                "successes_total": successes_total,
+                "communication_failures_total": communication_failures_total,
+                "consecutive_failures": consecutive_failures,
             }
             last_success = (
                 str(row[1]) if row and row[1] is not None else None
             )
             if not result.communication_failed:
+                if consecutive_failures > 0:
+                    payload["last_recovered_at"] = record.captured_at
                 payload.update(
                     value=record.value,
                     captured_at=record.captured_at,
@@ -76,6 +95,7 @@ class LatestValueStore:
                     alarm=record.alarm,
                     raw_value=record.raw_value,
                     raw_status=record.raw_status,
+                    consecutive_failures=0,
                 )
                 last_success = record.captured_at
             payload_json = json.dumps(
@@ -115,6 +135,29 @@ class LatestValueStore:
             str(target_id): str(last_attempt)
             for target_id, last_attempt in rows
         }
+
+    def payloads_for(
+        self,
+        target_ids: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        if not target_ids:
+            return {}
+        result: dict[str, dict[str, Any]] = {}
+        with self._lock:
+            for offset in range(0, len(target_ids), 500):
+                batch = target_ids[offset : offset + 500]
+                placeholders = ",".join("?" for _ in batch)
+                rows = self._connection.execute(
+                    f"""
+                    SELECT target_id, payload
+                    FROM acquisition_latest_values
+                    WHERE target_id IN ({placeholders})
+                    """,
+                    batch,
+                ).fetchall()
+                for target_id, payload in rows:
+                    result[str(target_id)] = json.loads(str(payload))
+        return result
 
     def summary(self) -> dict[str, Any]:
         with self._lock:

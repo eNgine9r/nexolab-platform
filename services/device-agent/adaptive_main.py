@@ -66,9 +66,14 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         self,
         points: tuple[tuple[int, int], ...],
     ) -> dict[str, Any]:
-        result = super().replace_active_points(points)
+        super().replace_active_points(points)
         self.scheduler.reconcile(self._registry_snapshot())
-        return result
+        return self.configuration()
+
+    def discover_xjp60d(self) -> dict[str, Any]:
+        result = super().discover_xjp60d()
+        self.scheduler.reconcile(self._registry_snapshot())
+        return {**self.configuration(), "last_discovery": result["last_discovery"]}
 
     def update_registry(
         self,
@@ -79,6 +84,16 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         result = super().update_registry(payload, actor=actor)
         self.scheduler.reconcile(self._registry_snapshot())
         return result
+
+    def configuration(self) -> dict[str, Any]:
+        payload = super().configuration()
+        scheduler = getattr(self, "scheduler", None)
+        payload["target_diagnostics"] = (
+            scheduler.target_diagnostics(device_family="xjp60d")
+            if scheduler is not None
+            else []
+        )
+        return payload
 
     @staticmethod
     def _source_for(target: SchedulerTarget) -> str:

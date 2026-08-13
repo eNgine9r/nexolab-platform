@@ -15,6 +15,7 @@ from xjp60d import PROBE_REGISTERS
 SCHEMA_VERSION = 1
 BUS_ID = "rs485-main"
 READ_FUNCTION = 3
+XJP60D_PROFILE_VERSION = "dixell-xjp60d-fc03-v1"
 LIFECYCLES = frozenset(
     {
         "active",
@@ -216,7 +217,7 @@ def _xjp_target(unit_id: int, channel: int, lifecycle: str) -> RegistryTarget:
         telemetry_channel_id=channel_id,
         metric="temperature.probe",
         unit="degC",
-        profile_version="dixell-xjp60d-fc03-v1",
+        profile_version=XJP60D_PROFILE_VERSION,
         lifecycle=lifecycle,
         function=READ_FUNCTION,
         addresses=(value_address, status_address),
@@ -278,7 +279,7 @@ def build_initial_document(
                 bus_id=BUS_ID,
                 device_family="xjp60d",
                 unit_id=unit_id,
-                profile_version="dixell-xjp60d-fc03-v1",
+                profile_version=XJP60D_PROFILE_VERSION,
                 lifecycle="active" if device_active else "discovery_only",
             )
         )
@@ -488,6 +489,92 @@ class AcquisitionRegistry:
         )
         return _validate_document(document), changes
 
+    def with_xjp60d_enrollment(
+        self,
+        unit_ids: Iterable[int],
+        *,
+        profile_version: str = XJP60D_PROFILE_VERSION,
+    ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        if profile_version != XJP60D_PROFILE_VERSION:
+            raise ValueError(
+                f"Unsupported XJP60D profile: {profile_version!r}"
+            )
+        requested_values = tuple(unit_ids)
+        if any(
+            not isinstance(unit_id, int) or isinstance(unit_id, bool)
+            for unit_id in requested_values
+        ):
+            raise ValueError("XJP60D Modbus Unit IDs must be integers")
+        requested = set(requested_values)
+        if any(not 1 <= unit_id <= 247 for unit_id in requested):
+            raise ValueError("Invalid XJP60D Modbus Unit ID")
+
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in self.document.devices
+        }
+        additions: list[int] = []
+        for unit_id in sorted(requested):
+            existing = existing_by_identity.get((BUS_ID, unit_id))
+            if existing is None:
+                additions.append(unit_id)
+                continue
+            if (
+                existing.device_family != "xjp60d"
+                or existing.profile_version != XJP60D_PROFILE_VERSION
+            ):
+                raise ValueError(
+                    f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}"
+                )
+
+        if not additions:
+            return self.document, []
+
+        devices = list(self.document.devices)
+        targets = list(self.document.targets)
+        changes: list[dict[str, str]] = []
+        for unit_id in additions:
+            device_id = f"xjp60d-{unit_id}"
+            devices.append(
+                RegistryDevice(
+                    device_id=device_id,
+                    bus_id=BUS_ID,
+                    device_family="xjp60d",
+                    unit_id=unit_id,
+                    profile_version=XJP60D_PROFILE_VERSION,
+                    lifecycle="discovery_only",
+                )
+            )
+            changes.append(
+                {
+                    "entity": "device",
+                    "id": device_id,
+                    "from": "absent",
+                    "to": "discovery_only",
+                }
+            )
+            for channel in range(1, 7):
+                target = _xjp_target(unit_id, channel, "discovery_only")
+                targets.append(target)
+                changes.append(
+                    {
+                        "entity": "target",
+                        "id": target.target_id,
+                        "from": "absent",
+                        "to": "discovery_only",
+                    }
+                )
+
+        document = RegistryDocument(
+            schema_version=SCHEMA_VERSION,
+            revision=self.document.revision + 1,
+            buses=self.document.buses,
+            devices=tuple(devices),
+            targets=tuple(targets),
+            updated_at=_now(),
+        )
+        return _validate_document(document), changes
+
 
 class AcquisitionRegistryStore:
     def __init__(self, database_path: Path) -> None:
@@ -604,6 +691,82 @@ class AcquisitionRegistryStore:
             device_mutations=device_mutations,
             target_mutations=target_mutations,
         )
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                row = self._connection.execute(
+                    "SELECT revision FROM acquisition_registry_state WHERE singleton = 1"
+                ).fetchone()
+                database_revision = int(row[0]) if row else 0
+                if database_revision != expected_revision:
+                    raise RegistryRevisionConflict(
+                        f"Expected revision {expected_revision}, database revision is {database_revision}"
+                    )
+                self._connection.execute(
+                    """
+                    UPDATE acquisition_registry_state
+                    SET schema_version = ?, revision = ?, document = ?, updated_at = ?
+                    WHERE singleton = 1 AND revision = ?
+                    """,
+                    (
+                        document.schema_version,
+                        document.revision,
+                        document_to_json(document),
+                        document.updated_at,
+                        expected_revision,
+                    ),
+                )
+                self._connection.execute(
+                    """
+                    INSERT INTO acquisition_registry_audit(
+                        revision, actor, reason, changes, changed_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        document.revision,
+                        normalized_actor,
+                        normalized_reason,
+                        json.dumps(
+                            changes,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ),
+                        document.updated_at,
+                    ),
+                )
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+        return AcquisitionRegistry(document)
+
+    def enroll_xjp60d(
+        self,
+        registry: AcquisitionRegistry,
+        *,
+        expected_revision: int,
+        unit_ids: Iterable[int],
+        actor: str,
+        reason: str,
+        profile_version: str = XJP60D_PROFILE_VERSION,
+    ) -> AcquisitionRegistry:
+        normalized_actor = actor.strip()[:200]
+        normalized_reason = reason.strip()[:500]
+        if not normalized_actor:
+            raise ValueError("Registry enrollment actor is required")
+        if not normalized_reason:
+            raise ValueError("Registry enrollment reason is required")
+        if expected_revision != registry.revision:
+            raise RegistryRevisionConflict(
+                f"Expected revision {expected_revision}, current revision is {registry.revision}"
+            )
+        document, changes = registry.with_xjp60d_enrollment(
+            unit_ids,
+            profile_version=profile_version,
+        )
+        if not changes:
+            return registry
+
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
             try:

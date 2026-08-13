@@ -2,25 +2,26 @@
 
 Updated: 2026-08-13
 
-## Issue #389 / PR #429 — completed, no software blocker
+## Issue #433 — locally verified, exact-head workflows pending
 
-Final exact head `a12c90968c736839991b88237033ee950c9ba707` passed 21/21
-triggered workflows. PR #429 is squash-merged as
-`83c77c934ed0c3356752dc11ce98247f243fa659`; Issue #389 is closed.
+The implementation has no local software blocker. Focused and complete Device
+Agent/frontend suites, formatting, lint, typecheck and production build pass.
+The focused PR and its exact-head GitHub/offline/browser gates remain pending.
 
-Physical Raspberry Pi update/rollback acceptance remains pending separately and
-is not claimed by the software merge.
+Post-change Raspberry Pi enrollment/recovery acceptance was not performed and
+is not claimed. Any physical unplug/replug or sensor manipulation remains a
+separate explicit user-assisted step.
 
-## Issue #430 — active state-only reconciliation
+## Issue #432 — ready after #433
 
-Only the focused four-file post-merge state update remains. No product/runtime
-change is permitted.
+Issue #432 remains `status:ready` and is sequenced after #433 is GREEN,
+reconciled and merged. Do not mix its navigation/performance scope into #433.
 
 ## Ready/dependency audit
 
-- No open Issue currently has `status:ready`.
-- Issue #289 remains `status:needs-validation` pending a separately scoped #356
-  route-prefetch/time-to-usable child and final physical measurement.
+- Issue #432 is the selected next Ready package after #433.
+- Issue #289 remains `status:needs-validation` pending #432 and final physical
+  measurement.
 - Issue #415 remains an unselected Chart System UX follow-up.
 - Issue #245 remains a separate Raspberry Pi validation track.
 - Issue #257 remains blocked; Issue #256 remains deferred.

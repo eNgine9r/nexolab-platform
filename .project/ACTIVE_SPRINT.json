@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
-  "current_main_sha_semantics": "Issue #389 / PR #429 safe local version management merged after 21/21 GREEN exact-head workflows",
+  "current_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
+  "current_main_sha_semantics": "Issue #430 / PR #431 post-#389 state reconciliation merged",
   "selection_state": {
-    "last_ready_audit_result": "After #366 merge, #289 remains needs-validation pending a focused #356 route-prefetch/time-to-usable child and final hardware matrix. #389 is the only independently labeled Ready package.",
-    "selected_issue": 389,
-    "selection_status": "no_open_status_ready_after_389_merge"
+    "last_ready_audit_result": "Issue #433 critical acquisition correctness defect is selected before prepared Ready Issue #432; #289 remains needs-validation pending #432 and final hardware measurement.",
+    "selected_issue": 433,
+    "selection_status": "critical_interrupt_in_progress_before_432"
   },
   "tasks": [
     {
@@ -153,10 +153,31 @@
     {
       "id": "NEXOLAB-430",
       "issue": 430,
+      "pull_request": 431,
       "title": "Reconcile Issue #389 merge and post-merge Ready audit",
-      "status": "in_progress_state_only",
+      "status": "completed_merged",
       "priority": "high",
-      "branch": "chore/430-reconcile-issue-389-state"
+      "branch": "chore/430-reconcile-issue-389-state",
+      "merge_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c"
+    },
+    {
+      "id": "NEXOLAB-432",
+      "issue": 432,
+      "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
+      "status": "ready_after_433_merge",
+      "priority": "critical",
+      "branch": "perf/432-route-prefetch-time-to-usable",
+      "depends_on": [433]
+    },
+    {
+      "id": "NEXOLAB-433",
+      "issue": 433,
+      "title": "Make sensor enrollment and acquisition recovery self-healing",
+      "status": "implementation_locally_verified_pending_exact_head_ci",
+      "priority": "critical",
+      "branch": "fix/433-sensor-enrollment-recovery",
+      "depends_on": [284, 285, 378],
+      "verification": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS; post-change Raspberry Pi acceptance not performed"
     },
     {
       "id": "NEXOLAB-415",
@@ -187,18 +208,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 430,
-    "title": "Reconcile Issue #389 merge and post-merge Ready audit",
-    "status": "in_progress_state_only",
-    "priority": "high",
+    "issue": 433,
+    "title": "Make sensor enrollment and acquisition recovery self-healing",
+    "status": "implementation_locally_verified_pending_exact_head_ci",
+    "priority": "critical",
     "assignee": "eNgine9r",
-    "branch": "chore/430-reconcile-issue-389-state"
+    "branch": "fix/433-sensor-enrollment-recovery"
   },
   "next_ready_work_package": {
-    "issue": null,
-    "title": "No open status:ready product package after Issue #389 merge",
-    "status": "none_found_by_post_389_audit",
-    "priority": null
+    "issue": 432,
+    "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
+    "status": "ready_after_433_merge",
+    "priority": "critical"
   },
   "prepared_backlog": [
     {
@@ -213,6 +234,10 @@
     }
   ],
   "verification": {
+    "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
+    "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
+    "issue_433_exact_head_gates": "pending push and focused pull request",
+    "issue_433_classification": "software locally verified; post-change Raspberry Pi acceptance not performed",
     "issue_389_final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
     "issue_389_merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
     "issue_389_final_gates": "21/21 exact-head workflows GREEN including CI #3014, Telemetry service #1539, Offline Auth #404 and Offline Bundle #1070",
@@ -229,6 +254,12 @@
     }
   },
   "runtime_evidence": {
+    "issue_433_before_change_raspberry_pi_baseline": "captured read-only",
+    "issue_433_post_change_raspberry_pi_acceptance": "not_performed_not_claimed",
+    "issue_433_modbus_write": false,
+    "issue_433_hardware_write": false,
+    "issue_433_polling_policy_change": false,
+    "issue_433_discovery_only_polling_delta": 0,
     "issue_389_offline_bundle_disconnected_runtime": true,
     "issue_389_update_rollback_volume_preservation": true,
     "issue_389_physical_raspberry_pi_acceptance": "pending",
@@ -245,7 +276,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Complete state-only #430. No Ready product package is selected. Define a separate focused #356 route-prefetch/time-to-usable child before #289 can leave needs-validation or begin final hardware/performance acceptance.",
+  "next_selection_policy": "Complete exact-head verification and focused review for critical Issue #433. After #433 is GREEN, reconciled and merged, resume prepared Ready Issue #432 before #289 final physical/performance acceptance.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",

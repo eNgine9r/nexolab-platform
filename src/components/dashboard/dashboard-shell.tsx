@@ -183,6 +183,7 @@ export function DashboardShell() {
                   historyError={telemetry.historyError}
                   onHistoryRangeChange={telemetry.setHistoryRange}
                   onHistoryRetry={telemetry.retryHistory}
+                  targetDiagnostics={sensorManagement.configuration?.target_diagnostics ?? []}
                 />
               </Panel>
               <Panel

@@ -30,11 +30,31 @@ export type Xjp60dDiscoveryResult = {
   controller_errors: Array<{ unit_id: number; message: string }>;
 };
 
+export type Xjp60dTargetDiagnostic = {
+  target_id: string;
+  channel_id: string;
+  state: "initializing" | "valid" | "sensor_error" | "communication_error" | "unknown";
+  recovery_state: "initializing" | "steady" | "failing" | "cooldown" | "recovered";
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_error: string | null;
+  consecutive_failures: number;
+  cooldown: boolean;
+  cooldown_remaining_seconds: number;
+  next_due_in_seconds: number;
+  outcomes: {
+    attempts: number;
+    successes: number;
+    communication_failures: number;
+  };
+};
+
 export type Xjp60dConfiguration = {
   node_id: string;
   active_points: string[];
   discovery_units: number[];
   last_discovery: Xjp60dDiscoveryResult | null;
+  target_diagnostics: Xjp60dTargetDiagnostic[];
 };
 
 export type Xjp60dSensorManagement = {
@@ -85,6 +105,43 @@ function writeCachedPoints(organizationId: string | null, points: readonly strin
   }
 }
 
+function normalizeTargetDiagnostic(value: unknown): Xjp60dTargetDiagnostic | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<Xjp60dTargetDiagnostic>;
+  const outcomes = item.outcomes as Partial<Xjp60dTargetDiagnostic["outcomes"]> | undefined;
+  const states: Xjp60dTargetDiagnostic["state"][] = [
+    "initializing",
+    "valid",
+    "sensor_error",
+    "communication_error",
+    "unknown",
+  ];
+  const recoveryStates: Xjp60dTargetDiagnostic["recovery_state"][] = [
+    "initializing",
+    "steady",
+    "failing",
+    "cooldown",
+    "recovered",
+  ];
+  if (
+    typeof item.target_id !== "string" ||
+    typeof item.channel_id !== "string" ||
+    !states.includes(item.state as Xjp60dTargetDiagnostic["state"]) ||
+    !recoveryStates.includes(item.recovery_state as Xjp60dTargetDiagnostic["recovery_state"]) ||
+    typeof item.consecutive_failures !== "number" ||
+    typeof item.cooldown !== "boolean" ||
+    typeof item.cooldown_remaining_seconds !== "number" ||
+    typeof item.next_due_in_seconds !== "number" ||
+    !outcomes ||
+    typeof outcomes.attempts !== "number" ||
+    typeof outcomes.successes !== "number" ||
+    typeof outcomes.communication_failures !== "number"
+  ) {
+    return null;
+  }
+  return item as Xjp60dTargetDiagnostic;
+}
+
 async function readError(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as {
@@ -119,6 +176,11 @@ function normalizeConfiguration(value: unknown): Xjp60dConfiguration {
       (item): item is number => Number.isInteger(item) && item >= 1 && item <= 247,
     ),
     last_discovery: record.last_discovery ?? null,
+    target_diagnostics: Array.isArray(record.target_diagnostics)
+      ? record.target_diagnostics
+          .map(normalizeTargetDiagnostic)
+          .filter((item): item is Xjp60dTargetDiagnostic => item !== null)
+      : [],
   };
 }
 

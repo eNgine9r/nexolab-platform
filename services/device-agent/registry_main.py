@@ -123,6 +123,66 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
             "registry_revision": registry.revision,
         }
 
+    @staticmethod
+    def _responsive_xjp60d_units(
+        discovery: dict[str, Any],
+    ) -> tuple[int, ...]:
+        units: set[int] = set()
+        for key in ("available_points", "unavailable_points"):
+            points = discovery.get(key, [])
+            if not isinstance(points, list):
+                continue
+            for point in points:
+                if not isinstance(point, dict):
+                    continue
+                unit_id = point.get("unit_id")
+                raw_status = point.get("raw_status")
+                if (
+                    isinstance(unit_id, int)
+                    and not isinstance(unit_id, bool)
+                    and raw_status is not None
+                ):
+                    units.add(unit_id)
+        return tuple(sorted(units))
+
+    def _enroll_discovered_xjp60d(
+        self,
+        discovery: dict[str, Any],
+    ) -> bool:
+        responsive = self._responsive_xjp60d_units(discovery)
+        configured = set(self.discovery_units)
+        unsupported = sorted(set(responsive) - configured)
+        if unsupported:
+            rendered = ", ".join(str(unit_id) for unit_id in unsupported)
+            raise ValueError(
+                "Discovery returned Unit IDs outside the configured catalog: "
+                f"{rendered}"
+            )
+        with self._registry_lock:
+            current = self._registry
+            enrolled = self._registry_store.enroll_xjp60d(
+                current,
+                expected_revision=current.revision,
+                unit_ids=responsive,
+                actor="service:xjp60d-discovery",
+                reason=(
+                    "Enroll responsive XJP60D units from explicit read-only discovery"
+                ),
+            )
+            changed = enrolled.revision != current.revision
+            if changed:
+                self._registry = enrolled
+                self._sync_legacy_xjp60d_state(enrolled)
+        return changed
+
+    def discover_xjp60d(self) -> dict[str, Any]:
+        result = super().discover_xjp60d()
+        discovery = result.get("last_discovery")
+        if not isinstance(discovery, dict):
+            raise RuntimeError("XJP60D discovery returned an invalid result")
+        self._enroll_discovered_xjp60d(discovery)
+        return {**self.configuration(), "last_discovery": discovery}
+
     def replace_active_points(
         self,
         points: tuple[tuple[int, int], ...],

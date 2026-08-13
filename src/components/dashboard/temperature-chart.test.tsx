@@ -32,6 +32,47 @@ function sample(
 }
 
 describe("TemperatureChart live discovery", () => {
+  it("shows an active channel as initializing before its first sample", () => {
+    render(
+      <TemperatureChart
+        mode="live"
+        status="connecting"
+        samples={[]}
+        targetDiagnostics={[
+          {
+            target_id: "xjp60d:126-04",
+            channel_id: "126-04",
+            state: "initializing",
+            recovery_state: "initializing",
+            last_attempt_at: null,
+            last_success_at: null,
+            last_error: null,
+            consecutive_failures: 0,
+            cooldown: false,
+            cooldown_remaining_seconds: 0,
+            next_due_in_seconds: 0.5,
+            outcomes: {
+              attempts: 0,
+              successes: 0,
+              communication_failures: 0,
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("126-04")).toBeInTheDocument();
+    expect(screen.getByText("Ініціалізація")).toBeInTheDocument();
+    expect(screen.queryByText("Немає активних температурних каналів.")).not.toBeInTheDocument();
+  });
+
+  it("renders a proven sensor error instead of hiding the channel", () => {
+    render(<TemperatureChart mode="live" status="live" samples={[sample("126-01", null, "sensor_error")]} />);
+
+    expect(screen.getByText("126-01")).toBeInTheDocument();
+    expect(screen.getByText("sensor_error")).toBeInTheDocument();
+  });
+
   it("renders newly valid KK2 and KK1 channels without a source allowlist", () => {
     const samples = [
       sample("106-03", 4.5),
@@ -57,7 +98,8 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("126-04")).toBeInTheDocument();
     expect(screen.getByText("4,5 °C")).toBeInTheDocument();
     expect(screen.getByText("6,5 °C")).toBeInTheDocument();
-    expect(screen.queryByText("101-01")).not.toBeInTheDocument();
+    expect(screen.getByText("101-01")).toBeInTheDocument();
+    expect(screen.getByText("sensor_error")).toBeInTheDocument();
     expect(screen.getByTestId("overview-chart-panel")).toBeVisible();
   });
 });

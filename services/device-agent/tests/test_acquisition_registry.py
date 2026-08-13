@@ -189,6 +189,116 @@ class AcquisitionRegistryEligibilityTests(unittest.TestCase):
 
 
 class AcquisitionRegistryStoreTests(unittest.TestCase):
+    def test_late_discovery_enrolls_read_only_inventory_without_polling(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "edge.db"
+            current_settings = settings(database_path=database)
+            store = AcquisitionRegistryStore(database)
+            registry = store.load_or_migrate(
+                current_settings,
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+
+            enrolled = store.enroll_xjp60d(
+                registry,
+                expected_revision=1,
+                unit_ids=(126,),
+                actor="service:xjp60d-discovery",
+                reason="Enroll responsive read-only controller",
+            )
+
+            self.assertEqual(enrolled.revision, 2)
+            device = next(
+                item
+                for item in enrolled.document.devices
+                if item.device_id == "xjp60d-126"
+            )
+            targets = [
+                item
+                for item in enrolled.document.targets
+                if item.device_id == device.device_id
+            ]
+            self.assertEqual(device.lifecycle, "discovery_only")
+            self.assertEqual(len(targets), 6)
+            self.assertTrue(
+                all(
+                    target.lifecycle == "discovery_only"
+                    and target.function == 3
+                    for target in targets
+                )
+            )
+            self.assertNotIn((126, 4), enrolled.eligible_xjp60d_points())
+            self.assertEqual(
+                store.recent_audit()[0]["changes"][0],
+                {
+                    "entity": "device",
+                    "id": "xjp60d-126",
+                    "from": "absent",
+                    "to": "discovery_only",
+                },
+            )
+
+            restarted = AcquisitionRegistryStore(database).load_or_migrate(
+                current_settings,
+                discovery_units=(106, 126),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(restarted.revision, 2)
+            self.assertTrue(
+                any(
+                    item.device_id == "xjp60d-126"
+                    for item in restarted.document.devices
+                )
+            )
+
+    def test_late_enrollment_is_idempotent_and_rejects_conflicts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "edge.db"
+            current_settings = settings(database_path=database)
+            store = AcquisitionRegistryStore(database)
+            registry = store.load_or_migrate(
+                current_settings,
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+
+            unchanged = store.enroll_xjp60d(
+                registry,
+                expected_revision=1,
+                unit_ids=(106,),
+                actor="service:xjp60d-discovery",
+                reason="Idempotent discovery",
+            )
+            self.assertIs(unchanged, registry)
+            self.assertEqual(len(store.recent_audit()), 1)
+
+            with self.assertRaisesRegex(ValueError, "Conflicting Modbus"):
+                store.enroll_xjp60d(
+                    registry,
+                    expected_revision=1,
+                    unit_ids=(200,),
+                    actor="service:xjp60d-discovery",
+                    reason="Conflicting discovery",
+                )
+            with self.assertRaisesRegex(ValueError, "Unsupported XJP60D profile"):
+                store.enroll_xjp60d(
+                    registry,
+                    expected_revision=1,
+                    unit_ids=(126,),
+                    actor="service:xjp60d-discovery",
+                    reason="Unsupported profile",
+                    profile_version="write-capable-profile",
+                )
+            with self.assertRaisesRegex(ValueError, "must be integers"):
+                store.enroll_xjp60d(
+                    registry,
+                    expected_revision=1,
+                    unit_ids=(126.5,),
+                    actor="service:xjp60d-discovery",
+                    reason="Invalid identity",
+                )
+
     def test_atomic_update_audit_and_restart_persistence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "edge.db"
