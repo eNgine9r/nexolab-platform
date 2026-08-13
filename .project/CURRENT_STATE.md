@@ -2,49 +2,45 @@
 
 Updated: 2026-08-13
 
-Canonical `main` baseline is `4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a`
-(Issue #427 / PR #428 post-#366 reconciliation).
+Canonical `main` is `83c77c934ed0c3356752dc11ce98247f243fa659`
+(Issue #389 / PR #429 safe local version management).
 
-## Active Work Package — Issue #389
+## Completed Work Package — Issue #389 / PR #429
 
-Issue #389 adds administrator-only local version visibility and bounded offline
-update/rollback orchestration on `feat/389-local-version-management`.
+Issue #389 is closed. PR #429 was squash-merged after the exact tested head
+`a12c90968c736839991b88237033ee950c9ba707` passed all 21 triggered workflows.
 
-The locally verified implementation provides:
+The merged LOCAL_LAN/offline implementation provides:
 
-- an admin-only `/settings/system/version` workspace and API read model;
+- administrator-only local version/readiness/history UI and API;
+- validated bounded offline package catalog;
 - exact-confirmation update and previous-bundle-only rollback requests;
-- a locked host executor, verified catalog and bounded operation history;
-- verified PostgreSQL backup before mutation and migration-before-readiness;
-- exact Alembic revision, platform, manifest, schema and storage-policy checks;
-- named-volume and edge-SQLite preservation, with no `compose down -v` path;
-- systemd and offline bundle/install wiring;
-- truthful unknown runtime state after post-mutation verification failure.
+- a locked, bounded host executor with no arbitrary shell surface;
+- verified PostgreSQL backup before mutation;
+- explicit platform/schema/storage compatibility and migration-before-readiness;
+- exact post-deployment Alembic revision verification;
+- named-volume and edge-SQLite preservation with no destructive downgrade path;
+- truthful unknown runtime evidence after post-mutation verification failure;
+- systemd, offline bundle/install and operator runbook wiring.
 
-Browser acceptance used an ephemeral empty catalog. Administrator read returned
-200, viewer read returned 403, direct non-admin route access was denied, and no
-update/rollback mutation was requested.
+Local browser evidence proved administrator 200, viewer 403, explicit offline
+empty-catalog state and zero update/rollback mutation. Offline Bundle #1070 also
+proved clean-host transfer, blocked-egress startup and update/rollback persistent
+volume preservation.
 
-## Local verification
+Classification: software verified; Raspberry Pi version-management acceptance
+pending separately.
 
-- version-manager/verifier tests: 8/8 GREEN;
-- telemetry-service version API tests: 6/6 GREEN;
-- focused frontend tests: 8/8 GREEN;
-- full frontend tests: 88 files / 381 tests GREEN;
-- format, ESLint, strict TypeScript and lint-staged contract: GREEN;
-- production build and `/settings/system/version` route: GREEN;
-- host executor shell contract, shell syntax and systemd units: GREEN;
-- Offline Auth: existing 4/4, persistence 1/1 and version route 1/1 GREEN;
-- browser evidence: `/tmp/nexolab-389-local-auth-evidence`.
+## Active state-only reconciliation — Issue #430
 
-Physical Raspberry Pi update/rollback execution remains a separate acceptance
-lane and is not claimed by this software checkpoint.
+Issue #430 records the #389 merge and post-merge Ready audit in exactly four
+`.project` files. No product/runtime change belongs in #430.
 
-## Ready-work continuity
-
-Issue #289 remains `status:needs-validation` until a separate focused #356
-route-prefetch/time-to-usable slice exists and its final hardware matrix is run.
-Issue #415 remains unselected; Issue #245 remains a separate Raspberry Pi lane.
+The fresh audit found no open `status:ready` Issue. Issue #289 remains
+`status:needs-validation`: a separate focused #356 route-prefetch/time-to-usable
+Work Package must be defined and verified before final physical/performance
+acceptance. Issue #415 remains unselected and Issue #245 remains a separate
+Raspberry Pi lane.
 
 ## Safety boundary
 
