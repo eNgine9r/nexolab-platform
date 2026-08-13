@@ -374,6 +374,7 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
         (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
       ),
     ).toBe(0);
+    expect(apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/nodes")).toBe(0);
 
     const firstVisitDurationsMs: Record<RouteKey, number> = { overview: 0 } as Record<RouteKey, number>;
     for (const route of canonicalRoutes.slice(1)) {
@@ -390,6 +391,10 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
         requests.apiReads,
         (request) => apiPath(request) === "/api/v1/equipment",
       ),
+      layoutDrafts: apiReadCount(requests.apiReads, (request) => apiPath(request).endsWith("/layout/draft")),
+      layoutPublished: apiReadCount(requests.apiReads, (request) =>
+        apiPath(request).endsWith("/layout/published"),
+      ),
       nodeList: apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/nodes"),
       sessions: apiReadCount(requests.apiReads, (request) => apiPath(request) === "/api/v1/sessions"),
     };
@@ -398,6 +403,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(firstCycleCounts.activeAlerts).toBe(initialActiveAlertReads);
     expect(firstCycleCounts.acknowledgedAlerts).toBe(initialAcknowledgedAlertReads);
     expect(firstCycleCounts.equipmentCatalog).toBe(1);
+    expect(firstCycleCounts.layoutDrafts).toBeGreaterThanOrEqual(3);
+    expect(firstCycleCounts.layoutPublished).toBeGreaterThanOrEqual(3);
     expect(firstCycleCounts.nodeList).toBe(1);
     expect(firstCycleCounts.sessions).toBe(2);
 
@@ -487,6 +494,13 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(await documentLoadCount(page)).toBe(1);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
     expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests + 8);
+    expect(equipmentCatalogReads).toBe(firstCycleCounts.equipmentCatalog);
+    expect(layoutDraftReads).toBe(firstCycleCounts.layoutDrafts);
+    expect(layoutPublishedReads).toBe(firstCycleCounts.layoutPublished);
+    expect(nodeListReads).toBe(4);
+    expect(nodeOperationalReads).toBe(8);
+    expect(sessionListReads).toBe(5);
+    expect(liveDashboardInventoryReads).toBe(0);
     expect(sockets.opened).toBe(1);
     expect(sockets.closed).toBe(0);
     expect(sockets.active).toBe(1);
