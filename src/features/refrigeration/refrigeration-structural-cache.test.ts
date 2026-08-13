@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment, type RefrigerationEquipment } from "@/data/refrigeration";
 
-import type {
-  RefrigerationEquipmentCreateInput,
-  RefrigerationEquipmentRepository,
-} from "./equipment-repository";
+import type { RefrigerationEquipmentRepository } from "./equipment-repository";
 import type {
   RefrigerationLayoutDraft,
   RefrigerationLayoutRepository,
@@ -90,7 +87,7 @@ function equipmentRepository(items: RefrigerationEquipment[]): RefrigerationEqui
     if (!found) throw new Error("not found");
     return found;
   });
-  const create = vi.fn(async (_input: RefrigerationEquipmentCreateInput) => items[0]);
+  const create = vi.fn(async () => items[0]);
   const update = vi.fn(async () => ({ ...items[0], version: items[0].version + 1 }));
   const remove = vi.fn(async () => undefined);
   return { list, get, create, update, remove };
@@ -129,7 +126,7 @@ function layoutDraft(equipmentId: string): RefrigerationLayoutDraft {
   };
 }
 
-function equipmentInput(item: RefrigerationEquipment): RefrigerationEquipmentCreateInput {
+function equipmentInput(item: RefrigerationEquipment) {
   return {
     code: item.code,
     name: item.name,
