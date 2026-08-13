@@ -168,8 +168,8 @@
       "status": "implementation_complete_pr_open_software_browser_verified",
       "priority": "critical",
       "branch": "perf/432-route-prefetch-time-to-usable",
-      "evidence_head": "cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2",
-      "verification": "Warm medians 198..282 ms; all required local, browser, acquisition, offline-auth and disconnected Offline Bundle gates GREEN",
+      "evidence_head": "6719e3ed58f70a6ee41d3e742895b58f9190a2a5",
+      "verification": "Review-corrected warm medians 207..398 ms; truthful Overview content and exact-path RSC prefetch assertions pass; required local and exact-head gates GREEN; Offline Auth passed on rerun after runner image-pull failure",
       "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
       "depends_on": [433]
     },
@@ -223,7 +223,7 @@
     "priority": "critical",
     "assignee": "eNgine9r",
     "branch": "perf/432-route-prefetch-time-to-usable",
-    "evidence_head": "cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2"
+    "evidence_head": "6719e3ed58f70a6ee41d3e742895b58f9190a2a5"
   },
   "next_ready_work_package": {
     "issue": 289,
@@ -245,9 +245,9 @@
   ],
   "verification": {
     "issue_432_base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
-    "issue_432_evidence_head": "cbcf3a53c3cf73dc279d9f48d55669cf7e3dd8c2",
-    "issue_432_local_gates": "Focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus browser/persistence, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
-    "issue_432_exact_head_gates": "CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN",
+    "issue_432_evidence_head": "6719e3ed58f70a6ee41d3e742895b58f9190a2a5",
+    "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus 4 + 1 + 1 browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
+    "issue_432_exact_head_gates": "CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN; Offline Auth passed on rerun after runner image-pull failure",
     "issue_432_classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
     "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
     "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
@@ -273,12 +273,12 @@
   },
   "runtime_evidence": {
     "issue_432_warm_median_ms": {
-      "overview": 263,
-      "refrigeration": 275,
-      "energy": 282,
-      "live": 198,
-      "nodes": 265,
-      "sessions": 208
+      "overview": 398,
+      "refrigeration": 259,
+      "energy": 254,
+      "live": 207,
+      "nodes": 282,
+      "sessions": 236
     },
     "issue_432_document_loads": 1,
     "issue_432_loading_transitions": 0,

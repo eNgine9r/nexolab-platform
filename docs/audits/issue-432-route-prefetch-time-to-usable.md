@@ -21,6 +21,13 @@ concurrency and acquisition mutations. It does not change the Device Agent,
 registry, scheduler, polling cadence, Modbus behavior, backend, database or
 dependency graph.
 
+After PR review, the Overview usability boundary was tightened so every cold and
+warm measurement also requires the seeded `edge-live-01` node and a rendered
+`°C` value. The pre-navigation resource capture is now an acceptance assertion:
+each non-Overview canonical route must have an exact-path resource URL with the
+`_rsc` query parameter before its first click; the opaque parameter value and
+unrelated `/_next` assets are intentionally not asserted.
+
 ## Installed Next.js contract
 
 The repository installs Next.js `16.2.12`. Repository-local documentation under
@@ -46,18 +53,19 @@ recorded RSC prefetches for every non-Overview canonical route, including
 
 The focused production acceptance used the isolated seeded Compose profile and
 Chromium. Evidence is stored locally at
-`runtime/evidence/issue-432-navigation-9ddef444/`.
+`runtime/evidence/issue-432-navigation-review-final/` for evidence head
+`6719e3ed58f70a6ee41d3e742895b58f9190a2a5`.
 
 ### Cold time-to-usable
 
 | Route         | Cold time-to-usable |
 | ------------- | ------------------: |
-| Overview      |            1,259 ms |
-| Refrigeration |              724 ms |
-| Energy        |              528 ms |
-| Live Data     |              499 ms |
-| Nodes         |              828 ms |
-| Sessions      |              597 ms |
+| Overview      |            1,959 ms |
+| Refrigeration |              687 ms |
+| Energy        |              838 ms |
+| Live Data     |              501 ms |
+| Nodes         |              730 ms |
+| Sessions      |              716 ms |
 
 Cold routes rendered truthful live, stale or empty states. No demo preview was
 used and no acquisition mutation was observed.
@@ -66,22 +74,25 @@ used and no acquisition mutation was observed.
 
 | Route         | First visit | Warm samples       | Warm median |
 | ------------- | ----------: | ------------------ | ----------: |
-| Overview      |      259 ms | 263 / 248 / 283 ms |      263 ms |
-| Refrigeration |      521 ms | 275 / 224 / 376 ms |      275 ms |
-| Energy        |      407 ms | 282 / 276 / 309 ms |      282 ms |
-| Live Data     |      270 ms | 192 / 198 / 234 ms |      198 ms |
-| Nodes         |      407 ms | 265 / 336 / 263 ms |      265 ms |
-| Sessions      |      267 ms | 200 / 210 / 208 ms |      208 ms |
+| Overview      |      434 ms | 566 / 398 / 384 ms |      398 ms |
+| Refrigeration |      384 ms | 302 / 259 / 252 ms |      259 ms |
+| Energy        |      367 ms | 291 / 254 / 243 ms |      254 ms |
+| Live Data     |      331 ms | 207 / 223 / 195 ms |      207 ms |
+| Nodes         |      297 ms | 460 / 263 / 282 ms |      282 ms |
+| Sessions      |      244 ms | 255 / 236 / 184 ms |      236 ms |
 
-Every warm median is below the required `1,000 ms`. Overview at `263 ms` is also
-below the Issue #366 reference of approximately `334 ms`, so there is no greater
-than 20% regression.
+Every warm median is below the required `1,000 ms`. Overview at `398 ms` is
+approximately `19.2%` above the Issue #366 reference of `334 ms`, so it remains
+inside the allowed 20% regression boundary while now including retained telemetry
+content in the completion condition.
 
 ### Navigation and ownership invariants
 
 - browser document loads across the complete repeated route cycle: `1`;
 - captured visible loading transitions on warm navigation: `0`;
 - route resources recorded before the first click: `73`;
+- exact-path RSC prefetches with `_rsc` present before the first click:
+  `/refrigeration`, `/energy`, `/live`, `/nodes` and `/sessions`;
 - canonical channel-inventory reads before navigation: `0`;
 - Node inventory reads before navigation: `0`;
 - telemetry latest reads across the repeated cycle: `1`;
@@ -107,6 +118,16 @@ prefetch would duplicate the framework scheduler without a measured gap.
 The only repository changes for Issue #432 are deterministic acceptance
 instrumentation, a focused test-selection option for local evidence runs, this
 audit, and final project-state reconciliation.
+
+Local verification at evidence head `6719e3ed58f70a6ee41d3e742895b58f9190a2a5`
+passed the focused production navigation matrix (`3/3`), the complete
+Authenticated Dashboard/acquisition-invariant matrix (`13/13`), Offline Auth
+migration plus browser/persistence/version gates (`4 + 1 + 1` browser tests),
+format, lint, typecheck, all `89` frontend test files / `384` tests, the
+lint-staged contract and the production build. Exact-head CI, Acquisition Scale,
+Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle
+also passed. Offline Auth passed on rerun after an initial runner image-pull
+failure before migration acceptance executed.
 
 ## Safety and offline result
 
