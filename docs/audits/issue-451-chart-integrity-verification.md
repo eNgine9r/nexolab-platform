@@ -3,6 +3,8 @@
 Parent Epic: #450  
 Implementation PR: #452
 
+Verification scope: canonical chart evidence integrity across unit/component, production browser, offline, and Raspberry Pi acceptance classes.
+
 ## Safety boundary
 
 - frontend/read-model only;
