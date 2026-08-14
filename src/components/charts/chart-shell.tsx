@@ -49,7 +49,11 @@ export function ChartShell({
     (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
   );
   const units = [...new Set(series.map((item) => item.identity.nativeUnit))].join(", ");
-  const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}.`;
+  const continuityBreaks = series.reduce(
+    (total, item) => total + item.segments.filter((segment) => segment.precedingBreak).length,
+    0,
+  );
+  const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}. Continuity breaks ${continuityBreaks}.`;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
