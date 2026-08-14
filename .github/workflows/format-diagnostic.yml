@@ -1,0 +1,40 @@
+name: Chart Format Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Print exact Prettier diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            src/components/charts/chart-shell.tsx
+            src/features/charts/continuity.test.ts
+            src/features/charts/continuity.ts
+            src/features/charts/domain.ts
+            src/features/charts/echarts-adapter.ts
+            src/features/live/live-chart.test.ts
+            src/features/live/live-history.ts
+          )
+          npx prettier --write "${files[@]}"
+          git diff --no-ext-diff -- "${files[@]}"
