@@ -1,0 +1,103 @@
+name: Issue 453 Renderer Slice
+
+on:
+  push:
+    branches:
+      - feat/453-equipment-centric-multi-axis-charts
+    paths:
+      - .github/workflows/issue-453-renderer-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/453-equipment-centric-multi-axis-charts
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Apply canonical multi-axis renderer patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/features/charts/echarts-adapter.ts')
+          text = path.read_text()
+          text = text.replace(
+              'import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";\n',
+              'import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";\nimport { buildChartYAxisModel } from "./units";\n',
+          )
+          text = text.replace(
+              '  const visibleSeries = scene.series.filter((series) => series.visible);\n  const legendNames = visibleSeries.map((series) => series.name);',
+              '  const visibleSeries = scene.series.filter((series) => series.visible);\n  const axisModel = buildChartYAxisModel(scene.series);\n  const legendNames = visibleSeries.map((series) => series.name);',
+          )
+          text = text.replace(
+              '      type: "line" as const,\n      data: segment.points.map((point) => ({',
+              '      type: "line" as const,\n      yAxisId: axisModel.axisIdBySeriesKey.get(seriesKey),\n      data: segment.points.map((point) => ({',
+          )
+          old_grid = '    grid: { left: 64, right: 24, top: 28, bottom: 58, containLabel: false },'
+          new_grid = '''    grid: {
+              left:
+                64 +
+                Math.max(0, ...axisModel.visibleAxes.filter((axis) => axis.position === "left").map((axis) => axis.offset)),
+              right:
+                40 +
+                Math.max(0, ...axisModel.visibleAxes.filter((axis) => axis.position === "right").map((axis) => axis.offset)),
+              top: 28,
+              bottom: 58,
+              containLabel: false,
+            },'''
+          text = text.replace(old_grid, new_grid)
+          old_axis = '''    yAxis: {
+              type: "value",
+              scale: true,
+              axisLabel: { color: "#94A3B8" },
+              splitLine: { lineStyle: { color: "rgba(148,163,184,.10)" } },
+            },'''
+          new_axis = '''    yAxis: axisModel.visibleAxes.map((axis, visibleIndex) => ({
+              id: axis.id,
+              type: "value" as const,
+              scale: true,
+              position: axis.position,
+              offset: axis.offset,
+              name: axis.nativeUnit,
+              nameLocation: "middle" as const,
+              nameGap: 38,
+              nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },
+              axisLine: { show: true, lineStyle: { color: "rgba(148,163,184,.42)" } },
+              axisTick: { show: true },
+              axisLabel: { color: "#94A3B8", hideOverlap: true },
+              splitLine: {
+                show: visibleIndex === 0,
+                lineStyle: { color: "rgba(148,163,184,.10)" },
+              },
+            })),'''
+          if old_axis not in text:
+              raise SystemExit('single yAxis block not found')
+          text = text.replace(old_axis, new_axis)
+          text = text.replace('replaceMerge: ["series"],', 'replaceMerge: ["series", "yAxis"],')
+          path.write_text(text)
+          PY
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Format and verify renderer slice
+        run: |
+          npx prettier --write src/features/charts/units.ts src/features/charts/echarts-adapter.ts
+          npx vitest run src/features/charts/units.test.ts src/features/charts/echarts-adapter.test.ts
+          npm run typecheck
+      - name: Commit product slice and remove one-shot workflow
+        shell: bash
+        run: |
+          rm .github/workflows/issue-453-renderer-patch.yml
+          git config user.name "Serhii"
+          git config user.email "92324923+eNgine9r@users.noreply.github.com"
+          git add src/features/charts/units.ts src/features/charts/echarts-adapter.ts .github/workflows/issue-453-renderer-patch.yml
+          git commit -m "feat: add canonical dynamic Y-axis rendering"
+          git push origin HEAD:feat/453-equipment-centric-multi-axis-charts
