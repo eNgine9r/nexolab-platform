@@ -19,13 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "3ae380c9882bcd7a0c5d142404c1a64da801513a",
-  "current_main_sha_semantics": "Post-Issue-443 main includes Issue #445/#446 KK2 catalog restoration and Issue #447/#448 refrigeration structural-snapshot latency correction. Issue #451 is verified on its feature branch but not merged yet.",
+  "current_main_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
+  "current_main_sha_semantics": "Issue #451 / PR #452 chart-integrity correction is squash-merged and software/browser/offline verified. Issue #454 is state-only post-merge reconciliation; Issue #289 remains an independent hardware lane.",
   "selection_state": {
-    "last_ready_audit_result": "Issue #451 is product-verified and undergoing state-only/final-head reconciliation. Independent hardware Issue #289 remains in progress. Issue #453 exists but stays blocked until #451 merges.",
-    "selected_issue": 451,
-    "selection_status": "verified_pending_state_reconciliation_and_final_head_gates",
-    "independent_hardware_lane": 289
+    "last_ready_audit_result": "Issue #451 is closed/merged. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance. Issue #453 has no remaining product dependency and becomes the next independent Chart System software Work Package after Issue #454 merges.",
+    "selected_issue": 454,
+    "selection_status": "state_reconciliation_in_progress",
+    "independent_hardware_lane": 289,
+    "next_independent_software_issue": 453
   },
   "tasks": [
     {
@@ -63,10 +64,11 @@
       "issue": 451,
       "pull_request": 452,
       "title": "Make canonical chart continuity, inspector and alarm overlays trustworthy",
-      "status": "verified_pending_final_state_head_gates",
+      "status": "completed_merged_software_browser_offline_verified",
       "priority": "critical",
       "branch": "fix/451-chart-integrity-alarm-provenance",
-      "verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+      "final_pr_head": "795cff9a309fcb70981293c29009682fdafddfba",
+      "merge_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
       "verification": {
         "ci": "PASS",
         "authenticated_dashboard": "13/13 PASS",
@@ -78,25 +80,33 @@
       "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
     },
     {
+      "id": "NEXOLAB-454",
+      "issue": 454,
+      "title": "Reconcile Issue #451 merge and unblock Chart System continuation",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/454-reconcile-issue-451-state",
+      "depends_on": [451],
+      "permitted_directories": [".project/**"]
+    },
+    {
       "id": "NEXOLAB-453",
       "issue": 453,
       "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-      "status": "blocked_until_issue_451_merge",
+      "status": "ready_after_issue_454_merge",
       "priority": "critical",
       "parent_epic": 450,
-      "depends_on": [451]
+      "resolved_dependencies": [451]
     }
   ],
   "active_work_package": {
-    "issue": 451,
-    "pull_request": 452,
-    "title": "Make canonical chart continuity, inspector and alarm overlays trustworthy",
-    "status": "state_reconciliation_then_final_exact_head_verification",
-    "priority": "critical",
-    "branch": "fix/451-chart-integrity-alarm-provenance",
-    "verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
-    "hardware_acceptance": "pending_not_claimed",
-    "next_step": "Run mandatory exact-head gates again after the state-only reconciliation head; if GREEN, mark PR #452 Ready and perform final merge audit."
+    "issue": 454,
+    "title": "Reconcile Issue #451 merge and unblock Chart System continuation",
+    "status": "state_only_reconciliation",
+    "priority": "high",
+    "branch": "chore/454-reconcile-issue-451-state",
+    "scope": ".project/** only",
+    "next_step": "Validate JSON and formatting, open a focused state-only PR, require exact-head CI GREEN, then merge with expected-head protection."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -107,15 +117,20 @@
   "next_ready_work_package": {
     "issue": 453,
     "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-    "status": "blocked_until_issue_451_merge",
+    "status": "ready_after_issue_454_merge",
     "priority": "critical",
-    "first_step_after_unblock": "Create a separate feature branch from reconciled main and implement canonical unit-family/dynamic-Y-axis domain primitives before page-local composition changes."
+    "first_step_after_unblock": "Move GitHub label from status:blocked to status:ready, create a separate feature branch from reconciled main, and implement canonical unit-family/dynamic-Y-axis domain primitives before page-local composition changes."
   },
   "verification": {
-    "issue_451_verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+    "issue_451_final_pr_head": "795cff9a309fcb70981293c29009682fdafddfba",
+    "issue_451_merge_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
+    "issue_451_ci_run": 31799858253,
     "issue_451_ci": "PASS",
+    "issue_451_authenticated_dashboard_run": 31799858251,
     "issue_451_authenticated_dashboard": "13/13 PASS",
+    "issue_451_refrigeration_browser_run": 31799858268,
     "issue_451_refrigeration_browser": "PASS",
+    "issue_451_offline_bundle_run": 31799858264,
     "issue_451_offline_bundle": "PASS",
     "issue_451_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
   },
