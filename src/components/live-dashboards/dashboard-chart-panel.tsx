@@ -31,12 +31,13 @@ export function DashboardChartPanel({
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
+  const unitLabel = group.nativeUnits.join(" · ") || "no units";
 
   return (
     <div data-testid="saved-dashboard-chart-panel">
       <ChartShell
-        title={`Saved Dashboard · ${group.nativeUnit}`}
-        context={`${group.physicalQuantity} · synchronized scale`}
+        title={`Saved Dashboard · ${group.equipmentId}`}
+        context={`${unitLabel} · ${group.nativeUnits.length} dynamic Y ${group.nativeUnits.length === 1 ? "axis" : "axes"}`}
         selectedRange={rangeLabel}
         series={group.scene.series}
         inspection={inspection}
