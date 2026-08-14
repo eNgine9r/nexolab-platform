@@ -52,6 +52,24 @@ describe("chart continuity", () => {
     expect(segments[1].precedingBreak?.reason).toBe("invalid_quality");
   });
 
+  it("keeps an explicit quality failure as the break provenance even when recovery is much later", () => {
+    const segments = buildChartSegments(
+      identity,
+      [
+        sample("a", 0, 1),
+        sample("fault", 5_000, null, { quality: "communication_error" }),
+        sample("recovered", 120_000, 2),
+      ],
+      { maximumSourceGapMs: 30_000 },
+    );
+
+    expect(segments).toHaveLength(2);
+    expect(segments[1].precedingBreak).toMatchObject({
+      reason: "invalid_quality",
+      atMs: 5_000,
+    });
+  });
+
   it.each([
     ["offline", "offline"],
     ["reconnecting", "reconnect_gap"],
