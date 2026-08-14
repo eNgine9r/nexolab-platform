@@ -119,12 +119,12 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(data).toHaveLength(240);
   });
 
-  it("translates cursor events without opening a moving renderer tooltip and clears handlers on dispose", () => {
+  it("returns one deterministic nearest-point inspection per visible series", () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const onXDomainChange = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
-    const scene = createBenchmarkScene(1);
+    const scene = createBenchmarkScene(2);
     adapter.initialize({
       container: document.createElement("div"),
       renderer: "canvas",
@@ -135,12 +135,15 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS }] });
-    expect(onCursor).toHaveBeenCalledWith(
-      expect.objectContaining({
-        timestampMs: BENCHMARK_START_MS,
-        point: expect.objectContaining({ value: -12 }),
-      }),
-    );
+    expect(onCursor).toHaveBeenCalledWith({
+      timestampMs: BENCHMARK_START_MS,
+      series: scene.series.map((series) => ({
+        seriesKey: chartSeriesKey(series.identity),
+        point: series.segments[0].points[0],
+        freshness: series.freshness,
+      })),
+    });
+
     instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
     expect(onXDomainChange).toHaveBeenCalledWith({
       fromMs: scene.xDomain.fromMs + (scene.xDomain.toMs - scene.xDomain.fromMs) * 0.25,
@@ -157,6 +160,33 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(instance.handlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);
+  });
+
+  it("keeps the shared cursor while marking distant per-series samples unavailable", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = { ...createBenchmarkScene(2), cursorToleranceMs: 1_000 };
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    const cursor = BENCHMARK_START_MS + BENCHMARK_INTERVAL_MS / 2;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+
+    expect(onCursor).toHaveBeenCalledWith({
+      timestampMs: cursor,
+      series: scene.series.map((series) => ({
+        seriesKey: chartSeriesKey(series.identity),
+        point: null,
+        freshness: series.freshness,
+      })),
+    });
   });
 
   it("adds a new continuity segment after reconnect without recreating the renderer", () => {
@@ -188,18 +218,26 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(optionSeries(instance)).toHaveLength(2);
   });
 
-  it("renders threshold, event and alarm-region evidence and removes hidden series", () => {
+  it("renders only canonical deduplicated event evidence and hides collision-prone labels", () => {
     const instance = new FakeEChartsInstance();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const canonicalEvent = {
+      id: "door-open",
+      timestampMs: BENCHMARK_START_MS + BENCHMARK_INTERVAL_MS,
+      type: "door",
+      label: "Door opened",
+      source: { entityId: "door-event-1", entityType: "door_event" },
+      severity: "warning" as const,
+    };
     const scene = {
       ...createBenchmarkScene(1, { withEvidence: true }),
       events: [
+        canonicalEvent,
+        { ...canonicalEvent },
         {
-          id: "door-open",
-          timestampMs: BENCHMARK_START_MS + BENCHMARK_INTERVAL_MS,
-          type: "door",
-          label: "Door opened",
-          severity: "warning" as const,
+          ...canonicalEvent,
+          id: "invalid-source",
+          source: { entityId: "", entityType: "door_event" },
         },
       ],
       alarmRegions: [
@@ -222,7 +260,10 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     const rendered = optionSeries(instance)[0];
-    expect((rendered.markLine as { data: unknown[] }).data).toHaveLength(2);
+    const markLineData = (rendered.markLine as { data: Array<Record<string, unknown>> }).data;
+    expect(markLineData).toHaveLength(2);
+    expect(markLineData.filter((entry) => entry.eventId === "door-open")).toHaveLength(1);
+    expect(markLineData.find((entry) => entry.eventId === "door-open")?.label).toEqual({ show: false });
     expect((rendered.markArea as { data: unknown[] }).data).toHaveLength(1);
 
     adapter.setScene({
