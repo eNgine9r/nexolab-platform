@@ -29,11 +29,12 @@ export function LiveChartPanel({
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
+  const unitLabel = group.nativeUnits.join(" · ") || "no units";
 
   return (
     <ChartShell
-      title={`Live Data · ${group.nativeUnit}`}
-      context={`${group.physicalQuantity} · synchronized scale`}
+      title={`Live Data · ${group.equipmentId}`}
+      context={`${unitLabel} · ${group.nativeUnits.length} dynamic Y ${group.nativeUnits.length === 1 ? "axis" : "axes"}`}
       selectedRange={rangeLabel}
       series={group.scene.series}
       inspection={inspection}
