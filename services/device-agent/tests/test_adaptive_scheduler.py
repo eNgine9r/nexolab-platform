@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import threading
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -532,6 +533,108 @@ class AdaptiveSchedulerTests(unittest.TestCase):
             for item in harness.scheduler.snapshot()["targets"]
         }
         self.assertEqual(target_ids, {"xjp60d:106-03"})
+
+
+    def test_dead_worker_is_recovered_once_without_catch_up_burst(
+        self,
+    ) -> None:
+        current = registry(
+            self.database_path,
+            active_target_ids={"xjp60d:106-03"},
+        )
+        harness = SchedulerHarness(current, self.database_path)
+        original_run_once = harness.scheduler.run_once
+        fault_injected = threading.Event()
+        first_call = True
+
+        def fail_once(bus_id: str) -> bool:
+            nonlocal first_call
+            if first_call:
+                first_call = False
+                fault_injected.set()
+                raise RuntimeError("deterministic worker fault")
+            return original_run_once(bus_id)
+
+        harness.scheduler.run_once = fail_once  # type: ignore[method-assign]
+        harness.scheduler.start()
+        try:
+            self.assertTrue(fault_injected.wait(timeout=1))
+
+            deadline = time.monotonic() + 1
+            while time.monotonic() < deadline:
+                failed = harness.scheduler.snapshot()
+                if failed["active_bus_workers"] == 0:
+                    break
+                time.sleep(0.01)
+
+            failed = harness.scheduler.snapshot()
+            self.assertEqual(failed["expected_bus_workers"], 1)
+            self.assertEqual(failed["active_bus_workers"], 0)
+            self.assertFalse(failed["workers_healthy"])
+            self.assertEqual(failed["worker_failures_total"], 1)
+            self.assertEqual(
+                failed["buses"]["rs485-main"]["worker_state"],
+                "dead",
+            )
+            self.assertEqual(
+                failed["buses"]["rs485-main"][
+                    "last_worker_failure_type"
+                ],
+                "RuntimeError",
+            )
+            self.assertIn(
+                "worker unavailable",
+                harness.scheduler.current_error() or "",
+            )
+
+            harness.clock.advance(16)
+            self.assertEqual(harness.scheduler.supervise_workers(), 1)
+
+            recovered = harness.scheduler.snapshot()
+            self.assertEqual(recovered["active_bus_workers"], 1)
+            self.assertTrue(recovered["workers_healthy"])
+            self.assertEqual(recovered["worker_restarts_total"], 1)
+            self.assertEqual(
+                recovered["buses"]["rs485-main"][
+                    "worker_restarts_total"
+                ],
+                1,
+            )
+
+            thread = harness.scheduler._threads[  # noqa: SLF001
+                "rs485-main"
+            ]
+            self.assertEqual(harness.scheduler.supervise_workers(), 0)
+            self.assertIs(
+                harness.scheduler._threads["rs485-main"],  # noqa: SLF001
+                thread,
+            )
+            self.assertEqual(harness.calls, [])
+
+            target = recovered["targets"][0]
+            next_due = float(target["next_due_in_seconds"])
+            self.assertGreater(next_due, 0)
+            self.assertGreater(
+                recovered["buses"]["rs485-main"][
+                    "deadline_skipped_total"
+                ],
+                0,
+            )
+
+            harness.clock.advance(next_due + 0.1)
+            with harness.scheduler._condition:  # noqa: SLF001
+                harness.scheduler._condition.notify_all()  # noqa: SLF001
+
+            deadline = time.monotonic() + 1
+            while time.monotonic() < deadline and not harness.calls:
+                time.sleep(0.01)
+
+            self.assertEqual(
+                harness.calls,
+                ["xjp60d:106-03"],
+            )
+        finally:
+            harness.scheduler.stop()
 
 
 if __name__ == "__main__":

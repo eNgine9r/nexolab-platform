@@ -60,6 +60,19 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
     def health_snapshot(self) -> dict[str, Any]:
         payload = super().health_snapshot()
         payload["latest_values"] = self.scheduler.latest_summary()
+
+        scheduler = payload["acquisition"]["scheduler"]
+        if not scheduler.get("workers_healthy", False):
+            payload["status"] = "error"
+            worker_error = self.scheduler.current_error()
+            current_error = payload.get("last_error")
+            payload["last_error"] = "; ".join(
+                dict.fromkeys(
+                    value
+                    for value in (worker_error, current_error)
+                    if value
+                )
+            ) or None
         return payload
 
     def replace_active_points(
@@ -261,6 +274,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         )
         try:
             while not self.stop_event.is_set():
+                self.scheduler.supervise_workers()
                 with self._publish_lock:
                     queue_size = self.queue.size()
                     flush_ok = self.flush_queue()

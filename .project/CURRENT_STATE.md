@@ -95,3 +95,66 @@ volume deletion, production/site cutover or mandatory cloud dependency is
 included. Issue #289 is read-only/evidence-first; hardware verification must not
 be claimed without real Raspberry Pi evidence. Core runtime remains LOCAL_LAN
 and offline-capable.
+
+## Execution update — Issue #440 hardware verified
+
+Issue #289 hardware execution from actual `main` `f523f14dc17b28de3683e1773a2ef5a7143a194f` exposed a production
+acquisition-liveness defect before a valid performance baseline could be
+established:
+
+- registry contained 33 poll-eligible targets;
+- scheduler contained 33 due jobs;
+- `rs485-main.worker_count` was `0`;
+- the first 60-second no-browser phase produced zero new normal physical
+  requests while the Docker container remained healthy;
+- Issue #289 was therefore blocked and critical Issue #440 was opened.
+
+Issue #440 implementation:
+
+- branch `fix/440-acquisition-worker-self-recovery`;
+- PR #441;
+- implementation head `97fab27dd99a8685edc6c96c8e99bc0db88e1bd7`;
+- deterministic dead-worker detection and bounded single-worker recovery;
+- no catch-up burst after recovery;
+- truthful expected/active worker diagnostics;
+- fail-closed health when eligible polling has no live worker;
+- no polling-policy, registry-lifecycle, dependency or Modbus-write change.
+
+Verification on the implementation head:
+
+- targeted adaptive tests: 16/16 PASS;
+- full Device Agent suite: 122/122 PASS;
+- exact-head GitHub workflow matrix: 9/9 GREEN;
+- Offline Bundle disconnected startup and persistent-data update/rollback:
+  GREEN.
+
+Controlled Raspberry Pi candidate acceptance is PASS:
+
+- existing `nexolab-edge_edge-data` volume preserved;
+- expected/active workers: 1/1;
+- `workers_healthy = true`;
+- `rs485-main.worker_count = 1`;
+- 60-second normal physical requests: 155;
+- successes: 132;
+- timeouts: 23;
+- retries: 18;
+- bus utilization: 22.365%;
+- scheduler lag maximum: 2.183755 seconds;
+- missed deadlines: 41;
+- deferred: 24;
+- overruns: 0;
+- worker failures/restarts during candidate window: 0/0.
+
+Classification: **software verified; hardware verified for Issue #440 worker
+liveness**.
+
+The timeout/retry and degraded endpoint evidence remains truthful and transfers
+to Issue #289. It is not hidden and is not classified as a #440 worker-liveness
+failure.
+
+Current active Work Package remains Issue #440 until PR #441 has final
+state-head CI and is merged. Issue #289 remains blocked by #440.
+
+Next Ready Work Package after #440 merge: resume Issue #289 from a fresh
+equal-window `no-browser` hardware baseline. The original zero-request phase
+must not be reused as passing performance evidence.

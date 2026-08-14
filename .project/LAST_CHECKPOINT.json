@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-289-ACQUISITION-SCALE-HARDWARE-VALIDATION",
-  "status": "ready_selected_not_started",
-  "timestamp": "2026-08-14T00:40:00+03:00",
-  "active_issue": 289,
+  "task": "ISSUE-440-ACQUISITION-WORKER-SELF-RECOVERY",
+  "status": "hardware_verified_final_state_ci_pending",
+  "timestamp": "2026-08-14T05:56:23Z",
+  "active_issue": 440,
   "assignee": "eNgine9r",
   "execution_baseline_before_state_reconciliation": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
   "state_reconciliation_issue": 438,
@@ -59,17 +59,17 @@
     "final_pr_head_offline_bundle_disconnected_runtime": "PASS"
   },
   "ready_audit": {
-    "selected_issue": 289,
-    "selected_issue_status": "status:ready",
+    "selected_issue": 440,
+    "selected_issue_status": "status:in-progress",
     "dependencies_closed": [283, 284, 285, 286, 287, 314, 288, 432],
     "open_dependency_prs_selected": false,
-    "hardware_performance_acceptance": "pending_not_started"
+    "hardware_performance_acceptance": "issue_440_hardware_verified; issue_289_blocked_until_440_merge"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "controller_configuration_change": "none",
-    "scheduler_change": "none",
+    "scheduler_change": "issue_440_worker_liveness_only; intervals_priorities_fairness_cooldown_unchanged",
     "registry_change": "none",
     "polling_policy_change": "none",
     "dependency_upgrade": "none",
@@ -78,6 +78,81 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Start Issue #289 from the actual current main head after Issue #438 state reconciliation. Capture the controlled Raspberry Pi/RS-485 physical request-rate and performance matrix read-only before claiming hardware verification.",
-  "resume_instruction": "Verify PROJECT_PROFILE.yaml, AGENTS.md files, AI development standard, all four .project files, Issue #289, open PRs, CI and actual main before execution. Use one focused Issue #289 branch/PR. No Modbus or hardware writes; no dependency upgrades; no product fixes unless a separate focused bug Issue is created."
+  "next_action": "Require exact-head CI and review audit on PR #441 state/evidence head, then mark ready and squash-merge only after all required checks are GREEN.",
+  "resume_instruction": "Verify PROJECT_PROFILE.yaml, AGENTS.md files, AI development standard, all four .project files, Issue #440, PR #441, CI and actual main before continuation. Do not merge until exact-head checks are GREEN. After merge, return Issue #289 to in-progress and capture a fresh no-browser hardware baseline. No Modbus or hardware writes; no dependency upgrades.",
+  "actor": "ChatGPT",
+  "event": "issue_440_hardware_verified_final_state_ci_pending",
+  "active_work_package": {
+    "issue": 440,
+    "pr": 441,
+    "branch": "fix/440-acquisition-worker-self-recovery",
+    "started_from_main_sha": "f523f14dc17b28de3683e1773a2ef5a7143a194f",
+    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
+    "status": "hardware_verified_final_state_ci_pending",
+    "software_verified": true,
+    "hardware_verified": true,
+    "verification": {
+      "targeted_adaptive_tests": "16/16 PASS",
+      "full_device_agent_suite": "122/122 PASS",
+      "exact_implementation_head_workflows": "9/9 GREEN",
+      "offline_bundle_run": 31773335094
+    },
+    "hardware_acceptance": {
+      "candidate_image": "nexolab-device-agent:issue-440-97fab27dd99a",
+      "edge_volume_preserved": "nexolab-edge_edge-data",
+      "expected_bus_workers": 1,
+      "active_bus_workers": 1,
+      "workers_healthy": true,
+      "worker_count": 1,
+      "normal_physical_requests_delta": 155,
+      "successes_delta": 132,
+      "timeouts_delta": 23,
+      "retry_attempts_delta": 18,
+      "bus_utilization_percent": 22.365,
+      "scheduler_lag_max_seconds": 2.183755,
+      "missed_deadlines_delta": 41,
+      "deferred_delta": 24,
+      "overruns_delta": 0,
+      "worker_failures_total": 0,
+      "worker_restarts_total": 0,
+      "safety": {
+        "modbus_write": false,
+        "hardware_write": false,
+        "registry_mutation": false,
+        "polling_policy_mutation": false,
+        "named_volume_deleted": false,
+        "production_cutover": false
+      }
+    }
+  },
+  "issue_289_continuation": {
+    "issue": 289,
+    "status": "blocked_by_issue_440",
+    "blocked_by_issue": 440,
+    "original_zero_request_window_is_passing_baseline": false,
+    "resume_after": "Issue #440 / PR #441 GREEN merge",
+    "next_action": "Capture a fresh equal-window no-browser hardware baseline, then continue the safe browser-count matrix.",
+    "residual_evidence_to_analyze": {
+      "timeouts_60s": 23,
+      "retries_60s": 18,
+      "missed_deadlines_60s": 41,
+      "deferred_60s": 24,
+      "health_ready": "degraded"
+    }
+  },
+  "next_ready_work_package": {
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "condition": "after Issue #440 / PR #441 merges GREEN",
+    "first_step": "Fresh no-browser Raspberry Pi baseline; do not reuse the pre-fix zero-request phase."
+  },
+  "blocking_reason": "Issue #289 is blocked only until Issue #440 / PR #441 final state/evidence exact-head CI and GREEN merge. Issue #440 has no remaining technical or hardware blocker.",
+  "resume_from": [
+    "Verify this state/evidence-only commit is the new PR #441 head.",
+    "Require exact-head CI on the new state/evidence head.",
+    "Audit focused diff and unresolved review threads.",
+    "Mark PR #441 ready and squash-merge only after all required checks are GREEN.",
+    "Verify new main and close Issue #440 through the PR.",
+    "Return Issue #289 to in-progress and capture a fresh no-browser hardware baseline."
+  ]
 }

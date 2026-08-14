@@ -75,6 +75,11 @@ class AdaptiveAcquisitionScheduler:
         self._bus_locks = dict(bus_locks or {})
         self._metrics: dict[str, BusSchedulerMetrics] = {}
         self._threads: dict[str, threading.Thread] = {}
+        self._worker_failures_total: dict[str, int] = {}
+        self._worker_restarts_total: dict[str, int] = {}
+        self._worker_last_failure_type: dict[str, str | None] = {}
+        self._worker_last_failure_at: dict[str, str | None] = {}
+        self._worker_last_recovered_at: dict[str, str | None] = {}
         self._sequence = 0
         self._started = False
         self._install(registry, preserve=False)
@@ -224,9 +229,13 @@ class AdaptiveAcquisitionScheduler:
             for bus_id in sorted(self._bus_jobs):
                 self._start_bus(bus_id)
 
-    def _start_bus(self, bus_id: str) -> None:
-        if bus_id in self._threads:
-            return
+    def _start_bus(self, bus_id: str, *, recovery: bool = False) -> bool:
+        existing = self._threads.get(bus_id)
+        if existing is not None and existing.is_alive():
+            return False
+        if existing is not None:
+            self._threads.pop(bus_id, None)
+
         thread = threading.Thread(
             target=self._run_bus,
             args=(bus_id,),
@@ -235,6 +244,73 @@ class AdaptiveAcquisitionScheduler:
         )
         self._threads[bus_id] = thread
         thread.start()
+
+        if recovery:
+            self._worker_restarts_total[bus_id] = (
+                self._worker_restarts_total.get(bus_id, 0) + 1
+            )
+            self._worker_last_recovered_at[bus_id] = (
+                self._wall_clock().isoformat()
+            )
+        return True
+
+    def _advance_overdue_deadlines_for_recovery(
+        self,
+        bus_id: str,
+        now: float,
+    ) -> None:
+        metrics = self._metrics[bus_id]
+        for target_id in self._bus_jobs.get(bus_id, set()):
+            job = self._jobs.get(target_id)
+            if job is None:
+                continue
+            endpoint = self._endpoints[
+                (job.target.bus_id, job.target.unit_id)
+            ]
+            if endpoint.cooldown_until > now or job.next_deadline > now:
+                continue
+
+            interval = job.target.interval_seconds
+            skipped = int((now - job.next_deadline) // interval) + 1
+            job.next_deadline += skipped * interval
+            metrics.observe_skipped(skipped)
+
+    def _record_worker_failure(
+        self,
+        bus_id: str,
+        error: Exception,
+    ) -> None:
+        with self._condition:
+            self._worker_failures_total[bus_id] = (
+                self._worker_failures_total.get(bus_id, 0) + 1
+            )
+            self._worker_last_failure_type[bus_id] = type(error).__name__
+            self._worker_last_failure_at[bus_id] = (
+                self._wall_clock().isoformat()
+            )
+            self._condition.notify_all()
+
+    def supervise_workers(self) -> int:
+        with self._condition:
+            if not self._started or self._stop_event.is_set():
+                return 0
+
+            now = self._clock()
+            recovered = 0
+            for bus_id in sorted(self._bus_jobs):
+                if not self._bus_jobs.get(bus_id):
+                    continue
+                thread = self._threads.get(bus_id)
+                if thread is not None and thread.is_alive():
+                    continue
+
+                self._advance_overdue_deadlines_for_recovery(bus_id, now)
+                if self._start_bus(bus_id, recovery=True):
+                    recovered += 1
+
+            if recovered:
+                self._condition.notify_all()
+            return recovered
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -438,32 +514,56 @@ class AdaptiveAcquisitionScheduler:
             self._condition.notify_all()
 
     def _run_bus(self, bus_id: str) -> None:
-        while not self._stop_event.is_set():
-            if self.run_once(bus_id):
-                continue
-            with self._condition:
-                deadlines = [
-                    self._effective_deadline(self._jobs[target_id])
-                    for target_id in self._bus_jobs.get(bus_id, set())
-                    if target_id in self._jobs
-                ]
-                wait = (
-                    min(
-                        1.0,
-                        max(0.01, min(deadlines) - self._clock()),
+        try:
+            while not self._stop_event.is_set():
+                if self.run_once(bus_id):
+                    continue
+                with self._condition:
+                    deadlines = [
+                        self._effective_deadline(self._jobs[target_id])
+                        for target_id in self._bus_jobs.get(bus_id, set())
+                        if target_id in self._jobs
+                    ]
+                    wait = (
+                        min(
+                            1.0,
+                            max(
+                                0.01,
+                                min(deadlines) - self._clock(),
+                            ),
+                        )
+                        if deadlines
+                        else 1.0
                     )
-                    if deadlines
-                    else 1.0
-                )
-                self._condition.wait(timeout=wait)
+                    self._condition.wait(timeout=wait)
+        except Exception as error:  # noqa: BLE001
+            self._record_worker_failure(bus_id, error)
+            LOG.exception(
+                "Adaptive acquisition worker failed for bus %s",
+                bus_id,
+            )
 
     def current_error(self) -> str | None:
         now = self._clock()
         with self._condition:
+            inactive_workers = 0
+            for bus_id, target_ids in self._bus_jobs.items():
+                if not target_ids:
+                    continue
+                thread = self._threads.get(bus_id)
+                if thread is None or not thread.is_alive():
+                    inactive_workers += 1
+
             degraded = sum(
                 endpoint.failure_streak > 0
                 or endpoint.cooldown_until > now
                 for endpoint in self._endpoints.values()
+            )
+
+        if inactive_workers:
+            return (
+                "adaptive acquisition worker unavailable: "
+                f"{inactive_workers} bus worker(s) inactive"
             )
         if degraded == 0:
             return None
@@ -576,25 +676,65 @@ class AdaptiveAcquisitionScheduler:
     def snapshot(self) -> dict[str, Any]:
         now = self._clock()
         with self._condition:
-            buses = {
-                bus_id: metrics.snapshot(
+            active_workers = 0
+            expected_workers = 0
+            buses: dict[str, dict[str, Any]] = {}
+
+            for bus_id, metrics in sorted(self._metrics.items()):
+                configured_targets = len(
+                    self._bus_jobs.get(bus_id, set())
+                )
+                thread = self._threads.get(bus_id)
+                worker_alive = (
+                    thread is not None and thread.is_alive()
+                )
+                if configured_targets:
+                    expected_workers += 1
+                    if worker_alive:
+                        active_workers += 1
+
+                if not configured_targets:
+                    worker_state = "idle"
+                elif worker_alive:
+                    worker_state = "running"
+                elif self._stop_event.is_set():
+                    worker_state = "stopped"
+                elif self._started:
+                    worker_state = "dead"
+                else:
+                    worker_state = "starting"
+
+                bus_payload = metrics.snapshot(
                     now=now,
                     load_window_seconds=(
                         self.policy.bus_load_window_seconds
                     ),
-                    worker_count=(
-                        1
-                        if bus_id in self._threads
-                        and self._threads[bus_id].is_alive()
-                        else 0
-                    ),
-                    configured_targets=len(
-                        self._bus_jobs.get(bus_id, set())
-                    ),
+                    worker_count=1 if worker_alive else 0,
+                    configured_targets=configured_targets,
                     queue_depth=len(self._due(bus_id, now)),
                 )
-                for bus_id, metrics in sorted(self._metrics.items())
-            }
+                bus_payload.update(
+                    {
+                        "worker_state": worker_state,
+                        "worker_failures_total": (
+                            self._worker_failures_total.get(bus_id, 0)
+                        ),
+                        "worker_restarts_total": (
+                            self._worker_restarts_total.get(bus_id, 0)
+                        ),
+                        "last_worker_failure_type": (
+                            self._worker_last_failure_type.get(bus_id)
+                        ),
+                        "last_worker_failure_at": (
+                            self._worker_last_failure_at.get(bus_id)
+                        ),
+                        "last_worker_recovered_at": (
+                            self._worker_last_recovered_at.get(bus_id)
+                        ),
+                    }
+                )
+                buses[bus_id] = bus_payload
+
             targets = [
                 {
                     "target_id": job.target.target_id,
@@ -633,9 +773,14 @@ class AdaptiveAcquisitionScheduler:
                 "serialized_worker_per_bus": True,
                 "policy": self.policy.sanitized(),
                 "configured_targets": len(self._jobs),
-                "active_bus_workers": sum(
-                    thread.is_alive()
-                    for thread in self._threads.values()
+                "expected_bus_workers": expected_workers,
+                "active_bus_workers": active_workers,
+                "workers_healthy": active_workers == expected_workers,
+                "worker_failures_total": sum(
+                    self._worker_failures_total.values()
+                ),
+                "worker_restarts_total": sum(
+                    self._worker_restarts_total.values()
                 ),
                 "degraded_endpoints": sum(
                     endpoint.failure_streak > 0

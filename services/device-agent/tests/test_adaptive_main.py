@@ -161,5 +161,50 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.client.loop_stop.assert_called_once_with()
 
 
+    def test_health_fails_closed_when_eligible_bus_worker_is_dead(
+        self,
+    ) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.size.return_value = 0
+        value.registry_summary = Mock(
+            return_value={
+                "poll_eligible_targets": 1,
+            }
+        )
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "polling_policy": "priority_adaptive_v1",
+                "scheduler": {
+                    "expected_bus_workers": 1,
+                    "active_bus_workers": 0,
+                    "workers_healthy": False,
+                },
+            }
+        )
+        value.scheduler = Mock()
+        value.scheduler.latest_summary.return_value = {}
+        value.scheduler.current_error.return_value = (
+            "adaptive acquisition worker unavailable: "
+            "1 bus worker(s) inactive"
+        )
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "error")
+        self.assertIn("worker unavailable", payload["last_error"])
+        self.assertEqual(
+            payload["acquisition"]["scheduler"][
+                "active_bus_workers"
+            ],
+            0,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
