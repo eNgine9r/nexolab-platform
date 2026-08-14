@@ -9,8 +9,7 @@ Current verified `main` before Issue #451 merge is
 
 Post-Issue-443 changes already present in that baseline and now reconciled here:
 
-- Issue #445 / PR #446 restored the KK2/XJP60D discovery catalog including Unit
-  115. Software/CI/offline verification is complete; the separate Raspberry Pi
+- Issue #445 / PR #446 restored the KK2/XJP60D discovery catalog including Unit 115. Software/CI/offline verification is complete; the separate Raspberry Pi
   field retest remains pending and is not claimed.
 - Issue #447 / PR #448 removed the redundant refrigeration structural-snapshot
   wait while preserving truthful fallback/unavailable behavior. Software/browser/
