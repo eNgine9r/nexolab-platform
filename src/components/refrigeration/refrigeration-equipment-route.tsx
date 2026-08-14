@@ -32,25 +32,50 @@ export function RefrigerationEquipmentRoute({
     if (!structural && !repository) return;
 
     let active = true;
-    const snapshotRequest: Promise<RefrigerationStructuralSnapshot | null> = structural
-      ? structural.get(equipmentId)
-      : Promise.resolve(null);
-    const equipmentRequest = repository?.get(equipmentId) ?? Promise.resolve(null);
 
-    void Promise.all([equipmentRequest, snapshotRequest])
-      .then(([loadedEquipment, loadedSnapshot]) => {
+    const loadEquipmentFallback = async (primaryError?: unknown) => {
+      if (!repository) {
         if (!active) return;
-        setEquipment(loadedSnapshot?.equipment ?? loadedEquipment);
-        if (loadedSnapshot) setSnapshot(loadedSnapshot);
-        setError(null);
-      })
-      .catch((reason: unknown) => {
+        setError(errorMessage(primaryError));
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const loadedEquipment = await repository.get(equipmentId);
         if (!active) return;
-        setError(reason instanceof Error ? reason.message : "Обладнання не знайдено.");
-      })
-      .finally(() => {
+        if (loadedEquipment) {
+          setEquipment(loadedEquipment);
+          setError(null);
+        } else {
+          setError(errorMessage(primaryError));
+        }
+      } catch (reason: unknown) {
+        if (!active) return;
+        setError(errorMessage(reason, primaryError));
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    if (structural) {
+      void structural
+        .get(equipmentId)
+        .then((loadedSnapshot) => {
+          if (!active) return;
+          setEquipment(loadedSnapshot.equipment);
+          setSnapshot(loadedSnapshot);
+          setError(null);
+          setLoading(false);
+        })
+        .catch((reason: unknown) => {
+          if (!active) return;
+          void loadEquipmentFallback(reason);
+        });
+    } else {
+      void loadEquipmentFallback();
+    }
+
     return () => {
       active = false;
     };
@@ -61,6 +86,12 @@ export function RefrigerationEquipmentRoute({
   }
 
   return <EquipmentRouteState loading={loading} error={error} />;
+}
+
+function errorMessage(reason?: unknown, fallback?: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  if (fallback instanceof Error) return fallback.message;
+  return "Обладнання не знайдено.";
 }
 
 function EquipmentRouteState({ loading, error }: { loading: boolean; error: string | null }) {
