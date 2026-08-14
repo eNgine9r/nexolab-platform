@@ -164,6 +164,11 @@ describe("ECharts renderer adapter lifecycle", () => {
       })),
     });
 
+    const callsAfterHostPointer = onCursor.mock.calls.length;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [] });
+    expect(onCursor).toHaveBeenCalledTimes(callsAfterHostPointer);
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: BENCHMARK_START_MS });
+
     instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
     expect(onXDomainChange).toHaveBeenCalledWith({
       fromMs: scene.xDomain.fromMs + (scene.xDomain.toMs - scene.xDomain.fromMs) * 0.25,

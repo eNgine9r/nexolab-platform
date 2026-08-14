@@ -374,11 +374,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
+    if (!this.scene) return;
     const timestampMs = axisPointerTimestamp(event);
-    if (timestampMs === null || !this.scene) {
-      this.options?.onCursor(null);
-      return;
-    }
+    if (timestampMs === null) return;
     this.options?.onCursor(sharedInspection(this.scene, timestampMs));
   };
 
