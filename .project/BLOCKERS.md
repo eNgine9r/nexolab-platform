@@ -2,12 +2,13 @@
 
 Updated: 2026-08-14
 
-## Issue #451 / PR #452
+## Issue #451 / PR #452 — merged, no software blocker
 
-No software, CI, browser or offline-runtime blocker remains on the verified
-product head `58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02`.
+Issue #451 is closed/completed and PR #452 is squash-merged as
+`6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0` from final PR head
+`795cff9a309fcb70981293c29009682fdafddfba`.
 
-Exact-head product verification is GREEN:
+Final exact-head verification is GREEN:
 
 - CI / Quality and build: PASS;
 - Authenticated Dashboard Acceptance: 13/13 PASS;
@@ -15,24 +16,23 @@ Exact-head product verification is GREEN:
 - disconnected Offline Bundle: PASS with clean transferred-host startup,
   blocked egress, update/rollback and persistent-volume preservation.
 
-Current procedural blocker before merge: complete this state-only reconciliation,
-run the same mandatory exact-head gates on the resulting final PR head, then
-perform the Ready/final merge audit. This is not a product defect blocker.
+No software, CI, browser or offline-runtime blocker remains for #451.
+Raspberry Pi operator acceptance remains **pending** and is not claimed.
 
-Raspberry Pi operator acceptance for Issue #451 remains **pending** and must not
-be claimed from software/browser CI evidence.
+## Issue #453 dependency blocker — resolved by #451 merge
 
-## Issue #453 dependency blocker
+The product dependency `#453 -> #451` is resolved by merge `6286e8ed...`.
+Issue #453 remains temporarily labelled `status:blocked` only until the state-only
+Issue #454 reconciliation merges. After that procedural boundary it may move to
+`status:ready` and start on its own feature branch/PR.
 
-Issue #453 — equipment-centric multi-metric charts with dynamic Y axes — is
-intentionally blocked by Issue #451 until PR #452 is merged. It must remain a
-separate Issue/feature branch/PR and must not be folded into #451.
+No runtime or architecture blocker is currently identified for #453.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and in progress. Completion still requires controlled
-real Raspberry Pi/RS-485 evidence. The #451 chart work does not close or replace
-that hardware-performance acceptance lane.
+Issue #289 remains open and `status:in-progress`. Completion still requires
+controlled real Raspberry Pi/RS-485 evidence. The #451 chart work and #454 state
+reconciliation do not close, replace or satisfy that hardware-performance gate.
 
 Residual physical evidence from the worker-liveness investigation remains
 truthful context for #289, including timeout/retry/missed-deadline/deferred
