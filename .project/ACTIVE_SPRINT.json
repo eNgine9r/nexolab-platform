@@ -331,5 +331,40 @@
     "privileged_container": "none",
     "production_site_cutover": "none",
     "mandatory_cloud_dependency": "none"
-  }
+  },
+  "active_issue": 440,
+  "active_branch": "fix/440-acquisition-worker-self-recovery",
+  "active_defect": {
+    "issue": 440,
+    "pr": 441,
+    "branch": "fix/440-acquisition-worker-self-recovery",
+    "base_main_sha": "f523f14dc17b28de3683e1773a2ef5a7143a194f",
+    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
+    "status": "hardware_verified_final_state_ci_pending",
+    "software_verified": true,
+    "hardware_verified": true,
+    "exact_implementation_head_workflows_green": 9,
+    "hardware_acceptance": {
+      "expected_bus_workers": 1,
+      "active_bus_workers": 1,
+      "normal_physical_requests_60s": 155,
+      "successes_60s": 132,
+      "timeouts_60s": 23,
+      "retries_60s": 18,
+      "bus_utilization_percent": 22.365,
+      "scheduler_lag_max_seconds": 2.183755,
+      "worker_failures": 0,
+      "worker_restarts": 0
+    }
+  },
+  "issues_blocked": [
+    {
+      "issue": 289,
+      "blocked_by_issue": 440,
+      "reason": "Hardware performance validation cannot continue on main until the dead-worker recovery is merged. Fresh no-browser baseline required after merge."
+    }
+  ],
+  "notes": [
+    "Issue #440 is software and Raspberry Pi hardware verified at 97fab27dd99a8685edc6c96c8e99bc0db88e1bd7; PR #441 final state/evidence head CI and merge remain. Issue #289 stays blocked until merge, then resumes from a fresh no-browser baseline. Real timeout/retry/deadline evidence remains assigned to #289."
+  ]
 }
