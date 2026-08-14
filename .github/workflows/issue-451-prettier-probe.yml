@@ -1,0 +1,40 @@
+name: Issue 451 Prettier Probe
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+    paths:
+      - .github/workflows/issue-451-prettier-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  format-state:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+
+      - name: Format current state
+        run: npx prettier .project/CURRENT_STATE.md > formatted-CURRENT_STATE.md
+
+      - name: Upload formatted state
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-451-formatted-current-state
+          path: formatted-CURRENT_STATE.md
+          if-no-files-found: error
+          retention-days: 1
