@@ -52,4 +52,51 @@ describe("SensorManagementDialog acquisition state", () => {
     expect(screen.getByText(/Ініціалізація — очікується перша спроба/)).toBeInTheDocument();
     expect(screen.getByText(/0 спроб · 0 успішних · 0 послідовних помилок/)).toBeInTheDocument();
   });
+
+  it("labels responsive unit 115 as KK2", () => {
+    const management: Xjp60dSensorManagement = {
+      configuration: {
+        node_id: "edge-01",
+        active_points: [],
+        discovery_units: [115],
+        last_discovery: {
+          scanned_at: "2026-08-14T07:00:00Z",
+          duration_ms: 120,
+          controller_count: 1,
+          reachable_controller_count: 1,
+          available_points: [
+            {
+              channel_id: "115-04",
+              unit_id: 115,
+              channel: 4,
+              quality: "valid",
+              value: 4.8,
+              unit: "degC",
+              alarm: null,
+              raw_status: 0,
+            },
+          ],
+          unavailable_points: [],
+          controller_errors: [],
+        },
+        target_diagnostics: [],
+      },
+      activeChannelIds: [],
+      isLoading: false,
+      isDiscovering: false,
+      isSaving: false,
+      error: null,
+      refresh: vi.fn(),
+      discover: vi.fn(),
+      save: vi.fn(),
+    };
+
+    render(
+      <SensorManagementDialog open canManage management={management} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
+
+    expect(screen.getByText("115-04")).toBeInTheDocument();
+    expect(screen.getByText(/КК2 · вхід 4 · valid/)).toBeInTheDocument();
+    expect(screen.getByText("4,8 °C")).toBeInTheDocument();
+  });
 });
