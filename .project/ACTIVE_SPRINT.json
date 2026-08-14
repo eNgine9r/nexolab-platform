@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
-  "current_main_sha_semantics": "Issue #433 merge reconciled by Issue #435 / PR #436; Issue #432 branch is based on this exact main",
+  "current_main_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
+  "current_main_sha_semantics": "Issue #432 / PR #437 route-prefetch/time-to-usable acceptance merged; Issue #438 is state-only reconciliation before Issue #289 execution",
   "selection_state": {
-    "last_ready_audit_result": "After #433 merge, Issue #432 is the only open status:ready product package; #289 remains needs-validation pending #432 and final physical measurement.",
-    "selected_issue": 432,
-    "selection_status": "implementation_complete_pr_437_open_software_browser_verified"
+    "last_ready_audit_result": "Post-#432 merge audit: Issue #289 is the only open status:ready critical product package and is selected next; open dependency-update PRs remain out of lane.",
+    "selected_issue": 289,
+    "selection_status": "selected_ready_after_432_merge"
   },
   "tasks": [
     {
@@ -133,9 +133,12 @@
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "needs_validation_pending_432_prefetch_slice",
+      "status": "ready_selected_hardware_performance_validation",
       "priority": "critical",
-      "depends_on": [366, 432]
+      "assignee": "eNgine9r",
+      "execution_baseline": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
+      "depends_on": [283, 284, 285, 286, 287, 314, 288, 366, 432],
+      "hardware_acceptance": "pending_not_started"
     },
     {
       "id": "NEXOLAB-389",
@@ -165,11 +168,13 @@
       "issue": 432,
       "pull_request": 437,
       "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
-      "status": "implementation_complete_pr_open_software_browser_verified",
+      "status": "completed_merged_software_browser_verified",
       "priority": "critical",
       "branch": "perf/432-route-prefetch-time-to-usable",
       "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
-      "verification": "Review-corrected warm medians 201..398 ms; truthful Overview and Live library content, exact-path RSC prefetch, pre-navigation inventory laziness, zero warm loading transitions and post-warm read bounds pass; required local and exact-head gates GREEN",
+      "final_pr_head": "1509fb30e1e558d4585e403d606c5253d87255da",
+      "merge_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
+      "verification": "Review-corrected warm medians 201..398 ms; truthful Overview and Live library content, exact-path RSC prefetch, pre-navigation inventory laziness, zero warm loading transitions and post-warm read bounds pass; all required final-head workflows GREEN",
       "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
       "depends_on": [433]
     },
@@ -216,27 +221,21 @@
     }
   ],
   "active_work_package": {
-    "issue": 432,
-    "pull_request": 437,
-    "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
-    "status": "implementation_complete_pr_open_software_browser_verified",
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "status": "selected_ready",
     "priority": "critical",
     "assignee": "eNgine9r",
-    "branch": "perf/432-route-prefetch-time-to-usable",
-    "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266"
+    "execution_baseline_before_state_reconciliation": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
+    "hardware_acceptance": "pending_not_started"
   },
   "next_ready_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "needs_validation_after_432_merge",
+    "status": "selected_ready",
     "priority": "critical"
   },
   "prepared_backlog": [
-    {
-      "issue": 289,
-      "priority": "critical",
-      "lane": "needs_validation_after_432_prefetch_slice"
-    },
     {
       "issue": 415,
       "priority": "medium",
@@ -246,8 +245,10 @@
   "verification": {
     "issue_432_base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
     "issue_432_evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
-    "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus 4 + 1 + 1 browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
-    "issue_432_exact_head_gates": "CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN on the corrected evidence head",
+    "issue_432_final_pr_head": "1509fb30e1e558d4585e403d606c5253d87255da",
+    "issue_432_merge_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
+    "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
+    "issue_432_exact_head_gates": "Final PR head 1509fb30: CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN",
     "issue_432_classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
     "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
     "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
@@ -312,7 +313,7 @@
     "issue_366_websocket_max_concurrent": 1,
     "issue_366_acquisition_mutations": 0
   },
-  "next_selection_policy": "Review and merge focused PR #437, reconcile Issue #432, then reassess Issue #289 for final Raspberry Pi physical/performance acceptance.",
+  "next_selection_policy": "Execute selected Ready Issue #289 evidence-first on the controlled Raspberry Pi/RS-485 runtime. Do not mix dependency updates or unrelated product work; discovered production defects require separate focused Issues.",
   "security_exception": {
     "image_id": "telemetry-service",
     "package": "libcjson1",
