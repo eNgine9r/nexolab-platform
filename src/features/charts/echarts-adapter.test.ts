@@ -250,7 +250,8 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     const firstSegmentLast = scene.series[0].segments[0].points.at(-1)!;
     const secondSegmentFirst = scene.series[0].segments[1].points[0];
-    const cursor = firstSegmentLast.timestampMs + (secondSegmentFirst.timestampMs - firstSegmentLast.timestampMs) / 2;
+    const cursor =
+      firstSegmentLast.timestampMs + (secondSegmentFirst.timestampMs - firstSegmentLast.timestampMs) / 2;
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
 
     expect(onCursor).toHaveBeenCalledWith({

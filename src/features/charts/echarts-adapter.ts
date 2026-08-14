@@ -103,9 +103,7 @@ function cursorFallsInsideExplicitGap(series: ChartSeries, timestampMs: number):
 function seriesCursorToleranceMs(series: ChartSeries): number {
   const deltas = series.segments
     .flatMap((segment) =>
-      segment.points
-        .slice(1)
-        .map((point, index) => point.timestampMs - segment.points[index].timestampMs),
+      segment.points.slice(1).map((point, index) => point.timestampMs - segment.points[index].timestampMs),
     )
     .filter((delta) => Number.isFinite(delta) && delta > 0)
     .sort((left, right) => left - right);
