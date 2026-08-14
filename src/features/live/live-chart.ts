@@ -129,7 +129,10 @@ function equipmentSceneGroups(series: readonly ChartSeries[]): Array<{
     byEquipment.set(equipmentId, [...(byEquipment.get(equipmentId) ?? []), item]);
   }
   return [...byEquipment.entries()].flatMap(([equipmentId, equipmentSeries]) =>
-    partitionChartSeriesByAxisBudget(equipmentSeries).map((partition) => ({ equipmentId, series: partition })),
+    partitionChartSeriesByAxisBudget(equipmentSeries).map((partition) => ({
+      equipmentId,
+      series: partition,
+    })),
   );
 }
 

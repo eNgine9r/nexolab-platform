@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartValue } from "@/features/charts/format";
+import { buildChartYAxisModel } from "@/features/charts/units";
 
 function freshnessLabel(state: ChartSeries["freshness"]): string {
   return {
@@ -36,24 +37,27 @@ export function ChartShell({
   onSoloSeries: (seriesKey: string) => void;
   onResetZoom: () => void;
 }) {
-  const freshness = series.some((item) => item.freshness === "offline")
+  const visibleSeries = series.filter((item) => item.visible);
+  const freshnessSeries = visibleSeries.length > 0 ? visibleSeries : series;
+  const freshness = freshnessSeries.some((item) => item.freshness === "offline")
     ? "offline"
-    : series.some((item) => item.freshness === "stale")
+    : freshnessSeries.some((item) => item.freshness === "stale")
       ? "stale"
-      : series.some((item) => item.freshness === "reconnecting")
+      : freshnessSeries.some((item) => item.freshness === "reconnecting")
         ? "reconnecting"
-        : series.some((item) => item.freshness === "connecting")
+        : freshnessSeries.some((item) => item.freshness === "connecting")
           ? "connecting"
           : "live";
   const inspectionBySeries = new Map(
     (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
   );
-  const units = [...new Set(series.map((item) => item.identity.nativeUnit))].join(", ");
-  const continuityBreaks = series.reduce(
+  const visibleAxes = buildChartYAxisModel(series).visibleAxes;
+  const units = [...new Set(visibleAxes.map((axis) => axis.nativeUnit))].join(", ");
+  const continuityBreaks = visibleSeries.reduce(
     (total, item) => total + item.segments.filter((segment) => segment.precedingBreak).length,
     0,
   );
-  const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}. Continuity breaks ${continuityBreaks}.`;
+  const summary = `${title}. Range ${selectedRange}. ${visibleSeries.length} series visible. Axes ${visibleAxes.length}. Units ${units || "none"}. State ${freshnessLabel(freshness)}. Continuity breaks ${continuityBreaks}.`;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
@@ -154,32 +158,30 @@ export function ChartShell({
                 </tr>
               </thead>
               <tbody className="align-top text-slate-300">
-                {series
-                  .filter((item) => item.visible)
-                  .map((item) => {
-                    const key = chartSeriesKey(item.identity);
-                    const inspected = inspectionBySeries.get(key);
-                    const point = inspected?.point ?? null;
-                    const sampleTimestamp = point ? new Date(point.timestampMs).toISOString() : "—";
-                    const value = point
-                      ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
-                      : "—";
-                    return (
-                      <tr key={key} className="border-t border-white/[0.05]">
-                        <td className="min-w-0 truncate py-1.5 pr-2" title={item.name}>
-                          {item.name}
-                        </td>
-                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums" title={sampleTimestamp}>
-                          {sampleTimestamp}
-                        </td>
-                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
-                        <td className="min-w-0 truncate py-1.5 pr-2">{point?.quality ?? "—"}</td>
-                        <td className="min-w-0 truncate py-1.5">
-                          {freshnessLabel(inspected?.freshness ?? item.freshness)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                {visibleSeries.map((item) => {
+                  const key = chartSeriesKey(item.identity);
+                  const inspected = inspectionBySeries.get(key);
+                  const point = inspected?.point ?? null;
+                  const sampleTimestamp = point ? new Date(point.timestampMs).toISOString() : "—";
+                  const value = point
+                    ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
+                    : "—";
+                  return (
+                    <tr key={key} className="border-t border-white/[0.05]">
+                      <td className="min-w-0 truncate py-1.5 pr-2" title={item.name}>
+                        {item.name}
+                      </td>
+                      <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums" title={sampleTimestamp}>
+                        {sampleTimestamp}
+                      </td>
+                      <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
+                      <td className="min-w-0 truncate py-1.5 pr-2">{point?.quality ?? "—"}</td>
+                      <td className="min-w-0 truncate py-1.5">
+                        {freshnessLabel(inspected?.freshness ?? item.freshness)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

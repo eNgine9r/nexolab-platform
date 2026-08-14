@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chartSeriesKey } from "@/features/charts";
+import { buildChartYAxisModel, chartSeriesKey } from "@/features/charts";
 import {
   buildSavedDashboardChartGroups,
   savedDashboardChartIdentity,
@@ -65,7 +65,7 @@ function series(sourceItem: LiveDashboardItem, history: TelemetrySample[]): Live
 }
 
 describe("Saved Live Dashboard canonical chart mapping", () => {
-  it("preserves persisted order and colors while grouping compatible units and excluding value/gauge", () => {
+  it("preserves persisted order and colors while grouping one equipment scene and excluding value/gauge", () => {
     const second = item("second", 2, "T-2", "degC", "area", "#123456");
     const first = item("first", 1, "T-1", "degC", "line", "#654321");
     const valueItem = item("value", 3, "T-3", "degC", "value", "#ABCDEF");
@@ -85,6 +85,29 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual(["#654321", "#123456"]);
     expect(groups[0].scene.series[0].areaFillOpacity).toBeUndefined();
     expect(groups[0].scene.series[1].areaFillOpacity).toBeGreaterThan(0);
+  });
+
+  it("preserves V/A/W persisted order and colors on one equipment canvas", () => {
+    const current = item("current", 1, "A-1", "A", "line", "#111111", "electrical.current");
+    const power = item("power", 2, "W-1", "W", "area", "#222222", "electrical.active_power");
+    const voltage = item("voltage", 3, "V-1", "V", "line", "#333333", "electrical.voltage");
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "dashboard-meter",
+      series: [
+        series(power, [sample("w", "W-1", "W", 10_000, 540, "valid", null, power.metric)]),
+        series(voltage, [sample("v", "V-1", "V", 10_000, 230, "valid", null, voltage.metric)]),
+        series(current, [sample("a", "A-1", "A", 10_000, 2.4, "valid", null, current.metric)]),
+      ],
+      status: "live",
+      xDomain: { fromMs: START, toMs: START + 60_000 },
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].equipmentId).toBe("equipment-1");
+    expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual(["A-1", "W-1", "V-1"]);
+    expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual(["#111111", "#222222", "#333333"]);
+    expect(new Set(groups[0].nativeUnits)).toEqual(new Set(["A", "W", "V"]));
+    expect(buildChartYAxisModel(groups[0].scene.series).visibleAxes).toHaveLength(3);
   });
 
   it("never bridges invalid samples or established source gaps", () => {
@@ -130,13 +153,9 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
       xDomain: { fromMs: START, toMs: START + 60_000 },
     });
 
-    expect(groups).toHaveLength(2);
-    const temperatureSeries = groups
-      .flatMap((group) => group.scene.series)
-      .find((entry) => entry.identity.channelId === "T-1")!;
-    const energySeries = groups
-      .flatMap((group) => group.scene.series)
-      .find((entry) => entry.identity.channelId === "E-1")!;
+    expect(groups).toHaveLength(1);
+    const temperatureSeries = groups[0].scene.series.find((entry) => entry.identity.channelId === "T-1")!;
+    const energySeries = groups[0].scene.series.find((entry) => entry.identity.channelId === "E-1")!;
     expect(
       temperatureSeries.segments
         .flatMap((segment) => segment.points)
