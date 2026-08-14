@@ -1,0 +1,39 @@
+name: Issue 451 Format Once
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: write
+
+jobs:
+  format-once:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Apply formatter and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx prettier --write \
+            src/features/charts/echarts-adapter.ts \
+            src/features/charts/echarts-adapter.test.ts
+          git rm .github/workflows/format-451-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/charts/echarts-adapter.ts src/features/charts/echarts-adapter.test.ts
+          git diff --cached --check
+          git commit -m "style(charts): apply exact Issue 451 formatting"
+          git push origin HEAD:fix/451-chart-integrity-alarm-provenance
