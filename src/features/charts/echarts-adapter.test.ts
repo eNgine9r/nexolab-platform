@@ -8,7 +8,6 @@ class FakeEChartsInstance {
   options: unknown[] = [];
   actions: object[] = [];
   handlers = new Map<string, (event: unknown) => void>();
-  zrHandlers = new Map<string, (event: unknown) => void>();
   resizeCount = 0;
   disposeCount = 0;
 
@@ -34,13 +33,6 @@ class FakeEChartsInstance {
 
   convertFromPixel(_finder: object, value: [number, number]) {
     return BENCHMARK_START_MS + value[0];
-  }
-
-  getZr() {
-    return {
-      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
-      off: (eventName: string) => this.zrHandlers.delete(eventName),
-    };
   }
 
   resize() {
@@ -141,8 +133,20 @@ describe("ECharts renderer adapter lifecycle", () => {
     const onXDomainChange = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
     const scene = createBenchmarkScene(2);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
     adapter.initialize({
-      container: document.createElement("div"),
+      container,
       renderer: "canvas",
       reducedMotion: true,
       onCursor,
@@ -150,7 +154,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
     adapter.setScene(scene);
 
-    instance.zrHandlers.get("mousemove")?.({ offsetX: 0, offsetY: 120 });
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({
@@ -174,7 +178,6 @@ describe("ECharts renderer adapter lifecycle", () => {
       { type: "updateAxisPointer", xAxisIndex: 0, value: BENCHMARK_START_MS },
     ]);
     expect(instance.handlers).toHaveLength(0);
-    expect(instance.zrHandlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);
   });

@@ -45,10 +45,6 @@ interface EChartsInstancePort {
   dispatchAction(action: object): void;
   containPixel(finder: object, value: [number, number]): boolean;
   convertFromPixel(finder: object, value: [number, number]): number | number[];
-  getZr(): {
-    on(eventName: string, handler: (event: unknown) => void): void;
-    off(eventName: string, handler?: (event: unknown) => void): void;
-  };
   resize(): void;
   dispose(): void;
   isDisposed(): boolean;
@@ -69,11 +65,6 @@ const CURSOR_CADENCE_TOLERANCE_RATIO = 0.75;
 
 interface AxisPointerEvent {
   axesInfo?: Array<{ value?: number | string }>;
-}
-
-interface ZRenderPointerEvent {
-  offsetX?: number;
-  offsetY?: number;
 }
 
 interface DataZoomEvent {
@@ -357,17 +348,17 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
 
 export class EChartsRendererAdapter implements ChartRendererAdapter {
   private instance: EChartsInstancePort | null = null;
+  private container: HTMLElement | null = null;
   private scene: ChartRendererScene | null = null;
   private options: ChartRendererInitOptions | null = null;
   private maximumLivePoints = 240;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
-  private readonly handleZRenderPointer = (event: unknown) => {
-    if (!this.scene || !this.instance || !event || typeof event !== "object") return;
-    const { offsetX, offsetY } = event as ZRenderPointerEvent;
-    if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) return;
-    const pixel: [number, number] = [offsetX!, offsetY!];
+  private readonly handleContainerPointer = (event: MouseEvent) => {
+    if (!this.scene || !this.instance || !this.container) return;
+    const bounds = this.container.getBoundingClientRect();
+    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
       this.options?.onCursor(null);
       return;
@@ -376,6 +367,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
     this.options?.onCursor(sharedInspection(this.scene, timestampMs));
+  };
+
+  private readonly handleContainerLeave = () => {
+    this.options?.onCursor(null);
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
@@ -397,10 +392,12 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (this.instance && !this.instance.isDisposed()) return;
     this.options = options;
     this.maximumLivePoints = options.maximumLivePoints ?? 240;
+    this.container = options.container;
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
-    this.instance.getZr().on("mousemove", this.handleZRenderPointer);
+    this.container.addEventListener("mousemove", this.handleContainerPointer);
+    this.container.addEventListener("mouseleave", this.handleContainerLeave);
   }
 
   setScene(scene: ChartRendererScene): void {
@@ -484,9 +481,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
-    this.instance.getZr().off("mousemove", this.handleZRenderPointer);
+    this.container?.removeEventListener("mousemove", this.handleContainerPointer);
+    this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
     this.instance.dispose();
     this.instance = null;
+    this.container = null;
     this.scene = null;
     this.options = null;
   }
