@@ -23,7 +23,7 @@ class FakeInstance {
     return true;
   }
   convertFromPixel(_finder: object, value: [number, number]) {
-    return value;
+    return value[0];
   }
   getZr() {
     return {

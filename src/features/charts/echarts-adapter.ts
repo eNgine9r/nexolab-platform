@@ -44,7 +44,7 @@ interface EChartsInstancePort {
   off(eventName: string, handler?: (event: unknown) => void): void;
   dispatchAction(action: object): void;
   containPixel(finder: object, value: [number, number]): boolean;
-  convertFromPixel(finder: object, value: [number, number]): unknown;
+  convertFromPixel(finder: object, value: [number, number]): number | number[];
   getZr(): {
     on(eventName: string, handler: (event: unknown) => void): void;
     off(eventName: string, handler?: (event: unknown) => void): void;
@@ -373,7 +373,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       return;
     }
     const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
-    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number.NaN;
+    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
     this.options?.onCursor(sharedInspection(this.scene, timestampMs));
   };

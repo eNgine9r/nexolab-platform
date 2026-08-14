@@ -33,7 +33,7 @@ class FakeEChartsInstance {
   }
 
   convertFromPixel(_finder: object, value: [number, number]) {
-    return [BENCHMARK_START_MS + value[0], value[1]];
+    return BENCHMARK_START_MS + value[0];
   }
 
   getZr() {
