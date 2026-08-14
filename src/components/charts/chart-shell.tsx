@@ -83,11 +83,11 @@ export function ChartShell({
         <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label="Chart legend">
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);
-            const inspected = inspectionBySeries.get(key)?.point ?? item.segments.at(-1)?.points.at(-1);
+            const latest = item.segments.at(-1)?.points.at(-1);
             const legendLabel = [
               item.name,
-              `${inspected ? formatChartValue(inspected.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`,
-              inspected?.quality ?? "unknown",
+              `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`,
+              latest?.quality ?? "unknown",
               freshnessLabel(item.freshness),
             ].join(" · ");
             return (
