@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chartSeriesKey } from "@/features/charts/domain";
+import { buildChartYAxisModel, chartSeriesKey } from "@/features/charts";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { buildLiveChartGroups, liveSampleChartIdentity, liveStatusChartFreshness } from "./live-chart";
@@ -68,9 +68,37 @@ describe("Live Data canonical chart mapping", () => {
     expect(segments[1].precedingBreak?.reason).toBe("explicit_gap");
   });
 
-  it("groups only compatible native units into the same plot", () => {
+  it("renders V/A/W from one equipment context on one synchronized canvas", () => {
+    const voltage = sample("v", "2026-08-11T12:30:00Z", 230, "V", {
+      channel_id: "voltage",
+      metric: "electrical.voltage",
+    });
+    const current = sample("a", "2026-08-11T12:30:00Z", 2.4, "A", {
+      channel_id: "current",
+      metric: "electrical.current",
+    });
+    const power = sample("w", "2026-08-11T12:30:00Z", 540, "W", {
+      channel_id: "power",
+      metric: "electrical.active_power",
+    });
+    const groups = buildLiveChartGroups({
+      selectedIdentities: [voltage, current, power],
+      historySamples: [voltage, current, power],
+      status: "live",
+      xDomain: domain,
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].equipmentId).toBe("case-01");
+    expect(new Set(groups[0].nativeUnits)).toEqual(new Set(["V", "A", "W"]));
+    expect(groups[0].scene.series).toHaveLength(3);
+    expect(buildChartYAxisModel(groups[0].scene.series).visibleAxes).toHaveLength(3);
+  });
+
+  it("keeps different equipment contexts isolated", () => {
     const temperature = sample("t", "2026-08-11T12:30:00Z", 5, "°C");
     const voltage = sample("v", "2026-08-11T12:30:00Z", 230, "V", {
+      equipment_id: "meter-02",
       channel_id: "voltage",
       metric: "voltage",
     });
@@ -82,7 +110,7 @@ describe("Live Data canonical chart mapping", () => {
     });
 
     expect(groups).toHaveLength(2);
-    expect(groups.map((group) => group.nativeUnit).sort()).toEqual(["V", "°C"]);
+    expect(groups.map((group) => group.equipmentId).sort()).toEqual(["case-01", "meter-02"]);
   });
 
   it("never invents chart events or alarm pins from telemetry-sample alarm context", () => {
@@ -107,29 +135,39 @@ describe("Live Data canonical chart mapping", () => {
     ).toBe(false);
   });
 
-  it("applies show-hide and solo state without changing series identity", () => {
-    const first = sample("a", "2026-08-11T12:00:00Z", 1);
-    const second = sample("b", "2026-08-11T12:00:00Z", 2, "°C", { channel_id: "t2" });
-    const firstKey = chartSeriesKey(liveSampleChartIdentity(first));
-    const secondKey = chartSeriesKey(liveSampleChartIdentity(second));
+  it("applies multi-axis hide and solo without changing series identity", () => {
+    const voltage = sample("a", "2026-08-11T12:00:00Z", 230, "V", {
+      channel_id: "voltage",
+      metric: "voltage",
+    });
+    const current = sample("b", "2026-08-11T12:00:00Z", 2, "A", {
+      channel_id: "current",
+      metric: "current",
+    });
+    const voltageKey = chartSeriesKey(liveSampleChartIdentity(voltage));
+    const currentKey = chartSeriesKey(liveSampleChartIdentity(current));
 
     const hidden = buildLiveChartGroups({
-      selectedIdentities: [first, second],
-      historySamples: [first, second],
+      selectedIdentities: [voltage, current],
+      historySamples: [voltage, current],
       status: "live",
       xDomain: domain,
-      hiddenSeriesKeys: new Set([secondKey]),
+      hiddenSeriesKeys: new Set([currentKey]),
     });
     expect(hidden[0].scene.series.map((series) => series.visible)).toEqual([true, false]);
+    expect(buildChartYAxisModel(hidden[0].scene.series).visibleAxes).toHaveLength(1);
 
     const solo = buildLiveChartGroups({
-      selectedIdentities: [first, second],
-      historySamples: [first, second],
+      selectedIdentities: [voltage, current],
+      historySamples: [voltage, current],
       status: "live",
       xDomain: domain,
-      soloSeriesKey: firstKey,
+      soloSeriesKey: voltageKey,
     });
     expect(solo[0].scene.series.map((series) => series.visible)).toEqual([true, false]);
+    expect(buildChartYAxisModel(solo[0].scene.series).visibleAxes).toHaveLength(1);
+    expect(chartSeriesKey(solo[0].scene.series[0].identity)).toBe(voltageKey);
+    expect(chartSeriesKey(solo[0].scene.series[1].identity)).toBe(currentKey);
   });
 
   it("marks cumulative energy series explicitly", () => {

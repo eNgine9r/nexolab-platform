@@ -27,13 +27,63 @@ describe("ChartShell accessibility contract", () => {
     );
 
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent(
-      "Range 15 min. 1 series. Units °C. State Live.",
+      "Range 15 min. 1 series visible. Axes 1. Units °C. State Live.",
     );
     expect(screen.getByLabelText("Chart legend")).toHaveTextContent("valid · Live");
     fireEvent.click(screen.getByRole("button", { name: "Hide" }));
     fireEvent.click(screen.getByRole("button", { name: "Solo" }));
     expect(toggle).toHaveBeenCalledTimes(1);
     expect(solo).toHaveBeenCalledTimes(1);
+  });
+
+  it("names only visible mixed-unit axes in the accessible summary", () => {
+    const scene = createBenchmarkScene(3);
+    const series = scene.series.map((item, index) => {
+      const definitions = [
+        { channelId: "voltage", metric: "electrical.voltage", unit: "V" },
+        { channelId: "current", metric: "electrical.current", unit: "A" },
+        { channelId: "power", metric: "electrical.active_power", unit: "W" },
+      ];
+      const definition = definitions[index];
+      return {
+        ...item,
+        identity: {
+          ...item.identity,
+          equipmentId: "meter-01",
+          channelId: definition.channelId,
+          metric: definition.metric,
+          nativeUnit: definition.unit,
+        },
+        visible: index !== 1,
+      };
+    });
+    const props = {
+      title: "Meter telemetry",
+      context: "V · A · W",
+      selectedRange: "Live",
+      inspection: null,
+      onToggleSeries: vi.fn(),
+      onSoloSeries: vi.fn(),
+      onResetZoom: vi.fn(),
+    };
+    const { rerender } = render(
+      <ChartShell {...props} series={series}>
+        <div>plot</div>
+      </ChartShell>,
+    );
+
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent(
+      "2 series visible. Axes 2. Units W, V.",
+    );
+
+    rerender(
+      <ChartShell {...props} series={series.map((item) => ({ ...item, visible: true }))}>
+        <div>plot</div>
+      </ChartShell>,
+    );
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent(
+      "3 series visible. Axes 3. Units W, A, V.",
+    );
   });
 
   it("keeps one fixed-footprint inspector mounted and formats every visible series deterministically", () => {
