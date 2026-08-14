@@ -1,14 +1,16 @@
 import {
   CHART_SERIES_TOKENS,
+  buildChartYAxisModel,
   chartSeriesKey,
+  partitionChartSeriesByAxisBudget,
   type ChartFreshnessState,
+  type ChartPhysicalQuantity,
   type ChartPoint,
   type ChartRendererScene,
   type ChartSeries,
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts";
-import { groupCompatibleChartUnits, type ChartUnitGroup } from "@/features/charts/units";
 import { liveHistorySegments } from "@/features/live/live-history";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import type { LiveTelemetryStatus } from "@/hooks/use-live-telemetry";
@@ -16,8 +18,9 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export interface LiveChartGroup {
   id: string;
-  nativeUnit: string;
-  physicalQuantity: ChartUnitGroup["physicalQuantity"];
+  equipmentId: string;
+  nativeUnits: readonly string[];
+  physicalQuantities: readonly ChartPhysicalQuantity[];
   scene: ChartRendererScene;
 }
 
@@ -116,24 +119,34 @@ function buildSeries(
   };
 }
 
+function equipmentSceneGroups(series: readonly ChartSeries[]): Array<{
+  equipmentId: string;
+  series: ChartSeries[];
+}> {
+  const byEquipment = new Map<string, ChartSeries[]>();
+  for (const item of series) {
+    const equipmentId = item.identity.equipmentId;
+    byEquipment.set(equipmentId, [...(byEquipment.get(equipmentId) ?? []), item]);
+  }
+  return [...byEquipment.entries()].flatMap(([equipmentId, equipmentSeries]) =>
+    partitionChartSeriesByAxisBudget(equipmentSeries).map((partition) => ({ equipmentId, series: partition })),
+  );
+}
+
 export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartGroup[] {
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const allSeries = options.selectedIdentities.map((identity, index) =>
     buildSeries(identity, options.historySamples, options.status, index, hiddenSeriesKeys, soloSeriesKey),
   );
-  const byKey = new Map(allSeries.map((series) => [chartSeriesKey(series.identity), series]));
-  const groups = groupCompatibleChartUnits(allSeries.map((series) => series.identity));
 
-  return groups.map((group) => {
-    const series = group.series.flatMap((identity) => {
-      const item = byKey.get(chartSeriesKey(identity));
-      return item ? [item] : [];
-    });
+  return equipmentSceneGroups(allSeries).map(({ equipmentId, series }, partitionIndex) => {
+    const axisModel = buildChartYAxisModel(series);
     return {
-      id: group.id,
-      nativeUnit: group.nativeUnit,
-      physicalQuantity: group.physicalQuantity,
+      id: `equipment:${equipmentId.length}:${equipmentId}:axes:${partitionIndex}`,
+      equipmentId,
+      nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
+      physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
       scene: {
         series,
         xDomain: options.xDomain,
