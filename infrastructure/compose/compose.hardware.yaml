@@ -17,8 +17,11 @@ services:
       # not added to the hot polling loop automatically.
       XJP60D_POINTS: ${XJP60D_POINTS:-106:3,106:4}
       # Candidate controller addresses used only by an on-demand discovery
-      # operation. Merely listing a controller here does not poll it continuously.
-      XJP60D_DISCOVERY_UNITS: ${XJP60D_DISCOVERY_UNITS:-101,102,103,104,105,106,107,108,109,110,111,112,113,114,126,127,128,129,130,131,132,133,134,135,136,137,138}
+      # operation. Unit 115 is part of the canonical KK2 controller range. The
+      # trailing 115 also repairs older operator env files that still carry the
+      # pre-KK2-completion catalog; parse_unit_ids de-duplicates it when already
+      # present. Discovery remains explicit and read-only.
+      XJP60D_DISCOVERY_UNITS: "${XJP60D_DISCOVERY_UNITS:-101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,126,127,128,129,130,131,132,133,134,135,136,137,138},115"
       XJP60D_SCALE: ${XJP60D_SCALE:-0.1}
       LE01MP_UNIT_IDS: ${LE01MP_UNIT_IDS:-200,201,202,203}
     volumes:

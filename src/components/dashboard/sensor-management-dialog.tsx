@@ -24,7 +24,7 @@ function compareChannels(left: string, right: string): number {
 }
 
 function chamberLabel(unitId: number): string {
-  if (unitId >= 101 && unitId <= 114) return "КК2";
+  if (unitId >= 101 && unitId <= 115) return "КК2";
   if (unitId >= 126 && unitId <= 138) return "КК1";
   return "Інше";
 }
