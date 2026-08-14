@@ -98,6 +98,7 @@ export function buildChartSegments(
   let points: ChartPoint[] = [];
   let previousTimestamp: number | null = null;
   let pendingBreak: ChartContinuityBreak | undefined;
+  let activeSegmentBreak: ChartContinuityBreak | undefined;
 
   const flush = () => {
     if (points.length === 0) return;
@@ -106,10 +107,10 @@ export function buildChartSegments(
       id: `${key}:segment:${segments.length}:${first.timestampMs}`,
       seriesKey: key,
       points,
-      ...(pendingBreak ? { precedingBreak: pendingBreak } : {}),
+      ...(activeSegmentBreak ? { precedingBreak: activeSegmentBreak } : {}),
     });
     points = [];
-    pendingBreak = undefined;
+    activeSegmentBreak = undefined;
   };
 
   for (const sample of ordered) {
@@ -126,12 +127,17 @@ export function buildChartSegments(
     }
 
     if (
-      pendingBreak === undefined &&
+      points.length > 0 &&
       previousTimestamp !== null &&
       sample.timestampMs - previousTimestamp > maximumSourceGapMs
     ) {
       flush();
       pendingBreak = { reason: "source_gap", atMs: sample.timestampMs };
+    }
+
+    if (points.length === 0 && pendingBreak) {
+      activeSegmentBreak = pendingBreak;
+      pendingBreak = undefined;
     }
 
     points.push({
