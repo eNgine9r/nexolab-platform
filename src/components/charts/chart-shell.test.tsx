@@ -29,7 +29,7 @@ describe("ChartShell accessibility contract", () => {
     expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent(
       "Range 15 min. 1 series. Units °C. State Live.",
     );
-    expect(screen.getByText(/valid · Live/)).toBeVisible();
+    expect(screen.getByLabelText("Chart legend")).toHaveTextContent("valid · Live");
     fireEvent.click(screen.getByRole("button", { name: "Hide" }));
     fireEvent.click(screen.getByRole("button", { name: "Solo" }));
     expect(toggle).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ describe("ChartShell accessibility contract", () => {
       </ChartShell>,
     );
 
-    expect(screen.getByLabelText("Chart legend")).toHaveTextContent("9.88 °C");
+    expect(screen.getByText("9.88 °C", { exact: true })).toBeVisible();
     expect(screen.getByTestId("chart-inspector")).toHaveTextContent("25.70 °C");
   });
 
