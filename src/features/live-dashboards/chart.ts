@@ -2,15 +2,17 @@ import {
   CHART_SERIES_TOKENS,
   ChartReductionBudgetError,
   buildChartSegments,
+  buildChartYAxisModel,
   chartSeriesKey,
+  partitionChartSeriesByAxisBudget,
   reduceChartSegments,
   type ChartFreshnessState,
+  type ChartPhysicalQuantity,
   type ChartRendererScene,
   type ChartSeries,
   type ChartSeriesIdentity,
   type ChartXDomain,
 } from "@/features/charts";
-import { groupCompatibleChartUnits, type ChartUnitGroup } from "@/features/charts/units";
 import { timeWindowMilliseconds } from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
@@ -24,8 +26,9 @@ const SAVED_AREA_FILL_OPACITY = 0.14;
 
 export interface SavedDashboardChartGroup {
   id: string;
-  nativeUnit: string;
-  physicalQuantity: ChartUnitGroup["physicalQuantity"];
+  equipmentId: string;
+  nativeUnits: readonly string[];
+  physicalQuantities: readonly ChartPhysicalQuantity[];
   scene: ChartRendererScene;
 }
 
@@ -68,6 +71,10 @@ export function savedDashboardChartIdentity(
     metric: series.item.metric,
     nativeUnit: series.item.native_unit,
   };
+}
+
+function sourceEquipmentId(series: LiveDashboardSeries): string {
+  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
@@ -138,6 +145,7 @@ export function buildSavedDashboardChartGroups(
     );
   const entries = plotted.map((source, index) => ({
     source,
+    equipmentId: sourceEquipmentId(source),
     index,
     chartSeries: buildSeries(
       options.dashboardId,
@@ -148,36 +156,27 @@ export function buildSavedDashboardChartGroups(
       soloSeriesKey,
     ),
   }));
-  const byKey = new Map(entries.map((entry) => [chartSeriesKey(entry.chartSeries.identity), entry]));
-  const groups = groupCompatibleChartUnits(entries.map((entry) => entry.chartSeries.identity));
+  const byEquipment = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    byEquipment.set(entry.equipmentId, [...(byEquipment.get(entry.equipmentId) ?? []), entry]);
+  }
 
-  return groups
-    .map((group) => {
-      const selected = group.series
-        .flatMap((identity) => {
-          const entry = byKey.get(chartSeriesKey(identity));
-          return entry ? [entry] : [];
-        })
-        .sort((left, right) => left.index - right.index);
-      const series = selected.map((entry) => entry.chartSeries);
+  return [...byEquipment.entries()].flatMap(([equipmentId, equipmentEntries]) => {
+    const chartSeries = equipmentEntries.map((entry) => entry.chartSeries);
+    return partitionChartSeriesByAxisBudget(chartSeries).map((partition, partitionIndex) => {
+      const axisModel = buildChartYAxisModel(partition);
       return {
-        id: group.id,
-        nativeUnit: group.nativeUnit,
-        physicalQuantity: group.physicalQuantity,
-        firstPosition: selected[0]?.index ?? Number.MAX_SAFE_INTEGER,
+        id: `equipment:${equipmentId.length}:${equipmentId}:axes:${partitionIndex}`,
+        equipmentId,
+        nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
+        physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
         scene: {
-          series,
+          series: partition,
           xDomain: options.xDomain,
         },
       };
-    })
-    .sort((left, right) => left.firstPosition - right.firstPosition)
-    .map((group) => ({
-      id: group.id,
-      nativeUnit: group.nativeUnit,
-      physicalQuantity: group.physicalQuantity,
-      scene: group.scene,
-    }));
+    });
+  });
 }
 
 export function savedDashboardResetDomain(
