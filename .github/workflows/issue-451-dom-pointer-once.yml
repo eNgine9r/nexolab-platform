@@ -23,166 +23,64 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-
           adapter_path = Path("src/features/charts/echarts-adapter.ts")
           text = adapter_path.read_text()
-
-          old = '''  convertFromPixel(finder: object, value: [number, number]): number | number[];
-  getZr(): {
-    on(eventName: string, handler: (event: unknown) => void): void;
-    off(eventName: string, handler?: (event: unknown) => void): void;
-  };
-  resize(): void;'''
-          new = '''  convertFromPixel(finder: object, value: [number, number]): number | number[];
-  resize(): void;'''
+          old = "  convertFromPixel(finder: object, value: [number, number]): number | number[];\n  getZr(): {\n    on(eventName: string, handler: (event: unknown) => void): void;\n    off(eventName: string, handler?: (event: unknown) => void): void;\n  };\n  resize(): void;"
+          new = "  convertFromPixel(finder: object, value: [number, number]): number | number[];\n  resize(): void;"
           if old not in text:
               raise SystemExit("ECharts runtime ZRender contract not found")
           text = text.replace(old, new, 1)
-
-          old = '''interface ZRenderPointerEvent {
-  offsetX?: number;
-  offsetY?: number;
-}
-
-'''
+          old = "interface ZRenderPointerEvent {\n  offsetX?: number;\n  offsetY?: number;\n}\n\n"
           if old not in text:
               raise SystemExit("ZRender pointer event type not found")
           text = text.replace(old, "", 1)
-
-          old = '''  private instance: EChartsInstancePort | null = null;
-  private scene: ChartRendererScene | null = null;'''
-          new = '''  private instance: EChartsInstancePort | null = null;
-  private container: HTMLElement | null = null;
-  private scene: ChartRendererScene | null = null;'''
+          old = "  private instance: EChartsInstancePort | null = null;\n  private scene: ChartRendererScene | null = null;"
+          new = "  private instance: EChartsInstancePort | null = null;\n  private container: HTMLElement | null = null;\n  private scene: ChartRendererScene | null = null;"
           if old not in text:
               raise SystemExit("adapter instance fields marker not found")
           text = text.replace(old, new, 1)
-
           start = text.index("  private readonly handleZRenderPointer = (event: unknown) => {")
           end = text.index("  private readonly handleAxisPointer", start)
-          replacement = '''  private readonly handleContainerPointer = (event: MouseEvent) => {
-    if (!this.scene || !this.instance || !this.container) return;
-    const bounds = this.container.getBoundingClientRect();
-    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
-    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
-      this.options?.onCursor(null);
-      return;
-    }
-    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
-    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
-    if (!Number.isFinite(timestampMs)) return;
-    this.options?.onCursor(sharedInspection(this.scene, timestampMs));
-  };
-
-  private readonly handleContainerLeave = () => {
-    this.options?.onCursor(null);
-  };
-
-'''
+          replacement = "  private readonly handleContainerPointer = (event: MouseEvent) => {\n    if (!this.scene || !this.instance || !this.container) return;\n    const bounds = this.container.getBoundingClientRect();\n    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];\n    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {\n      this.options?.onCursor(null);\n      return;\n    }\n    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);\n    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);\n    if (!Number.isFinite(timestampMs)) return;\n    this.options?.onCursor(sharedInspection(this.scene, timestampMs));\n  };\n\n  private readonly handleContainerLeave = () => {\n    this.options?.onCursor(null);\n  };\n\n"
           text = text[:start] + replacement + text[end:]
-
-          old = '''    this.options = options;
-    this.maximumLivePoints = options.maximumLivePoints ?? 240;
-    this.instance = this.runtime.init(options.container, options.renderer);
-    this.instance.on("updateAxisPointer", this.handleAxisPointer);
-    this.instance.on("dataZoom", this.handleDataZoom);
-    this.instance.getZr().on("mousemove", this.handleZRenderPointer);'''
-          new = '''    this.options = options;
-    this.maximumLivePoints = options.maximumLivePoints ?? 240;
-    this.container = options.container;
-    this.instance = this.runtime.init(options.container, options.renderer);
-    this.instance.on("updateAxisPointer", this.handleAxisPointer);
-    this.instance.on("dataZoom", this.handleDataZoom);
-    this.container.addEventListener("mousemove", this.handleContainerPointer);
-    this.container.addEventListener("mouseleave", this.handleContainerLeave);'''
+          old = "    this.options = options;\n    this.maximumLivePoints = options.maximumLivePoints ?? 240;\n    this.instance = this.runtime.init(options.container, options.renderer);\n    this.instance.on(\"updateAxisPointer\", this.handleAxisPointer);\n    this.instance.on(\"dataZoom\", this.handleDataZoom);\n    this.instance.getZr().on(\"mousemove\", this.handleZRenderPointer);"
+          new = "    this.options = options;\n    this.maximumLivePoints = options.maximumLivePoints ?? 240;\n    this.container = options.container;\n    this.instance = this.runtime.init(options.container, options.renderer);\n    this.instance.on(\"updateAxisPointer\", this.handleAxisPointer);\n    this.instance.on(\"dataZoom\", this.handleDataZoom);\n    this.container.addEventListener(\"mousemove\", this.handleContainerPointer);\n    this.container.addEventListener(\"mouseleave\", this.handleContainerLeave);"
           if old not in text:
               raise SystemExit("adapter initialize ZRender registration not found")
           text = text.replace(old, new, 1)
-
-          old = '''    this.instance.off("updateAxisPointer", this.handleAxisPointer);
-    this.instance.off("dataZoom", this.handleDataZoom);
-    this.instance.getZr().off("mousemove", this.handleZRenderPointer);
-    this.instance.dispose();
-    this.instance = null;
-    this.scene = null;
-    this.options = null;'''
-          new = '''    this.instance.off("updateAxisPointer", this.handleAxisPointer);
-    this.instance.off("dataZoom", this.handleDataZoom);
-    this.container?.removeEventListener("mousemove", this.handleContainerPointer);
-    this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
-    this.instance.dispose();
-    this.instance = null;
-    this.container = null;
-    this.scene = null;
-    this.options = null;'''
+          old = "    this.instance.off(\"updateAxisPointer\", this.handleAxisPointer);\n    this.instance.off(\"dataZoom\", this.handleDataZoom);\n    this.instance.getZr().off(\"mousemove\", this.handleZRenderPointer);\n    this.instance.dispose();\n    this.instance = null;\n    this.scene = null;\n    this.options = null;"
+          new = "    this.instance.off(\"updateAxisPointer\", this.handleAxisPointer);\n    this.instance.off(\"dataZoom\", this.handleDataZoom);\n    this.container?.removeEventListener(\"mousemove\", this.handleContainerPointer);\n    this.container?.removeEventListener(\"mouseleave\", this.handleContainerLeave);\n    this.instance.dispose();\n    this.instance = null;\n    this.container = null;\n    this.scene = null;\n    this.options = null;"
           if old not in text:
               raise SystemExit("adapter dispose ZRender registration not found")
           text = text.replace(old, new, 1)
           adapter_path.write_text(text)
-
           test_path = Path("src/features/charts/echarts-adapter.test.ts")
           test = test_path.read_text()
-          test = test.replace('  zrHandlers = new Map<string, (event: unknown) => void>();\n', '', 1)
-          old = '''  getZr() {
-    return {
-      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
-      off: (eventName: string) => this.zrHandlers.delete(eventName),
-    };
-  }
-
-'''
+          test = test.replace("  zrHandlers = new Map<string, (event: unknown) => void>();\n", "", 1)
+          old = "  getZr() {\n    return {\n      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),\n      off: (eventName: string) => this.zrHandlers.delete(eventName),\n    };\n  }\n\n"
           if old not in test:
               raise SystemExit("FakeEChartsInstance getZr implementation not found")
-          test = test.replace(old, '', 1)
-
-          old = '''    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
-    const scene = createBenchmarkScene(2);
-    adapter.initialize({
-      container: document.createElement("div"),'''
-          new = '''    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
-    const scene = createBenchmarkScene(2);
-    const container = document.createElement("div");
-    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
-      x: 0,
-      y: 0,
-      left: 0,
-      top: 0,
-      right: 320,
-      bottom: 200,
-      width: 320,
-      height: 200,
-      toJSON: () => ({}),
-    });
-    adapter.initialize({
-      container,'''
+          test = test.replace(old, "", 1)
+          old = "    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);\n    const scene = createBenchmarkScene(2);\n    adapter.initialize({\n      container: document.createElement(\"div\"),"
+          new = "    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);\n    const scene = createBenchmarkScene(2);\n    const container = document.createElement(\"div\");\n    vi.spyOn(container, \"getBoundingClientRect\").mockReturnValue({\n      x: 0,\n      y: 0,\n      left: 0,\n      top: 0,\n      right: 320,\n      bottom: 200,\n      width: 320,\n      height: 200,\n      toJSON: () => ({}),\n    });\n    adapter.initialize({\n      container,"
           if old not in test:
               raise SystemExit("shared inspection test initialize marker not found")
           test = test.replace(old, new, 1)
-
-          old = '    instance.zrHandlers.get("mousemove")?.({ offsetX: 0, offsetY: 120 });\n'
-          new = '    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));\n'
+          old = "    instance.zrHandlers.get(\"mousemove\")?.({ offsetX: 0, offsetY: 120 });\n"
+          new = "    container.dispatchEvent(new MouseEvent(\"mousemove\", { clientX: 0, clientY: 120 }));\n"
           if old not in test:
               raise SystemExit("ZRender test dispatch not found")
           test = test.replace(old, new, 1)
-
-          test = test.replace('    expect(instance.zrHandlers).toHaveLength(0);\n', '', 1)
+          test = test.replace("    expect(instance.zrHandlers).toHaveLength(0);\n", "", 1)
           test_path.write_text(test)
-
           area_path = Path("src/features/charts/area-rendering.test.ts")
           area = area_path.read_text()
-          area = area.replace('  zrHandlers = new Map<string, (event: unknown) => void>();\n', '', 1)
-          old = '''  getZr() {
-    return {
-      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
-      off: (eventName: string) => this.zrHandlers.delete(eventName),
-    };
-  }
-'''
+          area = area.replace("  zrHandlers = new Map<string, (event: unknown) => void>();\n", "", 1)
+          old = "  getZr() {\n    return {\n      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),\n      off: (eventName: string) => this.zrHandlers.delete(eventName),\n    };\n  }\n"
           if old not in area:
               raise SystemExit("area-rendering getZr implementation not found")
-          area = area.replace(old, '', 1)
+          area = area.replace(old, "", 1)
           area_path.write_text(area)
-
       - name: Verify focused chart contract
         env:
           HUSKY: 0
