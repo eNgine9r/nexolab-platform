@@ -84,12 +84,10 @@ export function ChartShell({
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);
             const latest = item.segments.at(-1)?.points.at(-1);
-            const legendLabel = [
-              item.name,
-              `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`,
-              latest?.quality ?? "unknown",
-              freshnessLabel(item.freshness),
-            ].join(" · ");
+            const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
+            const quality = latest?.quality ?? "unknown";
+            const itemFreshness = freshnessLabel(item.freshness);
+            const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
             return (
               <div
                 key={key}
@@ -101,7 +99,13 @@ export function ChartShell({
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
-                  {legendLabel}
+                  <span>{item.name}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{latestValue}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{quality}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{itemFreshness}</span>
                 </span>
                 <button
                   type="button"
