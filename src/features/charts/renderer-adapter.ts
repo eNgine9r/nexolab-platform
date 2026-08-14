@@ -19,6 +19,7 @@ export interface ChartRendererInitOptions {
 export interface ChartRendererScene {
   series: readonly ChartSeries[];
   xDomain: ChartXDomain;
+  cursorToleranceMs?: number;
   thresholds?: readonly ChartThreshold[];
   events?: readonly ChartEventMarker[];
   alarmRegions?: readonly ChartAlarmRegion[];
