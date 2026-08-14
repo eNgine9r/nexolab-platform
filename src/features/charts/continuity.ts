@@ -24,8 +24,11 @@ export interface ChartContinuitySample {
 }
 
 export interface ChartContinuityOptions {
-  maximumSourceGapMs: number;
+  maximumSourceGapMs?: number;
 }
+
+export const CHART_MINIMUM_SOURCE_GAP_MS = 30_000;
+const CHART_SOURCE_GAP_MULTIPLIER = 3;
 
 function invalidReason(sample: ChartContinuitySample): ChartContinuityBreakReason | null {
   if (sample.explicitBreak) return sample.explicitBreak;
@@ -36,19 +39,61 @@ function invalidReason(sample: ChartContinuitySample): ChartContinuityBreakReaso
   return null;
 }
 
+function orderedUniqueSamples(samples: readonly ChartContinuitySample[]): ChartContinuitySample[] {
+  const ordered = samples
+    .filter((sample) => Number.isFinite(sample.timestampMs))
+    .sort((left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id));
+  const byId = new Map<string, ChartContinuitySample>();
+  for (const sample of ordered) {
+    if (!byId.has(sample.id)) byId.set(sample.id, sample);
+  }
+  return [...byId.values()];
+}
+
+/**
+ * Derive a render-only continuity tolerance from the observed source cadence.
+ *
+ * The acquisition scheduler supports multiple configurable cadences, so a fixed
+ * 30-second chart threshold can create false gaps for valid low-priority data.
+ * Communication failures are emitted as explicit non-valid telemetry samples;
+ * this tolerance only detects otherwise silent timestamp gaps in persisted
+ * history. It never changes acquisition or fabricates measurements.
+ */
+export function deriveChartSourceGapMs(
+  samples: readonly Pick<ChartContinuitySample, "id" | "timestampMs">[],
+  minimumMs = CHART_MINIMUM_SOURCE_GAP_MS,
+): number {
+  if (!Number.isFinite(minimumMs) || minimumMs <= 0) {
+    throw new Error("minimumMs must be a positive finite number");
+  }
+  const timestamps = [...new Set(samples.map((sample) => sample.timestampMs).filter(Number.isFinite))].sort(
+    (left, right) => left - right,
+  );
+  const deltas = timestamps
+    .slice(1)
+    .map((timestamp, index) => timestamp - timestamps[index])
+    .filter((delta) => delta > 0)
+    .sort((left, right) => left - right);
+  if (deltas.length < 2) return minimumMs;
+
+  const middle = Math.floor(deltas.length / 2);
+  const median =
+    deltas.length % 2 === 0 ? (deltas[middle - 1] + deltas[middle]) / 2 : deltas[middle];
+  return Math.max(minimumMs, median * CHART_SOURCE_GAP_MULTIPLIER);
+}
+
 export function buildChartSegments(
   identity: ChartSeriesIdentity,
   samples: readonly ChartContinuitySample[],
-  options: ChartContinuityOptions,
+  options: ChartContinuityOptions = {},
 ): ChartSegment[] {
-  if (!Number.isFinite(options.maximumSourceGapMs) || options.maximumSourceGapMs <= 0) {
+  const maximumSourceGapMs = options.maximumSourceGapMs ?? deriveChartSourceGapMs(samples);
+  if (!Number.isFinite(maximumSourceGapMs) || maximumSourceGapMs <= 0) {
     throw new Error("maximumSourceGapMs must be a positive finite number");
   }
 
   const key = chartSeriesKey(identity);
-  const ordered = [...samples].sort(
-    (left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
-  );
+  const ordered = orderedUniqueSamples(samples);
   const segments: ChartSegment[] = [];
   let points: ChartPoint[] = [];
   let previousTimestamp: number | null = null;
@@ -57,9 +102,8 @@ export function buildChartSegments(
   const flush = () => {
     if (points.length === 0) return;
     const first = points[0];
-    const last = points.at(-1)!;
     segments.push({
-      id: `${key}:${first.timestampMs}:${last.timestampMs}`,
+      id: `${key}:segment:${segments.length}:${first.timestampMs}`,
       seriesKey: key,
       points,
       ...(pendingBreak ? { precedingBreak: pendingBreak } : {}),
@@ -69,7 +113,6 @@ export function buildChartSegments(
   };
 
   for (const sample of ordered) {
-    if (!Number.isFinite(sample.timestampMs)) continue;
     const reason = invalidReason(sample);
     if (reason) {
       flush();
@@ -78,7 +121,7 @@ export function buildChartSegments(
       continue;
     }
 
-    if (previousTimestamp !== null && sample.timestampMs - previousTimestamp > options.maximumSourceGapMs) {
+    if (previousTimestamp !== null && sample.timestampMs - previousTimestamp > maximumSourceGapMs) {
       flush();
       pendingBreak = { reason: "source_gap", atMs: sample.timestampMs };
     }
