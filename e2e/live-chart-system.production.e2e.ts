@@ -253,31 +253,35 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     for (let index = 0; index < 8; index += 1) await compare.nth(index).check();
 
     await expect(page.getByText("8 / 8", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Live Data · degC", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Live Data · V", exact: true })).toBeVisible();
-    await expect(page.getByTestId("chart-accessible-summary")).toHaveCount(2);
-    await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("Range Live");
-    await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("6 series");
-    await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("Continuity breaks 1");
-    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
-    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("Continuity breaks 0");
+    await expect(
+      page.getByRole("heading", { name: `Live Data · ${fixture.equipmentId}`, exact: true }),
+    ).toBeVisible();
+    const summary = page.getByTestId("chart-accessible-summary");
+    await expect(summary).toHaveCount(1);
+    await expect(summary).toContainText("Range Live");
+    await expect(summary).toContainText("8 series visible");
+    await expect(summary).toContainText("Axes 2");
+    await expect(summary).toContainText("degC");
+    await expect(summary).toContainText("V");
+    await expect(summary).toContainText("Continuity breaks 1");
     await expect(page.getByText(/Alarm context/)).toHaveCount(0);
 
     const rendererHosts = page.getByTestId("chart-renderer-host");
-    await expect(rendererHosts).toHaveCount(2);
-    const temperatureHost = rendererHosts.first();
-    await temperatureHost.scrollIntoViewIfNeeded();
-    const temperatureBox = await temperatureHost.boundingBox();
-    if (!temperatureBox) throw new Error("Temperature chart host has no bounding box");
+    await expect(rendererHosts).toHaveCount(1);
+    const equipmentHost = rendererHosts.first();
+    await equipmentHost.scrollIntoViewIfNeeded();
+    const equipmentBox = await equipmentHost.boundingBox();
+    if (!equipmentBox) throw new Error("Equipment chart host has no bounding box");
     await page.mouse.move(
-      temperatureBox.x + temperatureBox.width - 32,
-      temperatureBox.y + temperatureBox.height * 0.5,
+      equipmentBox.x + equipmentBox.width - 32,
+      equipmentBox.y + equipmentBox.height * 0.5,
     );
     const inspector = page.getByTestId("chart-inspector").first();
     await expect(inspector).toContainText("Nearest measured sample per visible series");
-    await expect(inspector.getByRole("row")).toHaveCount(7);
-    for (const channelId of fixture.channels.slice(0, 6)) await expect(inspector).toContainText(channelId);
+    await expect(inspector.getByRole("row")).toHaveCount(9);
+    for (const channelId of fixture.channels) await expect(inspector).toContainText(channelId);
     await expect(inspector).toContainText(/\d+\.\d{2} degC/);
+    await expect(inspector).toContainText(/\d+\.\d{2} V/);
 
     const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
       request.url.includes("/history"),
@@ -285,7 +289,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
 
     publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.876);
     await expect(page.getByText("9.88 degC", { exact: true }).first()).toBeVisible();
-    await expect(rendererHosts).toHaveCount(2);
+    await expect(rendererHosts).toHaveCount(1);
     await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
     await expect
       .poll(() => runtime.telemetry.filter((request) => request.url.includes("/history")).length)
@@ -299,12 +303,18 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
 
     await page.getByRole("button", { name: "Hide" }).first().click();
     await expect(page.getByRole("button", { name: "Show" }).first()).toBeVisible();
+    await expect(summary).toContainText("7 series visible");
+    await expect(summary).toContainText("Axes 2");
     await page.getByRole("button", { name: "Show" }).first().click();
+    await expect(summary).toContainText("8 series visible");
     await page.getByRole("button", { name: "Solo" }).first().click();
-    await expect(page.getByRole("button", { name: "Reset zoom" })).toHaveCount(2);
+    await expect(summary).toContainText("1 series visible");
+    await expect(summary).toContainText("Axes 1");
+    await expect(inspector.getByRole("row")).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Reset zoom" })).toHaveCount(1);
 
     await page.getByRole("button", { name: "5 min", exact: true }).click();
-    await expect(page.getByTestId("chart-accessible-summary").first()).toContainText("Range 5 min");
+    await expect(summary).toContainText("Range 5 min");
     await page.getByRole("button", { name: "Return to Live", exact: true }).click();
     await expect(page.getByText("Live Follow", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Pause View", exact: true }).click();
