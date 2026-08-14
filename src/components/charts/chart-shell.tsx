@@ -2,11 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import {
-  chartSeriesKey,
-  type ChartCursorInspection,
-  type ChartSeries,
-} from "@/features/charts/domain";
+import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartValue } from "@/features/charts/format";
 
 function freshnessLabel(state: ChartSeries["freshness"]): string {
@@ -83,8 +79,7 @@ export function ChartShell({
         <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label="Chart legend">
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);
-            const inspected =
-              inspectionBySeries.get(key)?.point ?? item.segments.at(-1)?.points.at(-1);
+            const inspected = inspectionBySeries.get(key)?.point ?? item.segments.at(-1)?.points.at(-1);
             const legendLabel = [
               item.name,
               `${inspected ? formatChartValue(inspected.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`,
@@ -130,7 +125,7 @@ export function ChartShell({
         >
           <div className="flex min-w-0 items-baseline justify-between gap-3">
             <p className="font-medium text-white">Exact inspector</p>
-            <p className="min-w-0 truncate text-right text-[10px] tabular-nums text-slate-500">
+            <p className="min-w-0 truncate text-right text-[10px] text-slate-500 tabular-nums">
               {inspection ? new Date(inspection.timestampMs).toISOString() : "—"}
             </p>
           </div>
@@ -143,10 +138,10 @@ export function ChartShell({
             <table className="w-full min-w-[420px] table-fixed border-collapse text-left">
               <thead className="text-[10px] text-slate-500">
                 <tr>
-                  <th className="w-[30%] pb-1 pr-2 font-medium">Series</th>
-                  <th className="w-[24%] pb-1 pr-2 font-medium">Sample time</th>
-                  <th className="w-[18%] pb-1 pr-2 font-medium">Value</th>
-                  <th className="w-[14%] pb-1 pr-2 font-medium">Quality</th>
+                  <th className="w-[30%] pr-2 pb-1 font-medium">Series</th>
+                  <th className="w-[24%] pr-2 pb-1 font-medium">Sample time</th>
+                  <th className="w-[18%] pr-2 pb-1 font-medium">Value</th>
+                  <th className="w-[14%] pr-2 pb-1 font-medium">Quality</th>
                   <th className="w-[14%] pb-1 font-medium">Freshness</th>
                 </tr>
               </thead>
@@ -166,10 +161,7 @@ export function ChartShell({
                         <td className="min-w-0 truncate py-1.5 pr-2" title={item.name}>
                           {item.name}
                         </td>
-                        <td
-                          className="min-w-0 truncate py-1.5 pr-2 tabular-nums"
-                          title={sampleTimestamp}
-                        >
+                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums" title={sampleTimestamp}>
                           {sampleTimestamp}
                         </td>
                         <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>

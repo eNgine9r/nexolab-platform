@@ -8,12 +8,7 @@ import {
   MarkLineComponent,
   TooltipComponent,
 } from "echarts/components";
-import {
-  init,
-  use as registerEChartsModules,
-  type EChartsCoreOption,
-  type EChartsType,
-} from "echarts/core";
+import { init, use as registerEChartsModules, type EChartsCoreOption, type EChartsType } from "echarts/core";
 import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
 
 import {
@@ -23,11 +18,7 @@ import {
   type ChartPoint,
   type ChartSeries,
 } from "./domain";
-import type {
-  ChartRendererAdapter,
-  ChartRendererInitOptions,
-  ChartRendererScene,
-} from "./renderer-adapter";
+import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";
 
 registerEChartsModules([
   LineChart,
@@ -93,8 +84,7 @@ function nearestPoint(series: ChartSeries, timestampMs: number): ChartPoint | nu
       if (
         nearest === null ||
         Math.abs(point.timestampMs - timestampMs) < Math.abs(nearest.timestampMs - timestampMs) ||
-        (Math.abs(point.timestampMs - timestampMs) ===
-          Math.abs(nearest.timestampMs - timestampMs) &&
+        (Math.abs(point.timestampMs - timestampMs) === Math.abs(nearest.timestampMs - timestampMs) &&
           (point.timestampMs < nearest.timestampMs ||
             (point.timestampMs === nearest.timestampMs && point.id.localeCompare(nearest.id) < 0)))
       ) {
@@ -118,8 +108,7 @@ function sharedInspection(scene: ChartRendererScene, timestampMs: number): Chart
         const nearest = nearestPoint(series, timestampMs);
         return {
           seriesKey: chartSeriesKey(series.identity),
-          point:
-            nearest && Math.abs(nearest.timestampMs - timestampMs) <= toleranceMs ? nearest : null,
+          point: nearest && Math.abs(nearest.timestampMs - timestampMs) <= toleranceMs ? nearest : null,
           freshness: series.freshness,
         };
       }),
@@ -146,10 +135,7 @@ function canonicalEvents(events: readonly ChartEventMarker[]): ChartEventMarker[
   );
 }
 
-function zoomDomain(
-  event: unknown,
-  scene: ChartRendererScene,
-): ChartRendererScene["xDomain"] | null {
+function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererScene["xDomain"] | null {
   if (!event || typeof event !== "object") return null;
   const payload = (event as DataZoomEvent).batch?.[0] ?? (event as DataZoomEvent);
   if (Number.isFinite(payload.startValue) && Number.isFinite(payload.endValue)) {
@@ -169,8 +155,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
   const events = canonicalEvents(scene.events ?? []);
   const lineSeries = visibleSeries.flatMap((series, visibleSeriesIndex) => {
     const seriesKey = chartSeriesKey(series.identity);
-    const thresholds =
-      scene.thresholds?.filter((threshold) => threshold.seriesKey === seriesKey) ?? [];
+    const thresholds = scene.thresholds?.filter((threshold) => threshold.seriesKey === seriesKey) ?? [];
     return series.segments.map((segment, segmentIndex) => ({
       id: `${seriesKey}:${segment.id}`,
       name: series.name,
@@ -212,8 +197,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         : {}),
       itemStyle: { color: series.colorToken },
       emphasis: { focus: "series" as const, lineStyle: { width: 3 } },
-      ...(segmentIndex === 0 &&
-      (thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0))
+      ...(segmentIndex === 0 && (thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0))
         ? {
             markLine: {
               silent: true,
@@ -360,10 +344,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     });
   }
 
-  appendLiveTail(
-    seriesKey: string,
-    additions: readonly { segmentId: string; point: ChartPoint }[],
-  ): void {
+  appendLiveTail(seriesKey: string, additions: readonly { segmentId: string; point: ChartPoint }[]): void {
     if (!this.scene || additions.length === 0) return;
     const series = this.scene.series.map((item) => {
       if (chartSeriesKey(item.identity) !== seriesKey) return item;
@@ -373,10 +354,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
         const byId = new Map(segment.points.map((point) => [point.id, point]));
         for (const addition of incoming) byId.set(addition.point.id, addition.point);
         const points = [...byId.values()]
-          .sort(
-            (left, right) =>
-              left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
-          )
+          .sort((left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id))
           .slice(-this.maximumLivePoints);
         return { ...segment, points };
       });

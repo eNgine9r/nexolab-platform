@@ -2,12 +2,7 @@ import type { TelemetryQuality } from "@/lib/telemetry/types";
 
 export type ChartMeasurementQuality = TelemetryQuality;
 
-export type ChartFreshnessState =
-  | "live"
-  | "stale"
-  | "connecting"
-  | "reconnecting"
-  | "offline";
+export type ChartFreshnessState = "live" | "stale" | "connecting" | "reconnecting" | "offline";
 
 export interface ChartSeriesIdentity {
   nodeId: string;
@@ -18,22 +13,12 @@ export interface ChartSeriesIdentity {
 }
 
 export function chartSeriesKey(identity: ChartSeriesIdentity): string {
-  return [
-    identity.nodeId,
-    identity.equipmentId,
-    identity.channelId,
-    identity.metric,
-    identity.nativeUnit,
-  ]
+  return [identity.nodeId, identity.equipmentId, identity.channelId, identity.metric, identity.nativeUnit]
     .map((part) => `${part.length}:${part}`)
     .join("|");
 }
 
-export type ChartEvidencePinReason =
-  | "alarm"
-  | "event"
-  | "threshold_crossing"
-  | "segment_boundary";
+export type ChartEvidencePinReason = "alarm" | "event" | "threshold_crossing" | "segment_boundary";
 
 export interface ChartPoint {
   id: string;
@@ -45,12 +30,7 @@ export interface ChartPoint {
 }
 
 export type ChartContinuityBreakReason =
-  | "explicit_gap"
-  | "source_gap"
-  | "invalid_quality"
-  | "offline"
-  | "missing_measurement"
-  | "reconnect_gap";
+  "explicit_gap" | "source_gap" | "invalid_quality" | "offline" | "missing_measurement" | "reconnect_gap";
 
 export interface ChartContinuityBreak {
   reason: ChartContinuityBreakReason;

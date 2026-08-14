@@ -192,14 +192,10 @@ export function downsampleLiveHistory(
 
   return [...groups.entries()]
     .sort(([left], [right]) => left.localeCompare(right, "uk-UA"))
-    .flatMap(([, channelSamples]) =>
-      downsampleChannel(channelSamples, window, maximumPointsPerChannel),
-    );
+    .flatMap(([, channelSamples]) => downsampleChannel(channelSamples, window, maximumPointsPerChannel));
 }
 
-export function seedLiveHistoryOrderingState(
-  samples: readonly TelemetrySample[],
-): LiveHistoryOrderingState {
+export function seedLiveHistoryOrderingState(samples: readonly TelemetrySample[]): LiveHistoryOrderingState {
   const newestCapturedAtByChannel = new Map<string, number>();
   for (const sample of samples) {
     const capturedAt = parsedTimestamp(sample.captured_at);
@@ -303,10 +299,7 @@ async function loadIdentityHistory(
     if (oldestCapturedAt <= window.from.getTime()) {
       return { samples: [...samples.values()], snapshotAt };
     }
-    if (
-      capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length >=
-      HISTORY_PAGE_SIZE
-    ) {
+    if (capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length >= HISTORY_PAGE_SIZE) {
       throw new Error("Telemetry history timestamp density exceeds the safe cursor window");
     }
 

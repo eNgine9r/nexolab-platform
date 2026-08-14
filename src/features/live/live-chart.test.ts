@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import { chartSeriesKey } from "@/features/charts/domain";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import {
-  buildLiveChartGroups,
-  liveSampleChartIdentity,
-  liveStatusChartFreshness,
-} from "./live-chart";
+import { buildLiveChartGroups, liveSampleChartIdentity, liveStatusChartFreshness } from "./live-chart";
 
 function sample(
   eventId: string,

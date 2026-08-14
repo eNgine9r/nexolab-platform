@@ -40,9 +40,7 @@ function invalidReason(sample: ChartContinuitySample): ChartContinuityBreakReaso
   return null;
 }
 
-function orderedUniqueSamples(
-  samples: readonly ChartContinuitySample[],
-): ChartContinuitySample[] {
+function orderedUniqueSamples(samples: readonly ChartContinuitySample[]): ChartContinuitySample[] {
   const ordered = samples
     .filter((sample) => Number.isFinite(sample.timestampMs))
     .sort((left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id));
@@ -69,9 +67,9 @@ export function deriveChartSourceGapMs(
   if (!Number.isFinite(minimumMs) || minimumMs <= 0) {
     throw new Error("minimumMs must be a positive finite number");
   }
-  const timestamps = [
-    ...new Set(samples.map((sample) => sample.timestampMs).filter(Number.isFinite)),
-  ].sort((left, right) => left - right);
+  const timestamps = [...new Set(samples.map((sample) => sample.timestampMs).filter(Number.isFinite))].sort(
+    (left, right) => left - right,
+  );
   const deltas = timestamps
     .slice(1)
     .map((timestamp, index) => timestamp - timestamps[index])
@@ -80,8 +78,7 @@ export function deriveChartSourceGapMs(
   if (deltas.length < 2) return minimumMs;
 
   const middle = Math.floor(deltas.length / 2);
-  const median =
-    deltas.length % 2 === 0 ? (deltas[middle - 1] + deltas[middle]) / 2 : deltas[middle];
+  const median = deltas.length % 2 === 0 ? (deltas[middle - 1] + deltas[middle]) / 2 : deltas[middle];
   return Math.max(minimumMs, median * CHART_SOURCE_GAP_MULTIPLIER);
 }
 
@@ -128,10 +125,7 @@ export function buildChartSegments(
       continue;
     }
 
-    if (
-      previousTimestamp !== null &&
-      sample.timestampMs - previousTimestamp > maximumSourceGapMs
-    ) {
+    if (previousTimestamp !== null && sample.timestampMs - previousTimestamp > maximumSourceGapMs) {
       flush();
       pendingBreak = { reason: "source_gap", atMs: sample.timestampMs };
     }
