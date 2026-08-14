@@ -1,0 +1,48 @@
+name: Issue 451 Vitest Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    name: "vitest-${{ matrix.name }}"
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: continuity
+            file: src/features/charts/continuity.test.ts
+          - name: format
+            file: src/features/charts/format.test.ts
+          - name: echarts
+            file: src/features/charts/echarts-adapter.test.ts
+          - name: chart-shell
+            file: src/components/charts/chart-shell.test.tsx
+          - name: overview
+            file: src/features/dashboard/overview-chart.test.ts
+          - name: saved-dashboard
+            file: src/features/live-dashboards/chart.test.ts
+          - name: live-chart
+            file: src/features/live/live-chart.test.ts
+          - name: live-history
+            file: src/features/live/live-history.test.ts
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm install --no-audit
+      - name: Run targeted Vitest file
+        run: npx vitest run "${{ matrix.file }}"
