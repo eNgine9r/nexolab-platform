@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { chartSeriesKey } from "@/features/charts/domain";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { buildLiveChartGroups, liveSampleChartIdentity, liveStatusChartFreshness } from "./live-chart";
+import {
+  buildLiveChartGroups,
+  liveSampleChartIdentity,
+  liveStatusChartFreshness,
+} from "./live-chart";
 
 function sample(
   eventId: string,
@@ -101,9 +105,9 @@ describe("Live Data canonical chart mapping", () => {
 
     expect(groups[0].scene.events).toBeUndefined();
     expect(
-      groups[0].scene.series[0].segments.flatMap((segment) => segment.points).some(
-        (point) => point.pinReasons?.includes("alarm"),
-      ),
+      groups[0].scene.series[0].segments
+        .flatMap((segment) => segment.points)
+        .some((point) => point.pinReasons?.includes("alarm")),
     ).toBe(false);
   });
 
