@@ -162,7 +162,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(adapter.isDisposed()).toBe(true);
   });
 
-  it("keeps the shared cursor while marking distant per-series samples unavailable", () => {
+  it("keeps the shared cursor while marking explicitly out-of-tolerance samples unavailable", () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
@@ -186,6 +186,82 @@ describe("ECharts renderer adapter lifecycle", () => {
         point: null,
         freshness: series.freshness,
       })),
+    });
+  });
+
+  it("derives cursor tolerance from a slow valid source cadence so inspection does not flicker between samples", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const baseSeries = scene.series[0];
+    const slowPoints = [0, 60_000, 120_000].map((offset, index) => ({
+      ...baseSeries.segments[0].points[0],
+      id: `slow-${index}`,
+      timestampMs: BENCHMARK_START_MS + offset,
+      value: index,
+    }));
+    const slowScene = {
+      ...scene,
+      series: [
+        {
+          ...baseSeries,
+          segments: [{ ...baseSeries.segments[0], points: slowPoints }],
+        },
+      ],
+    };
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(slowScene);
+
+    const cursor = BENCHMARK_START_MS + 30_000;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+
+    expect(onCursor).toHaveBeenCalledWith({
+      timestampMs: cursor,
+      series: [
+        {
+          seriesKey: chartSeriesKey(baseSeries.identity),
+          point: slowPoints[0],
+          freshness: baseSeries.freshness,
+        },
+      ],
+    });
+  });
+
+  it("never borrows a sample across an explicit continuity gap", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1, { withGap: true });
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    const firstSegmentLast = scene.series[0].segments[0].points.at(-1)!;
+    const secondSegmentFirst = scene.series[0].segments[1].points[0];
+    const cursor = firstSegmentLast.timestampMs + (secondSegmentFirst.timestampMs - firstSegmentLast.timestampMs) / 2;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+
+    expect(onCursor).toHaveBeenCalledWith({
+      timestampMs: cursor,
+      series: [
+        {
+          seriesKey: chartSeriesKey(scene.series[0].identity),
+          point: null,
+          freshness: scene.series[0].freshness,
+        },
+      ],
     });
   });
 
