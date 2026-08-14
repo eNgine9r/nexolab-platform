@@ -87,7 +87,7 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     expect(groups[0].scene.series[1].areaFillOpacity).toBeGreaterThan(0);
   });
 
-  it("never bridges invalid samples or source gaps", () => {
+  it("never bridges invalid samples or established source gaps", () => {
     const sourceItem = item("gap", 1, "T-gap", "degC", "line", "#00C6E0");
     const groups = buildSavedDashboardChartGroups({
       dashboardId: "dashboard-gap",
@@ -114,7 +114,7 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     ]);
   });
 
-  it("pins alarm transitions and keeps cumulative energy semantics separate", () => {
+  it("does not turn telemetry alarm context into chart annotations and keeps energy semantics separate", () => {
     const temperature = item("temp", 1, "T-1", "degC", "line", "#00C6E0");
     const energy = item("energy", 2, "E-1", "kWh", "line", "#F5B301", "energy.total");
     const groups = buildSavedDashboardChartGroups({
@@ -141,10 +141,8 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
       temperatureSeries.segments
         .flatMap((segment) => segment.points)
         .some((point) => point.pinReasons?.includes("alarm")),
-    ).toBe(true);
-    expect(
-      groups.flatMap((group) => group.scene.events ?? []).some((event) => event.severity === "alarm"),
-    ).toBe(true);
+    ).toBe(false);
+    expect(groups.flatMap((group) => group.scene.events ?? [])).toHaveLength(0);
     expect(temperatureSeries.freshness).toBe("stale");
     expect(energySeries.semanticMode).toBe("cumulative_counter");
   });

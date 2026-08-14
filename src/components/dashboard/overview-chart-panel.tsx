@@ -8,16 +8,6 @@ import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/doma
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import type { OverviewChartGroup } from "@/features/dashboard/overview-chart";
 
-const CURSOR_TOLERANCE_MS = 30_000;
-
-function withinTolerance(inspection: ChartCursorInspection | null): ChartCursorInspection | null {
-  if (!inspection?.point) return inspection;
-  if (Math.abs(inspection.point.timestampMs - inspection.timestampMs) <= CURSOR_TOLERANCE_MS) {
-    return inspection;
-  }
-  return { ...inspection, point: null };
-}
-
 export function OverviewChartPanel({
   group,
   rangeLabel,
@@ -64,9 +54,8 @@ export function OverviewChartPanel({
           reducedMotion
           sharedCursorMs={sharedCursorMs}
           onCursor={(nextInspection) => {
-            const truthful = withinTolerance(nextInspection);
-            setInspection(truthful);
-            onSharedCursorChange(truthful?.timestampMs ?? null);
+            setInspection(nextInspection);
+            onSharedCursorChange(nextInspection?.timestampMs ?? null);
           }}
           onXDomainChange={onXDomainChange}
         />

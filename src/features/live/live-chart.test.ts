@@ -85,7 +85,7 @@ describe("Live Data canonical chart mapping", () => {
     expect(groups.map((group) => group.nativeUnit).sort()).toEqual(["V", "°C"]);
   });
 
-  it("pins alarm transitions and exposes them as evidence events", () => {
+  it("never invents chart events or alarm pins from telemetry-sample alarm context", () => {
     const identity = sample("latest", "2026-08-11T12:30:00Z", 5);
     const history = [
       sample("a", "2026-08-11T12:00:00Z", 1),
@@ -99,10 +99,12 @@ describe("Live Data canonical chart mapping", () => {
       xDomain: domain,
     });
 
-    expect(groups[0].scene.events?.length).toBeGreaterThanOrEqual(2);
+    expect(groups[0].scene.events).toBeUndefined();
     expect(
-      groups[0].scene.series[0].segments[0].points.filter((point) => point.pinReasons?.includes("alarm")),
-    ).toHaveLength(3);
+      groups[0].scene.series[0].segments
+        .flatMap((segment) => segment.points)
+        .some((point) => point.pinReasons?.includes("alarm")),
+    ).toBe(false);
   });
 
   it("applies show-hide and solo state without changing series identity", () => {

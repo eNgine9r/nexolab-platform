@@ -1,7 +1,6 @@
 import {
   CHART_SERIES_TOKENS,
   chartSeriesKey,
-  type ChartEventMarker,
   type ChartFreshnessState,
   type ChartPoint,
   type ChartRendererScene,
@@ -49,35 +48,14 @@ export function liveStatusChartFreshness(status: LiveTelemetryStatus): ChartFres
   return "offline";
 }
 
-function pointFromSample(sample: TelemetrySample, pinReasons?: ChartPoint["pinReasons"]): ChartPoint {
+function pointFromSample(sample: TelemetrySample): ChartPoint {
   return {
     id: sample.event_id,
     timestampMs: Date.parse(sample.captured_at),
     value: sample.value!,
     quality: sample.quality,
     sourceEventId: sample.event_id,
-    ...(pinReasons?.length ? { pinReasons } : {}),
   };
-}
-
-function transitionPins(samples: readonly TelemetrySample[]): Map<string, ChartPoint["pinReasons"]> {
-  const pins = new Map<string, ChartPoint["pinReasons"]>();
-  let previous: TelemetrySample | null = null;
-
-  for (const sample of samples) {
-    if (previous === null) {
-      if (sample.alarm !== null) pins.set(sample.event_id, ["alarm"]);
-      previous = sample;
-      continue;
-    }
-    if (previous.alarm !== sample.alarm) {
-      pins.set(previous.event_id, ["alarm"]);
-      pins.set(sample.event_id, ["alarm"]);
-    }
-    previous = sample;
-  }
-
-  return pins;
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
@@ -107,7 +85,6 @@ function buildSeries(
     (sample) => liveChannelKey(sample) === liveChannelKey(identitySample),
   );
   const segments = liveHistorySegments(samples);
-  const pins = transitionPins(samples);
 
   return {
     identity,
@@ -117,13 +94,13 @@ function buildSeries(
     markerShape: token.markerShape,
     freshness: liveStatusChartFreshness(status),
     segments: segments.map((segment, segmentIndex) => ({
-      id: `${key}:segment:${segmentIndex}`,
+      id: `${key}:segment:${segmentIndex}:${Date.parse(segment[0]?.captured_at ?? "")}`,
       seriesKey: key,
       points: segment
         .filter(
           (sample) => sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value),
         )
-        .map((sample) => pointFromSample(sample, pins.get(sample.event_id))),
+        .map(pointFromSample),
       ...(segmentIndex > 0 && segment[0]
         ? {
             precedingBreak: {
@@ -137,29 +114,6 @@ function buildSeries(
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
   };
-}
-
-function alarmEvents(series: readonly ChartSeries[]): ChartEventMarker[] {
-  const events = new Map<string, ChartEventMarker>();
-  for (const item of series) {
-    const seriesKey = chartSeriesKey(item.identity);
-    for (const segment of item.segments) {
-      for (const point of segment.points) {
-        if (!point.pinReasons?.includes("alarm")) continue;
-        const id = `${seriesKey}:${point.id}:alarm`;
-        events.set(id, {
-          id,
-          timestampMs: point.timestampMs,
-          type: "alarm_context",
-          label: `Alarm context · ${item.name}`,
-          severity: "alarm",
-        });
-      }
-    }
-  }
-  return [...events.values()].sort(
-    (left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
-  );
 }
 
 export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartGroup[] {
@@ -183,7 +137,6 @@ export function buildLiveChartGroups(options: LiveChartBuildOptions): LiveChartG
       scene: {
         series,
         xDomain: options.xDomain,
-        events: alarmEvents(series),
       },
     };
   });

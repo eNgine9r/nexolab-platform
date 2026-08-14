@@ -3,149 +3,79 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-289-ACQUISITION-SCALE-HARDWARE-VALIDATION",
-  "status": "in_progress_hardware_performance_validation",
-  "timestamp": "2026-08-14T06:24:58Z",
-  "active_issue": 289,
-  "assignee": "eNgine9r",
-  "execution_baseline_before_state_reconciliation": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-  "state_reconciliation_issue": 442,
-  "completed_issue": {
-    "issue": 440,
-    "pull_request": 441,
-    "implementation_head": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-    "final_pr_head": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
-    "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "classification": "software verified; hardware verified",
-    "hardware_acceptance": {
-      "expected_bus_workers": 1,
-      "active_bus_workers": 1,
-      "workers_healthy": true,
-      "worker_count": 1,
-      "normal_physical_requests_delta_60s": 155,
-      "worker_failures_total": 0,
-      "worker_restarts_total": 0,
-      "edge_volume_preserved": "nexolab-edge_edge-data"
+  "timestamp": "2026-08-14T11:50:00Z",
+  "actor": "ChatGPT",
+  "event": "issue_451_product_verified_state_reconciled",
+  "current_main_sha": "3ae380c9882bcd7a0c5d142404c1a64da801513a",
+  "active_issue": 451,
+  "active_pull_request": 452,
+  "active_branch": "fix/451-chart-integrity-alarm-provenance",
+  "verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+  "status": "state_reconciled_final_exact_head_verification_required",
+  "outcome": {
+    "continuity": "cadence-aware render tolerance; explicit communication/quality/offline/reconnect gaps remain breaks",
+    "alarm_provenance": "sample-derived Alarm context overlays removed; canonical event markers require explicit source provenance",
+    "inspector": "shared nearest-sample snapshot per visible series with bounded tolerance",
+    "precision": "presentation-only default two decimals; raw telemetry unchanged",
+    "pointer": "chart-host mouse pointer plus ECharts pixel conversion; empty axis-pointer events cannot erase valid host hover",
+    "live_tail": "newer accepted selected WebSocket samples immediately advance the live history window while preserving duration and without REST history refetch",
+    "legend": "latest telemetry value is independent from historical cursor inspection and exposed as semantic exact text"
+  },
+  "verification": {
+    "ci": {
+      "status": "PASS",
+      "run": 31797171207,
+      "scope": "format, lint, typecheck, full tests, production build"
+    },
+    "authenticated_dashboard": {
+      "status": "PASS",
+      "run": 31797171273,
+      "scenarios": "13/13",
+      "websocket_max_concurrent": 1,
+      "acquisition_mutations": 0,
+      "live_chart_websocket_value": "9.876 -> 9.88 degC"
+    },
+    "refrigeration_browser": {
+      "status": "PASS",
+      "run": 31797171234
+    },
+    "offline_bundle": {
+      "status": "PASS",
+      "run": 31797171217,
+      "disconnected_startup": true,
+      "container_egress_blocked": true,
+      "update_rollback_persistent_data_preserved": true
     }
   },
-  "issue_432_browser_evidence": {
-    "warm_median_ms": {
-      "overview": 398,
-      "refrigeration": 231,
-      "energy": 273,
-      "live": 314,
-      "nodes": 306,
-      "sessions": 201
-    },
-    "overview_issue_366_reference_ms": 334,
-    "document_loads": 1,
-    "visible_loading_transitions": 0,
-    "warm_loading_transitions_asserted_empty": true,
-    "live_library_terminal_state_required": true,
-    "overview_content_assertions": ["edge-live-01", "rendered °C value"],
-    "asserted_pre_navigation_rsc_paths": ["/refrigeration", "/energy", "/live", "/nodes", "/sessions"],
-    "eager_channel_inventory_reads": 0,
-    "eager_node_inventory_reads": 0,
-    "retained_equipment_and_layout_reads_grew_during_warm_cycles": false,
-    "final_node_list_reads": 4,
-    "final_node_operational_reads": 8,
-    "final_session_list_reads": 5,
-    "websocket_max_concurrent": 1,
-    "acquisition_mutations": 0
-  },
-  "issue_432_verification": {
-    "focused_navigation_production": "3 PASS",
-    "authenticated_dashboard_and_acquisition_invariant": "13 PASS",
-    "complete_frontend": "89 files / 384 tests PASS",
-    "format": "PASS",
-    "lint": "PASS",
-    "typecheck": "PASS",
-    "production_build": "PASS",
-    "final_pr_head_ci": "PASS",
-    "final_pr_head_acquisition_scale": "PASS",
-    "final_pr_head_authenticated_dashboard": "PASS",
-    "final_pr_head_refrigeration_browser": "PASS",
-    "final_pr_head_offline_auth": "PASS",
-    "final_pr_head_offline_bundle_disconnected_runtime": "PASS"
-  },
-  "ready_audit": {
-    "selected_issue": 289,
-    "selected_issue_status": "status:in-progress after Issue #442 merge",
-    "dependencies_closed": [283, 284, 285, 286, 287, 314, 288, 366, 432, 440],
-    "open_dependency_prs_selected": false,
-    "hardware_performance_acceptance": "in_progress_fresh_baseline_required"
+  "hardware_evidence": {
+    "issue_451_raspberry_pi_operator_acceptance": "pending_not_claimed",
+    "issue_289_independent_hardware_lane": "in_progress",
+    "issue_445_raspberry_pi_field_retest": "pending",
+    "issue_447_raspberry_pi_perceived_latency_acceptance": "pending"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "controller_configuration_change": "none",
-    "scheduler_change": "Issue #440 worker-liveness fix merged; intervals_priorities_fairness_cooldown unchanged",
-    "registry_change": "none",
-    "polling_policy_change": "none",
+    "scheduler_or_polling_policy_change": "none",
+    "acquisition_registry_change": "none",
     "dependency_upgrade": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "After Issue #442 merges, align the Issue #289 hardware-validation branch to current main and capture a fresh 60-second no-browser Raspberry Pi baseline before opening any browser phase.",
-  "resume_instruction": "Verify current main and Issue #289 branch alignment first. Use read-only hardware acquisition only. Capture a fresh no-browser baseline and preserve request-rate, scheduler, timeout/retry, CPU/memory and truthful health evidence. Do not reuse the pre-fix zero-request window as passing evidence. No Modbus/hardware writes or dependency work.",
-  "actor": "ChatGPT",
-  "event": "issue_440_merged_issue_289_resumed",
-  "active_work_package": {
+  "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "branch": "test/289-acquisition-scale-hardware-validation",
-    "branch_alignment_required_after_issue_442_merge": true,
-    "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "status": "in_progress_hardware_performance_validation",
-    "software_verified": true,
-    "hardware_performance_acceptance": "in_progress",
-    "first_step": "Fresh 60-second no-browser Raspberry Pi baseline against merged post-#440 main."
-  },
-  "issue_289_continuation": {
-    "issue": 289,
-    "status": "in_progress_after_issue_442_merge",
-    "blocked_by_issue": null,
-    "original_zero_request_window_is_passing_baseline": false,
-    "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "branch": "test/289-acquisition-scale-hardware-validation",
-    "branch_alignment_required": true,
-    "next_action": "Fresh equal-window no-browser hardware baseline, then continue Overview / Live Dashboard / route-cycle / multi-browser matrix.",
-    "residual_evidence_to_analyze": {
-      "timeouts_60s": 23,
-      "retries_60s": 18,
-      "missed_deadlines_60s": 41,
-      "deferred_60s": 24,
-      "health_ready": "degraded"
-    }
+    "status": "in_progress_hardware_performance_validation"
   },
   "next_ready_work_package": {
-    "issue": 289,
-    "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "active_in_progress",
-    "first_step": "Fresh no-browser Raspberry Pi baseline after Issue #442 merge."
+    "issue": 453,
+    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
+    "status": "blocked_until_issue_451_merge",
+    "depends_on": [451]
   },
-  "blocking_reason": "No #440 dependency blocker remains. Issue #289 resumes after the state-only Issue #442 merge; hardware safety constraints remain active.",
-  "resume_from": [
-    "Verify Issue #442 is GREEN and merged.",
-    "Verify current main.",
-    "Fast-forward the Issue #289 hardware-validation branch to post-#442 main.",
-    "Change Issue #289 label from status:blocked to status:in-progress.",
-    "Capture a fresh 60-second no-browser Raspberry Pi baseline.",
-    "Continue the controlled browser-count/request-rate matrix only from that fresh baseline."
-  ],
-  "issue_440_completion": {
-    "issue": 440,
-    "pull_request": 441,
-    "state": "closed_completed",
-    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-    "final_pr_head_sha": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
-    "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "final_exact_head_workflows": "9/9 GREEN",
-    "targeted_adaptive_tests": "16/16 PASS",
-    "full_device_agent_suite": "122/122 PASS",
-    "hardware_verified": true
-  },
-  "state_reconciliation_pull_request": 443
+  "next_action": "Run mandatory exact-head CI, Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle on the state-reconciled PR head. If all are GREEN, audit current main/reviews/diff, mark PR #452 Ready and merge with expected-head protection.",
+  "resume_instruction": "Do not implement Issue #453 before Issue #451 merges. Preserve Issue #289 as an independent physical evidence lane. No Modbus/hardware writes or site cutover."
 }

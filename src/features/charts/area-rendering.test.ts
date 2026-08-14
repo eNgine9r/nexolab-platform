@@ -18,6 +18,12 @@ class FakeInstance {
     this.handlers.delete(eventName);
   }
   dispatchAction() {}
+  containPixel() {
+    return true;
+  }
+  convertFromPixel(_finder: object, value: [number, number]) {
+    return value[0];
+  }
   resize() {}
   dispose() {
     this.disposed = true;

@@ -4,9 +4,7 @@ import {
   buildChartSegments,
   chartSeriesKey,
   reduceChartSegments,
-  type ChartEventMarker,
   type ChartFreshnessState,
-  type ChartPoint,
   type ChartRendererScene,
   type ChartSeries,
   type ChartSeriesIdentity,
@@ -21,7 +19,6 @@ import type {
 } from "@/features/live-dashboards/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-const MAXIMUM_SOURCE_GAP_MS = 30_000;
 const DEFAULT_POINT_BUDGET = 240;
 const SAVED_AREA_FILL_OPACITY = 0.14;
 
@@ -49,49 +46,6 @@ function timestamp(sample: TelemetrySample): number {
 function orderedSamples(samples: readonly TelemetrySample[]): TelemetrySample[] {
   return [...samples].sort(
     (left, right) => timestamp(left) - timestamp(right) || left.event_id.localeCompare(right.event_id),
-  );
-}
-
-function transitionPins(samples: readonly TelemetrySample[]): Map<string, ChartPoint["pinReasons"]> {
-  const pins = new Map<string, ChartPoint["pinReasons"]>();
-  let previous: TelemetrySample | null = null;
-
-  for (const sample of orderedSamples(samples)) {
-    if (previous === null) {
-      if (sample.alarm !== null) pins.set(sample.event_id, ["alarm"]);
-      previous = sample;
-      continue;
-    }
-    if (previous.alarm !== sample.alarm) {
-      pins.set(previous.event_id, ["alarm"]);
-      pins.set(sample.event_id, ["alarm"]);
-    }
-    previous = sample;
-  }
-
-  return pins;
-}
-
-function alarmEvents(series: readonly ChartSeries[]): ChartEventMarker[] {
-  const events = new Map<string, ChartEventMarker>();
-  for (const item of series) {
-    const seriesKey = chartSeriesKey(item.identity);
-    for (const segment of item.segments) {
-      for (const point of segment.points) {
-        if (!point.pinReasons?.includes("alarm")) continue;
-        const id = `${seriesKey}:${point.id}:alarm`;
-        events.set(id, {
-          id,
-          timestampMs: point.timestampMs,
-          type: "alarm_context",
-          label: `Alarm context · ${item.name}`,
-          severity: "alarm",
-        });
-      }
-    }
-  }
-  return [...events.values()].sort(
-    (left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
   );
 }
 
@@ -147,7 +101,6 @@ function buildSeries(
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[visualIndex % CHART_SERIES_TOKENS.length];
   const samples = orderedSamples(source.history);
-  const pins = transitionPins(samples);
   const segments = buildChartSegments(
     identity,
     samples.map((sample) => ({
@@ -156,9 +109,7 @@ function buildSeries(
       value: sample.value,
       quality: sample.quality,
       sourceEventId: sample.event_id,
-      pinReasons: pins.get(sample.event_id),
     })),
-    { maximumSourceGapMs: MAXIMUM_SOURCE_GAP_MS },
   );
 
   return {
@@ -217,7 +168,6 @@ export function buildSavedDashboardChartGroups(
         scene: {
           series,
           xDomain: options.xDomain,
-          events: alarmEvents(series),
         },
       };
     })

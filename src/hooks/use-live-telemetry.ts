@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  advanceLiveHistoryWindow,
   loadCompleteLiveHistory,
   mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
@@ -361,8 +362,13 @@ export function useLiveTelemetry({
         const reconciliation = reconcileLiveHistoryEvents(selectedIncoming, orderingStateRef.current);
         orderingStateRef.current = reconciliation.state;
         if (reconciliation.samples.length > 0) {
+          const nextWindow = advanceLiveHistoryWindow(currentWindow, reconciliation.samples);
+          if (nextWindow !== currentWindow) {
+            historyWindowRef.current = nextWindow;
+            setHistoryWindow(nextWindow);
+          }
           setHistorySamples((current) => {
-            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, currentWindow);
+            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);
             historySamplesRef.current = next;
             return next;
           });

@@ -130,19 +130,21 @@ function seedExplorerTelemetry(): { equipmentId: string; channels: string[] } {
     for (let sampleIndex = 0; sampleIndex < 4; sampleIndex += 1) {
       const capturedAt = new Date(now - (3 - sampleIndex) * 30_000).toISOString();
       const value = baseValue + sampleIndex * 0.1;
+      const communicationGap = index === 0 && sampleIndex === 2;
+      const alarmContextWithoutDomainEvent = index === 0 && sampleIndex === 3;
       values.push(`(
         ${sqlString(randomUUID())},
         'edge-live-issue-400',
         ${sqlString(capturedAt)}::timestamptz,
         ${sqlString(metric)},
-        ${value},
+        ${communicationGap ? "NULL" : value},
         ${sqlString(unit)},
-        'valid',
-        'issue-400-acceptance',
+        ${communicationGap ? "'communication_error'" : "'valid'"},
+        'issue-451-acceptance',
         ${sqlString(equipmentId)},
         ${sqlString(channels[index])},
-        NULL,
-        ${Math.round(value * 10)},
+        ${alarmContextWithoutDomainEvent ? "'high'" : "NULL"},
+        ${communicationGap ? "NULL" : Math.round(value * 10)},
         NULL,
         '{}'::json
       )`);
@@ -256,16 +258,33 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(page.getByTestId("chart-accessible-summary")).toHaveCount(2);
     await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("Range Live");
     await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("6 series");
+    await expect(page.getByTestId("chart-accessible-summary").nth(0)).toContainText("Continuity breaks 1");
     await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("2 series");
+    await expect(page.getByTestId("chart-accessible-summary").nth(1)).toContainText("Continuity breaks 0");
+    await expect(page.getByText(/Alarm context/)).toHaveCount(0);
 
     const rendererHosts = page.getByTestId("chart-renderer-host");
     await expect(rendererHosts).toHaveCount(2);
+    const temperatureHost = rendererHosts.first();
+    await temperatureHost.scrollIntoViewIfNeeded();
+    const temperatureBox = await temperatureHost.boundingBox();
+    if (!temperatureBox) throw new Error("Temperature chart host has no bounding box");
+    await page.mouse.move(
+      temperatureBox.x + temperatureBox.width - 32,
+      temperatureBox.y + temperatureBox.height * 0.5,
+    );
+    const inspector = page.getByTestId("chart-inspector").first();
+    await expect(inspector).toContainText("Nearest measured sample per visible series");
+    await expect(inspector.getByRole("row")).toHaveCount(7);
+    for (const channelId of fixture.channels.slice(0, 6)) await expect(inspector).toContainText(channelId);
+    await expect(inspector).toContainText(/\d+\.\d{2} degC/);
+
     const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
       request.url.includes("/history"),
     ).length;
 
-    publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.9);
-    await expect(page.getByText(/9[,.]9 degC/).first()).toBeVisible();
+    publishExplorerSample(fixture.equipmentId, fixture.channels[0], 9.876);
+    await expect(page.getByText("9.88 degC", { exact: true }).first()).toBeVisible();
     await expect(rendererHosts).toHaveCount(2);
     await expect(page.getByText("Завантаження history window за одним ingestion watermark…")).toHaveCount(0);
     await expect

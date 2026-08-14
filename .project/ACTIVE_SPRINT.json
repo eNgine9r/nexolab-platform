@@ -5,7 +5,7 @@
   "sprint": {
     "id": "ENGINEERING-HARDENING-1",
     "title": "Engineering governance, critical operator defects and toolchain hardening",
-    "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated toolchain migrations and the highest-priority operator defects.",
+    "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated critical operator and reliability work packages.",
     "status": "in_progress",
     "started_at": "2026-08-06",
     "epic_issue": 326
@@ -19,116 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-  "current_main_sha_semantics": "Issue #440 / PR #441 worker-liveness fix is merged and hardware verified; Issue #442 is state-only reconciliation before Issue #289 resumes.",
+  "current_main_sha": "3ae380c9882bcd7a0c5d142404c1a64da801513a",
+  "current_main_sha_semantics": "Post-Issue-443 main includes Issue #445/#446 KK2 catalog restoration and Issue #447/#448 refrigeration structural-snapshot latency correction. Issue #451 is verified on its feature branch but not merged yet.",
   "selection_state": {
-    "last_ready_audit_result": "Post-#440 merge audit: Issue #440 is completed/merged; its dependency blocker on Issue #289 is resolved. Issue #289 resumes as the selected critical hardware-performance acceptance package from a fresh no-browser baseline.",
-    "selected_issue": 289,
-    "selection_status": "selected_in_progress_after_440_merge"
+    "last_ready_audit_result": "Issue #451 is product-verified and undergoing state-only/final-head reconciliation. Independent hardware Issue #289 remains in progress. Issue #453 exists but stays blocked until #451 merges.",
+    "selected_issue": 451,
+    "selection_status": "verified_pending_state_reconciliation_and_final_head_gates",
+    "independent_hardware_lane": 289
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-386",
-      "issue": 386,
-      "pull_request": 399,
-      "title": "Establish chart-domain primitives and benchmark the local renderer",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "3b34ec321c2453778b20b6bf8e4cc232970e5e1e"
-    },
-    {
-      "id": "NEXOLAB-400",
-      "issue": 400,
-      "pull_request": 402,
-      "title": "Migrate Live Data to the canonical NEXOLAB Chart System",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "afdfa387a7aa988a49e010d75c27d59a7cdf74d2",
-      "hardware_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-404",
-      "issue": 404,
-      "pull_request": 410,
-      "title": "Migrate Saved Live Dashboards to the canonical NEXOLAB Chart System",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "d4068e28402aa113f4485dc3afecb1f8eb44bd7b",
-      "hardware_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-411",
-      "issue": 411,
-      "pull_request": 412,
-      "title": "Reconcile Issue #404 merge and Chart System continuation",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "e89560cd2f52b59ed1c9fda4adca38e4c634a3b7"
-    },
-    {
-      "id": "NEXOLAB-413",
-      "issue": 413,
-      "pull_request": 414,
-      "title": "Migrate Overview temperature history to the canonical NEXOLAB Chart System",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "ecd61dfc8682f5aa0c7231b8a73341d1d292f03a",
-      "hardware_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-417",
-      "issue": 417,
-      "pull_request": 418,
-      "title": "Reconcile Issue #413 merge and Chart System follow-up state",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "28cbe0aa9552a43ed3069818c60ad218f350d0bf"
-    },
-    {
-      "id": "NEXOLAB-369",
-      "issue": 369,
-      "pull_request": 420,
-      "title": "Raspberry Pi browser acceptance for canonical Live Dashboard inventory",
-      "status": "completed_merged",
-      "priority": "critical",
-      "merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
-      "final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
-      "verification": "CI #2965 GREEN; Authenticated Dashboard #1644 GREEN; Offline Bundle #1027 GREEN",
-      "hardware_acceptance": "PASS: inventory 200, total 162, ~44.84 ms; search/filter/select/reorder/save/reopen PASS; no telemetry/latest inventory dependency"
-    },
-    {
-      "id": "NEXOLAB-421",
-      "issue": 421,
-      "pull_request": 422,
-      "title": "Reconcile Issue #369 merge and select Issue #366 continuation",
-      "status": "completed_merged",
-      "priority": "high",
-      "merge_sha": "3a91a180ff6b842321c18a2273f405bcdd42e149"
-    },
-    {
-      "id": "NEXOLAB-366",
-      "issue": 366,
-      "pull_request": 423,
-      "title": "Audit and deduplicate monitoring-route read models",
-      "status": "completed_merged",
-      "priority": "critical",
-      "branch": "perf/366-monitoring-read-model-deduplication",
-      "resolved_dependencies": [368, 369],
-      "product_head": "625355c988a286bd007e9c84c48384f2473c0ba6",
-      "final_pr_head": "11a58e99a69ec04eea38316553724cdad4c83493",
-      "merge_sha": "a8daee3468e2384c505f988eb006fca05c2afa3f",
-      "verification": "Final head: CI, Authenticated Dashboard, Alerts, Nodes, Test Sessions, Refrigeration, Offline Auth, Offline Bundle and Disaster Recovery GREEN"
-    },
-    {
-      "id": "NEXOLAB-427",
-      "issue": 427,
-      "title": "Reconcile Issue #366 merge and select downstream continuation",
-      "status": "completed_merged",
-      "priority": "high",
-      "branch": "chore/427-reconcile-issue-366-state",
-      "pull_request": 428,
-      "merge_sha": "4581786e8b2a9b01d1430f71ca7f3cd7ee89bd0a"
-    },
     {
       "id": "NEXOLAB-289",
       "issue": 289,
@@ -136,235 +35,99 @@
       "status": "in_progress_hardware_performance_validation",
       "priority": "critical",
       "assignee": "eNgine9r",
-      "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-      "depends_on": [283, 284, 285, 286, 287, 314, 288, 366, 432],
-      "hardware_acceptance": "in_progress_fresh_baseline_required",
       "branch": "test/289-acquisition-scale-hardware-validation",
-      "branch_alignment": "Fast-forward/recreate from post-Issue-442 main before the next hardware capture.",
-      "pre_fix_zero_request_window_is_passing_baseline": false
+      "hardware_acceptance": "in_progress_fresh_baseline_required",
+      "independent_lane": true
     },
     {
-      "id": "NEXOLAB-389",
-      "issue": 389,
-      "pull_request": 429,
-      "title": "Add administrator-only local NEXOLAB version management and safe update/rollback",
+      "id": "NEXOLAB-445",
+      "issue": 445,
+      "pull_request": 446,
+      "title": "Restore KK2 XJP60D discovery catalog including Unit 115",
       "status": "completed_merged_software_verified",
-      "priority": "high",
-      "depends_on": [385],
-      "branch": "feat/389-local-version-management",
-      "final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
-      "merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
-      "verification": "21/21 exact-head workflows GREEN; physical Raspberry Pi acceptance pending separately"
+      "priority": "critical",
+      "classification": "software/CI/offline verified; Raspberry Pi field retest pending"
     },
     {
-      "id": "NEXOLAB-430",
-      "issue": 430,
-      "pull_request": 431,
-      "title": "Reconcile Issue #389 merge and post-merge Ready audit",
-      "status": "completed_merged",
-      "priority": "high",
-      "branch": "chore/430-reconcile-issue-389-state",
-      "merge_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c"
-    },
-    {
-      "id": "NEXOLAB-432",
-      "issue": 432,
-      "pull_request": 437,
-      "title": "Prefetch monitoring routes and prove warm-navigation time-to-usable",
+      "id": "NEXOLAB-447",
+      "issue": 447,
+      "pull_request": 448,
+      "title": "Render refrigeration structural snapshot without redundant wait",
       "status": "completed_merged_software_browser_verified",
       "priority": "critical",
-      "branch": "perf/432-route-prefetch-time-to-usable",
-      "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
-      "final_pr_head": "1509fb30e1e558d4585e403d606c5253d87255da",
-      "merge_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
-      "verification": "Review-corrected warm medians 201..398 ms; truthful Overview and Live library content, exact-path RSC prefetch, pre-navigation inventory laziness, zero warm loading transitions and post-warm read bounds pass; all required final-head workflows GREEN",
-      "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
-      "depends_on": [433]
+      "merge_sha": "3ae380c9882bcd7a0c5d142404c1a64da801513a",
+      "classification": "software/browser/offline verified; Raspberry Pi perceived-latency acceptance pending"
     },
     {
-      "id": "NEXOLAB-433",
-      "issue": 433,
-      "pull_request": 434,
-      "title": "Make sensor enrollment and acquisition recovery self-healing",
-      "status": "completed_merged_software_verified",
+      "id": "NEXOLAB-451",
+      "issue": 451,
+      "pull_request": 452,
+      "title": "Make canonical chart continuity, inspector and alarm overlays trustworthy",
+      "status": "verified_pending_final_state_head_gates",
       "priority": "critical",
-      "branch": "fix/433-sensor-enrollment-recovery",
-      "depends_on": [284, 285, 378],
-      "product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
-      "final_pr_head": "236019f9929aa230ff1f2f6ff0954ecee3bde6f1",
-      "merge_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
-      "verification": "15 exact-head checks GREEN with one intentional attestation-publish skip; 30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; post-change Raspberry Pi acceptance pending"
+      "branch": "fix/451-chart-integrity-alarm-provenance",
+      "verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+      "verification": {
+        "ci": "PASS",
+        "authenticated_dashboard": "13/13 PASS",
+        "refrigeration_browser": "PASS",
+        "offline_bundle_disconnected_runtime": "PASS",
+        "websocket_max_concurrent": 1,
+        "acquisition_mutations": 0
+      },
+      "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
     },
     {
-      "id": "NEXOLAB-415",
-      "issue": 415,
-      "title": "Add left-button drag panning to canonical NEXOLAB charts",
-      "status": "open_not_selected",
-      "priority": "medium",
-      "depends_on": [413]
-    },
-    {
-      "id": "NEXOLAB-245",
-      "issue": 245,
-      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "status": "needs_validation_parallel_runtime_track",
-      "priority": "critical"
-    },
-    {
-      "id": "NEXOLAB-257",
-      "issue": 257,
-      "title": "Migrate ESLint to 10",
-      "status": "blocked"
-    },
-    {
-      "id": "NEXOLAB-256",
-      "issue": 256,
-      "title": "Transition to TypeScript 7",
-      "status": "deferred"
-    },
-    {
-      "id": "NEXOLAB-440",
-      "issue": 440,
-      "pull_request": 441,
-      "title": "Self-recover dead acquisition bus workers and fail closed in health",
-      "status": "completed_merged_hardware_verified",
+      "id": "NEXOLAB-453",
+      "issue": 453,
+      "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
+      "status": "blocked_until_issue_451_merge",
       "priority": "critical",
-      "branch": "fix/440-acquisition-worker-self-recovery",
-      "implementation_head": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-      "final_pr_head": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
-      "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-      "verification": "16/16 targeted adaptive tests PASS; 122/122 Device Agent tests PASS; final exact-head workflow matrix 9/9 GREEN; Raspberry Pi worker liveness acceptance PASS with 1/1 workers and 155 physical reads/60s.",
-      "hardware_acceptance": "PASS"
+      "parent_epic": 450,
+      "depends_on": [451]
     }
   ],
   "active_work_package": {
+    "issue": 451,
+    "pull_request": 452,
+    "title": "Make canonical chart continuity, inspector and alarm overlays trustworthy",
+    "status": "state_reconciliation_then_final_exact_head_verification",
+    "priority": "critical",
+    "branch": "fix/451-chart-integrity-alarm-provenance",
+    "verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+    "hardware_acceptance": "pending_not_claimed",
+    "next_step": "Run mandatory exact-head gates again after the state-only reconciliation head; if GREEN, mark PR #452 Ready and perform final merge audit."
+  },
+  "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress",
-    "priority": "critical",
-    "assignee": "eNgine9r",
-    "branch": "test/289-acquisition-scale-hardware-validation",
-    "branch_alignment_required_after_issue_442_merge": true,
-    "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "hardware_acceptance": "in_progress_fresh_baseline_required",
-    "first_step": "Capture a fresh 60-second no-browser Raspberry Pi baseline; do not reuse the pre-fix zero-request phase."
+    "hardware_acceptance": "fresh_physical_matrix_required"
   },
   "next_ready_work_package": {
-    "issue": 289,
-    "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "active_in_progress",
+    "issue": 453,
+    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
+    "status": "blocked_until_issue_451_merge",
     "priority": "critical",
-    "first_step": "Fresh no-browser Raspberry Pi baseline after Issue #442 merge."
+    "first_step_after_unblock": "Create a separate feature branch from reconciled main and implement canonical unit-family/dynamic-Y-axis domain primitives before page-local composition changes."
   },
-  "prepared_backlog": [
-    {
-      "issue": 415,
-      "priority": "medium",
-      "lane": "chart_system_ux_follow_up"
-    }
-  ],
   "verification": {
-    "issue_432_base_main_sha": "9ddef4445b2894f25a6e93267f497d0e5b09b970",
-    "issue_432_evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
-    "issue_432_final_pr_head": "1509fb30e1e558d4585e403d606c5253d87255da",
-    "issue_432_merge_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
-    "issue_432_local_gates": "Review-corrected focused route production acceptance 3/3, Authenticated Dashboard/acquisition invariant 13/13, Offline Auth migration plus browser/persistence/version scenarios, 89 files / 384 frontend tests, format, lint, typecheck and production build PASS",
-    "issue_432_exact_head_gates": "Final PR head 1509fb30: CI, Acquisition Scale, Authenticated Dashboard, Refrigeration Browser, Offline Auth and disconnected Offline Bundle GREEN",
-    "issue_432_classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289",
-    "issue_433_base_main_sha": "aa8c8fc2a4a3d496c4e9d6bfaa49ac284f4f2b2c",
-    "issue_433_local_gates": "30 focused Device Agent, 120 complete Device Agent, 4 focused UI and 384 complete frontend tests PASS; format, lint, typecheck and production build PASS",
-    "issue_433_product_head": "1c138d0c87ea09847ea5d3311a11b405470a3682",
-    "issue_433_final_pr_head": "236019f9929aa230ff1f2f6ff0954ecee3bde6f1",
-    "issue_433_merge_sha": "06f78b178acfed72033bf607099d827eca1a9f9a",
-    "issue_433_exact_head_gates": "15 GREEN; one intentional image-attestation publish matrix skip; disconnected Offline Bundle runtime PASS",
-    "issue_433_classification": "software verified; post-change Raspberry Pi sensor enrollment/recovery acceptance pending",
-    "issue_389_final_pr_head": "a12c90968c736839991b88237033ee950c9ba707",
-    "issue_389_merge_sha": "83c77c934ed0c3356752dc11ce98247f243fa659",
-    "issue_389_final_gates": "21/21 exact-head workflows GREEN including CI #3014, Telemetry service #1539, Offline Auth #404 and Offline Bundle #1070",
-    "issue_389_classification": "software verified; Raspberry Pi version-management acceptance pending",
-    "issue_369_final_pr_head": "808ecc64c7e5f5282d666636eecb5b5efcd9657e",
-    "issue_369_merge_sha": "4a266d73c451e191f2fab683dd07aa4c02d17b7d",
-    "issue_369_final_gates": "CI #2965 GREEN; Authenticated Dashboard #1644 GREEN; Offline Bundle #1027 GREEN",
-    "issue_369_browser_hardware": "PASS on controlled Raspberry Pi LOCAL_LAN runtime",
-    "issue_369_inventory": {
-      "status": 200,
-      "total": 162,
-      "duration_ms_approx": 44.84,
-      "generic_telemetry_latest_inventory_dependency": false
-    },
-    "issue_440_implementation_head": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-    "issue_440_final_pr_head": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
-    "issue_440_merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "issue_440_final_gates": "9/9 exact-head workflows GREEN",
-    "issue_440_hardware_acceptance": "PASS: expected/active workers 1/1; 155 normal physical requests/60s; worker failures/restarts 0/0; edge volume preserved.",
-    "issue_440_classification": "software verified; hardware verified"
-  },
-  "runtime_evidence": {
-    "issue_432_warm_median_ms": {
-      "overview": 398,
-      "refrigeration": 231,
-      "energy": 273,
-      "live": 314,
-      "nodes": 306,
-      "sessions": 201
-    },
-    "issue_432_document_loads": 1,
-    "issue_432_loading_transitions": 0,
-    "issue_432_eager_channel_inventory_reads": 0,
-    "issue_432_eager_node_inventory_reads": 0,
-    "issue_432_websocket_max_concurrent": 1,
-    "issue_432_acquisition_mutations": 0,
-    "issue_432_product_code_changed": false,
-    "issue_432_offline_bundle_disconnected_runtime": true,
-    "issue_432_update_rollback_volume_preservation": true,
-    "issue_432_physical_raspberry_pi_acceptance": "pending_not_claimed",
-    "issue_433_before_change_raspberry_pi_baseline": "captured read-only",
-    "issue_433_post_change_raspberry_pi_acceptance": "not_performed_not_claimed",
-    "issue_433_modbus_write": false,
-    "issue_433_hardware_write": false,
-    "issue_433_polling_policy_change": false,
-    "issue_433_discovery_only_polling_delta": 0,
-    "issue_389_offline_bundle_disconnected_runtime": true,
-    "issue_389_update_rollback_volume_preservation": true,
-    "issue_389_physical_raspberry_pi_acceptance": "pending",
-    "issue_369_external_egress_required": false,
-    "issue_369_modbus_write": false,
-    "issue_369_hardware_write": false,
-    "issue_369_polling_change": false,
-    "issue_369_runtime_product_code_changed": false,
-    "issue_421_runtime_product_code_changed": false,
-    "issue_366_overview_alert_reads": {
-      "active": 1,
-      "acknowledged": 1
-    },
-    "issue_366_websocket_max_concurrent": 1,
-    "issue_366_acquisition_mutations": 0
-  },
-  "next_selection_policy": "Execute selected Ready Issue #289 evidence-first on the controlled Raspberry Pi/RS-485 runtime. Do not mix dependency updates or unrelated product work; discovered production defects require separate focused Issues.",
-  "security_exception": {
-    "image_id": "telemetry-service",
-    "package": "libcjson1",
-    "vulnerability": "CVE-2026-67216",
-    "expires_on": "2026-09-05",
-    "status": "affected",
-    "fixed_version": null
+    "issue_451_verified_product_head": "58639a3a19ff7ef13e37d3c2de23adf4b9c3bc02",
+    "issue_451_ci": "PASS",
+    "issue_451_authenticated_dashboard": "13/13 PASS",
+    "issue_451_refrigeration_browser": "PASS",
+    "issue_451_offline_bundle": "PASS",
+    "issue_451_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "polling_cadence_change": "none",
-    "telemetry_history_deletion": "none",
+    "polling_policy_change": "none",
+    "acquisition_registry_change": "none",
+    "dependency_upgrade": "none",
+    "persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "privileged_container": "none",
     "production_site_cutover": "none",
-    "mandatory_cloud_dependency": "none"
-  },
-  "active_issue": 289,
-  "active_branch": "test/289-acquisition-scale-hardware-validation",
-  "issues_blocked": [],
-  "notes": [
-    "Issue #440 / PR #441 merged as 2cb88030cae151a95c43fe1f303a8d51b66968c1; worker liveness is software and Raspberry Pi hardware verified. Issue #289 is unblocked and resumes after Issue #442 merge from a fresh no-browser baseline.",
-    "Issue #440 / PR #441 merged as 2cb88030cae151a95c43fe1f303a8d51b66968c1; worker liveness is software and Raspberry Pi hardware verified. The #289 dependency blocker is resolved. Issue #289 resumes after Issue #442 merge from a fresh no-browser baseline; residual timeout/retry/deadline evidence remains assigned to #289."
-  ],
-  "active_branch_alignment": "Must be aligned to post-Issue-442 main before execution."
+    "mandatory_public_runtime_dependency": "none"
+  }
 }

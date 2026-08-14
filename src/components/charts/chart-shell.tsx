@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
+import { formatChartValue } from "@/features/charts/format";
 
 function freshnessLabel(state: ChartSeries["freshness"]): string {
   return {
@@ -44,18 +45,15 @@ export function ChartShell({
         : series.some((item) => item.freshness === "connecting")
           ? "connecting"
           : "live";
-  const inspectedSeries = inspection
-    ? series.find((item) => chartSeriesKey(item.identity) === inspection.seriesKey)
-    : undefined;
-  const inspectedPoint = inspection?.point ?? null;
-  const inspectorTimestamp = inspectedPoint ? new Date(inspectedPoint.timestampMs).toISOString() : "—";
-  const inspectorSeriesName = inspectedPoint ? (inspectedSeries?.name ?? inspection?.seriesKey ?? "—") : "—";
-  const inspectorValue = inspectedPoint
-    ? `${inspectedPoint.value} ${inspectedSeries?.identity.nativeUnit ?? ""}`
-    : "—";
-  const inspectorFreshness = inspection ? freshnessLabel(inspection.freshness) : "—";
+  const inspectionBySeries = new Map(
+    (inspection?.series ?? []).map((entry) => [entry.seriesKey, entry] as const),
+  );
   const units = [...new Set(series.map((item) => item.identity.nativeUnit))].join(", ");
-  const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}.`;
+  const continuityBreaks = series.reduce(
+    (total, item) => total + item.segments.filter((segment) => segment.precedingBreak).length,
+    0,
+  );
+  const summary = `${title}. Range ${selectedRange}. ${series.length} series. Units ${units || "none"}. State ${freshnessLabel(freshness)}. Continuity breaks ${continuityBreaks}.`;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081a32] text-slate-100">
@@ -81,18 +79,15 @@ export function ChartShell({
       </p>
       <div className="min-w-0 p-3 sm:p-4">{children}</div>
 
-      <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
+      <div className="grid items-start gap-3 border-t border-white/[0.07] p-4 [overflow-anchor:none] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
         <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label="Chart legend">
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);
-            const inspected =
-              inspection?.seriesKey === key ? inspectedPoint : item.segments.at(-1)?.points.at(-1);
-            const legendLabel = [
-              item.name,
-              `${inspected ? inspected.value.toFixed(2) : "—"} ${item.identity.nativeUnit}`,
-              inspected?.quality ?? "unknown",
-              freshnessLabel(item.freshness),
-            ].join(" · ");
+            const latest = item.segments.at(-1)?.points.at(-1);
+            const latestValue = `${latest ? formatChartValue(latest.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`;
+            const quality = latest?.quality ?? "unknown";
+            const itemFreshness = freshnessLabel(item.freshness);
+            const legendLabel = [item.name, latestValue, quality, itemFreshness].join(" · ");
             return (
               <div
                 key={key}
@@ -104,7 +99,13 @@ export function ChartShell({
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1 truncate text-xs tabular-nums" title={legendLabel}>
-                  {legendLabel}
+                  <span>{item.name}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{latestValue}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{quality}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{itemFreshness}</span>
                 </span>
                 <button
                   type="button"
@@ -126,33 +127,62 @@ export function ChartShell({
           })}
         </div>
         <aside
-          className="min-h-44 rounded-xl border border-white/[0.07] bg-[#06142A] p-3 text-xs [overflow-anchor:none]"
+          className="min-h-44 min-w-0 rounded-xl border border-white/[0.07] bg-[#06142A] p-3 text-xs [overflow-anchor:none]"
           aria-label="Chart inspector"
           data-testid="chart-inspector"
         >
-          <p className="font-medium text-white">Exact inspector</p>
+          <div className="flex min-w-0 items-baseline justify-between gap-3">
+            <p className="font-medium text-white">Exact inspector</p>
+            <p className="min-w-0 truncate text-right text-[10px] text-slate-500 tabular-nums">
+              {inspection ? new Date(inspection.timestampMs).toISOString() : "—"}
+            </p>
+          </div>
           <p className="mt-2 min-h-4 text-slate-500">
-            {inspectedPoint ? "Exact measured sample." : "Move the shared cursor or use keyboard inspection."}
+            {inspection
+              ? "Nearest measured sample per visible series. Distant samples remain unavailable."
+              : "Move the shared cursor or use keyboard inspection."}
           </p>
-          <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-slate-300">
-            <dt>Timestamp</dt>
-            <dd
-              className="min-w-0 truncate tabular-nums"
-              title={inspectedPoint ? inspectorTimestamp : undefined}
-            >
-              {inspectorTimestamp}
-            </dd>
-            <dt>Series</dt>
-            <dd className="min-w-0 truncate" title={inspectedPoint ? inspectorSeriesName : undefined}>
-              {inspectorSeriesName}
-            </dd>
-            <dt>Value</dt>
-            <dd className="min-w-0 truncate tabular-nums">{inspectorValue}</dd>
-            <dt>Quality</dt>
-            <dd className="min-w-0 truncate">{inspectedPoint?.quality ?? "—"}</dd>
-            <dt>Freshness</dt>
-            <dd className="min-w-0 truncate">{inspectorFreshness}</dd>
-          </dl>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] table-fixed border-collapse text-left">
+              <thead className="text-[10px] text-slate-500">
+                <tr>
+                  <th className="w-[30%] pr-2 pb-1 font-medium">Series</th>
+                  <th className="w-[24%] pr-2 pb-1 font-medium">Sample time</th>
+                  <th className="w-[18%] pr-2 pb-1 font-medium">Value</th>
+                  <th className="w-[14%] pr-2 pb-1 font-medium">Quality</th>
+                  <th className="w-[14%] pb-1 font-medium">Freshness</th>
+                </tr>
+              </thead>
+              <tbody className="align-top text-slate-300">
+                {series
+                  .filter((item) => item.visible)
+                  .map((item) => {
+                    const key = chartSeriesKey(item.identity);
+                    const inspected = inspectionBySeries.get(key);
+                    const point = inspected?.point ?? null;
+                    const sampleTimestamp = point ? new Date(point.timestampMs).toISOString() : "—";
+                    const value = point
+                      ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
+                      : "—";
+                    return (
+                      <tr key={key} className="border-t border-white/[0.05]">
+                        <td className="min-w-0 truncate py-1.5 pr-2" title={item.name}>
+                          {item.name}
+                        </td>
+                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums" title={sampleTimestamp}>
+                          {sampleTimestamp}
+                        </td>
+                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
+                        <td className="min-w-0 truncate py-1.5 pr-2">{point?.quality ?? "—"}</td>
+                        <td className="min-w-0 truncate py-1.5">
+                          {freshnessLabel(inspected?.freshness ?? item.freshness)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
         </aside>
       </div>
     </section>
