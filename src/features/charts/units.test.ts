@@ -80,27 +80,17 @@ describe("compatible chart unit grouping", () => {
     const initialAxisIds = initial.allAxes.map((axis) => axis.id);
 
     for (const item of series) {
-      expect(initial.axisIdBySeriesKey.get(chartSeriesKey(item.identity))).toBe(
-        chartYAxisId(item.identity),
-      );
+      expect(initial.axisIdBySeriesKey.get(chartSeriesKey(item.identity))).toBe(chartYAxisId(item.identity));
     }
 
-    const hidden = buildChartYAxisModel(
-      series.map((item, index) => ({ ...item, visible: index !== 1 })),
-    );
+    const hidden = buildChartYAxisModel(series.map((item, index) => ({ ...item, visible: index !== 1 })));
     expect(hidden.allAxes.map((axis) => axis.id)).toEqual(initialAxisIds);
-    expect(hidden.visibleAxes.map((axis) => axis.id)).not.toContain(
-      chartYAxisId(series[1].identity),
-    );
+    expect(hidden.visibleAxes.map((axis) => axis.id)).not.toContain(chartYAxisId(series[1].identity));
 
     const restored = buildChartYAxisModel(series.map((item) => ({ ...item, visible: true })));
-    expect(restored.visibleAxes.map((axis) => axis.id)).toEqual(
-      initial.visibleAxes.map((axis) => axis.id),
-    );
+    expect(restored.visibleAxes.map((axis) => axis.id)).toEqual(initial.visibleAxes.map((axis) => axis.id));
 
-    const solo = buildChartYAxisModel(
-      series.map((item, index) => ({ ...item, visible: index === 2 })),
-    );
+    const solo = buildChartYAxisModel(series.map((item, index) => ({ ...item, visible: index === 2 })));
     expect(solo.visibleAxes.map((axis) => axis.id)).toEqual([chartYAxisId(series[2].identity)]);
   });
 
@@ -116,9 +106,7 @@ describe("compatible chart unit grouping", () => {
 
     const partitions = partitionChartSeriesByAxisBudget(series);
     expect(partitions).toHaveLength(2);
-    expect(partitions.map((partition) => buildChartYAxisModel(partition).allAxes.length)).toEqual([
-      5, 1,
-    ]);
+    expect(partitions.map((partition) => buildChartYAxisModel(partition).allAxes.length)).toEqual([5, 1]);
     expect(partitions.flatMap((partition) => partition)).toHaveLength(series.length);
   });
 });

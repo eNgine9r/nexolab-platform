@@ -81,56 +81,22 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     });
 
     expect(groups).toHaveLength(1);
-    expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual([
-      "T-1",
-      "T-2",
-    ]);
-    expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual([
-      "#654321",
-      "#123456",
-    ]);
+    expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual(["T-1", "T-2"]);
+    expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual(["#654321", "#123456"]);
     expect(groups[0].scene.series[0].areaFillOpacity).toBeUndefined();
     expect(groups[0].scene.series[1].areaFillOpacity).toBeGreaterThan(0);
   });
 
   it("preserves V/A/W persisted order and colors on one equipment canvas", () => {
-    const current = item(
-      "current",
-      1,
-      "A-1",
-      "A",
-      "line",
-      "#111111",
-      "electrical.current",
-    );
-    const power = item(
-      "power",
-      2,
-      "W-1",
-      "W",
-      "area",
-      "#222222",
-      "electrical.active_power",
-    );
-    const voltage = item(
-      "voltage",
-      3,
-      "V-1",
-      "V",
-      "line",
-      "#333333",
-      "electrical.voltage",
-    );
+    const current = item("current", 1, "A-1", "A", "line", "#111111", "electrical.current");
+    const power = item("power", 2, "W-1", "W", "area", "#222222", "electrical.active_power");
+    const voltage = item("voltage", 3, "V-1", "V", "line", "#333333", "electrical.voltage");
     const groups = buildSavedDashboardChartGroups({
       dashboardId: "dashboard-meter",
       series: [
         series(power, [sample("w", "W-1", "W", 10_000, 540, "valid", null, power.metric)]),
-        series(voltage, [
-          sample("v", "V-1", "V", 10_000, 230, "valid", null, voltage.metric),
-        ]),
-        series(current, [
-          sample("a", "A-1", "A", 10_000, 2.4, "valid", null, current.metric),
-        ]),
+        series(voltage, [sample("v", "V-1", "V", 10_000, 230, "valid", null, voltage.metric)]),
+        series(current, [sample("a", "A-1", "A", 10_000, 2.4, "valid", null, current.metric)]),
       ],
       status: "live",
       xDomain: { fromMs: START, toMs: START + 60_000 },
@@ -138,11 +104,7 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0].equipmentId).toBe("equipment-1");
-    expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual([
-      "A-1",
-      "W-1",
-      "V-1",
-    ]);
+    expect(groups[0].scene.series.map((entry) => entry.identity.channelId)).toEqual(["A-1", "W-1", "V-1"]);
     expect(groups[0].scene.series.map((entry) => entry.colorToken)).toEqual([
       "#111111",
       "#222222",
@@ -196,12 +158,8 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
     });
 
     expect(groups).toHaveLength(1);
-    const temperatureSeries = groups[0].scene.series.find(
-      (entry) => entry.identity.channelId === "T-1",
-    )!;
-    const energySeries = groups[0].scene.series.find(
-      (entry) => entry.identity.channelId === "E-1",
-    )!;
+    const temperatureSeries = groups[0].scene.series.find((entry) => entry.identity.channelId === "T-1")!;
+    const energySeries = groups[0].scene.series.find((entry) => entry.identity.channelId === "E-1")!;
     expect(
       temperatureSeries.segments
         .flatMap((segment) => segment.points)

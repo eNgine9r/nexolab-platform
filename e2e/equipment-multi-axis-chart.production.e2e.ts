@@ -217,7 +217,9 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
     for (let index = 0; index < CHANNELS.length; index += 1) await compare.nth(index).check();
 
     await expect(page.getByText("3 / 8", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: `Live Data · ${equipmentId}`, exact: true })).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: `Live Data · ${equipmentId}`, exact: true })).toHaveCount(
+      1,
+    );
 
     const summary = page.getByTestId("chart-accessible-summary");
     await expect(summary).toHaveCount(1);
