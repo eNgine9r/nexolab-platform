@@ -23,7 +23,7 @@ jobs:
         env:
           HUSKY: 0
         run: npm install --no-audit
-      - name: Print exact Prettier diff
+      - name: Print exact formatted sources
         shell: bash
         run: |
           set -euo pipefail
@@ -37,4 +37,8 @@ jobs:
             src/features/live/live-history.ts
           )
           npx prettier --write "${files[@]}"
-          git diff --no-ext-diff -- "${files[@]}"
+          for file in "${files[@]}"; do
+            printf '\n===== BEGIN %s =====\n' "$file"
+            cat "$file"
+            printf '\n===== END %s =====\n' "$file"
+          done
