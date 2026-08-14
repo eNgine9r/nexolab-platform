@@ -92,6 +92,50 @@ describe("ChartShell accessibility contract", () => {
     expect(within(inspector).getAllByRole("row")).toHaveLength(3);
   });
 
+  it("keeps the legend on latest telemetry while the inspector stays on the cursor snapshot", () => {
+    const scene = createBenchmarkScene(1);
+    const sourceSeries = scene.series[0];
+    const lastSegmentIndex = sourceSeries.segments.length - 1;
+    const lastSegment = sourceSeries.segments[lastSegmentIndex];
+    const latestPoint = { ...lastSegment.points.at(-1)!, value: 9.876 };
+    const series = {
+      ...sourceSeries,
+      segments: sourceSeries.segments.map((segment, segmentIndex) =>
+        segmentIndex === lastSegmentIndex
+          ? { ...segment, points: [...segment.points.slice(0, -1), latestPoint] }
+          : segment,
+      ),
+    };
+    const cursorPoint = { ...sourceSeries.segments[0].points[0], value: 25.7 };
+
+    render(
+      <ChartShell
+        title="Fixture telemetry"
+        context="Benchmark"
+        selectedRange="15 min"
+        series={[series]}
+        inspection={{
+          timestampMs: cursorPoint.timestampMs,
+          series: [
+            {
+              seriesKey: chartSeriesKey(series.identity),
+              point: cursorPoint,
+              freshness: series.freshness,
+            },
+          ],
+        }}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+
+    expect(screen.getByLabelText("Chart legend")).toHaveTextContent("9.88 °C");
+    expect(screen.getByTestId("chart-inspector")).toHaveTextContent("25.70 °C");
+  });
+
   it("renders a mutually exclusive placeholder when one series has no nearby sample", () => {
     const scene = createBenchmarkScene(1);
     const series = scene.series[0];
