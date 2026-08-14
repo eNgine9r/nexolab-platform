@@ -3,15 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
-import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
-import type {
-  RefrigerationStructuralSnapshot,
-  RefrigerationStructuralSnapshotRepository,
-} from "@/features/refrigeration/structural-snapshot-repository";
+import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 
 import { RefrigerationEquipmentRoute } from "./refrigeration-equipment-route";
 
+const equipment = refrigerationEquipment[0];
 const mockedRuntime = vi.hoisted(() => ({
   current: null as unknown,
 }));
@@ -34,14 +31,14 @@ vi.mock("@/components/dashboard/topbar", () => ({
 
 vi.mock("@/components/refrigeration/refrigeration-detail-screen", () => ({
   RefrigerationDetailScreen: ({
-    equipment,
+    equipment: loadedEquipment,
     initialSnapshot,
   }: {
     equipment: { name: string };
     initialSnapshot: RefrigerationStructuralSnapshot | null;
   }) => (
     <div data-testid="refrigeration-detail">
-      <span>{equipment.name}</span>
+      <span>{loadedEquipment.name}</span>
       <span>{initialSnapshot ? "snapshot-ready" : "equipment-only"}</span>
     </div>
   ),
@@ -51,67 +48,23 @@ vi.mock("@/features/refrigeration/equipment-repository-runtime", () => ({
   createRefrigerationEquipmentRuntime: () => mockedRuntime.current,
 }));
 
-function runtime(options: {
-  equipmentRepository: RefrigerationEquipmentRepository | null;
-  structuralRepository: RefrigerationStructuralSnapshotRepository | null;
-}): RefrigerationEquipmentRuntime {
-  return {
+function setRuntime({
+  structuralGet,
+  equipmentGet,
+}: {
+  structuralGet: ReturnType<typeof vi.fn>;
+  equipmentGet: ReturnType<typeof vi.fn>;
+}) {
+  mockedRuntime.current = {
     mode: "live",
-    repository: options.equipmentRepository,
-    equipmentRepository: options.equipmentRepository,
-    lifecycleRepository: null,
-    structuralSnapshotRepository: options.structuralRepository,
-    sensorConfigurationRepository: null,
-    climateCatalogRepository: null,
-    sessionClient: null,
-    organizationId: "00000000-0000-0000-0000-000000000001",
+    repository: { get: equipmentGet },
+    structuralSnapshotRepository: { get: structuralGet },
     error: null,
-  };
-}
-
-function equipmentRepository(
-  get: RefrigerationEquipmentRepository["get"],
-): RefrigerationEquipmentRepository {
-  return {
-    get,
-    list: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    remove: vi.fn(),
-  } as unknown as RefrigerationEquipmentRepository;
-}
-
-function structuralRepository(
-  get: RefrigerationStructuralSnapshotRepository["get"],
-): RefrigerationStructuralSnapshotRepository {
-  return {
-    get,
-    invalidate: vi.fn(),
-    clear: vi.fn(),
-  };
+  } as unknown as RefrigerationEquipmentRuntime;
 }
 
 function snapshot(): RefrigerationStructuralSnapshot {
-  return {
-    equipment: refrigerationEquipment[0],
-    activeImage: null,
-    layout: {
-      id: "layout-1",
-      equipmentId: refrigerationEquipment[0].id,
-      version: 1,
-      etag: 'W/"1"',
-      imageId: null,
-      image: null,
-      placements: [],
-      createdAt: "2026-08-14T07:00:00.000Z",
-      updatedAt: "2026-08-14T07:00:00.000Z",
-    },
-    layoutRevision: 1,
-    placementsCount: 0,
-    bindings: [],
-    channels: [],
-    generatedAt: "2026-08-14T07:00:00.000Z",
-  };
+  return { equipment } as unknown as RefrigerationStructuralSnapshot;
 }
 
 beforeEach(() => {
@@ -120,68 +73,49 @@ beforeEach(() => {
 
 describe("RefrigerationEquipmentRoute structural-first loading", () => {
   it("renders a structural snapshot without starting the redundant equipment read", async () => {
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(() => new Promise(() => undefined));
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => snapshot());
-    mockedRuntime.current = runtime({
-      equipmentRepository: equipmentRepository(legacyGet),
-      structuralRepository: structuralRepository(structuralGet),
-    });
+    const equipmentGet = vi.fn(() => new Promise(() => undefined));
+    const structuralGet = vi.fn(async () => snapshot());
+    setRuntime({ structuralGet, equipmentGet });
 
-    render(
-      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
-    );
+    render(<RefrigerationEquipmentRoute equipmentId={equipment.id} initialEquipment={null} />);
 
-    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
-      refrigerationEquipment[0].name,
-    );
+    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(equipment.name);
     expect(screen.getByTestId("refrigeration-detail")).toHaveTextContent("snapshot-ready");
     expect(screen.queryByText("Завантаження обладнання")).not.toBeInTheDocument();
     expect(structuralGet).toHaveBeenCalledTimes(1);
-    expect(legacyGet).not.toHaveBeenCalled();
+    expect(equipmentGet).not.toHaveBeenCalled();
   });
 
   it("falls back to the equipment repository only when the structural snapshot fails", async () => {
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => {
+    const structuralGet = vi.fn(async () => {
       throw new Error("Structural snapshot недоступний.");
     });
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(async () => refrigerationEquipment[0]);
-    mockedRuntime.current = runtime({
-      equipmentRepository: equipmentRepository(legacyGet),
-      structuralRepository: structuralRepository(structuralGet),
-    });
+    const equipmentGet = vi.fn(async () => equipment);
+    setRuntime({ structuralGet, equipmentGet });
 
-    render(
-      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
-    );
+    render(<RefrigerationEquipmentRoute equipmentId={equipment.id} initialEquipment={null} />);
 
-    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
-      refrigerationEquipment[0].name,
-    );
+    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(equipment.name);
     expect(screen.getByTestId("refrigeration-detail")).toHaveTextContent("equipment-only");
     expect(structuralGet).toHaveBeenCalledTimes(1);
-    expect(legacyGet).toHaveBeenCalledTimes(1);
+    expect(equipmentGet).toHaveBeenCalledTimes(1);
   });
 
   it("shows a truthful unavailable state when structural and fallback reads both fail", async () => {
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => {
+    const structuralGet = vi.fn(async () => {
       throw new Error("Structural snapshot недоступний.");
     });
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(async () => {
+    const equipmentGet = vi.fn(async () => {
       throw new Error("Обладнання не знайдено.");
     });
-    mockedRuntime.current = runtime({
-      equipmentRepository: equipmentRepository(legacyGet),
-      structuralRepository: structuralRepository(structuralGet),
-    });
+    setRuntime({ structuralGet, equipmentGet });
 
-    render(
-      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
-    );
+    render(<RefrigerationEquipmentRoute equipmentId={equipment.id} initialEquipment={null} />);
 
     await waitFor(() => expect(screen.getByText("Обладнання недоступне")).toBeInTheDocument());
     expect(screen.getByRole("alert")).toHaveTextContent("Обладнання не знайдено.");
     expect(screen.queryByText("Завантаження обладнання")).not.toBeInTheDocument();
     expect(structuralGet).toHaveBeenCalledTimes(1);
-    expect(legacyGet).toHaveBeenCalledTimes(1);
+    expect(equipmentGet).toHaveBeenCalledTimes(1);
   });
 });
