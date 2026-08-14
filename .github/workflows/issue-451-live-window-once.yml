@@ -1,0 +1,89 @@
+name: Issue 451 Live Window Once
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: write
+
+jobs:
+  patch-once:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Integrate live-tail window advancement
+        shell: python
+        run: |
+          from pathlib import Path
+
+          test_path = Path("src/features/live/live-history.test.ts")
+          test = test_path.read_text()
+          import_anchor = 'import { describe, expect, it, vi } from "vitest";\n\n'
+          if 'import { liveChannelKey } from "./live-telemetry";' not in test:
+              if import_anchor not in test:
+                  raise SystemExit("test import anchor not found")
+              test = test.replace(import_anchor, import_anchor + 'import { liveChannelKey } from "./live-telemetry";\n\n', 1)
+          old_key = 'new Set(["edge-01\\u001fDIXELL-106\\u001f106-03\\u001ftemperature"])'
+          if old_key not in test:
+              raise SystemExit("stale hardcoded selected key not found")
+          test = test.replace(old_key, 'new Set([liveChannelKey(incoming)])', 1)
+          test_path.write_text(test)
+
+          hook_path = Path("src/hooks/use-live-telemetry.ts")
+          hook = hook_path.read_text()
+          import_old = 'import {\n  loadCompleteLiveHistory,\n  mergeLiveHistoryTail,'
+          import_new = 'import {\n  advanceLiveHistoryWindow,\n  loadCompleteLiveHistory,\n  mergeLiveHistoryTail,'
+          if import_old not in hook:
+              raise SystemExit("live-history import block not found")
+          hook = hook.replace(import_old, import_new, 1)
+
+          old_block = '''        if (reconciliation.samples.length > 0) {
+          setHistorySamples((current) => {
+            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, currentWindow);
+            historySamplesRef.current = next;
+            return next;
+          });
+        }'''
+          new_block = '''        if (reconciliation.samples.length > 0) {
+          const nextWindow = advanceLiveHistoryWindow(currentWindow, reconciliation.samples);
+          if (nextWindow !== currentWindow) {
+            historyWindowRef.current = nextWindow;
+            setHistoryWindow(nextWindow);
+          }
+          setHistorySamples((current) => {
+            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);
+            historySamplesRef.current = next;
+            return next;
+          });
+        }'''
+          if old_block not in hook:
+              raise SystemExit("live history merge block not found")
+          hook_path.write_text(hook.replace(old_block, new_block, 1))
+      - name: Verify focused live-history contract
+        env:
+          HUSKY: 0
+        run: |
+          npm install --no-audit
+          npx prettier --write src/features/live/live-history.test.ts src/hooks/use-live-telemetry.ts
+          npx vitest run src/features/live/live-history.test.ts src/features/live/live-chart.test.ts
+          npm run typecheck
+          git diff --check
+      - name: Commit product fix and retire workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/issue-451-live-window-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/live/live-history.test.ts src/hooks/use-live-telemetry.ts
+          git diff --cached --check
+          git commit -m "fix(live): retain selected WebSocket tail in chart history"
+          git push origin HEAD:fix/451-chart-integrity-alarm-provenance
