@@ -1,0 +1,205 @@
+name: Issue 451 DOM Pointer Once
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: write
+
+jobs:
+  patch-once:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Patch canonical DOM pointer bridge
+        shell: python
+        run: |
+          from pathlib import Path
+
+          adapter_path = Path("src/features/charts/echarts-adapter.ts")
+          text = adapter_path.read_text()
+
+          old = '''  convertFromPixel(finder: object, value: [number, number]): number | number[];
+  getZr(): {
+    on(eventName: string, handler: (event: unknown) => void): void;
+    off(eventName: string, handler?: (event: unknown) => void): void;
+  };
+  resize(): void;'''
+          new = '''  convertFromPixel(finder: object, value: [number, number]): number | number[];
+  resize(): void;'''
+          if old not in text:
+              raise SystemExit("ECharts runtime ZRender contract not found")
+          text = text.replace(old, new, 1)
+
+          old = '''interface ZRenderPointerEvent {
+  offsetX?: number;
+  offsetY?: number;
+}
+
+'''
+          if old not in text:
+              raise SystemExit("ZRender pointer event type not found")
+          text = text.replace(old, "", 1)
+
+          old = '''  private instance: EChartsInstancePort | null = null;
+  private scene: ChartRendererScene | null = null;'''
+          new = '''  private instance: EChartsInstancePort | null = null;
+  private container: HTMLElement | null = null;
+  private scene: ChartRendererScene | null = null;'''
+          if old not in text:
+              raise SystemExit("adapter instance fields marker not found")
+          text = text.replace(old, new, 1)
+
+          start = text.index("  private readonly handleZRenderPointer = (event: unknown) => {")
+          end = text.index("  private readonly handleAxisPointer", start)
+          replacement = '''  private readonly handleContainerPointer = (event: MouseEvent) => {
+    if (!this.scene || !this.instance || !this.container) return;
+    const bounds = this.container.getBoundingClientRect();
+    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
+    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
+      this.options?.onCursor(null);
+      return;
+    }
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
+    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
+    if (!Number.isFinite(timestampMs)) return;
+    this.options?.onCursor(sharedInspection(this.scene, timestampMs));
+  };
+
+  private readonly handleContainerLeave = () => {
+    this.options?.onCursor(null);
+  };
+
+'''
+          text = text[:start] + replacement + text[end:]
+
+          old = '''    this.options = options;
+    this.maximumLivePoints = options.maximumLivePoints ?? 240;
+    this.instance = this.runtime.init(options.container, options.renderer);
+    this.instance.on("updateAxisPointer", this.handleAxisPointer);
+    this.instance.on("dataZoom", this.handleDataZoom);
+    this.instance.getZr().on("mousemove", this.handleZRenderPointer);'''
+          new = '''    this.options = options;
+    this.maximumLivePoints = options.maximumLivePoints ?? 240;
+    this.container = options.container;
+    this.instance = this.runtime.init(options.container, options.renderer);
+    this.instance.on("updateAxisPointer", this.handleAxisPointer);
+    this.instance.on("dataZoom", this.handleDataZoom);
+    this.container.addEventListener("mousemove", this.handleContainerPointer);
+    this.container.addEventListener("mouseleave", this.handleContainerLeave);'''
+          if old not in text:
+              raise SystemExit("adapter initialize ZRender registration not found")
+          text = text.replace(old, new, 1)
+
+          old = '''    this.instance.off("updateAxisPointer", this.handleAxisPointer);
+    this.instance.off("dataZoom", this.handleDataZoom);
+    this.instance.getZr().off("mousemove", this.handleZRenderPointer);
+    this.instance.dispose();
+    this.instance = null;
+    this.scene = null;
+    this.options = null;'''
+          new = '''    this.instance.off("updateAxisPointer", this.handleAxisPointer);
+    this.instance.off("dataZoom", this.handleDataZoom);
+    this.container?.removeEventListener("mousemove", this.handleContainerPointer);
+    this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
+    this.instance.dispose();
+    this.instance = null;
+    this.container = null;
+    this.scene = null;
+    this.options = null;'''
+          if old not in text:
+              raise SystemExit("adapter dispose ZRender registration not found")
+          text = text.replace(old, new, 1)
+          adapter_path.write_text(text)
+
+          test_path = Path("src/features/charts/echarts-adapter.test.ts")
+          test = test_path.read_text()
+          test = test.replace('  zrHandlers = new Map<string, (event: unknown) => void>();\n', '', 1)
+          old = '''  getZr() {
+    return {
+      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
+      off: (eventName: string) => this.zrHandlers.delete(eventName),
+    };
+  }
+
+'''
+          if old not in test:
+              raise SystemExit("FakeEChartsInstance getZr implementation not found")
+          test = test.replace(old, '', 1)
+
+          old = '''    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(2);
+    adapter.initialize({
+      container: document.createElement("div"),'''
+          new = '''    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(2);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,'''
+          if old not in test:
+              raise SystemExit("shared inspection test initialize marker not found")
+          test = test.replace(old, new, 1)
+
+          old = '    instance.zrHandlers.get("mousemove")?.({ offsetX: 0, offsetY: 120 });\n'
+          new = '    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));\n'
+          if old not in test:
+              raise SystemExit("ZRender test dispatch not found")
+          test = test.replace(old, new, 1)
+
+          test = test.replace('    expect(instance.zrHandlers).toHaveLength(0);\n', '', 1)
+          test_path.write_text(test)
+
+          area_path = Path("src/features/charts/area-rendering.test.ts")
+          area = area_path.read_text()
+          area = area.replace('  zrHandlers = new Map<string, (event: unknown) => void>();\n', '', 1)
+          old = '''  getZr() {
+    return {
+      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
+      off: (eventName: string) => this.zrHandlers.delete(eventName),
+    };
+  }
+'''
+          if old not in area:
+              raise SystemExit("area-rendering getZr implementation not found")
+          area = area.replace(old, '', 1)
+          area_path.write_text(area)
+
+      - name: Verify focused chart contract
+        env:
+          HUSKY: 0
+        run: |
+          npm install --no-audit
+          npx prettier --write src/features/charts/echarts-adapter.ts src/features/charts/echarts-adapter.test.ts src/features/charts/area-rendering.test.ts
+          npx vitest run src/features/charts/echarts-adapter.test.ts src/features/charts/area-rendering.test.ts
+          npm run typecheck
+          git diff --check
+      - name: Commit product fix and retire workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/issue-451-dom-pointer-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/charts/echarts-adapter.ts src/features/charts/echarts-adapter.test.ts src/features/charts/area-rendering.test.ts
+          git diff --cached --check
+          git commit -m "fix(charts): drive hover inspection from chart host pointer"
+          git push origin HEAD:fix/451-chart-integrity-alarm-provenance
