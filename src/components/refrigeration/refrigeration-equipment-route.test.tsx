@@ -3,12 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
-import type {
-  RefrigerationEquipmentRepository,
-} from "@/features/refrigeration/equipment-repository";
-import type {
-  RefrigerationEquipmentRuntime,
-} from "@/features/refrigeration/equipment-repository-runtime";
+import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
+import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 import type {
   RefrigerationStructuralSnapshot,
   RefrigerationStructuralSnapshotRepository,
@@ -124,12 +120,8 @@ beforeEach(() => {
 
 describe("RefrigerationEquipmentRoute structural-first loading", () => {
   it("renders a structural snapshot without starting the redundant equipment read", async () => {
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(
-      () => new Promise(() => undefined),
-    );
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(
-      async () => snapshot(),
-    );
+    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(() => new Promise(() => undefined));
+    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => snapshot());
     mockedRuntime.current = runtime({
       equipmentRepository: equipmentRepository(legacyGet),
       structuralRepository: structuralRepository(structuralGet),
@@ -155,9 +147,7 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => {
       throw new Error("Structural snapshot недоступний.");
     });
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(
-      async () => refrigerationEquipment[0],
-    );
+    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(async () => refrigerationEquipment[0]);
     mockedRuntime.current = runtime({
       equipmentRepository: equipmentRepository(legacyGet),
       structuralRepository: structuralRepository(structuralGet),
