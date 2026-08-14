@@ -3,8 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
-import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
-import type { RefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import type {
+  RefrigerationEquipmentRepository,
+} from "@/features/refrigeration/equipment-repository";
+import type {
+  RefrigerationEquipmentRuntime,
+} from "@/features/refrigeration/equipment-repository-runtime";
 import type {
   RefrigerationStructuralSnapshot,
   RefrigerationStructuralSnapshotRepository,
@@ -123,8 +127,8 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(
       () => new Promise(() => undefined),
     );
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () =>
-      snapshot(),
+    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(
+      async () => snapshot(),
     );
     mockedRuntime.current = runtime({
       equipmentRepository: equipmentRepository(legacyGet),
