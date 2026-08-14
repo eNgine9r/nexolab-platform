@@ -120,16 +120,27 @@ beforeEach(() => {
 
 describe("RefrigerationEquipmentRoute structural-first loading", () => {
   it("renders a structural snapshot without starting the redundant equipment read", async () => {
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(() => new Promise(() => undefined));
-    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => snapshot());
+    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(
+      () => new Promise(() => undefined),
+    );
+    const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () =>
+      snapshot(),
+    );
     mockedRuntime.current = runtime({
       equipmentRepository: equipmentRepository(legacyGet),
       structuralRepository: structuralRepository(structuralGet),
     });
 
-    render(<RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />);
+    render(
+      <RefrigerationEquipmentRoute
+        equipmentId={refrigerationEquipment[0].id}
+        initialEquipment={null}
+      />,
+    );
 
-    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(refrigerationEquipment[0].name);
+    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
+      refrigerationEquipment[0].name,
+    );
     expect(screen.getByTestId("refrigeration-detail")).toHaveTextContent("snapshot-ready");
     expect(screen.queryByText("Завантаження обладнання")).not.toBeInTheDocument();
     expect(structuralGet).toHaveBeenCalledTimes(1);
@@ -140,15 +151,24 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     const structuralGet = vi.fn<RefrigerationStructuralSnapshotRepository["get"]>(async () => {
       throw new Error("Structural snapshot недоступний.");
     });
-    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(async () => refrigerationEquipment[0]);
+    const legacyGet = vi.fn<RefrigerationEquipmentRepository["get"]>(
+      async () => refrigerationEquipment[0],
+    );
     mockedRuntime.current = runtime({
       equipmentRepository: equipmentRepository(legacyGet),
       structuralRepository: structuralRepository(structuralGet),
     });
 
-    render(<RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />);
+    render(
+      <RefrigerationEquipmentRoute
+        equipmentId={refrigerationEquipment[0].id}
+        initialEquipment={null}
+      />,
+    );
 
-    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(refrigerationEquipment[0].name);
+    expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
+      refrigerationEquipment[0].name,
+    );
     expect(screen.getByTestId("refrigeration-detail")).toHaveTextContent("equipment-only");
     expect(structuralGet).toHaveBeenCalledTimes(1);
     expect(legacyGet).toHaveBeenCalledTimes(1);
@@ -166,7 +186,12 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
       structuralRepository: structuralRepository(structuralGet),
     });
 
-    render(<RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />);
+    render(
+      <RefrigerationEquipmentRoute
+        equipmentId={refrigerationEquipment[0].id}
+        initialEquipment={null}
+      />,
+    );
 
     await waitFor(() => expect(screen.getByText("Обладнання недоступне")).toBeInTheDocument());
     expect(screen.getByRole("alert")).toHaveTextContent("Обладнання не знайдено.");
