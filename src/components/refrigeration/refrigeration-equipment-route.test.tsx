@@ -128,10 +128,7 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     });
 
     render(
-      <RefrigerationEquipmentRoute
-        equipmentId={refrigerationEquipment[0].id}
-        initialEquipment={null}
-      />,
+      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
     );
 
     expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
@@ -154,10 +151,7 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     });
 
     render(
-      <RefrigerationEquipmentRoute
-        equipmentId={refrigerationEquipment[0].id}
-        initialEquipment={null}
-      />,
+      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
     );
 
     expect(await screen.findByTestId("refrigeration-detail")).toHaveTextContent(
@@ -181,10 +175,7 @@ describe("RefrigerationEquipmentRoute structural-first loading", () => {
     });
 
     render(
-      <RefrigerationEquipmentRoute
-        equipmentId={refrigerationEquipment[0].id}
-        initialEquipment={null}
-      />,
+      <RefrigerationEquipmentRoute equipmentId={refrigerationEquipment[0].id} initialEquipment={null} />,
     );
 
     await waitFor(() => expect(screen.getByText("Обладнання недоступне")).toBeInTheDocument());
