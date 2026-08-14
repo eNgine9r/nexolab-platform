@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildChartSegments, type ChartContinuitySample } from "./continuity";
+import {
+  buildChartSegments,
+  deriveChartSourceGapMs,
+  type ChartContinuitySample,
+} from "./continuity";
 import type { ChartSeriesIdentity } from "./domain";
 
 const identity: ChartSeriesIdentity = {
@@ -64,11 +68,52 @@ describe("chart continuity", () => {
     expect(segments[1].precedingBreak?.reason).toBe(reason);
   });
 
-  it("breaks when source cadence exceeds the threshold", () => {
-    const segments = buildChartSegments(identity, [sample("a", 0, 1), sample("b", 30_001, 2)], {
-      maximumSourceGapMs: 30_000,
-    });
+  it("uses observed cadence so a normal 30-second schedule with jitter does not create false gaps", () => {
+    const samples = [
+      sample("a", 0, 1),
+      sample("b", 30_000, 2),
+      sample("c", 61_000, 3),
+      sample("d", 91_000, 4),
+    ];
+
+    expect(deriveChartSourceGapMs(samples)).toBe(90_000);
+    expect(buildChartSegments(identity, samples)).toHaveLength(1);
+  });
+
+  it("still exposes a real silent source gap once the normal cadence is established", () => {
+    const samples = [
+      sample("a", 0, 1),
+      sample("b", 5_000, 2),
+      sample("c", 10_000, 3),
+      sample("d", 15_000, 4),
+      sample("e", 120_000, 5),
+    ];
+    const segments = buildChartSegments(identity, samples);
+
     expect(segments).toHaveLength(2);
     expect(segments[1].precedingBreak?.reason).toBe("source_gap");
+  });
+
+  it("deduplicates repeated event identities and keeps a stable active segment id as the tail grows", () => {
+    const first = buildChartSegments(identity, [sample("a", 0, 1), sample("b", 5_000, 2)]);
+    const second = buildChartSegments(identity, [
+      sample("a", 0, 1),
+      sample("b", 5_000, 2),
+      sample("b", 5_000, 2),
+      sample("c", 10_000, 3),
+    ]);
+
+    expect(second[0].points.map((point) => point.id)).toEqual(["a", "b", "c"]);
+    expect(second[0].id).toBe(first[0].id);
+  });
+
+  it("omits malformed timestamps before renderer input", () => {
+    const segments = buildChartSegments(identity, [
+      sample("a", 0, 1),
+      sample("invalid-time", Number.NaN, 99),
+      sample("b", 5_000, 2),
+    ]);
+
+    expect(segments.flatMap((segment) => segment.points).map((point) => point.id)).toEqual(["a", "b"]);
   });
 });
