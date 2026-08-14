@@ -36,7 +36,10 @@ describe("chart continuity", () => {
       { maximumSourceGapMs: 30_000 },
     );
 
-    expect(segments.map((segment) => segment.points.map((point) => point.id))).toEqual([["a"], ["b"]]);
+    expect(segments.map((segment) => segment.points.map((point) => point.id))).toEqual([
+      ["a"],
+      ["b"],
+    ]);
     expect(segments[1].precedingBreak?.reason).toBe("explicit_gap");
   });
 
@@ -52,7 +55,10 @@ describe("chart continuity", () => {
     );
 
     expect(segments).toHaveLength(2);
-    expect(segments.flatMap((segment) => segment.points).map((point) => point.value)).toEqual([-4, -3]);
+    expect(segments.flatMap((segment) => segment.points).map((point) => point.value)).toEqual([
+      -4,
+      -3,
+    ]);
     expect(segments[1].precedingBreak?.reason).toBe("invalid_quality");
   });
 
@@ -114,6 +120,9 @@ describe("chart continuity", () => {
       sample("b", 5_000, 2),
     ]);
 
-    expect(segments.flatMap((segment) => segment.points).map((point) => point.id)).toEqual(["a", "b"]);
+    expect(segments.flatMap((segment) => segment.points).map((point) => point.id)).toEqual([
+      "a",
+      "b",
+    ]);
   });
 });
