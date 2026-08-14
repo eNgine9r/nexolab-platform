@@ -8,16 +8,6 @@ import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/doma
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 import type { LiveChartGroup } from "@/features/live/live-chart";
 
-const LIVE_CURSOR_TOLERANCE_MS = 30_000;
-
-function withinTolerance(inspection: ChartCursorInspection | null): ChartCursorInspection | null {
-  if (!inspection?.point) return inspection;
-  if (Math.abs(inspection.point.timestampMs - inspection.timestampMs) <= LIVE_CURSOR_TOLERANCE_MS) {
-    return inspection;
-  }
-  return { ...inspection, point: null };
-}
-
 export function LiveChartPanel({
   group,
   rangeLabel,
@@ -59,9 +49,8 @@ export function LiveChartPanel({
         scene={group.scene}
         sharedCursorMs={sharedCursorMs}
         onCursor={(nextInspection) => {
-          const truthful = withinTolerance(nextInspection);
-          setInspection(truthful);
-          onSharedCursorChange(truthful?.timestampMs ?? null);
+          setInspection(nextInspection);
+          onSharedCursorChange(nextInspection?.timestampMs ?? null);
         }}
         onXDomainChange={onXDomainChange}
       />
