@@ -125,7 +125,11 @@ export function buildChartSegments(
       continue;
     }
 
-    if (previousTimestamp !== null && sample.timestampMs - previousTimestamp > maximumSourceGapMs) {
+    if (
+      pendingBreak === undefined &&
+      previousTimestamp !== null &&
+      sample.timestampMs - previousTimestamp > maximumSourceGapMs
+    ) {
       flush();
       pendingBreak = { reason: "source_gap", atMs: sample.timestampMs };
     }
