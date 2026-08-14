@@ -4,88 +4,94 @@ Updated: 2026-08-14
 
 ## Canonical repository baseline
 
-Current product/runtime `main` after Issue #451 merge is
-`6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0`.
+Current product/runtime `main` is
+`058ddf8131d43e0b8ea56553bff83fbe0b90efa0`.
 
-Post-Issue-443 corrections already included in this baseline remain classified
-separately:
+That baseline includes the completed Issue #454 / PR #455 state-only
+reconciliation after Issue #451. PR #455 was squash-merged into `main` as
+`058ddf8131d43e0b8ea56553bff83fbe0b90efa0` from final PR head
+`af92129a03591e10dab594f9cfe1dfcfe16256c0`.
 
-- Issue #445 / PR #446 restored the KK2/XJP60D discovery catalog including Unit 115. Software/CI/offline verification is complete; the Raspberry Pi field
-  retest remains pending and is not claimed.
-- Issue #447 / PR #448 removed the redundant refrigeration structural-snapshot
-  wait while preserving truthful fallback/unavailable behavior. Software/browser/
-  offline verification is complete; physical Raspberry Pi perceived-latency
-  acceptance remains pending separately.
+Independent prior hardware classifications remain unchanged:
 
-## Completed critical chart Work Package — Issue #451 / PR #452
+- Issue #445 / PR #446: software/CI/offline verified; Raspberry Pi KK2/Unit 115
+  field retest pending;
+- Issue #447 / PR #448: software/browser/offline verified; Raspberry Pi
+  perceived-latency acceptance pending;
+- Issue #289 remains the independent controlled Raspberry Pi/RS-485
+  acquisition-scale and truthful-state acceptance lane.
 
-Issue #451 is closed/completed. PR #452 was exact-head guarded and squash-merged
-into `main` as `6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0` from final PR head
-`795cff9a309fcb70981293c29009682fdafddfba`.
+## Active critical Chart System Work Package — Issue #453 / PR #456
 
-The canonical Chart System now provides:
+Issue #453 is `status:in-progress` on branch
+`feat/453-equipment-centric-multi-axis-charts` with PR #456.
 
-- cadence-aware render-only source-gap tolerance while explicit
-  communication/quality/offline/reconnect gaps remain truthful breaks;
-- deterministic ordering/deduplication, malformed-time rejection and stable
-  active segment identities;
-- canonical event provenance without sample-derived `Alarm context ...`
-  overlays or alarm pins;
-- collision-safe event rendering without permanent overlapping labels;
-- synchronized Exact Inspector snapshots with nearest measured sample per
-  visible series and bounded tolerance;
-- presentation-only two-decimal default measurement formatting without changing
-  raw telemetry;
-- independent latest-legend and historical cursor-inspection semantics;
-- browser-truthful chart-host pointer handling, including protection from empty
-  ECharts axis-pointer events clearing a valid hover snapshot;
-- immediate selected WebSocket-tail retention by advancing the Live history
-  window to the newest accepted selected sample while preserving the requested
-  duration and without a REST history refetch.
+Verified product head before this state-only reconciliation commit:
+`3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79`.
 
-Final exact-head verification on `795cff9a...` is GREEN:
+The canonical Chart System extension now provides:
 
-- CI / Quality and build: PASS — repository formatting, lint, typecheck, full
-  tests and production build;
-- Authenticated Dashboard Acceptance: 13/13 PASS, including real mouse hover,
-  six-series Exact Inspector, WebSocket `9.876 -> 9.88 degC`, one WebSocket and
-  zero acquisition mutations;
-- Refrigeration Browser Acceptance: PASS;
-- disconnected Offline Bundle: PASS, including clean transferred-host startup,
-  blocked container egress, update/rollback and persistent-volume preservation.
+- equipment-first Live Data and Saved Live Dashboard chart grouping;
+- one synchronized equipment canvas for mixed native units such as `V`, `A`
+  and `W`, with a shared X domain;
+- deterministic series-to-Y-axis binding and stable axis IDs/order;
+- dynamic axis omission/restoration across hide/show/solo without renderer or
+  ChartShell remounting;
+- a bounded five-axis readability budget with deterministic additional
+  equipment-scene partitioning beyond the budget;
+- no implicit telemetry-unit conversion and no mutation of raw telemetry;
+- visible-series-only ChartShell accessibility summaries for series count,
+  axes, units, freshness and continuity breaks;
+- preserved #451 continuity, exact-inspector, live-tail, pause-view and
+  event-provenance behavior;
+- production mixed-unit V/A/W acceptance plus the updated canonical #451
+  production regression on the same equipment-centric contract.
+
+## Product-head verification — GREEN
+
+Exact product head `3e7f9d8c...` is GREEN:
+
+- CI run `31805527701`: PASS — formatting, lint, typecheck, full tests and
+  production build;
+- Authenticated Dashboard Acceptance run `31805527693`: 14/14 PASS, including
+  the seeded V/A/W single-equipment canvas, canonical Chart System regression,
+  max one WebSocket and zero acquisition/configuration mutations;
+- Refrigeration Browser Acceptance run `31805527758`: PASS;
+- Acquisition Scale Acceptance run `31805527743`: PASS;
+- disconnected Offline Bundle run `31805527696`: PASS — exact source checkout,
+  clean transferred-host simulation, runtime image removal/reload, blocked
+  container egress, `--pull never` startup, update/rollback and persistent
+  volume/marker preservation.
 
 Classification: **software/browser/offline verified; Raspberry Pi operator
-acceptance pending**. No physical hardware completion is claimed for Issue #451.
+acceptance pending**. No physical Raspberry Pi completion is claimed for #453.
 
-## Active state reconciliation — Issue #454
+## State-only final-head reconciliation
 
-Issue #454 is the state-only post-merge reconciliation Work Package. Its scope is
-limited to `.project/**`: record the #451 merge truth, preserve the independent
-hardware lane and make the next Chart System package resumable from repository
-state. No runtime/product code belongs in this Work Package.
+This checkpoint updates only `.project/**` after product-head verification.
+Because the state reconciliation itself creates a new PR head, all required
+exact-head gates must run again before PR #456 may be marked Ready or merged.
+The final merge audit must confirm unchanged `main`, no unresolved reviews,
+focused diff and GREEN checks on that state-reconciled exact head.
 
 ## Independent active hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress` as the independent controlled
-Raspberry Pi/RS-485 acquisition-scale and truthful-state acceptance lane. The
-fresh equal-window no-browser baseline and subsequent Overview / Live Dashboard /
-navigation / multi-browser matrix still require real Raspberry Pi hardware
-evidence.
+Issue #289 remains open and `status:in-progress`. Its real Raspberry Pi/RS-485
+matrix is not satisfied by software, browser or offline CI evidence from #453.
+The physical polling envelope, multiple-browser matrix and truthful hardware
+state still require controlled real-device evidence.
 
-The pre-fix zero-request window remains defect evidence only and must not be
-reused as passing performance evidence.
+## Next Chart System Work Package
 
-## Next independent Chart System Work Package
-
-Issue #453 — equipment-centric multi-metric charts with dynamic Y axes — has its
-#451 dependency resolved by merge `6286e8ed...`. It becomes `status:ready` after
-Issue #454 state reconciliation merges and must then start on its own feature
-branch and focused PR.
+Issue #457 — graph-first Live Data operator workspace — is created and currently
+`status:blocked` only on the merge of #453. It is intentionally not implemented
+inside PR #456. After #453 merges, #457 becomes the next independent software
+Work Package and may move to `status:ready` on its own feature branch/PR.
 
 ## Safety boundary
 
-LOCAL_LAN and offline-first runtime requirements remain unchanged. No Modbus
-write, hardware write, polling/scheduler mutation, acquisition-registry mutation,
-destructive persistent-data action, volume deletion, production/site cutover,
-dependency upgrade, secret handling or mandatory public-cloud runtime dependency
-is included in Issue #454 or authorized by the #451 merge.
+LOCAL_LAN and offline-first requirements remain unchanged. Issue #453 / PR #456
+contains no backend ingestion, persistence-schema, scheduler, acquisition-registry,
+Modbus/hardware write, dependency-upgrade, destructive persistent-data, volume
+removal, production/site cutover, secret/billing/DNS or mandatory public-cloud
+runtime change.

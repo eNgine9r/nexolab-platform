@@ -2,42 +2,45 @@
 
 Updated: 2026-08-14
 
-## Issue #451 / PR #452 — merged, no software blocker
+## Issue #453 / PR #456 — no known software/runtime blocker
 
-Issue #451 is closed/completed and PR #452 is squash-merged as
-`6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0` from final PR head
-`795cff9a309fcb70981293c29009682fdafddfba`.
+Issue #453 is active and PR #456 has product-head verification GREEN on
+`3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79`:
 
-Final exact-head verification is GREEN:
-
-- CI / Quality and build: PASS;
-- Authenticated Dashboard Acceptance: 13/13 PASS;
+- CI: PASS;
+- Authenticated Dashboard Acceptance: 14/14 PASS;
 - Refrigeration Browser Acceptance: PASS;
-- disconnected Offline Bundle: PASS with clean transferred-host startup,
+- Acquisition Scale Acceptance: PASS;
+- disconnected Offline Bundle: PASS, including clean transferred-host startup,
   blocked egress, update/rollback and persistent-volume preservation.
 
-No software, CI, browser or offline-runtime blocker remains for #451.
-Raspberry Pi operator acceptance remains **pending** and is not claimed.
+The remaining boundary is procedural and exact-head based: this state-only
+reconciliation commit creates a new PR head, so required gates must run again on
+that exact head before Ready/merge. Final audit must also confirm current `main`,
+focused diff and unresolved-review state.
 
-## Issue #453 dependency blocker — resolved by #451 merge
+Raspberry Pi operator acceptance remains **pending** and is not claimed. It does
+not convert software/browser/offline evidence into physical hardware acceptance.
 
-The product dependency `#453 -> #451` is resolved by merge `6286e8ed...`.
-Issue #453 remains temporarily labelled `status:blocked` only until the state-only
-Issue #454 reconciliation merges. After that procedural boundary it may move to
-`status:ready` and start on its own feature branch/PR.
+## Issue #454 / PR #455 — completed
 
-No runtime or architecture blocker is currently identified for #453.
+The former procedural blocker is resolved. Issue #454 is closed and PR #455 was
+squash-merged into `main` as
+`058ddf8131d43e0b8ea56553bff83fbe0b90efa0` from final head
+`af92129a03591e10dab594f9cfe1dfcfe16256c0`.
+
+## Issue #457 — intentionally blocked on #453 merge
+
+Issue #457 is the next graph-first Live Data Work Package from Epic #450. It is
+created with `status:blocked` and must remain blocked until #453 / PR #456 is
+merged. No #457 implementation belongs in PR #456.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress`. Completion still requires
-controlled real Raspberry Pi/RS-485 evidence. The #451 chart work and #454 state
-reconciliation do not close, replace or satisfy that hardware-performance gate.
-
-Residual physical evidence from the worker-liveness investigation remains
-truthful context for #289, including timeout/retry/missed-deadline/deferred
-behavior. The pre-fix zero-request phase is defect evidence only and must not be
-reused as a passing baseline.
+Issue #289 remains open and `status:in-progress`. Completion still requires the
+controlled real Raspberry Pi/RS-485 performance and physical-request matrix.
+The software Acquisition Scale workflow for #453 does not replace that real
+hardware evidence.
 
 ## Other pending hardware evidence
 

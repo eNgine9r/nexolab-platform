@@ -3,58 +3,64 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-14T12:32:00Z",
+  "timestamp": "2026-08-14T13:46:43Z",
   "actor": "ChatGPT",
-  "event": "issue_451_merged_issue_454_state_reconciliation_started",
-  "current_main_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
-  "active_issue": 454,
-  "active_branch": "chore/454-reconcile-issue-451-state",
-  "status": "state_reconciliation_in_progress",
-  "completed_issue": {
-    "issue": 451,
-    "pull_request": 452,
-    "final_pr_head": "795cff9a309fcb70981293c29009682fdafddfba",
-    "merge_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
-    "state": "closed_completed",
-    "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+  "event": "issue_453_product_verified_state_reconciliation_started",
+  "current_main_sha": "058ddf8131d43e0b8ea56553bff83fbe0b90efa0",
+  "active_issue": 453,
+  "active_pull_request": 456,
+  "active_branch": "feat/453-equipment-centric-multi-axis-charts",
+  "status": "state_reconciliation_then_final_exact_head_verification",
+  "completed_state_dependency": {
+    "issue": 454,
+    "pull_request": 455,
+    "final_pr_head": "af92129a03591e10dab594f9cfe1dfcfe16256c0",
+    "merge_sha": "058ddf8131d43e0b8ea56553bff83fbe0b90efa0",
+    "state": "closed_completed"
   },
+  "verified_product_head": "3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79",
   "outcome": {
-    "continuity": "cadence-aware render tolerance; explicit communication/quality/offline/reconnect gaps remain breaks",
-    "alarm_provenance": "sample-derived Alarm context overlays removed; canonical event markers require explicit source provenance",
-    "inspector": "shared nearest-sample snapshot per visible series with bounded tolerance",
-    "precision": "presentation-only default two decimals; raw telemetry unchanged",
-    "pointer": "chart-host mouse pointer plus ECharts pixel conversion; empty axis-pointer events cannot erase valid host hover",
-    "live_tail": "newer accepted selected WebSocket samples immediately advance the live history window while preserving duration and without REST history refetch",
-    "legend": "latest telemetry value is independent from historical cursor inspection and exposed as semantic exact text"
+    "equipment_grouping": "Live Data and Saved Live Dashboards group plottable series by equipment context before applying the bounded axis budget",
+    "multi_axis": "V/A/W and other mixed native units can share one synchronized equipment canvas with deterministic stable Y-axis identities",
+    "visibility": "hide removes an unused axis, show restores the same axis identity/order, and solo leaves only the selected series and required axis",
+    "renderer": "ECharts binds series to yAxisId and uses replaceMerge for series/yAxis updates without remounting the renderer",
+    "accessibility": "ChartShell summary reports visible series, axes, distinct visible units, freshness and continuity breaks only",
+    "continuity": "Issue #451 explicit quality/communication gap and exact-inspector contracts remain preserved",
+    "acquisition_boundary": "presentation/read-model only; max one WebSocket and zero acquisition/configuration mutations in authenticated production acceptance"
   },
   "verification": {
     "ci": {
       "status": "PASS",
-      "run": 31799858253,
+      "run": 31805527701,
       "scope": "repository formatting, lint, typecheck, full tests, production build"
     },
     "authenticated_dashboard": {
       "status": "PASS",
-      "run": 31799858251,
-      "scenarios": "13/13",
+      "run": 31805527693,
+      "scenarios": "14/14",
       "websocket_max_concurrent": 1,
-      "acquisition_mutations": 0,
-      "live_chart_websocket_value": "9.876 -> 9.88 degC"
+      "acquisition_mutations": 0
     },
     "refrigeration_browser": {
       "status": "PASS",
-      "run": 31799858268
+      "run": 31805527758
+    },
+    "acquisition_scale": {
+      "status": "PASS",
+      "run": 31805527743
     },
     "offline_bundle": {
       "status": "PASS",
-      "run": 31799858264,
-      "disconnected_startup": true,
+      "run": 31805527696,
+      "exact_source_checkout": true,
+      "clean_transferred_host": true,
       "container_egress_blocked": true,
+      "pull_disabled": true,
       "update_rollback_persistent_data_preserved": true
     }
   },
   "hardware_evidence": {
-    "issue_451_raspberry_pi_operator_acceptance": "pending_not_claimed",
+    "issue_453_raspberry_pi_operator_acceptance": "pending_not_claimed",
     "issue_289_independent_hardware_lane": "in_progress",
     "issue_445_raspberry_pi_field_retest": "pending",
     "issue_447_raspberry_pi_perceived_latency_acceptance": "pending"
@@ -72,23 +78,23 @@
     "mandatory_public_runtime_dependency": "none"
   },
   "active_work_package": {
-    "issue": 454,
-    "title": "Reconcile Issue #451 merge and unblock Chart System continuation",
-    "branch": "chore/454-reconcile-issue-451-state",
-    "status": "state_only_reconciliation",
-    "permitted_directories": [".project/**"]
+    "issue": 453,
+    "pull_request": 456,
+    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
+    "branch": "feat/453-equipment-centric-multi-axis-charts",
+    "status": "state_reconciliation_then_final_exact_head_verification"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress_hardware_performance_validation"
   },
-  "next_ready_work_package": {
-    "issue": 453,
-    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-    "status": "ready_after_issue_454_merge",
-    "resolved_dependencies": [451]
+  "next_work_package": {
+    "issue": 457,
+    "title": "Recompose Live Data around a graph-first operator workspace",
+    "status": "blocked_until_issue_453_merge",
+    "depends_on": [453]
   },
-  "next_action": "Validate the four .project files, open a focused Issue #454 PR, require exact-head CI GREEN, audit current main/reviews/diff, and merge with expected-head protection. Then move Issue #453 from status:blocked to status:ready and start it on a separate feature branch.",
-  "resume_instruction": "Preserve Issue #289 as an independent physical evidence lane. Do not claim Raspberry Pi acceptance for #451. Do not implement #453 inside Issue #454. No Modbus/hardware writes or site cutover."
+  "next_action": "Run required workflows on the new state-reconciled exact PR head; if all are GREEN, confirm main remains 058ddf8131d43e0b8ea56553bff83fbe0b90efa0, audit reviews and focused diff, update PR #456 summary, mark Ready and squash-merge with expected-head protection. Then move Issue #457 from status:blocked to status:ready.",
+  "resume_instruction": "Do not claim Raspberry Pi acceptance for #453. Preserve Issue #289 as an independent physical evidence lane. Do not implement #457 inside PR #456. No Modbus/hardware writes or site cutover."
 }
