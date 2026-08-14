@@ -13,6 +13,7 @@ function sample(
   value: number | null,
   quality: TelemetrySample["quality"] = "valid",
   channelId = "104-03",
+  overrides: Partial<TelemetrySample> = {},
 ): TelemetrySample {
   return {
     event_id: eventId,
@@ -28,6 +29,7 @@ function sample(
     alarm: null,
     raw_value: value === null ? null : Math.round(value * 10),
     raw_status: null,
+    ...overrides,
   };
 }
 
@@ -56,8 +58,25 @@ describe("Overview canonical chart mapping", () => {
     expect(series.segments[1].points.map((point) => point.id)).toEqual(["after"]);
   });
 
-  it("breaks continuity when the physical source gap exceeds thirty seconds", () => {
-    const series = onlySeries([sample("before", 0, 4.1), sample("after", 31_000, 4.2)]);
+  it("does not create a false gap for a stable 30-second source with small scheduler jitter", () => {
+    const series = onlySeries([
+      sample("a", 0, 4.1),
+      sample("b", 30_000, 4.2),
+      sample("c", 61_000, 4.3),
+      sample("d", 91_000, 4.4),
+    ]);
+
+    expect(series.segments).toHaveLength(1);
+  });
+
+  it("breaks a silent timestamp outage after the normal source cadence is established", () => {
+    const series = onlySeries([
+      sample("a", 0, 4.1),
+      sample("b", 5_000, 4.2),
+      sample("c", 10_000, 4.3),
+      sample("d", 15_000, 4.4),
+      sample("after", 120_000, 4.5),
+    ]);
 
     expect(series.segments).toHaveLength(2);
     expect(series.segments[1].precedingBreak?.reason).toBe("source_gap");
@@ -71,6 +90,26 @@ describe("Overview canonical chart mapping", () => {
       "before",
       "same-event",
     ]);
+  });
+
+  it("never creates chart alarm annotations from telemetry sample alarm context", () => {
+    const samples = [
+      sample("normal", 0, 4.1),
+      sample("alarm", 5_000, 9.5, "valid", "104-03", { alarm: "high" }),
+      sample("recovery", 10_000, 4.2),
+    ];
+    const groups = buildOverviewChartGroups({
+      samples,
+      status: "live",
+      xDomain: { fromMs: BASE, toMs: BASE + 60_000 },
+    });
+
+    expect(groups[0].scene.events).toBeUndefined();
+    expect(
+      groups[0].scene.series[0].segments
+        .flatMap((segment) => segment.points)
+        .some((point) => point.pinReasons?.includes("alarm")),
+    ).toBe(false);
   });
 
   it("keeps stable series identity and visual tokens regardless of input order", () => {
