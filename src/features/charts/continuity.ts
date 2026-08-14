@@ -1,3 +1,5 @@
+import type { TelemetryQuality } from "@/lib/telemetry/types";
+
 import {
   chartSeriesKey,
   type ChartContinuityBreak,
@@ -7,7 +9,6 @@ import {
   type ChartSegment,
   type ChartSeriesIdentity,
 } from "./domain";
-import type { TelemetryQuality } from "@/lib/telemetry/types";
 
 export interface ChartContinuitySample {
   id: string;
@@ -39,7 +40,9 @@ function invalidReason(sample: ChartContinuitySample): ChartContinuityBreakReaso
   return null;
 }
 
-function orderedUniqueSamples(samples: readonly ChartContinuitySample[]): ChartContinuitySample[] {
+function orderedUniqueSamples(
+  samples: readonly ChartContinuitySample[],
+): ChartContinuitySample[] {
   const ordered = samples
     .filter((sample) => Number.isFinite(sample.timestampMs))
     .sort((left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id));
@@ -66,9 +69,9 @@ export function deriveChartSourceGapMs(
   if (!Number.isFinite(minimumMs) || minimumMs <= 0) {
     throw new Error("minimumMs must be a positive finite number");
   }
-  const timestamps = [...new Set(samples.map((sample) => sample.timestampMs).filter(Number.isFinite))].sort(
-    (left, right) => left - right,
-  );
+  const timestamps = [
+    ...new Set(samples.map((sample) => sample.timestampMs).filter(Number.isFinite)),
+  ].sort((left, right) => left - right);
   const deltas = timestamps
     .slice(1)
     .map((timestamp, index) => timestamp - timestamps[index])
@@ -116,12 +119,19 @@ export function buildChartSegments(
     const reason = invalidReason(sample);
     if (reason) {
       flush();
-      pendingBreak = { reason, atMs: sample.timestampMs, sourceEventId: sample.sourceEventId };
+      pendingBreak = {
+        reason,
+        atMs: sample.timestampMs,
+        sourceEventId: sample.sourceEventId,
+      };
       previousTimestamp = sample.timestampMs;
       continue;
     }
 
-    if (previousTimestamp !== null && sample.timestampMs - previousTimestamp > maximumSourceGapMs) {
+    if (
+      previousTimestamp !== null &&
+      sample.timestampMs - previousTimestamp > maximumSourceGapMs
+    ) {
       flush();
       pendingBreak = { reason: "source_gap", atMs: sample.timestampMs };
     }
