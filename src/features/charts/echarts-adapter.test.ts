@@ -8,6 +8,7 @@ class FakeEChartsInstance {
   options: unknown[] = [];
   actions: object[] = [];
   handlers = new Map<string, (event: unknown) => void>();
+  zrHandlers = new Map<string, (event: unknown) => void>();
   resizeCount = 0;
   disposeCount = 0;
 
@@ -25,6 +26,21 @@ class FakeEChartsInstance {
 
   dispatchAction(action: object) {
     this.actions.push(action);
+  }
+
+  containPixel() {
+    return true;
+  }
+
+  convertFromPixel(_finder: object, value: [number, number]) {
+    return [BENCHMARK_START_MS + value[0], value[1]];
+  }
+
+  getZr() {
+    return {
+      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
+      off: (eventName: string) => this.zrHandlers.delete(eventName),
+    };
   }
 
   resize() {
@@ -134,7 +150,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
     adapter.setScene(scene);
 
-    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS }] });
+    instance.zrHandlers.get("mousemove")?.({ offsetX: 0, offsetY: 120 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({
@@ -158,6 +174,7 @@ describe("ECharts renderer adapter lifecycle", () => {
       { type: "updateAxisPointer", xAxisIndex: 0, value: BENCHMARK_START_MS },
     ]);
     expect(instance.handlers).toHaveLength(0);
+    expect(instance.zrHandlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);
   });

@@ -6,6 +6,7 @@ import { EChartsRendererAdapter, type EChartsRuntimePort } from "./echarts-adapt
 class FakeInstance {
   options: unknown[] = [];
   handlers = new Map<string, (event: unknown) => void>();
+  zrHandlers = new Map<string, (event: unknown) => void>();
   disposed = false;
 
   setOption(option: unknown) {
@@ -18,6 +19,18 @@ class FakeInstance {
     this.handlers.delete(eventName);
   }
   dispatchAction() {}
+  containPixel() {
+    return true;
+  }
+  convertFromPixel(_finder: object, value: [number, number]) {
+    return value;
+  }
+  getZr() {
+    return {
+      on: (eventName: string, handler: (event: unknown) => void) => this.zrHandlers.set(eventName, handler),
+      off: (eventName: string) => this.zrHandlers.delete(eventName),
+    };
+  }
   resize() {}
   dispose() {
     this.disposed = true;

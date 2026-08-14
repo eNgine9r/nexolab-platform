@@ -43,6 +43,12 @@ interface EChartsInstancePort {
   on(eventName: string, handler: (event: unknown) => void): void;
   off(eventName: string, handler?: (event: unknown) => void): void;
   dispatchAction(action: object): void;
+  containPixel(finder: object, value: [number, number]): boolean;
+  convertFromPixel(finder: object, value: [number, number]): unknown;
+  getZr(): {
+    on(eventName: string, handler: (event: unknown) => void): void;
+    off(eventName: string, handler?: (event: unknown) => void): void;
+  };
   resize(): void;
   dispose(): void;
   isDisposed(): boolean;
@@ -63,6 +69,11 @@ const CURSOR_CADENCE_TOLERANCE_RATIO = 0.75;
 
 interface AxisPointerEvent {
   axesInfo?: Array<{ value?: number | string }>;
+}
+
+interface ZRenderPointerEvent {
+  offsetX?: number;
+  offsetY?: number;
 }
 
 interface DataZoomEvent {
@@ -352,6 +363,21 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
+  private readonly handleZRenderPointer = (event: unknown) => {
+    if (!this.scene || !this.instance || !event || typeof event !== "object") return;
+    const { offsetX, offsetY } = event as ZRenderPointerEvent;
+    if (!Number.isFinite(offsetX) || !Number.isFinite(offsetY)) return;
+    const pixel: [number, number] = [offsetX!, offsetY!];
+    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
+      this.options?.onCursor(null);
+      return;
+    }
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
+    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number.NaN;
+    if (!Number.isFinite(timestampMs)) return;
+    this.options?.onCursor(sharedInspection(this.scene, timestampMs));
+  };
+
   private readonly handleAxisPointer = (event: unknown) => {
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null || !this.scene) {
@@ -374,6 +400,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
+    this.instance.getZr().on("mousemove", this.handleZRenderPointer);
   }
 
   setScene(scene: ChartRendererScene): void {
@@ -457,6 +484,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
+    this.instance.getZr().off("mousemove", this.handleZRenderPointer);
     this.instance.dispose();
     this.instance = null;
     this.scene = null;
