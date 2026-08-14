@@ -2,7 +2,11 @@
 
 import type { ReactNode } from "react";
 
-import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
+import {
+  chartSeriesKey,
+  type ChartCursorInspection,
+  type ChartSeries,
+} from "@/features/charts/domain";
 import { formatChartValue } from "@/features/charts/format";
 
 function freshnessLabel(state: ChartSeries["freshness"]): string {
@@ -79,7 +83,8 @@ export function ChartShell({
         <div className="grid min-w-0 gap-2 sm:grid-cols-2" aria-label="Chart legend">
           {series.map((item) => {
             const key = chartSeriesKey(item.identity);
-            const inspected = inspectionBySeries.get(key)?.point ?? item.segments.at(-1)?.points.at(-1);
+            const inspected =
+              inspectionBySeries.get(key)?.point ?? item.segments.at(-1)?.points.at(-1);
             const legendLabel = [
               item.name,
               `${inspected ? formatChartValue(inspected.value, item.displayPrecision) : "—"} ${item.identity.nativeUnit}`,
@@ -161,7 +166,10 @@ export function ChartShell({
                         <td className="min-w-0 truncate py-1.5 pr-2" title={item.name}>
                           {item.name}
                         </td>
-                        <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums" title={sampleTimestamp}>
+                        <td
+                          className="min-w-0 truncate py-1.5 pr-2 tabular-nums"
+                          title={sampleTimestamp}
+                        >
                           {sampleTimestamp}
                         </td>
                         <td className="min-w-0 truncate py-1.5 pr-2 tabular-nums">{value}</td>
