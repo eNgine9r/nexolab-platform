@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "058ddf8131d43e0b8ea56553bff83fbe0b90efa0",
-  "current_main_sha_semantics": "Issue #454 / PR #455 state-only reconciliation is squash-merged. Issue #453 / PR #456 is the active equipment-centric multi-axis Chart System Work Package; Issue #289 remains an independent hardware lane.",
+  "current_main_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
+  "current_main_sha_semantics": "Issue #453 / PR #456 is squash-merged and software/browser/offline verified. Issue #458 is the state-only post-merge reconciliation. Issue #457 is the next Ready software Work Package; Issue #289 remains an independent hardware lane.",
   "selection_state": {
-    "last_ready_audit_result": "Issue #454 is closed/merged. Issue #453 is active and product-verified on PR #456 head 3e7f9d8c; final state-only exact-head verification and merge audit remain. Issue #457 is created and blocked only until #453 merges. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
-    "selected_issue": 453,
-    "selection_status": "product_verified_state_reconciliation_then_final_exact_head_gates",
+    "last_ready_audit_result": "Issue #453 is closed and PR #456 is merged as 0cfe1321. Issue #457 is open, assigned and status:ready. Issue #458 is the required .project-only post-merge reconciliation. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
+    "selected_issue": 458,
+    "selection_status": "post_merge_state_reconciliation",
     "independent_hardware_lane": 289,
     "next_independent_software_issue": 457
   },
@@ -41,60 +41,44 @@
       "independent_lane": true
     },
     {
-      "id": "NEXOLAB-451",
-      "issue": 451,
-      "pull_request": 452,
-      "title": "Make canonical chart continuity, inspector and alarm overlays trustworthy",
-      "status": "completed_merged_software_browser_offline_verified",
-      "priority": "critical",
-      "final_pr_head": "795cff9a309fcb70981293c29009682fdafddfba",
-      "merge_sha": "6286e8ed4ccb3d5d0e5f34d7b62fd6cb15fdedc0",
-      "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
-    },
-    {
-      "id": "NEXOLAB-454",
-      "issue": 454,
-      "pull_request": 455,
-      "title": "Reconcile Issue #451 merge and unblock Chart System continuation",
-      "status": "completed_merged_state_only",
-      "priority": "high",
-      "final_pr_head": "af92129a03591e10dab594f9cfe1dfcfe16256c0",
-      "merge_sha": "058ddf8131d43e0b8ea56553bff83fbe0b90efa0",
-      "permitted_directories": [".project/**"]
-    },
-    {
       "id": "NEXOLAB-453",
       "issue": 453,
       "pull_request": 456,
       "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-      "status": "product_verified_state_reconciliation_then_final_exact_head_gates",
+      "status": "completed_merged_software_browser_offline_verified",
       "priority": "critical",
       "parent_epic": 450,
-      "branch": "feat/453-equipment-centric-multi-axis-charts",
-      "verified_product_head": "3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79",
-      "resolved_dependencies": [451, 454],
+      "final_pr_head": "ac15c3e61b04a61ff91d2d929218c3431ea7de3c",
+      "merge_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
       "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+    },
+    {
+      "id": "NEXOLAB-458",
+      "issue": 458,
+      "title": "Reconcile Issue #453 merge state and activate Issue #457",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/458-reconcile-issue-453-merge-state",
+      "scope": ".project/** only"
     },
     {
       "id": "NEXOLAB-457",
       "issue": 457,
       "title": "Recompose Live Data around a graph-first operator workspace",
-      "status": "blocked_until_issue_453_merge",
+      "status": "ready",
       "priority": "critical",
       "parent_epic": 450,
-      "depends_on": [453]
+      "resolved_dependencies": [453]
     }
   ],
   "active_work_package": {
-    "issue": 453,
-    "pull_request": 456,
-    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-    "status": "state_reconciliation_then_final_exact_head_verification",
-    "priority": "critical",
-    "branch": "feat/453-equipment-centric-multi-axis-charts",
-    "verified_product_head": "3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79",
-    "hardware_acceptance": "pending_not_claimed",
-    "next_step": "Run all required exact-head gates again after this state-only reconciliation commit, then audit current main, reviews and focused diff; if GREEN, mark PR #456 Ready and squash-merge with expected-head protection."
+    "issue": 458,
+    "title": "Reconcile Issue #453 merge state and activate Issue #457",
+    "status": "state_only_reconciliation",
+    "priority": "high",
+    "branch": "chore/458-reconcile-issue-453-merge-state",
+    "scope": ".project/** only",
+    "next_step": "Validate the four state files, require exact-head CI for the state-only PR, audit the focused diff and squash-merge with expected-head protection."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -105,21 +89,22 @@
   "next_work_package": {
     "issue": 457,
     "title": "Recompose Live Data around a graph-first operator workspace",
-    "status": "blocked_until_issue_453_merge",
+    "status": "ready",
     "priority": "critical",
-    "first_step_after_unblock": "Move status:blocked to status:ready only after #453 merges, then create a separate feature branch from updated main and implement graph-first Live Data composition without changing acquisition behavior."
+    "first_step": "After Issue #458 merges, branch from updated main and implement graph-first Live Data composition without changing acquisition behavior."
   },
   "verification": {
-    "issue_453_verified_product_head": "3e7f9d8cac8da1b8a34fdf62053b6fe3a7bf3e79",
-    "issue_453_ci_run": 31805527701,
+    "issue_453_final_pr_head": "ac15c3e61b04a61ff91d2d929218c3431ea7de3c",
+    "issue_453_merge_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
+    "issue_453_ci_run": 31806462184,
     "issue_453_ci": "PASS",
-    "issue_453_authenticated_dashboard_run": 31805527693,
+    "issue_453_authenticated_dashboard_run": 31806462239,
     "issue_453_authenticated_dashboard": "14/14 PASS",
-    "issue_453_refrigeration_browser_run": 31805527758,
+    "issue_453_refrigeration_browser_run": 31806462166,
     "issue_453_refrigeration_browser": "PASS",
-    "issue_453_acquisition_scale_run": 31805527743,
+    "issue_453_acquisition_scale_run": 31806462144,
     "issue_453_acquisition_scale": "PASS",
-    "issue_453_offline_bundle_run": 31805527696,
+    "issue_453_offline_bundle_run": 31806462148,
     "issue_453_offline_bundle": "PASS",
     "issue_453_websocket_max_concurrent": 1,
     "issue_453_acquisition_mutations": 0,
