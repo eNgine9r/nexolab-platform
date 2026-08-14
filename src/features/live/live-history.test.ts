@@ -8,10 +8,12 @@ import type {
 } from "@/lib/telemetry/types";
 
 import {
+  advanceLiveHistoryWindow,
   downsampleLiveHistory,
   isLiveHistorySegmentStart,
   liveHistorySegments,
   loadCompleteLiveHistory,
+  mergeLiveHistoryTail,
   reconcileLiveHistoryEvents,
   seedLiveHistoryOrderingState,
 } from "./live-history";
@@ -208,5 +210,32 @@ describe("live history downsampling", () => {
     expect(afterDelayed.samples).toEqual([]);
     expect(afterRecovery.samples).toHaveLength(1);
     expect(isLiveHistorySegmentStart(afterRecovery.samples[0])).toBe(true);
+  });
+
+  it("advances the live window to a newer selected sample and preserves its duration", () => {
+    const incoming = sample({
+      event_id: "new-tail",
+      captured_at: "2026-08-03T21:10:02.000Z",
+      value: 9.876,
+    });
+    const nextWindow = advanceLiveHistoryWindow(window, [incoming]);
+
+    expect(nextWindow.to.toISOString()).toBe("2026-08-03T21:10:02.000Z");
+    expect(nextWindow.to.getTime() - nextWindow.from.getTime()).toBe(
+      window.to.getTime() - window.from.getTime(),
+    );
+    const merged = mergeLiveHistoryTail(
+      [sample({ event_id: "old-tail", captured_at: "2026-08-03T21:10:00.000Z", value: 2.8 })],
+      [incoming],
+      new Set(["edge-01\u001fDIXELL-106\u001f106-03\u001ftemperature"]),
+      nextWindow,
+    );
+    expect(merged.at(-1)?.event_id).toBe("new-tail");
+    expect(merged.at(-1)?.value).toBe(9.876);
+  });
+
+  it("does not move the live window backwards for delayed replay", () => {
+    const delayed = sample({ event_id: "delayed", captured_at: "2026-08-03T21:09:00.000Z" });
+    expect(advanceLiveHistoryWindow(window, [delayed])).toBe(window);
   });
 });
