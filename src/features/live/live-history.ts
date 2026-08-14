@@ -67,6 +67,31 @@ function acceptedSample(sample: TelemetrySample, now = Date.now()): boolean {
   return Number.isFinite(capturedAt) && capturedAt <= now + LIVE_HISTORY_MAX_FUTURE_SKEW_MS;
 }
 
+export function advanceLiveHistoryWindow(
+  current: LiveHistoryWindow,
+  incoming: readonly TelemetrySample[],
+): LiveHistoryWindow {
+  const fromMs = current.from.getTime();
+  const toMs = current.to.getTime();
+  const durationMs = toMs - fromMs;
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    throw new Error("Live history window must have a positive finite duration");
+  }
+
+  let nextToMs = toMs;
+  for (const sample of incoming) {
+    if (!acceptedSample(sample)) continue;
+    const capturedAt = parsedTimestamp(sample.captured_at);
+    if (capturedAt > nextToMs) nextToMs = capturedAt;
+  }
+
+  if (nextToMs === toMs) return current;
+  return {
+    from: new Date(nextToMs - durationMs),
+    to: new Date(nextToMs),
+  };
+}
+
 function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetrySample[] {
   const sorted = [...samples].sort(
     (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
