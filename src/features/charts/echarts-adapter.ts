@@ -11,7 +11,13 @@ import {
 import { init, use as registerEChartsModules, type EChartsCoreOption, type EChartsType } from "echarts/core";
 import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
 
-import { chartSeriesKey, type ChartCursorInspection, type ChartPoint, type ChartSeries } from "./domain";
+import {
+  chartSeriesKey,
+  type ChartCursorInspection,
+  type ChartEventMarker,
+  type ChartPoint,
+  type ChartSeries,
+} from "./domain";
 import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";
 
 registerEChartsModules([
@@ -50,6 +56,8 @@ const defaultRuntime: EChartsRuntimePort = {
   },
 };
 
+const DEFAULT_CURSOR_TOLERANCE_MS = 30_000;
+
 interface AxisPointerEvent {
   axesInfo?: Array<{ value?: number | string }>;
 }
@@ -69,32 +77,63 @@ function axisPointerTimestamp(event: unknown): number | null {
   return typeof timestamp === "number" && Number.isFinite(timestamp) ? timestamp : null;
 }
 
-function visiblePoints(scene: ChartRendererScene): Array<{ series: ChartSeries; point: ChartPoint }> {
-  return scene.series
-    .filter((series) => series.visible)
-    .flatMap((series) =>
-      series.segments.flatMap((segment) => segment.points.map((point) => ({ series, point }))),
-    );
-}
-
-function nearestInspection(scene: ChartRendererScene, timestampMs: number): ChartCursorInspection | null {
-  let nearest: { series: ChartSeries; point: ChartPoint } | undefined;
-  for (const candidate of visiblePoints(scene)) {
-    if (
-      !nearest ||
-      Math.abs(candidate.point.timestampMs - timestampMs) < Math.abs(nearest.point.timestampMs - timestampMs)
-    ) {
-      nearest = candidate;
+function nearestPoint(series: ChartSeries, timestampMs: number): ChartPoint | null {
+  let nearest: ChartPoint | null = null;
+  for (const segment of series.segments) {
+    for (const point of segment.points) {
+      if (
+        nearest === null ||
+        Math.abs(point.timestampMs - timestampMs) < Math.abs(nearest.timestampMs - timestampMs) ||
+        (Math.abs(point.timestampMs - timestampMs) === Math.abs(nearest.timestampMs - timestampMs) &&
+          (point.timestampMs < nearest.timestampMs ||
+            (point.timestampMs === nearest.timestampMs && point.id.localeCompare(nearest.id) < 0)))
+      ) {
+        nearest = point;
+      }
     }
   }
-  return nearest
-    ? {
-        timestampMs,
-        seriesKey: chartSeriesKey(nearest.series.identity),
-        point: nearest.point,
-        freshness: nearest.series.freshness,
-      }
-    : null;
+  return nearest;
+}
+
+function sharedInspection(scene: ChartRendererScene, timestampMs: number): ChartCursorInspection {
+  const toleranceMs = scene.cursorToleranceMs ?? DEFAULT_CURSOR_TOLERANCE_MS;
+  if (!Number.isFinite(toleranceMs) || toleranceMs < 0) {
+    throw new Error("Chart cursor tolerance must be a non-negative finite number");
+  }
+  return {
+    timestampMs,
+    series: scene.series
+      .filter((series) => series.visible)
+      .map((series) => {
+        const nearest = nearestPoint(series, timestampMs);
+        return {
+          seriesKey: chartSeriesKey(series.identity),
+          point:
+            nearest && Math.abs(nearest.timestampMs - timestampMs) <= toleranceMs ? nearest : null,
+          freshness: series.freshness,
+        };
+      }),
+  };
+}
+
+function canonicalEvents(events: readonly ChartEventMarker[]): ChartEventMarker[] {
+  const byId = new Map<string, ChartEventMarker>();
+  for (const event of events) {
+    if (
+      !event.id.trim() ||
+      !Number.isFinite(event.timestampMs) ||
+      !event.type.trim() ||
+      !event.label.trim() ||
+      !event.source.entityId.trim() ||
+      !event.source.entityType.trim()
+    ) {
+      continue;
+    }
+    if (!byId.has(event.id)) byId.set(event.id, event);
+  }
+  return [...byId.values()].sort(
+    (left, right) => left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
+  );
 }
 
 function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererScene["xDomain"] | null {
@@ -114,6 +153,7 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
   const legendNames = visibleSeries.map((series) => series.name);
+  const events = canonicalEvents(scene.events ?? []);
   const lineSeries = visibleSeries.flatMap((series, visibleSeriesIndex) => {
     const seriesKey = chartSeriesKey(series.identity);
     const thresholds = scene.thresholds?.filter((threshold) => threshold.seriesKey === seriesKey) ?? [];
@@ -158,7 +198,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         : {}),
       itemStyle: { color: series.colorToken },
       emphasis: { focus: "series" as const, lineStyle: { width: 3 } },
-      ...(segmentIndex === 0 && (thresholds.length > 0 || (visibleSeriesIndex === 0 && scene.events?.length))
+      ...(segmentIndex === 0 && (thresholds.length > 0 || (visibleSeriesIndex === 0 && events.length > 0))
         ? {
             markLine: {
               silent: true,
@@ -168,9 +208,12 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
               data: [
                 ...thresholds.map((threshold) => ({ name: threshold.label, yAxis: threshold.value })),
                 ...(visibleSeriesIndex === 0
-                  ? (scene.events ?? []).map((event) => ({
+                  ? events.map((event) => ({
                       name: event.label,
                       xAxis: event.timestampMs,
+                      eventId: event.id,
+                      eventSourceId: event.source.entityId,
+                      label: { show: false },
                       lineStyle: {
                         color:
                           event.severity === "alarm"
@@ -265,7 +308,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.options?.onCursor(null);
       return;
     }
-    this.options?.onCursor(nearestInspection(this.scene, timestampMs));
+    this.options?.onCursor(sharedInspection(this.scene, timestampMs));
   };
 
   private readonly handleDataZoom = (event: unknown) => {
@@ -315,7 +358,15 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
           if (existing) {
             return created.map((segment) =>
               segment.id === addition.segmentId
-                ? { ...segment, points: [...segment.points, addition.point].slice(-this.maximumLivePoints) }
+                ? {
+                    ...segment,
+                    points: [...segment.points, addition.point]
+                      .sort(
+                        (left, right) =>
+                          left.timestampMs - right.timestampMs || left.id.localeCompare(right.id),
+                      )
+                      .slice(-this.maximumLivePoints),
+                  }
                 : segment,
             );
           }
