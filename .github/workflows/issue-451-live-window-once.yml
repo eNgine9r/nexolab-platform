@@ -45,25 +45,29 @@ jobs:
               raise SystemExit("live-history import block not found")
           hook = hook.replace(import_old, import_new, 1)
 
-          old_block = '''        if (reconciliation.samples.length > 0) {
-          setHistorySamples((current) => {
-            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, currentWindow);
-            historySamplesRef.current = next;
-            return next;
-          });
-        }'''
-          new_block = '''        if (reconciliation.samples.length > 0) {
-          const nextWindow = advanceLiveHistoryWindow(currentWindow, reconciliation.samples);
-          if (nextWindow !== currentWindow) {
-            historyWindowRef.current = nextWindow;
-            setHistoryWindow(nextWindow);
-          }
-          setHistorySamples((current) => {
-            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);
-            historySamplesRef.current = next;
-            return next;
-          });
-        }'''
+          old_block = "\n".join([
+              "        if (reconciliation.samples.length > 0) {",
+              "          setHistorySamples((current) => {",
+              "            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, currentWindow);",
+              "            historySamplesRef.current = next;",
+              "            return next;",
+              "          });",
+              "        }",
+          ])
+          new_block = "\n".join([
+              "        if (reconciliation.samples.length > 0) {",
+              "          const nextWindow = advanceLiveHistoryWindow(currentWindow, reconciliation.samples);",
+              "          if (nextWindow !== currentWindow) {",
+              "            historyWindowRef.current = nextWindow;",
+              "            setHistoryWindow(nextWindow);",
+              "          }",
+              "          setHistorySamples((current) => {",
+              "            const next = mergeLiveHistoryTail(current, reconciliation.samples, selected, nextWindow);",
+              "            historySamplesRef.current = next;",
+              "            return next;",
+              "          });",
+              "        }",
+          ])
           if old_block not in hook:
               raise SystemExit("live history merge block not found")
           hook_path.write_text(hook.replace(old_block, new_block, 1))
