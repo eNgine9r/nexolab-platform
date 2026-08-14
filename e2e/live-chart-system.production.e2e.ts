@@ -273,7 +273,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     const equipmentBox = await equipmentHost.boundingBox();
     if (!equipmentBox) throw new Error("Equipment chart host has no bounding box");
     await page.mouse.move(
-      equipmentBox.x + equipmentBox.width - 32,
+      equipmentBox.x + equipmentBox.width * 0.72,
       equipmentBox.y + equipmentBox.height * 0.5,
     );
     const inspector = page.getByTestId("chart-inspector").first();
