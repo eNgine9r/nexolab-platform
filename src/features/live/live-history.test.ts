@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { liveChannelKey } from "./live-telemetry";
+
 import type {
   TelemetryAdapter,
   TelemetryCollectionResponse,
@@ -227,7 +229,7 @@ describe("live history downsampling", () => {
     const merged = mergeLiveHistoryTail(
       [sample({ event_id: "old-tail", captured_at: "2026-08-03T21:10:00.000Z", value: 2.8 })],
       [incoming],
-      new Set(["edge-01\u001fDIXELL-106\u001f106-03\u001ftemperature"]),
+      new Set([liveChannelKey(incoming)]),
       nextWindow,
     );
     expect(merged.at(-1)?.event_id).toBe("new-tail");
