@@ -1,6 +1,7 @@
 import { LineChart } from "echarts/charts";
 import {
   AriaComponent,
+  AxisPointerComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
@@ -23,6 +24,7 @@ import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene
 registerEChartsModules([
   LineChart,
   AriaComponent,
+  AxisPointerComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
