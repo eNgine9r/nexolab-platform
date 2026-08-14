@@ -1,0 +1,65 @@
+name: Issue 451 Axis Pointer Race Once
+
+on:
+  push:
+    branches:
+      - fix/451-chart-integrity-alarm-provenance
+
+permissions:
+  contents: write
+
+jobs:
+  patch-once:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Patch axis-pointer race
+        shell: python
+        run: |
+          from pathlib import Path
+          adapter = Path("src/features/charts/echarts-adapter.ts")
+          text = adapter.read_text()
+          old = "    const timestampMs = axisPointerTimestamp(event);\n    if (timestampMs === null || !this.scene) {\n      this.options?.onCursor(null);\n      return;\n    }\n    this.options?.onCursor(sharedInspection(this.scene, timestampMs));"
+          new = "    if (!this.scene) return;\n    const timestampMs = axisPointerTimestamp(event);\n    if (timestampMs === null) return;\n    this.options?.onCursor(sharedInspection(this.scene, timestampMs));"
+          if old not in text:
+              raise SystemExit("axis-pointer fallback block not found")
+          adapter.write_text(text.replace(old, new, 1))
+
+          test_path = Path("src/features/charts/echarts-adapter.test.ts")
+          test = test_path.read_text()
+          needle = "    container.dispatchEvent(new MouseEvent(\"mousemove\", { clientX: 0, clientY: 120 }));\n    expect(onCursor).toHaveBeenCalledWith({\n      timestampMs: BENCHMARK_START_MS,"
+          replacement = "    container.dispatchEvent(new MouseEvent(\"mousemove\", { clientX: 0, clientY: 120 }));\n    expect(onCursor).toHaveBeenCalledWith({\n      timestampMs: BENCHMARK_START_MS,"
+          if needle not in test:
+              raise SystemExit("shared cursor assertion marker not found")
+          # Insert race regression immediately after the full first inspection assertion.
+          marker = "    });\n\n    instance.handlers.get(\"dataZoom\")?.({ start: 25, end: 75 });"
+          inserted = "    });\n\n    const callsAfterHostPointer = onCursor.mock.calls.length;\n    instance.handlers.get(\"updateAxisPointer\")?.({ axesInfo: [] });\n    expect(onCursor).toHaveBeenCalledTimes(callsAfterHostPointer);\n    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: BENCHMARK_START_MS });\n\n    instance.handlers.get(\"dataZoom\")?.({ start: 25, end: 75 });"
+          if marker not in test:
+              raise SystemExit("dataZoom marker not found")
+          test_path.write_text(test.replace(marker, inserted, 1))
+      - name: Verify focused chart contract
+        env:
+          HUSKY: 0
+        run: |
+          npm install --no-audit
+          npx prettier --write src/features/charts/echarts-adapter.ts src/features/charts/echarts-adapter.test.ts
+          npx vitest run src/features/charts/echarts-adapter.test.ts src/features/charts/area-rendering.test.ts
+          npm run typecheck
+          git diff --check
+      - name: Commit product fix and retire workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/issue-451-axis-pointer-race-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/charts/echarts-adapter.ts src/features/charts/echarts-adapter.test.ts
+          git diff --cached --check
+          git commit -m "fix(charts): preserve host hover across empty axis events"
+          git push origin HEAD:fix/451-chart-integrity-alarm-provenance
