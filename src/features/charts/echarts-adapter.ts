@@ -20,6 +20,7 @@ import {
   type ChartSeries,
 } from "./domain";
 import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";
+import { buildChartYAxisModel } from "./units";
 
 registerEChartsModules([
   LineChart,
@@ -195,6 +196,7 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
 
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
+  const axisModel = buildChartYAxisModel(scene.series);
   const legendNames = visibleSeries.map((series) => series.name);
   const events = canonicalEvents(scene.events ?? []);
   const lineSeries = visibleSeries.flatMap((series, visibleSeriesIndex) => {
@@ -204,6 +206,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
       id: `${seriesKey}:${segment.id}`,
       name: series.name,
       type: "line" as const,
+      yAxisId: axisModel.axisIdBySeriesKey.get(seriesKey),
       data: segment.points.map((point) => ({
         value: [point.timestampMs, point.value],
         pointId: point.id,
@@ -309,7 +312,23 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
       decal: { show: true },
       label: { description: `Telemetry chart with ${scene.series.length} series.` },
     },
-    grid: { left: 64, right: 24, top: 28, bottom: 58, containLabel: false },
+    grid: {
+      left:
+        64 +
+        Math.max(
+          0,
+          ...axisModel.visibleAxes.filter((axis) => axis.position === "left").map((axis) => axis.offset),
+        ),
+      right:
+        40 +
+        Math.max(
+          0,
+          ...axisModel.visibleAxes.filter((axis) => axis.position === "right").map((axis) => axis.offset),
+        ),
+      top: 28,
+      bottom: 58,
+      containLabel: false,
+    },
     legend: { show: false, data: legendNames },
     tooltip: {
       trigger: "axis",
@@ -327,12 +346,24 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
       axisLabel: { color: "#94A3B8", hideOverlap: true },
       splitLine: { show: true, lineStyle: { color: "rgba(148,163,184,.10)" } },
     },
-    yAxis: {
-      type: "value",
+    yAxis: axisModel.visibleAxes.map((axis, visibleIndex) => ({
+      id: axis.id,
+      type: "value" as const,
       scale: true,
-      axisLabel: { color: "#94A3B8" },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,.10)" } },
-    },
+      position: axis.position,
+      offset: axis.offset,
+      name: axis.nativeUnit,
+      nameLocation: "middle" as const,
+      nameGap: 38,
+      nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },
+      axisLine: { show: true, lineStyle: { color: "rgba(148,163,184,.42)" } },
+      axisTick: { show: true },
+      axisLabel: { color: "#94A3B8", hideOverlap: true },
+      splitLine: {
+        show: visibleIndex === 0,
+        lineStyle: { color: "rgba(148,163,184,.10)" },
+      },
+    })),
     dataZoom: [
       {
         type: "inside",
@@ -404,7 +435,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance.setOption(rendererOption(scene, this.options?.reducedMotion ?? false), {
       notMerge: false,
       lazyUpdate: false,
-      replaceMerge: ["series"],
+      replaceMerge: ["series", "yAxis"],
     });
   }
 
