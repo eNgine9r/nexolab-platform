@@ -1,3 +1,4 @@
+import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { reduceChartSegments } from "@/features/charts/reduction";
 import { liveChannelKey } from "@/features/live/live-telemetry";
@@ -7,7 +8,7 @@ const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 const SEGMENT_PREFIX = "nexolab-live-segment:";
 export const LIVE_HISTORY_MAX_POINTS_PER_CHANNEL = 240;
-export const LIVE_HISTORY_SOURCE_GAP_MS = 30_000;
+export const LIVE_HISTORY_MIN_SOURCE_GAP_MS = 30_000;
 export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
 export interface LiveHistoryWindow {
@@ -70,6 +71,10 @@ function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetryS
   const sorted = [...samples].sort(
     (left, right) => parsedTimestamp(left.captured_at) - parsedTimestamp(right.captured_at),
   );
+  const sourceGapMs = deriveChartSourceGapMs(
+    sorted.map((sample) => ({ id: sourceEventId(sample.event_id), timestampMs: parsedTimestamp(sample.captured_at) })),
+    LIVE_HISTORY_MIN_SOURCE_GAP_MS,
+  );
   const annotated: TelemetrySample[] = [];
   let previousRenderableAt: number | null = null;
   let breakPending = false;
@@ -88,7 +93,7 @@ function annotateSourceSegments(samples: readonly TelemetrySample[]): TelemetryS
     const startsSegment =
       explicitSegment ||
       breakPending ||
-      (previousRenderableAt !== null && capturedAt - previousRenderableAt > LIVE_HISTORY_SOURCE_GAP_MS);
+      (previousRenderableAt !== null && capturedAt - previousRenderableAt > sourceGapMs);
     annotated.push(startsSegment ? markSegmentStart(sample) : sample);
     previousRenderableAt = capturedAt;
     breakPending = false;
@@ -144,7 +149,7 @@ function downsampleChannel(
       };
     });
     return {
-      id: `${seriesKey}:segment:${index}`,
+      id: `${seriesKey}:segment:${index}:${points[0]?.timestampMs ?? "empty"}`,
       seriesKey,
       points,
       ...(index > 0 && points[0]
@@ -223,9 +228,7 @@ export function reconcileLiveHistoryEvents(
       continue;
     }
 
-    const startsSegment =
-      pendingBreakChannels.has(key) ||
-      (newest !== undefined && capturedAt - newest > LIVE_HISTORY_SOURCE_GAP_MS);
+    const startsSegment = pendingBreakChannels.has(key);
     samples.push(startsSegment ? markSegmentStart(sample) : sample);
     pendingBreakChannels.delete(key);
   }
