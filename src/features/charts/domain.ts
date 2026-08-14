@@ -30,7 +30,12 @@ export interface ChartPoint {
 }
 
 export type ChartContinuityBreakReason =
-  "explicit_gap" | "source_gap" | "invalid_quality" | "offline" | "missing_measurement" | "reconnect_gap";
+  | "explicit_gap"
+  | "source_gap"
+  | "invalid_quality"
+  | "offline"
+  | "missing_measurement"
+  | "reconnect_gap";
 
 export interface ChartContinuityBreak {
   reason: ChartContinuityBreakReason;
@@ -56,6 +61,7 @@ export interface ChartSeries {
   visible: boolean;
   semanticMode: "instantaneous" | "cumulative_counter";
   areaFillOpacity?: number;
+  displayPrecision?: number;
 }
 
 export interface ChartThreshold {
@@ -66,12 +72,21 @@ export interface ChartThreshold {
   label: string;
 }
 
+export interface ChartEventSource {
+  entityId: string;
+  entityType: string;
+  equipmentId?: string;
+  channelId?: string;
+}
+
 export interface ChartEventMarker {
   id: string;
   timestampMs: number;
   type: string;
   label: string;
+  source: ChartEventSource;
   severity?: "info" | "warning" | "alarm";
+  status?: string;
 }
 
 export interface ChartAlarmRegion {
@@ -93,11 +108,15 @@ export interface ChartStatistics {
   toMs: number;
 }
 
-export interface ChartCursorInspection {
-  timestampMs: number;
+export interface ChartSeriesCursorInspection {
   seriesKey: string;
   point: ChartPoint | null;
   freshness: ChartFreshnessState;
+}
+
+export interface ChartCursorInspection {
+  timestampMs: number;
+  series: readonly ChartSeriesCursorInspection[];
 }
 
 export interface ChartXDomain {
