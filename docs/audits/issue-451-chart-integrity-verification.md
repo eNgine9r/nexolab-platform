@@ -24,6 +24,7 @@ Verification scope: canonical chart evidence integrity across unit/component, pr
 | malformed renderer input                      | non-finite timestamp/value rejected before valid point render    | `continuity.test.ts`, formatter tests                              |
 | history/live duplicate/remount                | stable event dedupe and stable segment identity                  | continuity tests + production renderer host/canvas persistence     |
 | Exact Inspector selects only one global point | one cursor snapshot resolves every visible series                | ECharts adapter and ChartShell tests + production inspector rows   |
+| production hover does not update inspector    | modular ECharts AxisPointer component registered                 | authenticated production browser cursor interaction                |
 | slow cadence inspector flicker                | per-series cadence-aware cursor tolerance                        | ECharts adapter slow-source test                                   |
 | inspector borrows across real gap             | explicit segment boundary is a hard cursor boundary              | ECharts adapter gap-safe cursor test                               |
 | excessive floating precision                  | centralized two-decimal presentation default                     | formatter/component tests + production `9.876 → 9.88` assertion    |
