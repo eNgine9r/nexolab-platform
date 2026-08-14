@@ -2,8 +2,9 @@
 
 Updated: 2026-08-14
 
-Canonical product baseline is `e384b663f949b8e069b4b488a22cd7d2f7d90502`
-(Issue #432 / PR #437 route-prefetch/time-to-usable acceptance merged).
+Canonical product/runtime baseline is `2cb88030cae151a95c43fe1f303a8d51b66968c1`
+(Issue #440 / PR #441 acquisition-worker liveness fix merged and hardware
+verified).
 
 ## Completed critical Work Package — Issue #433 / PR #434
 
@@ -66,10 +67,11 @@ Evidence is recorded in
 Classification: software/browser route-prefetch verified; physical Raspberry Pi
 performance acceptance remains intentionally unclaimed until Issue #289 executes.
 
-## Selected Next Ready Work Package — Issue #289
+## Active critical Work Package — Issue #289
 
-Issue #289 is open, assigned to `eNgine9r`, labelled `status:ready` and selected
-as the single next critical Work Package after the post-#432 dependency audit.
+Issue #289 is open, assigned to `eNgine9r` and selected as the active
+critical hardware-performance acceptance Work Package after the completed
+Issue #440 worker-liveness correction and Issue #442 state reconciliation.
 All explicit dependencies #283, #284, #285, #286, #287, #314 and #288 are
 closed/completed, and #432 has now completed the remaining route-return
 validation prerequisite.
@@ -81,9 +83,9 @@ browser contexts. Page/browser count must not increase normal physical Modbus
 request rate. Performance, scheduler, freshness/reconnect and offline evidence
 must be captured without changing controller configuration or acquisition policy.
 
-Execution baseline before this state-only reconciliation is
-`e384b663f949b8e069b4b488a22cd7d2f7d90502`. Any implementation/acceptance branch
-must still verify the actual current `main` head before work begins.
+Runtime baseline after Issue #440 merge is
+`2cb88030cae151a95c43fe1f303a8d51b66968c1`. Before the next physical acceptance capture, the Issue #289
+hardware-validation branch must be aligned to the post-Issue-442 `main` head.
 
 Open dependency-update PRs remain outside this selected critical lane and must
 not be mixed into Issue #289.
@@ -152,9 +154,49 @@ The timeout/retry and degraded endpoint evidence remains truthful and transfers
 to Issue #289. It is not hidden and is not classified as a #440 worker-liveness
 failure.
 
-Current active Work Package remains Issue #440 until PR #441 has final
-state-head CI and is merged. Issue #289 remains blocked by #440.
+## Post-merge reconciliation — Issue #440 complete; Issue #289 resumes
 
-Next Ready Work Package after #440 merge: resume Issue #289 from a fresh
-equal-window `no-browser` hardware baseline. The original zero-request phase
-must not be reused as passing performance evidence.
+Issue #440 is closed/completed and PR #441 is squash-merged into `main` as
+`2cb88030cae151a95c43fe1f303a8d51b66968c1`.
+
+Final Issue #440 evidence:
+
+- implementation head: `97fab27dd99a8685edc6c96c8e99bc0db88e1bd7`;
+- final PR head: `b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546`;
+- final exact-head workflow matrix: 9/9 GREEN;
+- targeted adaptive tests: 16/16 PASS;
+- full Device Agent suite: 122/122 PASS;
+- controlled Raspberry Pi candidate acceptance: PASS;
+- expected/active acquisition workers: 1/1;
+- `workers_healthy = true`;
+- `rs485-main.worker_count = 1`;
+- normal physical requests in the 60-second hardware window: 155;
+- worker failures/restarts during the window: 0/0;
+- existing `nexolab-edge_edge-data` volume preserved;
+- no Modbus write, hardware write, polling-policy mutation, registry mutation,
+  persistent-data deletion, volume deletion or site cutover occurred.
+
+The temporary Issue #289 → Issue #440 dependency blocker is resolved.
+
+Issue #289 is therefore selected to resume as the active critical
+acquisition-scale and truthful-state acceptance Work Package after this
+state-only reconciliation merges.
+
+The first #289 execution step must be a **fresh equal-window `no-browser`
+Raspberry Pi baseline** against merged post-#440 code. The original pre-fix
+zero-request phase is defect evidence only and must never be reused as passing
+performance evidence.
+
+Residual physical evidence remains assigned to #289 for analysis:
+
+- 23 timeout outcomes / 60 seconds;
+- 18 retries / 60 seconds;
+- 41 missed deadlines / 60 seconds;
+- 24 deferred executions / 60 seconds;
+- health/readiness reported degraded from real endpoint communication state.
+
+Those residual values are not hidden or reclassified by the worker-liveness
+fix.
+
+Issue #289 execution remains read-only. Normal browser/page activity must not
+alter physical polling, and Modbus/hardware writes remain forbidden.

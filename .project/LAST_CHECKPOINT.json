@@ -3,20 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "task": "ISSUE-440-ACQUISITION-WORKER-SELF-RECOVERY",
-  "status": "hardware_verified_final_state_ci_pending",
-  "timestamp": "2026-08-14T05:56:23Z",
-  "active_issue": 440,
+  "task": "ISSUE-289-ACQUISITION-SCALE-HARDWARE-VALIDATION",
+  "status": "in_progress_hardware_performance_validation",
+  "timestamp": "2026-08-14T06:24:58Z",
+  "active_issue": 289,
   "assignee": "eNgine9r",
-  "execution_baseline_before_state_reconciliation": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
-  "state_reconciliation_issue": 438,
+  "execution_baseline_before_state_reconciliation": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
+  "state_reconciliation_issue": 442,
   "completed_issue": {
-    "issue": 432,
-    "pull_request": 437,
-    "final_pr_head": "1509fb30e1e558d4585e403d606c5253d87255da",
-    "evidence_head": "5390bc42cde8de6885267eabe3df421fa32b7266",
-    "merge_sha": "e384b663f949b8e069b4b488a22cd7d2f7d90502",
-    "classification": "software/browser route-prefetch verified; Raspberry Pi performance acceptance pending under Issue #289"
+    "issue": 440,
+    "pull_request": 441,
+    "implementation_head": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
+    "final_pr_head": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
+    "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
+    "classification": "software verified; hardware verified",
+    "hardware_acceptance": {
+      "expected_bus_workers": 1,
+      "active_bus_workers": 1,
+      "workers_healthy": true,
+      "worker_count": 1,
+      "normal_physical_requests_delta_60s": 155,
+      "worker_failures_total": 0,
+      "worker_restarts_total": 0,
+      "edge_volume_preserved": "nexolab-edge_edge-data"
+    }
   },
   "issue_432_browser_evidence": {
     "warm_median_ms": {
@@ -59,17 +69,17 @@
     "final_pr_head_offline_bundle_disconnected_runtime": "PASS"
   },
   "ready_audit": {
-    "selected_issue": 440,
-    "selected_issue_status": "status:in-progress",
-    "dependencies_closed": [283, 284, 285, 286, 287, 314, 288, 432],
+    "selected_issue": 289,
+    "selected_issue_status": "status:in-progress after Issue #442 merge",
+    "dependencies_closed": [283, 284, 285, 286, 287, 314, 288, 366, 432, 440],
     "open_dependency_prs_selected": false,
-    "hardware_performance_acceptance": "issue_440_hardware_verified; issue_289_blocked_until_440_merge"
+    "hardware_performance_acceptance": "in_progress_fresh_baseline_required"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "controller_configuration_change": "none",
-    "scheduler_change": "issue_440_worker_liveness_only; intervals_priorities_fairness_cooldown_unchanged",
+    "scheduler_change": "Issue #440 worker-liveness fix merged; intervals_priorities_fairness_cooldown unchanged",
     "registry_change": "none",
     "polling_policy_change": "none",
     "dependency_upgrade": "none",
@@ -78,60 +88,30 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Require exact-head CI and review audit on PR #441 state/evidence head, then mark ready and squash-merge only after all required checks are GREEN.",
-  "resume_instruction": "Verify PROJECT_PROFILE.yaml, AGENTS.md files, AI development standard, all four .project files, Issue #440, PR #441, CI and actual main before continuation. Do not merge until exact-head checks are GREEN. After merge, return Issue #289 to in-progress and capture a fresh no-browser hardware baseline. No Modbus or hardware writes; no dependency upgrades.",
+  "next_action": "After Issue #442 merges, align the Issue #289 hardware-validation branch to current main and capture a fresh 60-second no-browser Raspberry Pi baseline before opening any browser phase.",
+  "resume_instruction": "Verify current main and Issue #289 branch alignment first. Use read-only hardware acquisition only. Capture a fresh no-browser baseline and preserve request-rate, scheduler, timeout/retry, CPU/memory and truthful health evidence. Do not reuse the pre-fix zero-request window as passing evidence. No Modbus/hardware writes or dependency work.",
   "actor": "ChatGPT",
-  "event": "issue_440_hardware_verified_final_state_ci_pending",
+  "event": "issue_440_merged_issue_289_resumed",
   "active_work_package": {
-    "issue": 440,
-    "pr": 441,
-    "branch": "fix/440-acquisition-worker-self-recovery",
-    "started_from_main_sha": "f523f14dc17b28de3683e1773a2ef5a7143a194f",
-    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-    "status": "hardware_verified_final_state_ci_pending",
+    "issue": 289,
+    "title": "Prove acquisition scale, stability and truthful live-state behavior",
+    "branch": "test/289-acquisition-scale-hardware-validation",
+    "branch_alignment_required_after_issue_442_merge": true,
+    "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
+    "status": "in_progress_hardware_performance_validation",
     "software_verified": true,
-    "hardware_verified": true,
-    "verification": {
-      "targeted_adaptive_tests": "16/16 PASS",
-      "full_device_agent_suite": "122/122 PASS",
-      "exact_implementation_head_workflows": "9/9 GREEN",
-      "offline_bundle_run": 31773335094
-    },
-    "hardware_acceptance": {
-      "candidate_image": "nexolab-device-agent:issue-440-97fab27dd99a",
-      "edge_volume_preserved": "nexolab-edge_edge-data",
-      "expected_bus_workers": 1,
-      "active_bus_workers": 1,
-      "workers_healthy": true,
-      "worker_count": 1,
-      "normal_physical_requests_delta": 155,
-      "successes_delta": 132,
-      "timeouts_delta": 23,
-      "retry_attempts_delta": 18,
-      "bus_utilization_percent": 22.365,
-      "scheduler_lag_max_seconds": 2.183755,
-      "missed_deadlines_delta": 41,
-      "deferred_delta": 24,
-      "overruns_delta": 0,
-      "worker_failures_total": 0,
-      "worker_restarts_total": 0,
-      "safety": {
-        "modbus_write": false,
-        "hardware_write": false,
-        "registry_mutation": false,
-        "polling_policy_mutation": false,
-        "named_volume_deleted": false,
-        "production_cutover": false
-      }
-    }
+    "hardware_performance_acceptance": "in_progress",
+    "first_step": "Fresh 60-second no-browser Raspberry Pi baseline against merged post-#440 main."
   },
   "issue_289_continuation": {
     "issue": 289,
-    "status": "blocked_by_issue_440",
-    "blocked_by_issue": 440,
+    "status": "in_progress_after_issue_442_merge",
+    "blocked_by_issue": null,
     "original_zero_request_window_is_passing_baseline": false,
-    "resume_after": "Issue #440 / PR #441 GREEN merge",
-    "next_action": "Capture a fresh equal-window no-browser hardware baseline, then continue the safe browser-count matrix.",
+    "execution_baseline": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
+    "branch": "test/289-acquisition-scale-hardware-validation",
+    "branch_alignment_required": true,
+    "next_action": "Fresh equal-window no-browser hardware baseline, then continue Overview / Live Dashboard / route-cycle / multi-browser matrix.",
     "residual_evidence_to_analyze": {
       "timeouts_60s": 23,
       "retries_60s": 18,
@@ -143,16 +123,29 @@
   "next_ready_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "condition": "after Issue #440 / PR #441 merges GREEN",
-    "first_step": "Fresh no-browser Raspberry Pi baseline; do not reuse the pre-fix zero-request phase."
+    "status": "active_in_progress",
+    "first_step": "Fresh no-browser Raspberry Pi baseline after Issue #442 merge."
   },
-  "blocking_reason": "Issue #289 is blocked only until Issue #440 / PR #441 final state/evidence exact-head CI and GREEN merge. Issue #440 has no remaining technical or hardware blocker.",
+  "blocking_reason": "No #440 dependency blocker remains. Issue #289 resumes after the state-only Issue #442 merge; hardware safety constraints remain active.",
   "resume_from": [
-    "Verify this state/evidence-only commit is the new PR #441 head.",
-    "Require exact-head CI on the new state/evidence head.",
-    "Audit focused diff and unresolved review threads.",
-    "Mark PR #441 ready and squash-merge only after all required checks are GREEN.",
-    "Verify new main and close Issue #440 through the PR.",
-    "Return Issue #289 to in-progress and capture a fresh no-browser hardware baseline."
-  ]
+    "Verify Issue #442 is GREEN and merged.",
+    "Verify current main.",
+    "Fast-forward the Issue #289 hardware-validation branch to post-#442 main.",
+    "Change Issue #289 label from status:blocked to status:in-progress.",
+    "Capture a fresh 60-second no-browser Raspberry Pi baseline.",
+    "Continue the controlled browser-count/request-rate matrix only from that fresh baseline."
+  ],
+  "issue_440_completion": {
+    "issue": 440,
+    "pull_request": 441,
+    "state": "closed_completed",
+    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
+    "final_pr_head_sha": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
+    "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
+    "final_exact_head_workflows": "9/9 GREEN",
+    "targeted_adaptive_tests": "16/16 PASS",
+    "full_device_agent_suite": "122/122 PASS",
+    "hardware_verified": true
+  },
+  "state_reconciliation_pull_request": 443
 }
