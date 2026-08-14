@@ -2,8 +2,9 @@
 
 Updated: 2026-08-14
 
-Canonical product baseline is `e384b663f949b8e069b4b488a22cd7d2f7d90502`
-(Issue #432 / PR #437 route-prefetch/time-to-usable acceptance merged).
+Canonical product/runtime baseline is `2cb88030cae151a95c43fe1f303a8d51b66968c1`
+(Issue #440 / PR #441 acquisition-worker liveness fix merged and hardware
+verified).
 
 ## Completed critical Work Package — Issue #433 / PR #434
 
@@ -66,10 +67,11 @@ Evidence is recorded in
 Classification: software/browser route-prefetch verified; physical Raspberry Pi
 performance acceptance remains intentionally unclaimed until Issue #289 executes.
 
-## Selected Next Ready Work Package — Issue #289
+## Active critical Work Package — Issue #289
 
-Issue #289 is open, assigned to `eNgine9r`, labelled `status:ready` and selected
-as the single next critical Work Package after the post-#432 dependency audit.
+Issue #289 is open, assigned to `eNgine9r` and selected as the active
+critical hardware-performance acceptance Work Package after the completed
+Issue #440 worker-liveness correction and Issue #442 state reconciliation.
 All explicit dependencies #283, #284, #285, #286, #287, #314 and #288 are
 closed/completed, and #432 has now completed the remaining route-return
 validation prerequisite.
@@ -81,9 +83,9 @@ browser contexts. Page/browser count must not increase normal physical Modbus
 request rate. Performance, scheduler, freshness/reconnect and offline evidence
 must be captured without changing controller configuration or acquisition policy.
 
-Execution baseline before this state-only reconciliation is
-`e384b663f949b8e069b4b488a22cd7d2f7d90502`. Any implementation/acceptance branch
-must still verify the actual current `main` head before work begins.
+Runtime baseline after Issue #440 merge is
+`2cb88030cae151a95c43fe1f303a8d51b66968c1`. Before the next physical acceptance capture, the Issue #289
+hardware-validation branch must be aligned to the post-Issue-442 `main` head.
 
 Open dependency-update PRs remain outside this selected critical lane and must
 not be mixed into Issue #289.
@@ -151,13 +153,6 @@ liveness**.
 The timeout/retry and degraded endpoint evidence remains truthful and transfers
 to Issue #289. It is not hidden and is not classified as a #440 worker-liveness
 failure.
-
-Current active Work Package remains Issue #440 until PR #441 has final
-state-head CI and is merged. Issue #289 remains blocked by #440.
-
-Next Ready Work Package after #440 merge: resume Issue #289 from a fresh
-equal-window `no-browser` hardware baseline. The original zero-request phase
-must not be reused as passing performance evidence.
 
 ## Post-merge reconciliation — Issue #440 complete; Issue #289 resumes
 

@@ -361,36 +361,10 @@
   },
   "active_issue": 289,
   "active_branch": "test/289-acquisition-scale-hardware-validation",
-  "active_defect": {
-    "issue": 440,
-    "pr": 441,
-    "branch": "fix/440-acquisition-worker-self-recovery",
-    "base_main_sha": "f523f14dc17b28de3683e1773a2ef5a7143a194f",
-    "implementation_head_sha": "97fab27dd99a8685edc6c96c8e99bc0db88e1bd7",
-    "status": "completed_merged_hardware_verified",
-    "software_verified": true,
-    "hardware_verified": true,
-    "exact_implementation_head_workflows_green": 9,
-    "hardware_acceptance": {
-      "expected_bus_workers": 1,
-      "active_bus_workers": 1,
-      "normal_physical_requests_60s": 155,
-      "successes_60s": 132,
-      "timeouts_60s": 23,
-      "retries_60s": 18,
-      "bus_utilization_percent": 22.365,
-      "scheduler_lag_max_seconds": 2.183755,
-      "worker_failures": 0,
-      "worker_restarts": 0
-    },
-    "final_pr_head_sha": "b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546",
-    "merge_sha": "2cb88030cae151a95c43fe1f303a8d51b66968c1",
-    "blocking_issue_289": false
-  },
   "issues_blocked": [],
   "notes": [
-    "Issue #440 is software and Raspberry Pi hardware verified at 97fab27dd99a8685edc6c96c8e99bc0db88e1bd7; PR #441 final state/evidence head CI and merge remain. Issue #289 stays blocked until merge, then resumes from a fresh no-browser baseline. Real timeout/retry/deadline evidence remains assigned to #289.",
-    "Issue #440 / PR #441 merged as 2cb88030cae151a95c43fe1f303a8d51b66968c1; worker liveness is software and Raspberry Pi hardware verified. Issue #289 is unblocked and resumes after Issue #442 merge from a fresh no-browser baseline."
+    "Issue #440 / PR #441 merged as 2cb88030cae151a95c43fe1f303a8d51b66968c1; worker liveness is software and Raspberry Pi hardware verified. Issue #289 is unblocked and resumes after Issue #442 merge from a fresh no-browser baseline.",
+    "Issue #440 / PR #441 merged as 2cb88030cae151a95c43fe1f303a8d51b66968c1; worker liveness is software and Raspberry Pi hardware verified. The #289 dependency blocker is resolved. Issue #289 resumes after Issue #442 merge from a fresh no-browser baseline; residual timeout/retry/deadline evidence remains assigned to #289."
   ],
   "active_branch_alignment": "Must be aligned to post-Issue-442 main before execution."
 }
