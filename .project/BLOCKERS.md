@@ -59,29 +59,29 @@ explicit approval and is outside Issue #289.
 Existing LOCAL_LAN, offline-runtime, read-only acquisition and hardware-safety
 boundaries remain unchanged.
 
-## Active blocker — Issue #289 depends on Issue #440 merge
+## Resolved blocker — Issue #289 / Issue #440
 
-Issue #289 is temporarily blocked by critical Issue #440.
+**Resolved by merge `2cb88030cae151a95c43fe1f303a8d51b66968c1`.**
 
-The first controlled no-browser Raspberry Pi phase at `f523f14dc17b28de3683e1773a2ef5a7143a194f` established a
-real runtime failure: 33 poll-eligible jobs were due, the physical bus worker
-count was zero, and normal physical request delta remained zero while the
-Device Agent container itself remained alive.
+Issue #440 is closed/completed and PR #441 is squash-merged. Controlled
+Raspberry Pi acceptance proved one expected and one active acquisition worker,
+155 normal physical requests in 60 seconds, and zero worker failures/restarts
+during the candidate window.
 
-Issue #440 / PR #441 fixes the worker-liveness contract. Implementation head
-`97fab27dd99a8685edc6c96c8e99bc0db88e1bd7` is software verified and controlled Raspberry Pi hardware verified:
-one expected worker, one active worker, 155 normal physical requests in the
-60-second candidate window, zero worker failures and zero duplicate/restart
-workers.
+The former #289 → #440 dependency blocker is therefore removed.
 
-There is no remaining technical/hardware blocker inside Issue #440. The
-remaining dependency is procedural: final state/evidence exact-head CI and
-GREEN merge of PR #441.
+Issue #289 resumes after Issue #442 state reconciliation from a fresh
+`no-browser` baseline. The pre-fix zero-request window remains defect evidence
+only.
 
-After that merge this blocker is removed and Issue #289 resumes from a fresh
-no-browser hardware baseline.
+Residual evidence remains active inside Issue #289 rather than being treated as
+a blocker:
 
-Residual endpoint evidence from the #440 physical window remains assigned to
-#289: 23 timeout outcomes, 18 retries, 41 missed deadlines and 24 deferred
-executions. This evidence must remain truthful and must not be hidden by the
-worker-liveness fix.
+- 23 timeout outcomes;
+- 18 retries;
+- 41 missed deadlines;
+- 24 deferred executions;
+- degraded health/readiness from actual endpoint communication state.
+
+No Modbus/hardware write, controller change, destructive data action, volume
+deletion or site cutover is authorized.

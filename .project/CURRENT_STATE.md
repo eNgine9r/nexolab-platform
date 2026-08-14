@@ -158,3 +158,50 @@ state-head CI and is merged. Issue #289 remains blocked by #440.
 Next Ready Work Package after #440 merge: resume Issue #289 from a fresh
 equal-window `no-browser` hardware baseline. The original zero-request phase
 must not be reused as passing performance evidence.
+
+## Post-merge reconciliation — Issue #440 complete; Issue #289 resumes
+
+Issue #440 is closed/completed and PR #441 is squash-merged into `main` as
+`2cb88030cae151a95c43fe1f303a8d51b66968c1`.
+
+Final Issue #440 evidence:
+
+- implementation head: `97fab27dd99a8685edc6c96c8e99bc0db88e1bd7`;
+- final PR head: `b2ee4bd7bc3a7c1d3ae944ce36dc047cbebc0546`;
+- final exact-head workflow matrix: 9/9 GREEN;
+- targeted adaptive tests: 16/16 PASS;
+- full Device Agent suite: 122/122 PASS;
+- controlled Raspberry Pi candidate acceptance: PASS;
+- expected/active acquisition workers: 1/1;
+- `workers_healthy = true`;
+- `rs485-main.worker_count = 1`;
+- normal physical requests in the 60-second hardware window: 155;
+- worker failures/restarts during the window: 0/0;
+- existing `nexolab-edge_edge-data` volume preserved;
+- no Modbus write, hardware write, polling-policy mutation, registry mutation,
+  persistent-data deletion, volume deletion or site cutover occurred.
+
+The temporary Issue #289 → Issue #440 dependency blocker is resolved.
+
+Issue #289 is therefore selected to resume as the active critical
+acquisition-scale and truthful-state acceptance Work Package after this
+state-only reconciliation merges.
+
+The first #289 execution step must be a **fresh equal-window `no-browser`
+Raspberry Pi baseline** against merged post-#440 code. The original pre-fix
+zero-request phase is defect evidence only and must never be reused as passing
+performance evidence.
+
+Residual physical evidence remains assigned to #289 for analysis:
+
+- 23 timeout outcomes / 60 seconds;
+- 18 retries / 60 seconds;
+- 41 missed deadlines / 60 seconds;
+- 24 deferred executions / 60 seconds;
+- health/readiness reported degraded from real endpoint communication state.
+
+Those residual values are not hidden or reclassified by the worker-liveness
+fix.
+
+Issue #289 execution remains read-only. Normal browser/page activity must not
+alter physical polling, and Modbus/hardware writes remain forbidden.
