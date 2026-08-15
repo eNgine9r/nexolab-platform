@@ -3,45 +3,39 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T12:01:00Z",
+  "timestamp": "2026-08-15T12:17:30Z",
   "actor": "ChatGPT",
-  "event": "issue_457_product_verified_state_reconciliation_started",
-  "current_main_sha": "41439a5bf692d40555799df80a912ab4bc98735c",
-  "active_issue": 457,
-  "active_pull_request": 460,
-  "active_branch": "feat/457-live-data-graph-first-workspace",
-  "status": "state_reconciliation_then_final_exact_head_verification",
-  "verified_product_head": "acbbeadabe0162286060e3d97353cb51752f7706",
-  "outcome": {
-    "composition": "Live Data reading and focus order is primary chart then filters then latest-values inventory",
-    "selected_context": "selected equipment/channel/metric/unit context is adjacent to the canonical chart without duplicating the full inventory",
-    "empty_selection": "the primary chart exposes a truthful selection-required state and no history request is made while comparison selection is empty",
-    "responsive_layout": "production regression asserts graph-first vertical order and no document-level horizontal overflow at 360, 1440 and 1920 pixels",
-    "history_boundary": "history requests remain limited to selected channel identities and the selected time window",
-    "chart_contract": "Issue #451/#453 mixed-unit axes, Exact Inspector, continuity, hide/show/solo, zoom/reset and Pause/Return to Live behavior remain preserved",
-    "acquisition_boundary": "one existing telemetry model; max one WebSocket and zero acquisition/configuration mutations or public runtime requests in production acceptance"
+  "event": "issue_457_merged_post_merge_state_reconciliation_started",
+  "current_main_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
+  "active_issue": 462,
+  "active_branch": "chore/462-reconcile-issue-457-merge-state",
+  "status": "state_only_reconciliation",
+  "completed_product_work_package": {
+    "issue": 457,
+    "pull_request": 460,
+    "title": "Recompose Live Data around a graph-first operator workspace",
+    "final_pr_head": "56ad319c355bdd1725021d5862beed3b1f3ccf6d",
+    "merge_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
+    "state": "closed_completed",
+    "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
   },
   "verification": {
     "ci": {
       "status": "PASS",
-      "run": 31883123214,
-      "scope": "runtime-contract, ADR and dependency-policy validation; formatting, lint, typecheck, full tests and production build"
+      "run": 31883658826
     },
     "authenticated_dashboard": {
       "status": "PASS",
-      "run": 31883123221,
-      "scenarios": "14/14",
-      "websocket_max_concurrent": 1,
-      "acquisition_mutations": 0,
-      "public_runtime_requests": 0
+      "run": 31883658924,
+      "scenarios": "14/14"
     },
     "refrigeration_browser": {
       "status": "PASS",
-      "run": 31883123215
+      "run": 31883658836
     },
     "offline_bundle": {
       "status": "PASS",
-      "run": 31883123222,
+      "run": 31883658920,
       "exact_source_checkout": true,
       "clean_transferred_host": true,
       "container_egress_blocked": true,
@@ -51,9 +45,7 @@
   },
   "hardware_evidence": {
     "issue_457_raspberry_pi_operator_acceptance": "pending_not_claimed",
-    "issue_289_independent_hardware_lane": "in_progress",
-    "issue_445_raspberry_pi_field_retest": "pending",
-    "issue_447_raspberry_pi_perceived_latency_acceptance": "pending"
+    "issue_289_independent_hardware_lane": "in_progress"
   },
   "safety": {
     "modbus_write": "none",
@@ -68,11 +60,10 @@
     "mandatory_public_runtime_dependency": "none"
   },
   "active_work_package": {
-    "issue": 457,
-    "pull_request": 460,
-    "title": "Recompose Live Data around a graph-first operator workspace",
-    "branch": "feat/457-live-data-graph-first-workspace",
-    "status": "state_reconciliation_then_final_exact_head_verification"
+    "issue": 462,
+    "title": "Reconcile Issue #457 merge state and activate Issue #461",
+    "branch": "chore/462-reconcile-issue-457-merge-state",
+    "status": "state_only_reconciliation"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -82,9 +73,9 @@
   "next_work_package": {
     "issue": 461,
     "title": "Add reusable hierarchical TelemetryPointSelector",
-    "status": "blocked_until_issue_457_merge",
-    "depends_on": [457]
+    "status": "ready",
+    "resolved_dependencies": [457]
   },
-  "next_action": "Run CI, Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle on the new state-reconciled PR head; if all are GREEN, confirm main remains current, audit reviews and focused diff, update PR #460 summary, mark Ready and squash-merge with expected-head protection. Then move Issue #461 from status:blocked to status:ready after merge/state reconciliation.",
-  "resume_instruction": "Do not claim Raspberry Pi acceptance for #457. Preserve Issue #289 as an independent physical evidence lane. Do not implement #461 inside PR #460. No Modbus/hardware writes or site cutover."
+  "next_action": "Create a focused state-only commit and PR for Issue #462, require exact-head CI GREEN, audit main/reviews/diff, squash-merge with expected-head protection, then start Issue #461 on a separate feature branch from reconciled main.",
+  "resume_instruction": "Do not claim Raspberry Pi acceptance for #457. Preserve Issue #289 as an independent physical evidence lane. Do not implement #461 inside the state-only #462 PR. No Modbus/hardware writes or site cutover."
 }

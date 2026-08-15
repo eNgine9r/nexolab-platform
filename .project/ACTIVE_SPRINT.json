@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "41439a5bf692d40555799df80a912ab4bc98735c",
-  "current_main_sha_semantics": "Issue #458 / PR #459 is squash-merged after Issue #453. Issue #457 / PR #460 is the active graph-first Live Data Work Package and is product-verified before final state reconciliation; Issue #289 remains an independent hardware lane.",
+  "current_main_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
+  "current_main_sha_semantics": "Issue #457 / PR #460 graph-first Live Data composition is squash-merged and software/browser/offline verified. Issue #462 is the .project-only post-merge reconciliation. Issue #461 is the next Ready software Work Package; Issue #289 remains an independent hardware lane.",
   "selection_state": {
-    "last_ready_audit_result": "Issue #457 / PR #460 is product-verified on head acbbeada. Issue #461 exists as the next Epic #450 software Work Package but remains status:blocked until #457 merges. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
-    "selected_issue": 457,
-    "selection_status": "product_verified_state_reconciliation_then_final_exact_head_gates",
+    "last_ready_audit_result": "Issue #457 is closed and PR #460 is merged as d69b11ae. Issue #461 is open, assigned and status:ready. Issue #462 is the required .project-only post-merge reconciliation. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
+    "selected_issue": 462,
+    "selection_status": "post_merge_state_reconciliation",
     "independent_hardware_lane": 289,
     "next_independent_software_issue": 461
   },
@@ -41,61 +41,44 @@
       "independent_lane": true
     },
     {
-      "id": "NEXOLAB-453",
-      "issue": 453,
-      "pull_request": 456,
-      "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-      "status": "completed_merged_software_browser_offline_verified",
-      "priority": "critical",
-      "parent_epic": 450,
-      "final_pr_head": "ac15c3e61b04a61ff91d2d929218c3431ea7de3c",
-      "merge_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
-      "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
-    },
-    {
-      "id": "NEXOLAB-458",
-      "issue": 458,
-      "pull_request": 459,
-      "title": "Reconcile Issue #453 merge state and activate Issue #457",
-      "status": "completed_merged_state_only",
-      "priority": "high",
-      "final_pr_head": "2785748ea15d133f7b4d27af14bd8f470c04cac6",
-      "merge_sha": "41439a5bf692d40555799df80a912ab4bc98735c",
-      "scope": ".project/** only"
-    },
-    {
       "id": "NEXOLAB-457",
       "issue": 457,
       "pull_request": 460,
       "title": "Recompose Live Data around a graph-first operator workspace",
-      "status": "product_verified_state_reconciliation_then_final_exact_head_gates",
+      "status": "completed_merged_software_browser_offline_verified",
       "priority": "critical",
       "parent_epic": 450,
-      "branch": "feat/457-live-data-graph-first-workspace",
-      "verified_product_head": "acbbeadabe0162286060e3d97353cb51752f7706",
-      "resolved_dependencies": [453, 458],
+      "final_pr_head": "56ad319c355bdd1725021d5862beed3b1f3ccf6d",
+      "merge_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
       "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+    },
+    {
+      "id": "NEXOLAB-462",
+      "issue": 462,
+      "title": "Reconcile Issue #457 merge state and activate Issue #461",
+      "status": "in_progress_state_only",
+      "priority": "high",
+      "branch": "chore/462-reconcile-issue-457-merge-state",
+      "scope": ".project/** only"
     },
     {
       "id": "NEXOLAB-461",
       "issue": 461,
       "title": "Add reusable hierarchical TelemetryPointSelector",
-      "status": "blocked_until_issue_457_merge",
+      "status": "ready",
       "priority": "critical",
       "parent_epic": 450,
-      "depends_on": [457]
+      "resolved_dependencies": [457]
     }
   ],
   "active_work_package": {
-    "issue": 457,
-    "pull_request": 460,
-    "title": "Recompose Live Data around a graph-first operator workspace",
-    "status": "state_reconciliation_then_final_exact_head_verification",
-    "priority": "critical",
-    "branch": "feat/457-live-data-graph-first-workspace",
-    "verified_product_head": "acbbeadabe0162286060e3d97353cb51752f7706",
-    "hardware_acceptance": "pending_not_claimed",
-    "next_step": "Run CI, Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle again on the new state-reconciled exact PR head; if GREEN, audit current main, reviews and focused diff, mark PR #460 Ready and squash-merge with expected-head protection."
+    "issue": 462,
+    "title": "Reconcile Issue #457 merge state and activate Issue #461",
+    "status": "state_only_reconciliation",
+    "priority": "high",
+    "branch": "chore/462-reconcile-issue-457-merge-state",
+    "scope": ".project/** only",
+    "next_step": "Open a focused state-only PR, require exact-head CI GREEN, then audit main/reviews/diff and squash-merge with expected-head protection."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -106,23 +89,21 @@
   "next_work_package": {
     "issue": 461,
     "title": "Add reusable hierarchical TelemetryPointSelector",
-    "status": "blocked_until_issue_457_merge",
+    "status": "ready",
     "priority": "critical",
-    "first_step_after_unblock": "Move status:blocked to status:ready only after #457 merges and state is reconciled, then create a separate feature branch from updated main for the reusable selector primitive."
+    "first_step": "After Issue #462 merges, move Issue #461 to status:in-progress and create a separate feature branch from reconciled main for the reusable selector primitive only."
   },
   "verification": {
-    "issue_457_verified_product_head": "acbbeadabe0162286060e3d97353cb51752f7706",
-    "issue_457_ci_run": 31883123214,
+    "issue_457_final_pr_head": "56ad319c355bdd1725021d5862beed3b1f3ccf6d",
+    "issue_457_merge_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
+    "issue_457_ci_run": 31883658826,
     "issue_457_ci": "PASS",
-    "issue_457_authenticated_dashboard_run": 31883123221,
+    "issue_457_authenticated_dashboard_run": 31883658924,
     "issue_457_authenticated_dashboard": "14/14 PASS",
-    "issue_457_refrigeration_browser_run": 31883123215,
+    "issue_457_refrigeration_browser_run": 31883658836,
     "issue_457_refrigeration_browser": "PASS",
-    "issue_457_offline_bundle_run": 31883123222,
+    "issue_457_offline_bundle_run": 31883658920,
     "issue_457_offline_bundle": "PASS",
-    "issue_457_websocket_max_concurrent": 1,
-    "issue_457_acquisition_mutations": 0,
-    "issue_457_public_runtime_requests": 0,
     "issue_457_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
   },
   "safety": {
