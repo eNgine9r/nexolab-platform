@@ -2,21 +2,17 @@
 
 Updated: 2026-08-15
 
-## Issue #465 / PR #470
+## Issue #468 — software correction in PR #473
 
-No blocker remains. PR #470 was squash-merged as `8b7bb76115d11de0cc92cfaab2c131f27a891aa6` after all merge-authoritative exact-head workflows passed. Issue #465 is closed/completed and its stale `status:in-progress` label has been removed.
+Issue #468 remains open and `status:in-progress` until PR #473 passes final exact-head verification and merges.
 
-## Critical software blocker — Issue #468
+The focused implementation on head `4bb8ec501dae069240098f669b4d047b90c6bc47` addresses the observed SQLite lock-contention failure with bounded busy retry and process-level fail-closed supervision. Relevant pre-state workflows are GREEN.
 
-Issue #468 is open, `priority:critical`, `status:ready` and selected as the next software Work Package after state-only #471.
-
-Observed production failure: SQLite queue lock contention can terminate the Device Agent acquisition thread while the HTTP server/container remains reachable. This creates an unacceptable live-but-not-acquiring state with stale telemetry.
-
-Issue #468 blocks truthful acquisition recovery and completion of the physical acceptance lane #289 until the software fix is merged and fresh controlled Raspberry Pi evidence proves an active worker and advancing telemetry freshness.
+This is not yet physical acceptance. Issue #289 remains blocked from completion until #468 is merged and fresh controlled Raspberry Pi/RS-485 evidence proves an active acquisition worker and advancing telemetry freshness after contention/recovery or fail-closed restart.
 
 ## Ready operational reliability issue — Issue #469
 
-Issue #469 remains open, `priority:high`, `status:ready` and is ordered after #468.
+Issue #469 remains open, `priority:high`, `status:ready` and is ordered immediately after #468.
 
 The current deployment evidence workflow can exhaust Raspberry Pi disk before updating `main`. The fix must add capacity preflight and bounded retention without deleting PostgreSQL, edge SQLite, MQTT, MinIO or named-volume product data.
 
