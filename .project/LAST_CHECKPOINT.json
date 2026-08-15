@@ -14,20 +14,63 @@
   "merge_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
   "completion_classification": "software/browser/offline verified; physical Raspberry Pi hardware acceptance not claimed",
   "verification": {
-    "ci": {"status": "PASS", "run": 31903598683},
-    "telemetry_service": {"status": "PASS", "run": 31903598706},
-    "authenticated_dashboard": {"status": "PASS", "run": 31903598797},
-    "refrigeration_browser": {"status": "PASS", "run": 31903598778},
-    "offline_bundle": {"status": "PASS", "run": 31903598715},
-    "offline_auth": {"status": "PASS", "run": 31903598743},
-    "acquisition_scale": {"status": "PASS_SOFTWARE_ONLY", "run": 31903598902, "hardware_acceptance": false},
-    "device_agent_fleet": {"status": "PASS", "run": 31903598652},
-    "container_supply_chain": {"status": "PASS", "run": 31903598871},
-    "broker_control": {"status": "PASS", "run": 31903598751},
-    "disaster_recovery_browser": {"status": "PASS_SAME_HEAD_RERUN", "run": 31903598737},
-    "disaster_recovery_tls": {"status": "PASS", "run": 31903598777},
-    "mqtt_tls_fleet": {"status": "PASS", "run": 31903598659},
-    "capacity_release_gate": {"status": "PASS", "run": 31903598661}
+    "ci": {
+      "status": "PASS",
+      "run": 31903598683
+    },
+    "telemetry_service": {
+      "status": "PASS",
+      "run": 31903598706
+    },
+    "authenticated_dashboard": {
+      "status": "PASS",
+      "run": 31903598797
+    },
+    "refrigeration_browser": {
+      "status": "PASS",
+      "run": 31903598778
+    },
+    "offline_bundle": {
+      "status": "PASS",
+      "run": 31903598715
+    },
+    "offline_auth": {
+      "status": "PASS",
+      "run": 31903598743
+    },
+    "acquisition_scale": {
+      "status": "PASS_SOFTWARE_ONLY",
+      "run": 31903598902,
+      "hardware_acceptance": false
+    },
+    "device_agent_fleet": {
+      "status": "PASS",
+      "run": 31903598652
+    },
+    "container_supply_chain": {
+      "status": "PASS",
+      "run": 31903598871
+    },
+    "broker_control": {
+      "status": "PASS",
+      "run": 31903598751
+    },
+    "disaster_recovery_browser": {
+      "status": "PASS_SAME_HEAD_RERUN",
+      "run": 31903598737
+    },
+    "disaster_recovery_tls": {
+      "status": "PASS",
+      "run": 31903598777
+    },
+    "mqtt_tls_fleet": {
+      "status": "PASS",
+      "run": 31903598659
+    },
+    "capacity_release_gate": {
+      "status": "PASS",
+      "run": 31903598661
+    }
   },
   "ready_audit": {
     "open_status_ready_issues": [468, 469],
