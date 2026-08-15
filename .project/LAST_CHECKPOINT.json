@@ -3,82 +3,67 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T20:31:00Z",
+  "timestamp": "2026-08-15T20:48:00Z",
   "actor": "ChatGPT",
-  "event": "issue_468_pre_merge_state_reconciliation",
-  "current_main_sha": "a90c38da5d83c5c557dd7dce72227b86099c6120",
-  "active_issue": 468,
-  "active_pull_request": 473,
-  "active_branch": "fix/468-device-agent-sqlite-lock-recovery",
-  "implementation_head": "4bb8ec501dae069240098f669b4d047b90c6bc47",
-  "completion_classification": "software implementation verified on pre-state head; final exact-head CI and merge pending; physical Raspberry Pi acceptance not claimed",
+  "event": "issue_468_post_merge_state_reconciliation",
+  "current_main_sha": "d06b7958eab08d8ce319b3f3397ac541079e7f68",
+  "completed_issue": 468,
+  "completed_pull_request": 473,
+  "merge_sha": "d06b7958eab08d8ce319b3f3397ac541079e7f68",
+  "source_head": "4dd2cdeb9aa2827e55217a1ba57bf6c6a150bf04",
+  "active_issue": 474,
+  "active_branch": "chore/474-reconcile-issue-468-merge-state",
+  "completion_classification": "Issue #468 software fix merged with exact-head GREEN verification; physical Raspberry Pi acceptance remains unverified and assigned to Issue #289",
   "verification": {
     "ci": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533519
+      "status": "PASS",
+      "run": 31907158772
     },
     "device_agent_fleet": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533550
+      "status": "PASS",
+      "run": 31907158788
     },
     "acquisition_scale": {
-      "status": "PASS_SOFTWARE_ONLY_PRE_STATE",
-      "run": 31905533534,
+      "status": "PASS_SOFTWARE_ONLY",
+      "run": 31907158853,
       "hardware_acceptance": false
     },
     "offline_bundle": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533532
+      "status": "PASS_DISCONNECTED",
+      "run": 31907158836
     },
     "authenticated_dashboard": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533538
+      "status": "PASS",
+      "run": 31907158743
     },
     "mqtt_tls_fleet": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533541
+      "status": "PASS",
+      "run": 31907158756
     },
     "disaster_recovery_tls": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533533
+      "status": "PASS",
+      "run": 31907158716
     },
     "container_supply_chain": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533549
+      "status": "PASS",
+      "run": 31907158779
     },
     "edge_image": {
-      "status": "PASS_PRE_STATE",
-      "run": 31905533542
+      "status": "PASS",
+      "run": 31907158763
     },
-    "reviews": 0,
-    "unresolved_review_threads": 0,
-    "final_exact_head": "pending_after_this_checkpoint"
-  },
-  "scope": {
-    "product_files_before_state": [
-      "services/device-agent/adaptive_main.py",
-      "services/device-agent/main.py",
-      "services/device-agent/tests/test_adaptive_main.py",
-      "services/device-agent/tests/test_runtime_supervision.py",
-      "services/device-agent/tests/test_sqlite_queue_recovery.py"
-    ],
-    "state_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ]
+    "issue_474_exact_head": "pending"
   },
   "next_work_package": {
     "issue": 469,
     "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
-    "status": "status:ready_after_468"
+    "status": "status:ready_after_474"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress_hardware_performance_validation",
-    "hardware_acceptance": "fresh_physical_matrix_required_after_468_469"
+    "hardware_acceptance": "fresh_physical_matrix_required_after_469"
   },
   "safety": {
     "modbus_write": "none",
@@ -91,5 +76,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Run exact-head workflows on this checkpoint, then audit diff/reviews/mergeability and squash merge only if required checks remain GREEN."
+  "next_action": "Commit this .project-only reconciliation, open PR for Issue #474, run exact-head CI/format gate and merge if GREEN; then activate Issue #469."
 }
