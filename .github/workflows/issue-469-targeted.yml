@@ -1,0 +1,25 @@
+name: Temporary Issue 469 targeted verification
+
+on:
+  push:
+    branches:
+      - fix/469-raspberry-pi-deployment-evidence-capacity
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Verify deployment capacity implementation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n scripts/deploy-capacity-guard.sh
+          bash -n scripts/deploy-current-head-raspberry-pi.sh
+          python3 scripts/tests/test_deploy_current_head_raspberry_pi_capacity.py
