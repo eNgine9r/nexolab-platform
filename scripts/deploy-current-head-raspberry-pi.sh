@@ -5,6 +5,8 @@ umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/raspberry-pi-runtime-mode.sh
 source "$SCRIPT_DIR/lib/raspberry-pi-runtime-mode.sh"
+# shellcheck source=deploy-capacity-guard.sh
+source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 
 usage() {
   cat <<'USAGE'
@@ -110,7 +112,7 @@ require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar; do
+for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm; do
   require "$command"
 done
 
@@ -122,6 +124,20 @@ log "Starting controlled current-head deployment"
 log "Repository: $REPO"
 log "Runtime mode: $RUNTIME_MODE"
 log "Evidence: $AUDIT_DIR"
+
+PG_CONTAINER="$(docker ps -q \
+  --filter label=com.docker.compose.project=nexolab-central \
+  --filter label=com.docker.compose.service=postgres \
+  | head -n 1)"
+
+log "Applying bounded deployment-evidence retention"
+if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR"; then
+  fail "deployment evidence retention failed before runtime mutation"
+fi
+log "Running deployment capacity preflight before evidence capture"
+if ! nexolab_capacity_preflight "$REPO" "$AUDIT_DIR" "$PG_CONTAINER" "$AUDIT_DIR/capacity-preflight.txt"; then
+  fail "deployment capacity preflight failed before runtime mutation; see $AUDIT_DIR/capacity-preflight.txt"
+fi
 
 {
   echo '=== host ==='
@@ -171,8 +187,19 @@ git diff > "$AUDIT_DIR/tracked-working-tree.patch"
 git diff --cached > "$AUDIT_DIR/tracked-index.patch"
 git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 
+log "Rechecking deployment capacity immediately before large evidence writes"
+if ! nexolab_capacity_preflight "$REPO" "$AUDIT_DIR" "$PG_CONTAINER" "$AUDIT_DIR/capacity-preflight.txt"; then
+  fail "deployment capacity recheck failed before large writes; see $AUDIT_DIR/capacity-preflight.txt"
+fi
+
 if [[ -d "$REPO/runtime/evidence" ]]; then
-  tar -C "$REPO" -czf "$AUDIT_DIR/runtime-evidence.tar.gz" runtime/evidence
+  RUNTIME_ARCHIVE_TMP="$AUDIT_DIR/.runtime-evidence.tar.gz.partial"
+  rm -f -- "$RUNTIME_ARCHIVE_TMP"
+  if ! tar -C "$REPO" -czf "$RUNTIME_ARCHIVE_TMP" runtime/evidence; then
+    rm -f -- "$RUNTIME_ARCHIVE_TMP"
+    fail "runtime evidence archive failed; partial archive was removed"
+  fi
+  mv -- "$RUNTIME_ARCHIVE_TMP" "$AUDIT_DIR/runtime-evidence.tar.gz"
 fi
 
 docker volume inspect \
@@ -184,17 +211,21 @@ docker volume inspect \
   nexolab-edge_mqtt-data \
   > "$AUDIT_DIR/volume-identities-before.json" 2>"$AUDIT_DIR/volume-identities-before.err" || true
 
-PG_CONTAINER="$(docker ps -q \
-  --filter label=com.docker.compose.project=nexolab-central \
-  --filter label=com.docker.compose.service=postgres \
-  | head -n 1)"
 if [[ -n "$PG_CONTAINER" ]]; then
   log "Creating PostgreSQL pre-upgrade backup"
-  docker exec "$PG_CONTAINER" sh -ec \
+  PG_DUMP_TMP="$AUDIT_DIR/.postgresql-pre-upgrade.dump.partial"
+  rm -f -- "$PG_DUMP_TMP"
+  if ! docker exec "$PG_CONTAINER" sh -ec \
     'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-    > "$AUDIT_DIR/postgresql-pre-upgrade.dump"
-  [[ -s "$AUDIT_DIR/postgresql-pre-upgrade.dump" ]] \
-    || fail "PostgreSQL backup is empty"
+    > "$PG_DUMP_TMP"; then
+    rm -f -- "$PG_DUMP_TMP"
+    fail "PostgreSQL backup failed; partial dump was removed"
+  fi
+  if [[ ! -s "$PG_DUMP_TMP" ]]; then
+    rm -f -- "$PG_DUMP_TMP"
+    fail "PostgreSQL backup is empty; partial dump was removed"
+  fi
+  mv -- "$PG_DUMP_TMP" "$AUDIT_DIR/postgresql-pre-upgrade.dump"
 else
   log "No running central PostgreSQL container found; skipping live pg_dump"
 fi
