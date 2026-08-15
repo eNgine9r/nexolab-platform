@@ -29,13 +29,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import textwrap
 
           helper = Path('.github/workflows/issue-457-graph-first-patch.yml').read_text(encoding='utf-8')
           marker = '        run: |\n'
           start = helper.index(marker) + len(marker)
           end = helper.index('\n      - name: Install dependencies', start)
-          patch_program = textwrap.dedent(helper[start:end])
+          body = helper[start:end]
+          yaml_indent = '          '
+          patch_program = '\n'.join(
+              line[len(yaml_indent):] if line.startswith(yaml_indent) else line
+              for line in body.splitlines()
+          )
           exec(compile(patch_program, 'issue-457-patch.py', 'exec'))
           PY
 
