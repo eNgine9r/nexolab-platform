@@ -19,6 +19,12 @@ function inventoryItem(index: number) {
     node_id: "edge-01",
     equipment_id: `K${unit}`,
     equipment_name: `Dixell XJP60D K${unit}`,
+    climate_chamber_id: `chamber-${unit}`,
+    climate_chamber_code: `K${unit}`,
+    climate_chamber_name: `Climate chamber K${unit}`,
+    equipment_type: "dixell-xjp60d",
+    laboratory: index % 2 === 0 ? "Cold lab" : null,
+    zone: index % 3 === 0 ? "Zone A" : null,
     channel_id: channelId,
     channel_name: `Sensor ${index + 1}`,
     metric: "temperature.probe",
@@ -82,6 +88,8 @@ describe("Raspberry Pi-sized Live Dashboard inventory", () => {
     expect(result.some((item) => item.latest === null)).toBe(true);
     expect(result.some((item) => item.alarm === "high")).toBe(true);
     expect(result.some((item) => item.alarm === "low")).toBe(true);
+    expect(result.some((item) => item.laboratory === null)).toBe(true);
+    expect(result.some((item) => item.zone === null)).toBe(true);
 
     expect(requests).toHaveLength(1);
     expect(requests[0]).toContain("/api/v1/live-dashboards/channel-inventory?limit=500&offset=0");

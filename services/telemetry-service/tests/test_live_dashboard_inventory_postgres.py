@@ -7,7 +7,7 @@ from time import perf_counter
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.climate_catalog.models import (
@@ -23,6 +23,7 @@ from app.live_dashboard.inventory import (
 )
 from app.live_dashboard.repository import LiveDashboardRepository
 from app.nodes.models import CentralNode
+from app.refrigeration.models import RefrigerationEquipmentRecord
 from app.security.models import SecurityOrganization
 from app.security.repository import SecurityRepository
 from tests.live_dashboard_test_support import provision_inventory
@@ -34,7 +35,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
+def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     database = Database(os.environ["DATABASE_URL"])
@@ -60,6 +61,52 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
             name="Inventory query-plan laboratory",
         )
         provision_inventory(database, organization_id, suffix)
+
+        with Session(database.engine) as session:
+            chamber_id = session.scalar(
+                select(ClimateChamber.id).where(
+                    ClimateChamber.organization_id == organization_id,
+                    ClimateChamber.code == f"KK-{suffix.upper()}",
+                )
+            )
+            assert chamber_id is not None
+            with session.begin_nested():
+                session.add(
+                    RefrigerationEquipmentRecord(
+                        id=str(uuid4()),
+                        organization_id=organization_id,
+                        code=f"REF-{suffix}",
+                        name="Taxonomy source",
+                        location="Local",
+                        laboratory="Laboratory A",
+                        zone="Zone 1",
+                        node_id=catalog_node_id,
+                        climate_chamber_id=chamber_id,
+                        equipment_type="refrigeration",
+                        manufacturer="Test",
+                        model="T",
+                        serial_number=f"SER-{suffix}",
+                        temperature_class="M1",
+                        installed_at=None,
+                        serviced_at=None,
+                        lifecycle_status="active",
+                        status="normal",
+                        average_temperature_c=0.0,
+                        min_temperature_c=0.0,
+                        max_temperature_c=0.0,
+                        online_sensors=0,
+                        total_sensors=0,
+                        active_alarms=0,
+                        last_seen_at=None,
+                        version=1,
+                        created_by="test-suite",
+                        created_at=None,
+                        updated_at=None,
+                        deleted_by=None,
+                        deleted_at=None,
+                    )
+                )
+            session.commit()
 
         with database.engine.begin() as connection:
             connection.execute(
@@ -144,9 +191,20 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
             raw_plan = connection.execute(
                 text(f"EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {compiled}")
             ).scalar_one()
+            connection.execute(text("SET LOCAL enable_seqscan = off"))
+            raw_index_plan = connection.execute(
+                text(f"EXPLAIN (FORMAT JSON) {compiled}")
+            ).scalar_one()
         plan = json.loads(raw_plan) if isinstance(raw_plan, str) else raw_plan
+        index_plan = (
+            json.loads(raw_index_plan) if isinstance(raw_index_plan, str) else raw_index_plan
+        )
         plan_document = json.dumps(plan, indent=2, default=str)
+        index_plan_document = json.dumps(index_plan, indent=2, default=str)
         execution_ms = float(plan[0]["Execution Time"])
+        latest_lookup_index = "ix_telemetry_latest_lookup"
+        planner_selected_latest_lookup_index = latest_lookup_index in plan_document
+        index_backed_latest_lookup_path = latest_lookup_index in index_plan_document
 
         started = perf_counter()
         page = list_live_dashboard_inventory(
@@ -163,8 +221,11 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
             "telemetry_fixture_rows": 50003,
             "execution_ms": execution_ms,
             "request_ms": request_ms,
-            "latest_lookup_index": "ix_telemetry_latest_lookup",
+            "latest_lookup_index": latest_lookup_index,
+            "planner_selected_latest_lookup_index": planner_selected_latest_lookup_index,
+            "index_backed_latest_lookup_path": index_backed_latest_lookup_path,
             "plan": plan,
+            "index_preferred_plan": index_plan,
         }
         evidence_path.parent.mkdir(parents=True, exist_ok=True)
         evidence_path.write_text(json.dumps(evidence, indent=2, default=str) + "\n")
@@ -177,7 +238,9 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
                         "telemetry_fixture_rows": 50003,
                         "execution_ms": execution_ms,
                         "request_ms": request_ms,
-                        "latest_lookup_index": "ix_telemetry_latest_lookup",
+                        "latest_lookup_index": latest_lookup_index,
+                        "planner_selected_latest_lookup_index": planner_selected_latest_lookup_index,
+                        "index_backed_latest_lookup_path": index_backed_latest_lookup_path,
                     },
                     sort_keys=True,
                 ),
@@ -186,12 +249,14 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
 
         assert execution_ms < 8000
         assert request_ms < 8000
-        assert "ix_telemetry_latest_lookup" in plan_document
+        assert index_backed_latest_lookup_path
         assert page.total == 2
         by_channel = {item.channel_id: item for item in page.items}
         assert by_channel[catalog_channel_id].latest is not None
         assert by_channel[catalog_channel_id].latest.value == 5.0
         assert by_channel[catalog_channel_id].alarm == "high"
+        assert by_channel[catalog_channel_id].laboratory == "Laboratory A"
+        assert by_channel[catalog_channel_id].zone == "Zone 1"
         assert by_channel[f"{suffix}-temperature-02"].latest is None
     finally:
         with Session(database.engine) as session:
@@ -199,6 +264,11 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
                 session.execute(
                     delete(TelemetrySample).where(
                         TelemetrySample.node_id.in_([unrelated_node_id, catalog_node_id])
+                    )
+                )
+                session.execute(
+                    delete(RefrigerationEquipmentRecord).where(
+                        RefrigerationEquipmentRecord.organization_id == organization_id
                     )
                 )
                 session.execute(

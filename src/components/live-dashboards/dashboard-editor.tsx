@@ -8,31 +8,32 @@ import {
   ArrowLeft,
   ArrowUp,
   CheckCircle2,
-  Plus,
   RefreshCw,
   Save,
-  Search,
   Trash2,
 } from "lucide-react";
 
 import {
-  addDashboardDraftItem,
   dashboardItemIdentity,
-  defaultLiveDashboardInventoryFilters,
-  filterLiveDashboardInventory,
   moveDashboardDraftItem,
   removeDashboardDraftItem,
 } from "@/features/live-dashboards/model";
 import {
+  buildLiveDashboardTelemetrySelectionModel,
+  reconcileLiveDashboardTelemetrySelection,
+} from "@/features/live-dashboards/telemetry-selection-adapter";
+import {
+  LIVE_DASHBOARD_MAX_ITEMS,
   LIVE_DASHBOARD_REFRESH_SECONDS,
   LIVE_DASHBOARD_TIME_WINDOWS,
   LIVE_DASHBOARD_VISUALIZATIONS,
   type LiveDashboardDraft,
-  type LiveDashboardInventoryFilters,
   type LiveDashboardValidation,
 } from "@/features/live-dashboards/types";
 import type { LiveDashboardConflict } from "@/hooks/use-live-dashboard-library";
 import type { LiveDashboardInventoryModel } from "@/hooks/use-live-dashboard-inventory";
+
+import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
 
 const VISUALIZATION_LABELS = {
   line: "Лінія",
@@ -41,49 +42,8 @@ const VISUALIZATION_LABELS = {
   value: "Значення",
 } as const;
 
-function sortedUnique(values: Iterable<string>): string[] {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right, "uk-UA"));
-}
-
-function qualityLabel(value: string): string {
-  if (value === "valid") return "Валідні";
-  if (value === "sensor_error") return "Помилка датчика";
-  if (value === "communication_error") return "Помилка зв’язку";
-  if (value === "unknown") return "Невідомі";
-  return "Усі";
-}
-
-function SelectFilter({
-  label,
-  value,
-  values,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  values: string[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="grid gap-1.5 text-xs font-medium text-slate-400">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 min-w-0 rounded-xl border border-white/10 bg-[#06142a] px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-400/10"
-      >
-        <option value="all">Усі</option>
-        {values.map((item) => (
-          <option key={item} value={item}>
-            {item}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 export function DashboardEditor({
+  organizationId,
   draft,
   setDraft,
   inventory,
@@ -96,6 +56,7 @@ export function DashboardEditor({
   onUseServerVersion,
   onSaveAsCopy,
 }: {
+  organizationId: string;
   draft: LiveDashboardDraft;
   setDraft: Dispatch<SetStateAction<LiveDashboardDraft>>;
   inventory: LiveDashboardInventoryModel;
@@ -108,25 +69,14 @@ export function DashboardEditor({
   onUseServerVersion: () => void;
   onSaveAsCopy: () => void;
 }) {
-  const [filters, setFilters] = useState<LiveDashboardInventoryFilters>(defaultLiveDashboardInventoryFilters);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
-  const filteredInventory = useMemo(
-    () => filterLiveDashboardInventory(inventory.items, filters),
-    [filters, inventory.items],
+  const selectionModel = useMemo(
+    () => buildLiveDashboardTelemetrySelectionModel(organizationId, inventory.items, draft.items),
+    [draft.items, inventory.items, organizationId],
   );
-  const selectedKeys = useMemo(() => new Set(draft.items.map(dashboardItemIdentity)), [draft.items]);
-  const availableKeys = useMemo(
-    () => new Set(inventory.items.map((item) => dashboardItemIdentity(item))),
-    [inventory.items],
-  );
-  const unavailableItems = draft.items.filter((item) => !availableKeys.has(dashboardItemIdentity(item)));
-  const nodeOptions = sortedUnique(inventory.items.map((item) => item.node_id));
-  const equipmentOptions = sortedUnique(inventory.items.map((item) => item.equipment_id));
-  const metricOptions = sortedUnique(inventory.items.map((item) => item.metric));
-
-  const updateFilter = (field: keyof LiveDashboardInventoryFilters, value: string) => {
-    setFilters((current) => ({ ...current, [field]: value }));
-  };
+  const availableKeys = selectionModel.inventoryIdentities;
+  const unavailableItems = selectionModel.unresolvedItems;
+  const availableSelectionLimit = Math.max(0, LIVE_DASHBOARD_MAX_ITEMS - unavailableItems.length);
 
   return (
     <section className="space-y-5" aria-labelledby="live-dashboard-editor-title">
@@ -403,7 +353,7 @@ export function DashboardEditor({
 
             {draft.items.length === 0 ? (
               <p className="mt-4 rounded-2xl border border-dashed border-white/10 p-4 text-center text-sm text-slate-500">
-                Виберіть канали з inventory праворуч.
+                Виберіть точки телеметрії в ієрархії праворуч.
               </p>
             ) : null}
 
@@ -417,18 +367,19 @@ export function DashboardEditor({
           </section>
         </div>
 
-        <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="min-w-0 space-y-4">
+          <div className="flex flex-col gap-3 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">Canonical channel inventory</h2>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Inventory завантажується лише для редактора. Live view використовує тільки збережені канали.
+              <h2 className="text-lg font-semibold text-white">Ієрархічний вибір телеметрії</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                Один read-only inventory: лабораторія / зона → тип обладнання → обладнання → канал і метрика.
+                Непідтверджені зміни не змінюють Dashboard.
               </p>
             </div>
             <button
               type="button"
               onClick={inventory.retry}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm text-slate-300 hover:border-cyan-300/30"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm text-slate-300 hover:border-cyan-300/30"
             >
               <RefreshCw
                 className={`h-4 w-4 ${inventory.status === "loading" ? "animate-spin" : ""}`}
@@ -438,145 +389,58 @@ export function DashboardEditor({
             </button>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <label className="grid gap-1.5 text-xs font-medium text-slate-400 md:col-span-2 xl:col-span-3">
-              Пошук
-              <span className="relative block">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-500"
-                  aria-hidden="true"
-                />
-                <input
-                  type="search"
-                  value={filters.search}
-                  onChange={(event) => updateFilter("search", event.target.value)}
-                  placeholder="Node, equipment, channel, metric, source"
-                  className="h-10 w-full rounded-xl border border-white/10 bg-[#06142a] pr-3 pl-10 text-sm text-slate-100 outline-none"
-                />
-              </span>
-            </label>
-            <SelectFilter
-              label="Node"
-              value={filters.node_id}
-              values={nodeOptions}
-              onChange={(value) => updateFilter("node_id", value)}
-            />
-            <SelectFilter
-              label="Equipment"
-              value={filters.equipment_id}
-              values={equipmentOptions}
-              onChange={(value) => updateFilter("equipment_id", value)}
-            />
-            <SelectFilter
-              label="Metric"
-              value={filters.metric}
-              values={metricOptions}
-              onChange={(value) => updateFilter("metric", value)}
-            />
-            <label className="grid gap-1.5 text-xs font-medium text-slate-400">
-              Якість latest
-              <select
-                value={filters.quality}
-                onChange={(event) => updateFilter("quality", event.target.value)}
-                className="h-10 rounded-xl border border-white/10 bg-[#06142a] px-3 text-sm text-slate-100"
-              >
-                {["all", "valid", "sensor_error", "communication_error", "unknown"].map((value) => (
-                  <option key={value} value={value}>
-                    {qualityLabel(value)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-xs font-medium text-slate-400">
-              Тривога latest
-              <select
-                value={filters.alarm}
-                onChange={(event) => updateFilter("alarm", event.target.value)}
-                className="h-10 rounded-xl border border-white/10 bg-[#06142a] px-3 text-sm text-slate-100"
-              >
-                <option value="all">Усі</option>
-                <option value="active">Активна</option>
-                <option value="none">Без тривоги</option>
-              </select>
-            </label>
-          </div>
-
           {selectionNotice ? (
-            <p className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05] px-3 py-2 text-xs text-cyan-100">
+            <p
+              className="rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05] px-3 py-2 text-xs text-cyan-100"
+              role="status"
+            >
               {selectionNotice}
             </p>
           ) : null}
 
           {inventory.status === "loading" ? (
-            <div className="grid min-h-64 place-items-center text-sm text-cyan-100">
+            <div className="grid min-h-64 place-items-center rounded-3xl border border-white/[0.08] bg-[#091a31]/90 text-sm text-cyan-100">
               <span className="inline-flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Читання latest inventory…
+                Читання canonical inventory…
               </span>
             </div>
           ) : null}
 
           {inventory.status === "error" ? (
-            <div className="mt-4 rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100">
+            <div
+              className="rounded-2xl border border-red-300/15 bg-red-400/[0.06] p-4 text-sm text-red-100"
+              role="alert"
+            >
               {inventory.error?.message ?? "Inventory недоступний."}
             </div>
           ) : null}
 
-          {inventory.status === "ready" && filteredInventory.length === 0 ? (
-            <div className="grid min-h-56 place-items-center text-center text-sm text-slate-500">
-              <p>Каналів за цими фільтрами немає.</p>
+          {inventory.status === "ready" && inventory.items.length === 0 ? (
+            <div className="grid min-h-56 place-items-center rounded-3xl border border-dashed border-white/10 bg-[#091a31]/70 p-5 text-center text-sm text-slate-500">
+              <p>У canonical inventory немає доступних точок телеметрії.</p>
             </div>
           ) : null}
 
-          {inventory.status === "ready" && filteredInventory.length > 0 ? (
-            <div className="mt-5 max-h-[720px] space-y-2 overflow-y-auto pr-1">
-              {filteredInventory.map((item) => {
-                const selected = selectedKeys.has(item.key);
-                return (
-                  <article
-                    key={item.key}
-                    className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-[#06142a]/75 p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-100">
-                        {item.channel_id} · {item.metric}
-                      </p>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        {item.node_id} · {item.equipment_id} · {item.source} · {item.native_unit}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Якість: {qualityLabel(item.quality)} · Тривога: {item.alarm ?? "немає"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={selected}
-                      onClick={() => {
-                        setDraft((current) => {
-                          const result = addDashboardDraftItem(current, item);
-                          setSelectionNotice(
-                            result.reason === "added"
-                              ? `${item.channel_id} додано.`
-                              : result.reason === "duplicate"
-                                ? "Цей канал уже вибрано."
-                                : "Досягнуто межу 64 канали.",
-                          );
-                          return result.draft;
-                        });
-                      }}
-                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/15 px-3 text-sm text-cyan-100 hover:bg-cyan-400/[0.06] disabled:cursor-not-allowed disabled:border-emerald-300/10 disabled:text-emerald-300"
-                    >
-                      {selected ? (
-                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                      ) : (
-                        <Plus className="h-4 w-4" aria-hidden="true" />
-                      )}
-                      {selected ? "Додано" : "Додати"}
-                    </button>
-                  </article>
+          {inventory.status === "ready" && inventory.items.length > 0 ? (
+            <TelemetryPointSelector
+              hierarchy={selectionModel.hierarchy}
+              value={selectionModel.selectedKeys}
+              maxSelection={availableSelectionLimit}
+              title="Канали Live Dashboard"
+              onConfirm={(selected) => {
+                setDraft((current) =>
+                  reconcileLiveDashboardTelemetrySelection(
+                    current,
+                    selected,
+                    organizationId,
+                    inventory.items,
+                  ),
                 );
-              })}
-            </div>
+                setSelectionNotice("Підтверджений вибір застосовано до чернетки Dashboard.");
+              }}
+              onCancel={() => setSelectionNotice("Непідтверджені зміни селектора скасовано.")}
+            />
           ) : null}
         </section>
       </div>

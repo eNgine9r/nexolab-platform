@@ -42,6 +42,11 @@ function stringValue(value: unknown, field: string): string {
   return value;
 }
 
+function nullableStringValue(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return stringValue(value, field);
+}
+
 function numberValue(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new LiveDashboardInventoryClientError(`${field} is invalid.`, undefined, "contract");
@@ -117,6 +122,12 @@ function parseItem(value: unknown): LiveDashboardInventoryItem {
     node_id: stringValue(value.node_id, "Inventory node"),
     equipment_id: stringValue(value.equipment_id, "Inventory equipment"),
     equipment_name: stringValue(value.equipment_name, "Inventory equipment name"),
+    climate_chamber_id: stringValue(value.climate_chamber_id, "Inventory climate chamber id"),
+    climate_chamber_code: stringValue(value.climate_chamber_code, "Inventory climate chamber code"),
+    climate_chamber_name: stringValue(value.climate_chamber_name, "Inventory climate chamber name"),
+    equipment_type: stringValue(value.equipment_type, "Inventory equipment type"),
+    laboratory: nullableStringValue(value.laboratory, "Inventory laboratory"),
+    zone: nullableStringValue(value.zone, "Inventory zone"),
     channel_id: channelId,
     channel_name: stringValue(value.channel_name, "Inventory channel name"),
     metric,

@@ -254,6 +254,7 @@ export function LiveDashboardWorkspace({
 
       {mode === "editor" ? (
         <DashboardEditor
+          organizationId={organizationId}
           draft={draft}
           setDraft={setDraft}
           inventory={inventory}

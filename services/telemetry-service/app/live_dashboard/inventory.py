@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, aliased
 
 from app.climate_catalog.models import (
@@ -15,6 +15,7 @@ from app.climate_catalog.models import (
 from app.db import TelemetrySample
 from app.live_dashboard.repository import LiveDashboardRepository
 from app.nodes.models import CentralNode
+from app.refrigeration.models import RefrigerationEquipmentRecord
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,12 @@ class InventoryChannelRecord:
     node_id: str
     equipment_id: str
     equipment_name: str
+    climate_chamber_id: str
+    climate_chamber_code: str
+    climate_chamber_name: str
+    equipment_type: str
+    laboratory: str | None
+    zone: str | None
     channel_id: str
     channel_name: str
     metric: str
@@ -102,6 +109,12 @@ def list_live_dashboard_inventory(
                     node_id=mapping["node_id"],
                     equipment_id=mapping["equipment_id"],
                     equipment_name=mapping["equipment_name"],
+                    climate_chamber_id=mapping["climate_chamber_id"],
+                    climate_chamber_code=mapping["climate_chamber_code"],
+                    climate_chamber_name=mapping["climate_chamber_name"],
+                    equipment_type=mapping["equipment_type"],
+                    laboratory=mapping["laboratory"],
+                    zone=mapping["zone"],
                     channel_id=mapping["channel_id"],
                     channel_name=mapping["channel_name"],
                     metric=mapping["metric"],
@@ -130,7 +143,12 @@ def inventory_query_plan_statement(
     limit: int,
     offset: int = 0,
 ):
-    """Return the exact full query used for PostgreSQL EXPLAIN evidence."""
+    """Return the exact full query used for PostgreSQL EXPLAIN evidence.
+
+    Keep the bounded catalog/latest-value page as an optimization boundary before
+    enriching it with operator taxonomy. The LIMIT prevents the taxonomy join from
+    changing the correlated latest-sample lookup plan.
+    """
 
     del repository
     sample_candidate = aliased(TelemetrySample, name="inventory_sample_candidate")
@@ -138,50 +156,137 @@ def inventory_query_plan_statement(
     latest_sample_id = (
         select(sample_candidate.id)
         .where(
-            sample_candidate.node_id == MeasurementBus.node_id,
-            sample_candidate.equipment_id == MeasurementDevice.business_key,
-            sample_candidate.channel_id == MeasurementChannel.channel_id,
-            sample_candidate.metric == MeasurementChannel.metric_type,
+  sample_candidate.node_id == MeasurementBus.node_id,
+  sample_candidate.equipment_id == MeasurementDevice.business_key,
+  sample_candidate.channel_id == MeasurementChannel.channel_id,
+  sample_candidate.metric == MeasurementChannel.metric_type,
         )
         .order_by(
-            sample_candidate.captured_at.desc(),
-            sample_candidate.event_id.desc(),
+  sample_candidate.captured_at.desc(),
+  sample_candidate.event_id.desc(),
         )
         .limit(1)
         .correlate(MeasurementBus, MeasurementDevice, MeasurementChannel)
         .scalar_subquery()
     )
-    return (
+    inventory_page = (
         _eligible_catalog_select(organization_id)
         .with_only_columns(
-            MeasurementChannel.id.label("channel_ref_id"),
-            MeasurementBus.node_id.label("node_id"),
-            MeasurementDevice.business_key.label("equipment_id"),
-            MeasurementDevice.display_name.label("equipment_name"),
-            MeasurementChannel.channel_id.label("channel_id"),
-            MeasurementChannel.display_name.label("channel_name"),
-            MeasurementChannel.metric_type.label("metric"),
-            MeasurementChannel.unit.label("native_unit"),
-            MeasurementDevice.device_type.label("catalog_source"),
-            latest_sample.event_id.label("latest_event_id"),
-            latest_sample.captured_at.label("latest_captured_at"),
-            latest_sample.value.label("latest_value"),
-            latest_sample.unit.label("latest_unit"),
-            latest_sample.quality.label("latest_quality"),
-            latest_sample.source.label("latest_source"),
-            latest_sample.alarm.label("latest_alarm"),
-            latest_sample.received_at.label("latest_received_at"),
+  MeasurementChannel.organization_id.label("organization_id"),
+  MeasurementChannel.id.label("channel_ref_id"),
+  MeasurementBus.node_id.label("node_id"),
+  MeasurementDevice.business_key.label("equipment_id"),
+  MeasurementDevice.display_name.label("equipment_name"),
+  ClimateChamber.id.label("climate_chamber_id"),
+  ClimateChamber.code.label("climate_chamber_code"),
+  ClimateChamber.name.label("climate_chamber_name"),
+  MeasurementDevice.device_type.label("equipment_type"),
+  MeasurementChannel.channel_id.label("channel_id"),
+  MeasurementChannel.display_name.label("channel_name"),
+  MeasurementChannel.metric_type.label("metric"),
+  MeasurementChannel.unit.label("native_unit"),
+  MeasurementDevice.device_type.label("catalog_source"),
+  latest_sample.event_id.label("latest_event_id"),
+  latest_sample.captured_at.label("latest_captured_at"),
+  latest_sample.value.label("latest_value"),
+  latest_sample.unit.label("latest_unit"),
+  latest_sample.quality.label("latest_quality"),
+  latest_sample.source.label("latest_source"),
+  latest_sample.alarm.label("latest_alarm"),
+  latest_sample.received_at.label("latest_received_at"),
         )
         .outerjoin(latest_sample, latest_sample.id == latest_sample_id)
         .order_by(
-            MeasurementBus.node_id.asc(),
-            MeasurementDevice.business_key.asc(),
-            MeasurementChannel.channel_id.asc(),
-            MeasurementChannel.metric_type.asc(),
-            MeasurementChannel.id.asc(),
+  MeasurementBus.node_id.asc(),
+  MeasurementDevice.business_key.asc(),
+  MeasurementChannel.channel_id.asc(),
+  MeasurementChannel.metric_type.asc(),
+  MeasurementChannel.id.asc(),
         )
         .limit(limit)
         .offset(offset)
+        .subquery("live_dashboard_inventory_page")
+    )
+    taxonomy = _equipment_taxonomy_subquery(organization_id)
+    return (
+        select(
+  inventory_page.c.channel_ref_id,
+  inventory_page.c.node_id,
+  inventory_page.c.equipment_id,
+  inventory_page.c.equipment_name,
+  inventory_page.c.climate_chamber_id,
+  inventory_page.c.climate_chamber_code,
+  inventory_page.c.climate_chamber_name,
+  inventory_page.c.equipment_type,
+  taxonomy.c.laboratory.label("laboratory"),
+  taxonomy.c.zone.label("zone"),
+  inventory_page.c.channel_id,
+  inventory_page.c.channel_name,
+  inventory_page.c.metric,
+  inventory_page.c.native_unit,
+  inventory_page.c.catalog_source,
+  inventory_page.c.latest_event_id,
+  inventory_page.c.latest_captured_at,
+  inventory_page.c.latest_value,
+  inventory_page.c.latest_unit,
+  inventory_page.c.latest_quality,
+  inventory_page.c.latest_source,
+  inventory_page.c.latest_alarm,
+  inventory_page.c.latest_received_at,
+        )
+        .select_from(inventory_page)
+        .outerjoin(
+  taxonomy,
+  (taxonomy.c.organization_id == inventory_page.c.organization_id)
+  & (taxonomy.c.climate_chamber_id == inventory_page.c.climate_chamber_id),
+        )
+        .order_by(
+  inventory_page.c.node_id.asc(),
+  inventory_page.c.equipment_id.asc(),
+  inventory_page.c.channel_id.asc(),
+  inventory_page.c.metric.asc(),
+  inventory_page.c.channel_ref_id.asc(),
+        )
+    )
+
+def _equipment_taxonomy_subquery(organization_id: str):
+    """Return only unambiguous chamber-level operator taxonomy.
+
+    Multiple active/maintenance equipment records may share a climate chamber.
+    A laboratory or zone is exposed only when all known values agree. Missing or
+    conflicting metadata remains NULL so the frontend can present it truthfully.
+    """
+
+    return (
+        select(
+            RefrigerationEquipmentRecord.organization_id.label("organization_id"),
+            RefrigerationEquipmentRecord.climate_chamber_id.label("climate_chamber_id"),
+            case(
+                (
+                    func.count(func.distinct(RefrigerationEquipmentRecord.laboratory)) == 1,
+                    func.min(RefrigerationEquipmentRecord.laboratory),
+                ),
+                else_=None,
+            ).label("laboratory"),
+            case(
+                (
+                    func.count(func.distinct(RefrigerationEquipmentRecord.zone)) == 1,
+                    func.min(RefrigerationEquipmentRecord.zone),
+                ),
+                else_=None,
+            ).label("zone"),
+        )
+        .where(
+            RefrigerationEquipmentRecord.organization_id == organization_id,
+            RefrigerationEquipmentRecord.deleted_at.is_(None),
+            RefrigerationEquipmentRecord.lifecycle_status != "retired",
+            RefrigerationEquipmentRecord.climate_chamber_id.is_not(None),
+        )
+        .group_by(
+            RefrigerationEquipmentRecord.organization_id,
+            RefrigerationEquipmentRecord.climate_chamber_id,
+        )
+        .subquery("live_dashboard_equipment_taxonomy")
     )
 
 
