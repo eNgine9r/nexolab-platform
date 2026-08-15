@@ -3,107 +3,93 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T19:36:00Z",
+  "timestamp": "2026-08-15T20:31:00Z",
   "actor": "ChatGPT",
-  "event": "issue_465_merged_post_merge_reconciliation",
-  "current_main_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
-  "completed_issue": 465,
-  "completed_pull_request": 470,
-  "completed_branch": "feat/465-live-dashboard-telemetry-selector",
-  "final_pr_head": "31d71914e7ddd86e8d52936c0849b9722bc53eae",
-  "merge_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
-  "completion_classification": "software/browser/offline verified; physical Raspberry Pi hardware acceptance not claimed",
+  "event": "issue_468_pre_merge_state_reconciliation",
+  "current_main_sha": "a90c38da5d83c5c557dd7dce72227b86099c6120",
+  "active_issue": 468,
+  "active_pull_request": 473,
+  "active_branch": "fix/468-device-agent-sqlite-lock-recovery",
+  "implementation_head": "4bb8ec501dae069240098f669b4d047b90c6bc47",
+  "completion_classification": "software implementation verified on pre-state head; final exact-head CI and merge pending; physical Raspberry Pi acceptance not claimed",
   "verification": {
     "ci": {
-      "status": "PASS",
-      "run": 31903598683
-    },
-    "telemetry_service": {
-      "status": "PASS",
-      "run": 31903598706
-    },
-    "authenticated_dashboard": {
-      "status": "PASS",
-      "run": 31903598797
-    },
-    "refrigeration_browser": {
-      "status": "PASS",
-      "run": 31903598778
-    },
-    "offline_bundle": {
-      "status": "PASS",
-      "run": 31903598715
-    },
-    "offline_auth": {
-      "status": "PASS",
-      "run": 31903598743
-    },
-    "acquisition_scale": {
-      "status": "PASS_SOFTWARE_ONLY",
-      "run": 31903598902,
-      "hardware_acceptance": false
+      "status": "PASS_PRE_STATE",
+      "run": 31905533519
     },
     "device_agent_fleet": {
-      "status": "PASS",
-      "run": 31903598652
+      "status": "PASS_PRE_STATE",
+      "run": 31905533550
     },
-    "container_supply_chain": {
-      "status": "PASS",
-      "run": 31903598871
+    "acquisition_scale": {
+      "status": "PASS_SOFTWARE_ONLY_PRE_STATE",
+      "run": 31905533534,
+      "hardware_acceptance": false
     },
-    "broker_control": {
-      "status": "PASS",
-      "run": 31903598751
+    "offline_bundle": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533532
     },
-    "disaster_recovery_browser": {
-      "status": "PASS_SAME_HEAD_RERUN",
-      "run": 31903598737
-    },
-    "disaster_recovery_tls": {
-      "status": "PASS",
-      "run": 31903598777
+    "authenticated_dashboard": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533538
     },
     "mqtt_tls_fleet": {
-      "status": "PASS",
-      "run": 31903598659
+      "status": "PASS_PRE_STATE",
+      "run": 31905533541
     },
-    "capacity_release_gate": {
-      "status": "PASS",
-      "run": 31903598661
-    }
+    "disaster_recovery_tls": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533533
+    },
+    "container_supply_chain": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533549
+    },
+    "edge_image": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533542
+    },
+    "reviews": 0,
+    "unresolved_review_threads": 0,
+    "final_exact_head": "pending_after_this_checkpoint"
   },
-  "ready_audit": {
-    "open_status_ready_issues": [468, 469],
-    "selected_next_software_issue": 468,
-    "selected_reason": "priority:critical production defect can silently stop physical acquisition while HTTP/container remains reachable and directly blocks truthful acquisition plus Issue #289 completion",
-    "next_ready_after_selected": 469,
-    "issue_469_reason": "priority:high deployment/evidence disk-capacity defect must be fixed before reliable repeated Raspberry Pi deployment acceptance"
-  },
-  "active_work_package": {
-    "issue": 471,
-    "title": "Reconcile Issue #465 merge state and select next Ready software Work Package",
-    "branch": "chore/471-reconcile-issue-465-merge-state",
-    "status": "state_only_pr_and_exact_head_ci_pending"
+  "scope": {
+    "product_files_before_state": [
+      "services/device-agent/adaptive_main.py",
+      "services/device-agent/main.py",
+      "services/device-agent/tests/test_adaptive_main.py",
+      "services/device-agent/tests/test_runtime_supervision.py",
+      "services/device-agent/tests/test_sqlite_queue_recovery.py"
+    ],
+    "state_files": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ]
   },
   "next_work_package": {
-    "issue": 468,
-    "title": "Keep Device Agent acquisition alive across SQLite queue lock contention",
-    "status": "status:ready_selected"
+    "issue": 469,
+    "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
+    "status": "status:ready_after_468"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress_hardware_performance_validation",
-    "hardware_acceptance": "fresh_physical_matrix_required_after_468_and_relevant_operational_fix"
+    "hardware_acceptance": "fresh_physical_matrix_required_after_468_469"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "controller_configuration_change": "none",
+    "polling_policy_change": "none",
+    "acquisition_registry_change": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Open a .project-only PR for Issue #471, verify exact-head CI and focused diff, squash merge, then move Issue #468 to status:in-progress and start its focused branch from reconciled main."
+  "next_action": "Run exact-head workflows on this checkpoint, then audit diff/reviews/mergeability and squash merge only if required checks remain GREEN."
 }

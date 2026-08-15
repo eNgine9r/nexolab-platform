@@ -19,12 +19,12 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
-  "current_main_sha_semantics": "Issue #465 / PR #470 is squash-merged and closed. Issue #471 is the active state-only reconciliation. Issue #468 is selected as the next software Work Package; Issue #469 remains next Ready. Issue #289 remains the independent physical Raspberry Pi/RS-485 lane.",
+  "current_main_sha": "a90c38da5d83c5c557dd7dce72227b86099c6120",
+  "current_main_sha_semantics": "Issue #471 / PR #472 is squash-merged and closed. Issue #468 is the active critical software Work Package in PR #473. Issue #469 remains next Ready. Issue #289 remains the independent physical Raspberry Pi/RS-485 lane.",
   "selection_state": {
-    "last_ready_audit_result": "Open status:ready software Issues are #468 (priority:critical) and #469 (priority:high). #468 is selected first because silent Device Agent acquisition death can leave HTTP health reachable while telemetry is stale and directly blocks truthful acquisition/#289 hardware acceptance. #469 remains Ready immediately after #468 for capacity-safe Raspberry Pi deployment evidence.",
+    "last_ready_audit_result": "Issue #468 is active. Issue #469 remains the next status:ready software Work Package. Issue #289 remains an independent hardware lane and cannot be accepted from software CI.",
     "selected_issue": 468,
-    "selection_status": "selected_after_issue_465_merge_reconciliation",
+    "selection_status": "in_progress_pr_473_pre_merge",
     "independent_hardware_lane": 289,
     "next_independent_software_issue": 469
   },
@@ -33,41 +33,33 @@
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "in_progress_hardware_performance_validation_blocked_by_468_and_fresh_physical_retest",
+      "status": "in_progress_hardware_performance_validation_blocked_by_468_469_and_fresh_physical_retest",
       "priority": "critical",
       "assignee": "eNgine9r",
       "hardware_acceptance": "fresh_physical_matrix_required",
       "independent_lane": true
     },
     {
-      "id": "NEXOLAB-465",
-      "issue": 465,
-      "pull_request": 470,
-      "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
-      "status": "completed_merged",
-      "priority": "critical",
-      "parent_epic": 450,
-      "final_pr_head": "31d71914e7ddd86e8d52936c0849b9722bc53eae",
-      "merge_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
-      "classification": "software/browser/offline verified; Raspberry Pi hardware acceptance not claimed"
-    },
-    {
       "id": "NEXOLAB-471",
       "issue": 471,
+      "pull_request": 472,
       "title": "Reconcile Issue #465 merge state and select next Ready software Work Package",
-      "status": "in_progress_state_only",
+      "status": "completed_merged",
       "priority": "high",
-      "branch": "chore/471-reconcile-issue-465-merge-state",
-      "scope": ".project/** only"
+      "merge_sha": "a90c38da5d83c5c557dd7dce72227b86099c6120",
+      "classification": "state-only; no product/runtime change"
     },
     {
       "id": "NEXOLAB-468",
       "issue": 468,
+      "pull_request": 473,
       "title": "Keep Device Agent acquisition alive across SQLite queue lock contention",
-      "status": "ready_selected_next",
+      "status": "in_progress_final_state_exact_head_ci_pending",
       "priority": "critical",
       "area": "edge",
-      "classification": "software fix requires post-merge controlled Raspberry Pi evidence"
+      "branch": "fix/468-device-agent-sqlite-lock-recovery",
+      "implementation_head": "4bb8ec501dae069240098f669b4d047b90c6bc47",
+      "classification": "software fix; post-merge controlled Raspberry Pi evidence required"
     },
     {
       "id": "NEXOLAB-469",
@@ -80,43 +72,38 @@
     }
   ],
   "active_work_package": {
-    "issue": 471,
-    "title": "Reconcile Issue #465 merge state and select next Ready software Work Package",
-    "status": "state_only_exact_head_verification_pending",
-    "priority": "high",
-    "branch": "chore/471-reconcile-issue-465-merge-state",
-    "next_step": "Create focused .project-only PR, pass exact-head CI, audit diff/reviews/mergeability and squash merge. Then start Issue #468 from reconciled main."
+    "issue": 468,
+    "pull_request": 473,
+    "title": "Keep Device Agent acquisition alive across SQLite queue lock contention",
+    "status": "final_state_exact_head_verification_pending",
+    "priority": "critical",
+    "branch": "fix/468-device-agent-sqlite-lock-recovery",
+    "next_step": "Run exact-head workflows after canonical .project reconciliation, audit focused diff/reviews/mergeability, mark PR #473 ready and squash merge only when required checks are GREEN. Physical Raspberry Pi acceptance remains pending after merge."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress",
-    "hardware_acceptance": "fresh_physical_matrix_required_after_468_and_relevant_operational_fixes"
+    "hardware_acceptance": "fresh_physical_matrix_required_after_468_469"
   },
   "next_work_package": {
-    "issue": 468,
-    "title": "Keep Device Agent acquisition alive across SQLite queue lock contention",
-    "status": "status:ready_selected",
-    "first_step": "After #471 merges, move #468 to status:in-progress, create one focused feature branch from reconciled main, reproduce SQLite lock contention deterministically, then implement bounded recovery/fail-closed supervision without changing polling cadence or performing hardware writes."
+    "issue": 469,
+    "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
+    "status": "status:ready_after_468",
+    "first_step": "After #468 merges and state is reconciled, move #469 to status:in-progress, create one focused branch from current main and implement capacity preflight plus bounded evidence retention without deleting product data or named volumes."
   },
   "verification": {
-    "issue_465_final_pr_head": "31d71914e7ddd86e8d52936c0849b9722bc53eae",
-    "issue_465_merge_sha": "8b7bb76115d11de0cc92cfaab2c131f27a891aa6",
-    "issue_465_ci_run": 31903598683,
-    "issue_465_telemetry_service_run": 31903598706,
-    "issue_465_authenticated_dashboard_run": 31903598797,
-    "issue_465_refrigeration_browser_run": 31903598778,
-    "issue_465_offline_bundle_run": 31903598715,
-    "issue_465_offline_auth_run": 31903598743,
-    "issue_465_acquisition_scale_run": 31903598902,
-    "issue_465_device_agent_fleet_run": 31903598652,
-    "issue_465_container_supply_chain_run": 31903598871,
-    "issue_465_broker_control_run": 31903598751,
-    "issue_465_disaster_recovery_browser_run": 31903598737,
-    "issue_465_disaster_recovery_tls_run": 31903598777,
-    "issue_465_mqtt_tls_fleet_run": 31903598659,
-    "issue_465_capacity_release_gate_run": 31903598661,
-    "issue_471_exact_head": "pending"
+    "issue_468_implementation_head": "4bb8ec501dae069240098f669b4d047b90c6bc47",
+    "issue_468_ci_run": 31905533519,
+    "issue_468_device_agent_fleet_run": 31905533550,
+    "issue_468_acquisition_scale_run": 31905533534,
+    "issue_468_offline_bundle_run": 31905533532,
+    "issue_468_authenticated_dashboard_run": 31905533538,
+    "issue_468_mqtt_tls_fleet_run": 31905533541,
+    "issue_468_disaster_recovery_tls_run": 31905533533,
+    "issue_468_container_supply_chain_run": 31905533549,
+    "issue_468_edge_image_run": 31905533542,
+    "issue_468_final_exact_head": "pending_after_state_checkpoint"
   },
   "safety": {
     "modbus_write": "none",
