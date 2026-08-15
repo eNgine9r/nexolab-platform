@@ -1,0 +1,46 @@
+name: Issue 465 selector acceptance locator fix
+
+on:
+  push:
+    branches:
+      - feat/465-live-dashboard-telemetry-selector
+    paths:
+      - .github/workflows/issue-465-e2e-locator-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/465-live-dashboard-telemetry-selector
+          fetch-depth: 0
+      - name: Align acceptance locator with hierarchical point label
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('e2e/live.production.e2e.ts')
+          text = path.read_text()
+          old = 'const pointRow = page.getByRole("treeitem").filter({ hasText: noSampleChannelId });'
+          new = 'const pointRow = page.getByRole("treeitem").filter({ hasText: "Acceptance channel without sample" });'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one old locator, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          grep -F 'hasText: "Acceptance channel without sample"' e2e/live.production.e2e.ts
+          rm .github/workflows/issue-465-e2e-locator-fix.yml
+      - name: Publish focused patch and self-delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "nexolab-automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add e2e/live.production.e2e.ts .github/workflows/issue-465-e2e-locator-fix.yml
+          git diff --cached --check
+          git commit -m "test: align hierarchical selector browser locator (#465)"
+          git push origin HEAD:feat/465-live-dashboard-telemetry-selector
