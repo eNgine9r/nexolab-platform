@@ -3,60 +3,106 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T15:47:00Z",
+  "timestamp": "2026-08-15T19:05:00Z",
   "actor": "ChatGPT",
-  "event": "issue_461_merged_post_merge_state_reconciliation_pr_open",
-  "current_main_sha": "30659fb22e6420863383071079a5a40a6b6cd0d8",
-  "active_issue": 466,
-  "active_pull_request": 467,
-  "active_branch": "chore/466-reconcile-issue-461-merge-state",
-  "status": "state_only_reconciliation_exact_head_ci_pending",
-  "completed_work_package": {
-    "issue": 461,
-    "pull_request": 464,
-    "title": "Add reusable hierarchical TelemetryPointSelector",
-    "final_pr_head": "a49ee1a92546a04d8ae5c2b47d4a3d01b882ee56",
-    "merge_sha": "30659fb22e6420863383071079a5a40a6b6cd0d8",
-    "state": "closed_merged",
-    "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+  "event": "issue_465_product_verified_final_state_checkpoint",
+  "current_main_sha": "bc0f0612cdb8ba882a6ed66a49249ded68589507",
+  "active_issue": 465,
+  "active_pull_request": 470,
+  "active_branch": "feat/465-live-dashboard-telemetry-selector",
+  "status": "final_state_checkpoint_exact_head_ci_pending",
+  "verified_product_head": "34dbc2fb2936940e5193aabc2898fefe5bf3c984",
+  "completed_scope": {
+    "selector_integration": "reusable hierarchical TelemetryPointSelector replaces Live Dashboard flat picker",
+    "inventory_contract": "existing read-only inventory enriched with explicit chamber/equipment/taxonomy metadata without new endpoint or migration",
+    "taxonomy_truthfulness": "laboratory and zone exposed only when existing metadata is unambiguous; missing/conflicting remains unclassified",
+    "persistence_contract": "existing Live Dashboard save identity/order/concurrency contract preserved",
+    "unresolved_selection_preservation": true,
+    "bounded_latest_lookup_preserved": true,
+    "browser_no_history_selection_covered": true
   },
   "verification": {
+    "product_head": "34dbc2fb2936940e5193aabc2898fefe5bf3c984",
     "ci": {
       "status": "PASS",
-      "run": 31891562678
+      "run": 31902408125,
+      "format": true,
+      "lint": true,
+      "typecheck": true,
+      "full_frontend_tests": true,
+      "production_build": true
+    },
+    "telemetry_service": {
+      "status": "PASS",
+      "run": 31902408104,
+      "postgresql_integration": true,
+      "inventory_query_plan": true
     },
     "authenticated_dashboard": {
-      "status": "PASS",
-      "run": 31891562657,
-      "selector_production_scenario": true
+      "status": "PASS_RERUN_SAME_TREE_15_OF_15",
+      "run": 31902408118,
+      "rerun_job": 95055795337,
+      "live_hierarchical_selection": true,
+      "acquisition_invariant": true,
+      "navigation_acceptance": true,
+      "transient_first_attempt_note": "First attempt observed an unrelated existing multi-axis WebSocket maximum of 2. No #465 code changed; same-tree failed-job rerun passed all 15 scenarios."
     },
     "refrigeration_browser": {
       "status": "PASS",
-      "run": 31891562662
+      "run": 31902408095
     },
     "offline_bundle": {
       "status": "PASS",
-      "run": 31891562661,
-      "exact_source_checkout": true,
+      "run": 31902408111,
       "clean_transferred_host": true,
       "container_egress_blocked": true,
       "pull_disabled": true,
       "update_rollback_persistent_data_preserved": true
     },
+    "offline_auth": {
+      "status": "PASS",
+      "run": 31902408077
+    },
     "acquisition_scale": {
       "status": "PASS_SOFTWARE_ONLY",
-      "run": 31891562659,
+      "run": 31902408205,
       "hardware_acceptance": false
     },
-    "state_reconciliation": {
-      "issue": 466,
-      "pull_request": 467,
-      "status": "exact_head_ci_pending"
+    "device_agent_fleet": {
+      "status": "PASS",
+      "run": 31902408179
+    },
+    "container_supply_chain": {
+      "status": "PASS",
+      "run": 31902408121
+    },
+    "broker_control": {
+      "status": "PASS",
+      "run": 31902408101
+    },
+    "disaster_recovery_browser": {
+      "status": "PASS",
+      "run": 31902408056
+    },
+    "disaster_recovery_tls": {
+      "status": "PASS",
+      "run": 31902408079
+    },
+    "mqtt_tls_fleet": {
+      "status": "PASS",
+      "run": 31902408091
+    },
+    "capacity_release_gate": {
+      "status": "PASS",
+      "run": 31902408060
+    },
+    "final_state_head": {
+      "status": "pending_exact_head_verification"
     }
   },
   "hardware_evidence": {
-    "issue_461_raspberry_pi_operator_acceptance": "pending_not_claimed",
-    "issue_289_independent_hardware_lane": "in_progress"
+    "issue_465_physical_hardware_acceptance": "not_required_for_software_merge_and_not_claimed",
+    "issue_289_independent_hardware_lane": "in_progress_fresh_physical_matrix_required"
   },
   "safety": {
     "modbus_write": "none",
@@ -64,32 +110,26 @@
     "controller_configuration_change": "none",
     "scheduler_or_polling_policy_change": "none",
     "acquisition_registry_change": "none",
+    "websocket_ownership_change": "none",
     "dependency_upgrade": "none",
+    "database_schema_migration": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
   "active_work_package": {
-    "issue": 466,
-    "pull_request": 467,
-    "title": "Reconcile Issue #461 merge state and activate Issue #465",
-    "branch": "chore/466-reconcile-issue-461-merge-state",
-    "status": "state_only_reconciliation",
-    "scope": ".project/** only"
+    "issue": 465,
+    "pull_request": 470,
+    "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
+    "branch": "feat/465-live-dashboard-telemetry-selector",
+    "status": "final_state_checkpoint_exact_head_verification"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress_hardware_performance_validation"
   },
-  "next_work_package": {
-    "issue": 465,
-    "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
-    "status": "blocked_state_reconciliation_466",
-    "resolved_dependencies": [461],
-    "blocked_by": [466]
-  },
-  "next_action": "Require exact-head CI on PR #467, verify only the four canonical .project files changed, audit current main/reviews/mergeability, squash merge, then move Issue #465 from status:blocked to status:ready.",
-  "resume_instruction": "Do not claim Raspberry Pi acceptance for #461 or satisfy Issue #289 with software workflows. Do not start #465 until #466 / PR #467 is merged. No Modbus/hardware writes or site cutover."
+  "next_action": "Run exact-head required workflows on the final state-checkpoint head; verify current main, 22-file focused diff, absence of helper workflows, reviews/threads, mergeability and behind count; update PR #470 evidence; mark Ready and squash merge only when GREEN.",
+  "resume_instruction": "Do not claim Issue #289 hardware acceptance from software workflows. Do not make Modbus/hardware writes or site cutover. After #465 merge, perform a separate .project-only post-merge reconciliation before selecting the next Ready software Work Package from GitHub."
 }
