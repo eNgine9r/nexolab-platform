@@ -3,10 +3,6 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-
-import { TelemetryPointSelector } from "../src/components/telemetry-selection/telemetry-point-selector";
 import {
   buildTelemetryPointHierarchy,
   collectTelemetryPointBranchIds,
@@ -515,6 +511,94 @@ function selectorInventory(): TelemetryPointDescriptor[] {
   ];
 }
 
+type SelectorSsrResult = {
+  markup: string;
+  nodeCount: number;
+  leafCount: number;
+};
+
+function renderSelectorMarkup(
+  descriptors: TelemetryPointDescriptor[],
+  selected: string[],
+  expandedNodeIds: string[],
+): SelectorSsrResult {
+  const script = String.raw`
+const fs = require("node:fs");
+const path = require("node:path");
+const ts = require("typescript");
+const React = require("react");
+const { renderToStaticMarkup } = require("react-dom/server");
+
+const root = process.cwd();
+const temp = fs.mkdtempSync(path.join(root, ".tmp-selector-ssr-"));
+try {
+  const hierarchySource = fs.readFileSync(
+    path.join(root, "src/features/telemetry-selection/hierarchy.ts"),
+    "utf8",
+  );
+  const selectorSource = fs
+    .readFileSync(
+      path.join(root, "src/components/telemetry-selection/telemetry-point-selector.tsx"),
+      "utf8",
+    )
+    .replace(
+      "@/features/telemetry-selection/hierarchy",
+      "./hierarchy.js",
+    );
+  const compilerOptions = {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2022,
+    jsx: ts.JsxEmit.ReactJSX,
+    esModuleInterop: true,
+  };
+  const hierarchyOutput = ts.transpileModule(hierarchySource, { compilerOptions }).outputText;
+  const selectorOutput = ts.transpileModule(selectorSource, { compilerOptions }).outputText;
+  fs.writeFileSync(path.join(temp, "hierarchy.js"), hierarchyOutput);
+  fs.writeFileSync(path.join(temp, "selector.js"), selectorOutput);
+
+  const hierarchyModule = require(path.join(temp, "hierarchy.js"));
+  const selectorModule = require(path.join(temp, "selector.js"));
+  const input = JSON.parse(fs.readFileSync(0, "utf8"));
+  const hierarchy = hierarchyModule.buildTelemetryPointHierarchy(
+    input.descriptors,
+    input.organizationId,
+  );
+  const markup = renderToStaticMarkup(
+    React.createElement(selectorModule.TelemetryPointSelector, {
+      hierarchy,
+      value: input.selected,
+      maxSelection: 8,
+      maxVisibleNodes: 200,
+      initialExpandedNodeIds: input.expandedNodeIds,
+      onConfirm: () => undefined,
+    }),
+  );
+  process.stdout.write(
+    JSON.stringify({
+      markup,
+      nodeCount: hierarchy.nodeCount,
+      leafCount: hierarchy.leafCount,
+    }),
+  );
+} finally {
+  fs.rmSync(temp, { recursive: true, force: true });
+}
+`;
+  const output = execFileSync(process.execPath, ["-e", script], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    input: JSON.stringify({
+      descriptors,
+      organizationId: selectorOrganizationId,
+      selected,
+      expandedNodeIds,
+    }),
+    env: { ...process.env, NODE_ENV: "production" },
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  return JSON.parse(output) as SelectorSsrResult;
+}
+
 test("hierarchical telemetry selector stays bounded and side-effect free in production CSS", async ({
   browser,
 }) => {
@@ -527,17 +611,16 @@ test("hierarchical telemetry selector stays bounded and side-effect free in prod
   expect(stylesheetUrls.length, "production stylesheets discovered").toBeGreaterThan(0);
   await stylePage.close();
 
-  const hierarchy = buildTelemetryPointHierarchy(selectorInventory(), selectorOrganizationId);
-  const markup = renderToStaticMarkup(
-    createElement(TelemetryPointSelector, {
-      hierarchy,
-      value: [hierarchy.orderedLeafKeys[0]],
-      maxSelection: 8,
-      maxVisibleNodes: 200,
-      initialExpandedNodeIds: collectTelemetryPointBranchIds(hierarchy),
-      onConfirm: () => undefined,
-    }),
+  const inventory = selectorInventory();
+  const hierarchy = buildTelemetryPointHierarchy(inventory, selectorOrganizationId);
+  const selectorRender = renderSelectorMarkup(
+    inventory,
+    [hierarchy.orderedLeafKeys[0]],
+    collectTelemetryPointBranchIds(hierarchy),
   );
+  expect(selectorRender.nodeCount, "SSR hierarchy node count").toBe(hierarchy.nodeCount);
+  expect(selectorRender.leafCount, "SSR hierarchy leaf count").toBe(hierarchy.leafCount);
+  const markup = selectorRender.markup;
   const styles = stylesheetUrls.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
 
   const page = await context.newPage();
