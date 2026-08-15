@@ -2,19 +2,27 @@
 
 Updated: 2026-08-15
 
-## Issue #469 — software candidate ready for exact-head verification, physical acceptance pending
+## Hard blocker — physical Raspberry Pi validation
 
-Issue #469 is open, `priority:high`, `status:in-progress`; draft PR #476 contains the focused deployment-capacity correction.
+Issue #469 is software-complete but remains open as `status:needs-validation`. PR #476 merged at `b79bcee3670693c46219e8bc58ec3fc8ffe5095a` with GREEN targeted verification, exact-head CI and Telemetry integration.
 
-The software candidate adds bounded timestamped deployment-evidence retention, conservative preflight/recheck capacity gates, fail-closed PostgreSQL size measurement and atomic large evidence writes. Targeted deterministic tests are GREEN.
+Final acceptance requires a controlled physical Raspberry Pi deployment proving:
 
-Final exact-head CI after the canonical `.project/**` checkpoint is still required before software merge.
+- capacity diagnostics on the real filesystem;
+- preserved PostgreSQL, edge SQLite, MQTT, MinIO and Docker named-volume identities/data;
+- safe behavior when bounded old deployment-evidence retention applies;
+- successful deployment to exact current `main`;
+- preserved rollback/evidence behavior.
 
-Physical acceptance remains unresolved: after software merge a controlled Raspberry Pi deployment must prove capacity diagnostics, safe bounded evidence cleanup, preserved named-volume/product-data identities and exact current `main`. Software CI does not satisfy this requirement.
+The deployment may irreversibly prune **only** old strict timestamp children of `runtime/deployments/`, while protecting the current deployment, newest evidence and `.nexolab-preserve` evidence. Product persistent data and named volumes are excluded. Because physical cleanup is irreversible, Product Owner confirmation is required before that controlled execution.
 
-## Independent hardware lane — Issue #289
+## No independent Ready software package
 
-Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS-485 performance and recovery evidence is required. Its completion remains dependent on the #469 deployment path being physically accepted.
+The repository query for open `status:ready` Issues returns none. Autonomous software work cannot continue around the physical blocker without inventing scope.
+
+## Issue #289
+
+Issue #289 remains open and `status:in-progress` as the broader Raspberry Pi/RS-485 performance/recovery acceptance lane. Software workflow evidence does not satisfy hardware acceptance.
 
 ## Other pending physical evidence
 
@@ -22,16 +30,6 @@ Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS
 - refrigeration perceived-latency acceptance;
 - Raspberry Pi version-management acceptance.
 
-## Hard safety blockers
+## Safety boundaries
 
-The following actions remain outside current authorization and require explicit approval where applicable:
-
-- Modbus writes or controller configuration changes;
-- hardware writes or actuator control;
-- destructive product persistent-data or named-volume deletion;
-- production/site cutover;
-- secret/billing/DNS changes.
-
-Bounded retention of old timestamped `runtime/deployments/*` evidence is intentionally isolated from product data. The current deployment, newest evidence and `.nexolab-preserve` evidence are protected.
-
-LOCAL_LAN, offline-first runtime and read-only acquisition boundaries remain unchanged.
+No Modbus/controller write, actuator/hardware write, product persistent-data deletion, Docker named-volume deletion, production/site cutover, secret/billing/DNS mutation or mandatory cloud runtime dependency is authorized.

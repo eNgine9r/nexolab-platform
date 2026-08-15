@@ -19,97 +19,80 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558",
-  "current_main_sha_semantics": "Issue #474 / PR #475 is squash-merged. Issue #469 / PR #476 is the active software Work Package with physical Raspberry Pi acceptance explicitly pending. Issue #289 remains the broader physical acquisition lane.",
+  "current_main_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+  "current_main_sha_semantics": "Runtime/product baseline after PR #476. Issue #469 is software-verified and hardware-pending. State-only Issue #477 records the post-merge blocker state.",
   "selection_state": {
-    "last_ready_audit_result": "Issue #469 was selected from repository status:ready after #474 merged and is now in progress. A new Ready selection is deferred until #469 software merge/post-merge reconciliation; Issue #289 remains the independent hardware lane.",
+    "last_ready_audit_result": "No open status:ready Issues. Issue #469 requires controlled Raspberry Pi validation and Issue #289 remains the broader hardware lane.",
     "selected_issue": 469,
-    "selection_status": "in_progress_pr_476_software_pre_merge_hardware_pending",
+    "selection_status": "hardware_validation_required_no_independent_ready_software",
     "independent_hardware_lane": 289,
     "next_independent_software_issue": null
   },
   "tasks": [
     {
+      "id": "NEXOLAB-469",
+      "issue": 469,
+      "pull_request": 476,
+      "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
+      "status": "software_completed_merged_hardware_needs_validation",
+      "priority": "high",
+      "merge_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+      "source_head": "df2c3db389097abbfa8c647984002dc2f919c32d",
+      "hardware_acceptance": false
+    },
+    {
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "in_progress_hardware_performance_validation_blocked_by_469_physical_acceptance",
+      "status": "in_progress_hardware_performance_validation",
       "priority": "critical",
       "assignee": "eNgine9r",
       "hardware_acceptance": "fresh_physical_matrix_required",
       "independent_lane": true
     },
     {
-      "id": "NEXOLAB-468",
-      "issue": 468,
-      "pull_request": 473,
-      "title": "Keep Device Agent acquisition alive across SQLite queue lock contention",
-      "status": "completed_merged_software_verified_hardware_unverified",
-      "priority": "critical",
-      "merge_sha": "d06b7958eab08d8ce319b3f3397ac541079e7f68",
-      "classification": "software fix; physical recovery evidence remains in Issue #289"
-    },
-    {
-      "id": "NEXOLAB-474",
-      "issue": 474,
-      "pull_request": 475,
-      "title": "Reconcile Issue #468 merge state and activate next Ready Work Package",
-      "status": "completed_merged",
+      "id": "NEXOLAB-477",
+      "issue": 477,
+      "title": "Reconcile Issue #469 software merge and record hardware-only blocker",
+      "status": "state_only_reconciliation_completes_on_merge",
       "priority": "high",
-      "merge_sha": "0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558",
+      "area": "project-state",
       "classification": "state-only; no product/runtime change"
-    },
-    {
-      "id": "NEXOLAB-469",
-      "issue": 469,
-      "pull_request": 476,
-      "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
-      "status": "in_progress_software_pre_merge_hardware_pending",
-      "priority": "high",
-      "area": "edge",
-      "branch": "fix/469-raspberry-pi-deployment-evidence-capacity",
-      "software_head_before_state": "933b22c27a5894c7818596fda7d734ca548da538",
-      "classification": "deployment safety software plus mandatory post-merge controlled Raspberry Pi evidence"
     }
   ],
   "active_work_package": {
     "issue": 469,
-    "pull_request": 476,
     "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
-    "status": "final_state_exact_head_ci_pending_hardware_unverified",
+    "status": "hardware_validation_blocked_on_physical_access_and_irreversible_evidence_cleanup_confirmation",
     "priority": "high",
-    "branch": "fix/469-raspberry-pi-deployment-evidence-capacity",
-    "next_step": "Run exact-head CI after this canonical checkpoint, audit focused diff/reviews/mergeability, then squash-merge software only if GREEN while keeping Issue #469 open for physical Raspberry Pi acceptance."
+    "next_step": "Obtain Product Owner confirmation for the controlled physical Raspberry Pi validation because the deployment may irreversibly prune only old classified timestamped deployment evidence; then collect capacity, volume-identity, exact-SHA and deployment evidence."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "in_progress",
-    "hardware_acceptance": "fresh_physical_matrix_required_after_469_physical_acceptance"
+    "status": "in_progress_hardware_performance_validation"
   },
   "next_work_package": {
     "issue": null,
-    "title": "Repository Ready audit after Issue #469 software merge",
-    "status": "pending_post_merge_ready_audit",
-    "first_step": "After PR #476 software merge and state reconciliation, re-audit open status:ready Issues while Issue #469 remains hardware-pending."
+    "title": "No independent Ready software Work Package",
+    "status": "hard_blocked_on_physical_validation"
   },
   "verification": {
-    "issue_469_initial_targeted_run": 31908201491,
+    "issue_469_targeted_run": 31908201491,
     "issue_469_audit_hardening_run": 31908426084,
-    "issue_469_software_head_before_state": "933b22c27a5894c7818596fda7d734ca548da538",
-    "issue_469_final_exact_head": "pending_after_state_checkpoint",
-    "issue_469_hardware_acceptance": false
+    "issue_469_ci_run": 31908564398,
+    "issue_469_telemetry_run": 31908564403,
+    "issue_469_source_head": "df2c3db389097abbfa8c647984002dc2f919c32d",
+    "issue_469_merge_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+    "issue_469_hardware_acceptance": false,
+    "ready_issue_count": 0
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "polling_policy_change": "none",
-    "acquisition_registry_change": "none",
-    "dependency_upgrade": "none",
-    "database_schema_migration": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "deployment_evidence_retention": "bounded_timestamp_directories_only",
+    "deployment_evidence_cleanup": "bounded_old_timestamp_directories_only_requires_physical_execution_confirmation",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   }
