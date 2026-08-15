@@ -1,0 +1,41 @@
+name: Issue 461 targeted verification
+
+on:
+  push:
+    branches:
+      - feat/461-hierarchical-telemetry-point-selector
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/461-hierarchical-telemetry-point-selector
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: '0'
+
+      - name: Check touched-file formatting
+        run: npx prettier --check src/features/telemetry-selection src/components/telemetry-selection docs/architecture/telemetry-point-selector.md
+
+      - name: Lint selector scope
+        run: npx eslint src/features/telemetry-selection src/components/telemetry-selection --max-warnings=0
+
+      - name: Run selector regressions
+        run: npx vitest run src/features/telemetry-selection/hierarchy.test.ts src/components/telemetry-selection/telemetry-point-selector.test.tsx
+
+      - name: Typecheck
+        run: npm run typecheck
