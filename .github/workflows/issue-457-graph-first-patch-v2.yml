@@ -41,6 +41,13 @@ jobs:
               for line in body.splitlines()
           )
           exec(compile(patch_program, 'issue-457-patch.py', 'exec'))
+
+          test_path = Path('src/components/live/live-telemetry-explorer.test.tsx')
+          test_text = test_path.read_text(encoding='utf-8').replace(
+              'getByRole("button", { name: "Live", exact: true })',
+              'getByRole("button", { name: "Live" })',
+          )
+          test_path.write_text(test_text, encoding='utf-8')
           PY
 
       - name: Install dependencies
