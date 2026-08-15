@@ -1,0 +1,158 @@
+name: Issue 465 inventory plan fix
+
+on:
+  push:
+    branches:
+      - feat/465-live-dashboard-telemetry-selector
+    paths:
+      - .github/workflows/issue-465-inventory-plan-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/465-live-dashboard-telemetry-selector
+          fetch-depth: 0
+      - name: Preserve bounded latest-value lookup before taxonomy enrichment
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("services/telemetry-service/app/live_dashboard/inventory.py")
+          text = path.read_text()
+          start = text.index("def inventory_query_plan_statement(")
+          end = text.index("\n\ndef _equipment_taxonomy_subquery", start)
+          replacement = '''def inventory_query_plan_statement(
+              repository: LiveDashboardRepository,
+              *,
+              organization_id: str,
+              limit: int,
+              offset: int = 0,
+          ):
+              """Return the exact full query used for PostgreSQL EXPLAIN evidence.
+
+              Keep the bounded catalog/latest-value page as an optimization boundary before
+              enriching it with operator taxonomy. The LIMIT prevents the taxonomy join from
+              changing the correlated latest-sample lookup plan.
+              """
+
+              del repository
+              sample_candidate = aliased(TelemetrySample, name="inventory_sample_candidate")
+              latest_sample = aliased(TelemetrySample, name="inventory_latest_sample")
+              latest_sample_id = (
+                  select(sample_candidate.id)
+                  .where(
+                      sample_candidate.node_id == MeasurementBus.node_id,
+                      sample_candidate.equipment_id == MeasurementDevice.business_key,
+                      sample_candidate.channel_id == MeasurementChannel.channel_id,
+                      sample_candidate.metric == MeasurementChannel.metric_type,
+                  )
+                  .order_by(
+                      sample_candidate.captured_at.desc(),
+                      sample_candidate.event_id.desc(),
+                  )
+                  .limit(1)
+                  .correlate(MeasurementBus, MeasurementDevice, MeasurementChannel)
+                  .scalar_subquery()
+              )
+              inventory_page = (
+                  _eligible_catalog_select(organization_id)
+                  .with_only_columns(
+                      MeasurementChannel.organization_id.label("organization_id"),
+                      MeasurementChannel.id.label("channel_ref_id"),
+                      MeasurementBus.node_id.label("node_id"),
+                      MeasurementDevice.business_key.label("equipment_id"),
+                      MeasurementDevice.display_name.label("equipment_name"),
+                      ClimateChamber.id.label("climate_chamber_id"),
+                      ClimateChamber.code.label("climate_chamber_code"),
+                      ClimateChamber.name.label("climate_chamber_name"),
+                      MeasurementDevice.device_type.label("equipment_type"),
+                      MeasurementChannel.channel_id.label("channel_id"),
+                      MeasurementChannel.display_name.label("channel_name"),
+                      MeasurementChannel.metric_type.label("metric"),
+                      MeasurementChannel.unit.label("native_unit"),
+                      MeasurementDevice.device_type.label("catalog_source"),
+                      latest_sample.event_id.label("latest_event_id"),
+                      latest_sample.captured_at.label("latest_captured_at"),
+                      latest_sample.value.label("latest_value"),
+                      latest_sample.unit.label("latest_unit"),
+                      latest_sample.quality.label("latest_quality"),
+                      latest_sample.source.label("latest_source"),
+                      latest_sample.alarm.label("latest_alarm"),
+                      latest_sample.received_at.label("latest_received_at"),
+                  )
+                  .outerjoin(latest_sample, latest_sample.id == latest_sample_id)
+                  .order_by(
+                      MeasurementBus.node_id.asc(),
+                      MeasurementDevice.business_key.asc(),
+                      MeasurementChannel.channel_id.asc(),
+                      MeasurementChannel.metric_type.asc(),
+                      MeasurementChannel.id.asc(),
+                  )
+                  .limit(limit)
+                  .offset(offset)
+                  .subquery("live_dashboard_inventory_page")
+              )
+              taxonomy = _equipment_taxonomy_subquery(organization_id)
+              return (
+                  select(
+                      inventory_page.c.channel_ref_id,
+                      inventory_page.c.node_id,
+                      inventory_page.c.equipment_id,
+                      inventory_page.c.equipment_name,
+                      inventory_page.c.climate_chamber_id,
+                      inventory_page.c.climate_chamber_code,
+                      inventory_page.c.climate_chamber_name,
+                      inventory_page.c.equipment_type,
+                      taxonomy.c.laboratory.label("laboratory"),
+                      taxonomy.c.zone.label("zone"),
+                      inventory_page.c.channel_id,
+                      inventory_page.c.channel_name,
+                      inventory_page.c.metric,
+                      inventory_page.c.native_unit,
+                      inventory_page.c.catalog_source,
+                      inventory_page.c.latest_event_id,
+                      inventory_page.c.latest_captured_at,
+                      inventory_page.c.latest_value,
+                      inventory_page.c.latest_unit,
+                      inventory_page.c.latest_quality,
+                      inventory_page.c.latest_source,
+                      inventory_page.c.latest_alarm,
+                      inventory_page.c.latest_received_at,
+                  )
+                  .select_from(inventory_page)
+                  .outerjoin(
+                      taxonomy,
+                      (taxonomy.c.organization_id == inventory_page.c.organization_id)
+                      & (taxonomy.c.climate_chamber_id == inventory_page.c.climate_chamber_id),
+                  )
+                  .order_by(
+                      inventory_page.c.node_id.asc(),
+                      inventory_page.c.equipment_id.asc(),
+                      inventory_page.c.channel_id.asc(),
+                      inventory_page.c.metric.asc(),
+                      inventory_page.c.channel_ref_id.asc(),
+                  )
+              )
+          '''
+          replacement = "\n".join(line[10:] if line.startswith("          ") else line for line in replacement.splitlines())
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+      - name: Compile backend module
+        run: python -m compileall -q services/telemetry-service/app/live_dashboard
+      - name: Publish and self-delete
+        shell: bash
+        run: |
+          rm .github/workflows/issue-465-inventory-plan-fix.yml
+          git config user.name "nexolab-automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add services/telemetry-service/app/live_dashboard/inventory.py .github/workflows/issue-465-inventory-plan-fix.yml
+          git diff --cached --check
+          git commit -m "fix: preserve bounded Live Dashboard inventory plan (#465)"
+          git push origin HEAD:feat/465-live-dashboard-telemetry-selector
