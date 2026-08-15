@@ -3,14 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T15:45:00Z",
+  "timestamp": "2026-08-15T15:47:00Z",
   "actor": "ChatGPT",
-  "event": "issue_461_merged_post_merge_state_reconciliation",
+  "event": "issue_461_merged_post_merge_state_reconciliation_pr_open",
   "current_main_sha": "30659fb22e6420863383071079a5a40a6b6cd0d8",
   "active_issue": 466,
-  "active_pull_request": null,
+  "active_pull_request": 467,
   "active_branch": "chore/466-reconcile-issue-461-merge-state",
-  "status": "state_only_reconciliation",
+  "status": "state_only_reconciliation_exact_head_ci_pending",
   "completed_work_package": {
     "issue": 461,
     "pull_request": 464,
@@ -50,7 +50,8 @@
     },
     "state_reconciliation": {
       "issue": 466,
-      "status": "implementation_complete_ci_pending"
+      "pull_request": 467,
+      "status": "exact_head_ci_pending"
     }
   },
   "hardware_evidence": {
@@ -71,6 +72,7 @@
   },
   "active_work_package": {
     "issue": 466,
+    "pull_request": 467,
     "title": "Reconcile Issue #461 merge state and activate Issue #465",
     "branch": "chore/466-reconcile-issue-461-merge-state",
     "status": "state_only_reconciliation",
@@ -88,6 +90,6 @@
     "resolved_dependencies": [461],
     "blocked_by": [466]
   },
-  "next_action": "Create the focused Issue #466 state-only Pull Request, require exact-head CI, verify only the four canonical .project files changed, audit current main/reviews/mergeability, squash merge, then move Issue #465 from status:blocked to status:ready.",
-  "resume_instruction": "Do not claim Raspberry Pi acceptance for #461 or satisfy Issue #289 with software workflows. Do not start #465 until #466 is merged. No Modbus/hardware writes or site cutover."
+  "next_action": "Require exact-head CI on PR #467, verify only the four canonical .project files changed, audit current main/reviews/mergeability, squash merge, then move Issue #465 from status:blocked to status:ready.",
+  "resume_instruction": "Do not claim Raspberry Pi acceptance for #461 or satisfy Issue #289 with software workflows. Do not start #465 until #466 / PR #467 is merged. No Modbus/hardware writes or site cutover."
 }
