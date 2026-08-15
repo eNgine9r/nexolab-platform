@@ -1,52 +1,46 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-## Issue #453 / PR #456 — completed
+## Issue #457 / PR #460 — no known software/runtime blocker
 
-Issue #453 is closed and PR #456 was squash-merged into `main` as
-`0cfe1321b38fa7c2582503ae98c65d82c76dcbc3` from exact verified head
-`ac15c3e61b04a61ff91d2d929218c3431ea7de3c`.
+Issue #457 is active and product-verified on exact head
+`acbbeadabe0162286060e3d97353cb51752f7706`:
 
-Final exact-head gates were all GREEN:
+- CI `31883123214`: PASS;
+- Authenticated Dashboard Acceptance `31883123221`: 14/14 PASS, including the
+  graph-first Live Chart System production regression, max one WebSocket and
+  zero acquisition/configuration mutations;
+- Refrigeration Browser Acceptance `31883123215`: PASS;
+- disconnected Offline Bundle `31883123222`: PASS, including exact source
+  checkout, clean transferred-host simulation, blocked egress, `--pull never`
+  disconnected startup, update/rollback and persistent-data preservation.
 
-- CI `31806462184`: PASS;
-- Authenticated Dashboard Acceptance `31806462239`: 14/14 PASS;
-- Refrigeration Browser Acceptance `31806462166`: PASS;
-- Acquisition Scale Acceptance `31806462144`: PASS;
-- disconnected Offline Bundle `31806462148`: PASS, including clean transferred
-  host startup, blocked egress, `--pull never`, update/rollback and persistent
-  volume/marker preservation.
+The remaining boundary is procedural and exact-head based: this state-only
+checkpoint creates a new PR head, so the required gates must run again on that
+exact head before Ready/merge. Final audit must also confirm current `main`,
+focused diff and unresolved-review state.
 
 Raspberry Pi operator acceptance remains **pending** and is not claimed.
 
-## Issue #458 — state-only reconciliation
+## Issue #461 — intentionally blocked on #457 merge
 
-No product/runtime blocker exists. Issue #458 only reconciles the four canonical
-`.project` files with the completed #453 merge and Ready #457 state. Its scope is
-`.project/**` only.
-
-## Issue #457 — Ready
-
-Issue #457 is open, assigned and `status:ready`. Its former dependency on #453
-is resolved. It is the next independent software Work Package after the
-state-only #458 reconciliation.
+Issue #461 is the next Epic #450 Work Package: reusable hierarchical
+`TelemetryPointSelector`. It is created with `status:blocked` and must remain
+blocked until #457 / PR #460 is merged and state is reconciled. No #461
+implementation belongs in PR #460.
 
 ## Independent hardware lane — Issue #289
 
 Issue #289 remains open and `status:in-progress`. Completion still requires the
 controlled real Raspberry Pi/RS-485 performance and physical-request matrix.
-The software Acquisition Scale workflow for #453 does not replace that real
-hardware evidence.
+Software/browser/offline verification for #457 does not replace that evidence.
 
 ## Other pending hardware evidence
 
-- Issue #445 / PR #446: software/CI/offline verified; Raspberry Pi KK2/Unit 115
-  field retest remains pending.
-- Issue #447 / PR #448: software/browser/offline verified; Raspberry Pi
-  perceived-latency acceptance remains pending.
-- Issue #389: physical Raspberry Pi version-management acceptance remains
-  pending separately.
+- Issue #445 / PR #446: Raspberry Pi KK2/Unit 115 field retest remains pending;
+- Issue #447 / PR #448: Raspberry Pi perceived-latency acceptance remains pending;
+- Issue #389: physical Raspberry Pi version-management acceptance remains pending.
 
 ## Hard safety blockers
 
