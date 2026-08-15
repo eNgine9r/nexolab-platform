@@ -3,40 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T21:07:00Z",
+  "timestamp": "2026-08-15T21:13:00Z",
   "actor": "ChatGPT",
-  "event": "issue_469_pre_merge_software_checkpoint",
-  "current_main_sha": "0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558",
-  "active_issue": 469,
-  "active_pull_request": 476,
-  "active_branch": "fix/469-raspberry-pi-deployment-evidence-capacity",
-  "software_head_before_state": "933b22c27a5894c7818596fda7d734ca548da538",
-  "completion_classification": "software implementation targeted-verification complete; final exact-head CI and software merge pending; physical Raspberry Pi acceptance not claimed",
+  "event": "issue_469_software_merged_hardware_blocked",
+  "current_main_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+  "issue": 469,
+  "pull_request": 476,
+  "merge_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+  "source_head": "df2c3db389097abbfa8c647984002dc2f919c32d",
+  "completion_classification": "software merged and verified; physical Raspberry Pi acceptance pending; no independent Ready software issue exists",
   "verification": {
-    "initial_targeted": {
+    "targeted": {
       "status": "PASS",
       "run": 31908201491
     },
-    "audit_hardening_targeted": {
+    "audit_hardening": {
       "status": "PASS",
       "run": 31908426084
     },
-    "final_exact_head": "pending_after_this_checkpoint",
-    "hardware_acceptance": false
+    "ci": {
+      "status": "PASS",
+      "run": 31908564398
+    },
+    "telemetry_service": {
+      "status": "PASS",
+      "run": 31908564403
+    },
+    "hardware_acceptance": false,
+    "ready_issue_count": 0
   },
-  "scope": {
-    "product_files_before_state": [
-      "docs/operations/raspberry-pi-deployment-capacity.md",
-      "scripts/deploy-capacity-guard.sh",
-      "scripts/deploy-current-head-raspberry-pi.sh",
-      "scripts/tests/test_deploy_current_head_raspberry_pi_capacity.py"
-    ],
-    "state_files": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ]
+  "blocker": {
+    "type": "hard",
+    "reason": "physical Raspberry Pi validation required; controlled deployment may irreversibly prune only old classified timestamped deployment evidence and requires Product Owner confirmation before execution",
+    "product_data_deletion": false,
+    "named_volume_deletion": false
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -46,12 +46,10 @@
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "controller_configuration_change": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "deployment_evidence_retention": "bounded_timestamp_directories_only",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Commit this canonical state checkpoint on PR #476, run exact-head CI, then audit diff/reviews/mergeability and squash-merge software only if GREEN while leaving Issue #469 open for controlled Raspberry Pi acceptance."
+  "next_action": "After state-only Issue #477 merges, stop autonomous software execution and request Product Owner confirmation for controlled Raspberry Pi validation of Issue #469."
 }

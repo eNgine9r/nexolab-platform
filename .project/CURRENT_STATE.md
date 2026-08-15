@@ -2,51 +2,37 @@
 
 Updated: 2026-08-15
 
-## Canonical repository baseline
+## Canonical baseline
 
-Current `main` is `0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558`, the squash merge of state-only Issue #474 / PR #475 after Issue #468 / PR #473.
+Runtime/product `main` baseline is `b79bcee3670693c46219e8bc58ec3fc8ffe5095a`, the squash merge of PR #476 for Issue #469. State-only Issue #477 reconciles repository bookkeeping after that merge.
 
-Issue #474 is closed/completed and its stale `status:in-progress` label has been removed. Issue #468 remains software-complete while its physical recovery evidence is still owned by Issue #289.
+## Issue #469 — software verified, hardware pending
 
-## Active Work Package — Issue #469 / PR #476
+Issue #469 — **Prevent Raspberry Pi deployment evidence capture from exhausting disk** — remains open as `status:needs-validation`.
 
-Issue #469 — **Prevent Raspberry Pi deployment evidence capture from exhausting disk** — is `priority:high`, `status:in-progress`.
+Software is merged and verified. PR #476 added fail-before-mutation capacity preflight, bounded retention limited to timestamped `runtime/deployments/*`, protected current/newest/marked evidence, fail-closed PostgreSQL size measurement, atomic large evidence writes, deterministic tests and operator documentation.
 
-Draft PR #476 (`fix/469-raspberry-pi-deployment-evidence-capacity`) implements the focused software correction:
+Merge-authoritative source head was `df2c3db389097abbfa8c647984002dc2f919c32d`; merge SHA is `b79bcee3670693c46219e8bc58ec3fc8ffe5095a`.
 
-- sourceable/standalone deployment capacity guard;
-- bounded retention only for strict timestamp children of `runtime/deployments/`;
-- preservation of the current deployment, newest deployment evidence, symlinks and `.nexolab-preserve` acceptance evidence;
-- conservative free-space preflight before inventory/evidence capture and a second recheck immediately before large writes;
-- explicit reserve/build/metadata/runtime-evidence/PostgreSQL capacity accounting;
-- fail-closed behavior when a running PostgreSQL container cannot report `pg_database_size()`;
-- atomic `.partial` → final rename for runtime evidence archive and PostgreSQL pre-upgrade dump;
-- deterministic sufficient/insufficient capacity, retention, preservation, cleanup-failure, PostgreSQL-measurement and mutation-order regressions;
-- operator documentation for low-space recovery and tunable thresholds.
+Verification:
 
-Automated cleanup does **not** target `runtime/evidence`, PostgreSQL, edge SQLite, MQTT, MinIO, Docker named volumes or controller/device configuration.
+- targeted capacity verification `31908201491` — PASS;
+- targeted audit-hardening verification `31908426084` — PASS;
+- exact-head CI `31908564398` — PASS;
+- exact-head Telemetry service integration `31908564403` — PASS.
 
-Targeted software verification passed:
+Physical acceptance is **not** claimed. A controlled Raspberry Pi run must still prove capacity diagnostics, preserved product data/named-volume identities, safe deployment behavior and exact current `main` on the host.
 
-- temporary implementation helper run `31908201491` — PASS (`bash -n` for both deployment scripts plus deploy-capacity Python regressions);
-- temporary audit-hardening verifier run `31908426084` — PASS, including fail-closed PostgreSQL-size and cleanup-failure coverage.
+## Hardware lanes
 
-The temporary helper/verifier workflow files were removed. Software head before this canonical checkpoint is `933b22c27a5894c7818596fda7d734ca548da538`; its net diff contains only the four permitted product/docs/test files.
+Issue #469 is the immediate deployment-capacity hardware validation lane. Issue #289 remains the broader physical Raspberry Pi/RS-485 acquisition scale/recovery lane.
 
-Final exact-head CI after this `.project/**` checkpoint is still required before software merge.
+## Ready audit
 
-## Hardware acceptance
+The post-merge repository query for open `status:ready` Issues returned **none**. There is no independent Ready software Work Package to continue while the physical validation blocker remains.
 
-Issue #469 is not physically accepted yet. After the software PR merges, a controlled Raspberry Pi deployment must still prove:
+## Hard blocker
 
-- capacity diagnostics on the physical filesystem;
-- no product-data or named-volume loss;
-- successful deployment after safe bounded evidence cleanup when required;
-- exact current `main` on the host;
-- preserved rollback/evidence behavior.
+Further progress now requires physical Raspberry Pi access/evidence. Running the controlled deployment can irreversibly prune only old classified timestamped deployment-evidence directories according to the new bounded retention policy. Product persistent data and Docker named volumes are outside cleanup scope, but the physical cleanup itself is irreversible and therefore requires Product Owner confirmation before execution.
 
-Issue #469 must remain open after software merge until that physical evidence exists. Issue #289 remains the broader Raspberry Pi/RS-485 acquisition acceptance lane.
-
-## Safety boundary
-
-LOCAL_LAN and offline-first requirements remain unchanged. Read-only Modbus remains mandatory. No controller configuration, hardware write, product persistent-data/volume deletion, production/site cutover, secret/billing/DNS change or mandatory cloud runtime dependency is authorized.
+LOCAL_LAN, offline-first runtime and read-only Modbus boundaries remain unchanged. No Modbus/hardware write, product persistent-data deletion, named-volume deletion or site cutover is authorized.
