@@ -6,11 +6,11 @@ Updated: 2026-08-15
 
 No product/runtime blocker is currently known.
 
-Issue #465 implementation is complete on `feat/465-live-dashboard-telemetry-selector`. Exact product head `34dbc2fb2936940e5193aabc2898fefe5bf3c984` is software/browser/offline GREEN across CI, Telemetry service, authenticated production browser, refrigeration browser, offline bundle/auth and related runtime acceptance workflows.
+Issue #465 implementation is complete on `feat/465-live-dashboard-telemetry-selector`. Full operator/browser/offline behavior was verified on trusted product head `34dbc2fb2936940e5193aabc2898fefe5bf3c984`, and subsequent deterministic PostgreSQL query-plan evidence hardening is verified on `74e5e867f7738a24cfc5960bd5b4a32e7e1682fa`.
 
-The first Authenticated Dashboard attempt on that same product tree observed a one-off pre-existing multi-axis WebSocket peak of 2. The #465 Live Dashboard and hierarchical-selector scenarios passed in that attempt. No #465 product code was changed for the unrelated result; a failed-job rerun on the exact same commit/tree passed all 15 production scenarios. This is therefore recorded as a transient CI race, not an open #465 regression.
+The earlier PostgreSQL failure on state-checkpoint head `d217bf8403925d46d419c89017323d6f35008dfd` was not a runtime regression: 445 backend tests passed and the inventory query executed in 0.502 ms, but PostgreSQL selected a cheaper natural plan that did not print the expected index name. The #465 evidence test was corrected to separate normal bounded-runtime evidence from an index-preferred EXPLAIN that deterministically proves the `ix_telemetry_latest_lookup` path. On hardened head `74e5e867f7738a24cfc5960bd5b4a32e7e1682fa`, CI and Telemetry service are GREEN, including the full backend suite, PostgreSQL outage recovery, offline migration validation and container build.
 
-The only remaining barrier before merge is process/verification: the final `.project/**` checkpoint head must pass exact-head required checks and a clean main/diff/review/mergeability audit. PR #470 remains Draft until that gate is complete.
+The only remaining barrier before merge is process/verification: this final `.project/**` checkpoint head must pass exact-head required checks and a clean main/diff/review/mergeability audit. PR #470 remains Draft until that gate is complete. No further file change is planned unless a factual defect is found.
 
 ## Independent hardware lane — Issue #289
 
