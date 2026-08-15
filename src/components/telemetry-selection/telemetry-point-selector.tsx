@@ -120,7 +120,7 @@ export function TelemetryPointSelector({
   const focusNode = (id: string | null) => {
     if (!id) return;
     setActiveId(id);
-    queueMicrotask(() => rowRefs.current.get(id)?.focus());
+    rowRefs.current.get(id)?.focus();
   };
 
   const toggleExpansion = (node: TelemetryPointNode) => {
