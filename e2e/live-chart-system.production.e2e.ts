@@ -250,6 +250,8 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     const filterPanel = page.getByTestId("live-filter-panel");
     const inventoryPanel = page.getByTestId("live-inventory-panel");
     await expect(primaryChart).toBeVisible();
+    await expect(filterPanel).toBeVisible();
+    await expect(inventoryPanel).toBeVisible();
     await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
     await expect(
       primaryChart.getByText("Оберіть канали нижче у Latest values", { exact: true }),
