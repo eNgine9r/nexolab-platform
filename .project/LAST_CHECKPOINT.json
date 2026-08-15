@@ -20,9 +20,19 @@
     "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
   },
   "verification": {
-    "ci": {"status": "PASS", "run": 31883658826},
-    "authenticated_dashboard": {"status": "PASS", "run": 31883658924, "scenarios": "14/14"},
-    "refrigeration_browser": {"status": "PASS", "run": 31883658836},
+    "ci": {
+      "status": "PASS",
+      "run": 31883658826
+    },
+    "authenticated_dashboard": {
+      "status": "PASS",
+      "run": 31883658924,
+      "scenarios": "14/14"
+    },
+    "refrigeration_browser": {
+      "status": "PASS",
+      "run": 31883658836
+    },
     "offline_bundle": {
       "status": "PASS",
       "run": 31883658920,
