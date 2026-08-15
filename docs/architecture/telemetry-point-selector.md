@@ -95,3 +95,5 @@ Opening, searching, expanding, selecting, confirming, or cancelling the selector
 - adds no mandatory public runtime dependency, CDN, remote font, cloud service, or external API.
 
 Browser acceptance is performed without adding a product route: the actual React selector is server-rendered inside the existing production browser acceptance process and evaluated with production application CSS. Interactive keyboard/search/confirm/cancel behavior is covered by component tests against the same component implementation.
+
+The production browser proof isolates React server rendering in a plain Node subprocess before markup is injected into Playwright. This keeps Playwright's module transform out of React element creation and remains acceptance tooling only; it adds no production runtime dependency or route.
