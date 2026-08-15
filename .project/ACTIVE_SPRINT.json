@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
-  "current_main_sha_semantics": "Issue #457 / PR #460 graph-first Live Data composition is squash-merged and software/browser/offline verified. Issue #462 is the .project-only post-merge reconciliation. Issue #461 is the next Ready software Work Package; Issue #289 remains an independent hardware lane.",
+  "current_main_sha": "d32f381d42796e1f44b132cb931729bc6cda76cf",
+  "current_main_sha_semantics": "Issue #462 / PR #463 state-only reconciliation is merged after Issue #457. Issue #461 / PR #464 is the active software Work Package and is product-verified on exact head 7a3dd97a; final state-head verification remains required before merge. Issue #289 remains an independent hardware lane.",
   "selection_state": {
-    "last_ready_audit_result": "Issue #457 is closed and PR #460 is merged as d69b11ae. Issue #461 is open, assigned and status:ready. Issue #462 is the required .project-only post-merge reconciliation. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
-    "selected_issue": 462,
-    "selection_status": "post_merge_state_reconciliation",
+    "last_ready_audit_result": "Issue #461 is active and product-verified. Issue #465 is created as the next Epic #450 consumer integration but remains blocked until #461 merges. Issue #289 remains independently in progress for Raspberry Pi hardware-performance acceptance.",
+    "selected_issue": 461,
+    "selection_status": "product_verified_state_reconciliation",
     "independent_hardware_lane": 289,
-    "next_independent_software_issue": 461
+    "next_independent_software_issue": 465
   },
   "tasks": [
     {
@@ -48,37 +48,50 @@
       "status": "completed_merged_software_browser_offline_verified",
       "priority": "critical",
       "parent_epic": 450,
-      "final_pr_head": "56ad319c355bdd1725021d5862beed3b1f3ccf6d",
       "merge_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
       "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
     },
     {
       "id": "NEXOLAB-462",
       "issue": 462,
+      "pull_request": 463,
       "title": "Reconcile Issue #457 merge state and activate Issue #461",
-      "status": "in_progress_state_only",
+      "status": "completed_merged_state_only",
       "priority": "high",
-      "branch": "chore/462-reconcile-issue-457-merge-state",
+      "merge_sha": "d32f381d42796e1f44b132cb931729bc6cda76cf",
       "scope": ".project/** only"
     },
     {
       "id": "NEXOLAB-461",
       "issue": 461,
+      "pull_request": 464,
       "title": "Add reusable hierarchical TelemetryPointSelector",
-      "status": "ready",
+      "status": "in_progress_product_verified_state_reconciliation",
       "priority": "critical",
       "parent_epic": 450,
-      "resolved_dependencies": [457]
+      "branch": "feat/461-hierarchical-telemetry-point-selector",
+      "product_verified_head": "7a3dd97a2d406b8cd25680010da55a052edc0f74",
+      "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+    },
+    {
+      "id": "NEXOLAB-465",
+      "issue": 465,
+      "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
+      "status": "blocked_dependency_461",
+      "priority": "critical",
+      "parent_epic": 450,
+      "blocked_by": [461]
     }
   ],
   "active_work_package": {
-    "issue": 462,
-    "title": "Reconcile Issue #457 merge state and activate Issue #461",
-    "status": "state_only_reconciliation",
-    "priority": "high",
-    "branch": "chore/462-reconcile-issue-457-merge-state",
-    "scope": ".project/** only",
-    "next_step": "Open a focused state-only PR, require exact-head CI GREEN, then audit main/reviews/diff and squash-merge with expected-head protection."
+    "issue": 461,
+    "pull_request": 464,
+    "title": "Add reusable hierarchical TelemetryPointSelector",
+    "status": "product_verified_state_reconciliation",
+    "priority": "critical",
+    "branch": "feat/461-hierarchical-telemetry-point-selector",
+    "product_verified_head": "7a3dd97a2d406b8cd25680010da55a052edc0f74",
+    "next_step": "Commit the four canonical .project files, require a fresh exact-head CI, Authenticated Dashboard, Refrigeration Browser, Offline Bundle and applicable Acquisition Scale cycle, then perform final diff/review/main audit before Ready and squash merge."
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -87,24 +100,27 @@
     "hardware_acceptance": "fresh_physical_matrix_required"
   },
   "next_work_package": {
-    "issue": 461,
-    "title": "Add reusable hierarchical TelemetryPointSelector",
-    "status": "ready",
+    "issue": 465,
+    "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
+    "status": "blocked",
     "priority": "critical",
-    "first_step": "After Issue #462 merges, move Issue #461 to status:in-progress and create a separate feature branch from reconciled main for the reusable selector primitive only."
+    "blocked_by": [461],
+    "first_step": "After #461 / PR #464 merges and post-merge .project reconciliation is GREEN, move #465 to status:in-progress and create a separate feature branch from reconciled main."
   },
   "verification": {
-    "issue_457_final_pr_head": "56ad319c355bdd1725021d5862beed3b1f3ccf6d",
-    "issue_457_merge_sha": "d69b11aed67812fbae65c1a63b49803a93f317d0",
-    "issue_457_ci_run": 31883658826,
-    "issue_457_ci": "PASS",
-    "issue_457_authenticated_dashboard_run": 31883658924,
-    "issue_457_authenticated_dashboard": "14/14 PASS",
-    "issue_457_refrigeration_browser_run": 31883658836,
-    "issue_457_refrigeration_browser": "PASS",
-    "issue_457_offline_bundle_run": 31883658920,
-    "issue_457_offline_bundle": "PASS",
-    "issue_457_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+    "issue_461_product_verified_head": "7a3dd97a2d406b8cd25680010da55a052edc0f74",
+    "issue_461_ci_run": 31891003782,
+    "issue_461_ci": "PASS",
+    "issue_461_authenticated_dashboard_run": 31891003701,
+    "issue_461_authenticated_dashboard": "15/15 PASS",
+    "issue_461_refrigeration_browser_run": 31891003707,
+    "issue_461_refrigeration_browser": "PASS",
+    "issue_461_offline_bundle_run": 31891003946,
+    "issue_461_offline_bundle": "PASS",
+    "issue_461_acquisition_scale_run": 31891003741,
+    "issue_461_acquisition_scale": "PASS_SOFTWARE_ONLY",
+    "issue_461_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending",
+    "final_state_head_verification": "pending"
   },
   "safety": {
     "modbus_write": "none",
