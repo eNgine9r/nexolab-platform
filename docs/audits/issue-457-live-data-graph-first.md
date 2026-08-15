@@ -28,6 +28,7 @@ Component coverage asserts the semantic DOM and focus order `chart â†’ filters â
 
 Production Live Chart System acceptance additionally asserts:
 
+- primary chart, filter panel, and inventory panel are visible before their relative DOM order is evaluated;
 - primary chart is before filters and inventory before any channel is selected;
 - no history request occurs with an empty comparison selection;
 - selected context is adjacent to the chart after selection;
