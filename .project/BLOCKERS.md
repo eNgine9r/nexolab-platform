@@ -2,25 +2,19 @@
 
 Updated: 2026-08-15
 
-## Issue #466 — state-only post-merge reconciliation
+## Issue #465 / PR #470 — final merge gate
 
-No product/runtime blocker is known.
+No product/runtime blocker is currently known.
 
-Issue #461 is closed and PR #464 is merged as `30659fb22e6420863383071079a5a40a6b6cd0d8` from final exact verified head `a49ee1a92546a04d8ae5c2b47d4a3d01b882ee56`.
+Issue #465 implementation is complete on `feat/465-live-dashboard-telemetry-selector`. Exact product head `34dbc2fb2936940e5193aabc2898fefe5bf3c984` is software/browser/offline GREEN across CI, Telemetry service, authenticated production browser, refrigeration browser, offline bundle/auth and related runtime acceptance workflows.
 
-The previously reported assistant execution-layer merge blocker for PR #464 is resolved by the completed GitHub merge and is no longer open.
+The first Authenticated Dashboard attempt on that same product tree observed a one-off pre-existing multi-axis WebSocket peak of 2. The #465 Live Dashboard and hierarchical-selector scenarios passed in that attempt. No #465 product code was changed for the unrelated result; a failed-job rerun on the exact same commit/tree passed all 15 production scenarios. This is therefore recorded as a transient CI race, not an open #465 regression.
 
-The remaining barrier before the next software feature is process-only: Issue #466 must change only the four canonical `.project/**` files, pass exact-head state-only CI, and complete a clean diff/review/main audit before squash merge.
-
-## Issue #465 — temporary state-reconciliation dependency
-
-Issue #465 — Live Dashboard editor integration of `TelemetryPointSelector` — has its product dependency on #461 resolved. It remains `status:blocked` only until Issue #466 is merged.
-
-After #466 merge, #465 should move to `status:ready`; implementation must occur on its own feature branch/PR and must not be folded into the state-only reconciliation.
+The only remaining barrier before merge is process/verification: the final `.project/**` checkpoint head must pass exact-head required checks and a clean main/diff/review/mergeability audit. PR #470 remains Draft until that gate is complete.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress`. Completion still requires the controlled real Raspberry Pi/RS-485 performance and physical-request matrix. Software Acquisition Scale, browser and Offline Bundle evidence does not replace that physical evidence.
+Issue #289 remains open and `status:in-progress`. Completion still requires the controlled real Raspberry Pi/RS-485 performance and physical-request matrix. Software Acquisition Scale, browser, backend and Offline Bundle evidence from #465 does not replace that physical evidence.
 
 ## Other pending hardware evidence
 
