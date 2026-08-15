@@ -2,27 +2,25 @@
 
 Updated: 2026-08-15
 
-## Issue #461 / PR #464 — pre-merge state reconciliation
+## Issue #466 — state-only post-merge reconciliation
 
-No product/runtime blocker is known. The reusable hierarchical `TelemetryPointSelector` is product-verified on exact head `7a3dd97a2d406b8cd25680010da55a052edc0f74`.
+No product/runtime blocker is known.
 
-Verified evidence on that head:
+Issue #461 is closed and PR #464 is merged as `30659fb22e6420863383071079a5a40a6b6cd0d8` from final exact verified head `a49ee1a92546a04d8ae5c2b47d4a3d01b882ee56`.
 
-- CI `31891003782`: PASS;
-- Authenticated Dashboard Acceptance `31891003701`: 15/15 PASS;
-- Refrigeration Browser Acceptance `31891003707`: PASS;
-- disconnected Offline Bundle `31891003946`: PASS;
-- Acquisition Scale Acceptance `31891003741`: PASS for software matrices only.
+The previously reported assistant execution-layer merge blocker for PR #464 is resolved by the completed GitHub merge and is no longer open.
 
-The remaining merge barrier is process-only: commit the canonical `.project/**` checkpoint and repeat all required exact-head gates on the resulting final PR head. PR #464 must not be marked Ready or merged before that cycle is terminal GREEN and the final diff/review/main audit is clean.
+The remaining barrier before the next software feature is process-only: Issue #466 must change only the four canonical `.project/**` files, pass exact-head state-only CI, and complete a clean diff/review/main audit before squash merge.
 
-## Issue #465 — blocked dependency
+## Issue #465 — temporary state-reconciliation dependency
 
-Issue #465 — Live Dashboard editor integration of `TelemetryPointSelector` — is created but remains `status:blocked` until Issue #461 is merged and post-merge project state is reconciled. It must be implemented on its own feature branch/PR and must not be folded into PR #464.
+Issue #465 — Live Dashboard editor integration of `TelemetryPointSelector` — has its product dependency on #461 resolved. It remains `status:blocked` only until Issue #466 is merged.
+
+After #466 merge, #465 should move to `status:ready`; implementation must occur on its own feature branch/PR and must not be folded into the state-only reconciliation.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress`. Completion still requires the controlled real Raspberry Pi/RS-485 performance and physical-request matrix. Software Acquisition Scale, browser and Offline Bundle evidence for #461 does not replace that physical evidence.
+Issue #289 remains open and `status:in-progress`. Completion still requires the controlled real Raspberry Pi/RS-485 performance and physical-request matrix. Software Acquisition Scale, browser and Offline Bundle evidence does not replace that physical evidence.
 
 ## Other pending hardware evidence
 
