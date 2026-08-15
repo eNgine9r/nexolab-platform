@@ -476,7 +476,7 @@ test("editor loads the canonical catalog and selects a channel without telemetry
 
     const selectorSearch = page.getByRole("searchbox", { name: "Пошук" });
     await selectorSearch.fill(noSampleChannelId);
-    const pointRow = page.getByRole("treeitem").filter({ hasText: noSampleChannelId });
+    const pointRow = page.getByRole("treeitem").filter({ hasText: "Acceptance channel without sample" });
     await expect(pointRow).toHaveCount(1);
     await expect(pointRow).toHaveAttribute("aria-checked", "false");
 
