@@ -38,9 +38,9 @@ Before pre-deployment inventory, evidence archive creation, PostgreSQL dump, `gi
 - build working-set headroom: 4 GiB;
 - metadata/log headroom: 256 MiB;
 - `runtime/evidence` archive estimate: 110% of current bytes plus 64 MiB;
-- PostgreSQL dump estimate: 110% of `pg_database_size()` plus 64 MiB, or a conservative 1 GiB fallback if a running PostgreSQL container cannot report its size.
+- PostgreSQL dump estimate: 110% of `pg_database_size()` plus 64 MiB; if a running PostgreSQL container cannot report its database size, the deployment fails closed before mutation rather than guessing.
 
-The gate is repeated immediately before the large evidence writes. If `free_bytes < required_bytes`, deployment stops before Git/runtime mutation and writes `capacity-preflight.txt` in the current deployment evidence directory.
+The gate is repeated immediately before the large evidence writes. If `free_bytes < required_bytes`, deployment stops before Git/runtime mutation and writes `capacity-preflight.txt` in the current deployment evidence directory. If PostgreSQL size measurement is unavailable, the report records that the required-byte estimate is incomplete and deployment is rejected before mutation.
 
 The report includes free, required, reserve, build, runtime-evidence, PostgreSQL, deployment-evidence and npm-cache byte counts. Docker build cache and npm cache are diagnostic/manual-review categories only; they are not automatically deleted.
 
@@ -73,7 +73,8 @@ The report includes free, required, reserve, build, runtime-evidence, PostgreSQL
    ```
 
 5. If capacity still fails, review the reported npm cache and Docker build cache separately. Cleanup of those caches is an explicit operator action and must not include Docker named volumes.
-6. Re-run `scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan` only after the capacity gate passes.
+6. If a running PostgreSQL container cannot report its database size, repair/verify that read-only measurement path before deployment; do not override it with an arbitrary smaller estimate.
+7. Re-run `scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan` only after the capacity gate passes.
 
 ## Tunable thresholds
 
@@ -84,7 +85,6 @@ Thresholds can be made more conservative with environment variables; values are 
 - `NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES`;
 - `NEXOLAB_DEPLOY_ARCHIVE_ESTIMATE_PERCENT`;
 - `NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES`;
-- `NEXOLAB_DEPLOY_POSTGRES_FALLBACK_BYTES`;
 - `NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT`;
 - `NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES`;
 - `NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT`;
