@@ -1,0 +1,64 @@
+name: Issue 457 graph-first patch v2
+
+on:
+  push:
+    branches:
+      - feat/457-live-data-graph-first-workspace
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/457-live-data-graph-first-workspace
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.1'
+          cache: npm
+
+      - name: Apply focused graph-first patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          helper = Path('.github/workflows/issue-457-graph-first-patch.yml').read_text(encoding='utf-8')
+          marker = '        run: |\n'
+          start = helper.index(marker) + len(marker)
+          end = helper.index('\n      - name: Install dependencies', start)
+          patch_program = textwrap.dedent(helper[start:end])
+          exec(compile(patch_program, 'issue-457-patch.py', 'exec'))
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: '0'
+
+      - name: Format touched files
+        run: npx prettier --write src/components/live/live-telemetry-explorer.tsx src/components/live/live-telemetry-explorer.test.tsx e2e/live-chart-system.production.e2e.ts
+
+      - name: Run targeted component regression
+        run: npx vitest run src/components/live/live-telemetry-explorer.test.tsx
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Remove temporary helpers and publish focused patch
+        run: |
+          rm .github/workflows/issue-457-graph-first-patch.yml
+          rm .github/workflows/issue-457-graph-first-patch-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: recompose Live Data around graph-first workspace"
+          git push origin HEAD:feat/457-live-data-graph-first-workspace
