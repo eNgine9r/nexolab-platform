@@ -3,15 +3,15 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T19:05:00Z",
+  "timestamp": "2026-08-15T19:20:00Z",
   "actor": "ChatGPT",
-  "event": "issue_465_product_verified_final_state_checkpoint",
+  "event": "issue_465_hardened_product_verified_final_pre_merge_checkpoint",
   "current_main_sha": "bc0f0612cdb8ba882a6ed66a49249ded68589507",
   "active_issue": 465,
   "active_pull_request": 470,
   "active_branch": "feat/465-live-dashboard-telemetry-selector",
-  "status": "final_state_checkpoint_exact_head_ci_pending",
-  "verified_product_head": "34dbc2fb2936940e5193aabc2898fefe5bf3c984",
+  "status": "final_pre_merge_checkpoint_exact_head_ci_pending",
+  "verified_product_head": "74e5e867f7738a24cfc5960bd5b4a32e7e1682fa",
   "completed_scope": {
     "selector_integration": "reusable hierarchical TelemetryPointSelector replaces Live Dashboard flat picker",
     "inventory_contract": "existing read-only inventory enriched with explicit chamber/equipment/taxonomy metadata without new endpoint or migration",
@@ -19,24 +19,14 @@
     "persistence_contract": "existing Live Dashboard save identity/order/concurrency contract preserved",
     "unresolved_selection_preservation": true,
     "bounded_latest_lookup_preserved": true,
+    "deterministic_index_path_evidence": true,
     "browser_no_history_selection_covered": true
   },
   "verification": {
-    "product_head": "34dbc2fb2936940e5193aabc2898fefe5bf3c984",
-    "ci": {
+    "full_behavior_head": "34dbc2fb2936940e5193aabc2898fefe5bf3c984",
+    "full_behavior_ci": {
       "status": "PASS",
-      "run": 31902408125,
-      "format": true,
-      "lint": true,
-      "typecheck": true,
-      "full_frontend_tests": true,
-      "production_build": true
-    },
-    "telemetry_service": {
-      "status": "PASS",
-      "run": 31902408104,
-      "postgresql_integration": true,
-      "inventory_query_plan": true
+      "run": 31902408125
     },
     "authenticated_dashboard": {
       "status": "PASS_RERUN_SAME_TREE_15_OF_15",
@@ -47,11 +37,11 @@
       "navigation_acceptance": true,
       "transient_first_attempt_note": "First attempt observed an unrelated existing multi-axis WebSocket maximum of 2. No #465 code changed; same-tree failed-job rerun passed all 15 scenarios."
     },
-    "refrigeration_browser": {
+    "refrigeration_browser_full_behavior": {
       "status": "PASS",
       "run": 31902408095
     },
-    "offline_bundle": {
+    "offline_bundle_full_behavior": {
       "status": "PASS",
       "run": 31902408111,
       "clean_transferred_host": true,
@@ -59,44 +49,63 @@
       "pull_disabled": true,
       "update_rollback_persistent_data_preserved": true
     },
-    "offline_auth": {
+    "offline_auth_full_behavior": {
       "status": "PASS",
       "run": 31902408077
     },
-    "acquisition_scale": {
+    "acquisition_scale_full_behavior": {
       "status": "PASS_SOFTWARE_ONLY",
       "run": 31902408205,
       "hardware_acceptance": false
     },
-    "device_agent_fleet": {
+    "hardened_product_head": "74e5e867f7738a24cfc5960bd5b4a32e7e1682fa",
+    "hardened_ci": {
       "status": "PASS",
-      "run": 31902408179
+      "run": 31903326754
     },
-    "container_supply_chain": {
+    "hardened_telemetry_service": {
       "status": "PASS",
-      "run": 31902408121
+      "run": 31903326765,
+      "full_backend_suite": true,
+      "postgresql_outage_recovery": true,
+      "offline_migration_validation": true,
+      "container_build": true
     },
-    "broker_control": {
+    "hardened_refrigeration_browser": {
       "status": "PASS",
-      "run": 31902408101
+      "run": 31903326728
     },
-    "disaster_recovery_browser": {
+    "hardened_acquisition_scale": {
+      "status": "PASS_SOFTWARE_ONLY",
+      "run": 31903326748,
+      "hardware_acceptance": false
+    },
+    "hardened_container_supply_chain": {
       "status": "PASS",
-      "run": 31902408056
+      "run": 31903326716
     },
-    "disaster_recovery_tls": {
+    "hardened_broker_control": {
       "status": "PASS",
-      "run": 31902408079
+      "run": 31903326723
     },
-    "mqtt_tls_fleet": {
+    "hardened_disaster_recovery_browser": {
       "status": "PASS",
-      "run": 31902408091
+      "run": 31903326721
     },
-    "capacity_release_gate": {
+    "hardened_disaster_recovery_tls": {
       "status": "PASS",
-      "run": 31902408060
+      "run": 31903326718
     },
-    "final_state_head": {
+    "planner_flake_diagnostic": {
+      "state_head": "d217bf8403925d46d419c89017323d6f35008dfd",
+      "telemetry_run": 31903101237,
+      "backend_tests_passed": 445,
+      "backend_tests_failed": 1,
+      "execution_ms": 0.502,
+      "cause": "natural PostgreSQL planner selected a cheaper valid plan that did not print the exact index name",
+      "correction": "normal EXPLAIN ANALYZE proves bounded runtime while an index-preferred EXPLAIN deterministically proves the ix_telemetry_latest_lookup path"
+    },
+    "final_checkpoint_head": {
       "status": "pending_exact_head_verification"
     }
   },
@@ -123,13 +132,13 @@
     "pull_request": 470,
     "title": "Integrate TelemetryPointSelector into Live Dashboard editor",
     "branch": "feat/465-live-dashboard-telemetry-selector",
-    "status": "final_state_checkpoint_exact_head_verification"
+    "status": "final_pre_merge_checkpoint_exact_head_verification"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
     "status": "in_progress_hardware_performance_validation"
   },
-  "next_action": "Run exact-head required workflows on the final state-checkpoint head; verify current main, 22-file focused diff, absence of helper workflows, reviews/threads, mergeability and behind count; update PR #470 evidence; mark Ready and squash merge only when GREEN.",
-  "resume_instruction": "Do not claim Issue #289 hardware acceptance from software workflows. Do not make Modbus/hardware writes or site cutover. After #465 merge, perform a separate .project-only post-merge reconciliation before selecting the next Ready software Work Package from GitHub."
+  "next_action": "Freeze files. Run all required workflows on this final checkpoint head; verify current main, 22-file focused diff, absence of helper workflows, reviews/threads, mergeability and behind count; update PR #470 body with exact final-head evidence; mark Ready and squash merge only when GREEN.",
+  "resume_instruction": "Do not modify files after this checkpoint unless a factual defect is found. Do not claim Issue #289 hardware acceptance from software workflows. Do not make Modbus/hardware writes or site cutover. After #465 merge, perform a separate .project-only post-merge reconciliation before selecting the next Ready software Work Package from GitHub."
 }
