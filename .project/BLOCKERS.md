@@ -2,25 +2,27 @@
 
 Updated: 2026-08-15
 
-## Issue #468 — software correction in PR #473
+## Issue #468 — software blocker resolved, physical acceptance pending
 
-Issue #468 remains open and `status:in-progress` until PR #473 passes final exact-head verification and merges.
+Issue #468 is closed and PR #473 is squash-merged at `d06b7958eab08d8ce319b3f3397ac541079e7f68`.
 
-The focused implementation on head `4bb8ec501dae069240098f669b4d047b90c6bc47` addresses the observed SQLite lock-contention failure with bounded busy retry and process-level fail-closed supervision. Relevant pre-state workflows are GREEN.
+The software fix passed all final exact-head gates, including CI, Device Agent Fleet, Acquisition Scale, disconnected Offline Bundle, Authenticated Dashboard, MQTT TLS Fleet, Disaster Recovery TLS Fleet, Container Supply Chain and Edge image.
 
-This is not yet physical acceptance. Issue #289 remains blocked from completion until #468 is merged and fresh controlled Raspberry Pi/RS-485 evidence proves an active acquisition worker and advancing telemetry freshness after contention/recovery or fail-closed restart.
+This resolves the repository software blocker. It does **not** close the physical acceptance lane: Issue #289 still requires fresh Raspberry Pi/RS-485 evidence proving an active acquisition worker and advancing telemetry freshness after recovery or fail-closed restart.
 
 ## Ready operational reliability issue — Issue #469
 
-Issue #469 remains open, `priority:high`, `status:ready` and is ordered immediately after #468.
+Issue #469 remains open, `priority:high`, `status:ready` and is the next software Work Package after state-only Issue #474.
 
-The current deployment evidence workflow can exhaust Raspberry Pi disk before updating `main`. The fix must add capacity preflight and bounded retention without deleting PostgreSQL, edge SQLite, MQTT, MinIO or named-volume product data.
+The controlled deployment path can exhaust Raspberry Pi disk while archiving deployment evidence before updating `main`. The fix must add free-space/capacity preflight and deterministic bounded retention for explicitly classified deployment-generated evidence/build caches only.
 
-#469 must be completed before relying on repeated controlled Pi deployment/evidence capture for final hardware acceptance.
+Automated cleanup must never delete PostgreSQL, edge SQLite, MQTT, MinIO, named Docker volumes or other product data. The newest failure evidence and current acceptance evidence must be preserved.
+
+Issue #469 must complete before repeated controlled Raspberry Pi deployment/evidence capture is treated as reliable for final hardware acceptance.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS-485 performance and recovery evidence is required. Software CI/Offline Bundle evidence does not satisfy hardware acceptance.
+Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS-485 performance and recovery evidence is required after #469. Software CI/Offline Bundle evidence does not satisfy hardware acceptance.
 
 ## Other pending physical evidence
 
