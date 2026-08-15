@@ -38,6 +38,7 @@ jobs:
           path = Path("e2e/telemetry-acquisition-invariant.production.e2e.ts")
           text = path.read_text()
           text = text.replace('import { createElement } from "react";\nimport { renderToStaticMarkup } from "react-dom/server";\n\n', '', 1)
+          text = text.replace('import { TelemetryPointSelector } from "../src/components/telemetry-selection/telemetry-point-selector";\n', '', 1)
 
           anchor = 'test("hierarchical telemetry selector stays bounded and side-effect free in production CSS", async ({\n'
           if anchor not in text:
