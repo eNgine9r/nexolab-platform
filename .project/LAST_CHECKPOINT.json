@@ -3,52 +3,45 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-14T14:00:34Z",
+  "timestamp": "2026-08-15T12:01:00Z",
   "actor": "ChatGPT",
-  "event": "issue_453_merged_post_merge_state_reconciliation",
-  "current_main_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
-  "completed_work_package": {
-    "issue": 453,
-    "pull_request": 456,
-    "title": "Add equipment-centric multi-metric charts with dynamic Y axes",
-    "final_pr_head": "ac15c3e61b04a61ff91d2d929218c3431ea7de3c",
-    "merge_sha": "0cfe1321b38fa7c2582503ae98c65d82c76dcbc3",
-    "state": "closed_completed",
-    "classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
-  },
+  "event": "issue_457_product_verified_state_reconciliation_started",
+  "current_main_sha": "41439a5bf692d40555799df80a912ab4bc98735c",
+  "active_issue": 457,
+  "active_pull_request": 460,
+  "active_branch": "feat/457-live-data-graph-first-workspace",
+  "status": "state_reconciliation_then_final_exact_head_verification",
+  "verified_product_head": "acbbeadabe0162286060e3d97353cb51752f7706",
   "outcome": {
-    "equipment_grouping": "Live Data and Saved Live Dashboards group plottable series by equipment context before applying the bounded axis budget",
-    "multi_axis": "V/A/W and other mixed native units can share one synchronized equipment canvas with deterministic stable Y-axis identities",
-    "visibility": "hide removes an unused axis, show restores the same axis identity/order, and solo leaves only the selected series and required axis",
-    "renderer": "ECharts binds series to yAxisId and uses replaceMerge for series/yAxis updates without remounting the renderer",
-    "accessibility": "ChartShell summary reports visible series, axes, distinct visible units, freshness and continuity breaks only",
-    "continuity": "Issue #451 explicit quality/communication gap and Exact Inspector contracts remain preserved",
-    "acquisition_boundary": "presentation/read-model only; max one WebSocket and zero acquisition/configuration mutations in authenticated production acceptance"
+    "composition": "Live Data reading and focus order is primary chart then filters then latest-values inventory",
+    "selected_context": "selected equipment/channel/metric/unit context is adjacent to the canonical chart without duplicating the full inventory",
+    "empty_selection": "the primary chart exposes a truthful selection-required state and no history request is made while comparison selection is empty",
+    "responsive_layout": "production regression asserts graph-first vertical order and no document-level horizontal overflow at 360, 1440 and 1920 pixels",
+    "history_boundary": "history requests remain limited to selected channel identities and the selected time window",
+    "chart_contract": "Issue #451/#453 mixed-unit axes, Exact Inspector, continuity, hide/show/solo, zoom/reset and Pause/Return to Live behavior remain preserved",
+    "acquisition_boundary": "one existing telemetry model; max one WebSocket and zero acquisition/configuration mutations or public runtime requests in production acceptance"
   },
   "verification": {
     "ci": {
       "status": "PASS",
-      "run": 31806462184,
-      "scope": "repository formatting, lint, typecheck, full tests, production build"
+      "run": 31883123214,
+      "scope": "runtime-contract, ADR and dependency-policy validation; formatting, lint, typecheck, full tests and production build"
     },
     "authenticated_dashboard": {
       "status": "PASS",
-      "run": 31806462239,
+      "run": 31883123221,
       "scenarios": "14/14",
       "websocket_max_concurrent": 1,
-      "acquisition_mutations": 0
+      "acquisition_mutations": 0,
+      "public_runtime_requests": 0
     },
     "refrigeration_browser": {
       "status": "PASS",
-      "run": 31806462166
-    },
-    "acquisition_scale": {
-      "status": "PASS",
-      "run": 31806462144
+      "run": 31883123215
     },
     "offline_bundle": {
       "status": "PASS",
-      "run": 31806462148,
+      "run": 31883123222,
       "exact_source_checkout": true,
       "clean_transferred_host": true,
       "container_egress_blocked": true,
@@ -57,7 +50,7 @@
     }
   },
   "hardware_evidence": {
-    "issue_453_raspberry_pi_operator_acceptance": "pending_not_claimed",
+    "issue_457_raspberry_pi_operator_acceptance": "pending_not_claimed",
     "issue_289_independent_hardware_lane": "in_progress",
     "issue_445_raspberry_pi_field_retest": "pending",
     "issue_447_raspberry_pi_perceived_latency_acceptance": "pending"
@@ -75,10 +68,11 @@
     "mandatory_public_runtime_dependency": "none"
   },
   "active_work_package": {
-    "issue": 458,
-    "title": "Reconcile Issue #453 merge state and activate Issue #457",
-    "branch": "chore/458-reconcile-issue-453-merge-state",
-    "status": "state_only_reconciliation"
+    "issue": 457,
+    "pull_request": 460,
+    "title": "Recompose Live Data around a graph-first operator workspace",
+    "branch": "feat/457-live-data-graph-first-workspace",
+    "status": "state_reconciliation_then_final_exact_head_verification"
   },
   "parallel_hardware_work_package": {
     "issue": 289,
@@ -86,11 +80,11 @@
     "status": "in_progress_hardware_performance_validation"
   },
   "next_work_package": {
-    "issue": 457,
-    "title": "Recompose Live Data around a graph-first operator workspace",
-    "status": "ready",
-    "resolved_dependencies": [453]
+    "issue": 461,
+    "title": "Add reusable hierarchical TelemetryPointSelector",
+    "status": "blocked_until_issue_457_merge",
+    "depends_on": [457]
   },
-  "next_action": "Validate and merge the .project-only Issue #458 reconciliation with exact-head CI and expected-head protection, then start Issue #457 from updated main.",
-  "resume_instruction": "Do not claim Raspberry Pi acceptance for #453. Preserve Issue #289 as an independent physical evidence lane. Issue #457 is Ready but must use its own feature branch and focused PR. No Modbus/hardware writes or site cutover."
+  "next_action": "Run CI, Authenticated Dashboard, Refrigeration Browser and disconnected Offline Bundle on the new state-reconciled PR head; if all are GREEN, confirm main remains current, audit reviews and focused diff, update PR #460 summary, mark Ready and squash-merge with expected-head protection. Then move Issue #461 from status:blocked to status:ready after merge/state reconciliation.",
+  "resume_instruction": "Do not claim Raspberry Pi acceptance for #457. Preserve Issue #289 as an independent physical evidence lane. Do not implement #461 inside PR #460. No Modbus/hardware writes or site cutover."
 }

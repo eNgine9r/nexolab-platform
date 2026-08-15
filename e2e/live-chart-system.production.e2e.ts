@@ -246,13 +246,55 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Saved Dashboards" })).toBeVisible();
 
+    const primaryChart = page.getByTestId("live-primary-chart");
+    const filterPanel = page.getByTestId("live-filter-panel");
+    const inventoryPanel = page.getByTestId("live-inventory-panel");
+    await expect(primaryChart).toBeVisible();
+    await expect(filterPanel).toBeVisible();
+    await expect(inventoryPanel).toBeVisible();
+    await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
+    await expect(
+      primaryChart.getByText("Оберіть канали нижче у Latest values", { exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => {
+        const chart = document.querySelector('[data-testid="live-primary-chart"]');
+        const filters = document.querySelector('[data-testid="live-filter-panel"]');
+        const inventory = document.querySelector('[data-testid="live-inventory-panel"]');
+        if (!chart || !filters || !inventory) return false;
+        return (
+          Boolean(chart.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(filters.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING)
+        );
+      }),
+    ).toBe(true);
+    expect(runtime.telemetry.filter((request) => request.url.includes("/history"))).toEqual([]);
+
     const search = page.getByPlaceholder("node, equipment, channel, metric, source...");
     await search.fill(fixture.equipmentId);
     const compare = page.getByRole("checkbox", { name: /Порівнювати/ });
+    expect(
+      await page.evaluate(() => {
+        const chartButton = document.querySelector('[data-testid="live-primary-chart"] button');
+        const searchInput = document.querySelector(
+          'input[placeholder="node, equipment, channel, metric, source..."]',
+        );
+        const compareInput = document.querySelector(
+          '[data-testid="live-inventory-panel"] input[type="checkbox"]',
+        );
+        if (!chartButton || !searchInput || !compareInput) return false;
+        return (
+          Boolean(chartButton.compareDocumentPosition(searchInput) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(searchInput.compareDocumentPosition(compareInput) & Node.DOCUMENT_POSITION_FOLLOWING)
+        );
+      }),
+    ).toBe(true);
     await expect(compare).toHaveCount(8);
     for (let index = 0; index < 8; index += 1) await compare.nth(index).check();
 
     await expect(page.getByText("8 / 8", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.channels[0]);
     await expect(
       page.getByRole("heading", { name: `Live Data · ${fixture.equipmentId}`, exact: true }),
     ).toBeVisible();
@@ -300,6 +342,14 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     expect(runtime.publicRequests).toEqual([]);
     expect(runtime.telemetry.some((request) => request.url.includes("/latest"))).toBe(true);
     expect(runtime.telemetry.some((request) => request.url.includes("/history"))).toBe(true);
+    expect(
+      runtime.telemetry
+        .filter((request) => request.url.includes("/history"))
+        .every((request) => {
+          const channelId = new URL(request.url).searchParams.get("channel_id");
+          return channelId !== null && fixture.channels.includes(channelId);
+        }),
+    ).toBe(true);
 
     await page.getByRole("button", { name: "Hide" }).first().click();
     await expect(page.getByRole("button", { name: "Show" }).first()).toBeVisible();
@@ -328,6 +378,26 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     ]) {
       await page.setViewportSize(viewport);
       await assertNoPageOverflow(page);
+      const regionOrder = await page.evaluate(() => {
+        const chart = document.querySelector('[data-testid="live-primary-chart"]');
+        const filters = document.querySelector('[data-testid="live-filter-panel"]');
+        const inventory = document.querySelector('[data-testid="live-inventory-panel"]');
+        if (
+          !(chart instanceof HTMLElement) ||
+          !(filters instanceof HTMLElement) ||
+          !(inventory instanceof HTMLElement)
+        ) {
+          return null;
+        }
+        return {
+          chartTop: chart.getBoundingClientRect().top,
+          filterTop: filters.getBoundingClientRect().top,
+          inventoryTop: inventory.getBoundingClientRect().top,
+        };
+      });
+      expect(regionOrder).not.toBeNull();
+      expect(regionOrder!.chartTop).toBeLessThan(regionOrder!.filterTop);
+      expect(regionOrder!.filterTop).toBeLessThan(regionOrder!.inventoryTop);
     }
 
     await page.getByRole("button", { name: "Saved Dashboards", exact: true }).click();
