@@ -3,6 +3,16 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { TelemetryPointSelector } from "../src/components/telemetry-selection/telemetry-point-selector";
+import {
+  buildTelemetryPointHierarchy,
+  collectTelemetryPointBranchIds,
+  type TelemetryPointDescriptor,
+} from "../src/features/telemetry-selection/hierarchy";
+
 import {
   expect,
   test,
@@ -452,6 +462,155 @@ test("page navigation and browser count do not amplify physical acquisition", as
   for (const context of contexts.reverse()) {
     await context.close();
   }
+});
+
+const selectorOrganizationId = "org-selector-browser";
+
+function selectorPoint(
+  overrides: Partial<TelemetryPointDescriptor> &
+    Pick<TelemetryPointDescriptor, "channelId" | "metric" | "unit">,
+): TelemetryPointDescriptor {
+  return {
+    organizationId: selectorOrganizationId,
+    laboratory: { id: "lab-main", label: "Main laboratory" },
+    zone: { id: "zone-a", label: "Zone A" },
+    equipmentType: { id: "energy-meter", label: "Energy meters" },
+    equipment: { id: "LE-01MP", label: "LE-01MP Meter 01" },
+    nodeId: "edge-01",
+    channelLabel: overrides.channelId,
+    metricLabel: overrides.metric,
+    ...overrides,
+  };
+}
+
+function selectorInventory(): TelemetryPointDescriptor[] {
+  return [
+    selectorPoint({ channelId: "voltage", channelLabel: "Voltage", metric: "voltage", unit: "V" }),
+    selectorPoint({ channelId: "current", channelLabel: "Current", metric: "current", unit: "A" }),
+    selectorPoint({
+      channelId: "power",
+      channelLabel: "Active power",
+      metric: "active_power",
+      unit: "W",
+    }),
+    selectorPoint({
+      zone: { id: "zone-b", label: "Zone B" },
+      equipmentType: { id: "temperature-controller", label: "Temperature controllers" },
+      equipment: { id: "XR170C-106", label: "XR170C Unit 106" },
+      channelId: "106-03",
+      channelLabel: "Probe 03",
+      metric: "temperature.probe",
+      metricLabel: "Temperature",
+      unit: "degC",
+    }),
+    selectorPoint({
+      laboratory: { id: "lab-secondary", label: "Secondary laboratory" },
+      zone: { id: "zone-c", label: "Zone C" },
+      equipment: { id: "LE-01MP-02", label: "LE-01MP Meter 02" },
+      channelId: "energy",
+      channelLabel: "Active energy",
+      metric: "active_energy",
+      unit: "kWh",
+    }),
+  ];
+}
+
+test("hierarchical telemetry selector stays bounded and side-effect free in production CSS", async ({
+  browser,
+}) => {
+  const context = await authenticatedContext(browser);
+  const stylePage = await context.newPage();
+  await stylePage.goto("/", { waitUntil: "domcontentloaded" });
+  const stylesheetUrls = await stylePage
+    .locator('link[rel="stylesheet"]')
+    .evaluateAll((links) => links.map((link) => (link as HTMLLinkElement).href));
+  expect(stylesheetUrls.length, "production stylesheets discovered").toBeGreaterThan(0);
+  await stylePage.close();
+
+  const hierarchy = buildTelemetryPointHierarchy(selectorInventory(), selectorOrganizationId);
+  const markup = renderToStaticMarkup(
+    createElement(TelemetryPointSelector, {
+      hierarchy,
+      value: [hierarchy.orderedLeafKeys[0]],
+      maxSelection: 8,
+      maxVisibleNodes: 200,
+      initialExpandedNodeIds: collectTelemetryPointBranchIds(hierarchy),
+      onConfirm: () => undefined,
+    }),
+  );
+  const styles = stylesheetUrls.map((href) => `<link rel="stylesheet" href="${href}">`).join("");
+
+  const page = await context.newPage();
+  let websocketCount = 0;
+  const sideEffectRequests: ObservedRequest[] = [];
+  page.on("websocket", () => {
+    websocketCount += 1;
+  });
+  page.on("request", (request) => {
+    const observed = { method: request.method(), url: request.url() };
+    const pathname = new URL(observed.url).pathname;
+    if (
+      pathname.includes("/api/v1/telemetry/history") ||
+      pathname.includes("/api/device-agent/") ||
+      (observed.method !== "GET" && pathname.startsWith("/api/"))
+    ) {
+      sideEffectRequests.push(observed);
+    }
+  });
+
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.setContent(
+    `<!doctype html><html><head>${styles}</head><body class="bg-[#06142a] p-2">${markup}</body></html>`,
+    { waitUntil: "load" },
+  );
+
+  const tree = page.getByRole("tree", { name: "Точки телеметрії" });
+  await expect(tree).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: /Main laboratory/ })).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: /Energy meters/ }).first()).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: /LE-01MP Meter 01/ })).toHaveAttribute(
+    "aria-checked",
+    "mixed",
+  );
+  await expect(page.getByRole("treeitem", { name: /Probe 03/ })).toBeVisible();
+
+  const viewportEvidence: Array<{
+    width: number;
+    clientWidth: number;
+    scrollWidth: number;
+  }> = [];
+  for (const width of [360, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    viewportEvidence.push({ width, ...dimensions });
+    expect(dimensions.scrollWidth, `document width at ${width}px viewport`).toBeLessThanOrEqual(
+      dimensions.clientWidth,
+    );
+  }
+
+  expect(websocketCount, "selector WebSocket openings").toBe(0);
+  expect(sideEffectRequests, "selector history/control/configuration requests").toEqual([]);
+
+  mkdirSync(evidenceDirectory, { recursive: true });
+  writeFileSync(
+    path.join(evidenceDirectory, "telemetry-point-selector-browser.json"),
+    `${JSON.stringify(
+      {
+        hierarchyNodes: hierarchy.nodeCount,
+        hierarchyLeaves: hierarchy.leafCount,
+        viewportEvidence,
+        websocketCount,
+        sideEffectRequests,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  await context.close();
 });
 
 function requiredEnvironment(name: string): string {
