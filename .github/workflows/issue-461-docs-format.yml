@@ -1,0 +1,45 @@
+name: Issue 461 docs formatter
+
+on:
+  push:
+    branches:
+      - feat/461-hierarchical-telemetry-point-selector
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/461-hierarchical-telemetry-point-selector
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Normalize Issue 461 docs
+        run: |
+          npx prettier --write docs/architecture/telemetry-point-selector.md docs/audits/issue-461-telemetry-point-selector.md
+          npx prettier --check docs/architecture/telemetry-point-selector.md docs/audits/issue-461-telemetry-point-selector.md
+
+      - name: Publish normalized docs
+        run: |
+          rm .github/workflows/issue-461-docs-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: normalize Issue 461 verification docs"
+          git push origin HEAD:feat/461-hierarchical-telemetry-point-selector
