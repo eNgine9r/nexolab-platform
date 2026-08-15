@@ -61,6 +61,7 @@ class DeploymentCapacityTests(unittest.TestCase):
             content = report.read_text(encoding="utf-8")
             self.assertIn("status=PASS", content)
             self.assertIn("required_bytes=600", content)
+            self.assertIn("required_bytes_is_complete=true", content)
 
             insufficient = run_bash(
                 f'''source {quoted_helper}\n'''
@@ -139,6 +140,56 @@ class DeploymentCapacityTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             remaining = sorted(path.name for path in deployments.iterdir() if path.is_dir())
             self.assertEqual(remaining, [dirs[3].name, dirs[4].name, dirs[5].name])
+
+    def test_postgres_measurement_failure_is_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            audit = repo / "runtime" / "deployments" / "20260815T220000Z"
+            audit.mkdir(parents=True)
+            report = audit / "capacity-preflight.txt"
+            result = run_bash(
+                f'''source {subprocess.list2cmdline([str(HELPER)])}\n'''
+                '''docker() { return 1; }\n'''
+                '''nexolab_capacity_free_bytes() { printf '1000000\\n'; }\n'''
+                f'''if nexolab_capacity_preflight {subprocess.list2cmdline([str(repo)])} {subprocess.list2cmdline([str(audit)])} fake-postgres {subprocess.list2cmdline([str(report)])}; then exit 99; else rc=$?; fi\n'''
+                '''printf 'rc=%s\\n' "$rc"\n''',
+                env={
+                    "NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES": "100",
+                    "NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES": "200",
+                    "NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES": "300",
+                    "NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES": "0",
+                    "NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("rc=70", result.stdout)
+            content = report.read_text(encoding="utf-8")
+            self.assertIn("status=FAIL", content)
+            self.assertIn("postgresql_estimate_source=unavailable", content)
+            self.assertIn("required_bytes_is_complete=false", content)
+            self.assertIn("error=postgresql-size-unavailable", content)
+
+    def test_retention_fails_closed_when_classified_directory_cannot_be_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            deployments = Path(temp) / "deployments"
+            old_dir = deployments / "20260101T000000Z"
+            current = deployments / "20260815T220001Z"
+            old_dir.mkdir(parents=True)
+            current.mkdir(parents=True)
+            result = run_bash(
+                f'''source {subprocess.list2cmdline([str(HELPER)])}\n'''
+                '''rm() { return 1; }\n'''
+                f'''nexolab_prune_deployment_evidence {subprocess.list2cmdline([str(deployments)])} {subprocess.list2cmdline([str(current)])}\n''',
+                env={
+                    "NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT": "1",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT": "1",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_AGE_DAYS": "0",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 70)
+            self.assertTrue(old_dir.exists())
+            self.assertIn("failed to prune classified deployment evidence", result.stderr)
 
     def test_deployment_orders_capacity_gate_before_mutation_and_uses_atomic_large_files(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
