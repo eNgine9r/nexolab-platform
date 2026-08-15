@@ -438,10 +438,225 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         ) : null}
       </section>
 
-      <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">
+      <section
+        data-testid="live-primary-chart"
+        aria-labelledby="live-primary-chart-title"
+        className="min-w-0 rounded-3xl border border-cyan-300/15 bg-[#091a31]/95 p-4 shadow-xl shadow-black/10 sm:p-5"
+      >
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="text-xs tracking-[0.18em] text-cyan-300 uppercase">Canonical Chart System</p>
+            <h2 id="live-primary-chart-title" className="mt-1 text-lg font-semibold text-white">
+              Синхронізована історія
+            </h2>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+              До 8 каналів. Несумісні одиниці мають окремі синхронізовані шкали. Zoom/pan — display-only і не
+              змінює acquisition.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {CANONICAL_CHART_TIME_RANGES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectRange(item.id)}
+                className={`min-h-10 rounded-xl border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-cyan-300 ${range === item.id ? "border-cyan-300/40 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-slate-400 hover:text-white"}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          data-testid="live-selected-context"
+          aria-live="polite"
+          className="mt-4 flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3"
+        >
+          <span className="mr-1 text-xs font-semibold tracking-wide text-cyan-200 uppercase">
+            Selected context
+          </span>
+          {selected.length === 0 ? (
+            <span className="text-xs text-slate-400">Жодного каналу не обрано</span>
+          ) : (
+            <>
+              {selected.slice(0, 6).map((sample) => (
+                <span
+                  key={liveChannelKey(sample)}
+                  className="max-w-full rounded-lg border border-white/[0.08] bg-[#06142a]/70 px-2.5 py-1 text-xs text-slate-300"
+                >
+                  {sample.equipment_id} · {sample.channel_id} · {sample.metric} · {sample.unit}
+                </span>
+              ))}
+              {selected.length > 6 ? (
+                <span className="text-xs text-slate-500">+{selected.length - 6} channels</span>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        {range === "custom" ? (
+          <div className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/[0.07] bg-[#081a32]/60 p-3">
+            <label className="grid gap-1 text-xs text-slate-400">
+              Від
+              <input
+                type="datetime-local"
+                value={customFrom}
+                onChange={(event) => setCustomFrom(event.target.value)}
+                className="h-10 rounded-xl border border-white/10 bg-[#06142A] px-3 text-sm text-white"
+              />
+            </label>
+            <label className="grid gap-1 text-xs text-slate-400">
+              До
+              <input
+                type="datetime-local"
+                value={customTo}
+                onChange={(event) => setCustomTo(event.target.value)}
+                className="h-10 rounded-xl border border-white/10 bg-[#06142A] px-3 text-sm text-white"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={applyCustomRange}
+              className="min-h-10 rounded-xl bg-cyan-400/15 px-4 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              Застосувати
+            </button>
+            {customError ? (
+              <p className="basis-full text-xs text-red-200" role="alert">
+                {customError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-3">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            {liveFollow && range === "live" ? (
+              <Play className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+            ) : range !== "live" && viewportDomain === null ? (
+              <Clock3 className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            ) : (
+              <Pause className="h-4 w-4 text-amber-300" aria-hidden="true" />
+            )}
+            <span>
+              {liveFollow && range === "live"
+                ? "Live Follow"
+                : range !== "live" && viewportDomain === null
+                  ? "Rolling range"
+                  : "Paused view"}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {liveFollow && range === "live" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setViewportDomain(resetDomain);
+                  setLiveFollow(false);
+                }}
+                className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                Pause View
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setRange("live");
+                  telemetry.setHistoryRange("1h");
+                  setViewportDomain(null);
+                  setLiveFollow(true);
+                  syncUrl(filters, telemetry.selectedKeys, "live");
+                }}
+                className="min-h-10 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                Return to Live
+              </button>
+            )}
+          </div>
+        </div>
+
+        {selected.length === 0 ? (
+          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center">
+            <div>
+              <Activity className="mx-auto h-8 w-8 text-slate-600" aria-hidden="true" />
+              <p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали нижче у Latest values</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Primary graph готовий до роботи; history requests не виконуються, доки comparison selection
+                порожній.
+              </p>
+            </div>
+          </div>
+        ) : telemetry.historyStatus === "loading" ? (
+          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">
+            Завантаження history window за одним ingestion watermark…
+          </div>
+        ) : telemetry.historyStatus === "error" ? (
+          <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-8 text-center">
+            <AlertTriangle className="h-8 w-8 text-red-300" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium text-red-100">Не вдалося завантажити історію</p>
+            <p className="mt-1 max-w-xl text-xs text-red-200/60">
+              {telemetry.historyError?.message ?? "Unknown history error"}
+            </p>
+            <button
+              type="button"
+              onClick={telemetry.retryHistory}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10 focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити history
+            </button>
+          </div>
+        ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (
+          <div className="mt-5 min-w-0 space-y-4">
+            {groups.map((group) => (
+              <LiveChartPanel
+                key={group.id}
+                group={group}
+                rangeLabel={rangeLabel}
+                sharedCursorMs={sharedCursorMs}
+                resetDomain={resetDomain}
+                onSharedCursorChange={setSharedCursorMs}
+                onXDomainChange={(domain) => {
+                  setViewportDomain(domain);
+                  setLiveFollow(false);
+                }}
+                onToggleSeries={(seriesKey) => {
+                  setSoloSeriesKey(null);
+                  setHiddenSeriesKeys((current) => {
+                    const next = new Set(current);
+                    if (next.has(seriesKey)) next.delete(seriesKey);
+                    else next.add(seriesKey);
+                    return next;
+                  });
+                }}
+                onSoloSeries={(seriesKey) => {
+                  setSoloSeriesKey((current) => (current === seriesKey ? null : seriesKey));
+                }}
+              />
+            ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
+              <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center text-sm text-slate-400">
+            У вибраному інтервалі немає persisted telemetry.
+          </div>
+        )}
+      </section>
+
+      <section
+        data-testid="live-filter-panel"
+        aria-labelledby="live-filter-panel-title"
+        className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-white">Пошук і фільтри</h2>
+            <h2 id="live-filter-panel-title" className="text-base font-semibold text-white">
+              Пошук і фільтри
+            </h2>
             <p className="mt-1 text-xs text-slate-500">
               Усі умови застосовуються одночасно та зберігаються в URL.
             </p>
@@ -514,10 +729,16 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90">
+      <section
+        data-testid="live-inventory-panel"
+        aria-labelledby="live-inventory-panel-title"
+        className="min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-white">Latest values</h2>
+            <h2 id="live-inventory-panel-title" className="text-base font-semibold text-white">
+              Latest values
+            </h2>
             <p className="mt-1 text-xs text-slate-500">
               {filtered.length} каналів відповідають поточному запиту
             </p>
@@ -618,181 +839,6 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 })}
               </tbody>
             </table>
-          </div>
-        )}
-      </section>
-
-      <section className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="text-xs tracking-[0.18em] text-cyan-300 uppercase">Canonical Chart System</p>
-            <h2 className="mt-1 text-lg font-semibold text-white">Синхронізована історія</h2>
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-              До 8 каналів. Несумісні одиниці мають окремі синхронізовані шкали. Zoom/pan — display-only і не
-              змінює acquisition.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {CANONICAL_CHART_TIME_RANGES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => selectRange(item.id)}
-                className={`min-h-10 rounded-xl border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-cyan-300 ${range === item.id ? "border-cyan-300/40 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-slate-400 hover:text-white"}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {range === "custom" ? (
-          <div className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl border border-white/[0.07] bg-[#081a32]/60 p-3">
-            <label className="grid gap-1 text-xs text-slate-400">
-              Від
-              <input
-                type="datetime-local"
-                value={customFrom}
-                onChange={(event) => setCustomFrom(event.target.value)}
-                className="h-10 rounded-xl border border-white/10 bg-[#06142A] px-3 text-sm text-white"
-              />
-            </label>
-            <label className="grid gap-1 text-xs text-slate-400">
-              До
-              <input
-                type="datetime-local"
-                value={customTo}
-                onChange={(event) => setCustomTo(event.target.value)}
-                className="h-10 rounded-xl border border-white/10 bg-[#06142A] px-3 text-sm text-white"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={applyCustomRange}
-              className="min-h-10 rounded-xl bg-cyan-400/15 px-4 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
-            >
-              Застосувати
-            </button>
-            {customError ? (
-              <p className="basis-full text-xs text-red-200" role="alert">
-                {customError}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-3">
-          <div className="flex items-center gap-2 text-xs text-slate-300">
-            {liveFollow && range === "live" ? (
-              <Play className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-            ) : range !== "live" && viewportDomain === null ? (
-              <Clock3 className="h-4 w-4 text-cyan-300" aria-hidden="true" />
-            ) : (
-              <Pause className="h-4 w-4 text-amber-300" aria-hidden="true" />
-            )}
-            <span>
-              {liveFollow && range === "live"
-                ? "Live Follow"
-                : range !== "live" && viewportDomain === null
-                  ? "Rolling range"
-                  : "Paused view"}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {liveFollow && range === "live" ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setViewportDomain(resetDomain);
-                  setLiveFollow(false);
-                }}
-                className="min-h-10 rounded-xl border border-white/10 px-3 text-xs text-slate-200 focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                Pause View
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setRange("live");
-                  telemetry.setHistoryRange("1h");
-                  setViewportDomain(null);
-                  setLiveFollow(true);
-                  syncUrl(filters, telemetry.selectedKeys, "live");
-                }}
-                className="min-h-10 rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                Return to Live
-              </button>
-            )}
-          </div>
-        </div>
-
-        {selected.length === 0 ? (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center">
-            <div>
-              <Activity className="mx-auto h-8 w-8 text-slate-600" aria-hidden="true" />
-              <p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали в таблиці</p>
-              <p className="mt-1 text-xs text-slate-500">
-                History requests не виконуються, доки comparison selection порожній.
-              </p>
-            </div>
-          </div>
-        ) : telemetry.historyStatus === "loading" ? (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-white/[0.07] bg-[#081a32]/50 p-8 text-sm text-slate-400">
-            Завантаження history window за одним ingestion watermark…
-          </div>
-        ) : telemetry.historyStatus === "error" ? (
-          <div className="mt-5 flex min-h-44 flex-col items-center justify-center rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-red-300" aria-hidden="true" />
-            <p className="mt-3 text-sm font-medium text-red-100">Не вдалося завантажити історію</p>
-            <p className="mt-1 max-w-xl text-xs text-red-200/60">
-              {telemetry.historyError?.message ?? "Unknown history error"}
-            </p>
-            <button
-              type="button"
-              onClick={telemetry.retryHistory}
-              className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-red-200/20 px-3 text-xs text-red-100 hover:bg-red-400/10 focus-visible:ring-2 focus-visible:ring-red-300"
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Повторити history
-            </button>
-          </div>
-        ) : telemetry.historyWindow && telemetry.historySamples.length > 0 && groups.length > 0 ? (
-          <div className="mt-5 min-w-0 space-y-4">
-            {groups.map((group) => (
-              <LiveChartPanel
-                key={group.id}
-                group={group}
-                rangeLabel={rangeLabel}
-                sharedCursorMs={sharedCursorMs}
-                resetDomain={resetDomain}
-                onSharedCursorChange={setSharedCursorMs}
-                onXDomainChange={(domain) => {
-                  setViewportDomain(domain);
-                  setLiveFollow(false);
-                }}
-                onToggleSeries={(seriesKey) => {
-                  setSoloSeriesKey(null);
-                  setHiddenSeriesKeys((current) => {
-                    const next = new Set(current);
-                    if (next.has(seriesKey)) next.delete(seriesKey);
-                    else next.add(seriesKey);
-                    return next;
-                  });
-                }}
-                onSoloSeries={(seriesKey) => {
-                  setSoloSeriesKey((current) => (current === seriesKey ? null : seriesKey));
-                }}
-              />
-            ))}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-              <span>Snapshot watermark: {telemetry.historySnapshotAt ?? "—"}</span>
-              <span>Future samples rejected: {telemetry.rejectedFutureSamples}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center text-sm text-slate-400">
-            У вибраному інтервалі немає persisted telemetry.
           </div>
         )}
       </section>
