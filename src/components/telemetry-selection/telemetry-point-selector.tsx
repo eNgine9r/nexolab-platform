@@ -1,14 +1,7 @@
 "use client";
 
 import { ChevronRight, Search } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
   canonicalizeTelemetryPointSelection,
@@ -31,6 +24,16 @@ export type TelemetryPointSelectorProps = {
   maxVisibleNodes?: number;
   initialExpandedNodeIds?: readonly string[];
   title?: string;
+};
+
+type VersionedDraft = {
+  committedSignature: string;
+  selected: string[];
+};
+
+type VersionedStatus = {
+  committedSignature: string;
+  message: string | null;
 };
 
 function ariaChecked(state: TelemetryPointSelectionState): boolean | "mixed" {
@@ -72,18 +75,29 @@ export function TelemetryPointSelector({
     [hierarchy, value],
   );
   const committedSignature = committed.join("\u0000");
-  const [draft, setDraft] = useState<string[]>(() => committed);
+  const [draftState, setDraftState] = useState<VersionedDraft>(() => ({
+    committedSignature,
+    selected: committed,
+  }));
   const [query, setQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(initialExpandedNodeIds),
   );
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusState, setStatusState] = useState<VersionedStatus>(() => ({
+    committedSignature,
+    message: null,
+  }));
 
-  useEffect(() => {
-    setDraft(canonicalizeTelemetryPointSelection(hierarchy, value));
-    setStatusMessage(null);
-  }, [committedSignature, hierarchy, value]);
+  const draft = draftState.committedSignature === committedSignature ? draftState.selected : committed;
+  const statusMessage =
+    statusState.committedSignature === committedSignature ? statusState.message : null;
+  const setDraft = (selected: string[]) => {
+    setDraftState({ committedSignature, selected });
+  };
+  const setStatusMessage = (message: string | null) => {
+    setStatusState({ committedSignature, message });
+  };
 
   const searchResult = useMemo(
     () => searchTelemetryPointHierarchy(hierarchy, query),
@@ -102,10 +116,6 @@ export function TelemetryPointSelector({
     activeId && visibleIds.has(activeId) ? activeId : (visible.rows[0]?.node.id ?? null);
   const selectedSet = useMemo(() => new Set(draft), [draft]);
   const dirty = draft.join("\u0000") !== committedSignature;
-
-  useEffect(() => {
-    if (effectiveActiveId !== activeId) setActiveId(effectiveActiveId);
-  }, [activeId, effectiveActiveId]);
 
   const focusNode = (id: string | null) => {
     if (!id) return;
@@ -270,6 +280,7 @@ export function TelemetryPointSelector({
                   aria-level={row.level}
                   aria-expanded={branch ? expanded : undefined}
                   aria-checked={ariaChecked(state)}
+                  aria-selected={state === "checked"}
                   tabIndex={effectiveActiveId === node.id ? 0 : -1}
                   data-telemetry-node-id={node.id}
                   onFocus={() => setActiveId(node.id)}
