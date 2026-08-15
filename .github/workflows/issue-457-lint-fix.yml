@@ -13,27 +13,23 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
         with:
           ref: feat/457-live-data-graph-first-workspace
           fetch-depth: 0
-      - name: Apply lint-only E2E correction
+
+      - name: Apply lint-only correction and publish
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('e2e/live-chart-system.production.e2e.ts')
-          text = path.read_text(encoding='utf-8')
-          old = '''    const inventoryPanel = page.getByTestId("live-inventory-panel");
-    await expect(primaryChart).toBeVisible();
-'''
-          new = '''    const inventoryPanel = page.getByTestId("live-inventory-panel");
-    await expect(primaryChart).toBeVisible();
-    await expect(filterPanel).toBeVisible();
-    await expect(inventoryPanel).toBeVisible();
-'''
-          if old not in text:
-              raise SystemExit('expected E2E anchor not found')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          path = Path("e2e/live-chart-system.production.e2e.ts")
+          text = path.read_text(encoding="utf-8")
+          anchor = '    await expect(primaryChart).toBeVisible();\n'
+          replacement = '    await expect(primaryChart).toBeVisible();\n    await expect(filterPanel).toBeVisible();\n    await expect(inventoryPanel).toBeVisible();\n'
+          if anchor not in text:
+              raise SystemExit("expected E2E anchor not found")
+          path.write_text(text.replace(anchor, replacement, 1), encoding="utf-8")
           PY
           rm .github/workflows/issue-457-lint-fix.yml
           git config user.name "github-actions[bot]"
