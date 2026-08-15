@@ -4,55 +4,49 @@ Updated: 2026-08-15
 
 ## Canonical repository baseline
 
-Current `main` is `d06b7958eab08d8ce319b3f3397ac541079e7f68`, the squash merge of Issue #468 / PR #473.
+Current `main` is `0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558`, the squash merge of state-only Issue #474 / PR #475 after Issue #468 / PR #473.
 
-Issue #468 is closed/completed at the software level. Its stale `status:in-progress` label has been removed. Post-merge repository-state reconciliation is tracked by state-only Issue #474.
+Issue #474 is closed/completed and its stale `status:in-progress` label has been removed. Issue #468 remains software-complete while its physical recovery evidence is still owned by Issue #289.
 
-## Completed software Work Package — Issue #468 / PR #473
+## Active Work Package — Issue #469 / PR #476
 
-Issue #468 — **Keep Device Agent acquisition alive across SQLite queue lock contention** — is software-complete and merged.
+Issue #469 — **Prevent Raspberry Pi deployment evidence capture from exhausting disk** — is `priority:high`, `status:in-progress`.
 
-PR #473 delivered:
+Draft PR #476 (`fix/469-raspberry-pi-deployment-evidence-capacity`) implements the focused software correction:
 
-- explicit SQLite `busy_timeout` plus bounded retry for queue operations;
-- complete-operation retry/rollback without resetting or deleting edge SQLite;
-- contention coverage for enqueue, backlog reads, delete, queue depth and monotonic stream-sequence allocation;
-- process-level supervision tying HTTP availability to the top-level Device Agent runtime, so an unexpectedly dead acquisition runtime cannot remain hidden behind a live health server;
-- deterministic real-SQLite contention and runtime-supervision regressions;
-- preserved polling cadence, target eligibility, one serialized worker per physical bus and read-only Modbus boundary.
+- sourceable/standalone deployment capacity guard;
+- bounded retention only for strict timestamp children of `runtime/deployments/`;
+- preservation of the current deployment, newest deployment evidence, symlinks and `.nexolab-preserve` acceptance evidence;
+- conservative free-space preflight before inventory/evidence capture and a second recheck immediately before large writes;
+- explicit reserve/build/metadata/runtime-evidence/PostgreSQL capacity accounting;
+- fail-closed behavior when a running PostgreSQL container cannot report `pg_database_size()`;
+- atomic `.partial` → final rename for runtime evidence archive and PostgreSQL pre-upgrade dump;
+- deterministic sufficient/insufficient capacity, retention, preservation, cleanup-failure, PostgreSQL-measurement and mutation-order regressions;
+- operator documentation for low-space recovery and tunable thresholds.
 
-Merge-authoritative source head was `4dd2cdeb9aa2827e55217a1ba57bf6c6a150bf04`. Final exact-head workflows were GREEN:
+Automated cleanup does **not** target `runtime/evidence`, PostgreSQL, edge SQLite, MQTT, MinIO, Docker named volumes or controller/device configuration.
 
-- CI `31907158772`;
-- Device Agent Fleet Acceptance `31907158788`;
-- Acquisition Scale Acceptance `31907158853` — software-only;
-- Offline Bundle `31907158836` — disconnected startup, pull disabled, persistent-data-preserving update/rollback;
-- Authenticated Dashboard Acceptance `31907158743`;
-- MQTT TLS Fleet Acceptance `31907158756`;
-- Disaster Recovery TLS Fleet `31907158716`;
-- Container Supply Chain `31907158779`;
-- Edge image `31907158763`.
+Targeted software verification passed:
 
-This does **not** constitute physical Raspberry Pi acceptance. Fresh controlled Raspberry Pi/RS-485 evidence must still prove active worker recovery or fail-closed restart and advancing telemetry freshness.
+- temporary implementation helper run `31908201491` — PASS (`bash -n` for both deployment scripts plus deploy-capacity Python regressions);
+- temporary audit-hardening verifier run `31908426084` — PASS, including fail-closed PostgreSQL-size and cleanup-failure coverage.
 
-## Active state-only Work Package — Issue #474
+The temporary helper/verifier workflow files were removed. Software head before this canonical checkpoint is `933b22c27a5894c7818596fda7d734ca548da538`; its net diff contains only the four permitted product/docs/test files.
 
-Issue #474 — **Reconcile Issue #468 merge state and activate next Ready Work Package** — is `status:in-progress`.
+Final exact-head CI after this `.project/**` checkpoint is still required before software merge.
 
-Its scope is `.project/**` only. No product/runtime code, dependency, schema, hardware or deployment mutation is permitted.
+## Hardware acceptance
 
-## Next Ready software Work Package — Issue #469
+Issue #469 is not physically accepted yet. After the software PR merges, a controlled Raspberry Pi deployment must still prove:
 
-Issue #469 — **Prevent Raspberry Pi deployment evidence capture from exhausting disk** — remains open, `priority:high`, `status:ready`.
+- capacity diagnostics on the physical filesystem;
+- no product-data or named-volume loss;
+- successful deployment after safe bounded evidence cleanup when required;
+- exact current `main` on the host;
+- preserved rollback/evidence behavior.
 
-It is the next software Work Package after Issue #474 merges. The deployment path must gain capacity preflight and bounded deployment-evidence retention without deleting PostgreSQL, edge SQLite, MQTT, MinIO or named-volume product data.
-
-## Independent hardware lane — Issue #289
-
-Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS-485 performance and recovery evidence is required after the #468 software fix and after #469 makes controlled deployment/evidence capture capacity-safe.
-
-Other pending physical evidence includes KK2/Unit 115 field retest, refrigeration perceived-latency acceptance and Raspberry Pi version-management acceptance.
+Issue #469 must remain open after software merge until that physical evidence exists. Issue #289 remains the broader Raspberry Pi/RS-485 acquisition acceptance lane.
 
 ## Safety boundary
 
-LOCAL_LAN and offline-first requirements remain unchanged. Read-only Modbus remains mandatory. No controller configuration, hardware write, destructive persistent-data/volume action, site cutover, secret/billing/DNS change or mandatory cloud runtime dependency is authorized.
+LOCAL_LAN and offline-first requirements remain unchanged. Read-only Modbus remains mandatory. No controller configuration, hardware write, product persistent-data/volume deletion, production/site cutover, secret/billing/DNS change or mandatory cloud runtime dependency is authorized.

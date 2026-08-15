@@ -3,78 +3,55 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T20:48:00Z",
+  "timestamp": "2026-08-15T21:07:00Z",
   "actor": "ChatGPT",
-  "event": "issue_468_post_merge_state_reconciliation",
-  "current_main_sha": "d06b7958eab08d8ce319b3f3397ac541079e7f68",
-  "completed_issue": 468,
-  "completed_pull_request": 473,
-  "merge_sha": "d06b7958eab08d8ce319b3f3397ac541079e7f68",
-  "source_head": "4dd2cdeb9aa2827e55217a1ba57bf6c6a150bf04",
-  "active_issue": 474,
-  "active_branch": "chore/474-reconcile-issue-468-merge-state",
-  "completion_classification": "Issue #468 software fix merged with exact-head GREEN verification; physical Raspberry Pi acceptance remains unverified and assigned to Issue #289",
+  "event": "issue_469_pre_merge_software_checkpoint",
+  "current_main_sha": "0b378ab7d257a2fe00e9dd6aea86ce9b74ec6558",
+  "active_issue": 469,
+  "active_pull_request": 476,
+  "active_branch": "fix/469-raspberry-pi-deployment-evidence-capacity",
+  "software_head_before_state": "933b22c27a5894c7818596fda7d734ca548da538",
+  "completion_classification": "software implementation targeted-verification complete; final exact-head CI and software merge pending; physical Raspberry Pi acceptance not claimed",
   "verification": {
-    "ci": {
+    "initial_targeted": {
       "status": "PASS",
-      "run": 31907158772
+      "run": 31908201491
     },
-    "device_agent_fleet": {
+    "audit_hardening_targeted": {
       "status": "PASS",
-      "run": 31907158788
+      "run": 31908426084
     },
-    "acquisition_scale": {
-      "status": "PASS_SOFTWARE_ONLY",
-      "run": 31907158853,
-      "hardware_acceptance": false
-    },
-    "offline_bundle": {
-      "status": "PASS_DISCONNECTED",
-      "run": 31907158836
-    },
-    "authenticated_dashboard": {
-      "status": "PASS",
-      "run": 31907158743
-    },
-    "mqtt_tls_fleet": {
-      "status": "PASS",
-      "run": 31907158756
-    },
-    "disaster_recovery_tls": {
-      "status": "PASS",
-      "run": 31907158716
-    },
-    "container_supply_chain": {
-      "status": "PASS",
-      "run": 31907158779
-    },
-    "edge_image": {
-      "status": "PASS",
-      "run": 31907158763
-    },
-    "issue_474_exact_head": "pending"
+    "final_exact_head": "pending_after_this_checkpoint",
+    "hardware_acceptance": false
   },
-  "next_work_package": {
-    "issue": 469,
-    "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
-    "status": "status:ready_after_474"
+  "scope": {
+    "product_files_before_state": [
+      "docs/operations/raspberry-pi-deployment-capacity.md",
+      "scripts/deploy-capacity-guard.sh",
+      "scripts/deploy-current-head-raspberry-pi.sh",
+      "scripts/tests/test_deploy_current_head_raspberry_pi_capacity.py"
+    ],
+    "state_files": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ]
   },
   "parallel_hardware_work_package": {
     "issue": 289,
     "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "in_progress_hardware_performance_validation",
-    "hardware_acceptance": "fresh_physical_matrix_required_after_469"
+    "status": "in_progress_hardware_performance_validation"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "controller_configuration_change": "none",
-    "polling_policy_change": "none",
-    "acquisition_registry_change": "none",
-    "persistent_data_deletion": "none",
+    "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
+    "deployment_evidence_retention": "bounded_timestamp_directories_only",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Commit this .project-only reconciliation, open PR for Issue #474, run exact-head CI/format gate and merge if GREEN; then activate Issue #469."
+  "next_action": "Commit this canonical state checkpoint on PR #476, run exact-head CI, then audit diff/reviews/mergeability and squash-merge software only if GREEN while leaving Issue #469 open for controlled Raspberry Pi acceptance."
 }
