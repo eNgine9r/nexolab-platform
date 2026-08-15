@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import threading
 import unittest
 from contextlib import nullcontext
@@ -160,6 +161,30 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.client.disconnect.assert_called_once_with()
         value.client.loop_stop.assert_called_once_with()
 
+
+
+    def test_persistent_queue_failure_escapes_top_adaptive_runtime(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value.connect = Mock()
+        value.scheduler = Mock()
+        value._publish_lock = threading.Lock()
+        value.queue = Mock()
+        value.queue.size.side_effect = sqlite3.OperationalError("database is locked")
+        value.modbus_client = None
+        value.operational = None
+        value.client = Mock()
+
+        with self.assertRaisesRegex(
+            sqlite3.OperationalError,
+            "database is locked",
+        ):
+            value.run()
+
+        value.scheduler.start.assert_called_once_with()
+        value.scheduler.stop.assert_called_once_with()
+        value.client.disconnect.assert_called_once_with()
+        value.client.loop_stop.assert_called_once_with()
 
     def test_health_fails_closed_when_eligible_bus_worker_is_dead(
         self,

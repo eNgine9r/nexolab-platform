@@ -17,7 +17,11 @@ from adaptive_scheduler import (
     SchedulerTarget,
 )
 from latest_values import LatestValueStore
-from main import Settings, TelemetryRecord
+from main import (
+    Settings,
+    TelemetryRecord,
+    run_agent_with_health_server,
+)
 from managed_main import LOG
 from modbus_rtu import ModbusError
 from registry_main import (
@@ -343,28 +347,15 @@ def main() -> None:
         del frame
         LOG.info("Received signal %s", signum)
         agent.stop_event.set()
-        threading.Thread(
-            target=server.shutdown,
-            daemon=True,
-        ).start()
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    worker = threading.Thread(
-        target=agent.run,
-        name="device-agent",
-        daemon=True,
+    run_agent_with_health_server(
+        agent,
+        server,
+        endpoint_label="Adaptive health endpoint",
     )
-    worker.start()
-    LOG.info(
-        "Adaptive health endpoint listening on %s:%s",
-        settings.health_host,
-        settings.health_port,
-    )
-    server.serve_forever(poll_interval=0.5)
-    worker.join(timeout=10)
-
 
 if __name__ == "__main__":
     main()

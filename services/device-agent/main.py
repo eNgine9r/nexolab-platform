@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
 import logging
 import os
@@ -7,6 +8,7 @@ import random
 import signal
 import sqlite3
 import threading
+import time
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -292,10 +294,30 @@ class TelemetryRecord:
 
 
 class OfflineQueue:
-    def __init__(self, database_path: Path) -> None:
+    def __init__(
+        self,
+        database_path: Path,
+        *,
+        busy_timeout_ms: int = 2000,
+        busy_retry_attempts: int = 3,
+        busy_retry_delay_seconds: float = 0.05,
+    ) -> None:
+        if busy_timeout_ms <= 0:
+            raise ValueError("busy_timeout_ms must be positive")
+        if busy_retry_attempts <= 0:
+            raise ValueError("busy_retry_attempts must be positive")
+        if busy_retry_delay_seconds < 0:
+            raise ValueError("busy_retry_delay_seconds must be non-negative")
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(database_path, check_same_thread=False)
+        self._connection = sqlite3.connect(
+            database_path,
+            check_same_thread=False,
+            timeout=busy_timeout_ms / 1000,
+        )
+        self._connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         self._lock = threading.Lock()
+        self._busy_retry_attempts = busy_retry_attempts
+        self._busy_retry_delay_seconds = busy_retry_delay_seconds
         with self._connection:
             self._connection.execute(
                 """
@@ -317,61 +339,117 @@ class OfflineQueue:
                 """
             )
 
+    @staticmethod
+    def _is_busy_error(error: sqlite3.OperationalError) -> bool:
+        message = str(error).casefold()
+        return "locked" in message or "busy" in message
+
+    def _retry_busy(self, label: str, operation: Callable[[], Any]) -> Any:
+        for attempt in range(1, self._busy_retry_attempts + 1):
+            try:
+                return operation()
+            except sqlite3.OperationalError as error:
+                if self._connection.in_transaction:
+                    self._connection.rollback()
+                if (
+                    not self._is_busy_error(error)
+                    or attempt >= self._busy_retry_attempts
+                ):
+                    raise
+                LOG.warning(
+                    "SQLite queue %s deferred by lock contention; retry %s/%s",
+                    label,
+                    attempt,
+                    self._busy_retry_attempts,
+                )
+                if self._busy_retry_delay_seconds:
+                    time.sleep(self._busy_retry_delay_seconds * attempt)
+        raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
+
     def enqueue(self, topic: str, payload: str, event_id: str) -> None:
-        with self._lock, self._connection:
-            self._connection.execute(
-                """
-                INSERT OR IGNORE INTO outbound_queue(event_id, topic, payload, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (event_id, topic, payload, datetime.now(timezone.utc).isoformat()),
-            )
+        def operation() -> None:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT OR IGNORE INTO outbound_queue(event_id, topic, payload, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        event_id,
+                        topic,
+                        payload,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+
+        with self._lock:
+            self._retry_busy("enqueue", operation)
 
     def oldest(self, limit: int = 100) -> list[tuple[int, str, str]]:
-        with self._lock:
+        def operation() -> list[tuple[int, str, str]]:
             rows = self._connection.execute(
                 "SELECT id, topic, payload FROM outbound_queue ORDER BY id LIMIT ?",
                 (limit,),
             ).fetchall()
-        return [(int(row[0]), str(row[1]), str(row[2])) for row in rows]
+            return [(int(row[0]), str(row[1]), str(row[2])) for row in rows]
+
+        with self._lock:
+            return self._retry_busy("oldest", operation)
 
     def delete(self, record_id: int) -> None:
-        with self._lock, self._connection:
-            self._connection.execute("DELETE FROM outbound_queue WHERE id = ?", (record_id,))
+        def operation() -> None:
+            with self._connection:
+                self._connection.execute(
+                    "DELETE FROM outbound_queue WHERE id = ?",
+                    (record_id,),
+                )
+
+        with self._lock:
+            self._retry_busy("delete", operation)
 
     def size(self) -> int:
+        def operation() -> int:
+            row = self._connection.execute(
+                "SELECT COUNT(*) FROM outbound_queue"
+            ).fetchone()
+            return int(row[0] if row else 0)
+
         with self._lock:
-            row = self._connection.execute("SELECT COUNT(*) FROM outbound_queue").fetchone()
-        return int(row[0] if row else 0)
+            return int(self._retry_busy("size", operation))
 
     def next_sequence(self, stream: str) -> int:
         normalized = stream.strip().lower()
         if not normalized:
             raise ValueError("stream is required")
-        with self._lock, self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO node_stream_sequences(stream, last_sequence)
-                VALUES (?, 0)
-                ON CONFLICT(stream) DO NOTHING
-                """,
-                (normalized,),
-            )
-            self._connection.execute(
-                """
-                UPDATE node_stream_sequences
-                SET last_sequence = last_sequence + 1
-                WHERE stream = ?
-                """,
-                (normalized,),
-            )
-            row = self._connection.execute(
-                "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
-                (normalized,),
-            ).fetchone()
-        if row is None:
-            raise RuntimeError("node stream sequence allocation failed")
-        return int(row[0])
+
+        def operation() -> int:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    INSERT INTO node_stream_sequences(stream, last_sequence)
+                    VALUES (?, 0)
+                    ON CONFLICT(stream) DO NOTHING
+                    """,
+                    (normalized,),
+                )
+                self._connection.execute(
+                    """
+                    UPDATE node_stream_sequences
+                    SET last_sequence = last_sequence + 1
+                    WHERE stream = ?
+                    """,
+                    (normalized,),
+                )
+                row = self._connection.execute(
+                    "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
+                    (normalized,),
+                ).fetchone()
+                if row is None:
+                    raise RuntimeError("node stream sequence allocation failed")
+                return int(row[0])
+
+        with self._lock:
+            return int(self._retry_busy("next_sequence", operation))
 
 
 class AgentState:
@@ -788,6 +866,59 @@ class HealthHandler(BaseHTTPRequestHandler):
         LOG.debug("health: " + format, *args)
 
 
+def run_agent_with_health_server(
+    agent: DeviceAgent,
+    server: ThreadingHTTPServer,
+    *,
+    endpoint_label: str,
+) -> None:
+    """Tie HTTP availability to the top-level acquisition runtime lifetime."""
+
+    server_errors: list[Exception] = []
+
+    def serve() -> None:
+        try:
+            server.serve_forever(poll_interval=0.5)
+        except Exception as error:  # noqa: BLE001
+            server_errors.append(error)
+            agent.state.update(last_error=f"health server failed: {error}")
+            agent.stop_event.set()
+
+    server_thread = threading.Thread(
+        target=serve,
+        name="device-agent-health",
+        daemon=True,
+    )
+    server_thread.start()
+    LOG.info(
+        "%s listening on %s:%s",
+        endpoint_label,
+        agent.settings.health_host,
+        agent.settings.health_port,
+    )
+
+    runtime_error: Exception | None = None
+    try:
+        agent.run()
+        if not agent.stop_event.is_set():
+            runtime_error = RuntimeError("device-agent runtime exited unexpectedly")
+    except Exception as error:  # noqa: BLE001
+        runtime_error = error
+        agent.state.update(last_error=f"device-agent runtime failed: {error}")
+        LOG.exception("Device-agent runtime failed closed")
+    finally:
+        server.shutdown()
+        server.server_close()
+        server_thread.join(timeout=10)
+
+    if server_thread.is_alive():
+        raise RuntimeError("device-agent health server failed to stop")
+    if runtime_error is not None:
+        raise RuntimeError("device-agent runtime failed") from runtime_error
+    if server_errors:
+        raise RuntimeError("device-agent health server failed") from server_errors[0]
+
+
 def main() -> None:
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -802,27 +933,18 @@ def main() -> None:
     )
 
     def stop(signum: int, frame: Any) -> None:
+        del frame
         LOG.info("Received signal %s", signum)
         agent.stop_event.set()
-        threading.Thread(target=server.shutdown, daemon=True).start()
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    worker = threading.Thread(
-        target=agent.run,
-        name="device-agent",
-        daemon=True,
+    run_agent_with_health_server(
+        agent,
+        server,
+        endpoint_label="Health endpoint",
     )
-    worker.start()
-    LOG.info(
-        "Health endpoint listening on %s:%s",
-        settings.health_host,
-        settings.health_port,
-    )
-    server.serve_forever(poll_interval=0.5)
-    worker.join(timeout=10)
-
 
 if __name__ == "__main__":
     main()
