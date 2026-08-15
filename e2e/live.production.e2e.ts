@@ -474,12 +474,36 @@ test("editor loads the canonical catalog and selects a channel without telemetry
       .poll(() => requests.dashboard.some((item) => item.url.includes("/channel-inventory")))
       .toBe(true);
 
-    const catalogCard = page.locator("article").filter({ hasText: noSampleChannelId });
-    await expect(catalogCard).toContainText("Якість: Невідомі");
-    await expect(catalogCard).toContainText("Тривога: немає");
-    await catalogCard.getByRole("button", { name: "Додати", exact: true }).click();
+    const selectorSearch = page.getByRole("searchbox", { name: "Пошук" });
+    await selectorSearch.fill(noSampleChannelId);
+    const pointRow = page.getByRole("treeitem").filter({ hasText: noSampleChannelId });
+    await expect(pointRow).toHaveCount(1);
+    await expect(pointRow).toHaveAttribute("aria-checked", "false");
+
+    // Draft selector changes are session-local until Confirm.
+    await pointRow.click();
+    await expect(pointRow).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("button", { name: "Скасувати", exact: true }).click();
+    await expect(page.getByText("Непідтверджені зміни селектора скасовано.", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("telemetry-selection-count")).toContainText("0 / 64");
+
+    await selectorSearch.fill(noSampleChannelId);
+    await pointRow.click();
+    await page.getByRole("button", { name: "Підтвердити вибір", exact: true }).click();
+    await expect(
+      page.getByText("Підтверджений вибір застосовано до чернетки Dashboard.", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("telemetry-selection-count")).toContainText("1 / 64");
     await expect(page.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
-    await expect(page.getByText(`${noSampleChannelId} додано.`, { exact: true })).toBeVisible();
+
+    for (const width of [360, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(() =>
+          page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+        )
+        .toBe(true);
+    }
 
     expect(requests.telemetry).toEqual([]);
     expect(requests.acquisitionMutations).toEqual([]);
