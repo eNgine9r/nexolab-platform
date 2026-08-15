@@ -13,15 +13,43 @@
   "implementation_head": "4bb8ec501dae069240098f669b4d047b90c6bc47",
   "completion_classification": "software implementation verified on pre-state head; final exact-head CI and merge pending; physical Raspberry Pi acceptance not claimed",
   "verification": {
-    "ci": {"status": "PASS_PRE_STATE", "run": 31905533519},
-    "device_agent_fleet": {"status": "PASS_PRE_STATE", "run": 31905533550},
-    "acquisition_scale": {"status": "PASS_SOFTWARE_ONLY_PRE_STATE", "run": 31905533534, "hardware_acceptance": false},
-    "offline_bundle": {"status": "PASS_PRE_STATE", "run": 31905533532},
-    "authenticated_dashboard": {"status": "PASS_PRE_STATE", "run": 31905533538},
-    "mqtt_tls_fleet": {"status": "PASS_PRE_STATE", "run": 31905533541},
-    "disaster_recovery_tls": {"status": "PASS_PRE_STATE", "run": 31905533533},
-    "container_supply_chain": {"status": "PASS_PRE_STATE", "run": 31905533549},
-    "edge_image": {"status": "PASS_PRE_STATE", "run": 31905533542},
+    "ci": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533519
+    },
+    "device_agent_fleet": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533550
+    },
+    "acquisition_scale": {
+      "status": "PASS_SOFTWARE_ONLY_PRE_STATE",
+      "run": 31905533534,
+      "hardware_acceptance": false
+    },
+    "offline_bundle": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533532
+    },
+    "authenticated_dashboard": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533538
+    },
+    "mqtt_tls_fleet": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533541
+    },
+    "disaster_recovery_tls": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533533
+    },
+    "container_supply_chain": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533549
+    },
+    "edge_image": {
+      "status": "PASS_PRE_STATE",
+      "run": 31905533542
+    },
     "reviews": 0,
     "unresolved_review_threads": 0,
     "final_exact_head": "pending_after_this_checkpoint"
@@ -63,5 +91,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Commit this canonical state checkpoint on PR #473, run exact-head workflows, then audit diff/reviews/mergeability and squash merge only if required checks remain GREEN."
+  "next_action": "Run exact-head workflows on this checkpoint, then audit diff/reviews/mergeability and squash merge only if required checks remain GREEN."
 }
