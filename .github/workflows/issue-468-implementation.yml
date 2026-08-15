@@ -28,6 +28,43 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/issue-468-patch.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def indent_generated_main_tail(path: Path) -> None:
+              text = path.read_text()
+              function_start = text.index("def main() -> None:\n")
+              tail_start = text.index(
+                  "def stop(signum: int, frame: Any) -> None:\n",
+                  function_start,
+              )
+              tail_end = text.index('\n\nif __name__ == "__main__":', tail_start)
+              block = text[tail_start:tail_end]
+              indented = "\n".join(
+                  f"    {line}" if line else ""
+                  for line in block.splitlines()
+              )
+              path.write_text(text[:tail_start] + indented + text[tail_end:])
+
+          indent_generated_main_tail(Path("services/device-agent/main.py"))
+          indent_generated_main_tail(Path("services/device-agent/adaptive_main.py"))
+
+          test_path = Path("services/device-agent/tests/test_adaptive_main.py")
+          text = test_path.read_text()
+          method_start = text.index(
+              "def test_persistent_queue_failure_escapes_top_adaptive_runtime(self) -> None:\n"
+          )
+          next_method = text.index(
+              "    def test_health_fails_closed_when_eligible_bus_worker_is_dead(\n",
+              method_start,
+          )
+          block = text[method_start:next_method]
+          indented = "\n".join(
+              f"    {line}" if line else ""
+              for line in block.splitlines()
+          )
+          test_path.write_text(text[:method_start] + indented + text[next_method:])
+          PY
           rm .github/issue-468-patch.py .github/workflows/issue-468-implementation.yml
           git diff --check
           python3 -m compileall -q services/device-agent
