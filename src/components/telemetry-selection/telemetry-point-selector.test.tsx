@@ -13,7 +13,8 @@ import { TelemetryPointSelector } from "./telemetry-point-selector";
 const ORGANIZATION_ID = "org-selector";
 
 function point(
-  overrides: Partial<TelemetryPointDescriptor> & Pick<TelemetryPointDescriptor, "channelId" | "metric" | "unit">,
+  overrides: Partial<TelemetryPointDescriptor> &
+    Pick<TelemetryPointDescriptor, "channelId" | "metric" | "unit">,
 ): TelemetryPointDescriptor {
   return {
     organizationId: ORGANIZATION_ID,

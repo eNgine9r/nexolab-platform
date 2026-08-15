@@ -70,19 +70,14 @@ export function TelemetryPointSelector({
   const treeLabelId = useId();
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const maximum = normalizedLimit(maxSelection);
-  const committed = useMemo(
-    () => canonicalizeTelemetryPointSelection(hierarchy, value),
-    [hierarchy, value],
-  );
+  const committed = useMemo(() => canonicalizeTelemetryPointSelection(hierarchy, value), [hierarchy, value]);
   const committedSignature = committed.join("\u0000");
   const [draftState, setDraftState] = useState<VersionedDraft>(() => ({
     committedSignature,
     selected: committed,
   }));
   const [query, setQuery] = useState("");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(initialExpandedNodeIds),
-  );
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(initialExpandedNodeIds));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [statusState, setStatusState] = useState<VersionedStatus>(() => ({
     committedSignature,
@@ -90,8 +85,7 @@ export function TelemetryPointSelector({
   }));
 
   const draft = draftState.committedSignature === committedSignature ? draftState.selected : committed;
-  const statusMessage =
-    statusState.committedSignature === committedSignature ? statusState.message : null;
+  const statusMessage = statusState.committedSignature === committedSignature ? statusState.message : null;
   const setDraft = (selected: string[]) => {
     setDraftState({ committedSignature, selected });
   };
@@ -99,10 +93,7 @@ export function TelemetryPointSelector({
     setStatusState({ committedSignature, message });
   };
 
-  const searchResult = useMemo(
-    () => searchTelemetryPointHierarchy(hierarchy, query),
-    [hierarchy, query],
-  );
+  const searchResult = useMemo(() => searchTelemetryPointHierarchy(hierarchy, query), [hierarchy, query]);
   const visible = useMemo(
     () =>
       flattenTelemetryPointHierarchy(searchResult.roots, expandedIds, {
@@ -136,9 +127,7 @@ export function TelemetryPointSelector({
   const toggleSelection = (node: TelemetryPointNode) => {
     const result = toggleTelemetryPointNodeSelection(hierarchy, node, draft, maximum);
     if (result.reason === "limit") {
-      setStatusMessage(
-        `Ліміт вибору — ${maximum}. Зменште поточний вибір перед додаванням цієї групи.`,
-      );
+      setStatusMessage(`Ліміт вибору — ${maximum}. Зменште поточний вибір перед додаванням цієї групи.`);
       return;
     }
     setStatusMessage(null);
@@ -210,8 +199,8 @@ export function TelemetryPointSelector({
             {title}
           </h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
-            Лабораторія / зона → тип обладнання → обладнання → канал і метрика. Зміни застосовуються
-            лише після підтвердження.
+            Лабораторія / зона → тип обладнання → обладнання → канал і метрика. Зміни застосовуються лише
+            після підтвердження.
           </p>
         </div>
         <div

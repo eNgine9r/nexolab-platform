@@ -19,7 +19,8 @@ import {
 const ORGANIZATION_ID = "org-lab";
 
 function point(
-  overrides: Partial<TelemetryPointDescriptor> & Pick<TelemetryPointDescriptor, "channelId" | "metric" | "unit">,
+  overrides: Partial<TelemetryPointDescriptor> &
+    Pick<TelemetryPointDescriptor, "channelId" | "metric" | "unit">,
 ): TelemetryPointDescriptor {
   return {
     organizationId: ORGANIZATION_ID,

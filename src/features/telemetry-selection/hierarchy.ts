@@ -135,11 +135,7 @@ export function telemetryPointSelectionKey(point: TelemetryPointDescriptor): str
   return encoded([point.nodeId, point.equipment.id, point.channelId, point.metric, point.unit]);
 }
 
-function branchId(
-  organizationId: string,
-  kind: TelemetryPointBranchKind,
-  path: readonly string[],
-): string {
+function branchId(organizationId: string, kind: TelemetryPointBranchKind, path: readonly string[]): string {
   return `telemetry-selection:${kind}:${encoded([organizationId, ...path])}`;
 }
 
@@ -231,13 +227,7 @@ function buildLevel(
       const sortedGroup = [...group].sort(comparePoints);
       const identity = level.identity(sortedGroup[0]);
       const id = branchId(organizationId, level.kind, [...path, identityId]);
-      const children = buildLevel(
-        organizationId,
-        sortedGroup,
-        levelIndex + 1,
-        [...path, identityId],
-        id,
-      );
+      const children = buildLevel(organizationId, sortedGroup, levelIndex + 1, [...path, identityId], id);
       return {
         kind: level.kind,
         id,
@@ -322,9 +312,7 @@ export function searchTelemetryPointHierarchy(
     visitedNodes += 1;
     if (node.searchText.includes(normalizedQuery)) return node;
     if (node.kind === "point") return null;
-    const children = node.children
-      .map(visit)
-      .filter((child): child is TelemetryPointNode => child !== null);
+    const children = node.children.map(visit).filter((child): child is TelemetryPointNode => child !== null);
     return children.length > 0 ? cloneFilteredBranch(node, children) : null;
   };
 
@@ -417,10 +405,7 @@ export function flattenTelemetryPointHierarchy(
         return;
       }
       rows.push({ node, level });
-      if (
-        node.kind !== "point" &&
-        (options.forceExpanded === true || expandedIds.has(node.id))
-      ) {
+      if (node.kind !== "point" && (options.forceExpanded === true || expandedIds.has(node.id))) {
         visit(node.children, level + 1);
         if (truncated) return;
       }
