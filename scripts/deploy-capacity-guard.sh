@@ -136,7 +136,14 @@ nexolab_prune_deployment_evidence() {
     [[ "$size_exceeded" == true ]] && reason="${reason}size,"
     reason="${reason%,}"
     bytes="${sizes[$index]}"
-    rm -rf -- "$dir"
+    if ! rm -rf -- "$dir"; then
+      printf 'ERROR: failed to prune classified deployment evidence: %s\n' "$dir" >&2
+      return 70
+    fi
+    if [[ -e "$dir" ]]; then
+      printf 'ERROR: classified deployment evidence still exists after prune: %s\n' "$dir" >&2
+      return 70
+    fi
     total=$((total - bytes))
     printf 'Pruned deployment evidence: %s bytes=%s reason=%s\n' "$dir" "$bytes" "$reason"
   done
@@ -147,7 +154,6 @@ NEXOLAB_CAPACITY_PG_BYTES=0
 
 nexolab_capacity_measure_postgres() {
   local pg_container=$1
-  local fallback_bytes=$2
   NEXOLAB_CAPACITY_PG_SOURCE=none
   NEXOLAB_CAPACITY_PG_BYTES=0
   [[ -n "$pg_container" ]] || return 0
@@ -162,8 +168,8 @@ nexolab_capacity_measure_postgres() {
     NEXOLAB_CAPACITY_PG_SOURCE=live
     NEXOLAB_CAPACITY_PG_BYTES=$measured
   else
-    NEXOLAB_CAPACITY_PG_SOURCE=fallback
-    NEXOLAB_CAPACITY_PG_BYTES=$fallback_bytes
+    NEXOLAB_CAPACITY_PG_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_BYTES=0
   fi
 }
 
@@ -174,13 +180,12 @@ nexolab_capacity_preflight() {
   local report=$4
 
   local reserve_bytes build_headroom_bytes metadata_headroom_bytes
-  local archive_percent archive_fixed_bytes pg_fallback_bytes pg_percent pg_fixed_bytes
+  local archive_percent archive_fixed_bytes pg_percent pg_fixed_bytes
   reserve_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES "${NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES:-}" 2147483648)" || return $?
   build_headroom_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES "${NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES:-}" 4294967296)" || return $?
   metadata_headroom_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES "${NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES:-}" 268435456)" || return $?
   archive_percent="$(nexolab_capacity_uint NEXOLAB_DEPLOY_ARCHIVE_ESTIMATE_PERCENT "${NEXOLAB_DEPLOY_ARCHIVE_ESTIMATE_PERCENT:-}" 110)" || return $?
   archive_fixed_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES "${NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES:-}" 67108864)" || return $?
-  pg_fallback_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_POSTGRES_FALLBACK_BYTES "${NEXOLAB_DEPLOY_POSTGRES_FALLBACK_BYTES:-}" 1073741824)" || return $?
   pg_percent="$(nexolab_capacity_uint NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT "${NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT:-}" 110)" || return $?
   pg_fixed_bytes="$(nexolab_capacity_uint NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES "${NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES:-}" 67108864)" || return $?
 
@@ -190,8 +195,9 @@ nexolab_capacity_preflight() {
     archive_estimate="$(nexolab_capacity_scaled_bytes "$evidence_bytes" "$archive_percent" "$archive_fixed_bytes")"
   fi
 
-  nexolab_capacity_measure_postgres "$pg_container" "$pg_fallback_bytes"
-  local pg_estimate=0
+  nexolab_capacity_measure_postgres "$pg_container"
+  local pg_estimate=0 pg_measurement_failed=false
+  [[ "$NEXOLAB_CAPACITY_PG_SOURCE" != unavailable ]] || pg_measurement_failed=true
   if (( NEXOLAB_CAPACITY_PG_BYTES > 0 )); then
     pg_estimate="$(nexolab_capacity_scaled_bytes "$NEXOLAB_CAPACITY_PG_BYTES" "$pg_percent" "$pg_fixed_bytes")"
   fi
@@ -212,13 +218,20 @@ nexolab_capacity_preflight() {
     fi
   fi
 
-  local status=PASS
+  local status=PASS required_bytes_is_complete=true error_code=""
   (( free_bytes >= required_bytes )) || status=FAIL
+  if [[ "$pg_measurement_failed" == true ]]; then
+    status=FAIL
+    required_bytes_is_complete=false
+    error_code=postgresql-size-unavailable
+  fi
   mkdir -p "$(dirname "$report")"
   {
     printf 'status=%s\n' "$status"
     printf 'free_bytes=%s\n' "$free_bytes"
     printf 'required_bytes=%s\n' "$required_bytes"
+    printf 'required_bytes_is_complete=%s\n' "$required_bytes_is_complete"
+    printf 'error=%s\n' "$error_code"
     printf 'reserve_bytes=%s\n' "$reserve_bytes"
     printf 'build_headroom_bytes=%s\n' "$build_headroom_bytes"
     printf 'metadata_headroom_bytes=%s\n' "$metadata_headroom_bytes"
@@ -236,6 +249,11 @@ nexolab_capacity_preflight() {
   } > "$report"
 
   if [[ "$status" != PASS ]]; then
+    if [[ "$pg_measurement_failed" == true ]]; then
+      printf 'ERROR: PostgreSQL size unavailable; refusing deployment: free_bytes=%s required_without_postgresql_bytes=%s reserve_bytes=%s report=%s\n' \
+        "$free_bytes" "$required_bytes" "$reserve_bytes" "$report" >&2
+      return 70
+    fi
     printf 'ERROR: insufficient deployment capacity: free_bytes=%s required_bytes=%s reserve_bytes=%s report=%s\n' \
       "$free_bytes" "$required_bytes" "$reserve_bytes" "$report" >&2
     return 75
