@@ -1,0 +1,332 @@
+name: Issue 457 graph-first patch
+
+on:
+  push:
+    branches:
+      - feat/457-live-data-graph-first-workspace
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/457-live-data-graph-first-workspace
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.1'
+          cache: npm
+
+      - name: Apply focused graph-first patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          explorer_path = Path('src/components/live/live-telemetry-explorer.tsx')
+          text = explorer_path.read_text(encoding='utf-8')
+
+          filter_anchor = '      <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">\n'
+          inventory_anchor = '      <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90">\n'
+          chart_anchor = '      <section className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">\n'
+          closing_anchor = '    </div>\n  );\n}'
+
+          filter_start = text.index(filter_anchor)
+          inventory_start = text.index(inventory_anchor, filter_start)
+          chart_start = text.index(chart_anchor, inventory_start)
+          closing_start = text.index(closing_anchor, chart_start)
+
+          prefix = text[:filter_start]
+          filters_inventory = text[filter_start:chart_start]
+          chart = text[chart_start:closing_start]
+          suffix = text[closing_start:]
+
+          chart = chart.replace(
+              chart_anchor,
+              '      <section\n        data-testid="live-primary-chart"\n        aria-labelledby="live-primary-chart-title"\n        className="min-w-0 rounded-3xl border border-cyan-300/15 bg-[#091a31]/95 p-4 shadow-xl shadow-black/10 sm:p-5"\n      >\n',
+              1,
+          )
+          chart = chart.replace(
+              '<h2 className="mt-1 text-lg font-semibold text-white">Синхронізована історія</h2>',
+              '<h2 id="live-primary-chart-title" className="mt-1 text-lg font-semibold text-white">Синхронізована історія</h2>',
+              1,
+          )
+
+          selected_context = '''
+
+        <div
+          data-testid="live-selected-context"
+          aria-live="polite"
+          className="mt-4 flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3"
+        >
+          <span className="mr-1 text-xs font-semibold tracking-wide text-cyan-200 uppercase">Selected context</span>
+          {selected.length === 0 ? (
+            <span className="text-xs text-slate-400">Жодного каналу не обрано</span>
+          ) : (
+            <>
+              {selected.slice(0, 6).map((sample) => (
+                <span
+                  key={liveChannelKey(sample)}
+                  className="max-w-full rounded-lg border border-white/[0.08] bg-[#06142a]/70 px-2.5 py-1 text-xs text-slate-300"
+                >
+                  {sample.equipment_id} · {sample.channel_id} · {sample.metric} · {sample.unit}
+                </span>
+              ))}
+              {selected.length > 6 ? (
+                <span className="text-xs text-slate-500">+{selected.length - 6} channels</span>
+              ) : null}
+            </>
+          )}
+        </div>
+'''
+          custom_anchor = '\n        {range === "custom" ? ('
+          if selected_context.strip() not in chart:
+              chart = chart.replace(custom_anchor, selected_context + custom_anchor, 1)
+
+          chart = chart.replace(
+              '<p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали в таблиці</p>',
+              '<p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали нижче у Latest values</p>',
+              1,
+          )
+          chart = chart.replace(
+              'History requests не виконуються, доки comparison selection порожній.',
+              'Primary graph готовий до роботи; history requests не виконуються, доки comparison selection порожній.',
+              1,
+          )
+
+          filters_inventory = filters_inventory.replace(
+              filter_anchor,
+              '      <section\n        data-testid="live-filter-panel"\n        aria-labelledby="live-filter-panel-title"\n        className="min-w-0 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"\n      >\n',
+              1,
+          )
+          filters_inventory = filters_inventory.replace(
+              '<h2 className="text-base font-semibold text-white">Пошук і фільтри</h2>',
+              '<h2 id="live-filter-panel-title" className="text-base font-semibold text-white">Пошук і фільтри</h2>',
+              1,
+          )
+          filters_inventory = filters_inventory.replace(
+              inventory_anchor,
+              '      <section\n        data-testid="live-inventory-panel"\n        aria-labelledby="live-inventory-panel-title"\n        className="min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-[#091a31]/90"\n      >\n',
+              1,
+          )
+          filters_inventory = filters_inventory.replace(
+              '<h2 className="text-base font-semibold text-white">Latest values</h2>',
+              '<h2 id="live-inventory-panel-title" className="text-base font-semibold text-white">Latest values</h2>',
+              1,
+          )
+
+          text = prefix + chart + '\n\n' + filters_inventory + suffix
+          explorer_path.write_text(text, encoding='utf-8')
+
+          test_path = Path('src/components/live/live-telemetry-explorer.test.tsx')
+          test_path.write_text('''import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import type { LiveTelemetryModel } from "@/hooks/use-live-telemetry";
+
+import { LiveTelemetryExplorer } from "./live-telemetry-explorer";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/live",
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams("workspace=explorer"),
+}));
+
+vi.mock("@/components/live/live-chart-panel", () => ({
+  LiveChartPanel: () => <div data-testid="mock-live-chart" />,
+}));
+
+function model(): LiveTelemetryModel {
+  const sample = {
+    event_id: "event-1",
+    node_id: "edge-01",
+    captured_at: new Date().toISOString(),
+    metric: "temperature.probe",
+    value: 4.25,
+    unit: "degC",
+    quality: "valid" as const,
+    source: "unit-test",
+    equipment_id: "K106",
+    channel_id: "106-03",
+    alarm: null,
+    raw_value: 43,
+    raw_status: null,
+  };
+
+  return {
+    mode: "live",
+    status: "live",
+    connectionState: "connected",
+    samples: [sample],
+    freshSamples: [sample],
+    lastCapturedAt: sample.captured_at,
+    selectedKeys: [],
+    setSelectedKeys: vi.fn(),
+    historyRange: "1h",
+    setHistoryRange: vi.fn(),
+    historyWindow: null,
+    historySamples: [],
+    historyStatus: "idle",
+    historySnapshotAt: null,
+    historyError: null,
+    rejectedFutureSamples: 0,
+    error: null,
+    retry: vi.fn(),
+    retryHistory: vi.fn(),
+  };
+}
+
+function appearsBefore(left: Element, right: Element): boolean {
+  return Boolean(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
+describe("LiveTelemetryExplorer graph-first composition", () => {
+  it("places the canonical chart before filters and inventory in reading and focus order", () => {
+    render(<LiveTelemetryExplorer telemetry={model()} />);
+
+    const chart = screen.getByTestId("live-primary-chart");
+    const filters = screen.getByTestId("live-filter-panel");
+    const inventory = screen.getByTestId("live-inventory-panel");
+
+    expect(appearsBefore(chart, filters)).toBe(true);
+    expect(appearsBefore(filters, inventory)).toBe(true);
+
+    const liveRange = within(chart).getByRole("button", { name: "Live", exact: true });
+    const search = screen.getByPlaceholderText("node, equipment, channel, metric, source...");
+    const compare = screen.getByRole("checkbox", { name: /Порівнювати/ });
+
+    expect(appearsBefore(liveRange, search)).toBe(true);
+    expect(appearsBefore(search, compare)).toBe(true);
+    expect(within(chart).getByText("Жодного каналу не обрано")).toBeVisible();
+    expect(within(chart).getByText("Оберіть канали нижче у Latest values")).toBeVisible();
+    expect(inventory.querySelector(".overflow-x-auto")).not.toBeNull();
+  });
+});
+''', encoding='utf-8')
+
+          e2e_path = Path('e2e/live-chart-system.production.e2e.ts')
+          e2e = e2e_path.read_text(encoding='utf-8')
+
+          e2e = e2e.replace(
+              '    await expect(page.getByRole("button", { name: "Saved Dashboards" })).toBeVisible();\n\n    const search = page.getByPlaceholder("node, equipment, channel, metric, source...");',
+              '''    await expect(page.getByRole("button", { name: "Saved Dashboards" })).toBeVisible();
+
+    const primaryChart = page.getByTestId("live-primary-chart");
+    const filterPanel = page.getByTestId("live-filter-panel");
+    const inventoryPanel = page.getByTestId("live-inventory-panel");
+    await expect(primaryChart).toBeVisible();
+    await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
+    await expect(primaryChart.getByText("Оберіть канали нижче у Latest values", { exact: true })).toBeVisible();
+    expect(
+      await page.evaluate(() => {
+        const chart = document.querySelector('[data-testid="live-primary-chart"]');
+        const filters = document.querySelector('[data-testid="live-filter-panel"]');
+        const inventory = document.querySelector('[data-testid="live-inventory-panel"]');
+        if (!chart || !filters || !inventory) return false;
+        return (
+          Boolean(chart.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(filters.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING)
+        );
+      }),
+    ).toBe(true);
+    expect(runtime.telemetry.filter((request) => request.url.includes("/history"))).toEqual([]);
+
+    const search = page.getByPlaceholder("node, equipment, channel, metric, source...");''',
+              1,
+          )
+
+          e2e = e2e.replace(
+              '    await expect(page.getByText("8 / 8", { exact: true })).toBeVisible();\n',
+              '''    await expect(page.getByText("8 / 8", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.channels[0]);
+''',
+              1,
+          )
+
+          e2e = e2e.replace(
+              '    expect(runtime.telemetry.some((request) => request.url.includes("/history"))).toBe(true);\n',
+              '''    expect(runtime.telemetry.some((request) => request.url.includes("/history"))).toBe(true);
+    expect(
+      runtime.telemetry
+        .filter((request) => request.url.includes("/history"))
+        .every((request) => {
+          const channelId = new URL(request.url).searchParams.get("channel_id");
+          return channelId !== null && fixture.channels.includes(channelId);
+        }),
+    ).toBe(true);
+''',
+              1,
+          )
+
+          viewport_anchor = '''      await page.setViewportSize(viewport);
+      await assertNoPageOverflow(page);
+'''
+          viewport_replacement = '''      await page.setViewportSize(viewport);
+      await assertNoPageOverflow(page);
+      const regionOrder = await page.evaluate(() => {
+        const chart = document.querySelector('[data-testid="live-primary-chart"]');
+        const filters = document.querySelector('[data-testid="live-filter-panel"]');
+        const inventory = document.querySelector('[data-testid="live-inventory-panel"]');
+        if (!(chart instanceof HTMLElement) || !(filters instanceof HTMLElement) || !(inventory instanceof HTMLElement)) {
+          return null;
+        }
+        return {
+          chartTop: chart.getBoundingClientRect().top,
+          filterTop: filters.getBoundingClientRect().top,
+          inventoryTop: inventory.getBoundingClientRect().top,
+        };
+      });
+      expect(regionOrder).not.toBeNull();
+      expect(regionOrder!.chartTop).toBeLessThan(regionOrder!.filterTop);
+      expect(regionOrder!.filterTop).toBeLessThan(regionOrder!.inventoryTop);
+'''
+          e2e = e2e.replace(viewport_anchor, viewport_replacement, 1)
+
+          focus_anchor = '    const compare = page.getByRole("checkbox", { name: /Порівнювати/ });\n'
+          focus_replacement = '''    const compare = page.getByRole("checkbox", { name: /Порівнювати/ });
+    expect(
+      await page.evaluate(() => {
+        const chartButton = document.querySelector('[data-testid="live-primary-chart"] button');
+        const searchInput = document.querySelector('input[placeholder="node, equipment, channel, metric, source..."]');
+        const compareInput = document.querySelector('[data-testid="live-inventory-panel"] input[type="checkbox"]');
+        if (!chartButton || !searchInput || !compareInput) return false;
+        return (
+          Boolean(chartButton.compareDocumentPosition(searchInput) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          Boolean(searchInput.compareDocumentPosition(compareInput) & Node.DOCUMENT_POSITION_FOLLOWING)
+        );
+      }),
+    ).toBe(true);
+'''
+          e2e = e2e.replace(focus_anchor, focus_replacement, 1)
+          e2e_path.write_text(e2e, encoding='utf-8')
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: '0'
+
+      - name: Format touched files
+        run: npx prettier --write src/components/live/live-telemetry-explorer.tsx src/components/live/live-telemetry-explorer.test.tsx e2e/live-chart-system.production.e2e.ts
+
+      - name: Run targeted component regression
+        run: npx vitest run src/components/live/live-telemetry-explorer.test.tsx
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Remove temporary helper and publish focused patch
+        run: |
+          rm .github/workflows/issue-457-graph-first-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: recompose Live Data around graph-first workspace"
+          git push origin HEAD:feat/457-live-data-graph-first-workspace
