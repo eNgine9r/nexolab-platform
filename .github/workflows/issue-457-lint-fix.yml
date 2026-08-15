@@ -1,0 +1,43 @@
+name: Issue 457 lint fix
+
+on:
+  push:
+    branches:
+      - feat/457-live-data-graph-first-workspace
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/457-live-data-graph-first-workspace
+          fetch-depth: 0
+      - name: Apply lint-only E2E correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('e2e/live-chart-system.production.e2e.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '''    const inventoryPanel = page.getByTestId("live-inventory-panel");
+    await expect(primaryChart).toBeVisible();
+'''
+          new = '''    const inventoryPanel = page.getByTestId("live-inventory-panel");
+    await expect(primaryChart).toBeVisible();
+    await expect(filterPanel).toBeVisible();
+    await expect(inventoryPanel).toBeVisible();
+'''
+          if old not in text:
+              raise SystemExit('expected E2E anchor not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          rm .github/workflows/issue-457-lint-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: use graph-first region locators"
+          git push origin HEAD:feat/457-live-data-graph-first-workspace
