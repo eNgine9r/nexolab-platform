@@ -2,25 +2,35 @@
 
 Updated: 2026-08-15
 
-## Issue #465 / PR #470 — final merge gate
+## Issue #465 / PR #470
 
-No product/runtime blocker is currently known.
+No blocker remains. PR #470 was squash-merged as `8b7bb76115d11de0cc92cfaab2c131f27a891aa6` after all merge-authoritative exact-head workflows passed. Issue #465 is closed/completed and its stale `status:in-progress` label has been removed.
 
-Issue #465 implementation is complete on `feat/465-live-dashboard-telemetry-selector`. Full operator/browser/offline behavior was verified on trusted product head `34dbc2fb2936940e5193aabc2898fefe5bf3c984`, and subsequent deterministic PostgreSQL query-plan evidence hardening is verified on `74e5e867f7738a24cfc5960bd5b4a32e7e1682fa`.
+## Critical software blocker — Issue #468
 
-The earlier PostgreSQL failure on state-checkpoint head `d217bf8403925d46d419c89017323d6f35008dfd` was not a runtime regression: 445 backend tests passed and the inventory query executed in 0.502 ms, but PostgreSQL selected a cheaper natural plan that did not print the expected index name. The #465 evidence test was corrected to separate normal bounded-runtime evidence from an index-preferred EXPLAIN that deterministically proves the `ix_telemetry_latest_lookup` path. On hardened head `74e5e867f7738a24cfc5960bd5b4a32e7e1682fa`, CI and Telemetry service are GREEN, including the full backend suite, PostgreSQL outage recovery, offline migration validation and container build.
+Issue #468 is open, `priority:critical`, `status:ready` and selected as the next software Work Package after state-only #471.
 
-The only remaining barrier before merge is process/verification: this final `.project/**` checkpoint head must pass exact-head required checks and a clean main/diff/review/mergeability audit. PR #470 remains Draft until that gate is complete. No further file change is planned unless a factual defect is found.
+Observed production failure: SQLite queue lock contention can terminate the Device Agent acquisition thread while the HTTP server/container remains reachable. This creates an unacceptable live-but-not-acquiring state with stale telemetry.
+
+Issue #468 blocks truthful acquisition recovery and completion of the physical acceptance lane #289 until the software fix is merged and fresh controlled Raspberry Pi evidence proves an active worker and advancing telemetry freshness.
+
+## Ready operational reliability issue — Issue #469
+
+Issue #469 remains open, `priority:high`, `status:ready` and is ordered after #468.
+
+The current deployment evidence workflow can exhaust Raspberry Pi disk before updating `main`. The fix must add capacity preflight and bounded retention without deleting PostgreSQL, edge SQLite, MQTT, MinIO or named-volume product data.
+
+#469 must be completed before relying on repeated controlled Pi deployment/evidence capture for final hardware acceptance.
 
 ## Independent hardware lane — Issue #289
 
-Issue #289 remains open and `status:in-progress`. Completion still requires the controlled real Raspberry Pi/RS-485 performance and physical-request matrix. Software Acquisition Scale, browser, backend and Offline Bundle evidence from #465 does not replace that physical evidence.
+Issue #289 remains open and `status:in-progress`. Fresh physical Raspberry Pi/RS-485 performance and recovery evidence is required. Software CI/Offline Bundle evidence does not satisfy hardware acceptance.
 
-## Other pending hardware evidence
+## Other pending physical evidence
 
-- KK2/Unit 115 field retest remains pending;
-- refrigeration perceived-latency acceptance remains pending;
-- physical Raspberry Pi version-management acceptance remains pending.
+- KK2/Unit 115 field retest;
+- refrigeration perceived-latency acceptance;
+- Raspberry Pi version-management acceptance.
 
 ## Hard safety blockers
 
