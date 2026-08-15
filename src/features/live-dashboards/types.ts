@@ -101,6 +101,12 @@ export interface LiveDashboardInventoryItem {
   node_id: string;
   equipment_id: string;
   equipment_name: string;
+  climate_chamber_id: string;
+  climate_chamber_code: string;
+  climate_chamber_name: string;
+  equipment_type: string;
+  laboratory: string | null;
+  zone: string | null;
   channel_id: string;
   channel_name: string;
   metric: string;

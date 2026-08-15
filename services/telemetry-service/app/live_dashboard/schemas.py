@@ -168,6 +168,12 @@ class LiveDashboardInventoryItemResponse(BaseModel):
     node_id: str
     equipment_id: str
     equipment_name: str
+    climate_chamber_id: str
+    climate_chamber_code: str
+    climate_chamber_name: str
+    equipment_type: str
+    laboratory: str | None
+    zone: str | None
     channel_id: str
     channel_name: str
     metric: str

@@ -23,6 +23,12 @@ function createInventoryItem(index: number): LiveDashboardInventoryItem {
     node_id: "edge-01",
     equipment_id: `K${unit}`,
     equipment_name: `Dixell XJP60D K${unit}`,
+    climate_chamber_id: "chamber-1",
+    climate_chamber_code: "KK1",
+    climate_chamber_name: "Кліматична камера 1",
+    equipment_type: "temperature_controller",
+    laboratory: "Лабораторія А",
+    zone: "Зона 1",
     channel_id: channelId,
     channel_name: `Sensor ${index + 1}`,
     metric: "temperature.probe",
@@ -48,6 +54,7 @@ function EditorHarness({
 
   return (
     <DashboardEditor
+      organizationId="organization-1"
       draft={draft}
       setDraft={setDraft}
       inventory={{
@@ -74,18 +81,17 @@ describe("DashboardEditor Raspberry Pi-sized inventory", () => {
     const onSave = vi.fn();
     render(<EditorHarness inventory={inventory} onSave={onSave} />);
 
-    expect(screen.getAllByRole("button", { name: "Додати" })).toHaveLength(INVENTORY_SIZE);
     expect(screen.getByText("0 / 64 вибрано", { exact: true })).toBeVisible();
 
     const search = screen.getByRole("searchbox", { name: "Пошук" });
     fireEvent.change(search, { target: { value: "126-04" } });
-    expect(screen.getAllByRole("button", { name: "Додати" })).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Додати" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: /Sensor 154/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Підтвердити вибір" }));
     expect(screen.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
-    expect(screen.getByText("126-04 додано.", { exact: true })).toBeVisible();
 
     fireEvent.change(search, { target: { value: "126-05" } });
-    fireEvent.click(screen.getByRole("button", { name: "Додати" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: /Sensor 155/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Підтвердити вибір" }));
     expect(screen.getByText("2 / 64 вибрано", { exact: true })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Перемістити 126-05 вище" }));

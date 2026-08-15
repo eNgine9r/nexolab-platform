@@ -7,7 +7,7 @@ from time import perf_counter
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.climate_catalog.models import (
@@ -23,6 +23,7 @@ from app.live_dashboard.inventory import (
 )
 from app.live_dashboard.repository import LiveDashboardRepository
 from app.nodes.models import CentralNode
+from app.refrigeration.models import RefrigerationEquipmentRecord
 from app.security.models import SecurityOrganization
 from app.security.repository import SecurityRepository
 from tests.live_dashboard_test_support import provision_inventory
@@ -60,6 +61,31 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
             name="Inventory query-plan laboratory",
         )
         provision_inventory(database, organization_id, suffix)
+
+        with Session(database.engine) as session:
+            chamber_id = session.scalar(
+                select(ClimateChamber.id).where(
+                    ClimateChamber.organization_id == organization_id,
+                    ClimateChamber.code == f"KK-{suffix.upper()}",
+                )
+            )
+            assert chamber_id is not None
+            with session.begin_nested():
+                session.add(
+                    RefrigerationEquipmentRecord(
+                        id=str(uuid4()), organization_id=organization_id, code=f"REF-{suffix}",
+                        name="Taxonomy source", location="Local", laboratory="Laboratory A",
+                        zone="Zone 1", node_id=catalog_node_id, climate_chamber_id=chamber_id,
+                        equipment_type="refrigeration", manufacturer="Test", model="T",
+                        serial_number=f"SER-{suffix}", temperature_class="M1", installed_at=None,
+                        serviced_at=None, lifecycle_status="active", status="normal",
+                        average_temperature_c=0.0, min_temperature_c=0.0, max_temperature_c=0.0,
+                        online_sensors=0, total_sensors=0, active_alarms=0, last_seen_at=None,
+                        version=1, created_by="test-suite", created_at=None, updated_at=None,
+                        deleted_by=None, deleted_at=None,
+                    )
+                )
+            session.commit()
 
         with database.engine.begin() as connection:
             connection.execute(
@@ -192,6 +218,8 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
         assert by_channel[catalog_channel_id].latest is not None
         assert by_channel[catalog_channel_id].latest.value == 5.0
         assert by_channel[catalog_channel_id].alarm == "high"
+        assert by_channel[catalog_channel_id].laboratory == "Laboratory A"
+        assert by_channel[catalog_channel_id].zone == "Zone 1"
         assert by_channel[f"{suffix}-temperature-02"].latest is None
     finally:
         with Session(database.engine) as session:
@@ -199,6 +227,11 @@ def test_postgres_inventory_plan_is_bounded_and_uses_latest_identity_index(
                 session.execute(
                     delete(TelemetrySample).where(
                         TelemetrySample.node_id.in_([unrelated_node_id, catalog_node_id])
+                    )
+                )
+                session.execute(
+                    delete(RefrigerationEquipmentRecord).where(
+                        RefrigerationEquipmentRecord.organization_id == organization_id
                     )
                 )
                 session.execute(
