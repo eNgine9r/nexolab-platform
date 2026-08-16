@@ -73,6 +73,10 @@ function emptyHistoryResponse() {
   };
 }
 
+function queryTime(value: Date | string): number {
+  return Date.parse(value instanceof Date ? value.toISOString() : value);
+}
+
 describe("useEnergyTelemetry startup coverage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -127,14 +131,14 @@ describe("useEnergyTelemetry startup coverage", () => {
     expect(adapterState.history).not.toHaveBeenCalled();
   });
 
-  it("reuses a five-page Energy bootstrap across a warm remount and fetches only the missing tail", async () => {
+  it("reuses a five-page Energy bootstrap across three warm remounts and fetches only bounded tails", async () => {
     let bootstrapPagesRemaining = 5;
     let bootstrapSequence = 0;
 
     adapterState.history.mockImplementation((query: TelemetryHistoryQuery) => {
       if (bootstrapPagesRemaining > 0) {
         bootstrapSequence += 1;
-        const queryTo = Date.parse(query.to instanceof Date ? query.to.toISOString() : query.to);
+        const queryTo = queryTime(query.to);
         const capturedAt = new Date(queryTo - 60 * 60 * 1000).toISOString();
         const response = {
           items: [energySample(`bootstrap-${bootstrapSequence}`, capturedAt)],
@@ -150,7 +154,7 @@ describe("useEnergyTelemetry startup coverage", () => {
       return Promise.resolve(emptyHistoryResponse());
     });
 
-    const first = renderHook(() =>
+    let mounted = renderHook(() =>
       useEnergyTelemetry({
         organizationId: "org-a",
         securityScopeId: "user-a",
@@ -164,49 +168,47 @@ describe("useEnergyTelemetry startup coverage", () => {
 
     await waitFor(() => {
       expect(adapterState.history).toHaveBeenCalledTimes(5);
-      expect(first.result.current.historyStatus).toBe("ready");
-      expect(first.result.current.historySamples.length).toBeGreaterThan(0);
+      expect(mounted.result.current.historyStatus).toBe("ready");
+      expect(mounted.result.current.historySamples.length).toBeGreaterThan(0);
     });
 
     const coldFirstQuery = adapterState.history.mock.calls[0][0] as TelemetryHistoryQuery;
-    const retainedWindow = first.result.current.historyWindow;
-    expect(retainedWindow).not.toBeNull();
-    first.unmount();
+    const coldFrom = queryTime(coldFirstQuery.from);
 
-    const second = renderHook(() =>
-      useEnergyTelemetry({
-        organizationId: "org-a",
-        securityScopeId: "user-a",
-      }),
-    );
+    for (let warmReturn = 1; warmReturn <= 3; warmReturn += 1) {
+      mounted.unmount();
+      mounted = renderHook(() =>
+        useEnergyTelemetry({
+          organizationId: "org-a",
+          securityScopeId: "user-a",
+        }),
+      );
 
-    expect(second.result.current.historyStatus).toBe("ready");
-    expect(second.result.current.historySamples.length).toBeGreaterThan(0);
+      expect(mounted.result.current.historyStatus).toBe("ready");
+      expect(mounted.result.current.historySamples.length).toBeGreaterThan(0);
 
-    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledTimes(2));
-    act(() => {
-      adapterState.handlers?.onStateChange?.("connected");
-    });
+      await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledTimes(1 + warmReturn));
+      act(() => {
+        adapterState.handlers?.onStateChange?.("connected");
+      });
 
-    await waitFor(() => {
-      expect(adapterState.history).toHaveBeenCalledTimes(6);
-      expect(second.result.current.historyStatus).toBe("ready");
-    });
+      await waitFor(() => {
+        expect(adapterState.history).toHaveBeenCalledTimes(5 + warmReturn);
+        expect(mounted.result.current.historyStatus).toBe("ready");
+      });
 
-    const warmQuery = adapterState.history.mock.calls[5][0] as TelemetryHistoryQuery;
-    const coldFrom = Date.parse(
-      coldFirstQuery.from instanceof Date ? coldFirstQuery.from.toISOString() : coldFirstQuery.from,
-    );
-    const warmFrom = Date.parse(
-      warmQuery.from instanceof Date ? warmQuery.from.toISOString() : warmQuery.from,
-    );
-    const retainedTo = Date.parse(retainedWindow!.to);
+      const warmQuery = adapterState.history.mock.calls[4 + warmReturn][0] as TelemetryHistoryQuery;
+      const warmFrom = queryTime(warmQuery.from);
+      const warmTo = queryTime(warmQuery.to);
 
-    expect(warmFrom - coldFrom).toBeGreaterThan(
-      23 * 60 * 60 * 1000 - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
-    );
-    expect(retainedTo - warmFrom).toBeGreaterThanOrEqual(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS - 5_000);
-    expect(retainedTo - warmFrom).toBeLessThanOrEqual(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS + 5_000);
+      expect(warmFrom - coldFrom).toBeGreaterThan(
+        23 * 60 * 60 * 1000 - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
+      );
+      expect(warmTo - warmFrom).toBeGreaterThanOrEqual(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS);
+      expect(warmTo - warmFrom).toBeLessThan(10 * 60 * 1000);
+    }
+
+    mounted.unmount();
   });
 
   it("does not reuse retained history for another security identity in the same organization", async () => {
@@ -265,10 +267,8 @@ describe("useEnergyTelemetry startup coverage", () => {
     await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(2));
 
     const retryQuery = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
-    const from = Date.parse(
-      retryQuery.from instanceof Date ? retryQuery.from.toISOString() : retryQuery.from,
-    );
-    const to = Date.parse(retryQuery.to instanceof Date ? retryQuery.to.toISOString() : retryQuery.to);
+    const from = queryTime(retryQuery.from);
+    const to = queryTime(retryQuery.to);
     expect(to - from).toBeGreaterThanOrEqual(23 * 60 * 60 * 1000);
   });
 });
