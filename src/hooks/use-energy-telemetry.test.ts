@@ -1,7 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetRetainedEnergyHistoryForTests } from "@/features/energy/energy-history-retention";
+import {
+  ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
+  resetRetainedEnergyHistoryForTests,
+} from "@/features/energy/energy-history-retention";
 import type { TelemetryHistoryQuery, TelemetryLiveHandlers, TelemetrySample } from "@/lib/telemetry/types";
 
 const adapterState = vi.hoisted(() => ({
@@ -193,9 +196,11 @@ describe("useEnergyTelemetry startup coverage", () => {
     const warmQuery = adapterState.history.mock.calls[5][0] as TelemetryHistoryQuery;
     const coldFrom = Date.parse(coldFirstQuery.from instanceof Date ? coldFirstQuery.from.toISOString() : coldFirstQuery.from);
     const warmFrom = Date.parse(warmQuery.from instanceof Date ? warmQuery.from.toISOString() : warmQuery.from);
+    const retainedTo = Date.parse(retainedWindow!.to);
 
-    expect(warmFrom - coldFrom).toBeGreaterThan(23 * 60 * 60 * 1000);
-    expect(Date.parse(retainedWindow!.to) - warmFrom).toBeLessThanOrEqual(1);
+    expect(warmFrom - coldFrom).toBeGreaterThan(23 * 60 * 60 * 1000 - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS);
+    expect(retainedTo - warmFrom).toBeGreaterThanOrEqual(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS - 5_000);
+    expect(retainedTo - warmFrom).toBeLessThanOrEqual(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS + 5_000);
   });
 
   it("does not reuse retained history for another security identity in the same organization", async () => {
