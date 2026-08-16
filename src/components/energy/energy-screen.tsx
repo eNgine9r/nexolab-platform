@@ -8,6 +8,7 @@ import { AlertTriangle, Gauge, LogIn, RotateCcw } from "lucide-react";
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { clearRetainedEnergyHistory } from "@/features/energy/energy-history-retention";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
 
@@ -142,6 +143,7 @@ export function EnergyScreen() {
           selectedMembership={security.membership}
           onOrganizationChange={security.selectOrganization}
           onSignOut={() => {
+            clearRetainedEnergyHistory();
             void security.signOut().then(() => router.replace("/login"));
           }}
         />
