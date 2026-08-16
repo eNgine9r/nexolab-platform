@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  clearRetainedEnergyHistory,
   ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
   ENERGY_HISTORY_RETENTION_TTL_MS,
   invalidateIncompatibleRetainedEnergyHistory,
@@ -105,6 +106,17 @@ describe("Energy history retention", () => {
     invalidateIncompatibleRetainedEnergyHistory(KEY.securityScope);
 
     expect(readRetainedEnergyHistory(KEY, 1_001)).not.toBeNull();
+    expect(readRetainedEnergyHistory(otherScope, 1_001)).toBeNull();
+  });
+
+  it("clears all retained history when the authenticated operator signs out", () => {
+    const otherScope = { ...KEY, securityScope: "user-b:org-b" };
+    retainEnergyHistory(KEY, VALUE, 1_000);
+    retainEnergyHistory(otherScope, VALUE, 1_000);
+
+    clearRetainedEnergyHistory();
+
+    expect(readRetainedEnergyHistory(KEY, 1_001)).toBeNull();
     expect(readRetainedEnergyHistory(otherScope, 1_001)).toBeNull();
   });
 });
