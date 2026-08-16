@@ -1,28 +1,42 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-15
+Updated: 2026-08-16
 
-## Hard blocker — physical Raspberry Pi validation
+## Issue #469 deployment-capacity blocker — resolved
 
-Issue #469 is software-complete but remains open as `status:needs-validation`. PR #476 merged at `b79bcee3670693c46219e8bc58ec3fc8ffe5095a` with GREEN targeted verification, exact-head CI and Telemetry integration.
+Issue #469 is closed `completed`. The real Raspberry Pi LOCAL_LAN acceptance passed after Product Owner-approved bounded cleanup limited to old strict timestamped `runtime/deployments/<timestamp>` evidence.
 
-Final acceptance requires a controlled physical Raspberry Pi deployment proving:
+Verified physical result:
 
-- capacity diagnostics on the real filesystem;
-- preserved PostgreSQL, edge SQLite, MQTT, MinIO and Docker named-volume identities/data;
-- safe behavior when bounded old deployment-evidence retention applies;
-- successful deployment to exact current `main`;
-- preserved rollback/evidence behavior.
+- low-space guard failed safely before runtime mutation;
+- bounded evidence retention was applied without deleting product data or Docker named volumes;
+- final capacity preflight passed with `free_bytes=16164007936` and `required_bytes=16137036936` using a complete live PostgreSQL estimate;
+- controlled deployment passed at exact `main` `6dde6989f1822b04c48e8dbdb89f6059b63d6be6`;
+- protected named-volume identity comparison completed without failure;
+- central services, dashboard, edge MQTT and Device Agent container recovered successfully.
 
-The deployment may irreversibly prune **only** old strict timestamp children of `runtime/deployments/`, while protecting the current deployment, newest evidence and `.nexolab-preserve` evidence. Product persistent data and named volumes are excluded. Because physical cleanup is irreversible, Product Owner confirmation is required before that controlled execution.
+The obsolete #469 physical-validation hard blocker is removed.
 
-## No independent Ready software package
+## Active physical validation — Issue #289
 
-The repository query for open `status:ready` Issues returns none. Autonomous software work cannot continue around the physical blocker without inventing scope.
+Issue #289 remains open `status:in-progress` and is now the active Raspberry Pi/RS-485 scale, stability and truthful-state validation lane.
 
-## Issue #289
+Fresh 2026-08-16 evidence shows:
 
-Issue #289 remains open and `status:in-progress` as the broader Raspberry Pi/RS-485 performance/recovery acceptance lane. Software workflow evidence does not satisfy hardware acceptance.
+- one serialized worker on `rs485-main`;
+- scheduler worker state remains running/healthy;
+- LE01MP unit 201 is timing out and enters cooldown;
+- unrelated LE01MP units 200, 202 and 203 continue successful reads;
+- XJP60D active targets continue successful reads;
+- central ingestion remains ready.
+
+This is not a #469 deployment failure. It must be evaluated under #289 against the explicit acceptance criterion that one unavailable endpoint does not make unrelated channels appear offline.
+
+Remaining #289 work includes the controlled no-browser / Overview / one Live Dashboard / repeated navigation / multi-browser physical-request-rate matrix, truthful reconnect/stale/offline behavior and recovery gates.
+
+## Ready queue
+
+The fresh GitHub query for open `status:ready` Issues returned none. There is no independent Ready software package to run instead of the already-active #289 lane.
 
 ## Other pending physical evidence
 
