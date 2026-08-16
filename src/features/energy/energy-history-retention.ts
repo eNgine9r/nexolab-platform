@@ -1,6 +1,7 @@
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export const ENERGY_HISTORY_RETENTION_TTL_MS = 15 * 60 * 1_000;
+export const ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS = 5 * 60 * 1_000;
 
 export interface EnergyHistoryRetentionKey {
   securityScope: string;
