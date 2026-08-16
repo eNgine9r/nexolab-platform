@@ -3,15 +3,16 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-15T21:13:00Z",
+  "timestamp": "2026-08-16T09:03:00Z",
   "actor": "ChatGPT",
-  "event": "issue_469_software_merged_hardware_blocked",
-  "current_main_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
+  "event": "issue_469_physical_acceptance_completed_resume_issue_289",
+  "current_main_sha": "6dde6989f1822b04c48e8dbdb89f6059b63d6be6",
   "issue": 469,
   "pull_request": 476,
   "merge_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
   "source_head": "df2c3db389097abbfa8c647984002dc2f919c32d",
-  "completion_classification": "software merged and verified; physical Raspberry Pi acceptance pending; no independent Ready software issue exists",
+  "deployed_acceptance_sha": "6dde6989f1822b04c48e8dbdb89f6059b63d6be6",
+  "completion_classification": "software merged and verified; real Raspberry Pi deployment-capacity acceptance passed; Issue #469 closed completed; resume Issue #289 hardware performance validation",
   "verification": {
     "targeted": {
       "status": "PASS",
@@ -29,19 +30,48 @@
       "status": "PASS",
       "run": 31908564403
     },
-    "hardware_acceptance": false,
+    "physical_raspberry_pi": {
+      "status": "PASS",
+      "cleanup_audit": "/home/nexolab/nexolab-platform/runtime/deployments/20260816T084819Z",
+      "deployment_evidence": "/home/nexolab/nexolab-platform/runtime/deployments/20260816T084824Z",
+      "capacity_free_bytes": 16164007936,
+      "capacity_required_bytes": 16137036936,
+      "capacity_required_complete": true,
+      "postgresql_estimate_source": "live",
+      "runtime_mode": "lan",
+      "exact_deployed_sha": "6dde6989f1822b04c48e8dbdb89f6059b63d6be6",
+      "deployment_passed": true,
+      "protected_volume_identity_gate": "PASS_BY_COMPLETED_ACCEPTANCE_CONTROL_FLOW",
+      "product_data_deletion": false,
+      "named_volume_deletion": false,
+      "modbus_write": false,
+      "hardware_write": false
+    },
     "ready_issue_count": 0
   },
+  "issue_289": {
+    "status": "in_progress_hardware_performance_validation",
+    "fresh_observation": {
+      "serialized_worker_per_bus": true,
+      "workers_healthy": true,
+      "active_bus_workers": 1,
+      "degraded_endpoints": 1,
+      "cooldown_endpoints": 1,
+      "le01mp_unit_201": "timeouts_and_cooldown",
+      "unrelated_endpoints": "LE01MP 200/202/203 and XJP60D targets continue successful reads"
+    },
+    "next_gate": "controlled physical request-rate matrix: no browser -> Overview -> one Live Dashboard -> repeated navigation -> several browser contexts, with request counters and truthful-state evidence"
+  },
   "blocker": {
-    "type": "hard",
-    "reason": "physical Raspberry Pi validation required; controlled deployment may irreversibly prune only old classified timestamped deployment evidence and requires Product Owner confirmation before execution",
+    "type": "none_for_issue_469",
+    "reason": "deployment-capacity physical acceptance completed",
     "product_data_deletion": false,
     "named_volume_deletion": false
   },
-  "parallel_hardware_work_package": {
-    "issue": 289,
-    "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "in_progress_hardware_performance_validation"
+  "state_reconciliation": {
+    "issue": 479,
+    "branch": "chore/479-reconcile-469-physical-acceptance",
+    "classification": "state-only"
   },
   "safety": {
     "modbus_write": "none",
@@ -51,5 +81,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "After state-only Issue #477 merges, stop autonomous software execution and request Product Owner confirmation for controlled Raspberry Pi validation of Issue #469."
+  "next_action": "Complete state-only Issue #479 through exact-head CI and merge, then continue the already-active Issue #289 real-hardware request-rate and truthful-state matrix."
 }
