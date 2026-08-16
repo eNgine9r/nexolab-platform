@@ -61,6 +61,7 @@ export function EnergyScreen() {
   const telemetry = useEnergyTelemetry({
     enabled: canReadTelemetry,
     organizationId,
+    securityScopeId: security.session?.identity.id ?? null,
   });
 
   if (security.mode === "demo") {
