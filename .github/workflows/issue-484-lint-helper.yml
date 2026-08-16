@@ -33,29 +33,38 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("src/hooks/use-energy-telemetry.ts")
           text = path.read_text()
-          old = '''      historySamplesRef.current = retainedSamples;
-              setActiveHistoryKey(historyKey);
-              setHistoryWindow(requestedWindow);
-              setHistorySamples(retainedSamples);
-              setHistoryStatus("ready");
-              setHistoryError(null);
-          '''
-          new = '''      historySamplesRef.current = retainedSamples;
-              void Promise.resolve().then(() => {
-                if (disposed) return;
-                setActiveHistoryKey(historyKey);
-                setHistoryWindow(requestedWindow);
-                setHistorySamples(retainedSamples);
-                setHistoryStatus("ready");
-                setHistoryError(null);
-              });
-          '''
-          if old not in text:
-              raise SystemExit("Expected retained setter block was not found")
-          path.write_text(text.replace(old, new, 1))
+          pattern = re.compile(
+              r'(?P<indent>\s*)historySamplesRef\.current = retainedSamples;\n'
+              r'(?P=indent)setActiveHistoryKey\(historyKey\);\n'
+              r'(?P=indent)setHistoryWindow\(requestedWindow\);\n'
+              r'(?P=indent)setHistorySamples\(retainedSamples\);\n'
+              r'(?P=indent)setHistoryStatus\("ready"\);\n'
+              r'(?P=indent)setHistoryError\(null\);'
+          )
+
+          def replacement(match):
+              indent = match.group("indent")
+              inner = indent + "  "
+              return (
+                  f"{indent}historySamplesRef.current = retainedSamples;\n"
+                  f"{indent}void Promise.resolve().then(() => {{\n"
+                  f"{inner}if (disposed) return;\n"
+                  f"{inner}setActiveHistoryKey(historyKey);\n"
+                  f"{inner}setHistoryWindow(requestedWindow);\n"
+                  f"{inner}setHistorySamples(retainedSamples);\n"
+                  f"{inner}setHistoryStatus(\"ready\");\n"
+                  f"{inner}setHistoryError(null);\n"
+                  f"{indent}}});"
+              )
+
+          updated, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f"Expected one retained setter block, found {count}")
+          path.write_text(updated)
           PY
 
           npx prettier --write src/hooks/use-energy-telemetry.ts
