@@ -557,7 +557,9 @@ export function useEnergyTelemetry({
         .catch((nextError: unknown) => {
           if (controller.signal.aborted || disposed) return;
           setHistoryStatus("ready");
-          setHistoryError(nextError instanceof Error ? nextError : new Error("Failed to reconcile Energy history"));
+          setHistoryError(
+            nextError instanceof Error ? nextError : new Error("Failed to reconcile Energy history"),
+          );
         });
 
       return () => {
@@ -747,11 +749,19 @@ export function useEnergyTelemetry({
   };
 
   const currentHistoryWindow =
-    activeHistoryKey === historyKey ? historyWindowState : retainedHistoryForCurrentKey?.window ?? null;
+    activeHistoryKey === historyKey
+      ? historyWindowState
+      : retainedHistoryForCurrentKey?.window ?? null;
   const currentHistorySamples =
-    activeHistoryKey === historyKey ? historySamples : retainedHistoryForCurrentKey?.samples ?? [];
+    activeHistoryKey === historyKey
+      ? historySamples
+      : retainedHistoryForCurrentKey?.samples ?? [];
   const currentHistoryStatus: EnergyHistoryStatus =
-    activeHistoryKey === historyKey ? historyStatus : retainedHistoryForCurrentKey ? "ready" : "loading";
+    activeHistoryKey === historyKey
+      ? historyStatus
+      : retainedHistoryForCurrentKey
+        ? "ready"
+        : "loading";
   const currentHistoryError = activeHistoryKey === historyKey ? historyError : null;
 
   return {
