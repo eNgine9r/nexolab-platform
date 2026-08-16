@@ -8,6 +8,7 @@ import {
   selectEnergyHistoryTail,
 } from "@/features/energy/energy-history";
 import {
+  ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
   energyHistoryRetentionKey,
   invalidateIncompatibleRetainedEnergyHistory,
   invalidateRetainedEnergyHistory,
@@ -516,7 +517,10 @@ export function useEnergyTelemetry({
       }
 
       const deltaFromMs = Number.isFinite(loadedThrough)
-        ? Math.max(requested.from.getTime(), loadedThrough - 1)
+        ? Math.max(
+            requested.from.getTime(),
+            loadedThrough - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
+          )
         : requested.from.getTime();
 
       void loadCompleteEnergyHistory(
