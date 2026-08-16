@@ -496,11 +496,14 @@ export function useEnergyTelemetry({
         to: requested.to,
       });
       historySamplesRef.current = retainedSamples;
-      setActiveHistoryKey(historyKey);
-      setHistoryWindow(requestedWindow);
-      setHistorySamples(retainedSamples);
-      setHistoryStatus("ready");
-      setHistoryError(null);
+      void Promise.resolve().then(() => {
+        if (disposed) return;
+        setActiveHistoryKey(historyKey);
+        setHistoryWindow(requestedWindow);
+        setHistorySamples(retainedSamples);
+        setHistoryStatus("ready");
+        setHistoryError(null);
+      });
 
       const loadedThrough = Date.parse(retained.loadedThrough);
       const requestedTo = requested.to.getTime();
