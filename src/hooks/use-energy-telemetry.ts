@@ -517,10 +517,7 @@ export function useEnergyTelemetry({
       }
 
       const deltaFromMs = Number.isFinite(loadedThrough)
-        ? Math.max(
-            requested.from.getTime(),
-            loadedThrough - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
-          )
+        ? Math.max(requested.from.getTime(), loadedThrough - ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS)
         : requested.from.getTime();
 
       void loadCompleteEnergyHistory(
@@ -749,19 +746,11 @@ export function useEnergyTelemetry({
   };
 
   const currentHistoryWindow =
-    activeHistoryKey === historyKey
-      ? historyWindowState
-      : retainedHistoryForCurrentKey?.window ?? null;
+    activeHistoryKey === historyKey ? historyWindowState : (retainedHistoryForCurrentKey?.window ?? null);
   const currentHistorySamples =
-    activeHistoryKey === historyKey
-      ? historySamples
-      : retainedHistoryForCurrentKey?.samples ?? [];
+    activeHistoryKey === historyKey ? historySamples : (retainedHistoryForCurrentKey?.samples ?? []);
   const currentHistoryStatus: EnergyHistoryStatus =
-    activeHistoryKey === historyKey
-      ? historyStatus
-      : retainedHistoryForCurrentKey
-        ? "ready"
-        : "loading";
+    activeHistoryKey === historyKey ? historyStatus : retainedHistoryForCurrentKey ? "ready" : "loading";
   const currentHistoryError = activeHistoryKey === historyKey ? historyError : null;
 
   return {
