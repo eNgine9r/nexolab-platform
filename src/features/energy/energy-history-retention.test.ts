@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
+  ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS,
   ENERGY_HISTORY_RETENTION_TTL_MS,
   invalidateIncompatibleRetainedEnergyHistory,
   invalidateRetainedEnergyHistory,
@@ -48,6 +49,11 @@ const VALUE = {
 describe("Energy history retention", () => {
   beforeEach(() => {
     resetRetainedEnergyHistoryForTests();
+  });
+
+  it("uses a bounded delayed-ingestion overlap smaller than the retention lifetime", () => {
+    expect(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS).toBeGreaterThan(0);
+    expect(ENERGY_HISTORY_RECONCILIATION_OVERLAP_MS).toBeLessThan(ENERGY_HISTORY_RETENTION_TTL_MS);
   });
 
   it("retains a defensive copy for the exact security, node, metric and range key", () => {
