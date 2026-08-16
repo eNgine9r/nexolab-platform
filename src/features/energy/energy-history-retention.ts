@@ -77,8 +77,12 @@ export function invalidateIncompatibleRetainedEnergyHistory(securityScope: strin
   }
 }
 
-export function resetRetainedEnergyHistoryForTests(): void {
+export function clearRetainedEnergyHistory(): void {
   retainedHistory.clear();
+}
+
+export function resetRetainedEnergyHistoryForTests(): void {
+  clearRetainedEnergyHistory();
 }
 
 function cloneEntry(entry: RetainedEnergyHistoryEntry): RetainedEnergyHistory {
