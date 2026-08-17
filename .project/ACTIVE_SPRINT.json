@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
+  "repository_selection_base_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "state_reconciliation_base_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 497,
-    "selection_status": "state_only_reconciliation_after_completed_acceptance",
-    "ready_issue_count_after_product_closure": 0,
-    "reason": "Issues #493 and #289 plus parent Epic #282 are completed. Canonical project state must be reconciled before stopping at the no-Ready-work boundary."
+    "selected_issue": 444,
+    "selection_status": "ready_after_product_owner_criticality_decision",
+    "ready_issue_count": 1,
+    "reason": "Issue #497 / PR #498 are completed. Product Owner explicitly approved continuing through the remaining backlog by criticality; #444 is the highest-priority independently actionable critical product defect."
   },
   "tasks": [
     {
@@ -70,25 +70,45 @@
     {
       "id": "NEXOLAB-497",
       "issue": 497,
+      "pull_request": 498,
       "title": "Reconcile Issue #493 hardware acceptance and Issue #289 completion",
+      "status": "completed_state_reconciliation",
+      "priority": "high",
+      "merge_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3"
+    },
+    {
+      "id": "NEXOLAB-499",
+      "issue": 499,
+      "title": "Reconcile post-#498 Sprint state and promote Issue #444",
       "status": "state_only_reconciliation_in_progress",
       "priority": "high",
-      "branch": "chore/497-reconcile-289-493-completion"
+      "branch": "chore/499-post-498-ready-reconciliation"
+    },
+    {
+      "id": "NEXOLAB-444",
+      "issue": 444,
+      "title": "Restore LOCAL_LAN user administration API availability",
+      "status": "ready",
+      "priority": "critical",
+      "depends_on": [],
+      "hardware_acceptance_required": false,
+      "raspberry_pi_runtime_acceptance_required": true
     }
   ],
   "active_work_package": {
-    "issue": 497,
-    "title": "Reconcile completed #493/#289/#282 repository state",
+    "issue": 499,
+    "title": "Reconcile post-#498 Sprint state and promote Issue #444",
     "status": "state_only_reconciliation_in_progress",
     "priority": "high",
-    "next_step": "Validate exactly four .project files, run state-only CI, audit focused diff/reviews, merge GREEN, then stop because no open status:ready Issue exists."
+    "next_step": "Validate the four canonical .project files, close superseded state trackers #416/#449, mark #444 status:ready, merge state-only PR GREEN, then start Issue #444 on a dedicated feature branch."
   },
   "next_work_package": {
-    "issue": null,
-    "title": null,
-    "status": "no_open_status_ready_issue_after_reconciliation",
-    "priority": null
+    "issue": 444,
+    "title": "Restore LOCAL_LAN user administration API availability",
+    "status": "ready",
+    "priority": "critical"
   },
+  "critical_order_after_444": [355, 357, 189, 450],
   "verification": {
     "issue_493_premerge_ci": "GREEN",
     "issue_493_authenticated_dashboard": "GREEN",
@@ -100,7 +120,7 @@
     "issue_289_final_disconnected_browser": "PASS",
     "issue_289_final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2",
     "deterministic_scale_assertions": "40/40 PASS",
-    "ready_issue_count": 0
+    "ready_issue_count": 1
   },
   "deployment_capacity": {
     "current_runtime_healthy": true,
@@ -116,6 +136,7 @@
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
-    "mandatory_public_runtime_dependency": "none"
+    "mandatory_public_runtime_dependency": "none",
+    "secret_activation": "not_authorized_in_state_reconciliation"
   }
 }

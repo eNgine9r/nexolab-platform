@@ -20,8 +20,6 @@ Parent performance/data-acquisition Epic #282 is also closed `completed`.
 
 The currently running Raspberry Pi `LOCAL_LAN` product/runtime is healthy on exact accepted product SHA `1d226d6ddcd0c009b8f83367599d7a64521190f0`.
 
-After an operator reboot, the existing central/edge containers auto-started healthy and the final #289 disconnected-browser acceptance passed on that runtime.
-
 A redundant controlled redeploy on the same head stopped safely at deployment capacity preflight **before runtime mutation**:
 
 - `free_bytes=15310114816`;
@@ -30,15 +28,26 @@ A redundant controlled redeploy on the same head stopped safely at deployment ca
 
 Classification: soft operational blocker for the **next controlled redeploy** only. Do not bypass the guard. Do not delete product data, PostgreSQL history, named volumes or runtime acceptance evidence. Any future capacity recovery must be bounded to explicitly disposable artifacts and independently verified before deployment.
 
-## Ready-work boundary
+## Issue #444 — implementation is independently actionable
 
-After closing #493, #289 and #282, repository audit found **0 open `status:ready` Issues**.
+Issue #444 is selected as the next critical Ready Work Package.
 
-This becomes the Sprint hard stop after state-only Issue #497 is merged: no independent Ready Work Package exists. Open Dependabot pull requests are separate dependency lanes and must not be selected as product work without their governing Issue/status and required migration/verification policy.
+Current defect: the LOCAL_LAN Users & Access screen can receive HTTP 404 for `/api/v1/admin/users` when local-user administration routes are not mounted in the effective runtime composition.
+
+Software implementation and verification are independently actionable without touching secrets. The following boundary remains explicit:
+
+- code may add full-app route-composition tests, deployment/runtime fail-closed checks and explicit frontend diagnostics;
+- code may preserve existing local-auth behavior and administrator permission boundaries;
+- local signing-key generation/activation, secret rotation or secret exposure is **not authorized** as part of software implementation;
+- if final Raspberry Pi acceptance requires enabling/changing secrets, that step becomes a hard blocker requiring Product Owner action/approval.
+
+## Superseded state trackers
+
+Issues #416 and #449 are stale state-only reconciliation trackers whose factual baselines have been superseded by later accepted merges and state. They should be closed as `not_planned`/superseded and must not consume Sprint capacity.
 
 ## Independent pending physical/evidence items
 
-These remain separate from the completed #282/#289 acceptance sequence unless explicitly promoted into a focused Ready Work Package:
+These remain separate unless promoted into a focused Ready Work Package:
 
 - KK2/Unit 115 field retest;
 - refrigeration perceived-latency acceptance;
