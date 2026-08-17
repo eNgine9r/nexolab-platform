@@ -24,8 +24,12 @@ export function AlertsTelemetryScope() {
     <section className="panel p-4 sm:p-5" data-testid="alerts-telemetry-scope">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">Telemetry scope</p>
-          <h2 className="mt-1 text-base font-semibold text-white">Точки телеметрії для стрічки тривог</h2>
+          <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
+            Telemetry scope
+          </p>
+          <h2 className="mt-1 text-base font-semibold text-white">
+            Точки телеметрії для стрічки тривог
+          </h2>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-slate-500">
             Вибір звужує production feed на сервері до pagination. Він не змінює правила тривог, polling або
             Modbus.
@@ -38,7 +42,10 @@ export function AlertsTelemetryScope() {
       </div>
 
       {notice ? (
-        <p className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05] px-3 py-2 text-[10px] text-cyan-100" role="status">
+        <p
+          className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05] px-3 py-2 text-[10px] text-cyan-100"
+          role="status"
+        >
           {notice}
         </p>
       ) : null}
@@ -53,12 +60,16 @@ export function AlertsTelemetryScope() {
       ) : null}
 
       {inventory.status === "error" ? (
-        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-300/15 bg-amber-400/[0.05] p-4 text-[10px] text-amber-100" role="alert">
+        <div
+          className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-300/15 bg-amber-400/[0.05] p-4 text-[10px] text-amber-100"
+          role="alert"
+        >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-semibold">Canonical inventory недоступний.</p>
             <p className="mt-1 text-amber-100/70">
-              {inventory.error?.message ?? "Telemetry selector тимчасово недоступний."} Поточний підтверджений scope стрічки не розширюється автоматично.
+              {inventory.error?.message ?? "Telemetry selector тимчасово недоступний."} Поточний підтверджений
+              scope стрічки не розширюється автоматично.
             </p>
           </div>
         </div>
