@@ -2,37 +2,38 @@
 
 Updated: 2026-08-17
 
-## Autonomous Sprint selection — resolved for Issue #513
+## Autonomous Sprint selection — hard blocker after Issue #513
 
-The previous post-#507 hard selection blocker was resolved by an explicit Product Owner decision to continue Epic #450 with the Test Sessions selector integration.
+Issue #513 **Integrate canonical TelemetryPointSelector into Test Sessions** is completed through PR #514 / product merge `5015e7d492d7ece67a73707ae732954c20c1dce1`.
 
-Issue #513 **Integrate canonical TelemetryPointSelector into Test Sessions** is now the active Work Package through PR #514. Exact product head `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a` is software/browser/backend/offline verified and ready for the final merge audit.
+Fresh post-merge GitHub audit returns **zero open Issues labelled `status:ready`**.
 
-Fresh GitHub search still returns **zero open Issues labelled `status:ready`**. This does not block the already-selected active Issue #513, which is `status:in-progress`. It means the post-merge next Work Package must be selected again unless a new repository-backed Ready task appears.
+Per the NEXOLAB Autonomous Sprint policy, absence of an independent Ready Work Package is a hard selection blocker. Autonomous product implementation stops after state reconciliation until a repository-backed priority is selected.
 
-Do not automatically promote or bundle into PR #514:
+Do not automatically promote:
 
-- remaining Epic #450 selector consumer integrations for reports, alarms or equipment maps;
+- remaining Epic #450 selector consumer integrations for Reports, Alarms or Equipment Maps; each is a separate follow-up Work Package and repository does not define their order;
 - #245 while it remains `status:needs-validation` and requires real standalone Raspberry Pi acceptance;
 - #444 while controlled Raspberry Pi runtime acceptance remains blocked;
 - #189 while hardware/recovery evidence remains blocked.
 
-## Issue #513 — no open implementation blocker
+## Issue #513 — completed; no Raspberry Pi acceptance required
 
-PR #514 exact product head `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a` has GREEN:
+PR #514 final exact head `445222e4339d939b9475c4b82f3ba9396a3b484c` had GREEN:
 
-- CI #3290 / run `32033655886` — format, lint, typecheck, 442 tests and production build;
-- Test Sessions Browser Acceptance #878 / run `32033655829` — canonical selector subset plus existing production session flow;
-- Telemetry service #1593 / run `32033655867` — backend/runtime contract, migrations, recovery and container build;
-- Offline Bundle #1265 / run `32033655901` — disconnected runtime with blocked egress/pull disabled and persistent-data-preserving update/rollback.
+- CI #3294 / run `32034864169` — format, lint, typecheck, full tests and production build;
+- Test Sessions Browser Acceptance #882 / run `32034864360` — canonical selector subset plus existing production session flow;
+- Telemetry service #1597 / run `32034864089` — backend/runtime contract, migrations, recovery and container build;
+- Offline Bundle #1269 / run `32034864363` — disconnected runtime with blocked egress/pull disabled and persistent-data-preserving update/rollback;
+- Authenticated Dashboard #1876 and Disaster Recovery Browser #766 — GREEN on the same SHA after successful reruns of transient browser-only failures.
 
-No unresolved PR reviews or review threads were present at the product-head audit. No Raspberry Pi deployment or hardware action is required by Issue #513.
+Issue #513 is closed `status:done`. Raspberry Pi deployment/operator acceptance was not performed and was not required by this software-only Work Package.
 
-## Epic #450 — remaining product sequencing decision after Sessions
+## Epic #450 — remaining product sequencing decision
 
-Completed Epic #450 work now includes the previously merged children #451, #453, #457, #461, #465 and #507, with #513 pending merge as the Sessions consumer integration.
+Completed Epic #450 work includes #451, #453, #457, #461, #465, #507 and #513.
 
-Epic #450 Work Package 5 requires each remaining consumer integration to be a separate focused Issue/PR. Reports, alarms and equipment maps are therefore post-merge candidates only; their order is not automatically inferred.
+Work Package 5 requires each remaining consumer integration to be a separate focused Issue/PR. Reports, Alarms and Equipment Maps are therefore selection candidates only. Their order must not be inferred automatically.
 
 ## Issue #507 — completed; Raspberry Pi evidence remains separate
 
