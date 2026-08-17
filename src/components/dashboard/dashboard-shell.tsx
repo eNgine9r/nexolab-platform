@@ -16,6 +16,7 @@ import { KpiCard } from "./kpi-card";
 import { LabMap } from "./lab-map";
 import { LiveInventoryPanel } from "./live-inventory-panel";
 import { NodesPanel } from "./nodes-panel";
+import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
 import { SensorManagementDialog } from "./sensor-management-dialog";
@@ -143,57 +144,63 @@ export function DashboardShell() {
               ))}
             </section>
 
-            <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
-              <Panel
-                title={telemetry.mode === "live" ? "Production node" : "Вузли системи · demo"}
-                action={<PanelAction label="Всі вузли" href="/nodes" />}
-                className="xl:col-span-3"
-              >
-                {telemetry.mode === "live" ? (
-                  <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
-                ) : (
-                  <NodesPanel />
-                )}
-              </Panel>
-              <Panel
-                title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
-                action={
-                  telemetry.mode === "live" ? (
-                    <button
-                      type="button"
-                      onClick={() => setSensorDialogOpen(true)}
-                      aria-label="Керувати температурними датчиками"
-                      title="Керувати температурними датчиками"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"
-                    >
-                      <Settings2 className="h-3.5 w-3.5" />
-                    </button>
-                  ) : undefined
-                }
-                className="xl:col-span-6"
-              >
-                <TemperatureChart
-                  mode={telemetry.mode}
-                  status={telemetry.status}
-                  samples={telemetry.temperatures}
-                  historySamples={telemetry.historySamples}
-                  historyRange={telemetry.historyRange}
-                  historyStatus={telemetry.historyStatus}
-                  historyWindow={telemetry.historyWindow}
-                  historyError={telemetry.historyError}
-                  onHistoryRangeChange={telemetry.setHistoryRange}
-                  onHistoryRetry={telemetry.retryHistory}
-                  targetDiagnostics={sensorManagement.configuration?.target_diagnostics ?? []}
-                />
-              </Panel>
-              <Panel
-                title={telemetry.mode === "live" ? "Telemetry alarms" : "Тривоги · demo"}
-                action={<PanelAction label="Всі тривоги" href="/alerts" />}
-                className="xl:col-span-3"
-              >
-                <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
-              </Panel>
-            </section>
+            <OverviewWorkspaceLayout
+              primary={
+                <Panel
+                  title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
+                  action={
+                    telemetry.mode === "live" ? (
+                      <button
+                        type="button"
+                        onClick={() => setSensorDialogOpen(true)}
+                        aria-label="Керувати температурними датчиками"
+                        title="Керувати температурними датчиками"
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : undefined
+                  }
+                  className="min-w-0"
+                >
+                  <TemperatureChart
+                    mode={telemetry.mode}
+                    status={telemetry.status}
+                    samples={telemetry.temperatures}
+                    historySamples={telemetry.historySamples}
+                    historyRange={telemetry.historyRange}
+                    historyStatus={telemetry.historyStatus}
+                    historyWindow={telemetry.historyWindow}
+                    historyError={telemetry.historyError}
+                    onHistoryRangeChange={telemetry.setHistoryRange}
+                    onHistoryRetry={telemetry.retryHistory}
+                    targetDiagnostics={sensorManagement.configuration?.target_diagnostics ?? []}
+                  />
+                </Panel>
+              }
+              secondaryStart={
+                <Panel
+                  title={telemetry.mode === "live" ? "Production node" : "Вузли системи · demo"}
+                  action={<PanelAction label="Всі вузли" href="/nodes" />}
+                  className="min-w-0"
+                >
+                  {telemetry.mode === "live" ? (
+                    <LiveInventoryPanel samples={liveSamples} status={telemetry.status} />
+                  ) : (
+                    <NodesPanel />
+                  )}
+                </Panel>
+              }
+              secondaryEnd={
+                <Panel
+                  title={telemetry.mode === "live" ? "Telemetry alarms" : "Тривоги · demo"}
+                  action={<PanelAction label="Всі тривоги" href="/alerts" />}
+                  className="min-w-0"
+                >
+                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
+                </Panel>
+              }
+            />
 
             <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
               <Panel

@@ -4,9 +4,9 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The repository selection baseline for this state reconciliation is `1a7d929351c52421e8d94cdee5469e1f017beb38`, the merge of PR #506 — **reconcile Issue #444 software merge state**.
+The repository selection baseline is `db69046da24e20a642485f7d7dfd5df80f48312e`, the squash merge of PR #509 — **reconcile closed #355/#357 and promote Overview #507**.
 
-The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. The controlled Raspberry Pi `LOCAL_LAN` runtime is healthy on that accepted product head:
+The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. The controlled Raspberry Pi `LOCAL_LAN` runtime remains healthy on that accepted product head:
 
 - deployment evidence: `runtime/deployments/20260817T074249Z`;
 - runtime mode: `lan`;
@@ -17,31 +17,53 @@ The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd
 - edge MQTT/Device Agent healthy;
 - one active serialized RS-485 bus worker.
 
-Repository software and deployed runtime remain intentionally separate. No later repository merge is treated as Raspberry Pi runtime-accepted until a controlled deployment/retest produces evidence.
+Repository software and deployed runtime remain intentionally separate. No repository merge after `1d226d6d...` is treated as Raspberry Pi runtime-accepted until a controlled deployment/retest produces evidence.
 
-## Completed product work discovered by fresh GitHub audit
+## Issue #507 — software/browser/offline verified; ready for merge
 
-### Issue #355 — completed
+Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** is implemented on `feat/507-overview-full-width-chart` in PR #510.
 
-Issue #355 **Load Live Dashboard channel inventory without telemetry-history timeout** is closed `completed` / `status:done`.
+Product verification head:
 
-Its canonical inventory implementation is already merged and software-verified: the editor inventory is backed by the bounded organization-scoped measurement catalog rather than paginated telemetry history, active eligible channels without latest samples remain selectable, and selected-dashboard latest/history/WebSocket behavior remains bounded.
+`394fe941a3c80e6f76bc6be64a1ff54f0be9f463`
 
-Raspberry Pi latency/query-plan evidence remains a separate acceptance classification and is not inferred from CI.
+Implemented product outcome:
 
-### Issue #357 — completed
+- the canonical Overview temperature chart is the first full-width operator workspace;
+- the previous `Production node` and `Telemetry alarms` side panels now render below it in a responsive one-column/two-column grid;
+- the chart renderer, telemetry hooks, history contracts and WebSocket ownership are unchanged;
+- the sessions, equipment-layout and camera composition remains unchanged;
+- component regression covers deterministic graph-first DOM order and responsive grid classes;
+- production browser acceptance checks graph width/order and secondary-panel placement at 360/1440/1920 px.
 
-Issue #357 **Hydrate refrigeration image, layout and sensor placements immediately** is closed `completed` / `status:done`.
+Exact product-head verification is GREEN:
 
-It is no longer a future software Work Package. Any remaining controlled Raspberry Pi perceived-latency evidence is an evidence lane only and must not reopen already completed software scope without a newly reproduced defect.
+- CI #3267 / run `32025536430` — format, lint, typecheck, full tests and production build GREEN;
+- Refrigeration Browser Acceptance #1778 / run `32025536533` — GREEN;
+- Authenticated Dashboard Acceptance #1853 / run `32025536598` — GREEN, including one WebSocket, bounded history, chart continuity, 360/1440/1920 geometry and zero acquisition mutations;
+- Offline Bundle #1246 / run `32025536444` — GREEN, including disconnected startup with egress blocked and pull disabled plus update/rollback persistent-data preservation.
+
+Completion classification before Raspberry Pi operator evidence:
+
+`software/browser/offline verified; Raspberry Pi operator acceptance pending`
+
+The Raspberry Pi acceptance classification does not block this focused software merge. It must not be claimed until real operator evidence exists.
+
+## Issue #508 — completed state reconciliation
+
+Issue #508 and PR #509 are completed. PR #509 merged as `db69046da24e20a642485f7d7dfd5df80f48312e` and removed stale future-work treatment of #355/#357 while promoting #507.
+
+## Completed product work
+
+- #355 **Load Live Dashboard channel inventory without telemetry-history timeout** — closed completed; any Raspberry Pi latency evidence is separate.
+- #357 **Hydrate refrigeration image, layout and sensor placements immediately** — closed completed; any Raspberry Pi perceived-latency evidence is separate.
+- Epic #282 / Issue #289 performance and acquisition acceptance — completed with hardware/runtime evidence already recorded.
 
 ## Issue #444 — software verified; Raspberry Pi runtime acceptance pending
 
 PR #501 merged as `efd190a70309039d498e2a9bab2cf47c3598e8b7` with exact-head software/offline/browser gates GREEN.
 
-Issue #444 remains open `status:blocked` because its own acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. Software is verified; runtime acceptance is not claimed.
-
-The currently recorded boundaries remain:
+Issue #444 remains open `status:blocked` because its acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. The currently recorded boundaries remain:
 
 - safe redeploy is stopped by deployment-capacity preflight;
 - local signing-key generation/activation/rotation remains outside current authorization and requires Product Owner action if needed for final acceptance.
@@ -50,7 +72,7 @@ The currently recorded boundaries remain:
 
 Issue #189 **Prove backup, restore, rollback and power-loss recovery** remains open `status:blocked`.
 
-Complete acceptance requires controlled central-host and Raspberry Pi evidence. No destructive production restore, named-volume deletion, product-data deletion, Modbus write or hardware write is authorized. Software-only preparation may proceed separately when promoted, but no physical acceptance is claimed.
+Complete acceptance requires controlled central-host and Raspberry Pi evidence. No destructive production restore, named-volume deletion, product-data deletion, Modbus write or hardware write is authorized.
 
 ## Raspberry Pi deployment capacity
 
@@ -62,35 +84,17 @@ The currently running runtime is healthy. The next controlled redeploy remains s
 
 Classification: soft operational constraint for the next controlled redeploy only. Do not bypass the capacity guard or delete product data, PostgreSQL history, named volumes or acceptance evidence.
 
-## Performance and data acquisition optimization — completed
+## Ready queue audit
 
-Epic #282 and final acceptance Issue #289 are closed `completed`.
+Immediately before the #507 merge checkpoint, a fresh GitHub search found **zero open Issues labelled `status:ready`** because #507 is currently `status:in-progress` and all previously selected software predecessors are completed.
 
-Accepted evidence includes hardware polling invariants, deterministic scheduler scale/fairness, REST/WebSocket truthfulness, MQTT outage/outbox recovery, Energy warm-route reuse, terminal Offline recovery and disconnected `LOCAL_LAN` browser operation.
+Other open critical items are not automatically promoted:
 
-Key evidence:
+- Epic #450 remains open until #507 is merged and the complete child sequence is audited;
+- #245 remains `status:needs-validation` and includes real Raspberry Pi standalone acceptance steps, so it is not a Ready software Work Package;
+- #444 and #189 remain blocked evidence/runtime lanes.
 
-- `runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
-- `runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
-
-## Epic #450 continuation
-
-Fresh GitHub audit confirms the ordered Epic #450 software sequence through #451, #453, #457, #461 and #465 is completed.
-
-The next independent software Work Package is:
-
-**Issue #507 — Make Overview telemetry graph full-width and move secondary panels below** (`priority:critical`).
-
-Product outcome:
-
-- Overview primary telemetry graph uses the full available main-content width;
-- former left/right secondary panels move below into a responsive grid;
-- 1440/1920 operator layouts prioritize the graph;
-- 360/1440/1920 remain free of document-level horizontal overflow;
-- canonical chart continuity, mixed-unit axes, Exact Inspector, one-WebSocket ownership and bounded history behavior remain unchanged;
-- layout/navigation actions produce zero acquisition/discovery/configuration mutations and no Modbus/hardware writes.
-
-Issue #507 is the single selected software `status:ready` Work Package after this reconciliation. Issue #189 and #444 remain blocked evidence/runtime lanes and do not block #507 implementation.
+A fresh post-merge Ready audit is required before selecting the next Work Package.
 
 ## Safety boundaries
 
