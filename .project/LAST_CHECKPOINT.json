@@ -3,60 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T14:24:00Z",
+  "timestamp": "2026-08-17T15:08:00Z",
   "actor": "ChatGPT",
-  "event": "le01mp_201_software_merged_reports_521_selected_ready",
-  "state_reconciliation_base_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-  "repository_product_baseline_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+  "event": "energy_526_merged_reports_521_remains_active",
+  "repository_product_baseline_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "completed_software_work_package": {
-    "issue": 201,
-    "pull_request": 519,
-    "title": "Validate LE-01MP cumulative energy, scale and rollover",
-    "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
-    "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-    "final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
-    "issue_state": "OPEN_STATUS_NEEDS_VALIDATION"
+  "completed_work_package": {
+    "issue": 526,
+    "pull_request": 527,
+    "title": "Surface verified LE-01MP cumulative energy in Energy Monitoring",
+    "status": "completed_software_browser_offline_verified",
+    "merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
+    "final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81"
   },
   "verification": {
-    "ci": {
-      "run_id": 32037544241,
-      "run_number": 3304,
-      "status": "GREEN"
-    },
-    "edge_image": {
-      "run_id": 32037544248,
-      "run_number": 267,
-      "status": "GREEN"
-    },
-    "acquisition_scale": {
-      "run_id": 32037544291,
-      "run_number": 166,
-      "status": "GREEN",
-      "active_target_profiles": [38, 144, 252]
-    },
-    "device_agent_fleet": {
-      "run_id": 32037544260,
-      "run_number": 794,
-      "status": "GREEN"
-    },
-    "telemetry_service": {
-      "run_id": 32037544282,
-      "run_number": 1599,
-      "status": "GREEN"
-    },
+    "ci": { "run_id": 32040481038, "run_number": 3330, "status": "GREEN" },
+    "refrigeration_browser": { "run_id": 32040480994, "run_number": 1804, "status": "GREEN" },
     "authenticated_dashboard": {
-      "run_id": 32037544232,
-      "run_number": 1881,
-      "status": "GREEN"
+      "run_id": 32040480992,
+      "run_number": 1898,
+      "status": "GREEN_AFTER_RETRY"
     },
-    "offline_bundle": {
-      "run_id": 32037544237,
-      "run_number": 1274,
-      "status": "GREEN",
-      "evidence": "disconnected startup with egress blocked and pull disabled plus persistent-data-preserving update/rollback"
-    }
+    "offline_bundle": { "run_id": 32040481023, "run_number": 1291, "status": "GREEN" }
+  },
+  "energy_outcome": {
+    "metric": "electrical.energy.active",
+    "unit": "kWh",
+    "latest_ui": "VERIFIED_IN_BROWSER_ACCEPTANCE",
+    "history_ui": "VERIFIED_IN_BROWSER_ACCEPTANCE",
+    "live_update": "VERIFIED_IN_BROWSER_ACCEPTANCE",
+    "derived_interval_consumption": "NOT_IMPLEMENTED_OUT_OF_SCOPE"
   },
   "hardware_evidence": {
     "issue_201_normal_operation": "VERIFIED",
@@ -66,27 +43,13 @@
     "power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
     "rollover_reset_discontinuity": "PENDING_POWER_CYCLE_EVIDENCE"
   },
-  "repository_repair": {
-    "issue": 524,
-    "pull_request": 525,
-    "status": "COMPLETED_GREEN",
-    "description": "Removed the accidental empty root .tmp file through the normal branch/PR process without force push or product/runtime changes."
-  },
-  "selection": {
-    "selected_issue": 521,
+  "active_work_package": {
+    "issue": 521,
+    "pull_request": 529,
     "title": "Integrate TelemetryPointSelector into report evidence selection",
-    "status": "READY_SELECTED_BY_PRODUCT_OWNER",
-    "priority": "critical",
-    "parent_issue": 450,
-    "ready_issue_count": 1,
-    "implementation_started": false,
-    "future_epic_450_consumers_not_bundled": ["Alarms", "Equipment Maps"]
-  },
-  "independent_pending_lanes": {
-    "issue_201": "needs-validation: approved restart/power-cycle and rollover evidence pending",
-    "issue_245": "needs-validation: physical standalone Raspberry Pi acceptance pending",
-    "issue_444": "blocked: LOCAL_LAN runtime acceptance pending",
-    "issue_189": "blocked: hardware recovery evidence pending"
+    "status": "IN_PROGRESS",
+    "branch": "feat/521-reports-telemetry-selector",
+    "current_pr_head": "ee6c121b1f5f7434fdc99548c3eb2ca91b19d7c3"
   },
   "runtime": {
     "mode": "lan",
@@ -94,7 +57,8 @@
     "api": "http://172.18.48.34:8082",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
     "current_runtime_healthy": true,
-    "issue_201_software_deployed": false
+    "issue_201_driver_deployed": false,
+    "issue_526_energy_ui_deployed": false
   },
   "deployment_capacity": {
     "next_redeploy_preflight_blocked": true,
@@ -111,5 +75,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Validate and merge the state-only reconciliation. Then mark Issue #521 status:in-progress, create feat/521-reports-telemetry-selector and implement the focused report evidence selector Work Package."
+  "next_action": "Keep Issue #521 / PR #529 as the single active implementation Work Package. Do not start another software package until it completes or blocks. Issue #201 physical power-cycle validation remains a separate explicit-approval lane."
 }
