@@ -59,11 +59,15 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
   });
 
   const page = await context.newPage();
+  const inventoryChannel = page.getByTestId("live-inventory-panel").getByRole("cell", {
+    name: "106-03",
+    exact: true,
+  });
 
   try {
     await page.goto("/live?workspace=explorer", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible();
-    await expect(page.getByText("106-03", { exact: true }).first()).toBeVisible();
+    await expect(inventoryChannel).toBeVisible();
     await expect.poll(websocketClientCount).toBe(1);
     expect(routedSocketCount).toBe(1);
 
@@ -74,7 +78,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await baselineSocket.close({ code: 1012, reason: "issue-493-terminal-outage" });
 
     await expect(page.getByText("Live-потік офлайн", { exact: true })).toBeVisible({ timeout: 35_000 });
-    await expect(page.getByText("106-03", { exact: true }).first()).toBeVisible();
+    await expect(inventoryChannel).toBeVisible();
     await expect.poll(websocketClientCount).toBe(0);
 
     const attemptsAtOffline = routedSocketCount;
