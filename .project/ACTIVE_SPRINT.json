@@ -83,16 +83,56 @@
   "verification": {
     "issue_521_merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
     "issue_521_final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
-    "issue_521_ci": { "run_id": 32043381179, "run_number": 3362, "status": "GREEN" },
-    "issue_521_reports_browser": { "run_id": 32043381173, "run_number": 882, "status": "GREEN" },
-    "issue_521_rendered_reports_browser": { "run_id": 32043381196, "run_number": 727, "status": "GREEN" },
-    "issue_521_telemetry_service": { "run_id": 32043381174, "run_number": 1629, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_authenticated_dashboard": { "run_id": 32043381172, "run_number": 1920, "status": "GREEN" },
-    "issue_521_offline_bundle": { "run_id": 32043381181, "run_number": 1313, "status": "GREEN" },
-    "issue_521_offline_auth": { "run_id": 32043381175, "run_number": 490, "status": "GREEN" },
-    "issue_521_refrigeration_browser": { "run_id": 32043381149, "run_number": 1821, "status": "GREEN" },
-    "issue_521_disaster_recovery_browser": { "run_id": 32043381163, "run_number": 796, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_container_supply_chain": { "run_id": 32043381177, "run_number": 804, "status": "GREEN" },
+    "issue_521_ci": {
+      "run_id": 32043381179,
+      "run_number": 3362,
+      "status": "GREEN"
+    },
+    "issue_521_reports_browser": {
+      "run_id": 32043381173,
+      "run_number": 882,
+      "status": "GREEN"
+    },
+    "issue_521_rendered_reports_browser": {
+      "run_id": 32043381196,
+      "run_number": 727,
+      "status": "GREEN"
+    },
+    "issue_521_telemetry_service": {
+      "run_id": 32043381174,
+      "run_number": 1629,
+      "status": "GREEN_AFTER_TARGETED_RERUN"
+    },
+    "issue_521_authenticated_dashboard": {
+      "run_id": 32043381172,
+      "run_number": 1920,
+      "status": "GREEN"
+    },
+    "issue_521_offline_bundle": {
+      "run_id": 32043381181,
+      "run_number": 1313,
+      "status": "GREEN"
+    },
+    "issue_521_offline_auth": {
+      "run_id": 32043381175,
+      "run_number": 490,
+      "status": "GREEN"
+    },
+    "issue_521_refrigeration_browser": {
+      "run_id": 32043381149,
+      "run_number": 1821,
+      "status": "GREEN"
+    },
+    "issue_521_disaster_recovery_browser": {
+      "run_id": 32043381163,
+      "run_number": 796,
+      "status": "GREEN_AFTER_TARGETED_RERUN"
+    },
+    "issue_521_container_supply_chain": {
+      "run_id": 32043381177,
+      "run_number": 804,
+      "status": "GREEN"
+    },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
     "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
   },
@@ -112,7 +152,11 @@
       "status": "blocked",
       "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."
     },
-    { "issue": 189, "status": "blocked", "description": "Hardware recovery evidence pending." }
+    {
+      "issue": 189,
+      "status": "blocked",
+      "description": "Hardware recovery evidence pending."
+    }
   ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
