@@ -2,79 +2,96 @@
 
 Updated: 2026-08-17
 
-## Repository and deployed baselines
+## Repository and deployed baseline
 
-GitHub `main` is `297fc2fa28ef43d7be71d2436151a34f3e414a26`, the state-only reconciliation merge after Issue #484 hardware acceptance.
+The accepted product/runtime baseline is `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**.
 
-The controlled Raspberry Pi `LOCAL_LAN` product/runtime remains deployed at `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`, the product merge of PR #485. The later state-only repository commit does not require runtime redeployment.
+The controlled Raspberry Pi `LOCAL_LAN` runtime is running this exact product head:
 
-Controlled product deployment evidence:
+- deployment evidence: `runtime/deployments/20260817T074249Z`;
+- runtime mode: `lan`;
+- bind address: `172.18.48.34`;
+- dashboard: `http://172.18.48.34:3000`;
+- API: `http://172.18.48.34:8082`;
+- central PostgreSQL/MQTT/Telemetry healthy;
+- edge MQTT/Device Agent healthy;
+- one active serialized RS-485 bus worker;
+- no product/runtime redeploy is required for this state-only reconciliation.
 
-- `runtime/deployments/20260817T045808Z`;
-- `runtime_mode=lan`;
-- bind address `172.18.48.34`;
-- dashboard `http://172.18.48.34:3000`;
-- API `http://172.18.48.34:8082`;
-- central PostgreSQL/MQTT/Telemetry and edge MQTT/Device Agent ready;
-- Device Agent queue depth `0`, scheduler healthy, one active `rs485-main` worker.
+Issue #497 is a metadata-only reconciliation branch based on the accepted product head. Its merge may advance the repository SHA without changing the deployed product/runtime SHA.
 
-Deployment capacity remains bounded. Previous recovery removed only disposable BuildKit, npm and Playwright browser caches; product data, named volumes, PostgreSQL history and runtime evidence were preserved.
+## Performance and data acquisition optimization — completed
 
-## Issue #484 — completed
+Epic #282 and final acceptance Issue #289 are closed `completed`.
 
-Issue #484 — **Reuse Energy history on warm route return instead of replaying full 24h pagination** — is closed `completed` and Raspberry Pi verified.
+Accepted evidence covers:
 
-Phase 11-R2 evidence: `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`.
+- normal browser/page activity does not amplify physical Modbus polling;
+- no-browser, Overview, Live Dashboard, fast navigation and multi-browser hardware matrices;
+- disabled targets execute zero normal acquisition work;
+- one unavailable endpoint does not take unrelated channels offline;
+- deterministic scheduler scale/fairness matrix: `40/40` assertions across `34 / 136 / 240` targets;
+- one serialized reader, bounded fairness, timeout/cooldown isolation and overrun/deadline evidence;
+- REST latest ↔ WebSocket identity/freshness consistency;
+- transient WebSocket reconnect and Telemetry Service restart recovery;
+- MQTT outage, durable edge outbox drain, no duplicate committed telemetry and stale-to-Live UI truthfulness;
+- Energy warm-route return after Issue #484: cold `28` history requests, warm `1 / 1 / 1` bounded tail requests, `627 / 557 / 443 ms` usable latency;
+- terminal Offline truthfulness and explicit manual recovery after Issue #493;
+- Offline Bundle and disconnected `LOCAL_LAN` runtime/browser operation;
+- zero Modbus/hardware writes during acceptance.
 
-- cold Energy bootstrap: `28` paginated 24h history requests;
-- three warm returns: exactly one bounded approximately five-minute tail request each;
-- warm usable latency: `627 / 557 / 443 ms`;
-- no warm loading transition;
-- one application-shell WebSocket;
-- physical acquisition continued `+131`, communication failures `+0`;
-- no navigation-driven acquisition mutation or hardware write.
+Final disconnected browser-route evidence:
 
-## Active acceptance lane — Issue #289
+`runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
 
-Issue #289 — **Prove acquisition scale, stability and truthful live-state behavior** — remains open `status:in-progress`.
+Operator route sequence while public IPv4 egress was blocked:
 
-Completed evidence includes:
+`Overview → Refrigeration → Energy → Saved Live Dashboard → Overview`
 
-- no-browser / Overview / Live Dashboard / repeated-navigation / multi-browser physical request-rate matrix with no browser-driven Modbus amplification;
-- WebSocket transient reconnect and Telemetry Service restart recovery;
-- edge MQTT outage, SQLite outbox growth/drain and UI stale-to-Live truthfulness;
-- disconnected `LOCAL_LAN` runtime;
-- REST ↔ WebSocket event identity/freshness consistency;
-- route-return latency/request-count acceptance after #484;
-- deterministic fake/recorded acquisition scale matrix: `40/40` assertions, `34 / 136 / 240` targets, one serialized reader, disabled targets zero executions, timeout/cooldown isolation, fairness and overrun behavior, `serial_port_opened=false`, `modbus_write_attempts=0`;
-- Phase 12A operator UI observation: `Live → Застарілі дані` with retained values and no false Live label, then automatic `Live` recovery after MQTT restoration without F5/Retry.
+All routes remained usable without F5, remote-asset failure or endless loading. Central/edge runtime stayed healthy and physical requests advanced `2152 → 3062`.
 
-## Critical blocker — Issue #493
+## Issue #493 — completed and hardware verified
 
-Issue #493 — **Live telemetry Retry does not restart terminal Offline shared WebSocket transport** — is the active critical bug interrupting #289 Phase 12B.
+PR #496 merged as `1d226d6ddcd0c009b8f83367599d7a64521190f0` after GREEN CI, Authenticated Dashboard, Acquisition Scale, Refrigeration Browser and Offline Bundle gates.
 
-Controlled Raspberry Pi reproductions on deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`:
+Post-fix Raspberry Pi evidence:
 
-- Live Data Explorer: `runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4`;
-- Saved Live Dashboard: `runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4`.
+`runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
 
-Both reproductions proved:
+Saved Live Dashboard verified:
 
-- baseline `websocket_clients=1`;
-- Chromium NetworkService remained alive and unchanged;
-- physical acquisition continued throughout the local API-path outage;
-- after reconnect-budget exhaustion and network restoration, `websocket_clients=0` remained terminal;
-- Live Data **Повторити** and Saved Dashboard **Перепідключити** failed to create a fresh WebSocket for 40 seconds;
-- no F5, backend/MQTT/Device Agent restart, Modbus write or hardware mutation occurred.
+- baseline `Live`, `websocket_clients=1`;
+- sustained local transport outage reached truthful terminal `Offline` while retained values stayed visible;
+- after path restoration, `websocket_clients=0` remained terminal until operator action;
+- **Перепідключити** created one fresh WebSocket on the first poll;
+- exactly one WebSocket remained stable for ten seconds;
+- UI returned to `Live` without F5;
+- Chromium NetworkService PID remained unchanged;
+- physical acquisition advanced `6914 → 8376`;
+- no Modbus/hardware write occurred.
 
-Focused implementation is in branch `fix/493-terminal-offline-transport-restart`, draft PR #496. The shared route-persistent client now releases a terminal source transport when its final route/request consumer closes so the explicit Retry lifecycle can create exactly one fresh transport while retaining bounded cached samples.
+## Raspberry Pi deployment capacity
 
-Software verification remains in progress. Issue #493 and #289 Phase 12B must not be classified complete until PR #496 is GREEN, merged, deployed to the Raspberry Pi and terminal Offline → manual Retry → Live passes on the exact merged product head.
+The currently running runtime is healthy. A redundant post-reboot guarded redeploy on the same accepted head stopped safely **before runtime mutation** because the deployment capacity preflight reported:
+
+- `free_bytes=15310114816`;
+- `required_bytes=16595036807`;
+- `reserve_bytes=2147483648`.
+
+This is an operational constraint for the **next controlled redeploy**, not a failure of the currently running product. Do not bypass the capacity guard or delete product data/named volumes/evidence to create space. Any capacity recovery must remain bounded to explicitly disposable artifacts.
+
+## Ready queue
+
+Repository audit after closing #289 and #282 found **0 open `status:ready` Issues**.
+
+Open Dependabot PRs remain separate dependency lanes and are not promoted to product work without their governing Issue/status and required verification.
+
+Independent physical/evidence items already tracked elsewhere remain separate, including KK2/Unit 115 field retest, refrigeration perceived-latency acceptance and Raspberry Pi version-management acceptance.
 
 ## Next action
 
-Complete Issue #493 through focused unit/browser regression, full CI, Authenticated Dashboard Acceptance, Acquisition Scale Acceptance and Offline Bundle; merge only GREEN/current; deploy the exact merged product head using the capacity guard; rerun Phase 12B once on the controlled Raspberry Pi; then aggregate and close Issue #289 only if every remaining acceptance criterion passes.
+Complete state-only Issue #497/PR reconciliation and merge only after GREEN state checks. After that there is no independent Ready Work Package; Sprint execution must stop at the repository Ready boundary until an existing backlog item is explicitly promoted to `status:ready` or a new focused product Work Package is created from a Product Owner priority.
 
 ## Safety boundaries
 
-`LOCAL_LAN`, offline-first runtime and read-only industrial boundaries remain unchanged. No Modbus write, hardware/controller write, production/site cutover, product persistent-data deletion, named-volume deletion or mandatory cloud runtime dependency is authorized.
+`LOCAL_LAN`, offline-first runtime and read-only industrial boundaries remain unchanged. No Modbus/controller write, actuator/hardware write, production/site cutover, product persistent-data deletion, named-volume deletion, secret/billing/DNS mutation or mandatory cloud runtime dependency is authorized.

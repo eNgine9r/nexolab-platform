@@ -3,59 +3,67 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T06:21:00Z",
+  "timestamp": "2026-08-17T08:36:30Z",
   "actor": "ChatGPT",
-  "event": "issue_493_terminal_offline_shared_transport_bug_implementation",
-  "repository_main_sha": "297fc2fa28ef43d7be71d2436151a34f3e414a26",
-  "deployed_product_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-  "issue": 493,
-  "pull_request": 496,
-  "branch": "fix/493-terminal-offline-transport-restart",
-  "completion_classification": "production defect reproduced on Live Data and Saved Live Dashboard; focused shared-transport fix implemented; software verification in progress; Raspberry Pi post-fix acceptance pending",
-  "reproduction": {
-    "live_data": "runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4",
-    "saved_live_dashboard": "runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4",
+  "event": "issue_289_and_epic_282_completed_state_reconciliation",
+  "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "state_reconciliation_issue": 497,
+  "state_reconciliation_branch": "chore/497-reconcile-289-493-completion",
+  "completion_classification": "Issue #493 software and hardware verified; Issue #289 full scale/stability/truthful-state acceptance completed; parent Epic #282 completed; state-only reconciliation in progress",
+  "issue_493": {
+    "status": "closed_completed",
+    "pull_request": 496,
+    "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+    "software_verification": "GREEN",
+    "hardware_acceptance": "PASS",
+    "hardware_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2",
     "baseline_websocket_clients": 1,
-    "post_restore_before_retry_websocket_clients": 0,
-    "post_retry_observation_seconds": 40,
-    "post_retry_websocket_clients": 0,
+    "before_manual_retry_websocket_clients": 0,
+    "final_websocket_clients": 1,
+    "browser_reload_used": false,
     "chromium_network_service_restarted": false,
-    "physical_acquisition_continued": true,
-    "modbus_write": false,
-    "hardware_write": false
-  },
-  "implementation": {
-    "route_persistent_terminal_states": ["offline", "unauthorized", "forbidden", "configuration_error"],
-    "behavior": "release dead terminal source transport when the final route/request consumer closes so explicit Retry can create one fresh physical WebSocket while bounded cache remains retained",
-    "transient_reconnecting_reuse_preserved": true,
-    "new_unit_regression": "restarts a terminal shared transport after the last subscriber closes",
-    "new_browser_regression": "e2e/live-terminal-offline-retry.production.e2e.ts"
-  },
-  "verification": {
-    "previous_head_cd3eea78": {
-      "ci": "formatting/lint/typecheck/tests/build PASS",
-      "acquisition_scale": "PASS",
-      "authenticated_dashboard": "superseded by later verification head",
-      "offline_bundle": "superseded by later verification head"
-    },
-    "current_exact_head": "pending after browser regression and state reconciliation commits",
-    "required_before_merge": [
-      "CI",
-      "Authenticated Dashboard Acceptance",
-      "Acquisition Scale Acceptance",
-      "Offline Bundle",
-      "focused diff and review audit"
-    ],
-    "required_after_merge": [
-      "capacity-guarded Raspberry Pi deployment",
-      "Phase 12B terminal Offline manual Retry recovery on exact merged head"
-    ]
+    "physical_requests_before": 6914,
+    "physical_requests_after": 8376
   },
   "issue_289": {
-    "status": "blocked_on_issue_493_phase_12b",
+    "status": "closed_completed",
+    "hardware_acceptance": "PASS",
     "deterministic_scale_matrix": "40/40 PASS",
     "phase_12a_mqtt_ui_truthfulness": "PASS",
-    "remaining_gate": "Phase 12B terminal Offline manual recovery after Issue #493"
+    "phase_12b_terminal_offline_recovery": "PASS",
+    "final_disconnected_browser_route_acceptance": "PASS",
+    "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2",
+    "route_sequence": "Overview -> Refrigeration -> Energy -> Saved Live Dashboard -> Overview",
+    "public_ipv4_egress_blocked": true,
+    "ipv6_default_route_present": false,
+    "physical_requests_before": 2152,
+    "physical_requests_after": 3062,
+    "temporary_nft_rule_present_after_test": false
+  },
+  "epic_282": {
+    "status": "closed_completed",
+    "classification": "ordered performance and data acquisition optimization sequence accepted"
+  },
+  "runtime": {
+    "mode": "lan",
+    "dashboard": "http://172.18.48.34:3000",
+    "api": "http://172.18.48.34:8082",
+    "deployment_evidence": "runtime/deployments/20260817T074249Z",
+    "post_reboot_runtime_healthy": true
+  },
+  "deployment_capacity": {
+    "redundant_post_reboot_redeploy_result": "preflight_blocked_before_runtime_mutation",
+    "free_bytes": 15310114816,
+    "required_bytes": 16595036807,
+    "reserve_bytes": 2147483648,
+    "current_runtime_affected": false,
+    "next_redeploy_requires_capacity_recovery": true
+  },
+  "ready_audit": {
+    "open_status_ready_issues": 0,
+    "open_dependabot_prs_are_not_selected_product_work": true,
+    "classification": "no independent Ready Work Package after Issue #497 reconciliation"
   },
   "safety": {
     "modbus_write": "none",
@@ -65,5 +73,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Wait for exact-head PR #496 verification; repair any failing focused checks; merge only GREEN/current; deploy exact merged product head to Raspberry Pi with capacity guard; rerun Phase 12B once; then resume final Issue #289 aggregation."
+  "next_action": "Complete Issue #497 state-only validation and GREEN merge. Then stop at the Ready boundary because no open status:ready Issue exists; require explicit backlog promotion or a new focused Product Owner priority before further implementation."
 }
