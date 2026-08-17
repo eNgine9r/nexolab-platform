@@ -26,7 +26,7 @@ function inventoryItem(overrides: Partial<LiveDashboardInventoryItem> = {}): Liv
     metric: "temperature.probe",
     native_unit: "degC",
     source: "modbus",
-    quality: "good",
+    quality: "valid",
     alarm: null,
     latest: null,
     ...overrides,
