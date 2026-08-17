@@ -145,55 +145,52 @@ describe("RoutePersistentTelemetryClient", () => {
     secondSubscription.close();
   });
 
-  it(
-    "releases a terminal transport only after the last route subscriber closes, then starts one fresh transport",
-    async () => {
-      const source = new FakeTelemetryLiveSource();
-      const client = new RoutePersistentTelemetryClient(source, {
-        transitionGraceMs: 1_000,
-        cacheTtlMs: 10_000,
-      });
-      client.setApplicationShellRetained(true);
+  it("restarts a terminal shared transport after the last subscriber closes", async () => {
+    const source = new FakeTelemetryLiveSource();
+    const client = new RoutePersistentTelemetryClient(source, {
+      transitionGraceMs: 1_000,
+      cacheTtlMs: 10_000,
+    });
+    client.setApplicationShellRetained(true);
 
-      const firstSubscription = client.subscribe({}, { onSample: () => undefined });
-      const secondSubscription = client.subscribe({}, { onSample: () => undefined });
-      expect(source.subscribeCalls).toBe(1);
+    const firstSubscription = client.subscribe({}, { onSample: () => undefined });
+    const secondSubscription = client.subscribe({}, { onSample: () => undefined });
+    expect(source.subscribeCalls).toBe(1);
 
-      source.emitState("connected");
-      source.emitSample(firstSample);
-      source.emitError(new Error("reconnect limit reached"));
-      source.emitState("offline");
+    source.emitState("connected");
+    source.emitSample(firstSample);
+    source.emitError(new Error("reconnect limit reached"));
+    source.emitState("offline");
 
-      firstSubscription.close();
-      expect(source.closeCalls).toBe(0);
+    firstSubscription.close();
+    expect(source.closeCalls).toBe(0);
 
-      secondSubscription.close();
-      expect(source.closeCalls).toBe(1);
+    secondSubscription.close();
+    expect(source.closeCalls).toBe(1);
 
-      const replayed: TelemetrySample[] = [];
-      const states: TelemetryConnectionState[] = [];
-      const errors: string[] = [];
-      const retrySubscription = client.subscribe(
-        {},
-        {
-          onSample: (sample) => replayed.push(sample),
-          onStateChange: (state) => states.push(state),
-          onError: (error) => errors.push(error.message),
-        },
-      );
-      await flushReplay();
+    const replayed: TelemetrySample[] = [];
+    const states: TelemetryConnectionState[] = [];
+    const errors: string[] = [];
+    const retrySubscription = client.subscribe(
+      {},
+      {
+        onSample: (sample) => replayed.push(sample),
+        onStateChange: (state) => states.push(state),
+        onError: (error) => errors.push(error.message),
+      },
+    );
+    await flushReplay();
 
-      expect(source.subscribeCalls).toBe(2);
-      expect(replayed).toEqual([firstSample]);
-      expect(states).toEqual([]);
-      expect(errors).toEqual([]);
+    expect(source.subscribeCalls).toBe(2);
+    expect(replayed).toEqual([firstSample]);
+    expect(states).toEqual([]);
+    expect(errors).toEqual([]);
 
-      source.emitState("connected");
-      expect(states).toEqual(["connected"]);
+    source.emitState("connected");
+    expect(states).toEqual(["connected"]);
 
-      retrySubscription.close();
-    },
-  );
+    retrySubscription.close();
+  });
 
   it("evicts an idle organization scope and clears retained state after the bounded TTL", async () => {
     vi.useFakeTimers();
