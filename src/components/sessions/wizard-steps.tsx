@@ -145,11 +145,13 @@ export function EquipmentStep({
           <h3 className="text-sm font-semibold text-white">Validated session telemetry</h3>
         </div>
         <p className="mt-2 text-[11px] leading-5 text-slate-400">
-          Доступні лише реальні канали inventory, які одночасно входять до server-authoritative Test Sessions contract.
-          Вибір не запускає фізичне опитування і не змінює acquisition scheduler.
+          Доступні лише реальні канали inventory, які одночасно входять до server-authoritative Test Sessions
+          contract. Вибір не запускає фізичне опитування і не змінює acquisition scheduler.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-[9px] text-slate-500">
-          <span className="rounded-full border border-white/[0.07] px-2.5 py-1">Eligible: {eligibleCount}</span>
+          <span className="rounded-full border border-white/[0.07] px-2.5 py-1">
+            Eligible: {eligibleCount}
+          </span>
           <span className="rounded-full border border-white/[0.07] px-2.5 py-1">
             Selected: {form.selectedTelemetryKeys.length}
           </span>
@@ -165,7 +167,9 @@ export function EquipmentStep({
 
       {selectionStatus === "error" && (
         <div className="rounded-2xl border border-red-300/15 bg-red-400/[0.04] p-5">
-          <p className="text-[11px] font-semibold text-red-200">Не вдалося завантажити доступні telemetry points</p>
+          <p className="text-[11px] font-semibold text-red-200">
+            Не вдалося завантажити доступні telemetry points
+          </p>
           <p className="mt-2 text-[10px] leading-5 text-slate-400">
             {selectionError?.message ?? "Невідома помилка локального API."}
           </p>
@@ -178,8 +182,8 @@ export function EquipmentStep({
 
       {selectionStatus === "ready" && eligibleCount === 0 && (
         <div className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.04] p-5 text-[10px] leading-5 text-slate-400">
-          У поточному локальному inventory немає каналів, що збігаються з валідованим Test Sessions contract. Перехід
-          далі заблоковано — fallback на всі 34 канали не виконується.
+          У поточному локальному inventory немає каналів, що збігаються з валідованим Test Sessions contract.
+          Перехід далі заблоковано — fallback на всі 34 канали не виконується.
         </div>
       )}
 
