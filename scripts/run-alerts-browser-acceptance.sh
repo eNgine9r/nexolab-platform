@@ -292,7 +292,7 @@ BEGIN
   JOIN alert_instances a ON a.id = t.alert_id
   WHERE a.organization_id = '$ORGANIZATION_A'
     AND t.event_type IN ('alert_acknowledged', 'alert_closed')
-    AND t.actor_id = '$MANAGER_A_ID';
+    AND t.actor_id = '$MANAGER_A_SUBJECT';
   IF manager_actor_count <> 2 THEN
     RAISE EXCEPTION 'expected verified manager actor on acknowledge/close transitions, found %', manager_actor_count;
   END IF;
