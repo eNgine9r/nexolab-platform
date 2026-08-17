@@ -18,14 +18,7 @@ describe("OverviewWorkspaceLayout", () => {
 
     expect(primary.nextElementSibling).toBe(secondary);
     expect(primary).toHaveClass("mt-3", "min-w-0");
-    expect(secondary).toHaveClass(
-      "mt-3",
-      "grid",
-      "min-w-0",
-      "grid-cols-1",
-      "gap-3",
-      "xl:grid-cols-2",
-    );
+    expect(secondary).toHaveClass("mt-3", "grid", "min-w-0", "grid-cols-1", "gap-3", "xl:grid-cols-2");
     expect(secondary.children).toHaveLength(2);
     expect(screen.getByTestId("graph-slot")).toBeInTheDocument();
     expect(screen.getByTestId("node-slot")).toBeInTheDocument();
