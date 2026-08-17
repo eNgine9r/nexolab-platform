@@ -3,27 +3,58 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T11:19:11Z",
+  "timestamp": "2026-08-17T11:45:36Z",
   "actor": "ChatGPT",
-  "event": "closed_355_357_reconciled_and_overview_507_selected",
-  "repository_selection_base_sha": "1a7d929351c52421e8d94cdee5469e1f017beb38",
+  "event": "overview_507_software_browser_offline_verified_ready_for_merge",
+  "repository_selection_base_sha": "db69046da24e20a642485f7d7dfd5df80f48312e",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "state_reconciliation": {
     "issue": 508,
-    "branch": "chore/508-reconcile-closed-355-357-promote-507",
-    "status": "in_progress",
-    "purpose": "remove stale #355/#357 future-work state, preserve #444/#189 blockers truthfully, and promote #507"
+    "pull_request": 509,
+    "status": "completed",
+    "merge_sha": "db69046da24e20a642485f7d7dfd5df80f48312e"
   },
-  "completed_since_previous_checkpoint": {
-    "issue_355": {
-      "status": "closed_completed",
-      "classification": "software verified; Raspberry Pi latency evidence separate"
+  "active_work_package": {
+    "issue": 507,
+    "pull_request": 510,
+    "branch": "feat/507-overview-full-width-chart",
+    "title": "Make Overview telemetry graph full-width and move secondary panels below",
+    "status": "software_browser_offline_verified_ready_for_merge",
+    "product_verification_sha": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
+    "completion_classification": "software/browser/offline verified; Raspberry Pi operator acceptance pending"
+  },
+  "verification": {
+    "ci": {
+      "run_id": 32025536430,
+      "run_number": 3267,
+      "status": "GREEN",
+      "evidence": "format, lint, typecheck, full tests and production build"
     },
-    "issue_357": {
-      "status": "closed_completed",
-      "classification": "software completed; any remaining Raspberry Pi perceived-latency evidence separate"
-    }
+    "refrigeration_browser": {
+      "run_id": 32025536533,
+      "run_number": 1778,
+      "status": "GREEN"
+    },
+    "authenticated_dashboard": {
+      "run_id": 32025536598,
+      "run_number": 1853,
+      "status": "GREEN",
+      "evidence": "graph-first full-width geometry at 360/1440/1920, one WebSocket, bounded history, chart continuity and zero acquisition mutations"
+    },
+    "offline_bundle": {
+      "run_id": 32025536444,
+      "run_number": 1246,
+      "status": "GREEN",
+      "evidence": "disconnected startup with egress blocked and pull disabled; update/rollback preserved persistent data"
+    },
+    "raspberry_pi_operator_acceptance": "PENDING_SEPARATE_EVIDENCE"
+  },
+  "ready_audit": {
+    "open_status_ready_issue_count": 0,
+    "result": "no additional Ready software Work Package before #507 merge",
+    "post_merge_audit_required": true,
+    "not_auto_promoted": [245, 444, 189, 450]
   },
   "blocked_evidence_lanes": {
     "issue_444": {
@@ -39,13 +70,6 @@
       "hardware_acceptance": "PENDING",
       "blocker": "controlled central-host/Raspberry Pi restore/reboot/rollback/power-loss evidence required"
     }
-  },
-  "selected_next_work_package": {
-    "issue": 507,
-    "title": "Make Overview telemetry graph full-width and move secondary panels below",
-    "status": "ready_after_state_reconciliation",
-    "priority": "critical",
-    "selection_reason": "Epic #450 predecessors #451/#453/#457/#461/#465 are completed; #355/#357 are already completed; #444/#189 are blocked evidence lanes; #507 is independently actionable software work"
   },
   "runtime": {
     "mode": "lan",
@@ -70,5 +94,5 @@
     "mandatory_public_runtime_dependency": "none",
     "secret_activation": "not_authorized"
   },
-  "next_action": "Finish Issue #508 state-only verification and merge; add status:ready to #507; then implement #507 on a dedicated feature branch with targeted tests, full frontend checks, browser acceptance and Offline Bundle evidence."
+  "next_action": "Validate the state-only checkpoint tail, keep product verification anchored to 394fe941a3c80e6f76bc6be64a1ff54f0be9f463, mark PR #510 Ready, complete the final merge audit, merge only with GREEN checks, then reconcile main and run a fresh Ready audit."
 }
