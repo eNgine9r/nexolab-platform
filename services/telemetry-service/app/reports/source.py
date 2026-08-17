@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.alerts.models import AlertInstance, AlertTransition
@@ -36,25 +36,56 @@ def assemble_report_source(
     session: Session,
     test_session: TestSession,
     config_snapshot: SessionConfigSnapshot,
+    *,
+    selected_binding_ids: tuple[str, ...] | None = None,
+    selection_mode: str = "all_session_bindings",
 ) -> ReportSource:
+    bindings = _binding_payloads(
+        session,
+        test_session.id,
+        selected_binding_ids=selected_binding_ids,
+    )
+    effective_binding_ids = tuple(binding["id"] for binding in bindings)
     return ReportSource(
         metadata={
             "session": _session_payload(test_session),
             "configuration": _configuration_payload(config_snapshot),
-            "bindings": _binding_payloads(session, test_session.id),
-            "limits": _limit_payloads(session, test_session.id),
+            "telemetry_selection": {
+                "mode": selection_mode,
+                "binding_ids": list(effective_binding_ids),
+                "binding_count": len(effective_binding_ids),
+            },
+            "bindings": bindings,
+            "limits": _limit_payloads(
+                session,
+                test_session.id,
+                selected_binding_ids=selected_binding_ids,
+            ),
             "stages": _stage_payloads(session, test_session.id),
             "notes": _note_payloads(session, test_session.id),
             "events": _event_payloads(session, test_session.id),
             "audit": _audit_payloads(session, test_session.id),
         },
-        telemetry=_telemetry_rows(session, test_session.id),
-        alert_transitions=_alert_rows(session, test_session.id),
+        telemetry=_telemetry_rows(
+            session,
+            test_session.id,
+            selected_binding_ids=selected_binding_ids,
+        ),
+        alert_transitions=_alert_rows(
+            session,
+            test_session.id,
+            selected_binding_ids=selected_binding_ids,
+        ),
     )
 
 
-def _telemetry_rows(session: Session, session_id: str) -> list[TelemetryEvidenceRow]:
-    rows = session.execute(
+def _telemetry_rows(
+    session: Session,
+    session_id: str,
+    *,
+    selected_binding_ids: tuple[str, ...] | None = None,
+) -> list[TelemetryEvidenceRow]:
+    statement = (
         select(
             TelemetrySample.event_id,
             TelemetrySample.captured_at,
@@ -77,7 +108,13 @@ def _telemetry_rows(session: Session, session_id: str) -> list[TelemetryEvidence
             TelemetrySessionContext.telemetry_event_id == TelemetrySample.event_id,
         )
         .where(TelemetrySessionContext.session_id == session_id)
-        .order_by(TelemetrySample.captured_at, TelemetrySample.event_id)
+    )
+    if selected_binding_ids is not None:
+        statement = statement.where(
+            TelemetrySessionContext.binding_id.in_(selected_binding_ids)
+        )
+    rows = session.execute(
+        statement.order_by(TelemetrySample.captured_at, TelemetrySample.event_id)
     ).all()
     return [
         TelemetryEvidenceRow(
@@ -104,12 +141,23 @@ def _telemetry_rows(session: Session, session_id: str) -> list[TelemetryEvidence
 def _alert_rows(
     session: Session,
     session_id: str,
+    *,
+    selected_binding_ids: tuple[str, ...] | None = None,
 ) -> list[AlertTransitionEvidenceRow]:
-    rows = session.execute(
+    statement = (
         select(AlertInstance, AlertTransition)
         .join(AlertTransition, AlertTransition.alert_id == AlertInstance.id)
         .where(AlertInstance.session_id == session_id)
-        .order_by(
+    )
+    if selected_binding_ids is not None:
+        statement = statement.where(
+            or_(
+                AlertInstance.binding_id.is_(None),
+                AlertInstance.binding_id.in_(selected_binding_ids),
+            )
+        )
+    rows = session.execute(
+        statement.order_by(
             AlertTransition.occurred_at,
             AlertInstance.id,
             AlertTransition.id,
@@ -177,15 +225,26 @@ def _configuration_payload(row: SessionConfigSnapshot) -> dict[str, Any]:
     }
 
 
-def _binding_payloads(session: Session, session_id: str) -> list[dict[str, Any]]:
+def _binding_payloads(
+    session: Session,
+    session_id: str,
+    *,
+    selected_binding_ids: tuple[str, ...] | None = None,
+) -> list[dict[str, Any]]:
+    statement = select(SessionChannelBinding).where(
+        SessionChannelBinding.session_id == session_id
+    )
+    if selected_binding_ids is not None:
+        statement = statement.where(
+            SessionChannelBinding.id.in_(selected_binding_ids)
+        )
     rows = session.scalars(
-        select(SessionChannelBinding)
-        .where(SessionChannelBinding.session_id == session_id)
-        .order_by(
+        statement.order_by(
             SessionChannelBinding.node_id,
             SessionChannelBinding.equipment_id,
             SessionChannelBinding.channel_id,
             SessionChannelBinding.metric,
+            SessionChannelBinding.unit,
             SessionChannelBinding.id,
         )
     )
@@ -205,11 +264,22 @@ def _binding_payloads(session: Session, session_id: str) -> list[dict[str, Any]]
     ]
 
 
-def _limit_payloads(session: Session, session_id: str) -> list[dict[str, Any]]:
+def _limit_payloads(
+    session: Session,
+    session_id: str,
+    *,
+    selected_binding_ids: tuple[str, ...] | None = None,
+) -> list[dict[str, Any]]:
+    statement = select(SessionLimit).where(SessionLimit.session_id == session_id)
+    if selected_binding_ids is not None:
+        statement = statement.where(
+            or_(
+                SessionLimit.binding_id.is_(None),
+                SessionLimit.binding_id.in_(selected_binding_ids),
+            )
+        )
     rows = session.scalars(
-        select(SessionLimit)
-        .where(SessionLimit.session_id == session_id)
-        .order_by(SessionLimit.version, SessionLimit.metric, SessionLimit.id)
+        statement.order_by(SessionLimit.version, SessionLimit.metric, SessionLimit.id)
     )
     return [
         {
