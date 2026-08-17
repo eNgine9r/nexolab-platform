@@ -25,12 +25,7 @@
     "hardware_write": false
   },
   "implementation": {
-    "route_persistent_terminal_states": [
-      "offline",
-      "unauthorized",
-      "forbidden",
-      "configuration_error"
-    ],
+    "route_persistent_terminal_states": ["offline", "unauthorized", "forbidden", "configuration_error"],
     "behavior": "release dead terminal source transport when the final route/request consumer closes so explicit Retry can create one fresh physical WebSocket while bounded cache remains retained",
     "transient_reconnecting_reuse_preserved": true,
     "new_unit_regression": "restarts a terminal shared transport after the last subscriber closes",
