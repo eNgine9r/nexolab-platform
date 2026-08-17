@@ -1,48 +1,71 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-16
+Updated: 2026-08-17
 
 ## Canonical deployed baseline
 
-The controlled Raspberry Pi LOCAL_LAN host is deployed at exact `main` `6dde6989f1822b04c48e8dbdb89f6059b63d6be6`, the state-only merge of PR #478 on top of the Issue #469 product/runtime merge `b79bcee3670693c46219e8bc58ec3fc8ffe5095a`.
+The controlled Raspberry Pi `LOCAL_LAN` host and GitHub `main` are aligned at exact commit `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`, the squash merge of PR #485 for Issue #484.
 
-## Issue #469 — completed, software and physical acceptance verified
+Controlled deployment evidence:
 
-Issue #469 — **Prevent Raspberry Pi deployment evidence capture from exhausting disk** — is closed `completed`.
+- `runtime/deployments/20260817T045808Z`;
+- `runtime_mode=lan`;
+- bind address `172.18.48.34`;
+- dashboard `http://172.18.48.34:3000`;
+- API `http://172.18.48.34:8082`;
+- central PostgreSQL/MQTT/Telemetry and edge MQTT/Device Agent ready after deployment;
+- Device Agent queue depth `0`, scheduler healthy, one active `rs485-main` worker.
 
-Software verification remained GREEN from PR #476:
+The deployment-capacity guard initially failed safely before runtime mutation. Capacity was recovered only through bounded disposable cache cleanup (BuildKit, npm download cache and Playwright-downloaded browser cache). No product data, named volumes, PostgreSQL telemetry history, runtime acceptance evidence or hardware state was deleted.
 
-- targeted capacity verification `31908201491` — PASS;
-- targeted audit-hardening verification `31908426084` — PASS;
-- exact-head CI `31908564398` — PASS;
-- exact-head Telemetry service integration `31908564403` — PASS.
+## Issue #484 — completed, software and Raspberry Pi hardware acceptance verified
 
-Physical Raspberry Pi acceptance completed on 2026-08-16 after Product Owner approval of bounded cleanup limited to old strict timestamped deployment evidence. The initial low-space guard failed safely before runtime mutation; the approved retention then reduced deployment evidence and the controlled deployment passed.
+Issue #484 — **Reuse Energy history on warm route return instead of replaying full 24h pagination** — is closed `completed`.
 
-Physical evidence:
+Software merge:
 
-- cleanup audit: `/home/nexolab/nexolab-platform/runtime/deployments/20260816T084819Z`;
-- deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260816T084824Z`;
-- capacity: `status=PASS`, `free_bytes=16164007936`, `required_bytes=16137036936`, complete live PostgreSQL size estimate;
-- deployment: `DEPLOYMENT PASSED`, `runtime_mode=lan`;
-- exact deployed commit: `6dde6989f1822b04c48e8dbdb89f6059b63d6be6`;
-- central PostgreSQL, MQTT, MinIO, Telemetry Service, Prometheus, Alertmanager and Grafana were healthy after deployment;
-- edge MQTT and the Device Agent container were healthy after recreation;
-- the protected named-volume identity comparison gate completed without failure;
-- no product-data deletion, Docker named-volume deletion, Modbus write, hardware write or site cutover occurred.
+- PR #485;
+- final verified source head `4f244da779c81c81e1e3d43a8c66549fe4cee300`;
+- merge/current product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`;
+- CI `31973454509` — PASS;
+- Authenticated Dashboard `31973454596` — PASS;
+- Offline Bundle `31973454511` — PASS.
+
+Physical Phase 11-R2 evidence:
+
+- `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`;
+- cold/full Energy bootstrap: `28` snapshot-paginated 24h history requests;
+- warm return #1: one bounded `311.716 s` tail request, usable in `627 ms`;
+- warm return #2: one bounded `302.138 s` tail request, usable in `557 ms`;
+- warm return #3: one bounded `302.158 s` tail request, usable in `443 ms`;
+- no visible Energy loading transition on any warm return;
+- telemetry latest bootstrap remained `1 -> 1`;
+- one document load and one application-shell WebSocket (`maxConcurrent=1`);
+- no navigation-driven acquisition mutation;
+- physical requests continued `+131`, communication failures `+0`, workers healthy, one active bus worker, degraded/cooldown `0/0`.
+
+Classification: **software verified; Raspberry Pi hardware verified**.
 
 ## Active Work Package — Issue #289
 
-Issue #289 — **Prove acquisition scale, stability and truthful live-state behavior** — is the active `status:in-progress` physical Raspberry Pi/RS-485 validation lane.
+Issue #289 — **Prove acquisition scale, stability and truthful live-state behavior** — remains the active `status:in-progress` acceptance lane.
 
-The #469 deployment produced fresh useful #289 evidence: the acquisition scheduler reports one serialized worker for `rs485-main`, `workers_healthy=true`, while LE01MP unit 201 times out and enters cooldown. LE01MP units 200, 202 and 203 and the XJP60D targets continue successful reads. This supports the required isolation behavior but does not yet complete the full no-browser / Overview / Live Dashboard / navigation / multi-browser request-rate matrix.
+Completed #289 evidence now includes:
+
+- five-phase real-hardware browser/request-rate matrix: no browser, Overview, Live Dashboard, repeated navigation and multiple concurrent browser pages, with no browser-driven physical Modbus amplification;
+- WebSocket reconnect and sustained-outage recovery evidence;
+- Telemetry Service restart recovery without duplicate committed telemetry;
+- edge MQTT outage, SQLite outbox growth and deterministic drain without duplicate committed telemetry;
+- disconnected `LOCAL_LAN` runtime with public egress blocked while local monitoring remained functional;
+- REST ↔ WebSocket event identity/freshness consistency;
+- route-return latency/request-count acceptance, including the #484 Energy warm-history correction.
+
+The next unresolved acceptance gate is the deterministic increased-load plus timeout-heavy/unavailable-endpoint scheduler matrix using fake/recorded serial devices. It must measure priority deadlines/fairness, timeout isolation, disabled-target zero-acquisition behavior and scheduler/bus-load metrics without modifying physical controller state.
 
 ## Ready audit
 
-The fresh GitHub query for open `status:ready` Issues returned **none**. No independent Ready software Work Package is selected. Continue the already-active Issue #289 rather than inventing new scope.
+A fresh GitHub query for open `status:ready` Issues returned **none**. Do not invent an independent software Work Package. Continue Issue #289 after this state-only reconciliation.
 
-## Remaining validation boundary
+## Safety boundaries
 
-Issue #289 still requires the full controlled real-hardware matrix proving that browser/page count does not change the physical Modbus polling envelope, plus the remaining truthful-state, reconnect and recovery evidence defined by that Issue.
-
-LOCAL_LAN, offline-first runtime and read-only Modbus boundaries remain unchanged. No Modbus/hardware write, product persistent-data deletion, named-volume deletion or site cutover is authorized.
+`LOCAL_LAN`, offline-first runtime and read-only industrial boundaries remain unchanged. No Modbus write, hardware/controller write, production/site cutover, product persistent-data deletion, named-volume deletion or mandatory cloud runtime dependency is authorized.
