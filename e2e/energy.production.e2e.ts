@@ -203,7 +203,7 @@ test("renders verified LE-01MP cumulative kWh in latest, history and live update
     await expect(page.getByText(/restart\/power-cycle доказу/i)).toBeVisible();
 
     await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();
-    await page.getByLabel("Показник").selectOption("electrical.energy.active");
+    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.energy.active");
     await expect(
       page.getByRole("img", { name: /Історія показника Накопичена активна енергія/ }),
     ).toBeVisible();
