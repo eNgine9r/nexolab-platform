@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Sequence
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -23,7 +23,11 @@ from app.reports.models import TestReportArtifact, TestReportVersion
 from app.reports.source import REPORT_SOURCE_SCHEMA, assemble_report_source
 from app.security.authorization import Role
 from app.security.repository import AuditEventInput, SecurityRepository
-from app.sessions.models import SessionConfigSnapshot, TestSession
+from app.sessions.models import (
+    SessionChannelBinding,
+    SessionConfigSnapshot,
+    TestSession,
+)
 from app.sessions.time_utils import as_utc
 
 
@@ -102,11 +106,13 @@ class ReportRepository:
         actor_roles: frozenset[Role],
         expected_source_sha256: str | None = None,
         reason: str | None = None,
+        binding_ids: Sequence[str] | None = None,
     ) -> ReportRecord:
         organization_id = self._scope()
         key = _required_text(idempotency_key, "idempotency_key", 128)
         actor = _required_text(generated_by, "generated_by", 255)
         expected = _optional_sha256(expected_source_sha256)
+        requested_binding_ids = _normalize_binding_ids(binding_ids)
 
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
@@ -129,6 +135,13 @@ class ReportRepository:
                         raise ReportIdempotencyConflictError(
                             "idempotency key is already bound to another session"
                         )
+                    if not _selection_matches(
+                        replay.source_snapshot,
+                        requested_binding_ids,
+                    ):
+                        raise ReportIdempotencyConflictError(
+                            "idempotency key is already bound to another telemetry selection"
+                        )
                     if expected is not None and replay.source_sha256 != expected:
                         raise ReportSourceChangedError(
                             "existing report source digest does not match expectation"
@@ -144,10 +157,25 @@ class ReportRepository:
 
                 self._validate_session(test_session)
                 config_snapshot = self._config_snapshot(session, test_session)
+                available_bindings = self._session_bindings(session, test_session.id)
+                selected_bindings = _select_bindings(
+                    available_bindings,
+                    requested_binding_ids,
+                )
+                selection_mode = (
+                    "all_session_bindings"
+                    if requested_binding_ids is None
+                    else "explicit"
+                )
+                selected_binding_ids = tuple(
+                    binding.id for binding in selected_bindings
+                )
                 source = assemble_report_source(
                     session,
                     test_session,
                     config_snapshot,
+                    selected_binding_ids=selected_binding_ids,
+                    selection_mode=selection_mode,
                 )
                 telemetry_content = telemetry_csv_bytes(source.telemetry)
                 alerts_content = alert_transitions_csv_bytes(
@@ -420,10 +448,31 @@ class ReportRepository:
         return snapshot
 
     @staticmethod
+    def _session_bindings(
+        session: Session,
+        session_id: str,
+    ) -> list[SessionChannelBinding]:
+        return list(
+            session.scalars(
+                select(SessionChannelBinding)
+                .where(SessionChannelBinding.session_id == session_id)
+                .order_by(
+                    SessionChannelBinding.node_id,
+                    SessionChannelBinding.equipment_id,
+                    SessionChannelBinding.channel_id,
+                    SessionChannelBinding.metric,
+                    SessionChannelBinding.unit,
+                    SessionChannelBinding.id,
+                )
+            )
+        )
+
+    @staticmethod
     def _next_version(session: Session, session_id: str) -> int:
         current = session.scalar(
-            select(func.coalesce(func.max(TestReportVersion.version), 0))
-            .where(TestReportVersion.session_id == session_id)
+            select(func.coalesce(func.max(TestReportVersion.version), 0)).where(
+                TestReportVersion.session_id == session_id
+            )
         )
         return int(current or 0) + 1
 
@@ -452,6 +501,7 @@ class ReportRepository:
     ) -> None:
         if self._security_repository is None:
             return
+        selection = _selection_snapshot(report.source_snapshot)
         self._security_repository.append_audit_event(
             AuditEventInput(
                 organization_id=report.organization_id,
@@ -467,6 +517,7 @@ class ReportRepository:
                     "source_sha256": report.source_sha256,
                     "manifest_sha256": report.manifest_sha256,
                     "generator_version": report.generator_version,
+                    "telemetry_selection": selection,
                 },
                 reason=reason,
             ),
@@ -513,6 +564,64 @@ def _descriptor(value: ArtifactDescriptor) -> dict[str, Any]:
         "size_bytes": value.size_bytes,
         "row_count": value.row_count,
     }
+
+
+def _normalize_binding_ids(
+    binding_ids: Sequence[str] | None,
+) -> tuple[str, ...] | None:
+    if binding_ids is None:
+        return None
+    if not binding_ids:
+        raise ValueError("binding_ids must contain at least one binding")
+    normalized = tuple(
+        _required_text(value, "binding_id", 36) for value in binding_ids
+    )
+    if len(set(normalized)) != len(normalized):
+        raise ValueError("binding_ids must not contain duplicates")
+    return normalized
+
+
+def _select_bindings(
+    available: Sequence[SessionChannelBinding],
+    requested: tuple[str, ...] | None,
+) -> list[SessionChannelBinding]:
+    if requested is None:
+        return list(available)
+    requested_set = set(requested)
+    available_ids = {binding.id for binding in available}
+    unknown = sorted(requested_set - available_ids)
+    if unknown:
+        raise ValueError(
+            "binding_ids contain bindings that do not belong to the selected session: "
+            + ", ".join(unknown)
+        )
+    return [binding for binding in available if binding.id in requested_set]
+
+
+def _selection_snapshot(source_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    metadata = source_snapshot.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+    selection = metadata.get("telemetry_selection")
+    return selection if isinstance(selection, dict) else None
+
+
+def _selection_matches(
+    source_snapshot: dict[str, Any],
+    requested: tuple[str, ...] | None,
+) -> bool:
+    selection = _selection_snapshot(source_snapshot)
+    if selection is None:
+        return requested is None
+    mode = selection.get("mode")
+    stored_ids = selection.get("binding_ids")
+    if not isinstance(stored_ids, list) or not all(
+        isinstance(value, str) for value in stored_ids
+    ):
+        return False
+    if requested is None:
+        return mode == "all_session_bindings"
+    return mode == "explicit" and set(stored_ids) == set(requested)
 
 
 def _required_text(value: str, field: str, max_length: int) -> str:
