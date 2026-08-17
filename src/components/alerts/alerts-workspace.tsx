@@ -256,7 +256,10 @@ export function AlertsWorkspace({
           </div>
           <div className="grid grid-cols-4 gap-2 sm:min-w-[520px]">
             <Summary label="Усього у scope" value={totalCount} />
-            <Summary label="Активні на сторінці" value={alerts.filter((item) => item.state === "active").length} />
+            <Summary
+              label="Активні на сторінці"
+              value={alerts.filter((item) => item.state === "active").length}
+            />
             <Summary
               label="Підтверджені на сторінці"
               value={alerts.filter((item) => item.state === "acknowledged").length}
