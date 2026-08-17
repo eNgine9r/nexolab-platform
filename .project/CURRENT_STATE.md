@@ -4,7 +4,7 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-Current `main` is `b00c996a1990dde4f5427e0caa44cc34f1e4f6a6`, the squash merge of PR #538 — **selectable period consumption in Energy Monitoring**.
+Current `main` is `159e55e6e1e71d47fd76c61b75dd3d48df06f4d9`, the state-only squash merge of PR #542, which records the latest merged **product baseline** `b00c996a1990dde4f5427e0caa44cc34f1e4f6a6` from PR #538 — **selectable period consumption in Energy Monitoring**.
 
 The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. The Energy Monitoring period-consumption work from PR #538 has not been deployed to the Raspberry Pi and is not claimed as Raspberry Pi runtime acceptance.
 
@@ -12,7 +12,7 @@ The accepted `LOCAL_LAN` runtime remains healthy on deployment evidence `runtime
 
 ## Issue #537 — completed and merged
 
-Issue #537 **Add selectable period consumption to Energy Monitoring cards** is completed through PR #538 / merge `b00c996a1990dde4f5427e0caa44cc34f1e4f6a6`.
+Issue #537 **Add selectable period consumption to Energy Monitoring cards** is completed through PR #538 / product merge `b00c996a1990dde4f5427e0caa44cc34f1e4f6a6`; state reconciliation was merged by PR #542 as `159e55e6e1e71d47fd76c61b75dd3d48df06f4d9`.
 
 Product outcome:
 
@@ -34,9 +34,9 @@ Final implementation head `3df744d36000d719cff02fd756e0610354b1eebc` was GREEN:
 
 No Raspberry Pi deployment or new hardware acceptance was required or claimed for #537.
 
-## Concurrent / next repository work
+## Active repository work
 
-Issue #536 / PR #539 — Alarms telemetry-selector scope — remains an independent open Work Package and must not be mixed with the completed Energy Monitoring change. Its own exact-head/CI state governs whether it is the next mergeable package.
+Issue #536 / PR #539 — Alarms telemetry-selector scope — is the current independent product Work Package. It must be audited and verified against the current `main` before merge. Its own exact-head CI, focused diff and review state govern completion.
 
 ## Existing operational blockers
 
