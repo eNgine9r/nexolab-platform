@@ -4,11 +4,13 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";
 import type {
   AttributedTelemetryCollection,
+  BindingMutationResponse,
   LaboratorySession,
   LimitSetMutationResponse,
   ProductionBindingsResponse,
   SessionAction,
   SessionAuditPage,
+  SessionBindingOption,
   SessionCommandInput,
   SessionConfiguration,
   SessionCreateInput,
@@ -23,6 +25,7 @@ import type {
 import type {
   LimitSetInput,
   ProductionBindingsInput,
+  SessionBindingInput,
   SessionHistoryQuery,
   SessionNoteInput,
   SessionTelemetryQuery,
@@ -202,6 +205,25 @@ export class SessionApiClient {
       `/api/v1/sessions/${encodeURIComponent(sessionId)}/configuration`,
       { signal },
       (body) => assertObject<SessionConfiguration>(body, "Session configuration"),
+    );
+  }
+
+  listProductionBindingOptions(signal?: AbortSignal): Promise<SessionBindingOption[]> {
+    return this.request("/api/v1/sessions/binding-options/production", { signal }, (body) =>
+      assertArray<SessionBindingOption>(body, "Session binding options"),
+    );
+  }
+
+  addBinding(
+    sessionId: string,
+    payload: SessionBindingInput,
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<BindingMutationResponse> {
+    return this.request(
+      `/api/v1/sessions/${encodeURIComponent(sessionId)}/bindings`,
+      { method: "POST", body: payload, idempotencyKey, signal },
+      (body) => assertObject<BindingMutationResponse>(body, "Session binding"),
     );
   }
 
