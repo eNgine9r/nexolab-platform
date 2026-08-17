@@ -107,9 +107,17 @@ function seedEnergyEvidence(): void {
     value: 720,
     unit: "W",
     rawValue: 720,
-    capturedAt: history(5),
+    capturedAt: history(1),
   });
 
+  publishEnergySample(200, {
+    metric: "electrical.energy.active",
+    suffix: "active-energy",
+    value: 13_740.11,
+    unit: "kWh",
+    rawValue: 1_374_011,
+    capturedAt: history(24 * 60),
+  });
   publishEnergySample(200, {
     metric: "electrical.energy.active",
     suffix: "active-energy",
@@ -124,13 +132,13 @@ function seedEnergyEvidence(): void {
     value: 13_745.11,
     unit: "kWh",
     rawValue: 1_374_511,
-    capturedAt: history(5),
+    capturedAt: history(1),
   });
 
-  for (const [unitId, power, energy, rawEnergy] of [
-    [201, 810, 25_401.74, 2_540_174],
-    [202, 920, 11_296.1, 1_129_610],
-    [203, 1030, 13_786.2, 1_378_620],
+  for (const [unitId, power, startEnergy, energy, rawStartEnergy, rawEnergy] of [
+    [201, 810, 25_391.74, 25_401.74, 2_539_174, 2_540_174],
+    [202, 920, 11_290.1, 11_296.1, 1_129_010, 1_129_610],
+    [203, 1030, 13_780.2, 13_786.2, 1_378_020, 1_378_620],
   ] as const) {
     publishEnergySample(unitId, {
       metric: "electrical.power.active",
@@ -138,7 +146,15 @@ function seedEnergyEvidence(): void {
       value: power,
       unit: "W",
       rawValue: power,
-      capturedAt: history(4),
+      capturedAt: history(1),
+    });
+    publishEnergySample(unitId, {
+      metric: "electrical.energy.active",
+      suffix: "active-energy",
+      value: startEnergy,
+      unit: "kWh",
+      rawValue: rawStartEnergy,
+      capturedAt: history(24 * 60),
     });
     publishEnergySample(unitId, {
       metric: "electrical.energy.active",
@@ -146,7 +162,7 @@ function seedEnergyEvidence(): void {
       value: energy,
       unit: "kWh",
       rawValue: rawEnergy,
-      capturedAt: history(4),
+      capturedAt: history(1),
     });
   }
 
@@ -156,7 +172,7 @@ function seedEnergyEvidence(): void {
     value: 230.1,
     unit: "V",
     rawValue: 2301,
-    capturedAt: history(3),
+    capturedAt: history(1),
   });
   publishEnergySample(200, {
     metric: "electrical.current",
@@ -164,7 +180,7 @@ function seedEnergyEvidence(): void {
     value: 3.1,
     unit: "A",
     rawValue: 31,
-    capturedAt: history(3),
+    capturedAt: history(1),
   });
   publishEnergySample(200, {
     metric: "electrical.power_factor",
@@ -172,11 +188,23 @@ function seedEnergyEvidence(): void {
     value: 0.955,
     unit: "ratio",
     rawValue: 955,
-    capturedAt: history(3),
+    capturedAt: history(1),
   });
 }
 
-test("renders verified LE-01MP cumulative kWh in latest, history and live updates", async ({ browser }) => {
+function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boolean }>): number {
+  return requests.filter((item) => {
+    const url = new URL(item.url);
+    return (
+      url.pathname.endsWith("/history") &&
+      url.searchParams.get("metric") === "electrical.energy.active"
+    );
+  }).length;
+}
+
+test("renders selectable LE-01MP period consumption from verified cumulative boundaries", async ({
+  browser,
+}) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   seedEnergyEvidence();
   await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -196,27 +224,26 @@ test("renders verified LE-01MP cumulative kWh in latest, history and live update
     await expect(page.getByText("720 W", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("230,1 V", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("0,955", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(/13\s745,11 kWh/, { exact: true }).first()).toBeVisible();
 
-    await expect(page.getByRole("heading", { name: "Накопичена енергія доступна" })).toBeVisible();
-    await expect(page.getByText(/загальний лічильник/i).first()).toBeVisible();
+    await expect(page.getByText("Споживання", { exact: true })).toHaveCount(4);
+    await expect(page.getByText("24 год", { exact: true })).toHaveCount(4);
+    await expect(page.getByText("5,00 kWh", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Період: останні 24 години", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/Накопичена енергія/i)).toHaveCount(0);
+    await expect(page.getByText(/загальний лічильник/i)).toHaveCount(0);
+
+    await expect(
+      page.getByRole("heading", { name: "Споживання з підтвердженого лічильника" }),
+    ).toBeVisible();
     await expect(page.getByText(/restart\/power-cycle доказу/i)).toBeVisible();
 
     await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();
-    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.energy.active");
     await expect(
-      page.getByRole("img", { name: /Історія показника Накопичена активна енергія/ }),
-    ).toBeVisible();
-    await expect
-      .poll(() =>
-        requests.some((item) => {
-          const url = new URL(item.url);
-          return (
-            url.pathname.endsWith("/history") && url.searchParams.get("metric") === "electrical.energy.active"
-          );
-        }),
-      )
-      .toBe(true);
+      page.getByRole("combobox", { name: "Показник" }).getByRole("option", {
+        name: "Накопичена активна енергія",
+      }),
+    ).toHaveCount(0);
+    await expect.poll(() => cumulativeHistoryReads(requests)).toBe(1);
 
     await page.getByRole("button", { name: "Виключити лічильник W4 з порівняння" }).click();
     await expect(page.getByRole("button", { name: "Додати лічильник W4 з порівняння" })).toBeVisible();
@@ -232,7 +259,8 @@ test("renders verified LE-01MP cumulative kWh in latest, history and live update
       unit: "kWh",
       rawValue: 1_374_523,
     });
-    await expect(page.getByText(/13\s745,23 kWh/, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("5,12 kWh", { exact: true }).first()).toBeVisible();
+    await expect.poll(() => cumulativeHistoryReads(requests)).toBe(1);
 
     await page.screenshot({
       path: path.join(evidenceDirectory, "authenticated-energy-monitoring.png"),
