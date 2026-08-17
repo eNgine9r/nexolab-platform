@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateRange(1, [int]::MaxValue)]
+    [ValidateRange(1, 2147483647)]
     [int]$Issue,
 
     [string]$Title = "",
@@ -54,7 +54,8 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
-$repoRootResolved = (& git -C $script:RepoRoot rev-parse --show-toplevel).Trim()
+$repoRootResolved = [string](& git -C $script:RepoRoot rev-parse --show-toplevel)
+$repoRootResolved = $repoRootResolved.Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repoRootResolved)) {
     throw "Unable to resolve the NEXOLAB repository root."
 }
@@ -62,7 +63,8 @@ $script:RepoRoot = $repoRootResolved
 
 if ([string]::IsNullOrWhiteSpace($Title) -and (Get-Command gh -ErrorAction SilentlyContinue)) {
     try {
-        $resolvedTitle = (& gh issue view $Issue --repo eNgine9r/nexolab-platform --json title --jq .title 2>$null).Trim()
+        $resolvedTitle = [string](& gh issue view $Issue --repo eNgine9r/nexolab-platform --json title --jq .title 2>$null)
+        $resolvedTitle = $resolvedTitle.Trim()
         if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($resolvedTitle)) {
             $Title = $resolvedTitle
         }
@@ -94,12 +96,23 @@ Write-Host "  Branch:    $branchName"
 Write-Host "  Base:      $BaseBranch"
 Write-Host "  Worktree:  $worktreePath"
 
+if (-not $NoFetch) {
+    if ($DryRun) {
+        Write-Host "[DRY RUN] git fetch origin $BaseBranch --prune"
+    }
+    else {
+        Write-Host "Fetching origin/$BaseBranch..."
+        Invoke-Git -Arguments @("fetch", "origin", $BaseBranch, "--prune") | Out-Null
+    }
+}
+
 $localBranchExit = Invoke-Git -Arguments @("show-ref", "--verify", "--quiet", "refs/heads/$branchName") -AllowFailure
 if ($localBranchExit -eq 0) {
     throw "Local branch '$branchName' already exists. Refusing to reuse it implicitly."
 }
 
-$remoteBranch = (& git -C $script:RepoRoot branch --remotes --list "origin/$branchName").Trim()
+$remoteBranch = [string](& git -C $script:RepoRoot branch --remotes --list "origin/$branchName")
+$remoteBranch = $remoteBranch.Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to check remote branch collisions."
 }
@@ -109,16 +122,6 @@ if (-not [string]::IsNullOrWhiteSpace($remoteBranch)) {
 
 if (Test-Path $worktreePath) {
     throw "Worktree path already exists: $worktreePath"
-}
-
-if (-not $NoFetch) {
-    if ($DryRun) {
-        Write-Host "[DRY RUN] git fetch origin $BaseBranch --prune"
-    }
-    else {
-        Write-Host "Fetching origin/$BaseBranch..."
-        Invoke-Git -Arguments @("fetch", "origin", $BaseBranch, "--prune") | Out-Null
-    }
 }
 
 $baseRef = if ($NoFetch) { $BaseBranch } else { "origin/$BaseBranch" }
