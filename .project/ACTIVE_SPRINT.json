@@ -19,75 +19,16 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+  "repository_product_baseline_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
     "selected_issue": 521,
-    "selection_status": "ready_selected_by_product_owner",
-    "ready_issue_count": 1,
-    "reason": "Product Owner explicitly selected Epic #450 Reports. Issue #521 is open, assigned, priority:critical and status:ready; it is the single next implementation Work Package after the #201 software merge."
+    "selection_status": "in_progress",
+    "ready_issue_count": 0,
+    "reason": "Issue #521 is already the single active Product Owner-selected Reports Work Package with draft PR #529. Issue #526 / PR #527 completed independently and must not displace or duplicate the active implementation lane."
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-493",
-      "issue": 493,
-      "pull_request": 496,
-      "title": "Restart terminal Offline shared WebSocket transport on explicit operator Retry",
-      "status": "completed_software_and_physical_acceptance",
-      "priority": "critical",
-      "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-      "hardware_acceptance": true
-    },
-    {
-      "id": "NEXOLAB-289",
-      "issue": 289,
-      "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "completed_software_and_hardware_acceptance",
-      "priority": "critical",
-      "hardware_acceptance": true
-    },
-    {
-      "id": "NEXOLAB-444",
-      "issue": 444,
-      "pull_request": 501,
-      "title": "Restore LOCAL_LAN user administration API availability",
-      "status": "software_verified_runtime_acceptance_blocked",
-      "priority": "critical",
-      "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
-      "raspberry_pi_runtime_acceptance": "pending",
-      "blocker": "controlled redeploy capacity preflight; signing-key activation remains unauthorized"
-    },
-    {
-      "id": "NEXOLAB-189",
-      "issue": 189,
-      "title": "Prove backup, restore, rollback and power-loss recovery",
-      "status": "blocked_hardware_evidence",
-      "priority": "high",
-      "hardware_acceptance": "pending"
-    },
-    {
-      "id": "NEXOLAB-507",
-      "issue": 507,
-      "pull_request": 510,
-      "title": "Make Overview telemetry graph full-width and move secondary panels below",
-      "status": "completed_software_browser_offline_verified",
-      "priority": "critical",
-      "merge_sha": "ba988930ba78bc44c6ec6b003a13af79d552f9fa",
-      "final_pr_head": "74bdb039744d4da427adb5aacc557e148dfc2022",
-      "raspberry_pi_runtime_acceptance": "pending_separate_evidence"
-    },
-    {
-      "id": "NEXOLAB-513",
-      "issue": 513,
-      "pull_request": 514,
-      "title": "Integrate canonical TelemetryPointSelector into Test Sessions",
-      "status": "completed_software_browser_backend_offline_verified",
-      "priority": "critical",
-      "merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
-      "final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
-      "raspberry_pi_runtime_acceptance": "not_required_out_of_scope"
-    },
     {
       "id": "NEXOLAB-201",
       "issue": 201,
@@ -96,104 +37,91 @@
       "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
       "priority": "high",
       "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-      "final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
       "hardware_acceptance": "partial_normal_operation_verified",
       "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
     },
     {
+      "id": "NEXOLAB-526",
+      "issue": 526,
+      "pull_request": 527,
+      "title": "Surface verified LE-01MP cumulative energy in Energy Monitoring",
+      "status": "completed_software_browser_offline_verified",
+      "priority": "high",
+      "merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
+      "final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81",
+      "raspberry_pi_runtime_acceptance": "not_deployed"
+    },
+    {
       "id": "NEXOLAB-521",
       "issue": 521,
+      "pull_request": 529,
       "title": "Integrate TelemetryPointSelector into report evidence selection",
-      "status": "ready_selected_by_product_owner",
+      "status": "in_progress",
       "priority": "critical",
       "parent_issue": 450,
-      "depends_on": [461, 513]
+      "branch": "feat/521-reports-telemetry-selector"
+    },
+    {
+      "id": "NEXOLAB-444",
+      "issue": 444,
+      "title": "Restore LOCAL_LAN user administration API availability",
+      "status": "software_verified_runtime_acceptance_blocked",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-189",
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "status": "blocked_hardware_evidence",
+      "priority": "high"
     }
   ],
-  "active_work_package": null,
-  "next_work_package": {
+  "active_work_package": {
     "issue": 521,
+    "pull_request": 529,
     "title": "Integrate TelemetryPointSelector into report evidence selection",
-    "status": "ready_selected_by_product_owner",
-    "priority": "critical",
-    "next_step": "After the state-only reconciliation is GREEN and merged, change Issue #521 to status:in-progress, create its feature branch and implement the focused Reports selector/evidence slice."
+    "status": "in_progress",
+    "priority": "critical"
   },
+  "next_work_package": null,
   "verification": {
-    "issue_201_merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-    "issue_201_final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
-    "issue_201_ci": {
-      "run_id": 32037544241,
-      "run_number": 3304,
-      "status": "GREEN"
+    "issue_526_merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
+    "issue_526_final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81",
+    "issue_526_ci": { "run_id": 32040481038, "run_number": 3330, "status": "GREEN" },
+    "issue_526_refrigeration_browser": { "run_id": 32040480994, "run_number": 1804, "status": "GREEN" },
+    "issue_526_authenticated_dashboard": {
+      "run_id": 32040480992,
+      "run_number": 1898,
+      "status": "GREEN_AFTER_RETRY"
     },
-    "issue_201_edge_image": {
-      "run_id": 32037544248,
-      "run_number": 267,
-      "status": "GREEN"
-    },
-    "issue_201_acquisition_scale": {
-      "run_id": 32037544291,
-      "run_number": 166,
-      "status": "GREEN",
-      "active_target_profiles": [38, 144, 252]
-    },
-    "issue_201_device_agent_fleet": {
-      "run_id": 32037544260,
-      "run_number": 794,
-      "status": "GREEN"
-    },
-    "issue_201_telemetry_service": {
-      "run_id": 32037544282,
-      "run_number": 1599,
-      "status": "GREEN"
-    },
-    "issue_201_authenticated_dashboard": {
-      "run_id": 32037544232,
-      "run_number": 1881,
-      "status": "GREEN"
-    },
-    "issue_201_offline_bundle": {
-      "run_id": 32037544237,
-      "run_number": 1274,
-      "status": "GREEN"
-    },
+    "issue_526_offline_bundle": { "run_id": 32040481023, "run_number": 1291, "status": "GREEN" },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
-    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
-    "issue_444_software_verification": "GREEN",
-    "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
-    "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
-    "ready_issue_count": 1
+    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
   },
   "independent_pending_lanes": [
     {
       "issue": 201,
       "status": "needs_validation",
-      "description": "LE-01MP cumulative-energy software and normal-operation hardware semantics are verified; full acceptance requires an explicitly approved restart/power-cycle observation."
+      "description": "Approved restart/power-cycle and rollover/reset evidence pending."
     },
     {
       "issue": 245,
       "status": "needs_validation",
-      "description": "Standalone offline Raspberry Pi monitoring; requires real physical acceptance actions."
+      "description": "Physical standalone Raspberry Pi acceptance pending."
     },
     {
       "issue": 444,
       "status": "blocked",
-      "description": "LOCAL_LAN user-administration runtime acceptance; blocked by controlled redeploy capacity and possible signing-key activation boundary."
+      "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."
     },
-    {
-      "issue": 189,
-      "status": "blocked",
-      "description": "Backup/restore/rollback/power-loss acceptance; requires controlled hardware evidence."
-    }
+    { "issue": 189, "status": "blocked", "description": "Hardware recovery evidence pending." }
   ],
-  "future_epic_450_consumers": ["Alarms", "Equipment Maps"],
   "deployment_capacity": {
     "current_runtime_healthy": true,
     "next_redeploy_preflight_blocked": true,
     "free_bytes": 15310114816,
     "required_bytes": 16595036807,
-    "reserve_bytes": 2147483648,
-    "classification": "soft operational capacity constraint for next controlled redeploy; current runtime unaffected"
+    "reserve_bytes": 2147483648
   },
   "safety": {
     "modbus_write": "none",
@@ -201,7 +129,6 @@
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
-    "mandatory_public_runtime_dependency": "none",
-    "secret_activation": "not_authorized"
+    "mandatory_public_runtime_dependency": "none"
   }
 }
