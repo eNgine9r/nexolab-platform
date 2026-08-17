@@ -18,7 +18,7 @@ export function AlertsTelemetryScope() {
   const [telemetryPoints, setTelemetryPoints] = useState<string[] | undefined>(undefined);
   const [committedSelection, setCommittedSelection] = useState<string[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const selectorValue = committedSelection ?? model.allPointKeys;
+  const selectorValue = telemetryPoints === undefined ? model.allPointKeys : (committedSelection ?? []);
 
   const selector = (
     <section className="panel p-4 sm:p-5" data-testid="alerts-telemetry-scope">
