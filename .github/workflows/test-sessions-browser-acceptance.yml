@@ -7,6 +7,7 @@ on:
       - ".github/workflows/test-sessions-browser-acceptance.yml"
       - "docs/organization-scoped-test-sessions.md"
       - "e2e/test-sessions.production.e2e.ts"
+      - "e2e/test-sessions-selector.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
