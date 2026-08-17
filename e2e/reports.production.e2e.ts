@@ -192,9 +192,7 @@ test("production reports preserve immutable selected evidence across API, UI and
     expect(browserReport.generated_by).toBe(engineerSubject);
 
     const browserSource = JSON.parse(
-      (await downloadArtifact(engineerA, browserReport.id, "source-snapshot.json")).content.toString(
-        "utf8",
-      ),
+      (await downloadArtifact(engineerA, browserReport.id, "source-snapshot.json")).content.toString("utf8"),
     ) as ReportSourceSnapshot;
     expect(browserSource.metadata.telemetry_selection).toEqual({
       mode: "explicit",
@@ -301,9 +299,7 @@ test("production reports preserve immutable selected evidence across API, UI and
     expect(foreignList.status()).toBe(200);
     expect(((await foreignList.json()) as ReportPageResponse).count).toBe(0);
     expect((await managerB.get(`/api/v1/reports/${report.id}`)).status()).toBe(404);
-    expect(
-      (await managerB.get(`/api/v1/reports/${report.id}/artifacts/manifest.json`)).status(),
-    ).toBe(404);
+    expect((await managerB.get(`/api/v1/reports/${report.id}/artifacts/manifest.json`)).status()).toBe(404);
 
     const viewerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const viewerPage = await viewerContext.newPage();
