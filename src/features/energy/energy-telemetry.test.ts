@@ -31,9 +31,7 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
   };
 }
 
-function cumulativeEnergySample(
-  overrides: Partial<TelemetrySample> = {},
-): TelemetrySample {
+function cumulativeEnergySample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
   return sample({
     metric: "electrical.energy.active",
     value: 13_745.11,
@@ -139,15 +137,9 @@ describe("energy telemetry", () => {
     ]);
 
     expect(latest).toHaveLength(3);
-    expect(
-      findEnergySample(latest, 200, "electrical.power.active")?.value,
-    ).toBe(200);
-    expect(
-      findEnergySample(latest, 200, "electrical.energy.active")?.value,
-    ).toBe(13_745.11);
-    expect(findEnergySample(latest, 200, "electrical.voltage")?.value).toBe(
-      230.1,
-    );
+    expect(findEnergySample(latest, 200, "electrical.power.active")?.value).toBe(200);
+    expect(findEnergySample(latest, 200, "electrical.energy.active")?.value).toBe(13_745.11);
+    expect(findEnergySample(latest, 200, "electrical.voltage")?.value).toBe(230.1);
     expect(latest.map((item) => item.metric)).toEqual([
       "electrical.power.active",
       "electrical.energy.active",
@@ -173,9 +165,7 @@ describe("energy telemetry", () => {
 
   it("formats confirmed units without inventing unavailable values", () => {
     expect(formatEnergyValue(sample())).toBe("615 W");
-    expect(formatEnergyValue(cumulativeEnergySample())).toBe(
-      "13 745,11 kWh",
-    );
+    expect(formatEnergyValue(cumulativeEnergySample())).toBe("13 745,11 kWh");
     expect(
       formatEnergyValue(
         sample({
