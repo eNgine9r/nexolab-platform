@@ -9,6 +9,7 @@ interface RoutedSocket {
 }
 
 interface RoutedSocketState {
+  healthyClient: RoutedSocket | null;
   healthyServer: RoutedSocket | null;
 }
 
@@ -45,7 +46,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
   const context = await authenticatedContext(browser);
   let outage = false;
   let routedSocketCount = 0;
-  const routedSocketState: RoutedSocketState = { healthyServer: null };
+  const routedSocketState: RoutedSocketState = { healthyClient: null, healthyServer: null };
 
   await context.routeWebSocket(/\/api\/v1\/telemetry\/live(?:\?|$)/, async (socket) => {
     routedSocketCount += 1;
@@ -54,6 +55,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
       return;
     }
 
+    routedSocketState.healthyClient = socket;
     routedSocketState.healthyServer = socket.connectToServer();
   });
 
@@ -70,11 +72,17 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await expect.poll(websocketClientCount).toBe(1);
     expect(routedSocketCount).toBe(1);
 
+    const baselineClient = routedSocketState.healthyClient;
     const baselineServer = routedSocketState.healthyServer;
-    if (!baselineServer) throw new Error("Initial routed server WebSocket was not captured");
+    if (!baselineClient || !baselineServer) {
+      throw new Error("Initial routed WebSocket pair was not captured");
+    }
 
     outage = true;
-    await baselineServer.close({ code: 1012, reason: "issue-493-terminal-outage" });
+    await Promise.all([
+      baselineServer.close({ code: 1012, reason: "issue-493-terminal-outage" }),
+      baselineClient.close({ code: 1012, reason: "issue-493-terminal-outage" }),
+    ]);
 
     await expect(page.getByText("Live-потік офлайн", { exact: true })).toBeVisible({ timeout: 35_000 });
     await expect(inventoryChannel).toBeVisible();
