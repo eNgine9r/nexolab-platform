@@ -15,7 +15,11 @@ def _install_common_stubs(monkeypatch: Any, captured: dict[str, tuple[str, ...] 
 
     def bindings(*_: Any, selected_binding_ids: tuple[str, ...] | None = None) -> list[dict[str, Any]]:
         captured["bindings"] = selected_binding_ids
-        return [{"id": "binding-1"}, {"id": "binding-2"}]
+        rows = [{"id": "binding-1"}, {"id": "binding-2"}]
+        if selected_binding_ids is None:
+            return rows
+        selected = set(selected_binding_ids)
+        return [row for row in rows if row["id"] in selected]
 
     def limits(*_: Any, selected_binding_ids: tuple[str, ...] | None = None) -> list[dict[str, Any]]:
         captured["limits"] = selected_binding_ids
@@ -81,6 +85,6 @@ def test_explicit_mode_filters_every_binding_scoped_evidence_source(monkeypatch:
     }
     assert report.metadata["telemetry_selection"] == {
         "mode": "explicit",
-        "binding_ids": ["binding-1", "binding-2"],
-        "binding_count": 2,
+        "binding_ids": ["binding-2"],
+        "binding_count": 1,
     }
