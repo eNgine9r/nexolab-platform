@@ -327,7 +327,9 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     expect(viewerAcknowledge.status()).toBe(403);
 
     await installBrowserCredentials(page, managerAToken, organizationA);
-    await page.route("**/api/v1/live-dashboards/channel-inventory?**", async (route) => {
+    let inventoryFixtureHits = 0;
+    await page.route(/\/api\/v1\/live-dashboards\/channel-inventory(?:\?.*)?$/, async (route) => {
+      inventoryFixtureHits += 1;
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -340,6 +342,7 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     await page.goto("/alerts", { waitUntil: "networkidle" });
     await expect(page.getByTestId("alerts-workspace")).toBeVisible();
     await expect(page.getByTestId("alerts-telemetry-scope")).toBeVisible();
+    await expect.poll(() => inventoryFixtureHits).toBeGreaterThan(0);
     await expect(page.getByText("K106 / 106-03")).toBeVisible();
     await expect(page.getByTestId("alert-detail").getByText("9,4 degC")).toBeVisible();
     expect(page.url()).not.toContain(managerAToken);
