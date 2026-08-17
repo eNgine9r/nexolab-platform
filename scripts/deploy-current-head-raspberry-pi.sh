@@ -349,8 +349,11 @@ ensure_secret "$CENTRAL_ENV" GRAFANA_ADMIN_PASSWORD
 
 AUTH_MODE_VALUE="$(env_get "$CENTRAL_ENV" AUTH_MODE)"
 [[ -n "$AUTH_MODE_VALUE" ]] || fail "AUTH_MODE must be configured explicitly"
+[[ "$AUTH_MODE_VALUE" != "disabled" ]] \
+  || fail "AUTH_MODE=disabled is development-only and forbidden for controlled Raspberry Pi deployment"
 log "Authentication mode preserved: $AUTH_MODE_VALUE"
 
+LOCAL_AUTH_OVERLAY_ENABLED="false"
 if [[ "$AUTH_MODE_VALUE" == "jwt" ]]; then
   LOCAL_PRIVATE="$(env_get "$CENTRAL_ENV" AUTH_LOCAL_PRIVATE_KEY_HOST_FILE)"
   LOCAL_PUBLIC="$(env_get "$CENTRAL_ENV" AUTH_LOCAL_PUBLIC_KEY_HOST_FILE)"
@@ -359,6 +362,7 @@ if [[ "$AUTH_MODE_VALUE" == "jwt" ]]; then
     && -r "$(resolve_compose_path "$LOCAL_PRIVATE")" \
     && -r "$(resolve_compose_path "$LOCAL_PUBLIC")" ]]; then
     CENTRAL_COMPOSE_ARGS+=( -f "$CENTRAL_DIR/compose.local-auth.yaml" )
+    LOCAL_AUTH_OVERLAY_ENABLED="true"
     log "Enabled fail-closed local operator authentication overlay"
   elif [[ "$RUNTIME_MODE" == "standalone" && -n "$JWKS_URL" ]]; then
     fail "standalone mode cannot depend on remote AUTH_JWT_JWKS_URL; configure local auth keys or a local static key"
@@ -512,12 +516,13 @@ log "Running central smoke gate"
 ) > "$AUDIT_DIR/central-smoke.txt" 2>&1
 
 log "Verifying current API contracts"
-python3 - "$NEXOLAB_API_BASE_URL" > "$AUDIT_DIR/api-contracts.txt" <<'PY'
+python3 - "$NEXOLAB_API_BASE_URL" "$LOCAL_AUTH_OVERLAY_ENABLED" > "$AUDIT_DIR/api-contracts.txt" <<'PY'
 import json
 import sys
 import urllib.request
 
 base_url = sys.argv[1]
+local_auth_enabled = sys.argv[2].lower() == "true"
 with urllib.request.urlopen(f"{base_url}/openapi.json", timeout=15) as response:
     document = json.load(response)
 paths = document.get("paths", {})
@@ -529,6 +534,13 @@ required = {
     "/api/v1/reports",
     "/api/v1/alerts",
 }
+if local_auth_enabled:
+    required.update(
+        {
+            "/api/v1/auth/local/login",
+            "/api/v1/admin/users",
+        }
+    )
 missing = sorted(path for path in required if path not in paths)
 print("required routes:")
 for path in sorted(required):
@@ -549,6 +561,8 @@ install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
   echo "dashboard=$NEXOLAB_DASHBOARD_ORIGIN"
   echo "api=$NEXOLAB_API_BASE_URL"
   echo "minio=$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL"
+  echo "auth_mode=$AUTH_MODE_VALUE"
+  echo "local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED"
   echo "grafana_local=http://127.0.0.1:3001"
   echo "prometheus_local=http://127.0.0.1:9090"
   echo "alertmanager_local=http://127.0.0.1:9093"
