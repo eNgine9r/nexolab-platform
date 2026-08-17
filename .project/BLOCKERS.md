@@ -2,25 +2,19 @@
 
 Updated: 2026-08-17
 
-## Autonomous Sprint selection — hard blocked: no Ready Work Package
+## Issue #537 — completed; no blocker
 
-Issue #521 / PR #529 is completed and merged. The repository audit now finds **zero open Issues carrying `status:ready`** and no active implementation Work Package.
+Issue #537 / PR #538 is merged as `b00c996a1990dde4f5427e0caa44cc34f1e4f6a6`. Software/browser/offline verification is GREEN. No Energy Monitoring implementation blocker remains.
 
-Epic #450 still identifies future incremental selector consumers such as Alarms and Equipment Maps, but no focused child Issue for either consumer is currently open and Ready. Open Dependabot PRs are maintenance proposals and are not automatically promoted into the product lane.
+## Issue #201 — final hardware boundary pending
 
-Per the Sprint execution policy, absence of an independent Ready task is a hard blocker. Product Owner selection or creation/promotion of a focused Ready Work Package is required before another feature branch starts.
+Normal-operation cumulative-energy semantics on LE-01MP Units `200–203` remain verified: read-only FC03 R7:R8 decoding, `0.01 kWh` scale, display correlation and monotonic growth under load.
 
-## Issue #201 — Energy software/UI available; final hardware boundary pending
-
-PR #519 merged the evidence-backed cumulative-energy read path, and PR #527 merged its Energy Monitoring operator presentation. Normal-operation hardware semantics on Units `200–203` remain verified: display correlation, read-only FC03 R7:R8 decoding at `0.01 kWh`, and truthful monotonic growth under load.
-
-Issue #201 remains `status:needs-validation`. Full hardware acceptance still requires an explicitly approved restart/power-cycle observation and rollover/reset/discontinuity classification. No such physical action is authorized by PR #519 or #527.
-
-The #519/#527 product software has not been deployed to the accepted Raspberry Pi runtime.
+Issue #201 still requires explicitly approved restart/power-cycle and rollover/reset/discontinuity evidence before full hardware acceptance. The merged #537 read model deliberately fails closed on negative delta rather than inventing rollover semantics.
 
 ## Issue #444 — controlled Raspberry Pi runtime acceptance blocked
 
-Issue #444 software remains verified. Final `LOCAL_LAN` runtime acceptance is blocked by the existing deployment-capacity preflight and signing-key authorization boundary. Do not claim physical acceptance without a controlled deployment/retest.
+Issue #444 software remains verified. Final `LOCAL_LAN` runtime acceptance is blocked by deployment-capacity preflight and signing-key authorization boundaries.
 
 ## Deployment capacity — operational blocker before next redeploy
 
@@ -42,13 +36,10 @@ Issue #189 remains blocked pending controlled central-host and Raspberry Pi reco
 
 - #201 restart/power-cycle and rollover/reset/discontinuity validation;
 - #245 standalone loopback-only Raspberry Pi acceptance;
-- #507 Raspberry Pi operator/browser acceptance;
 - #444 LOCAL_LAN user-administration runtime retest;
 - #189 backup/restore/rollback/power-loss acceptance;
 - KK2/Unit 115 field retest;
 - Raspberry Pi version-management acceptance.
-
-None is auto-promoted while the repository has no explicitly Ready Work Package.
 
 ## Safety boundaries
 
