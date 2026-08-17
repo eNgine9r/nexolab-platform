@@ -33,6 +33,12 @@ const MAX_LATEST_QUERY_CACHE = 128;
 const MAX_LATEST_SAMPLES = 20_000;
 const DEFAULT_TRANSITION_GRACE_MS = 5_000;
 const DEFAULT_CACHE_TTL_MS = 15 * 60 * 1_000;
+const TERMINAL_TRANSPORT_STATES = new Set<TelemetryConnectionState>([
+  "offline",
+  "unauthorized",
+  "forbidden",
+  "configuration_error",
+]);
 
 let applicationShellRetainCount = 0;
 let nextCredentialProviderId = 1;
@@ -259,9 +265,16 @@ export class RoutePersistentTelemetryClient {
   }
 
   private scheduleLifecycleIfIdle(): void {
-    if (this.disposed || !this.shellRetained || this.subscribers.size > 0 || this.requests.hasConsumers) {
-      return;
+    if (this.disposed || this.subscribers.size > 0 || this.requests.hasConsumers) return;
+
+    if (TERMINAL_TRANSPORT_STATES.has(this.connectionState)) {
+      this.lastError = null;
+      this.lastHeartbeat = null;
+      this.stopTransport();
     }
+
+    if (!this.shellRetained) return;
+
     if (this.transitionTimer === null) {
       this.transitionTimer = setTimeout(() => {
         this.transitionTimer = null;
