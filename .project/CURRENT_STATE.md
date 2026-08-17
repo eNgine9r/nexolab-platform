@@ -4,9 +4,11 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The accepted product/runtime baseline is `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**.
+The accepted/deployed product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**.
 
-The controlled Raspberry Pi `LOCAL_LAN` runtime is running this exact product head:
+The repository baseline used for this state selection is `b7b0df6bd49e8416b2073a83310b4eb2aa0468c3`, the merge of PR #498. Issue #497 and PR #498 are completed. Issue #499 is the focused state-only reconciliation that removes the stale #497 active marker and promotes the next Product Owner-approved critical Work Package.
+
+The controlled Raspberry Pi `LOCAL_LAN` runtime is healthy on the accepted product head:
 
 - deployment evidence: `runtime/deployments/20260817T074249Z`;
 - runtime mode: `lan`;
@@ -15,10 +17,9 @@ The controlled Raspberry Pi `LOCAL_LAN` runtime is running this exact product he
 - API: `http://172.18.48.34:8082`;
 - central PostgreSQL/MQTT/Telemetry healthy;
 - edge MQTT/Device Agent healthy;
-- one active serialized RS-485 bus worker;
-- no product/runtime redeploy is required for this state-only reconciliation.
+- one active serialized RS-485 bus worker.
 
-Issue #497 is a metadata-only reconciliation branch based on the accepted product head. Its merge may advance the repository SHA without changing the deployed product/runtime SHA.
+No product/runtime redeploy is part of Issue #499.
 
 ## Performance and data acquisition optimization — completed
 
@@ -44,12 +45,6 @@ Final disconnected browser-route evidence:
 
 `runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
 
-Operator route sequence while public IPv4 egress was blocked:
-
-`Overview → Refrigeration → Energy → Saved Live Dashboard → Overview`
-
-All routes remained usable without F5, remote-asset failure or endless loading. Central/edge runtime stayed healthy and physical requests advanced `2152 → 3062`.
-
 ## Issue #493 — completed and hardware verified
 
 PR #496 merged as `1d226d6ddcd0c009b8f83367599d7a64521190f0` after GREEN CI, Authenticated Dashboard, Acquisition Scale, Refrigeration Browser and Offline Bundle gates.
@@ -57,18 +52,6 @@ PR #496 merged as `1d226d6ddcd0c009b8f83367599d7a64521190f0` after GREEN CI, Aut
 Post-fix Raspberry Pi evidence:
 
 `runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
-
-Saved Live Dashboard verified:
-
-- baseline `Live`, `websocket_clients=1`;
-- sustained local transport outage reached truthful terminal `Offline` while retained values stayed visible;
-- after path restoration, `websocket_clients=0` remained terminal until operator action;
-- **Перепідключити** created one fresh WebSocket on the first poll;
-- exactly one WebSocket remained stable for ten seconds;
-- UI returned to `Live` without F5;
-- Chromium NetworkService PID remained unchanged;
-- physical acquisition advanced `6914 → 8376`;
-- no Modbus/hardware write occurred.
 
 ## Raspberry Pi deployment capacity
 
@@ -78,19 +61,34 @@ The currently running runtime is healthy. A redundant post-reboot guarded redepl
 - `required_bytes=16595036807`;
 - `reserve_bytes=2147483648`.
 
-This is an operational constraint for the **next controlled redeploy**, not a failure of the currently running product. Do not bypass the capacity guard or delete product data/named volumes/evidence to create space. Any capacity recovery must remain bounded to explicitly disposable artifacts.
+This is a soft operational constraint for the **next controlled redeploy**, not a failure of the currently running product. Do not bypass the capacity guard or delete product data, PostgreSQL history, named volumes or acceptance evidence. Any recovery must remain bounded to explicitly disposable artifacts and be verified before deployment.
 
-## Ready queue
+## Ready queue after Product Owner priority decision
 
-Repository audit after closing #289 and #282 found **0 open `status:ready` Issues**.
+The Product Owner explicitly approved continuing through the remaining backlog by criticality.
 
-Open Dependabot PRs remain separate dependency lanes and are not promoted to product work without their governing Issue/status and required verification.
+The single selected next Ready Work Package is:
 
-Independent physical/evidence items already tracked elsewhere remain separate, including KK2/Unit 115 field retest, refrigeration perceived-latency acceptance and Raspberry Pi version-management acceptance.
+**Issue #444 — Restore LOCAL_LAN user administration API availability** (`priority:critical`).
 
-## Next action
+Expected outcome:
 
-Complete state-only Issue #497/PR reconciliation and merge only after GREEN state checks. After that there is no independent Ready Work Package; Sprint execution must stop at the repository Ready boundary until an existing backlog item is explicitly promoted to `status:ready` or a new focused product Work Package is created from a Product Owner priority.
+- full `create_app` local-auth composition exposes `/api/v1/admin/users`;
+- administrator list/create path works locally;
+- non-admin remains server-side forbidden;
+- deployment/runtime contract fails closed when LOCAL_LAN local-auth is expected but admin routes are absent;
+- route/profile mismatch is diagnosed explicitly instead of a generic API error;
+- local identities remain local and offline-capable;
+- no secret activation is performed without separate Product Owner action.
+
+Next critical ordering after #444, subject to fresh dependency/blocker audit at each boundary:
+
+1. #355 — Live Dashboard canonical inventory without telemetry-history timeout;
+2. #357 — refrigeration Raspberry Pi perceived-latency closeout;
+3. #189 — backup/restore/rollback/power-loss recovery acceptance;
+4. #450 — chart reliability, Live Data UX and hierarchical telemetry selection Epic.
+
+Stale state-only trackers #416 and #449 are superseded by later accepted repository state and should not remain active backlog work.
 
 ## Safety boundaries
 
