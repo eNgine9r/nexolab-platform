@@ -54,6 +54,7 @@ export function SessionWizard() {
   const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
   const [step, setStep] = useState(0);
+  const selectionEnabled = step >= 3;
   const [form, setForm] = useState<SessionWizardForm>(createInitialWizardForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -63,7 +64,7 @@ export function SessionWizard() {
   const [bindingOptionsError, setBindingOptionsError] = useState<Error | null>(null);
   const [bindingOptionsRevision, setBindingOptionsRevision] = useState(0);
   const inventory = useLiveDashboardInventory({
-    enabled: step >= 3,
+    enabled: selectionEnabled,
     organizationId: configuredOrganizationId,
   });
   const operation = useRef({
@@ -75,7 +76,7 @@ export function SessionWizard() {
   });
 
   useEffect(() => {
-    if (step < 3) return;
+    if (!selectionEnabled) return;
     const controller = new AbortController();
     setBindingOptionsStatus("loading");
     setBindingOptionsError(null);
@@ -94,7 +95,7 @@ export function SessionWizard() {
         setBindingOptionsStatus("error");
       });
     return () => controller.abort();
-  }, [bindingOptionsRevision, sessionClient, step]);
+  }, [bindingOptionsRevision, selectionEnabled, sessionClient]);
 
   const selectionModel = useMemo(
     () => buildSessionTelemetrySelectionModel(hierarchyOrganizationId, inventory.items, bindingOptions),
@@ -259,9 +260,7 @@ export function SessionWizard() {
   return (
     <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="panel h-fit p-4 xl:sticky xl:top-[98px]">
-        <p className="px-2 text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-          Creation wizard
-        </p>
+        <p className="px-2 text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Creation wizard</p>
         <div className="mt-4 space-y-1">
           {WIZARD_STEPS.map((label, index) => {
             const completed = index < step;
@@ -301,9 +300,7 @@ export function SessionWizard() {
 
       <section className="panel min-h-[680px]">
         <div className="border-b border-white/[0.055] p-5 sm:p-6">
-          <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-            Крок {step + 1} з 8
-          </p>
+          <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Крок {step + 1} з 8</p>
           <h1 className="mt-2 text-2xl font-semibold text-white">{WIZARD_STEPS[step]}</h1>
           <p className="mt-2 text-[11px] leading-5 text-slate-500">
             Конфігурація версіонується, а під час start фіксується immutable snapshot.
@@ -367,11 +364,7 @@ export function SessionWizard() {
               disabled={submitting || selectedKeyCount === 0}
               onClick={() => void submit()}
             >
-              {submitting ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
+              {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               {createdSessionId ? "Повторити без дублювання" : "Створити реальний draft"}
             </button>
           )}
