@@ -4,7 +4,7 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The latest merged **product baseline** is `21cddfbb041d4b5c1dc8271c1ee4604460c50170`, the squash merge of PR #519 — **add verified LE-01MP cumulative active energy**. State-only reconciliation commits may advance `main` without changing this product baseline; the actual current `main` SHA must be verified from Git rather than self-recorded inside a state file that itself changes `main` when merged.
+The latest merged **product baseline** is `21cddfbb041d4b5c1dc8271c1ee4604460c50170`, the squash merge of PR #519 — **add verified LE-01MP cumulative active energy**. State-only or repository-repair commits may advance `main` without changing this product baseline; the actual current `main` SHA must be verified from Git rather than self-recorded inside a state file that itself changes `main` when merged.
 
 The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. The cumulative-energy software from PR #519 has not been deployed to the Raspberry Pi.
 
@@ -12,6 +12,7 @@ The accepted Raspberry Pi `LOCAL_LAN` runtime remains healthy on that deployed b
 
 - deployment evidence: `runtime/deployments/20260817T074249Z`;
 - runtime mode: `lan`;
+- bind address: `172.18.48.34`;
 - dashboard: `http://172.18.48.34:3000`;
 - API: `http://172.18.48.34:8082`;
 - central PostgreSQL/MQTT/Telemetry healthy;
@@ -20,70 +21,64 @@ The accepted Raspberry Pi `LOCAL_LAN` runtime remains healthy on that deployed b
 
 Repository software and deployed runtime remain intentionally separate. No repository merge after `1d226d6d...` is treated as Raspberry Pi runtime-accepted until controlled deployment evidence exists.
 
-## Issue #201 — cumulative active energy software merged; final hardware boundary pending
+## Issue #201 — software merged; physical restart/rollover validation remains separate
 
-Issue #201 **Validate LE-01MP cumulative energy, scale and rollover** remains open as `status:needs-validation`.
+Issue #201 **Validate LE-01MP cumulative energy, scale and rollover** remains open as `status:needs-validation` after PR #519 merged product commit `21cddfbb041d4b5c1dc8271c1ee4604460c50170`.
 
-PR #519 merged to product `main` as `21cddfbb041d4b5c1dc8271c1ee4604460c50170`. Final verified PR head was `48bcad8f3fbb9b71cda3a438863078013fd2d9fb`.
+Final verified PR head: `48bcad8f3fbb9b71cda3a438863078013fd2d9fb`.
 
-Implemented software outcome:
+Software and normal-operation hardware evidence are verified:
 
-- `active_energy` is exposed as `electrical.energy.active` / `kWh`;
-- cumulative energy is read atomically with read-only FC03, start register `7`, count `2`;
-- R7 is decoded as the high 16-bit word and R8 as the low 16-bit word of an unsigned 32-bit counter;
-- `raw32 = (R7 << 16) | R8`, scale `0.01 kWh`;
-- the combined raw cumulative counter is preserved as `raw_value` and is not conflated with derived interval consumption;
-- the persisted LE-01MP acquisition registry migrates known v1 profiles to read-only v2 while preserving lifecycle choices and adding the `(7, 8)` energy target;
-- unknown/custom LE-01MP profile versions are not rewritten automatically;
-- deterministic acquisition-scale accounting now includes nine LE metrics per meter without weakening serialization, fairness or load guardrails;
-- register-map and hardware-validation evidence are versioned in the repository.
+- cumulative `electrical.energy.active` / `kWh` is read with read-only FC03 start `7`, count `2` atomically;
+- R7 high word + R8 low word decode to unsigned uint32 with scale `0.01 kWh`;
+- raw cumulative value is preserved separately from any derived interval consumption;
+- known persisted LE-01MP profiles migrate to read-only v2 while preserving lifecycle choices;
+- deterministic acquisition-scale accounting now includes nine LE metrics per meter;
+- installed Units `200–203` produced display-correlated values and truthful monotonic behavior under live load;
+- no Modbus write, counter reset, configuration mutation or electrical installation change occurred.
 
-Exact-head verification on `48bcad8...` was GREEN:
+Exact-head GREEN evidence includes CI #3304, Edge image #267, Acquisition Scale #166 with 38/144/252 targets, Device Agent Fleet #794, Telemetry service #1599, Authenticated Dashboard #1881, Offline Bundle #1274, Container Supply Chain #774, Disaster Recovery TLS #735 and MQTT TLS #744.
 
-- CI #3304 / run `32037544241`;
-- Edge image #267 / run `32037544248`, including full Device Agent unittest discovery and the new LE-01MP tests;
-- Acquisition Scale Acceptance #166 / run `32037544291` with 38/144/252 active-target inventories;
-- Device Agent Fleet Acceptance #794 / run `32037544260`;
-- Telemetry service #1599 / run `32037544282`;
-- Authenticated Dashboard Acceptance #1881 / run `32037544232`;
-- Offline Bundle #1274 / run `32037544237`, including disconnected startup and persistent-data-preserving update/rollback;
-- Container Supply Chain #774, Disaster Recovery TLS Fleet #735 and MQTT TLS Fleet #744.
+Full Issue #201 hardware acceptance still requires an explicitly approved restart/power-cycle observation and rollover/reset/discontinuity classification. This lane is independent from the next software Work Package and does not block Reports.
 
-### Real-hardware evidence already accepted for normal operation
+## Epic #450 — Reports selected as next Work Package
 
-Controlled read-only Raspberry Pi probes on installed Units `200–203` confirmed display-correlated cumulative values:
+The Product Owner explicitly selected **Reports** as the next Epic #450 Work Package 5 consumer integration.
 
-- 200/W1: `R7=20`, `R8=63791` → `13745.11 kWh`;
-- 201/W2: `R7=38`, `R8=49806` → `25401.74 kWh`;
-- 202/W3: `R7=17`, `R8=15498` → `11296.10 kWh`;
-- 203/W4: `R7=21`, `R8=2364` → `13786.20 kWh`.
+Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is open, assigned, `priority:critical` and `status:ready`.
 
-Over approximately 9 minutes 50 seconds, Unit 201 at `2520 W` advanced `+0.28 kWh`, Unit 202 at `228 W` advanced `+0.04 kWh`, and zero-load Units 200/203 remained unchanged. The Device Agent returned healthy after the controlled probes. No Modbus write, meter reset, configuration mutation or electrical installation change occurred.
+Repository-backed product outcome for #521:
 
-This proves normal-operation address/count/type/word-order/scale/unit/display correlation and monotonic behavior. **Full Issue #201 hardware acceptance is still pending** an explicitly approved restart/power-cycle observation and consequent rollover/reset/discontinuity classification. No such physical action is implied or authorized by the software merge.
+- report generation from a terminal Test Session exposes the canonical hierarchical `TelemetryPointSelector`;
+- selectable points are constrained by the persisted session binding set, not arbitrary global inventory;
+- existing organization-scoped local inventory may enrich laboratory/zone/equipment taxonomy, but missing taxonomy is shown truthfully and bindings missing from current live inventory are not silently discarded;
+- a new session selection defaults to all reportable session bindings, preserving current report evidence scope until the operator intentionally narrows it;
+- an explicit selected binding subset becomes part of the immutable report source contract and source hash;
+- generated `telemetry.csv` contains exactly telemetry attributed to selected bindings;
+- server-side session/organization validation remains authoritative;
+- omitted selection remains backward compatible with existing all-session-binding generation;
+- existing immutable report versions are never rewritten;
+- selector interaction creates no new physical polling, discovery, WebSocket ownership, Modbus request or acquisition scheduling behavior.
 
-## Autonomous Sprint selection — no independent Ready package after #201 software merge
+The previous `hard_blocked_no_ready_work_package` selection blocker is therefore resolved. Issue #521 is the single next Ready implementation package; Alarms and Equipment Maps remain separate future Issues/PRs and are not bundled into Reports.
 
-A fresh GitHub audit after PR #519 returns **zero open Issues labelled `status:ready`**.
+## Repository repair #524 — completed
 
-Issue #201 itself is `status:needs-validation`, because its remaining acceptance requires a controlled physical restart/power-cycle observation. Other existing non-Ready lanes include:
-
-- remaining Epic #450 selector consumer integrations for Reports, Alarms and Equipment Maps — product order not repository-defined;
-- #245 standalone offline Raspberry Pi monitoring — `status:needs-validation`;
-- #444 LOCAL_LAN user administration — controlled runtime acceptance blocked;
-- #189 backup/restore/rollback/power-loss acceptance — hardware evidence blocked.
-
-Autonomous product implementation therefore requires either an explicit Product Owner priority for another independent Work Package or the approved physical action needed to advance a `needs-validation` lane.
+An accidental empty root `.tmp` file was created directly on `main` during connector preparation. The incident was recorded transparently as Issue #524 and repaired through normal PR #525 with a one-file diff, exact-head standard CI GREEN and no force push/history rewrite. No product/runtime/state/data/hardware behavior was changed by that empty file or its removal.
 
 ## Existing operational blockers
 
 ### Issue #444
 
-Software remains verified through PR #501. Controlled Raspberry Pi runtime acceptance remains blocked by deployment capacity and the signing-key authorization boundary.
+Software remains verified through PR #501. Controlled Raspberry Pi `LOCAL_LAN` runtime acceptance remains blocked by deployment capacity and the signing-key authorization boundary.
 
 ### Issue #189
 
 Recovery acceptance remains hardware/evidence blocked. No destructive restore, named-volume deletion, product-data deletion or hardware write is authorized.
+
+### Issue #245
+
+Standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires real physical acceptance actions; it is not auto-promoted while Reports is the selected software WP.
 
 ### Raspberry Pi deployment capacity
 
