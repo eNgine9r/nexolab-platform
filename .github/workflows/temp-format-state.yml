@@ -27,10 +27,12 @@ jobs:
         env:
           HUSKY: 0
       - name: Render canonical state files
-        run: |
-          npx prettier --write .project/ACTIVE_SPRINT.json .project/LAST_CHECKPOINT.json
-          printf 'ACTIVE_BASE64='
-          base64 -w0 .project/ACTIVE_SPRINT.json
-          printf '\nCHECKPOINT_BASE64='
-          base64 -w0 .project/LAST_CHECKPOINT.json
-          printf '\n'
+        run: npx prettier --write .project/ACTIVE_SPRINT.json .project/LAST_CHECKPOINT.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: formatted-state
+          path: |
+            .project/ACTIVE_SPRINT.json
+            .project/LAST_CHECKPOINT.json
+          if-no-files-found: error
+          retention-days: 1
