@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_selection_base_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+  "repository_selection_base_sha": "1a7d929351c52421e8d94cdee5469e1f017beb38",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 355,
-    "selection_status": "ready_after_issue_444_software_merge",
+    "selected_issue": 507,
+    "selection_status": "ready_after_closed_355_357_reconciliation",
     "ready_issue_count": 1,
-    "reason": "PR #501 merged the software fix for #444 with exact-head gates GREEN. #444 still requires controlled Raspberry Pi LOCAL_LAN runtime acceptance and is blocked by the recorded redeploy-capacity boundary; #355 is the next independent critical product defect."
+    "reason": "Fresh GitHub audit shows #355 and #357 closed completed; #444 and #189 remain runtime/evidence blocked; Epic #450 predecessors #451/#453/#457/#461/#465 are completed; #507 is the next independent critical software Work Package."
   },
   "tasks": [
     {
@@ -37,9 +37,7 @@
       "status": "completed_software_and_physical_acceptance",
       "priority": "critical",
       "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-      "deployed_acceptance_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-      "hardware_acceptance": true,
-      "physical_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2"
+      "hardware_acceptance": true
     },
     {
       "id": "NEXOLAB-289",
@@ -47,24 +45,7 @@
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
       "status": "completed_software_and_hardware_acceptance",
       "priority": "critical",
-      "hardware_acceptance": true,
-      "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2"
-    },
-    {
-      "id": "NEXOLAB-497",
-      "issue": 497,
-      "pull_request": 498,
-      "title": "Reconcile Issue #493 hardware acceptance and Issue #289 completion",
-      "status": "completed_state_reconciliation",
-      "priority": "high",
-      "merge_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3"
-    },
-    {
-      "id": "NEXOLAB-499",
-      "issue": 499,
-      "title": "Reconcile post-#498 Sprint state and promote Issue #444",
-      "status": "completed_state_reconciliation",
-      "priority": "high"
+      "hardware_acceptance": true
     },
     {
       "id": "NEXOLAB-444",
@@ -74,54 +55,70 @@
       "status": "software_verified_runtime_acceptance_blocked",
       "priority": "critical",
       "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
-      "software_verification": "GREEN",
-      "raspberry_pi_runtime_acceptance_required": true,
       "raspberry_pi_runtime_acceptance": "pending",
       "blocker": "controlled redeploy capacity preflight; signing-key activation remains unauthorized"
-    },
-    {
-      "id": "NEXOLAB-505",
-      "issue": 505,
-      "title": "Reconcile Issue #444 software merge and promote Issue #355",
-      "status": "completed_by_this_state_change",
-      "priority": "high",
-      "branch": "chore/505-reconcile-444-promote-355"
     },
     {
       "id": "NEXOLAB-355",
       "issue": 355,
       "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
+      "status": "completed",
+      "priority": "critical",
+      "raspberry_pi_runtime_acceptance": "separate_evidence_classification"
+    },
+    {
+      "id": "NEXOLAB-357",
+      "issue": 357,
+      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
+      "status": "completed",
+      "priority": "critical",
+      "raspberry_pi_runtime_acceptance": "separate_evidence_classification"
+    },
+    {
+      "id": "NEXOLAB-189",
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "status": "blocked_hardware_evidence",
+      "priority": "high",
+      "hardware_acceptance": "pending"
+    },
+    {
+      "id": "NEXOLAB-508",
+      "issue": 508,
+      "title": "Reconcile closed #355/#357 and promote Overview WP #507",
+      "status": "in_progress_state_reconciliation",
+      "priority": "high",
+      "branch": "chore/508-reconcile-closed-355-357-promote-507"
+    },
+    {
+      "id": "NEXOLAB-507",
+      "issue": 507,
+      "title": "Make Overview telemetry graph full-width and move secondary panels below",
       "status": "ready",
       "priority": "critical",
-      "depends_on": [],
+      "depends_on": [451, 453, 457, 461, 465],
       "raspberry_pi_runtime_acceptance_required": true
     }
   ],
   "active_work_package": {
-    "issue": 355,
-    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-    "status": "ready",
-    "priority": "critical",
-    "next_step": "Create a dedicated feature branch, implement the canonical organization-scoped measurement catalog inventory API and switch the Live Dashboard editor away from telemetry/latest pagination; run targeted, PostgreSQL, browser, build and Offline Bundle verification."
+    "issue": 508,
+    "title": "Reconcile closed #355/#357 and promote Overview WP #507",
+    "status": "in_progress_state_reconciliation",
+    "priority": "high",
+    "next_step": "Finish the focused four-file state-only PR, run state checks/CI, merge, then start Issue #507 on a dedicated feature branch."
   },
   "next_work_package": {
-    "issue": 355,
-    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
+    "issue": 507,
+    "title": "Make Overview telemetry graph full-width and move secondary panels below",
     "status": "ready",
     "priority": "critical"
   },
-  "critical_order_after_355": [357, 189, 450],
   "verification": {
-    "issue_444_pr": 501,
-    "issue_444_merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
-    "issue_444_ci": "GREEN",
-    "issue_444_offline_auth": "GREEN",
-    "issue_444_authenticated_dashboard": "GREEN",
-    "issue_444_container_supply_chain": "GREEN",
-    "issue_444_offline_bundle": "GREEN",
-    "issue_444_disaster_recovery_browser": "GREEN_after_same_head_rerun",
     "issue_444_software_verification": "GREEN",
     "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
+    "issue_355_status": "COMPLETED",
+    "issue_357_status": "COMPLETED",
+    "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
     "ready_issue_count": 1
   },
   "deployment_capacity": {
