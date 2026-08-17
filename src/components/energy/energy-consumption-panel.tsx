@@ -25,8 +25,7 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
 ];
 
 type ConsumptionView =
-  | { status: "loading"; result: null }
-  | { status: "ready"; result: EnergyConsumptionResult };
+  { status: "loading"; result: null } | { status: "ready"; result: EnergyConsumptionResult };
 
 type ConsumptionLoadState = {
   requestKey: string;
