@@ -19,16 +19,38 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
+  "repository_product_baseline_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": null,
-    "selection_status": "hard_blocked_no_ready_work_package",
+    "selected_issue": 536,
+    "selection_status": "active_product_work_package_in_progress",
     "ready_issue_count": 0,
-    "reason": "Post-#521 audit found zero open status:ready Issues. Epic #450 names future selector consumers but no focused Alarms or Equipment Maps child Issue is currently Ready; open Dependabot PRs are not auto-promoted into the product lane."
+    "reason": "Issue #537 / PR #538 is merged and reconciled. Repository audit finds zero open status:ready Issues, but Issue #536 / draft PR #539 is already status:in-progress and remains the existing product implementation lane; this state-only reconciliation does not reselect or modify it."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-537",
+      "issue": 537,
+      "pull_request": 538,
+      "title": "Add selectable period consumption to Energy Monitoring cards",
+      "status": "completed_software_browser_offline_verified",
+      "priority": "high",
+      "merge_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
+      "final_pr_head": "3df744d36000d719cff02fd756e0610354b1eebc",
+      "raspberry_pi_runtime_acceptance": "not_deployed",
+      "hardware_acceptance": "no_new_physical_action_required"
+    },
+    {
+      "id": "NEXOLAB-536",
+      "issue": 536,
+      "pull_request": 539,
+      "title": "Integrate TelemetryPointSelector into Alarms feed scope",
+      "status": "in_progress",
+      "priority": "critical",
+      "parent_issue": 450,
+      "branch": "feat/536-alarms-telemetry-selector"
+    },
     {
       "id": "NEXOLAB-201",
       "issue": 201,
@@ -78,21 +100,29 @@
       "priority": "high"
     }
   ],
-  "active_work_package": null,
+  "active_work_package": {
+    "issue": 536,
+    "pull_request": 539,
+    "branch": "feat/536-alarms-telemetry-selector",
+    "status": "in_progress",
+    "note": "Existing independent product lane discovered during Issue #537 completion; state reconciliation records it without modifying its implementation or priority."
+  },
   "next_work_package": null,
   "verification": {
-    "issue_521_merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
-    "issue_521_final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
-    "issue_521_ci": { "run_number": 3362, "status": "GREEN" },
-    "issue_521_reports_browser": { "run_number": 882, "status": "GREEN" },
-    "issue_521_rendered_reports_browser": { "run_number": 727, "status": "GREEN" },
-    "issue_521_telemetry_service": { "run_number": 1629, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_authenticated_dashboard": { "run_number": 1920, "status": "GREEN" },
-    "issue_521_offline_bundle": { "run_number": 1313, "status": "GREEN" },
-    "issue_521_offline_auth": { "run_number": 490, "status": "GREEN" },
-    "issue_521_refrigeration_browser": { "run_number": 1821, "status": "GREEN" },
-    "issue_521_disaster_recovery_browser": { "run_number": 796, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_container_supply_chain": { "run_number": 804, "status": "GREEN" },
+    "issue_537_merge_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
+    "issue_537_final_pr_head": "3df744d36000d719cff02fd756e0610354b1eebc",
+    "issue_537_ci": { "run_number": 3397, "status": "GREEN" },
+    "issue_537_authenticated_dashboard": { "run_number": 1949, "status": "GREEN", "playwright": "16/16" },
+    "issue_537_refrigeration_browser": { "run_number": 1830, "status": "GREEN" },
+    "issue_537_offline_bundle": { "run_number": 1342, "status": "GREEN" },
+    "issue_537_dashboard_artifact": {
+      "name": "authenticated-dashboard-acceptance-32053053523-1",
+      "sha256": "8ec1b7fefc8abcbf7aaa5f2ecbdbf181b903fb5a6ef4ccecc3c3cc82874ea2d2"
+    },
+    "issue_537_offline_artifact": {
+      "name": "nexolab-offline-amd64-3df744d36000d719cff02fd756e0610354b1eebc",
+      "sha256": "40d9cb52628c48467923fea1989a38854d7f5cc9baf775eb32673e3f37a37d95"
+    },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
     "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
     "ready_issue_count": 0
