@@ -1,48 +1,65 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-16
+Updated: 2026-08-17
 
-## Issue #469 deployment-capacity blocker — resolved
+## Deployment capacity — no current hard blocker
 
-Issue #469 is closed `completed`. The real Raspberry Pi LOCAL_LAN acceptance passed after Product Owner-approved bounded cleanup limited to old strict timestamped `runtime/deployments/<timestamp>` evidence.
+The controlled Raspberry Pi deployment of exact `main` `e418ae3526319d56a9229bf1e15eb0adf47c7ef1` passed after the deployment capacity guard initially failed safely before runtime mutation.
 
-Verified physical result:
+Capacity recovery was limited to disposable caches:
 
-- low-space guard failed safely before runtime mutation;
-- bounded evidence retention was applied without deleting product data or Docker named volumes;
-- final capacity preflight passed with `free_bytes=16164007936` and `required_bytes=16137036936` using a complete live PostgreSQL estimate;
-- controlled deployment passed at exact `main` `6dde6989f1822b04c48e8dbdb89f6059b63d6be6`;
-- protected named-volume identity comparison completed without failure;
-- central services, dashboard, edge MQTT and Device Agent container recovered successfully.
+- BuildKit build cache;
+- npm download cache;
+- Playwright-downloaded browser cache under `~/.cache/ms-playwright`.
 
-The obsolete #469 physical-validation hard blocker is removed.
+No product data, PostgreSQL telemetry history, Docker named volume, runtime acceptance evidence, MQTT/MinIO data or hardware state was deleted. Future Raspberry Pi deployments must continue using the capacity guard because disk headroom remains bounded.
 
-## Active physical validation — Issue #289
+Deployment evidence: `runtime/deployments/20260817T045808Z`.
 
-Issue #289 remains open `status:in-progress` and is now the active Raspberry Pi/RS-485 scale, stability and truthful-state validation lane.
+## Issue #484 — resolved
 
-Fresh 2026-08-16 evidence shows:
+Issue #484 is closed `completed` and hardware verified on the deployed merged main.
 
-- one serialized worker on `rs485-main`;
-- scheduler worker state remains running/healthy;
-- LE01MP unit 201 is timing out and enters cooldown;
-- unrelated LE01MP units 200, 202 and 203 continue successful reads;
-- XJP60D active targets continue successful reads;
-- central ingestion remains ready.
+Phase 11-R2 evidence: `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`.
 
-This is not a #469 deployment failure. It must be evaluated under #289 against the explicit acceptance criterion that one unavailable endpoint does not make unrelated channels appear offline.
+The previous Energy warm-return full 24h bootstrap is eliminated: cold/full history used `28` paginated requests, while each of three warm returns used one bounded approximately five-minute tail request and stayed under the `1000 ms` usable target.
 
-Remaining #289 work includes the controlled no-browser / Overview / one Live Dashboard / repeated navigation / multi-browser physical-request-rate matrix, truthful reconnect/stale/offline behavior and recovery gates.
+## Active acceptance lane — Issue #289
+
+Issue #289 remains open `status:in-progress` with no current hard blocker.
+
+Completed physical/runtime acceptance includes:
+
+- no-browser / Overview / Live Dashboard / repeated-navigation / multi-browser physical request-rate matrix;
+- WebSocket reconnect and sustained outage recovery;
+- Telemetry Service restart recovery;
+- edge MQTT outage and SQLite outbox drain;
+- disconnected `LOCAL_LAN` operation;
+- REST ↔ WebSocket event identity/freshness consistency;
+- route-return latency/request-count acceptance after #484.
+
+Remaining acceptance is primarily synthetic/software scale validation using deterministic fake/recorded serial devices:
+
+- increased active controller/channel counts;
+- timeout-heavy and unavailable endpoints;
+- priority deadline/fairness measurements;
+- disabled-target zero normal acquisition evidence;
+- scheduler defer/skip/overrun and bus-utilization evidence;
+- final acceptance aggregation against Issue #289 criteria.
+
+This work must remain read-only with respect to physical Modbus/controller state.
 
 ## Ready queue
 
-The fresh GitHub query for open `status:ready` Issues returned none. There is no independent Ready software package to run instead of the already-active #289 lane.
+A fresh GitHub query for open `status:ready` Issues returned none. There is no independent Ready software package to select instead of the already-active #289 lane.
 
 ## Other pending physical evidence
 
 - KK2/Unit 115 field retest;
 - refrigeration perceived-latency acceptance;
 - Raspberry Pi version-management acceptance.
+
+These are independent from the current #289 continuation unless they become explicit dependencies.
 
 ## Safety boundaries
 
