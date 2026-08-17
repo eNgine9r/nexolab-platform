@@ -1,7 +1,14 @@
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+
 import { expect, test, type Browser, type BrowserContext } from "@playwright/test";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
+const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
+const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
+const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
+const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
 
 interface RoutedSocket {
   close(options?: { code?: number; reason?: string }): Promise<void>;
@@ -23,6 +30,48 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
     { accessToken: sessionCredential, organization: organizationId },
   );
   return context;
+}
+
+function publishFreshTelemetry(value: number): void {
+  const payload = JSON.stringify({
+    event_id: randomUUID(),
+    node_id: "edge-live-01",
+    captured_at: new Date().toISOString(),
+    metric: "temperature.probe",
+    value,
+    unit: "degC",
+    quality: "valid",
+    source: "issue-493-terminal-retry-acceptance",
+    equipment_id: "K106",
+    channel_id: "106-03",
+    alarm: null,
+    raw_value: Math.round(value * 10),
+    raw_status: null,
+  });
+
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      "mqtt",
+      "mosquitto_pub",
+      "-h",
+      "127.0.0.1",
+      "-t",
+      mqttTopic,
+      "-m",
+      payload,
+    ],
+    { stdio: "pipe" },
+  );
 }
 
 function requiredEnvironment(name: string): string {
@@ -88,8 +137,11 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await retryButton.click();
 
     await expect.poll(() => routedSocketCount).toBe(attemptsAtOffline + 1);
+    publishFreshTelemetry(6.4);
+
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(inventoryChannel).toBeVisible();
+    await expect(page.getByText("6,4 degC", { exact: true })).toBeVisible();
     await page.waitForTimeout(1_000);
     expect(routedSocketCount).toBe(attemptsAtOffline + 1);
   } finally {
