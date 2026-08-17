@@ -19,26 +19,16 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_selection_base_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
+  "repository_selection_base_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 444,
-    "selection_status": "ready_after_product_owner_criticality_decision",
+    "selected_issue": 355,
+    "selection_status": "ready_after_issue_444_software_merge",
     "ready_issue_count": 1,
-    "reason": "Issue #497 / PR #498 are completed. Product Owner explicitly approved continuing through the remaining backlog by criticality; #444 is the highest-priority independently actionable critical product defect."
+    "reason": "PR #501 merged the software fix for #444 with exact-head gates GREEN. #444 still requires controlled Raspberry Pi LOCAL_LAN runtime acceptance and is blocked by the recorded redeploy-capacity boundary; #355 is the next independent critical product defect."
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-484",
-      "issue": 484,
-      "pull_request": 485,
-      "title": "Reuse Energy history on warm route return instead of replaying full 24h pagination",
-      "status": "completed_software_and_physical_acceptance",
-      "priority": "high",
-      "merge_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-      "hardware_acceptance": true
-    },
     {
       "id": "NEXOLAB-493",
       "issue": 493,
@@ -61,13 +51,6 @@
       "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2"
     },
     {
-      "id": "NEXOLAB-282",
-      "issue": 282,
-      "title": "Performance and data acquisition optimization",
-      "status": "completed",
-      "priority": "critical"
-    },
-    {
       "id": "NEXOLAB-497",
       "issue": 497,
       "pull_request": 498,
@@ -80,46 +63,65 @@
       "id": "NEXOLAB-499",
       "issue": 499,
       "title": "Reconcile post-#498 Sprint state and promote Issue #444",
-      "status": "state_only_reconciliation_in_progress",
-      "priority": "high",
-      "branch": "chore/499-post-498-ready-reconciliation"
+      "status": "completed_state_reconciliation",
+      "priority": "high"
     },
     {
       "id": "NEXOLAB-444",
       "issue": 444,
+      "pull_request": 501,
       "title": "Restore LOCAL_LAN user administration API availability",
+      "status": "software_verified_runtime_acceptance_blocked",
+      "priority": "critical",
+      "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+      "software_verification": "GREEN",
+      "raspberry_pi_runtime_acceptance_required": true,
+      "raspberry_pi_runtime_acceptance": "pending",
+      "blocker": "controlled redeploy capacity preflight; signing-key activation remains unauthorized"
+    },
+    {
+      "id": "NEXOLAB-505",
+      "issue": 505,
+      "title": "Reconcile Issue #444 software merge and promote Issue #355",
+      "status": "completed_by_this_state_change",
+      "priority": "high",
+      "branch": "chore/505-reconcile-444-promote-355"
+    },
+    {
+      "id": "NEXOLAB-355",
+      "issue": 355,
+      "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
       "status": "ready",
       "priority": "critical",
       "depends_on": [],
-      "hardware_acceptance_required": false,
       "raspberry_pi_runtime_acceptance_required": true
     }
   ],
   "active_work_package": {
-    "issue": 499,
-    "title": "Reconcile post-#498 Sprint state and promote Issue #444",
-    "status": "state_only_reconciliation_in_progress",
-    "priority": "high",
-    "next_step": "Validate the four canonical .project files, close superseded state trackers #416/#449, mark #444 status:ready, merge state-only PR GREEN, then start Issue #444 on a dedicated feature branch."
+    "issue": 355,
+    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
+    "status": "ready",
+    "priority": "critical",
+    "next_step": "Create a dedicated feature branch, implement the canonical organization-scoped measurement catalog inventory API and switch the Live Dashboard editor away from telemetry/latest pagination; run targeted, PostgreSQL, browser, build and Offline Bundle verification."
   },
   "next_work_package": {
-    "issue": 444,
-    "title": "Restore LOCAL_LAN user administration API availability",
+    "issue": 355,
+    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
     "status": "ready",
     "priority": "critical"
   },
-  "critical_order_after_444": [355, 357, 189, 450],
+  "critical_order_after_355": [357, 189, 450],
   "verification": {
-    "issue_493_premerge_ci": "GREEN",
-    "issue_493_authenticated_dashboard": "GREEN",
-    "issue_493_acquisition_scale": "GREEN",
-    "issue_493_refrigeration_browser": "GREEN",
-    "issue_493_offline_bundle": "GREEN",
-    "issue_493_hardware_acceptance": "PASS",
-    "phase_12b_postfix_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2",
-    "issue_289_final_disconnected_browser": "PASS",
-    "issue_289_final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2",
-    "deterministic_scale_assertions": "40/40 PASS",
+    "issue_444_pr": 501,
+    "issue_444_merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+    "issue_444_ci": "GREEN",
+    "issue_444_offline_auth": "GREEN",
+    "issue_444_authenticated_dashboard": "GREEN",
+    "issue_444_container_supply_chain": "GREEN",
+    "issue_444_offline_bundle": "GREEN",
+    "issue_444_disaster_recovery_browser": "GREEN_after_same_head_rerun",
+    "issue_444_software_verification": "GREEN",
+    "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
     "ready_issue_count": 1
   },
   "deployment_capacity": {
@@ -128,7 +130,7 @@
     "free_bytes": 15310114816,
     "required_bytes": 16595036807,
     "reserve_bytes": 2147483648,
-    "classification": "operational capacity constraint for next controlled redeploy; current runtime unaffected"
+    "classification": "soft operational capacity constraint for next controlled redeploy; current runtime unaffected"
   },
   "safety": {
     "modbus_write": "none",
@@ -137,6 +139,6 @@
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none",
-    "secret_activation": "not_authorized_in_state_reconciliation"
+    "secret_activation": "not_authorized"
   }
 }

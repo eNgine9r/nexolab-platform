@@ -4,11 +4,9 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The accepted/deployed product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**.
+The repository software baseline is `efd190a70309039d498e2a9bab2cf47c3598e8b7`, the squash merge of PR #501 — **restore LOCAL_LAN local user administration availability**.
 
-The repository baseline used for this state selection is `b7b0df6bd49e8416b2073a83310b4eb2aa0468c3`, the merge of PR #498. Issue #497 and PR #498 are completed. Issue #499 is the focused state-only reconciliation that removes the stale #497 active marker and promotes the next Product Owner-approved critical Work Package.
-
-The controlled Raspberry Pi `LOCAL_LAN` runtime is healthy on the accepted product head:
+The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. The controlled Raspberry Pi `LOCAL_LAN` runtime is healthy on that accepted product head:
 
 - deployment evidence: `runtime/deployments/20260817T074249Z`;
 - runtime mode: `lan`;
@@ -19,76 +17,68 @@ The controlled Raspberry Pi `LOCAL_LAN` runtime is healthy on the accepted produ
 - edge MQTT/Device Agent healthy;
 - one active serialized RS-485 bus worker.
 
-No product/runtime redeploy is part of Issue #499.
+Repository software and deployed runtime are intentionally recorded separately. No later repository merge is treated as Raspberry Pi runtime-accepted until a controlled deployment/retest produces evidence.
 
-## Performance and data acquisition optimization — completed
+## Issue #444 — software verified; Raspberry Pi runtime acceptance pending
 
-Epic #282 and final acceptance Issue #289 are closed `completed`.
+PR #501 merged as `efd190a70309039d498e2a9bab2cf47c3598e8b7` after exact-head verification.
 
-Accepted evidence covers:
+GREEN evidence includes:
 
-- normal browser/page activity does not amplify physical Modbus polling;
-- no-browser, Overview, Live Dashboard, fast navigation and multi-browser hardware matrices;
-- disabled targets execute zero normal acquisition work;
-- one unavailable endpoint does not take unrelated channels offline;
-- deterministic scheduler scale/fairness matrix: `40/40` assertions across `34 / 136 / 240` targets;
-- one serialized reader, bounded fairness, timeout/cooldown isolation and overrun/deadline evidence;
-- REST latest ↔ WebSocket identity/freshness consistency;
-- transient WebSocket reconnect and Telemetry Service restart recovery;
-- MQTT outage, durable edge outbox drain, no duplicate committed telemetry and stale-to-Live UI truthfulness;
-- Energy warm-route return after Issue #484: cold `28` history requests, warm `1 / 1 / 1` bounded tail requests, `627 / 557 / 443 ms` usable latency;
-- terminal Offline truthfulness and explicit manual recovery after Issue #493;
-- Offline Bundle and disconnected `LOCAL_LAN` runtime/browser operation;
-- zero Modbus/hardware writes during acceptance.
+- CI (formatting, lint, typecheck, tests and production build);
+- Offline Auth Acceptance;
+- Authenticated Dashboard Acceptance;
+- Telemetry Service;
+- Container Supply Chain;
+- Offline Bundle disconnected runtime proof;
+- Security, Nodes, Alerts, Reports, Test Sessions and fleet/browser acceptance gates.
 
-Final disconnected browser-route evidence:
+The first Disaster Recovery Browser attempt failed on a restored refrigeration heading assertion outside the five-file #444 diff. The exact same PR head passed on an isolated rerun without code changes, so that attempt is classified as transient/flaky evidence rather than a #444 regression.
 
-`runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
-
-## Issue #493 — completed and hardware verified
-
-PR #496 merged as `1d226d6ddcd0c009b8f83367599d7a64521190f0` after GREEN CI, Authenticated Dashboard, Acquisition Scale, Refrigeration Browser and Offline Bundle gates.
-
-Post-fix Raspberry Pi evidence:
-
-`runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
+Issue #444 remains open `status:blocked` because its own acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. Software is verified; runtime acceptance is not claimed.
 
 ## Raspberry Pi deployment capacity
 
-The currently running runtime is healthy. A redundant post-reboot guarded redeploy on the same accepted head stopped safely **before runtime mutation** because the deployment capacity preflight reported:
+The currently running runtime is healthy. The next controlled redeploy remains stopped by capacity preflight **before runtime mutation**:
 
 - `free_bytes=15310114816`;
 - `required_bytes=16595036807`;
 - `reserve_bytes=2147483648`.
 
-This is a soft operational constraint for the **next controlled redeploy**, not a failure of the currently running product. Do not bypass the capacity guard or delete product data, PostgreSQL history, named volumes or acceptance evidence. Any recovery must remain bounded to explicitly disposable artifacts and be verified before deployment.
+Classification: soft operational constraint for the next controlled redeploy only. Do not bypass the capacity guard or delete product data, PostgreSQL history, named volumes or acceptance evidence. Signing-key generation/activation/rotation is also outside current authorization; if a later acceptance step requires it, that becomes a hard blocker requiring Product Owner action.
 
-## Ready queue after Product Owner priority decision
+## Performance and data acquisition optimization — completed
 
-The Product Owner explicitly approved continuing through the remaining backlog by criticality.
+Epic #282 and final acceptance Issue #289 are closed `completed`.
+
+Accepted evidence includes hardware polling invariants, deterministic scheduler scale/fairness, REST/WebSocket truthfulness, MQTT outage/outbox recovery, Energy warm-route reuse, terminal Offline recovery and disconnected `LOCAL_LAN` browser operation.
+
+Key evidence:
+
+- `runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
+- `runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
+
+## Ready queue
 
 The single selected next Ready Work Package is:
 
-**Issue #444 — Restore LOCAL_LAN user administration API availability** (`priority:critical`).
+**Issue #355 — Load Live Dashboard channel inventory without telemetry-history timeout** (`priority:critical`).
 
-Expected outcome:
+Product outcome:
 
-- full `create_app` local-auth composition exposes `/api/v1/admin/users`;
-- administrator list/create path works locally;
-- non-admin remains server-side forbidden;
-- deployment/runtime contract fails closed when LOCAL_LAN local-auth is expected but admin routes are absent;
-- route/profile mismatch is diagnosed explicitly instead of a generic API error;
-- local identities remain local and offline-capable;
-- no secret activation is performed without separate Product Owner action.
+- editor inventory comes from the organization-scoped canonical measurement catalog, not paginated telemetry history;
+- active eligible channels remain selectable even without a latest sample;
+- response is bounded and deterministic;
+- optional latest metadata cannot turn inventory discovery into a telemetry-history scan;
+- existing selected-series latest/history/WebSocket behavior remains unchanged;
+- no acquisition registry, polling cadence, Modbus or hardware-write behavior changes;
+- PostgreSQL timing/query-plan evidence and Raspberry Pi runtime latency acceptance are recorded separately.
 
-Next critical ordering after #444, subject to fresh dependency/blocker audit at each boundary:
+Critical ordering after #355, subject to a fresh dependency/blocker audit at each boundary:
 
-1. #355 — Live Dashboard canonical inventory without telemetry-history timeout;
-2. #357 — refrigeration Raspberry Pi perceived-latency closeout;
-3. #189 — backup/restore/rollback/power-loss recovery acceptance;
-4. #450 — chart reliability, Live Data UX and hierarchical telemetry selection Epic.
-
-Stale state-only trackers #416 and #449 are superseded by later accepted repository state and should not remain active backlog work.
+1. #357 — refrigeration Raspberry Pi perceived-latency closeout;
+2. #189 — backup/restore/rollback/power-loss recovery acceptance;
+3. #450 — chart reliability, Live Data UX and hierarchical telemetry selection Epic.
 
 ## Safety boundaries
 
