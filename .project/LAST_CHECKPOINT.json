@@ -3,87 +3,64 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T05:16:00Z",
+  "timestamp": "2026-08-17T06:21:00Z",
   "actor": "ChatGPT",
-  "event": "issue_484_hardware_acceptance_completed_phase_11_pass",
-  "current_main_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-  "issue": 484,
-  "pull_request": 485,
-  "merge_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-  "source_head": "4f244da779c81c81e1e3d43a8c66549fe4cee300",
-  "deployed_acceptance_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-  "completion_classification": "Issue #484 software merged and verified; controlled Raspberry Pi deployment and Energy warm-return hardware acceptance passed; Issue #484 closed completed; Issue #289 Phase 11 passed",
+  "event": "issue_493_terminal_offline_shared_transport_bug_implementation",
+  "repository_main_sha": "297fc2fa28ef43d7be71d2436151a34f3e414a26",
+  "deployed_product_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
+  "issue": 493,
+  "pull_request": 496,
+  "branch": "fix/493-terminal-offline-transport-restart",
+  "completion_classification": "production defect reproduced on Live Data and Saved Live Dashboard; focused shared-transport fix implemented; software verification in progress; Raspberry Pi post-fix acceptance pending",
+  "reproduction": {
+    "live_data": "runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4",
+    "saved_live_dashboard": "runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4",
+    "baseline_websocket_clients": 1,
+    "post_restore_before_retry_websocket_clients": 0,
+    "post_retry_observation_seconds": 40,
+    "post_retry_websocket_clients": 0,
+    "chromium_network_service_restarted": false,
+    "physical_acquisition_continued": true,
+    "modbus_write": false,
+    "hardware_write": false
+  },
+  "implementation": {
+    "route_persistent_terminal_states": [
+      "offline",
+      "unauthorized",
+      "forbidden",
+      "configuration_error"
+    ],
+    "behavior": "release dead terminal source transport when the final route/request consumer closes so explicit Retry can create one fresh physical WebSocket while bounded cache remains retained",
+    "transient_reconnecting_reuse_preserved": true,
+    "new_unit_regression": "restarts a terminal shared transport after the last subscriber closes",
+    "new_browser_regression": "e2e/live-terminal-offline-retry.production.e2e.ts"
+  },
   "verification": {
-    "software": {
-      "ci": {
-        "status": "PASS",
-        "run": 31973454509
-      },
-      "authenticated_dashboard": {
-        "status": "PASS",
-        "run": 31973454596
-      },
-      "offline_bundle": {
-        "status": "PASS",
-        "run": 31973454511
-      }
+    "previous_head_cd3eea78": {
+      "ci": "formatting/lint/typecheck/tests/build PASS",
+      "acquisition_scale": "PASS",
+      "authenticated_dashboard": "superseded by later verification head",
+      "offline_bundle": "superseded by later verification head"
     },
-    "deployment": {
-      "status": "PASS",
-      "evidence": "runtime/deployments/20260817T045808Z",
-      "runtime_mode": "lan",
-      "bind_address": "172.18.48.34",
-      "dashboard": "http://172.18.48.34:3000",
-      "api": "http://172.18.48.34:8082",
-      "capacity_recovery": "bounded disposable caches only",
-      "product_data_deletion": false,
-      "named_volume_deletion": false
-    },
-    "physical_raspberry_pi": {
-      "status": "PASS",
-      "evidence": "runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2",
-      "cold_energy_history_requests": 28,
-      "warm_energy_history_requests": [1, 1, 1],
-      "warm_energy_window_seconds": [311.716, 302.138, 302.158],
-      "warm_energy_usable_ms": [627, 557, 443],
-      "warm_loading_transitions": [0, 0, 0],
-      "telemetry_latest_before_after_warm": [1, 1],
-      "document_loads": 1,
-      "websocket_opened": 1,
-      "websocket_max_concurrent": 1,
-      "navigation_acquisition_mutations": 0,
-      "physical_requests_delta": 131,
-      "communication_failures_delta": 0,
-      "workers_healthy": true,
-      "active_bus_workers": 1,
-      "degraded_endpoints": 0,
-      "cooldown_endpoints": 0,
-      "modbus_write": false,
-      "hardware_write": false
-    },
-    "ready_issue_count": 0
+    "current_exact_head": "pending after browser regression and state reconciliation commits",
+    "required_before_merge": [
+      "CI",
+      "Authenticated Dashboard Acceptance",
+      "Acquisition Scale Acceptance",
+      "Offline Bundle",
+      "focused diff and review audit"
+    ],
+    "required_after_merge": [
+      "capacity-guarded Raspberry Pi deployment",
+      "Phase 12B terminal Offline manual Retry recovery on exact merged head"
+    ]
   },
   "issue_289": {
-    "status": "in_progress_scale_stability_acceptance",
-    "completed_gates": [
-      "real_hardware_browser_request_rate_matrix",
-      "websocket_reconnect_and_sustained_outage",
-      "telemetry_service_restart_recovery",
-      "edge_mqtt_outage_and_outbox_drain",
-      "disconnected_local_lan_runtime",
-      "rest_websocket_event_identity_freshness_consistency",
-      "route_return_latency_and_request_count"
-    ],
-    "next_gate": "deterministic increased-load and timeout-heavy/unavailable-endpoint scheduler matrix using fake/recorded serial devices; measure priority deadlines/fairness, disabled-target zero normal acquisition and scheduler/bus-load metrics"
-  },
-  "blocker": {
-    "type": "none_for_issue_289",
-    "reason": "Issue #484 hardware blocker resolved; no open status:ready issues; continue active #289 acceptance lane"
-  },
-  "state_reconciliation": {
-    "issue": 491,
-    "branch": "chore/491-reconcile-484-hardware-acceptance",
-    "classification": "state-only"
+    "status": "blocked_on_issue_493_phase_12b",
+    "deterministic_scale_matrix": "40/40 PASS",
+    "phase_12a_mqtt_ui_truthfulness": "PASS",
+    "remaining_gate": "Phase 12B terminal Offline manual recovery after Issue #493"
   },
   "safety": {
     "modbus_write": "none",
@@ -93,5 +70,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Complete state-only Issue #491 through exact-head CI and merge, then continue Issue #289 with the deterministic fake/recorded increased-load and timeout-heavy scheduler matrix."
+  "next_action": "Wait for exact-head PR #496 verification; repair any failing focused checks; merge only GREEN/current; deploy exact merged product head to Raspberry Pi with capacity guard; rerun Phase 12B once; then resume final Issue #289 aggregation."
 }
