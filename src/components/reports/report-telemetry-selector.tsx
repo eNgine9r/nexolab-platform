@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, LoaderCircle, RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
 import { useLiveDashboardInventory } from "@/hooks/use-live-dashboard-inventory";
@@ -12,6 +12,12 @@ import {
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { SessionConfiguration } from "@/lib/sessions/types";
 
+type ConfigurationResult = {
+  sessionId: string;
+  configuration: SessionConfiguration | null;
+  error: Error | null;
+};
+
 export function ReportTelemetrySelector({
   sessionId,
   organizationId,
@@ -21,54 +27,52 @@ export function ReportTelemetrySelector({
   organizationId: string | null;
   onSelectionChange: (sessionId: string, bindingIds: string[], ready: boolean) => void;
 }) {
-  const [configuration, setConfiguration] = useState<SessionConfiguration | null>(null);
-  const [configurationStatus, setConfigurationStatus] = useState<"idle" | "loading" | "ready" | "error">(
-    "idle",
-  );
-  const [configurationError, setConfigurationError] = useState<Error | null>(null);
+  const [configurationResult, setConfigurationResult] = useState<ConfigurationResult | null>(null);
   const [selectionState, setSelectionState] = useState<{
     sessionId: string;
     pointKeys: string[];
   } | null>(null);
+  const publishedSelectionRef = useRef<string | null>(null);
   const inventory = useLiveDashboardInventory({
     enabled: Boolean(sessionId && organizationId),
     organizationId,
   });
 
   useEffect(() => {
-    if (!sessionId) {
-      setConfiguration(null);
-      setConfigurationStatus("idle");
-      setConfigurationError(null);
-      setSelectionState(null);
-      return;
-    }
+    if (!sessionId) return;
 
     const controller = new AbortController();
-    setConfiguration(null);
-    setConfigurationStatus("loading");
-    setConfigurationError(null);
-    setSelectionState(null);
+    publishedSelectionRef.current = null;
     onSelectionChange(sessionId, [], false);
 
     void createSessionApiClient()
       .getConfiguration(sessionId, controller.signal)
       .then((value) => {
         if (controller.signal.aborted) return;
-        setConfiguration(value);
-        setConfigurationStatus("ready");
+        setConfigurationResult({ sessionId, configuration: value, error: null });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        setConfigurationError(
-          error instanceof Error ? error : new Error("Не вдалося завантажити конфігурацію сесії."),
-        );
-        setConfigurationStatus("error");
+        const normalizedError =
+          error instanceof Error ? error : new Error("Не вдалося завантажити конфігурацію сесії.");
+        setConfigurationResult({ sessionId, configuration: null, error: normalizedError });
         onSelectionChange(sessionId, [], false);
       });
 
     return () => controller.abort();
   }, [onSelectionChange, sessionId]);
+
+  const currentConfigurationResult =
+    configurationResult?.sessionId === sessionId ? configurationResult : null;
+  const configuration = currentConfigurationResult?.configuration ?? null;
+  const configurationError = currentConfigurationResult?.error ?? null;
+  const configurationStatus = !sessionId
+    ? "idle"
+    : currentConfigurationResult === null
+      ? "loading"
+      : configurationError
+        ? "error"
+        : "ready";
 
   const model = useMemo(() => {
     if (!configuration || !organizationId) return null;
@@ -83,19 +87,25 @@ export function ReportTelemetrySelector({
     model && selectionState?.sessionId === sessionId
       ? selectionState.pointKeys
       : (model?.orderedPointKeys ?? []);
+  const committedBindingIds = useMemo(
+    () => (model ? reportBindingIdsForSelection(model, committedPointKeys) : []),
+    [committedPointKeys, model],
+  );
 
   useEffect(() => {
     if (!model || configurationStatus !== "ready") return;
-    if (selectionState?.sessionId === sessionId) return;
-    const defaultPointKeys = [...model.orderedPointKeys];
-    setSelectionState({ sessionId, pointKeys: defaultPointKeys });
-    onSelectionChange(sessionId, reportBindingIdsForSelection(model, defaultPointKeys), true);
-  }, [configurationStatus, model, onSelectionChange, selectionState?.sessionId, sessionId]);
+    const signature = `${sessionId}:${committedBindingIds.join(",")}`;
+    if (publishedSelectionRef.current === signature) return;
+    publishedSelectionRef.current = signature;
+    onSelectionChange(sessionId, committedBindingIds, true);
+  }, [committedBindingIds, configurationStatus, model, onSelectionChange, sessionId]);
 
   const confirm = (pointKeys: string[]) => {
     if (!model) return;
+    const bindingIds = reportBindingIdsForSelection(model, pointKeys);
+    publishedSelectionRef.current = `${sessionId}:${bindingIds.join(",")}`;
     setSelectionState({ sessionId, pointKeys });
-    onSelectionChange(sessionId, reportBindingIdsForSelection(model, pointKeys), true);
+    onSelectionChange(sessionId, bindingIds, true);
   };
 
   if (!sessionId) return null;
