@@ -3,68 +3,94 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T13:36:30Z",
+  "timestamp": "2026-08-17T14:16:00Z",
   "actor": "ChatGPT",
-  "event": "sessions_513_merged_ready_queue_empty",
-  "state_reconciliation_base_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
-  "repository_product_baseline_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+  "event": "le01mp_energy_201_software_merged_hardware_validation_pending",
+  "state_reconciliation_base_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+  "repository_product_baseline_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "completed_work_package": {
-    "issue": 513,
-    "pull_request": 514,
-    "title": "Integrate canonical TelemetryPointSelector into Test Sessions",
-    "status": "completed_software_browser_backend_offline_verified",
-    "merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
-    "final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
-    "raspberry_pi_operator_acceptance": "NOT_REQUIRED_OUT_OF_SCOPE"
+  "completed_software_work_package": {
+    "issue": 201,
+    "pull_request": 519,
+    "title": "Validate LE-01MP cumulative energy, scale and rollover",
+    "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
+    "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+    "final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
+    "issue_state": "OPEN_STATUS_NEEDS_VALIDATION"
   },
   "verification": {
     "ci": {
-      "run_id": 32034864169,
-      "run_number": 3294,
-      "status": "GREEN",
-      "evidence": "format, lint, typecheck, full test suite and production Next.js build"
+      "run_id": 32037544241,
+      "run_number": 3304,
+      "status": "GREEN"
     },
-    "test_sessions_browser": {
-      "run_id": 32034864360,
-      "run_number": 882,
+    "edge_image": {
+      "run_id": 32037544248,
+      "run_number": 267,
       "status": "GREEN",
-      "evidence": "canonical selector subset and existing organization-scoped production session flow"
+      "evidence": "full Device Agent unittest discovery including LE-01MP energy decoder and persisted-registry migration tests"
+    },
+    "acquisition_scale": {
+      "run_id": 32037544291,
+      "run_number": 166,
+      "status": "GREEN",
+      "active_target_profiles": [38, 144, 252]
+    },
+    "device_agent_fleet": {
+      "run_id": 32037544260,
+      "run_number": 794,
+      "status": "GREEN"
     },
     "telemetry_service": {
-      "run_id": 32034864089,
-      "run_number": 1597,
-      "status": "GREEN",
-      "evidence": "compile, migrations, PostgreSQL/MQTT/REST/WebSocket/object storage, outage recovery, offline SQL and container build"
-    },
-    "offline_bundle": {
-      "run_id": 32034864363,
-      "run_number": 1269,
-      "status": "GREEN",
-      "evidence": "clean transferred host, egress blocked, pull disabled, disconnected stack start, update and rollback preserve persistent data"
+      "run_id": 32037544282,
+      "run_number": 1599,
+      "status": "GREEN"
     },
     "authenticated_dashboard": {
-      "run_id": 32034864313,
-      "run_number": 1876,
-      "status": "GREEN_AFTER_SAME_SHA_RETRY"
+      "run_id": 32037544232,
+      "run_number": 1881,
+      "status": "GREEN"
     },
-    "disaster_recovery_browser": {
-      "run_id": 32034864255,
-      "run_number": 766,
-      "status": "GREEN_AFTER_SAME_SHA_RETRY"
+    "offline_bundle": {
+      "run_id": 32037544237,
+      "run_number": 1274,
+      "status": "GREEN",
+      "evidence": "disconnected startup with egress blocked and pull disabled plus persistent-data-preserving update/rollback"
+    },
+    "container_supply_chain": {
+      "run_id": 32037544316,
+      "run_number": 774,
+      "status": "GREEN"
+    },
+    "disaster_recovery_tls": {
+      "run_id": 32037544249,
+      "run_number": 735,
+      "status": "GREEN"
+    },
+    "mqtt_tls": {
+      "run_id": 32037544256,
+      "run_number": 744,
+      "status": "GREEN"
     }
+  },
+  "hardware_evidence": {
+    "normal_operation": "VERIFIED",
+    "units": [200, 201, 202, 203],
+    "layout": "FC03 address 7 count 2; R7 high word, R8 low word; uint32; scale 0.01 kWh",
+    "display_correlation": "VERIFIED",
+    "monotonicity_under_load": "VERIFIED",
+    "device_agent_restored_healthy": true,
+    "power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
+    "rollover_reset_discontinuity": "PENDING_POWER_CYCLE_EVIDENCE"
   },
   "ready_audit": {
     "open_status_ready_issue_count": 0,
     "result": "hard_blocked_no_ready_work_package",
     "post_merge": true,
-    "not_auto_promoted": [245, 444, 189, 450],
-    "epic_450_note": "Completed children now include 451, 453, 457, 461, 465, 507 and 513. Remaining Reports, Alarms and Equipment Maps selector integrations have no Ready Issues or repository-defined order."
-  },
-  "blocked_lanes": {
-    "issue_444": "runtime acceptance pending",
-    "issue_189": "hardware recovery evidence pending"
+    "needs_validation": [201, 245],
+    "blocked": [444, 189],
+    "product_priority_candidates": [450]
   },
   "runtime": {
     "mode": "lan",
@@ -72,7 +98,7 @@
     "api": "http://172.18.48.34:8082",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
     "current_runtime_healthy": true,
-    "issue_513_deployed": false
+    "issue_201_software_deployed": false
   },
   "deployment_capacity": {
     "next_redeploy_preflight_blocked": true,
@@ -89,5 +115,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Stop autonomous product implementation because no independent Ready Work Package exists. Product Owner priority is required before promoting or creating the next product Work Package."
+  "next_action": "No independent status:ready Work Package exists. Either Product Owner selects the next product priority or explicitly approves the physical restart/power-cycle observation required to complete Issue #201 hardware acceptance."
 }
