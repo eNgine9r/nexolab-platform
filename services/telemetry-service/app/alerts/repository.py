@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -43,6 +43,9 @@ class AlertConflictError(AlertRepositoryError):
 
 class AlertRuleConflictError(AlertRepositoryError):
     code = "alert_rule_conflict"
+
+
+TelemetryPointIdentity = tuple[str, str, str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -255,6 +258,7 @@ class AlertRepository:
         states: frozenset[AlertState] | None,
         severity: str | None,
         metric: str | None,
+        telemetry_points: tuple[TelemetryPointIdentity, ...] | None = None,
         limit: int,
         offset: int,
     ) -> Page:
@@ -266,6 +270,20 @@ class AlertRepository:
             filters.append(AlertInstance.severity == severity)
         if metric is not None:
             filters.append(AlertInstance.metric == metric)
+        if telemetry_points:
+            filters.append(
+                or_(
+                    *(
+                        and_(
+                            AlertInstance.node_id == node_id,
+                            AlertInstance.equipment_id == equipment_id,
+                            AlertInstance.channel_id == channel_id,
+                            AlertInstance.metric == point_metric,
+                        )
+                        for node_id, equipment_id, channel_id, point_metric in telemetry_points
+                    )
+                )
+            )
         with Session(self._engine, expire_on_commit=False) as session:
             count = int(
                 session.scalar(
@@ -312,12 +330,7 @@ class AlertRepository:
     ) -> Page:
         organization_id = self._scope()
         with Session(self._engine, expire_on_commit=False) as session:
-            self._locked_alert(
-                session,
-                organization_id,
-                alert_id,
-                lock=False,
-            )
+            self._locked_alert(session, organization_id, alert_id, lock=False)
             count = int(
                 session.scalar(
                     select(func.count())
@@ -330,10 +343,7 @@ class AlertRepository:
                 session.scalars(
                     select(AlertTransition)
                     .where(AlertTransition.alert_id == alert_id)
-                    .order_by(
-                        AlertTransition.occurred_at.desc(),
-                        AlertTransition.id.desc(),
-                    )
+                    .order_by(AlertTransition.occurred_at.desc(), AlertTransition.id.desc())
                     .limit(limit)
                     .offset(offset)
                 )
@@ -342,21 +352,10 @@ class AlertRepository:
                 session.expunge(item)
         return Page(items=list(items), count=count, limit=limit, offset=offset)
 
-    def evidence(
-        self,
-        alert_id: str,
-        *,
-        limit: int,
-        offset: int,
-    ) -> Page:
+    def evidence(self, alert_id: str, *, limit: int, offset: int) -> Page:
         organization_id = self._scope()
         with Session(self._engine, expire_on_commit=False) as session:
-            self._locked_alert(
-                session,
-                organization_id,
-                alert_id,
-                lock=False,
-            )
+            self._locked_alert(session, organization_id, alert_id, lock=False)
             count = int(
                 session.scalar(
                     select(func.count())
@@ -369,10 +368,7 @@ class AlertRepository:
                 session.scalars(
                     select(AlertEvidenceSample)
                     .where(AlertEvidenceSample.alert_id == alert_id)
-                    .order_by(
-                        AlertEvidenceSample.captured_at.asc(),
-                        AlertEvidenceSample.id.asc(),
-                    )
+                    .order_by(AlertEvidenceSample.captured_at.asc(), AlertEvidenceSample.id.asc())
                     .limit(limit)
                     .offset(offset)
                 )
@@ -437,12 +433,7 @@ class AlertRepository:
             raise ValueError("actor_source is required")
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
-                alert = self._locked_alert(
-                    session,
-                    organization_id,
-                    alert_id,
-                    lock=True,
-                )
+                alert = self._locked_alert(session, organization_id, alert_id, lock=True)
                 replay = session.scalar(
                     select(AlertTransition).where(
                         AlertTransition.alert_id == alert_id,
@@ -452,26 +443,20 @@ class AlertRepository:
                 if replay is not None:
                     session.expunge(alert)
                     session.expunge(replay)
-                    return LifecycleResult(
-                        alert=alert,
-                        transition=replay,
-                        replayed=True,
-                    )
+                    return LifecycleResult(alert=alert, transition=replay, replayed=True)
 
                 previous_state = AlertState(alert.state)
                 if action == "acknowledged":
                     if previous_state is not AlertState.ACTIVE:
                         raise AlertConflictError(
-                            f"alert {alert_id!r} cannot be acknowledged from "
-                            f"state {previous_state.value!r}"
+                            f"alert {alert_id!r} cannot be acknowledged from state {previous_state.value!r}"
                         )
                     next_state = AlertState.ACKNOWLEDGED
                     alert.acknowledged_at = payload.occurred_at
                 elif action == "closed":
                     if previous_state is not AlertState.RESOLVED:
                         raise AlertConflictError(
-                            f"alert {alert_id!r} cannot be closed from "
-                            f"state {previous_state.value!r}"
+                            f"alert {alert_id!r} cannot be closed from state {previous_state.value!r}"
                         )
                     next_state = AlertState.CLOSED
                     alert.closed_at = payload.occurred_at
@@ -497,11 +482,7 @@ class AlertRepository:
                 session.add(transition)
             session.expunge(alert)
             session.expunge(transition)
-            return LifecycleResult(
-                alert=alert,
-                transition=transition,
-                replayed=False,
-            )
+            return LifecycleResult(alert=alert, transition=transition, replayed=False)
 
     def _scope(self) -> str:
         if self._organization_id is None:
@@ -553,10 +534,7 @@ class AlertRepository:
         )
 
     @staticmethod
-    def _current_version(
-        session: Session,
-        rule: AlertRule,
-    ) -> AlertRuleVersion:
+    def _current_version(session: Session, rule: AlertRule) -> AlertRuleVersion:
         version = session.scalar(
             select(AlertRuleVersion).where(
                 AlertRuleVersion.rule_id == rule.id,
@@ -578,9 +556,7 @@ class AlertRepository:
             )
         )
         if exists is None:
-            raise AlertRuleNotFoundError(
-                f"session {session_id!r} was not found"
-            )
+            raise AlertRuleNotFoundError(f"session {session_id!r} was not found")
 
     @staticmethod
     def _locked_alert(
