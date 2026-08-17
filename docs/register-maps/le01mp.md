@@ -1,7 +1,7 @@
 # F&F LE-01MP read-only register map
 
-Status: production read semantics with explicit evidence boundaries  
-Issue: #201
+- Status: production read semantics with explicit evidence boundaries
+- Issue: #201
 
 ## Safety boundary
 
@@ -9,17 +9,15 @@ This profile is read-only. NEXOLAB uses Modbus RTU function `03` only for the fi
 
 ## Confirmed registers
 
-| Key | Metric | FC | Start | Count | Encoding | Scale | Unit | Evidence state |
-| --- | --- | ---: | ---: | ---: | --- | ---: | --- | --- |
-| `voltage` | `electrical.voltage` | 03 | 0 | 1 | uint16 | 0.1 | V | confirmed |
-| `current` | `electrical.current` | 03 | 1 | 1 | uint16 | 0.1 | A | confirmed |
-| `frequency` | `electrical.frequency` | 03 | 2 | 1 | uint16 | 0.1 | Hz | confirmed |
-| `active_power` | `electrical.power.active` | 03 | 3 | 1 | uint16 | 1 | W | confirmed |
-| `reactive_power` | `electrical.power.reactive` | 03 | 4 | 1 | uint16 | 1 | var | confirmed |
-| `apparent_power` | `electrical.power.apparent` | 03 | 5 | 1 | uint16 | 1 | VA | confirmed |
-| `power_factor` | `electrical.power_factor` | 03 | 6 | 1 | uint16 | 0.001 | ratio | confirmed |
-| `active_energy` | `electrical.energy.active` | 03 | 7 | 2 | uint32, high word then low word | 0.01 | kWh | confirmed for normal operation on Units 200–203 |
-| `internal_temperature` | `temperature.internal` | 03 | 37 | 1 | int16 | 1 | degC | confirmed |
+- `voltage`: `electrical.voltage`, FC03, start `0`, count `1`, uint16, scale `0.1 V`, confirmed.
+- `current`: `electrical.current`, FC03, start `1`, count `1`, uint16, scale `0.1 A`, confirmed.
+- `frequency`: `electrical.frequency`, FC03, start `2`, count `1`, uint16, scale `0.1 Hz`, confirmed.
+- `active_power`: `electrical.power.active`, FC03, start `3`, count `1`, uint16, scale `1 W`, confirmed.
+- `reactive_power`: `electrical.power.reactive`, FC03, start `4`, count `1`, uint16, scale `1 var`, confirmed.
+- `apparent_power`: `electrical.power.apparent`, FC03, start `5`, count `1`, uint16, scale `1 VA`, confirmed.
+- `power_factor`: `electrical.power_factor`, FC03, start `6`, count `1`, uint16, scale `0.001`, ratio, confirmed.
+- `active_energy`: `electrical.energy.active`, FC03, start `7`, count `2`, uint32 high word then low word, scale `0.01 kWh`, confirmed for normal operation on Units 200–203.
+- `internal_temperature`: `temperature.internal`, FC03, start `37`, count `1`, int16, scale `1 degC`, confirmed.
 
 ## Cumulative active energy
 
@@ -49,20 +47,18 @@ value = raw32 * 0.01
 
 Read-only Raspberry Pi validation on installed Units 200–203 produced:
 
-| Unit | R7 | R8 | raw32 | decoded kWh |
-| ---: | ---: | ---: | ---: | ---: |
-| 200 / W1 | 20 | 63791 | 1374511 | 13745.11 |
-| 201 / W2 | 38 | 49806 | 2540174 | 25401.74 |
-| 202 / W3 | 17 | 15498 | 1129610 | 11296.10 |
-| 203 / W4 | 21 | 2364 | 1378620 | 13786.20 |
+- Unit 200 / W1: R7 `20`, R8 `63791`, raw32 `1374511`, decoded `13745.11 kWh`.
+- Unit 201 / W2: R7 `38`, R8 `49806`, raw32 `2540174`, decoded `25401.74 kWh`.
+- Unit 202 / W3: R7 `17`, R8 `15498`, raw32 `1129610`, decoded `11296.10 kWh`.
+- Unit 203 / W4: R7 `21`, R8 `2364`, raw32 `1378620`, decoded `13786.20 kWh`.
 
 The decoded values were correlated with the physical meter displays.
 
 A second read approximately 9 minutes 50 seconds later showed normal cumulative behavior:
 
-- Unit 200: `0 W`, delta `0.00 kWh`;
-- Unit 201: `2520 W`, delta `+0.28 kWh`;
-- Unit 202: `228 W`, delta `+0.04 kWh`;
+- Unit 200: `0 W`, delta `0.00 kWh`.
+- Unit 201: `2520 W`, delta `+0.28 kWh`.
+- Unit 202: `228 W`, delta `+0.04 kWh`.
 - Unit 203: `0 W`, delta `0.00 kWh`.
 
 The Device Agent was restored to `healthy` after each bounded probe. No Modbus write or meter mutation occurred.
