@@ -78,7 +78,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm run format:check 2>&1 | tee prettier-diagnostics.txt
+          npx prettier --write \
+            e2e/test-sessions-selector.production.e2e.ts \
+            src/components/sessions/session-wizard.tsx \
+            src/components/sessions/wizard-steps.tsx \
+            src/features/test-sessions/telemetry-selection.test.ts \
+            src/lib/sessions/inputs.ts
+          git diff --no-ext-diff -- \
+            e2e/test-sessions-selector.production.e2e.ts \
+            src/components/sessions/session-wizard.tsx \
+            src/components/sessions/wizard-steps.tsx \
+            src/features/test-sessions/telemetry-selection.test.ts \
+            src/lib/sessions/inputs.ts
+          exit 1
 
       - name: Upload formatting diagnostics
         if: failure()
@@ -86,7 +98,7 @@ jobs:
         with:
           name: prettier-diagnostics-${{ github.sha }}
           path: prettier-diagnostics.txt
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 3
 
       - name: Lint
