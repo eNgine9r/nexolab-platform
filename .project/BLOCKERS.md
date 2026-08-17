@@ -2,54 +2,47 @@
 
 Updated: 2026-08-17
 
-## Critical active blocker — Issue #493 blocks Issue #289 Phase 12B
+## No active #493 / #289 product blocker
 
-Issue #493 — **Live telemetry Retry does not restart terminal Offline shared WebSocket transport** — is an active critical product blocker discovered by Issue #289 truthful-state acceptance.
+Issue #493 is closed `completed` and hardware verified on deployed product SHA `1d226d6ddcd0c009b8f83367599d7a64521190f0`.
 
-Controlled Raspberry Pi reproductions on deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`:
+Post-fix Phase 12B evidence:
 
-- Live Data Explorer: `runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4`;
-- Saved Live Dashboard: `runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4`.
+`runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2`
 
-Both prove that after reconnect exhaustion and network-path restoration:
+Issue #289 is closed `completed` after the final disconnected `LOCAL_LAN` browser-route acceptance passed:
 
-- terminal `Offline` remains truthful with no active WebSocket;
-- Chromium NetworkService remains alive;
-- physical acquisition continues independently;
-- Live Data **Повторити** or Saved Dashboard **Перепідключити** does not create a fresh WebSocket;
-- `websocket_clients` remains `0` for 40 seconds after manual Retry;
-- no F5, backend/MQTT/Device Agent restart or hardware write occurs.
+`runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2`
 
-Focused fix: branch `fix/493-terminal-offline-transport-restart`, PR #496. Issue #289 must not close until #493 is GREEN, merged, deployed and Phase 12B passes on the exact merged product head.
+Parent performance/data-acquisition Epic #282 is also closed `completed`.
 
-## Deployment capacity — no hard blocker
+## Deployment capacity — operational constraint before next redeploy
 
-The controlled Raspberry Pi remains healthy at deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`.
+The currently running Raspberry Pi `LOCAL_LAN` product/runtime is healthy on exact accepted product SHA `1d226d6ddcd0c009b8f83367599d7a64521190f0`.
 
-Previous deployment-capacity recovery was limited to disposable BuildKit, npm and Playwright browser caches. No product data, PostgreSQL telemetry history, Docker named volume, runtime acceptance evidence, MQTT/MinIO data or hardware state was deleted. Future deployments must continue using the capacity guard because disk headroom remains bounded.
+After an operator reboot, the existing central/edge containers auto-started healthy and the final #289 disconnected-browser acceptance passed on that runtime.
 
-## Issue #289 completed gates
+A redundant controlled redeploy on the same head stopped safely at deployment capacity preflight **before runtime mutation**:
 
-Completed physical/software acceptance includes:
+- `free_bytes=15310114816`;
+- `required_bytes=16595036807`;
+- `reserve_bytes=2147483648`.
 
-- no-browser / Overview / Live Dashboard / repeated-navigation / multi-browser physical request-rate matrix;
-- transient WebSocket reconnect and Telemetry Service restart recovery;
-- edge MQTT outage and SQLite outbox drain;
-- Phase 12A UI stale-with-retained-values and automatic Live recovery;
-- disconnected `LOCAL_LAN` operation;
-- REST ↔ WebSocket event identity/freshness consistency;
-- route-return latency/request-count acceptance after Issue #484;
-- deterministic fake/recorded scale matrix with `40/40` assertions across `34 / 136 / 240` targets, disabled-target zero acquisition, timeout isolation, fairness, overrun evidence and zero Modbus writes.
+Classification: soft operational blocker for the **next controlled redeploy** only. Do not bypass the guard. Do not delete product data, PostgreSQL history, named volumes or runtime acceptance evidence. Any future capacity recovery must be bounded to explicitly disposable artifacts and independently verified before deployment.
 
-The only current blocker for final #289 truthful-state completion is #493 terminal Offline manual recovery.
+## Ready-work boundary
 
-## Other pending physical evidence
+After closing #493, #289 and #282, repository audit found **0 open `status:ready` Issues**.
+
+This becomes the Sprint hard stop after state-only Issue #497 is merged: no independent Ready Work Package exists. Open Dependabot pull requests are separate dependency lanes and must not be selected as product work without their governing Issue/status and required migration/verification policy.
+
+## Independent pending physical/evidence items
+
+These remain separate from the completed #282/#289 acceptance sequence unless explicitly promoted into a focused Ready Work Package:
 
 - KK2/Unit 115 field retest;
 - refrigeration perceived-latency acceptance;
 - Raspberry Pi version-management acceptance.
-
-These remain independent from #493/#289 unless explicitly linked.
 
 ## Safety boundaries
 
