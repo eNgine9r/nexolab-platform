@@ -135,8 +135,14 @@ export function SessionWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      if (selectionStatus !== "ready" || selectedBindings.length === 0 || selectedBindings.length !== selectedKeyCount) {
-        throw new Error("Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.");
+      if (
+        selectionStatus !== "ready" ||
+        selectedBindings.length === 0 ||
+        selectedBindings.length !== selectedKeyCount
+      ) {
+        throw new Error(
+          "Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.",
+        );
       }
 
       if (operation.current.selectionKeys) {
@@ -151,7 +157,9 @@ export function SessionWizard() {
 
       const frozenBindings = resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
       if (frozenBindings.length !== operation.current.selectionKeys.length) {
-        throw new Error("Збережений telemetry selection більше не доступний у поточному локальному inventory.");
+        throw new Error(
+          "Збережений telemetry selection більше не доступний у поточному локальному inventory.",
+        );
       }
 
       let sessionId = operation.current.sessionId;
@@ -260,7 +268,9 @@ export function SessionWizard() {
   return (
     <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="panel h-fit p-4 xl:sticky xl:top-[98px]">
-        <p className="px-2 text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Creation wizard</p>
+        <p className="px-2 text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+          Creation wizard
+        </p>
         <div className="mt-4 space-y-1">
           {WIZARD_STEPS.map((label, index) => {
             const completed = index < step;
@@ -300,7 +310,9 @@ export function SessionWizard() {
 
       <section className="panel min-h-[680px]">
         <div className="border-b border-white/[0.055] p-5 sm:p-6">
-          <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">Крок {step + 1} з 8</p>
+          <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+            Крок {step + 1} з 8
+          </p>
           <h1 className="mt-2 text-2xl font-semibold text-white">{WIZARD_STEPS[step]}</h1>
           <p className="mt-2 text-[11px] leading-5 text-slate-500">
             Конфігурація версіонується, а під час start фіксується immutable snapshot.
@@ -333,7 +345,8 @@ export function SessionWizard() {
               <p className="mt-1 text-[10px] leading-5 text-slate-400">{error.message}</p>
               {createdSessionId && (
                 <p className="mt-2 font-mono text-[9px] text-cyan-300">
-                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі та початковий telemetry selection.
+                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі та початковий telemetry
+                  selection.
                 </p>
               )}
             </div>
@@ -364,7 +377,11 @@ export function SessionWizard() {
               disabled={submitting || selectedKeyCount === 0}
               onClick={() => void submit()}
             >
-              {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {submitting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
               {createdSessionId ? "Повторити без дублювання" : "Створити реальний draft"}
             </button>
           )}
