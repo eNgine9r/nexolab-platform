@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 import type { SessionBinding } from "@/lib/sessions/types";
 
-import {
-  buildReportTelemetrySelectionModel,
-  reportBindingIdsForSelection,
-} from "./telemetry-selection";
+import { buildReportTelemetrySelectionModel, reportBindingIdsForSelection } from "./telemetry-selection";
 
 function binding(overrides: Partial<SessionBinding> = {}): SessionBinding {
   return {
@@ -25,9 +22,7 @@ function binding(overrides: Partial<SessionBinding> = {}): SessionBinding {
   };
 }
 
-function inventory(
-  overrides: Partial<LiveDashboardInventoryItem> = {},
-): LiveDashboardInventoryItem {
+function inventory(overrides: Partial<LiveDashboardInventoryItem> = {}): LiveDashboardInventoryItem {
   return {
     key: "inventory-1",
     channel_ref_id: "channel-ref-1",
@@ -64,9 +59,7 @@ describe("report telemetry selection adapter", () => {
     expect(model.orderedPointKeys).toHaveLength(1);
     const root = model.hierarchy.roots[0]!;
     expect(root.label).toBe("Лабораторія 1");
-    expect(reportBindingIdsForSelection(model, model.orderedPointKeys)).toEqual([
-      "binding-1",
-    ]);
+    expect(reportBindingIdsForSelection(model, model.orderedPointKeys)).toEqual(["binding-1"]);
   });
 
   it("preserves a persisted binding that is missing from current inventory", () => {
