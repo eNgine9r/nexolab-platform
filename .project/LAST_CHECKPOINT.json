@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T14:16:00Z",
+  "timestamp": "2026-08-17T14:24:00Z",
   "actor": "ChatGPT",
-  "event": "le01mp_energy_201_software_merged_hardware_validation_pending",
+  "event": "le01mp_201_software_merged_reports_521_selected_ready",
   "state_reconciliation_base_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
   "repository_product_baseline_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
@@ -28,8 +28,7 @@
     "edge_image": {
       "run_id": 32037544248,
       "run_number": 267,
-      "status": "GREEN",
-      "evidence": "full Device Agent unittest discovery including LE-01MP energy decoder and persisted-registry migration tests"
+      "status": "GREEN"
     },
     "acquisition_scale": {
       "run_id": 32037544291,
@@ -57,40 +56,37 @@
       "run_number": 1274,
       "status": "GREEN",
       "evidence": "disconnected startup with egress blocked and pull disabled plus persistent-data-preserving update/rollback"
-    },
-    "container_supply_chain": {
-      "run_id": 32037544316,
-      "run_number": 774,
-      "status": "GREEN"
-    },
-    "disaster_recovery_tls": {
-      "run_id": 32037544249,
-      "run_number": 735,
-      "status": "GREEN"
-    },
-    "mqtt_tls": {
-      "run_id": 32037544256,
-      "run_number": 744,
-      "status": "GREEN"
     }
   },
   "hardware_evidence": {
-    "normal_operation": "VERIFIED",
+    "issue_201_normal_operation": "VERIFIED",
     "units": [200, 201, 202, 203],
-    "layout": "FC03 address 7 count 2; R7 high word, R8 low word; uint32; scale 0.01 kWh",
     "display_correlation": "VERIFIED",
     "monotonicity_under_load": "VERIFIED",
-    "device_agent_restored_healthy": true,
     "power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
     "rollover_reset_discontinuity": "PENDING_POWER_CYCLE_EVIDENCE"
   },
-  "ready_audit": {
-    "open_status_ready_issue_count": 0,
-    "result": "hard_blocked_no_ready_work_package",
-    "post_merge": true,
-    "needs_validation": [201, 245],
-    "blocked": [444, 189],
-    "product_priority_candidates": [450]
+  "repository_repair": {
+    "issue": 524,
+    "pull_request": 525,
+    "status": "COMPLETED_GREEN",
+    "description": "Removed the accidental empty root .tmp file through the normal branch/PR process without force push or product/runtime changes."
+  },
+  "selection": {
+    "selected_issue": 521,
+    "title": "Integrate TelemetryPointSelector into report evidence selection",
+    "status": "READY_SELECTED_BY_PRODUCT_OWNER",
+    "priority": "critical",
+    "parent_issue": 450,
+    "ready_issue_count": 1,
+    "implementation_started": false,
+    "future_epic_450_consumers_not_bundled": ["Alarms", "Equipment Maps"]
+  },
+  "independent_pending_lanes": {
+    "issue_201": "needs-validation: approved restart/power-cycle and rollover evidence pending",
+    "issue_245": "needs-validation: physical standalone Raspberry Pi acceptance pending",
+    "issue_444": "blocked: LOCAL_LAN runtime acceptance pending",
+    "issue_189": "blocked: hardware recovery evidence pending"
   },
   "runtime": {
     "mode": "lan",
@@ -115,5 +111,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "No independent status:ready Work Package exists. Either Product Owner selects the next product priority or explicitly approves the physical restart/power-cycle observation required to complete Issue #201 hardware acceptance."
+  "next_action": "Validate and merge the state-only reconciliation. Then mark Issue #521 status:in-progress, create feat/521-reports-telemetry-selector and implement the focused report evidence selector Work Package."
 }
