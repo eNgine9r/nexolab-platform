@@ -13,6 +13,57 @@ const managerAToken = required("NEXOLAB_ALERTS_MANAGER_A_TOKEN");
 const managerBToken = required("NEXOLAB_ALERTS_MANAGER_B_TOKEN");
 const viewerAToken = required("NEXOLAB_ALERTS_VIEWER_A_TOKEN");
 
+const inventoryFixture = {
+  items: [
+    {
+      key: "106-03|temperature.probe",
+      channel_ref_id: "alerts-selector-106-03",
+      node_id: "edge-01",
+      equipment_id: "K106",
+      equipment_name: "K106",
+      climate_chamber_id: "alerts-selector-chamber",
+      climate_chamber_code: "LAB-ALERTS",
+      climate_chamber_name: "Alerts acceptance laboratory",
+      equipment_type: "temperature_controller",
+      laboratory: "Alerts acceptance laboratory",
+      zone: "Alert zone",
+      channel_id: "106-03",
+      channel_name: "Probe 106-03",
+      metric: "temperature.probe",
+      native_unit: "degC",
+      source: "alerts-selector-browser-fixture",
+      quality: "valid",
+      alarm: "high",
+      latest: null,
+    },
+    {
+      key: "200-01|energy.active_power",
+      channel_ref_id: "alerts-selector-200-01",
+      node_id: "edge-02",
+      equipment_id: "M200",
+      equipment_name: "Energy meter 200",
+      climate_chamber_id: "alerts-selector-chamber",
+      climate_chamber_code: "LAB-ALERTS",
+      climate_chamber_name: "Alerts acceptance laboratory",
+      equipment_type: "energy_meter",
+      laboratory: "Alerts acceptance laboratory",
+      zone: "Alert zone",
+      channel_id: "200-01",
+      channel_name: "Power M200",
+      metric: "energy.active_power",
+      native_unit: "W",
+      source: "alerts-selector-browser-fixture",
+      quality: "valid",
+      alarm: null,
+      latest: null,
+    },
+  ],
+  total: 2,
+  limit: 200,
+  offset: 0,
+  has_more: false,
+};
+
 interface AlertRuleResponse {
   id: string;
   organization_id: string;
@@ -188,6 +239,12 @@ async function installBrowserCredentials(
   );
 }
 
+async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: width === 360 ? 800 : 1000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+}
+
 test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, PostgreSQL and MQTT", async ({
   page,
 }) => {
@@ -270,13 +327,56 @@ test("production alerts enforce deterministic lifecycle on Next.js, FastAPI, Pos
     expect(viewerAcknowledge.status()).toBe(403);
 
     await installBrowserCredentials(page, managerAToken, organizationA);
+    await page.route("**/api/v1/live-dashboards/channel-inventory?**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(inventoryFixture),
+      });
+    });
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/alerts", { waitUntil: "networkidle" });
     await expect(page.getByTestId("alerts-workspace")).toBeVisible();
+    await expect(page.getByTestId("alerts-telemetry-scope")).toBeVisible();
     await expect(page.getByText("K106 / 106-03")).toBeVisible();
     await expect(page.getByTestId("alert-detail").getByText("9,4 degC")).toBeVisible();
     expect(page.url()).not.toContain(managerAToken);
+
+    const selectionCount = page.getByTestId("telemetry-selection-count");
+    await expect(selectionCount).toContainText("Обрано 2");
+    const selectorSearch = page.getByRole("searchbox", { name: "Пошук" });
+    await selectorSearch.fill("M200");
+    const powerPoint = page.getByRole("treeitem").filter({ hasText: "Power M200" });
+    await expect(powerPoint).toHaveCount(1);
+    await powerPoint.click();
+    await expect(selectionCount).toContainText("Обрано 1");
+    await page.getByRole("button", { name: "Скасувати" }).click();
+    await expect(selectionCount).toContainText("Обрано 2");
+
+    await selectorSearch.fill("M200");
+    await powerPoint.click();
+    const scopedRequestPromise = page.waitForRequest((requestDetails) => {
+      const url = new URL(requestDetails.url());
+      return (
+        requestDetails.method() === "GET" &&
+        url.pathname.endsWith("/api/v1/alerts") &&
+        url.searchParams.has("telemetry_point")
+      );
+    });
+    await page.getByRole("button", { name: "Підтвердити вибір" }).click();
+    const scopedRequest = await scopedRequestPromise;
+    const scopedUrl = new URL(scopedRequest.url());
+    expect(scopedUrl.searchParams.getAll("telemetry_point")).toEqual([
+      "edge-01|K106|106-03|temperature.probe|degC",
+    ]);
+    await expect(page.getByText("Підтверджено 1 точок: серверний feed звужено.")).toBeVisible();
+    await expect(page.getByText("K106 / 106-03")).toBeVisible();
+
+    await expectNoDocumentOverflow(page, 360);
+    await expectNoDocumentOverflow(page, 1440);
+    await expectNoDocumentOverflow(page, 1920);
 
     await page
       .getByPlaceholder("Що перевірено оператором…")
