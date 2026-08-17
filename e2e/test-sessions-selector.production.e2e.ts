@@ -76,7 +76,10 @@ const inventoryFixture = {
   has_more: false,
 };
 
-test("creates a Test Sessions draft with exactly the canonical selector subset", async ({ browser, request }) => {
+test("creates a Test Sessions draft with exactly the canonical selector subset", async ({
+  browser,
+  request,
+}) => {
   const contract = await request.get(`${apiBaseUrl}/api/v1/sessions/binding-options/production`, {
     headers: headers(),
   });
@@ -87,7 +90,11 @@ test("creates a Test Sessions draft with exactly the canonical selector subset",
   const page = await context.newPage();
   try {
     await page.route("**/api/v1/live-dashboards/channel-inventory?**", async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(inventoryFixture) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(inventoryFixture),
+      });
     });
 
     await page.goto("/sessions/new", { waitUntil: "domcontentloaded" });
@@ -115,11 +122,15 @@ test("creates a Test Sessions draft with exactly the canonical selector subset",
     await expect(selectionCount).toContainText("Обрано 1");
     await page.getByRole("button", { name: "Підтвердити вибір" }).click();
 
-    const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const mobileOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
     expect(mobileOverflow).toBeLessThanOrEqual(1);
 
     await page.setViewportSize({ width: 1440, height: 1000 });
-    const desktopOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const desktopOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
     expect(desktopOverflow).toBeLessThanOrEqual(1);
 
     await page.getByRole("button", { name: "Далі" }).click();
