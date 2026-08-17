@@ -78,13 +78,12 @@ export function SessionWizard() {
   useEffect(() => {
     if (!selectionEnabled) return;
     const controller = new AbortController();
-    setBindingOptionsStatus("loading");
-    setBindingOptionsError(null);
     void sessionClient
       .listProductionBindingOptions(controller.signal)
       .then((options) => {
         if (controller.signal.aborted) return;
         setBindingOptions(options);
+        setBindingOptionsError(null);
         setBindingOptionsStatus("ready");
       })
       .catch((nextError: unknown) => {
@@ -127,6 +126,8 @@ export function SessionWizard() {
   };
 
   const retrySelection = () => {
+    setBindingOptionsStatus("loading");
+    setBindingOptionsError(null);
     inventory.retry();
     setBindingOptionsRevision((value) => value + 1);
   };
