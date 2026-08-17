@@ -8,6 +8,10 @@ interface RoutedSocket {
   close(options?: { code?: number; reason?: string }): Promise<void>;
 }
 
+interface RoutedSocketState {
+  healthy: RoutedSocket | null;
+}
+
 async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
   await context.addInitScript(
@@ -41,7 +45,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
   const context = await authenticatedContext(browser);
   let outage = false;
   let routedSocketCount = 0;
-  let healthySocket: RoutedSocket | null = null;
+  const routedSocketState: RoutedSocketState = { healthy: null };
 
   await context.routeWebSocket(/\/api\/v1\/telemetry\/live(?:\?|$)/, async (socket) => {
     routedSocketCount += 1;
@@ -50,7 +54,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
       return;
     }
 
-    healthySocket = socket;
+    routedSocketState.healthy = socket;
     socket.connectToServer();
   });
 
@@ -63,7 +67,7 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     await expect.poll(websocketClientCount).toBe(1);
     expect(routedSocketCount).toBe(1);
 
-    const baselineSocket = healthySocket;
+    const baselineSocket = routedSocketState.healthy;
     if (!baselineSocket) throw new Error("Initial routed WebSocket was not captured");
 
     outage = true;
