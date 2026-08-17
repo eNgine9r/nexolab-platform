@@ -73,6 +73,7 @@ def create_report_router(
                 actor_roles=authorized.principal.roles,
                 expected_source_sha256=payload.expected_source_sha256,
                 reason=payload.reason,
+                binding_ids=payload.binding_ids,
             )
             response = _generation_read(record)
             if record.replayed:

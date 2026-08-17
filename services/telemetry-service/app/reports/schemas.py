@@ -13,6 +13,11 @@ class ReportGenerateRequest(BaseModel):
         pattern=r"^[0-9a-fA-F]{64}$",
     )
     reason: str | None = Field(default=None, max_length=1024)
+    binding_ids: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=512,
+    )
 
 
 class ReportArtifactRead(BaseModel):

@@ -46,6 +46,16 @@ interface ReportPageResponse {
   count: number;
 }
 
+interface ReportSourceSnapshot {
+  metadata: {
+    telemetry_selection: {
+      mode: string;
+      binding_ids: string[];
+      binding_count: number;
+    };
+  };
+}
+
 function required(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name} is required`);
@@ -111,7 +121,16 @@ async function downloadArtifact(
   };
 }
 
-test("production reports preserve immutable evidence across API, UI and organizations", async ({
+async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: 900 });
+  const dimensions = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+}
+
+test("production reports preserve immutable selected evidence across API, UI and organizations", async ({
   browser,
 }) => {
   const anonymous = await apiContext(undefined, organizationA);
@@ -148,6 +167,14 @@ test("production reports preserve immutable evidence across API, UI and organiza
     await expect(engineerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(engineerPage.getByTestId("report-generation-panel")).toBeVisible();
     await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(completedSessionId);
+    await expect(engineerPage.getByTestId("report-telemetry-selector")).toBeVisible();
+    await expect(engineerPage.getByTestId("report-telemetry-selection-count")).toContainText("1 з 1");
+    await expect(engineerPage.getByTestId("generate-report")).toBeEnabled();
+
+    for (const width of [360, 1440, 1920]) {
+      await expectNoDocumentOverflow(engineerPage, width);
+    }
+
     await engineerPage
       .getByPlaceholder("Контрольований evidence export…")
       .fill("Production browser evidence");
@@ -164,6 +191,15 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect(browserReport.session_id).toBe(completedSessionId);
     expect(browserReport.generated_by).toBe(engineerSubject);
 
+    const browserSource = JSON.parse(
+      (await downloadArtifact(engineerA, browserReport.id, "source-snapshot.json")).content.toString("utf8"),
+    ) as ReportSourceSnapshot;
+    expect(browserSource.metadata.telemetry_selection).toEqual({
+      mode: "explicit",
+      binding_ids: [bindingId],
+      binding_count: 1,
+    });
+
     const downloadPromise = engineerPage.waitForEvent("download");
     await engineerPage.getByTestId("download-telemetry.csv").click();
     const browserDownload = await downloadPromise;
@@ -173,7 +209,10 @@ test("production reports preserve immutable evidence across API, UI and organiza
     const replayKey = `reports-replay-${randomUUID()}`;
     const firstReplayRequest = await engineerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
       headers: { "Idempotency-Key": replayKey },
-      data: { expected_source_sha256: browserReport.source_sha256 },
+      data: {
+        expected_source_sha256: browserReport.source_sha256,
+        binding_ids: [bindingId],
+      },
     });
     expect(firstReplayRequest.status()).toBe(201);
     const replayCreated = (await firstReplayRequest.json()) as ReportResponse;
@@ -181,7 +220,10 @@ test("production reports preserve immutable evidence across API, UI and organiza
 
     const replayedRequest = await engineerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
       headers: { "Idempotency-Key": replayKey },
-      data: { expected_source_sha256: browserReport.source_sha256 },
+      data: {
+        expected_source_sha256: browserReport.source_sha256,
+        binding_ids: [bindingId],
+      },
     });
     expect(replayedRequest.status()).toBe(200);
     expect(replayedRequest.headers()["idempotent-replay"]).toBe("true");
@@ -189,9 +231,19 @@ test("production reports preserve immutable evidence across API, UI and organiza
     expect(replayed.id).toBe(replayCreated.id);
     expect(replayed.replayed).toBe(true);
 
+    const mismatchedReplay = await engineerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
+      headers: { "Idempotency-Key": replayKey },
+      data: {},
+    });
+    expect(mismatchedReplay.status()).toBe(409);
+    expect((await mismatchedReplay.json()).detail.code).toBe("report_idempotency_conflict");
+
     const managerGenerate = await managerA.post(`/api/v1/reports/sessions/${completedSessionId}`, {
       headers: { "Idempotency-Key": `manager-version-${randomUUID()}` },
-      data: { expected_source_sha256: browserReport.source_sha256 },
+      data: {
+        expected_source_sha256: browserReport.source_sha256,
+        binding_ids: [bindingId],
+      },
     });
     expect(managerGenerate.status()).toBe(201);
     expect(((await managerGenerate.json()) as ReportResponse).version).toBe(3);

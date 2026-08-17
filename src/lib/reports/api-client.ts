@@ -131,6 +131,7 @@ export class ReportApiClient {
     idempotencyKey: string,
     expectedSourceSha256?: string,
     signal?: AbortSignal,
+    bindingIds?: readonly string[],
   ): Promise<ReportGenerationResponse> {
     return this.requestJson(
       `/api/v1/reports/sessions/${encodeURIComponent(sessionId)}`,
@@ -139,6 +140,7 @@ export class ReportApiClient {
         body: {
           reason: reason.trim() || null,
           expected_source_sha256: expectedSourceSha256?.trim() || null,
+          ...(bindingIds === undefined ? {} : { binding_ids: [...bindingIds] }),
         },
         idempotencyKey,
         signal,
