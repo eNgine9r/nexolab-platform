@@ -1,0 +1,42 @@
+name: Temporary formatter Issue 537 bounded reads
+
+on:
+  push:
+    branches: [feat/537-energy-period-consumption]
+    paths:
+      - src/features/energy/energy-consumption-cache.ts
+      - src/features/energy/energy-consumption-cache.test.ts
+      - src/features/energy/use-energy-consumption.ts
+      - src/components/energy/energy-screen.tsx
+      - e2e/energy.production.e2e.ts
+      - .github/workflows/format-537-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/537-energy-period-consumption
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - run: |
+          npx prettier --write src/features/energy/energy-consumption-cache.ts src/features/energy/energy-consumption-cache.test.ts src/features/energy/use-energy-consumption.ts src/components/energy/energy-screen.tsx e2e/energy.production.e2e.ts
+          git diff --check
+      - run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/energy/energy-consumption-cache.ts src/features/energy/energy-consumption-cache.test.ts src/features/energy/use-energy-consumption.ts src/components/energy/energy-screen.tsx e2e/energy.production.e2e.ts
+          git commit -m "style(energy): format bounded consumption reads"
+          git push origin HEAD:feat/537-energy-period-consumption
