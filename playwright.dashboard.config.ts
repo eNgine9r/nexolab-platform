@@ -17,6 +17,7 @@ export default defineConfig({
         "authenticated-dashboard.production.e2e.ts",
         "energy.production.e2e.ts",
         "live.production.e2e.ts",
+        "live-terminal-offline-retry.production.e2e.ts",
         "live-chart-system.production.e2e.ts",
         "equipment-multi-axis-chart.production.e2e.ts",
         "equipment-layouts.production.e2e.ts",

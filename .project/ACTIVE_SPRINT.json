@@ -19,25 +19,16 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-  "current_main_sha_semantics": "Exact GitHub main and controlled Raspberry Pi LOCAL_LAN deployed product baseline after Issue #484 hardware acceptance; subsequent state-only reconciliation does not change the deployed product SHA.",
+  "current_main_sha": "297fc2fa28ef43d7be71d2436151a34f3e414a26",
+  "current_main_sha_semantics": "Exact GitHub main after state-only Issue #491 reconciliation. Controlled Raspberry Pi deployed product/runtime remains e418ae3526319d56a9229bf1e15eb0adf47c7ef1 until the next product deployment.",
+  "deployed_product_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
   "selection_state": {
-    "last_ready_audit_result": "No open status:ready Issues after Issue #484 hardware acceptance. Issue #289 remains the existing active acceptance lane.",
-    "selected_issue": 289,
-    "selection_status": "continue_existing_in_progress_scale_stability_acceptance",
-    "next_independent_software_issue": null
+    "selected_issue": 493,
+    "parent_acceptance_issue": 289,
+    "selection_status": "critical_bug_interrupts_existing_in_progress_acceptance",
+    "reason": "Issue #289 Phase 12B reproduced a terminal Offline manual-recovery failure on both Live Data Explorer and Saved Live Dashboard."
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-469",
-      "issue": 469,
-      "pull_request": 476,
-      "title": "Prevent Raspberry Pi deployment evidence capture from exhausting disk",
-      "status": "completed_software_and_physical_acceptance",
-      "priority": "high",
-      "merge_sha": "b79bcee3670693c46219e8bc58ec3fc8ffe5095a",
-      "hardware_acceptance": true
-    },
     {
       "id": "NEXOLAB-484",
       "issue": 484,
@@ -45,75 +36,73 @@
       "title": "Reuse Energy history on warm route return instead of replaying full 24h pagination",
       "status": "completed_software_and_physical_acceptance",
       "priority": "high",
-      "source_head": "4f244da779c81c81e1e3d43a8c66549fe4cee300",
       "merge_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
       "deployed_acceptance_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-      "hardware_acceptance": true,
-      "physical_evidence": "runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2"
+      "hardware_acceptance": true
     },
     {
       "id": "NEXOLAB-289",
       "issue": 289,
       "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "in_progress_scale_stability_acceptance",
+      "status": "blocked_on_critical_bug_493_phase_12b",
       "priority": "critical",
       "assignee": "eNgine9r",
-      "hardware_acceptance": "browser_request_rate_and_recovery_matrix_passed_remaining_synthetic_scale_timeout_matrix",
       "completed_gates": [
         "real_hardware_browser_request_rate_matrix",
-        "websocket_reconnect_and_sustained_outage",
+        "websocket_transient_reconnect",
         "telemetry_service_restart_recovery",
-        "edge_mqtt_outbox_drain",
+        "edge_mqtt_outbox_drain_and_ui_stale_truthfulness",
         "disconnected_local_lan_runtime",
         "rest_websocket_event_identity_freshness",
-        "route_return_latency_and_request_count"
+        "route_return_latency_and_request_count",
+        "deterministic_increased_load_timeout_fairness_matrix"
       ],
-      "next_gate": "deterministic increased-load plus timeout-heavy/unavailable-endpoint scheduler matrix using fake/recorded serial devices"
+      "remaining_gate": "Phase 12B terminal Offline manual Retry recovery after Issue #493 merge and Raspberry Pi deployment"
     },
     {
-      "id": "NEXOLAB-491",
-      "issue": 491,
-      "title": "Reconcile Issue #484 hardware acceptance and Phase 11 completion",
-      "status": "state_only_reconciliation_in_progress",
-      "priority": "high",
-      "area": "project-state",
-      "classification": "state-only; no product/runtime change"
+      "id": "NEXOLAB-493",
+      "issue": 493,
+      "pull_request": 496,
+      "title": "Live telemetry Retry does not restart terminal Offline shared WebSocket transport",
+      "status": "in_progress",
+      "priority": "critical",
+      "branch": "fix/493-terminal-offline-transport-restart",
+      "hardware_reproduction": true,
+      "hardware_acceptance": false,
+      "blocks": [289]
     }
   ],
   "active_work_package": {
-    "issue": 289,
-    "title": "Prove acquisition scale, stability and truthful live-state behavior",
-    "status": "in_progress_scale_stability_acceptance",
+    "issue": 493,
+    "pull_request": 496,
+    "title": "Restart terminal Offline shared WebSocket transport on explicit operator Retry",
+    "status": "implementation_and_verification_in_progress",
     "priority": "critical",
-    "next_step": "Run the deterministic fake/recorded increased-load and timeout-heavy scheduler matrix; measure priority deadlines/fairness, timeout isolation, disabled-target zero-acquisition behavior and bus/scheduler metrics without hardware writes."
+    "next_step": "Complete exact-head CI and browser/offline acceptance, merge only GREEN, deploy exact merged product head to Raspberry Pi, then rerun Phase 12B."
   },
   "next_work_package": {
     "issue": 289,
-    "title": "Continue acquisition scale, stability and truthful live-state acceptance",
-    "status": "active_existing_work_package_no_independent_ready_software",
+    "title": "Resume final scale/stability acceptance after #493",
+    "status": "blocked_until_issue_493_hardware_acceptance",
     "priority": "critical"
   },
   "verification": {
-    "issue_484_ci_run": 31973454509,
-    "issue_484_authenticated_dashboard_run": 31973454596,
-    "issue_484_offline_bundle_run": 31973454511,
-    "issue_484_source_head": "4f244da779c81c81e1e3d43a8c66549fe4cee300",
-    "issue_484_merge_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-    "issue_484_deployed_acceptance_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
     "issue_484_hardware_acceptance": true,
     "phase_11_cold_history_requests": 28,
     "phase_11_warm_history_requests_per_return": [1, 1, 1],
     "phase_11_warm_usable_ms": [627, 557, 443],
-    "phase_11_physical_request_delta": 131,
-    "phase_11_communication_failure_delta": 0,
-    "ready_issue_count": 0
+    "deterministic_scale_assertions": "40/40 PASS",
+    "deterministic_scale_targets": [34, 136, 240],
+    "phase_12a_mqtt_ui_truthfulness": "PASS",
+    "phase_12b_live_data_reproduction": "runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4",
+    "phase_12b_saved_dashboard_reproduction": "runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4",
+    "issue_493_software_verification": "in_progress"
   },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "deployment_capacity_recovery": "bounded disposable caches only; no product/runtime data deleted",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   }

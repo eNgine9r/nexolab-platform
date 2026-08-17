@@ -2,69 +2,78 @@
 
 Updated: 2026-08-17
 
-## Canonical deployed baseline
+## Repository and deployed baselines
 
-The controlled Raspberry Pi `LOCAL_LAN` host and GitHub `main` are aligned at exact commit `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`, the squash merge of PR #485 for Issue #484.
+GitHub `main` is `297fc2fa28ef43d7be71d2436151a34f3e414a26`, the state-only reconciliation merge after Issue #484 hardware acceptance.
 
-Controlled deployment evidence:
+The controlled Raspberry Pi `LOCAL_LAN` product/runtime remains deployed at `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`, the product merge of PR #485. The later state-only repository commit does not require runtime redeployment.
+
+Controlled product deployment evidence:
 
 - `runtime/deployments/20260817T045808Z`;
 - `runtime_mode=lan`;
 - bind address `172.18.48.34`;
 - dashboard `http://172.18.48.34:3000`;
 - API `http://172.18.48.34:8082`;
-- central PostgreSQL/MQTT/Telemetry and edge MQTT/Device Agent ready after deployment;
+- central PostgreSQL/MQTT/Telemetry and edge MQTT/Device Agent ready;
 - Device Agent queue depth `0`, scheduler healthy, one active `rs485-main` worker.
 
-The deployment-capacity guard initially failed safely before runtime mutation. Capacity was recovered only through bounded disposable cache cleanup (BuildKit, npm download cache and Playwright-downloaded browser cache). No product data, named volumes, PostgreSQL telemetry history, runtime acceptance evidence or hardware state was deleted.
+Deployment capacity remains bounded. Previous recovery removed only disposable BuildKit, npm and Playwright browser caches; product data, named volumes, PostgreSQL history and runtime evidence were preserved.
 
-## Issue #484 — completed, software and Raspberry Pi hardware acceptance verified
+## Issue #484 — completed
 
-Issue #484 — **Reuse Energy history on warm route return instead of replaying full 24h pagination** — is closed `completed`.
+Issue #484 — **Reuse Energy history on warm route return instead of replaying full 24h pagination** — is closed `completed` and Raspberry Pi verified.
 
-Software merge:
+Phase 11-R2 evidence: `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`.
 
-- PR #485;
-- final verified source head `4f244da779c81c81e1e3d43a8c66549fe4cee300`;
-- merge/current product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`;
-- CI `31973454509` — PASS;
-- Authenticated Dashboard `31973454596` — PASS;
-- Offline Bundle `31973454511` — PASS.
+- cold Energy bootstrap: `28` paginated 24h history requests;
+- three warm returns: exactly one bounded approximately five-minute tail request each;
+- warm usable latency: `627 / 557 / 443 ms`;
+- no warm loading transition;
+- one application-shell WebSocket;
+- physical acquisition continued `+131`, communication failures `+0`;
+- no navigation-driven acquisition mutation or hardware write.
 
-Physical Phase 11-R2 evidence:
+## Active acceptance lane — Issue #289
 
-- `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`;
-- cold/full Energy bootstrap: `28` snapshot-paginated 24h history requests;
-- warm return #1: one bounded `311.716 s` tail request, usable in `627 ms`;
-- warm return #2: one bounded `302.138 s` tail request, usable in `557 ms`;
-- warm return #3: one bounded `302.158 s` tail request, usable in `443 ms`;
-- no visible Energy loading transition on any warm return;
-- telemetry latest bootstrap remained `1 -> 1`;
-- one document load and one application-shell WebSocket (`maxConcurrent=1`);
-- no navigation-driven acquisition mutation;
-- physical requests continued `+131`, communication failures `+0`, workers healthy, one active bus worker, degraded/cooldown `0/0`.
+Issue #289 — **Prove acquisition scale, stability and truthful live-state behavior** — remains open `status:in-progress`.
 
-Classification: **software verified; Raspberry Pi hardware verified**.
+Completed evidence includes:
 
-## Active Work Package — Issue #289
-
-Issue #289 — **Prove acquisition scale, stability and truthful live-state behavior** — remains the active `status:in-progress` acceptance lane.
-
-Completed #289 evidence now includes:
-
-- five-phase real-hardware browser/request-rate matrix: no browser, Overview, Live Dashboard, repeated navigation and multiple concurrent browser pages, with no browser-driven physical Modbus amplification;
-- WebSocket reconnect and sustained-outage recovery evidence;
-- Telemetry Service restart recovery without duplicate committed telemetry;
-- edge MQTT outage, SQLite outbox growth and deterministic drain without duplicate committed telemetry;
-- disconnected `LOCAL_LAN` runtime with public egress blocked while local monitoring remained functional;
+- no-browser / Overview / Live Dashboard / repeated-navigation / multi-browser physical request-rate matrix with no browser-driven Modbus amplification;
+- WebSocket transient reconnect and Telemetry Service restart recovery;
+- edge MQTT outage, SQLite outbox growth/drain and UI stale-to-Live truthfulness;
+- disconnected `LOCAL_LAN` runtime;
 - REST ↔ WebSocket event identity/freshness consistency;
-- route-return latency/request-count acceptance, including the #484 Energy warm-history correction.
+- route-return latency/request-count acceptance after #484;
+- deterministic fake/recorded acquisition scale matrix: `40/40` assertions, `34 / 136 / 240` targets, one serialized reader, disabled targets zero executions, timeout/cooldown isolation, fairness and overrun behavior, `serial_port_opened=false`, `modbus_write_attempts=0`;
+- Phase 12A operator UI observation: `Live → Застарілі дані` with retained values and no false Live label, then automatic `Live` recovery after MQTT restoration without F5/Retry.
 
-The next unresolved acceptance gate is the deterministic increased-load plus timeout-heavy/unavailable-endpoint scheduler matrix using fake/recorded serial devices. It must measure priority deadlines/fairness, timeout isolation, disabled-target zero-acquisition behavior and scheduler/bus-load metrics without modifying physical controller state.
+## Critical blocker — Issue #493
 
-## Ready audit
+Issue #493 — **Live telemetry Retry does not restart terminal Offline shared WebSocket transport** — is the active critical bug interrupting #289 Phase 12B.
 
-A fresh GitHub query for open `status:ready` Issues returned **none**. Do not invent an independent software Work Package. Continue Issue #289 after this state-only reconciliation.
+Controlled Raspberry Pi reproductions on deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`:
+
+- Live Data Explorer: `runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4`;
+- Saved Live Dashboard: `runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4`.
+
+Both reproductions proved:
+
+- baseline `websocket_clients=1`;
+- Chromium NetworkService remained alive and unchanged;
+- physical acquisition continued throughout the local API-path outage;
+- after reconnect-budget exhaustion and network restoration, `websocket_clients=0` remained terminal;
+- Live Data **Повторити** and Saved Dashboard **Перепідключити** failed to create a fresh WebSocket for 40 seconds;
+- no F5, backend/MQTT/Device Agent restart, Modbus write or hardware mutation occurred.
+
+Focused implementation is in branch `fix/493-terminal-offline-transport-restart`, draft PR #496. The shared route-persistent client now releases a terminal source transport when its final route/request consumer closes so the explicit Retry lifecycle can create exactly one fresh transport while retaining bounded cached samples.
+
+Software verification remains in progress. Issue #493 and #289 Phase 12B must not be classified complete until PR #496 is GREEN, merged, deployed to the Raspberry Pi and terminal Offline → manual Retry → Live passes on the exact merged product head.
+
+## Next action
+
+Complete Issue #493 through focused unit/browser regression, full CI, Authenticated Dashboard Acceptance, Acquisition Scale Acceptance and Offline Bundle; merge only GREEN/current; deploy the exact merged product head using the capacity guard; rerun Phase 12B once on the controlled Raspberry Pi; then aggregate and close Issue #289 only if every remaining acceptance criterion passes.
 
 ## Safety boundaries
 

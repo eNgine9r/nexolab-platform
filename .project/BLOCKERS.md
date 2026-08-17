@@ -2,56 +2,46 @@
 
 Updated: 2026-08-17
 
-## Deployment capacity — no current hard blocker
+## Critical active blocker — Issue #493 blocks Issue #289 Phase 12B
 
-The controlled Raspberry Pi deployment of exact `main` `e418ae3526319d56a9229bf1e15eb0adf47c7ef1` passed after the deployment capacity guard initially failed safely before runtime mutation.
+Issue #493 — **Live telemetry Retry does not restart terminal Offline shared WebSocket transport** — is an active critical product blocker discovered by Issue #289 truthful-state acceptance.
 
-Capacity recovery was limited to disposable caches:
+Controlled Raspberry Pi reproductions on deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`:
 
-- BuildKit build cache;
-- npm download cache;
-- Playwright-downloaded browser cache under `~/.cache/ms-playwright`.
+- Live Data Explorer: `runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4`;
+- Saved Live Dashboard: `runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4`.
 
-No product data, PostgreSQL telemetry history, Docker named volume, runtime acceptance evidence, MQTT/MinIO data or hardware state was deleted. Future Raspberry Pi deployments must continue using the capacity guard because disk headroom remains bounded.
+Both prove that after reconnect exhaustion and network-path restoration:
 
-Deployment evidence: `runtime/deployments/20260817T045808Z`.
+- terminal `Offline` remains truthful with no active WebSocket;
+- Chromium NetworkService remains alive;
+- physical acquisition continues independently;
+- Live Data **Повторити** or Saved Dashboard **Перепідключити** does not create a fresh WebSocket;
+- `websocket_clients` remains `0` for 40 seconds after manual Retry;
+- no F5, backend/MQTT/Device Agent restart or hardware write occurs.
 
-## Issue #484 — resolved
+Focused fix: branch `fix/493-terminal-offline-transport-restart`, PR #496. Issue #289 must not close until #493 is GREEN, merged, deployed and Phase 12B passes on the exact merged product head.
 
-Issue #484 is closed `completed` and hardware verified on the deployed merged main.
+## Deployment capacity — no hard blocker
 
-Phase 11-R2 evidence: `runtime/evidence/issue-289-20260817T051043Z-energy-warm-return-r2`.
+The controlled Raspberry Pi remains healthy at deployed product SHA `e418ae3526319d56a9229bf1e15eb0adf47c7ef1`.
 
-The previous Energy warm-return full 24h bootstrap is eliminated: cold/full history used `28` paginated requests, while each of three warm returns used one bounded approximately five-minute tail request and stayed under the `1000 ms` usable target.
+Previous deployment-capacity recovery was limited to disposable BuildKit, npm and Playwright browser caches. No product data, PostgreSQL telemetry history, Docker named volume, runtime acceptance evidence, MQTT/MinIO data or hardware state was deleted. Future deployments must continue using the capacity guard because disk headroom remains bounded.
 
-## Active acceptance lane — Issue #289
+## Issue #289 completed gates
 
-Issue #289 remains open `status:in-progress` with no current hard blocker.
-
-Completed physical/runtime acceptance includes:
+Completed physical/software acceptance includes:
 
 - no-browser / Overview / Live Dashboard / repeated-navigation / multi-browser physical request-rate matrix;
-- WebSocket reconnect and sustained outage recovery;
-- Telemetry Service restart recovery;
+- transient WebSocket reconnect and Telemetry Service restart recovery;
 - edge MQTT outage and SQLite outbox drain;
+- Phase 12A UI stale-with-retained-values and automatic Live recovery;
 - disconnected `LOCAL_LAN` operation;
 - REST ↔ WebSocket event identity/freshness consistency;
-- route-return latency/request-count acceptance after #484.
+- route-return latency/request-count acceptance after Issue #484;
+- deterministic fake/recorded scale matrix with `40/40` assertions across `34 / 136 / 240` targets, disabled-target zero acquisition, timeout isolation, fairness, overrun evidence and zero Modbus writes.
 
-Remaining acceptance is primarily synthetic/software scale validation using deterministic fake/recorded serial devices:
-
-- increased active controller/channel counts;
-- timeout-heavy and unavailable endpoints;
-- priority deadline/fairness measurements;
-- disabled-target zero normal acquisition evidence;
-- scheduler defer/skip/overrun and bus-utilization evidence;
-- final acceptance aggregation against Issue #289 criteria.
-
-This work must remain read-only with respect to physical Modbus/controller state.
-
-## Ready queue
-
-A fresh GitHub query for open `status:ready` Issues returned none. There is no independent Ready software package to select instead of the already-active #289 lane.
+The only current blocker for final #289 truthful-state completion is #493 terminal Offline manual recovery.
 
 ## Other pending physical evidence
 
@@ -59,7 +49,7 @@ A fresh GitHub query for open `status:ready` Issues returned none. There is no i
 - refrigeration perceived-latency acceptance;
 - Raspberry Pi version-management acceptance.
 
-These are independent from the current #289 continuation unless they become explicit dependencies.
+These remain independent from #493/#289 unless explicitly linked.
 
 ## Safety boundaries
 
