@@ -53,7 +53,7 @@ Full #201 hardware acceptance still requires an explicitly approved restart/powe
 
 Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is `status:in-progress` with draft PR #529 `feat: select exact telemetry evidence for Reports`.
 
-Current PR #529 head is `ee6c121b1f5f7434fdc99548c3eb2ca91b19d7c3`. Preserve #521 as the single active implementation package; do not start another independent software Work Package while it remains active.
+PR #529 is actively advancing on `feat/521-reports-telemetry-selector`; inspect GitHub for its exact current head rather than copying a moving implementation SHA into current-state documentation. Preserve #521 as the single active implementation package; do not start another independent software Work Package while it remains active.
 
 Reports boundaries remain unchanged: selector eligibility comes from persisted session bindings, report sources remain immutable/content-hashed, omitted selection remains backward compatible, excluded bindings must not remain in evidence artifacts, and selector interaction must create zero new acquisition/Modbus work.
 
