@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 import type { SessionBindingOption } from "@/lib/sessions/types";
 
-import {
-  buildSessionTelemetrySelectionModel,
-  resolveSelectedSessionBindings,
-} from "./telemetry-selection";
+import { buildSessionTelemetrySelectionModel, resolveSelectedSessionBindings } from "./telemetry-selection";
 
 function inventoryItem(
   channelId: string,
