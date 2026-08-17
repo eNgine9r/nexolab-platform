@@ -108,12 +108,7 @@
     "status": "ready",
     "priority": "critical"
   },
-  "critical_order_after_444": [
-    355,
-    357,
-    189,
-    450
-  ],
+  "critical_order_after_444": [355, 357, 189, 450],
   "verification": {
     "issue_493_premerge_ci": "GREEN",
     "issue_493_authenticated_dashboard": "GREEN",
