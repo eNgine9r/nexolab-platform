@@ -110,10 +110,27 @@ function seedEnergyEvidence(): void {
     capturedAt: history(5),
   });
 
-  for (const [unitId, power] of [
-    [201, 810],
-    [202, 920],
-    [203, 1030],
+  publishEnergySample(200, {
+    metric: "electrical.energy.active",
+    suffix: "active-energy",
+    value: 13_744.9,
+    unit: "kWh",
+    rawValue: 1_374_490,
+    capturedAt: history(45),
+  });
+  publishEnergySample(200, {
+    metric: "electrical.energy.active",
+    suffix: "active-energy",
+    value: 13_745.11,
+    unit: "kWh",
+    rawValue: 1_374_511,
+    capturedAt: history(5),
+  });
+
+  for (const [unitId, power, energy, rawEnergy] of [
+    [201, 810, 25_401.74, 2_540_174],
+    [202, 920, 11_296.1, 1_129_610],
+    [203, 1030, 13_786.2, 1_378_620],
   ] as const) {
     publishEnergySample(unitId, {
       metric: "electrical.power.active",
@@ -121,6 +138,14 @@ function seedEnergyEvidence(): void {
       value: power,
       unit: "W",
       rawValue: power,
+      capturedAt: history(4),
+    });
+    publishEnergySample(unitId, {
+      metric: "electrical.energy.active",
+      suffix: "active-energy",
+      value: energy,
+      unit: "kWh",
+      rawValue: rawEnergy,
       capturedAt: history(4),
     });
   }
@@ -151,7 +176,7 @@ function seedEnergyEvidence(): void {
   });
 }
 
-test("renders confirmed LE-01MP latest, history and live updates without fabricated kWh", async ({
+test("renders verified LE-01MP cumulative kWh in latest, history and live updates", async ({
   browser,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -173,11 +198,26 @@ test("renders confirmed LE-01MP latest, history and live updates without fabrica
     await expect(page.getByText("720 W", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("230,1 V", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("0,955", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/13\s745,11 kWh/, { exact: true }).first()).toBeVisible();
 
-    await expect(page.getByRole("heading", { name: "Накопичена енергія недоступна" })).toBeVisible();
-    await expect(page.getByText(/\d[\d\s,.]*\s*kWh/i)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Накопичена енергія доступна" })).toBeVisible();
+    await expect(page.getByText(/загальний лічильник/i).first()).toBeVisible();
+    await expect(page.getByText(/restart\/power-cycle доказу/i)).toBeVisible();
 
     await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();
+    await page.getByLabel("Показник").selectOption("electrical.energy.active");
+    await expect(
+      page.getByRole("img", { name: /Історія показника Накопичена активна енергія/ }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        requests.some((item) => {
+          const url = new URL(item.url);
+          return url.pathname.endsWith("/history") && url.searchParams.get("metric") === "electrical.energy.active";
+        }),
+      )
+      .toBe(true);
+
     await page.getByRole("button", { name: "Виключити лічильник W4 з порівняння" }).click();
     await expect(page.getByRole("button", { name: "Додати лічильник W4 з порівняння" })).toBeVisible();
 
@@ -186,13 +226,13 @@ test("renders confirmed LE-01MP latest, history and live updates without fabrica
     expect(requests.every((item) => item.authorized)).toBe(true);
 
     publishEnergySample(200, {
-      metric: "electrical.power.active",
-      suffix: "active-power",
-      value: 777,
-      unit: "W",
-      rawValue: 777,
+      metric: "electrical.energy.active",
+      suffix: "active-energy",
+      value: 13_745.23,
+      unit: "kWh",
+      rawValue: 1_374_523,
     });
-    await expect(page.getByText("777 W", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/13\s745,23 kWh/, { exact: true }).first()).toBeVisible();
 
     await page.screenshot({
       path: path.join(evidenceDirectory, "authenticated-energy-monitoring.png"),
