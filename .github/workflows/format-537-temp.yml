@@ -1,0 +1,47 @@
+name: Temporary formatter Issue 537
+
+on:
+  push:
+    branches:
+      - feat/537-energy-period-consumption
+    paths:
+      - src/components/energy/energy-consumption-panel.tsx
+      - .github/workflows/format-537-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/537-energy-period-consumption
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Format Issue 537 source file
+        run: |
+          npx prettier --write src/components/energy/energy-consumption-panel.tsx
+          git diff --check
+      - name: Commit formatting only when required
+        run: |
+          if git diff --quiet -- src/components/energy/energy-consumption-panel.tsx; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/energy/energy-consumption-panel.tsx
+          git commit -m "style(energy): format consumption lint fix"
+          git push origin HEAD:feat/537-energy-period-consumption
