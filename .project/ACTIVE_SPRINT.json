@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
+  "repository_product_baseline_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 521,
-    "selection_status": "in_progress",
+    "selected_issue": null,
+    "selection_status": "hard_blocked_no_ready_work_package",
     "ready_issue_count": 0,
-    "reason": "Issue #521 is already the single active Product Owner-selected Reports Work Package with draft PR #529. Issue #526 / PR #527 completed independently and must not displace or duplicate the active implementation lane."
+    "reason": "Issue #521 / PR #529 completed and merged. The post-merge audit found zero open status:ready Issues; remaining Epic #450 consumers are not repository-ordered and must not be promoted by assumption."
   },
   "tasks": [
     {
@@ -56,10 +56,12 @@
       "issue": 521,
       "pull_request": 529,
       "title": "Integrate TelemetryPointSelector into report evidence selection",
-      "status": "in_progress",
+      "status": "completed_software_browser_backend_offline_verified",
       "priority": "critical",
       "parent_issue": 450,
-      "branch": "feat/521-reports-telemetry-selector"
+      "merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
+      "final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
+      "raspberry_pi_runtime_acceptance": "not_required_out_of_scope"
     },
     {
       "id": "NEXOLAB-444",
@@ -76,25 +78,21 @@
       "priority": "high"
     }
   ],
-  "active_work_package": {
-    "issue": 521,
-    "pull_request": 529,
-    "title": "Integrate TelemetryPointSelector into report evidence selection",
-    "status": "in_progress",
-    "priority": "critical"
-  },
+  "active_work_package": null,
   "next_work_package": null,
   "verification": {
-    "issue_526_merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
-    "issue_526_final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81",
-    "issue_526_ci": { "run_id": 32040481038, "run_number": 3330, "status": "GREEN" },
-    "issue_526_refrigeration_browser": { "run_id": 32040480994, "run_number": 1804, "status": "GREEN" },
-    "issue_526_authenticated_dashboard": {
-      "run_id": 32040480992,
-      "run_number": 1898,
-      "status": "GREEN_AFTER_RETRY"
-    },
-    "issue_526_offline_bundle": { "run_id": 32040481023, "run_number": 1291, "status": "GREEN" },
+    "issue_521_merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
+    "issue_521_final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
+    "issue_521_ci": { "run_id": 32043381179, "run_number": 3362, "status": "GREEN" },
+    "issue_521_reports_browser": { "run_id": 32043381173, "run_number": 882, "status": "GREEN" },
+    "issue_521_rendered_reports_browser": { "run_id": 32043381196, "run_number": 727, "status": "GREEN" },
+    "issue_521_telemetry_service": { "run_id": 32043381174, "run_number": 1629, "status": "GREEN_AFTER_TARGETED_RERUN" },
+    "issue_521_authenticated_dashboard": { "run_id": 32043381172, "run_number": 1920, "status": "GREEN" },
+    "issue_521_offline_bundle": { "run_id": 32043381181, "run_number": 1313, "status": "GREEN" },
+    "issue_521_offline_auth": { "run_id": 32043381175, "run_number": 490, "status": "GREEN" },
+    "issue_521_refrigeration_browser": { "run_id": 32043381149, "run_number": 1821, "status": "GREEN" },
+    "issue_521_disaster_recovery_browser": { "run_id": 32043381163, "run_number": 796, "status": "GREEN_AFTER_TARGETED_RERUN" },
+    "issue_521_container_supply_chain": { "run_id": 32043381177, "run_number": 804, "status": "GREEN" },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
     "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
   },
@@ -122,6 +120,10 @@
     "free_bytes": 15310114816,
     "required_bytes": 16595036807,
     "reserve_bytes": 2147483648
+  },
+  "hard_blocker": {
+    "code": "hard_blocked_no_ready_work_package",
+    "reason": "Post-#521 merge Ready audit returned zero open status:ready Issues. Product Owner priority is required before creating/promoting the next implementation package."
   },
   "safety": {
     "modbus_write": "none",
