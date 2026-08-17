@@ -40,10 +40,13 @@ def assemble_report_source(
     selected_binding_ids: tuple[str, ...] | None = None,
     selection_mode: str = "all_session_bindings",
 ) -> ReportSource:
+    evidence_binding_ids = (
+        None if selection_mode == "all_session_bindings" else selected_binding_ids
+    )
     bindings = _binding_payloads(
         session,
         test_session.id,
-        selected_binding_ids=selected_binding_ids,
+        selected_binding_ids=evidence_binding_ids,
     )
     effective_binding_ids = tuple(binding["id"] for binding in bindings)
     return ReportSource(
@@ -59,7 +62,7 @@ def assemble_report_source(
             "limits": _limit_payloads(
                 session,
                 test_session.id,
-                selected_binding_ids=selected_binding_ids,
+                selected_binding_ids=evidence_binding_ids,
             ),
             "stages": _stage_payloads(session, test_session.id),
             "notes": _note_payloads(session, test_session.id),
@@ -69,12 +72,12 @@ def assemble_report_source(
         telemetry=_telemetry_rows(
             session,
             test_session.id,
-            selected_binding_ids=selected_binding_ids,
+            selected_binding_ids=evidence_binding_ids,
         ),
         alert_transitions=_alert_rows(
             session,
             test_session.id,
-            selected_binding_ids=selected_binding_ids,
+            selected_binding_ids=evidence_binding_ids,
         ),
     )
 
