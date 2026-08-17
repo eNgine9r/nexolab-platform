@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { EnergyConsumptionPanel } from "@/components/energy/energy-consumption-panel";
 import {
   ENERGY_METERS,
   ENERGY_METRICS,
@@ -27,6 +28,7 @@ import {
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
 import { buildEnergyHistoryPath } from "@/features/energy/energy-history-path";
+import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -35,6 +37,10 @@ const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
   { value: "6h", label: "6 год" },
   { value: "24h", label: "24 год" },
 ];
+
+const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter(
+  (metric) => metric.id !== "electrical.energy.active",
+);
 
 const METER_COLORS: Record<number, string> = {
   200: "#38bdf8",
@@ -182,11 +188,13 @@ function MeterCard({
   unitId,
   selected,
   samples,
+  consumption,
   onToggle,
 }: {
   unitId: number;
   selected: boolean;
   samples: readonly TelemetrySample[];
+  consumption: EnergyConsumptionLoader;
   onToggle: () => void;
 }) {
   const meter = ENERGY_METERS.find((item) => item.unitId === unitId)!;
@@ -196,45 +204,45 @@ function MeterCard({
   const current = findEnergySample(samples, unitId, "electrical.current");
   const powerFactor = findEnergySample(samples, unitId, "electrical.power_factor");
   const state = energySampleState(power ?? voltage ?? current ?? powerFactor ?? cumulativeEnergy);
-  const energyState = energySampleState(cumulativeEnergy);
   const stateCopy = STATE_COPY[state];
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={selected}
-      aria-label={`${selected ? "Виключити" : "Додати"} лічильник ${meter.label} з порівняння`}
-      className={`rounded-2xl border p-4 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${
+    <article
+      className={`rounded-2xl border p-4 text-left transition ${
         selected
           ? "border-cyan-300/30 bg-cyan-400/[0.07] shadow-[0_16px_40px_rgba(0,198,224,.08)]"
           : "border-white/[0.065] bg-[#091d39]/80 hover:border-white/15"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">KK1 · LE-01MP</p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{meter.label}</h2>
-          <p className="text-[10px] text-slate-500">Modbus Unit {meter.unitId}</p>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={selected}
+        aria-label={`${selected ? "Виключити" : "Додати"} лічильник ${meter.label} з порівняння`}
+        className="block w-full rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">KK1 · LE-01MP</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">{meter.label}</h2>
+            <p className="text-[10px] text-slate-500">Modbus Unit {meter.unitId}</p>
+          </div>
+          <span className={`rounded-full border px-2.5 py-1 text-[9px] ${stateCopy.className}`}>
+            {stateCopy.label}
+          </span>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-[9px] ${stateCopy.className}`}>
-          {stateCopy.label}
-        </span>
-      </div>
 
-      <div className="mt-5">
-        <p className="text-[10px] text-slate-500">Активна потужність</p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{formatEnergyValue(power)}</p>
-      </div>
-
-      <div className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] px-3 py-2.5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[9px] tracking-[0.1em] text-cyan-300/80 uppercase">Накопичена енергія</p>
-          <span className="text-[8px] text-slate-600">{STATE_COPY[energyState].label}</span>
+        <div className="mt-5">
+          <p className="text-[10px] text-slate-500">Активна потужність</p>
+          <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{formatEnergyValue(power)}</p>
         </div>
-        <p className="mt-1 text-sm font-semibold text-slate-100">{formatEnergyValue(cumulativeEnergy)}</p>
-        <p className="mt-1 text-[8px] text-slate-600">Загальний лічильник · не інтервальне споживання</p>
-      </div>
+      </button>
+
+      <EnergyConsumptionPanel
+        unitId={unitId}
+        currentCumulative={cumulativeEnergy}
+        loader={consumption}
+      />
 
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
         <div>
@@ -255,7 +263,7 @@ function MeterCard({
         <Clock3 className="h-3 w-3" />
         {formatCapturedAt(power ?? cumulativeEnergy ?? voltage ?? current ?? powerFactor)}
       </p>
-    </button>
+    </article>
   );
 }
 
@@ -297,7 +305,7 @@ function HistoryPanel({
               onChange={(event) => telemetry.setSelectedMetric(event.target.value as EnergyMetricId)}
               className="min-w-56 rounded-xl border border-white/10 bg-[#07182f] px-3 py-2 text-[11px] text-slate-100 outline-none focus:border-cyan-300/40"
             >
-              {ENERGY_METRICS.map((metric) => (
+              {OPERATOR_ENERGY_METRICS.map((metric) => (
                 <option key={metric.id} value={metric.id}>
                   {metric.label}
                 </option>
@@ -412,7 +420,13 @@ function HistoryPanel({
   );
 }
 
-export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel }) {
+export function EnergyWorkspace({
+  telemetry,
+  consumption,
+}: {
+  telemetry: EnergyTelemetryModel;
+  consumption: EnergyConsumptionLoader;
+}) {
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(
     ENERGY_METERS.map((meter) => meter.unitId),
   );
@@ -443,8 +457,8 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             </span>
           </div>
           <p className="mt-2 max-w-3xl text-[12px] leading-5 text-slate-400">
-            Поточні підтверджені параметри чотирьох LE-01MP. Сторінка працює через локальні REST, WebSocket і
-            PostgreSQL history без обов’язкової хмари.
+            Поточні параметри та споживання за вибраний період для чотирьох LE-01MP. Дані надходять через
+            локальні REST, WebSocket і PostgreSQL history без обов’язкової хмари.
           </p>
         </div>
 
@@ -472,6 +486,7 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             unitId={meter.unitId}
             selected={selectedUnitIds.includes(meter.unitId)}
             samples={telemetry.samples}
+            consumption={consumption}
             onToggle={() => toggleMeter(meter.unitId)}
           />
         ))}
@@ -545,7 +560,7 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
                 </tr>
               </thead>
               <tbody>
-                {ENERGY_METRICS.map((metric) => (
+                {OPERATOR_ENERGY_METRICS.map((metric) => (
                   <tr key={metric.id} className="border-b border-white/[0.04] last:border-0">
                     <th className="px-4 py-3 font-medium text-slate-300">
                       <span className="mr-2 text-cyan-300">{metric.shortLabel}</span>
@@ -575,16 +590,18 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
             </div>
             <div>
               <p className="text-[10px] tracking-[0.14em] text-emerald-300 uppercase">Evidence status</p>
-              <h2 className="mt-1 text-base font-semibold text-white">Накопичена енергія доступна</h2>
+              <h2 className="mt-1 text-base font-semibold text-white">Споживання з підтвердженого лічильника</h2>
             </div>
           </div>
           <p className="mt-4 text-[11px] leading-5 text-slate-400">
-            Загальний лічильник `kWh` підтверджений на W1–W4: FC03 R7:R8, uint32 high/low word, масштаб 0.01
-            kWh, збіг із фізичними дисплеями та монотонне зростання під навантаженням.
+            Значення `СПОЖИВАННЯ` є різницею двох підтверджених показів `electrical.energy.active` біля меж
+            вибраного періоду. Сирий накопичувальний `kWh` залишається незмінним джерелом у телеметрії, але не
+            показується як основний операторський KPI.
           </p>
           <div className="mt-4 rounded-xl border border-amber-300/10 bg-amber-400/[0.03] p-3 text-[10px] leading-4 text-amber-100/70">
-            Work Package #201 ще очікує окремого погодженого restart/power-cycle доказу для rollover/reset
-            класифікації. Цей екран показує cumulative total і не обчислює інтервальне споживання.
+            Work Package #201 ще очікує окремого погодженого restart/power-cycle доказу для rollover/reset.
+            Якщо лічильник зменшується або немає свіжих граничних показів, NEXOLAB показує недоступний стан і
+            не вигадує інтервальне споживання.
           </div>
         </aside>
       </section>
