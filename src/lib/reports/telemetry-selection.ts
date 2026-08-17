@@ -153,7 +153,9 @@ export function buildReportTelemetrySelectionModel({
   );
   const orderedBindingIds = orderedPointKeys.map((pointKey) => {
     const bindingId = bindingIdByPointKey.get(pointKey);
-    if (!bindingId) throw new Error(`Missing report binding for telemetry point ${pointKey}.`);
+    if (!bindingId) {
+      throw new Error(`Missing report binding for telemetry point ${pointKey}.`);
+    }
     return bindingId;
   });
 
