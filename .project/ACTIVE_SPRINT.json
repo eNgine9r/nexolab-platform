@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "current_main_sha": "297fc2fa28ef43d7be71d2436151a34f3e414a26",
-  "current_main_sha_semantics": "Exact GitHub main after state-only Issue #491 reconciliation. Controlled Raspberry Pi deployed product/runtime remains e418ae3526319d56a9229bf1e15eb0adf47c7ef1 until the next product deployment.",
-  "deployed_product_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
+  "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "state_reconciliation_base_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 493,
-    "parent_acceptance_issue": 289,
-    "selection_status": "critical_bug_interrupts_existing_in_progress_acceptance",
-    "reason": "Issue #289 Phase 12B reproduced a terminal Offline manual-recovery failure on both Live Data Explorer and Saved Live Dashboard."
+    "selected_issue": 497,
+    "selection_status": "state_only_reconciliation_after_completed_acceptance",
+    "ready_issue_count_after_product_closure": 0,
+    "reason": "Issues #493 and #289 plus parent Epic #282 are completed. Canonical project state must be reconciled before stopping at the no-Ready-work boundary."
   },
   "tasks": [
     {
@@ -37,66 +37,78 @@
       "status": "completed_software_and_physical_acceptance",
       "priority": "high",
       "merge_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
-      "deployed_acceptance_sha": "e418ae3526319d56a9229bf1e15eb0adf47c7ef1",
       "hardware_acceptance": true
-    },
-    {
-      "id": "NEXOLAB-289",
-      "issue": 289,
-      "title": "Prove acquisition scale, stability and truthful live-state behavior",
-      "status": "blocked_on_critical_bug_493_phase_12b",
-      "priority": "critical",
-      "assignee": "eNgine9r",
-      "completed_gates": [
-        "real_hardware_browser_request_rate_matrix",
-        "websocket_transient_reconnect",
-        "telemetry_service_restart_recovery",
-        "edge_mqtt_outbox_drain_and_ui_stale_truthfulness",
-        "disconnected_local_lan_runtime",
-        "rest_websocket_event_identity_freshness",
-        "route_return_latency_and_request_count",
-        "deterministic_increased_load_timeout_fairness_matrix"
-      ],
-      "remaining_gate": "Phase 12B terminal Offline manual Retry recovery after Issue #493 merge and Raspberry Pi deployment"
     },
     {
       "id": "NEXOLAB-493",
       "issue": 493,
       "pull_request": 496,
-      "title": "Live telemetry Retry does not restart terminal Offline shared WebSocket transport",
-      "status": "in_progress",
+      "title": "Restart terminal Offline shared WebSocket transport on explicit operator Retry",
+      "status": "completed_software_and_physical_acceptance",
       "priority": "critical",
-      "branch": "fix/493-terminal-offline-transport-restart",
-      "hardware_reproduction": true,
-      "hardware_acceptance": false,
-      "blocks": [289]
+      "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+      "deployed_acceptance_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+      "hardware_acceptance": true,
+      "physical_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2"
+    },
+    {
+      "id": "NEXOLAB-289",
+      "issue": 289,
+      "title": "Prove acquisition scale, stability and truthful live-state behavior",
+      "status": "completed_software_and_hardware_acceptance",
+      "priority": "critical",
+      "hardware_acceptance": true,
+      "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2"
+    },
+    {
+      "id": "NEXOLAB-282",
+      "issue": 282,
+      "title": "Performance and data acquisition optimization",
+      "status": "completed",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-497",
+      "issue": 497,
+      "title": "Reconcile Issue #493 hardware acceptance and Issue #289 completion",
+      "status": "state_only_reconciliation_in_progress",
+      "priority": "high",
+      "branch": "chore/497-reconcile-289-493-completion"
     }
   ],
   "active_work_package": {
-    "issue": 493,
-    "pull_request": 496,
-    "title": "Restart terminal Offline shared WebSocket transport on explicit operator Retry",
-    "status": "implementation_and_verification_in_progress",
-    "priority": "critical",
-    "next_step": "Complete exact-head CI and browser/offline acceptance, merge only GREEN, deploy exact merged product head to Raspberry Pi, then rerun Phase 12B."
+    "issue": 497,
+    "title": "Reconcile completed #493/#289/#282 repository state",
+    "status": "state_only_reconciliation_in_progress",
+    "priority": "high",
+    "next_step": "Validate exactly four .project files, run state-only CI, audit focused diff/reviews, merge GREEN, then stop because no open status:ready Issue exists."
   },
   "next_work_package": {
-    "issue": 289,
-    "title": "Resume final scale/stability acceptance after #493",
-    "status": "blocked_until_issue_493_hardware_acceptance",
-    "priority": "critical"
+    "issue": null,
+    "title": null,
+    "status": "no_open_status_ready_issue_after_reconciliation",
+    "priority": null
   },
   "verification": {
-    "issue_484_hardware_acceptance": true,
-    "phase_11_cold_history_requests": 28,
-    "phase_11_warm_history_requests_per_return": [1, 1, 1],
-    "phase_11_warm_usable_ms": [627, 557, 443],
+    "issue_493_premerge_ci": "GREEN",
+    "issue_493_authenticated_dashboard": "GREEN",
+    "issue_493_acquisition_scale": "GREEN",
+    "issue_493_refrigeration_browser": "GREEN",
+    "issue_493_offline_bundle": "GREEN",
+    "issue_493_hardware_acceptance": "PASS",
+    "phase_12b_postfix_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2",
+    "issue_289_final_disconnected_browser": "PASS",
+    "issue_289_final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2",
     "deterministic_scale_assertions": "40/40 PASS",
-    "deterministic_scale_targets": [34, 136, 240],
-    "phase_12a_mqtt_ui_truthfulness": "PASS",
-    "phase_12b_live_data_reproduction": "runtime/evidence/issue-289-20260817T060548Z-terminal-offline-ui-r4",
-    "phase_12b_saved_dashboard_reproduction": "runtime/evidence/issue-289-20260817T061801Z-terminal-offline-ui-r4",
-    "issue_493_software_verification": "in_progress"
+    "ready_issue_count": 0
+  },
+  "deployment_capacity": {
+    "current_runtime_healthy": true,
+    "next_redeploy_preflight_blocked": true,
+    "free_bytes": 15310114816,
+    "required_bytes": 16595036807,
+    "reserve_bytes": 2147483648,
+    "classification": "operational capacity constraint for next controlled redeploy; current runtime unaffected"
   },
   "safety": {
     "modbus_write": "none",
