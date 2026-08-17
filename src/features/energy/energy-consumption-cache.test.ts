@@ -71,9 +71,9 @@ describe("energy boundary history cache", () => {
       sample(201, "other-meter", "2026-08-17T07:59:55.000Z", 20),
     ];
 
-    expect(
-      selectEnergyBoundarySample(samples, meter, new Date("2026-08-17T08:00:00.000Z"))?.event_id,
-    ).toBe("nearest");
+    expect(selectEnergyBoundarySample(samples, meter, new Date("2026-08-17T08:00:00.000Z"))?.event_id).toBe(
+      "nearest",
+    );
   });
 
   it("isolates cached history by authenticated scope", async () => {

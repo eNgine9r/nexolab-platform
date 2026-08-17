@@ -195,10 +195,7 @@ function seedEnergyEvidence(): void {
 function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boolean }>): number {
   return requests.filter((item) => {
     const url = new URL(item.url);
-    return (
-      url.pathname.endsWith("/history") &&
-      url.searchParams.get("metric") === "electrical.energy.active"
-    );
+    return url.pathname.endsWith("/history") && url.searchParams.get("metric") === "electrical.energy.active";
   }).length;
 }
 
@@ -232,9 +229,7 @@ test("renders selectable LE-01MP period consumption from verified cumulative bou
     await expect(page.getByText(/Накопичена енергія/i)).toHaveCount(0);
     await expect(page.getByText(/загальний лічильник/i)).toHaveCount(0);
 
-    await expect(
-      page.getByRole("heading", { name: "Споживання з підтвердженого лічильника" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Споживання з підтвердженого лічильника" })).toBeVisible();
     await expect(page.getByText(/restart\/power-cycle доказу/i)).toBeVisible();
 
     await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();

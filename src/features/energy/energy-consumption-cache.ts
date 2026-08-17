@@ -2,10 +2,7 @@ import {
   ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
   ENERGY_CONSUMPTION_METRIC,
 } from "@/features/energy/energy-consumption";
-import {
-  resolveEnergyMeter,
-  type EnergyMeter,
-} from "@/features/energy/energy-telemetry";
+import { resolveEnergyMeter, type EnergyMeter } from "@/features/energy/energy-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const DEFAULT_BUCKET_MS = 5 * 60 * 1000;
