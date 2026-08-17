@@ -52,9 +52,11 @@ The matrix uses generated read-only registries with valid canonical profiles.
 
 | Profile    | Active XJP60D channels | LE-01MP meters | LE metrics | Total active targets | Purpose                                                |
 | ---------- | ---------------------: | -------------: | ---------: | -------------------: | ------------------------------------------------------ |
-| `pilot`    |                      2 |              4 |         32 |                   34 | Current laboratory-sized baseline                      |
-| `expanded` |                     72 |              8 |         64 |                  136 | Twelve six-channel controllers plus eight meters       |
-| `stress`   |                    144 |             12 |         96 |                  240 | Bounded validation above the expected first deployment |
+| `pilot`    |                      2 |              4 |         36 |                   38 | Current laboratory-sized baseline                      |
+| `expanded` |                     72 |              8 |         72 |                  144 | Twelve six-channel controllers plus eight meters       |
+| `stress`   |                    144 |             12 |        108 |                  252 | Bounded validation above the expected first deployment |
+
+LE-01MP now contributes nine active read-only metrics per meter: the previously confirmed eight scalar metrics plus evidence-backed cumulative active energy from atomic registers R7:R8.
 
 Inactive inventory is tested separately. Disabled, reserve, retired, uninstalled, discovery-only and invalid targets must produce **zero** normal executions.
 
