@@ -93,5 +93,6 @@ export function useEnergyConsumption({
     [adapter, enabled],
   );
 
-  return { enabled: enabled && adapter !== null, load };
+  const consumptionEnabled = enabled && adapter !== null;
+  return useMemo(() => ({ enabled: consumptionEnabled, load }), [consumptionEnabled, load]);
 }
