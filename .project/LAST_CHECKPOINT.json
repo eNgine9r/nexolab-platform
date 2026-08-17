@@ -56,7 +56,7 @@
     "dashboard": "http://172.18.48.34:3000",
     "api": "http://172.18.48.34:8082",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
-    "current_runtime_health": true,
+    "current_runtime_healthy": true,
     "issue_201_driver_deployed": false,
     "issue_526_energy_ui_deployed": false
   },
