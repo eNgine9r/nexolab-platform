@@ -24,7 +24,10 @@ import {
   HttpSecuritySessionClient,
 } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
-import { createReportApiClient, createReportIdempotencyKey } from "@/lib/reports/api-client";
+import {
+  createReportApiClient,
+  createReportIdempotencyKey,
+} from "@/lib/reports/api-client";
 import { getReportsApiBaseUrl } from "@/lib/reports/runtime-config";
 import type { ReportArtifact, TestReport } from "@/lib/reports/types";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
@@ -116,8 +119,8 @@ export function ReportsWorkspace() {
       setCanGenerate(
         Boolean(
           securityResult.ok &&
-          nextOrganizationId &&
-          hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
+            nextOrganizationId &&
+            hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
         ),
       );
       setError(null);
@@ -147,9 +150,7 @@ export function ReportsWorkspace() {
 
   const stale = lastSuccessfulAt !== null && now - lastSuccessfulAt > 30_000;
   const telemetrySelectionReady =
-    selectionReady &&
-    selectionSessionId === selectedSessionId &&
-    selectedBindingIds.length > 0;
+    selectionReady && selectionSessionId === selectedSessionId && selectedBindingIds.length > 0;
 
   const refresh = () => {
     setLoading(true);
