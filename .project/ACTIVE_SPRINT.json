@@ -6,7 +6,7 @@
     "id": "ENGINEERING-HARDENING-1",
     "title": "Engineering governance, critical operator defects and toolchain hardening",
     "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated critical operator and reliability work packages.",
-    "status": "in_progress",
+    "status": "hard_blocked_no_ready_work_package",
     "started_at": "2026-08-06",
     "epic_issue": 326
   },
@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_main_sha": "6f0c4f3bc39c2bccbe24dafa5218a8f49cf553e3",
-  "repository_product_baseline_sha": "ba988930ba78bc44c6ec6b003a13af79d552f9fa",
+  "repository_main_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+  "repository_product_baseline_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 513,
-    "selection_status": "software_browser_backend_offline_verified_ready_for_merge",
+    "selected_issue": null,
+    "selection_status": "hard_blocked_no_ready_work_package",
     "ready_issue_count": 0,
-    "reason": "Product Owner selected Epic #450 Sessions after the previous empty-Ready blocker. Issue #513 is the active in-progress Work Package and has exact-head GREEN software, browser, backend and offline evidence."
+    "reason": "Fresh post-#513 merge GitHub audit found zero open status:ready Issues. Remaining lanes require either a Product Owner priority decision or physical/runtime evidence and cannot be promoted automatically."
   },
   "tasks": [
     {
@@ -108,49 +108,52 @@
       "issue": 513,
       "pull_request": 514,
       "title": "Integrate canonical TelemetryPointSelector into Test Sessions",
-      "status": "software_browser_backend_offline_verified_ready_for_merge",
+      "status": "completed_software_browser_backend_offline_verified",
       "priority": "critical",
-      "branch": "feat/513-sessions-telemetry-selector",
-      "product_verification_sha": "b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a",
+      "merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+      "final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
       "raspberry_pi_runtime_acceptance": "not_required_out_of_scope"
     }
   ],
-  "active_work_package": {
-    "issue": 513,
-    "pull_request": 514,
-    "title": "Integrate canonical TelemetryPointSelector into Test Sessions",
-    "status": "software_browser_backend_offline_verified_ready_for_merge",
-    "priority": "critical",
-    "product_verification_sha": "b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a",
-    "next_step": "Validate the state checkpoint head, mark PR #514 Ready, perform the final merge audit and merge only with GREEN required checks."
-  },
+  "active_work_package": null,
   "next_work_package": {
     "issue": null,
-    "title": "Pending post-merge Ready audit after Issue #513",
-    "status": "not_selected",
+    "title": "No repository-backed Ready Work Package",
+    "status": "hard_blocked_pending_product_owner_priority_or_physical_unblock",
     "priority": null
   },
   "verification": {
-    "issue_513_product_head": "b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a",
+    "issue_513_merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+    "issue_513_final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
     "issue_513_ci": {
-      "run_id": 32033655886,
-      "run_number": 3290,
+      "run_id": 32034864169,
+      "run_number": 3294,
       "status": "GREEN"
     },
     "issue_513_test_sessions_browser": {
-      "run_id": 32033655829,
-      "run_number": 878,
+      "run_id": 32034864360,
+      "run_number": 882,
       "status": "GREEN"
     },
     "issue_513_telemetry_service": {
-      "run_id": 32033655867,
-      "run_number": 1593,
+      "run_id": 32034864089,
+      "run_number": 1597,
       "status": "GREEN"
     },
     "issue_513_offline_bundle": {
-      "run_id": 32033655901,
-      "run_number": 1265,
+      "run_id": 32034864363,
+      "run_number": 1269,
       "status": "GREEN"
+    },
+    "issue_513_authenticated_dashboard": {
+      "run_id": 32034864313,
+      "run_number": 1876,
+      "status": "GREEN_AFTER_SAME_SHA_RETRY"
+    },
+    "issue_513_disaster_recovery_browser": {
+      "run_id": 32034864255,
+      "run_number": 766,
+      "status": "GREEN_AFTER_SAME_SHA_RETRY"
     },
     "issue_513_raspberry_pi_operator_acceptance": "NOT_REQUIRED_OUT_OF_SCOPE",
     "issue_444_software_verification": "GREEN",
@@ -158,11 +161,11 @@
     "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
     "ready_issue_count": 0
   },
-  "post_merge_selection_candidates": [
+  "selection_candidates": [
     {
       "source": "epic_450_wp5",
       "status": "product_priority_required",
-      "description": "Remaining focused TelemetryPointSelector consumer integrations are reports, alarms and equipment maps; repository does not currently define their execution order."
+      "description": "Create one focused TelemetryPointSelector consumer integration for Reports, Alarms or Equipment Maps; repository does not define their execution order."
     },
     {
       "issue": 245,
