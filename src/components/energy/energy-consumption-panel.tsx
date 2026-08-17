@@ -27,8 +27,7 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
 ];
 
 type ConsumptionView =
-  | { status: "loading"; result: null }
-  | { status: "ready"; result: EnergyConsumptionResult };
+  { status: "loading"; result: null } | { status: "ready"; result: EnergyConsumptionResult };
 
 type ConsumptionLoadState = {
   requestKey: string;
@@ -128,7 +127,7 @@ export function EnergyConsumptionPanel({
     if (!window || !loader.enabled) return;
 
     const controller = new AbortController();
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       void loader
         .load(unitId, window, currentCumulative, controller.signal)
         .then((result) => {
@@ -150,7 +149,7 @@ export function EnergyConsumptionPanel({
     }, ENERGY_CONSUMPTION_SETTLE_DELAY_MS);
 
     return () => {
-      window.clearTimeout(timer);
+      globalThis.clearTimeout(timer);
       controller.abort();
     };
   }, [currentCumulative, loader, requestKey, unitId, window]);

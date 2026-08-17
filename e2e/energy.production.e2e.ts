@@ -223,7 +223,7 @@ test("renders selectable LE-01MP period consumption from verified cumulative bou
     await expect(page.getByText("0,955", { exact: true }).first()).toBeVisible();
 
     await expect(page.getByText("Споживання", { exact: true })).toHaveCount(4);
-    await expect(page.getByText("24 год", { exact: true })).toHaveCount(4);
+    await expect(page.locator("summary").filter({ hasText: /^24 год$/ })).toHaveCount(4);
     await expect(page.getByText("5,00 kWh", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Період: останні 24 години", { exact: true }).first()).toBeVisible();
     await expect(page.getByText(/Накопичена енергія/i)).toHaveCount(0);
