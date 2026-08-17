@@ -46,6 +46,16 @@ function securedAdapter(organizationId: string | null): TelemetryAdapter {
   });
 }
 
+function unavailableCurrentBoundary(): EnergyConsumptionResult {
+  return {
+    status: "unavailable",
+    valueKwh: null,
+    startSample: null,
+    endSample: null,
+    message: "Поточний підтверджений показ накопичувального лічильника ще не отримано або він застарів.",
+  };
+}
+
 export function useEnergyConsumption({
   enabled,
   organizationId,
@@ -92,6 +102,22 @@ export function useEnergyConsumption({
 
       try {
         signal?.throwIfAborted();
+        const now = Date.now();
+        const toAt = window.to.getTime();
+        const endsAtCurrentBoundary =
+          Number.isFinite(toAt) &&
+          toAt <= now + 1_000 &&
+          now - toAt <= ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS;
+        let endSample = selectEnergyBoundarySample(
+          currentCumulative ? [currentCumulative] : [],
+          meter,
+          window.to,
+        );
+
+        if (endsAtCurrentBoundary && !endSample) {
+          return unavailableCurrentBoundary();
+        }
+
         const startSamples = await boundaryHistoryCache.load({
           adapter,
           scopeKey: cacheScopeKey,
@@ -101,12 +127,7 @@ export function useEnergyConsumption({
         signal?.throwIfAborted();
         const startSample = selectEnergyBoundarySample(startSamples, meter, window.from);
 
-        let endSample = selectEnergyBoundarySample(
-          currentCumulative ? [currentCumulative] : [],
-          meter,
-          window.to,
-        );
-        if (!endSample) {
+        if (!endsAtCurrentBoundary && !endSample) {
           const endSamples = await boundaryHistoryCache.load({
             adapter,
             scopeKey: cacheScopeKey,
