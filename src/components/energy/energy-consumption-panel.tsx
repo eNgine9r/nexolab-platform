@@ -25,7 +25,13 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
 ];
 
 type ConsumptionView =
-  { status: "loading"; result: null } | { status: "ready"; result: EnergyConsumptionResult };
+  | { status: "loading"; result: null }
+  | { status: "ready"; result: EnergyConsumptionResult };
+
+type ConsumptionLoadState = {
+  requestKey: string;
+  result: EnergyConsumptionResult;
+};
 
 function toLocalInputValue(value: Date): string {
   const pad = (part: number) => String(part).padStart(2, "0");
@@ -93,7 +99,7 @@ export function EnergyConsumptionPanel({
   );
   const [customOpen, setCustomOpen] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
-  const [view, setView] = useState<ConsumptionView>({ status: "loading", result: null });
+  const [loadState, setLoadState] = useState<ConsumptionLoadState | null>(null);
   const refreshKey = currentCumulative?.event_id ?? null;
 
   const window = useMemo<EnergyConsumptionWindow | null>(() => {
@@ -105,32 +111,30 @@ export function EnergyConsumptionPanel({
     );
   }, [customRange, initialNow, preset, refreshKey]);
 
+  const requestKey = useMemo(() => {
+    if (!window) return `invalid:${unitId}:${preset}`;
+    return [
+      unitId,
+      preset,
+      window.from.toISOString(),
+      window.to.toISOString(),
+      currentCumulative?.event_id ?? "history",
+    ].join(":");
+  }, [currentCumulative?.event_id, preset, unitId, window]);
+
   useEffect(() => {
-    if (!window || !loader.enabled) {
-      setView({
-        status: "ready",
-        result: {
-          status: "error",
-          valueKwh: null,
-          startSample: null,
-          endSample: null,
-          message: "Споживання недоступне без локального live runtime.",
-        },
-      });
-      return;
-    }
+    if (!window || !loader.enabled) return;
 
     const controller = new AbortController();
-    setView({ status: "loading", result: null });
     void loader
       .load(unitId, window, currentCumulative, controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setView({ status: "ready", result });
+        if (!controller.signal.aborted) setLoadState({ requestKey, result });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        setView({
-          status: "ready",
+        setLoadState({
+          requestKey,
           result: {
             status: "error",
             valueKwh: null,
@@ -141,7 +145,26 @@ export function EnergyConsumptionPanel({
         });
       });
     return () => controller.abort();
-  }, [currentCumulative, loader.enabled, loader.load, unitId, window]);
+  }, [currentCumulative, loader, requestKey, unitId, window]);
+
+  const view = useMemo<ConsumptionView>(() => {
+    if (!window || !loader.enabled) {
+      return {
+        status: "ready",
+        result: {
+          status: "error",
+          valueKwh: null,
+          startSample: null,
+          endSample: null,
+          message: "Споживання недоступне без локального live runtime.",
+        },
+      };
+    }
+    if (!loadState || loadState.requestKey !== requestKey) {
+      return { status: "loading", result: null };
+    }
+    return { status: "ready", result: loadState.result };
+  }, [loadState, loader.enabled, requestKey, window]);
 
   const resolvedWindow = window ?? resolveEnergyConsumptionWindow("last24h", initialNow)!;
   const selectorLabel = formatEnergyConsumptionSelector(preset, resolvedWindow);
