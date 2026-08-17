@@ -79,6 +79,18 @@ export interface SessionMutationResponse {
   replayed: boolean;
 }
 
+export interface SessionBindingOption {
+  node_id: string;
+  equipment_id: string;
+  channel_id: string;
+  metric: string;
+  unit: string;
+  device_type: string;
+  profile_version: string;
+  register_key: string;
+  register_address: number;
+}
+
 export interface SessionBinding {
   id: string;
   session_id: string;
@@ -91,6 +103,13 @@ export interface SessionBinding {
   activated_at: string | null;
   released_at: string | null;
   created_at: string;
+}
+
+export interface BindingMutationResponse {
+  binding: SessionBinding;
+  event: SessionEvent;
+  replayed: boolean;
+  active_config_snapshot_id: string | null;
 }
 
 export interface SessionLimit {
