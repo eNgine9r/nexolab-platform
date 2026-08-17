@@ -27,9 +27,7 @@ export function AlertsTelemetryScope() {
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
             Telemetry scope
           </p>
-          <h2 className="mt-1 text-base font-semibold text-white">
-            Точки телеметрії для стрічки тривог
-          </h2>
+          <h2 className="mt-1 text-base font-semibold text-white">Точки телеметрії для стрічки тривог</h2>
           <p className="mt-1 max-w-3xl text-[11px] leading-5 text-slate-500">
             Вибір звужує production feed на сервері до pagination. Він не змінює правила тривог, polling або
             Modbus.
