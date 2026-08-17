@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  LocalUserAdminApiError,
-  LocalUserAdminClient,
-} from "./local-user-admin";
+import { LocalUserAdminApiError, LocalUserAdminClient } from "./local-user-admin";
 
 const API_BASE_URL = "http://127.0.0.1:8082";
 
@@ -55,9 +52,7 @@ describe("LocalUserAdminClient", () => {
     ) as unknown as typeof fetch;
     const client = createClient(fetchImpl);
 
-    await expect(
-      client.updateUser("missing-user", { isActive: false }),
-    ).rejects.toMatchObject({
+    await expect(client.updateUser("missing-user", { isActive: false })).rejects.toMatchObject({
       status: 404,
       code: "local_user_not_found",
       message: "Користувача не знайдено.",
