@@ -9,6 +9,7 @@ import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { clearRetainedEnergyHistory } from "@/features/energy/energy-history-retention";
+import { useEnergyConsumption } from "@/features/energy/use-energy-consumption";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useEnergyTelemetry } from "@/hooks/use-energy-telemetry";
 
@@ -60,6 +61,11 @@ export function EnergyScreen() {
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
   const organizationId = security.membership?.organizationId ?? null;
   const telemetry = useEnergyTelemetry({
+    enabled: canReadTelemetry,
+    organizationId,
+    securityScopeId: security.session?.identity.id ?? null,
+  });
+  const consumption = useEnergyConsumption({
     enabled: canReadTelemetry,
     organizationId,
     securityScopeId: security.session?.identity.id ?? null,
@@ -151,7 +157,7 @@ export function EnergyScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">
-            <EnergyWorkspace telemetry={telemetry} />
+            <EnergyWorkspace telemetry={telemetry} consumption={consumption} />
           </div>
         </main>
       </div>
