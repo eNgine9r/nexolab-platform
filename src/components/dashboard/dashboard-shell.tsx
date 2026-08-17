@@ -147,9 +147,7 @@ export function DashboardShell() {
             <OverviewWorkspaceLayout
               primary={
                 <Panel
-                  title={
-                    telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"
-                  }
+                  title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
                   action={
                     telemetry.mode === "live" ? (
                       <button
@@ -199,11 +197,7 @@ export function DashboardShell() {
                   action={<PanelAction label="Всі тривоги" href="/alerts" />}
                   className="min-w-0"
                 >
-                  <AlarmsPanel
-                    mode={telemetry.mode}
-                    organizationId={organizationId}
-                    samples={liveSamples}
-                  />
+                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
                 </Panel>
               }
             />
