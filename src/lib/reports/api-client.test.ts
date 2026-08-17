@@ -43,7 +43,7 @@ describe("authenticated Reports API client", () => {
     expect(headers.get("X-Organization-ID")).toBe("selected-org");
   });
 
-  it("sends an idempotent generation request without client actor fields", async () => {
+  it("sends an idempotent generation request with the exact telemetry binding subset", async () => {
     const response = Response.json({
       id: "report-1",
       organization_id: "selected-org",
@@ -58,6 +58,8 @@ describe("authenticated Reports API client", () => {
       "Controlled evidence export",
       idempotencyKey,
       "a".repeat(64),
+      undefined,
+      ["binding-2", "binding-4"],
     );
 
     const [url, init] = fetchImpl.mock.calls[0]!;
@@ -68,9 +70,33 @@ describe("authenticated Reports API client", () => {
     expect(body).toEqual({
       reason: "Controlled evidence export",
       expected_source_sha256: "a".repeat(64),
+      binding_ids: ["binding-2", "binding-4"],
     });
     expect(body).not.toHaveProperty("generated_by");
     expect(body).not.toHaveProperty("actor_id");
+  });
+
+  it("keeps legacy generation compatible when no explicit binding subset is supplied", async () => {
+    const response = Response.json({
+      id: "report-1",
+      organization_id: "selected-org",
+      session_id: "session-1",
+      replayed: false,
+    });
+    const fetchImpl = createFetchMock(response);
+
+    await createReportApiClient({ fetch: fetchImpl }).generateReport(
+      "session-1",
+      "",
+      "legacy-key",
+    );
+
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)) as Record<string, unknown>;
+    expect(body).toEqual({
+      reason: null,
+      expected_source_sha256: null,
+    });
+    expect(body).not.toHaveProperty("binding_ids");
   });
 
   it("downloads bytes through authenticated fetch and keeps tokens out of the URL", async () => {
