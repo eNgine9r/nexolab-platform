@@ -56,24 +56,6 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Capture exact Prettier diff for touched Reports files
-        run: |
-          npx prettier --write \
-            e2e/reports.production.e2e.ts \
-            src/components/reports/report-telemetry-selector.tsx \
-            src/components/reports/reports-workspace.tsx \
-            src/lib/reports/api-client.test.ts \
-            src/lib/reports/telemetry-selection.test.ts \
-            src/lib/reports/telemetry-selection.ts
-          git diff -- \
-            e2e/reports.production.e2e.ts \
-            src/components/reports/report-telemetry-selector.tsx \
-            src/components/reports/reports-workspace.tsx \
-            src/lib/reports/api-client.test.ts \
-            src/lib/reports/telemetry-selection.test.ts \
-            src/lib/reports/telemetry-selection.ts
-          exit 1
-
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
