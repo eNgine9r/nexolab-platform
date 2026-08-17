@@ -3,48 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T09:05:00Z",
+  "timestamp": "2026-08-17T10:28:23Z",
   "actor": "ChatGPT",
-  "event": "post_498_state_reconciliation_and_issue_444_ready_selection",
-  "repository_selection_base_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
+  "event": "issue_444_software_merge_reconciled_and_issue_355_selected",
+  "repository_selection_base_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "state_reconciliation": {
-    "issue": 499,
-    "branch": "chore/499-post-498-ready-reconciliation",
-    "status": "in_progress",
-    "purpose": "clear stale #497 active state and select Product Owner-approved critical backlog work"
+    "issue": 505,
+    "branch": "chore/505-reconcile-444-promote-355",
+    "status": "completed_by_this_state_change",
+    "purpose": "record #444 software merge truthfully, preserve pending Raspberry Pi runtime acceptance, and promote #355"
   },
-  "completed_reconciliation": {
-    "issue": 497,
-    "pull_request": 498,
-    "merge_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
-    "status": "closed_merged"
-  },
-  "issue_493": {
-    "status": "closed_completed",
-    "pull_request": 496,
-    "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "issue_444": {
+    "status": "open_blocked_runtime_acceptance",
+    "pull_request": 501,
+    "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
     "software_verification": "GREEN",
-    "hardware_acceptance": "PASS",
-    "hardware_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2"
-  },
-  "issue_289": {
-    "status": "closed_completed",
-    "hardware_acceptance": "PASS",
-    "deterministic_scale_matrix": "40/40 PASS",
-    "final_disconnected_browser_route_acceptance": "PASS",
-    "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2"
+    "raspberry_pi_runtime_acceptance": "PENDING",
+    "blocker": "controlled redeploy capacity preflight; any signing-key activation requires Product Owner action",
+    "disaster_recovery_browser": "first attempt failed outside #444 diff; exact same head passed on isolated rerun"
   },
   "selected_next_work_package": {
-    "issue": 444,
-    "title": "Restore LOCAL_LAN user administration API availability",
+    "issue": 355,
+    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
     "status": "ready",
     "priority": "critical",
-    "selection_reason": "highest-priority independently actionable critical product defect after explicit Product Owner approval to continue by criticality",
-    "secret_boundary": "software work may proceed; any signing-key/secret activation requires separate Product Owner action"
+    "selection_reason": "next independent critical product defect after #444 software merge; does not require Raspberry Pi redeploy to begin software implementation"
   },
-  "critical_order_after_444": [355, 357, 189, 450],
+  "critical_order_after_355": [357, 189, 450],
   "runtime": {
     "mode": "lan",
     "dashboard": "http://172.18.48.34:3000",
@@ -59,7 +46,6 @@
     "reserve_bytes": 2147483648,
     "current_runtime_affected": false
   },
-  "superseded_state_issues": [416, 449],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -69,5 +55,5 @@
     "mandatory_public_runtime_dependency": "none",
     "secret_activation": "not_authorized"
   },
-  "next_action": "Finish Issue #499 state-only verification and merge; then start Issue #444 on a dedicated feature branch, run software checks, merge only GREEN, and perform Raspberry Pi runtime acceptance without secret changes unless separately authorized."
+  "next_action": "Start Issue #355 on a dedicated feature branch; implement canonical measurement-catalog inventory without telemetry-history scans; verify targeted tests, PostgreSQL timing/query plan, browser acceptance, production build and Offline Bundle; record Raspberry Pi latency acceptance separately."
 }
