@@ -12,6 +12,7 @@ from app.model_registry import register_models
 from app.reports.domain import sha256_hex
 from app.reports.models import TestReportVersion
 from app.reports.repository import (
+    ReportIdempotencyConflictError,
     ReportRepository,
     ReportSessionNotFoundError,
     ReportSessionStateError,
@@ -141,7 +142,72 @@ def seed_session(
         session.commit()
 
 
-def generate(repository: ReportRepository, key: str, expected: str | None = None):
+def add_second_binding(database: Database, *, session_id: str = "session-1") -> str:
+    binding_id = f"binding-{session_id}-2"
+    with Session(database.engine) as session:
+        test_session = session.get(TestSession, session_id)
+        assert test_session is not None
+        snapshot = session.get(
+            SessionConfigSnapshot,
+            test_session.active_config_snapshot_id,
+        )
+        assert snapshot is not None
+        started_at = test_session.started_at
+        completed_at = test_session.completed_at
+        assert started_at is not None
+        binding = SessionChannelBinding(
+            id=binding_id,
+            session_id=session_id,
+            node_id="edge-01",
+            equipment_id="K106",
+            channel_id="106-04",
+            metric="temperature.probe",
+            unit="degC",
+            binding_metadata={"position": "rear-right"},
+            activated_at=started_at,
+            released_at=completed_at,
+        )
+        sample = TelemetrySample(
+            event_id=f"event-{session_id}-2",
+            node_id="edge-01",
+            captured_at=started_at + timedelta(minutes=11),
+            metric="temperature.probe",
+            value=4.25,
+            unit="degC",
+            quality="valid",
+            source="report-repository-test",
+            equipment_id="K106",
+            channel_id="106-04",
+            alarm=None,
+            raw_value=425,
+            raw_status=0,
+            raw_payload={"register": 425},
+            raw_payload_retained=True,
+        )
+        session.add_all([binding, sample])
+        session.flush()
+        session.add(
+            TelemetrySessionContext(
+                telemetry_event_id=sample.event_id,
+                session_id=session_id,
+                stage_id=None,
+                binding_id=binding.id,
+                config_snapshot_id=snapshot.id,
+                captured_at=sample.captured_at,
+                resolver_version=ATTRIBUTION_RESOLVER_VERSION,
+            )
+        )
+        session.commit()
+    return binding_id
+
+
+def generate(
+    repository: ReportRepository,
+    key: str,
+    expected: str | None = None,
+    *,
+    binding_ids: list[str] | None = None,
+):
     return repository.generate(
         "session-1",
         idempotency_key=key,
@@ -150,6 +216,7 @@ def generate(repository: ReportRepository, key: str, expected: str | None = None
         actor_roles=frozenset({Role.ENGINEER}),
         expected_source_sha256=expected,
         reason="Controlled laboratory report generation",
+        binding_ids=binding_ids,
     )
 
 
@@ -178,6 +245,11 @@ def test_repository_generates_exact_evidence_and_replays_idempotently() -> None:
     source = json.loads(artifacts["source-snapshot.json"].content)
     assert source["organization_id"] == "organization-1"
     assert source["evidence"]["telemetry"]["row_count"] == 1
+    assert source["metadata"]["telemetry_selection"] == {
+        "mode": "all_session_bindings",
+        "binding_ids": ["binding-session-1"],
+        "binding_count": 1,
+    }
     manifest = json.loads(artifacts["manifest.json"].content)
     assert manifest["report"]["source_sha256"] == created.report.source_sha256
     assert created.report.manifest_sha256 == artifacts["manifest.json"].sha256
@@ -190,6 +262,74 @@ def test_repository_generates_exact_evidence_and_replays_idempotently() -> None:
     ]
     with Session(database.engine) as session:
         assert session.scalar(select(func.count(TestReportVersion.id))) == 1
+
+
+def test_explicit_binding_subset_is_committed_to_source_and_telemetry() -> None:
+    database = build_database()
+    seed_session(database)
+    second_binding_id = add_second_binding(database)
+    repository = ReportRepository(database).for_organization("organization-1")
+
+    created = generate(
+        repository,
+        "report-subset-1",
+        binding_ids=[second_binding_id],
+    )
+    artifacts = {artifact.name: artifact for artifact in created.artifacts}
+    source = json.loads(artifacts["source-snapshot.json"].content)
+
+    assert source["metadata"]["telemetry_selection"] == {
+        "mode": "explicit",
+        "binding_ids": [second_binding_id],
+        "binding_count": 1,
+    }
+    assert [item["id"] for item in source["metadata"]["bindings"]] == [
+        second_binding_id
+    ]
+    assert artifacts["telemetry.csv"].row_count == 1
+    assert b"event-session-1-2" in artifacts["telemetry.csv"].content
+    assert b"event-session-1," not in artifacts["telemetry.csv"].content
+
+
+def test_selection_validation_and_idempotency_intent_fail_closed() -> None:
+    database = build_database()
+    seed_session(database)
+    second_binding_id = add_second_binding(database)
+    repository = ReportRepository(database).for_organization("organization-1")
+
+    created = generate(
+        repository,
+        "report-selection-key",
+        binding_ids=["binding-session-1", second_binding_id],
+    )
+    replay = generate(
+        repository,
+        "report-selection-key",
+        binding_ids=[second_binding_id, "binding-session-1"],
+    )
+    assert replay.replayed is True
+    assert replay.report.id == created.report.id
+
+    with pytest.raises(ReportIdempotencyConflictError):
+        generate(
+            repository,
+            "report-selection-key",
+            binding_ids=[second_binding_id],
+        )
+    with pytest.raises(ReportIdempotencyConflictError):
+        generate(repository, "report-selection-key")
+    with pytest.raises(ValueError, match="duplicates"):
+        generate(
+            repository,
+            "report-duplicates",
+            binding_ids=[second_binding_id, second_binding_id],
+        )
+    with pytest.raises(ValueError, match="do not belong"):
+        generate(
+            repository,
+            "report-unknown",
+            binding_ids=["foreign-binding"],
+        )
 
 
 def test_new_key_creates_monotonic_version_from_identical_source() -> None:
