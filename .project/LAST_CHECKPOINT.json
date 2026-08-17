@@ -6,7 +6,7 @@
   "timestamp": "2026-08-17T13:36:30Z",
   "actor": "ChatGPT",
   "event": "sessions_513_merged_ready_queue_empty",
-  "repository_main_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+  "state_reconciliation_base_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
   "repository_product_baseline_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
