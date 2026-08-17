@@ -52,6 +52,18 @@ class ProductionBindingsCreate(ConfigurationCommand):
     binding_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class SessionBindingOptionRead(BaseModel):
+    node_id: str
+    equipment_id: str
+    channel_id: str
+    metric: str
+    unit: str
+    device_type: str
+    profile_version: str
+    register_key: str
+    register_address: int
+
+
 class SessionBindingRemove(ConfigurationCommand):
     pass
 
