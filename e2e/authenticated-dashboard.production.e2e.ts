@@ -303,12 +303,44 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
         historyRequestsBeforeInteraction,
       );
 
+      const primaryWorkspace = page.getByTestId("overview-primary-workspace");
+      const secondaryGrid = page.getByTestId("overview-secondary-grid");
+      await expect(primaryWorkspace).toBeVisible();
+      await expect(secondaryGrid).toBeVisible();
+      expect(
+        await page.evaluate(() => {
+          const primary = document.querySelector('[data-testid="overview-primary-workspace"]');
+          const secondary = document.querySelector('[data-testid="overview-secondary-grid"]');
+          if (!primary || !secondary) return false;
+          return Boolean(primary.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING);
+        }),
+      ).toBe(true);
+
       for (const width of [360, 1440, 1920]) {
         await page.setViewportSize({ width, height: 900 });
         await expect(host).toBeVisible();
         await expect
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
           .toBe(true);
+
+        const primaryBox = await primaryWorkspace.boundingBox();
+        const contentBox = await primaryWorkspace.locator("..").boundingBox();
+        if (!primaryBox || !contentBox) throw new Error(`Overview layout missing at ${width}px`);
+        expect(Math.abs(primaryBox.width - contentBox.width)).toBeLessThanOrEqual(2);
+
+        const secondaryPanels = secondaryGrid.locator(":scope > section");
+        await expect(secondaryPanels).toHaveCount(2);
+        const firstSecondaryBox = await secondaryPanels.nth(0).boundingBox();
+        const secondSecondaryBox = await secondaryPanels.nth(1).boundingBox();
+        if (!firstSecondaryBox || !secondSecondaryBox) {
+          throw new Error(`Overview secondary layout missing at ${width}px`);
+        }
+        if (width >= 1280) {
+          expect(Math.abs(firstSecondaryBox.y - secondSecondaryBox.y)).toBeLessThanOrEqual(2);
+          expect(firstSecondaryBox.x).toBeLessThan(secondSecondaryBox.x);
+        } else {
+          expect(firstSecondaryBox.y).toBeLessThan(secondSecondaryBox.y);
+        }
       }
 
       expect(acquisitionMutations).toEqual([]);
@@ -332,6 +364,10 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             selectedHistoryRangeHours: 1,
             canonicalOverviewChart: true,
             overviewHistorySvg: false,
+            overviewGraphFirst: true,
+            overviewPrimaryFullWidth: true,
+            overviewSecondaryGridBelow: true,
+            overviewResponsiveWidths: [360, 1440, 1920],
             cursorLayoutStable: true,
             liveCanvasIdentityStable: true,
             historyRequestsAfterChartInteractions: historyRequestsBeforeInteraction,
