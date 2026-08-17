@@ -178,6 +178,13 @@ export class LocalUserAdminClient {
     const payload = await readJson(response);
     if (!response.ok) {
       const detail = asRecord(asRecord(payload)?.detail);
+      if (response.status === 404 && !detail) {
+        throw new LocalUserAdminApiError(
+          404,
+          "local_user_admin_route_unavailable",
+          "API керування локальними користувачами недоступне. Перевірте LOCAL_LAN профіль автентифікації та підключення local-auth runtime.",
+        );
+      }
       throw new LocalUserAdminApiError(
         response.status,
         readString(detail?.code) ?? "local_user_admin_api_error",
