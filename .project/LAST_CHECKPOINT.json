@@ -3,35 +3,50 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T10:28:23Z",
+  "timestamp": "2026-08-17T11:19:11Z",
   "actor": "ChatGPT",
-  "event": "issue_444_software_merge_reconciled_and_issue_355_selected",
-  "repository_selection_base_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+  "event": "closed_355_357_reconciled_and_overview_507_selected",
+  "repository_selection_base_sha": "1a7d929351c52421e8d94cdee5469e1f017beb38",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "state_reconciliation": {
-    "issue": 505,
-    "branch": "chore/505-reconcile-444-promote-355",
-    "status": "completed_by_this_state_change",
-    "purpose": "record #444 software merge truthfully, preserve pending Raspberry Pi runtime acceptance, and promote #355"
+    "issue": 508,
+    "branch": "chore/508-reconcile-closed-355-357-promote-507",
+    "status": "in_progress",
+    "purpose": "remove stale #355/#357 future-work state, preserve #444/#189 blockers truthfully, and promote #507"
   },
-  "issue_444": {
-    "status": "open_blocked_runtime_acceptance",
-    "pull_request": 501,
-    "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
-    "software_verification": "GREEN",
-    "raspberry_pi_runtime_acceptance": "PENDING",
-    "blocker": "controlled redeploy capacity preflight; any signing-key activation requires Product Owner action",
-    "disaster_recovery_browser": "first attempt failed outside #444 diff; exact same head passed on isolated rerun"
+  "completed_since_previous_checkpoint": {
+    "issue_355": {
+      "status": "closed_completed",
+      "classification": "software verified; Raspberry Pi latency evidence separate"
+    },
+    "issue_357": {
+      "status": "closed_completed",
+      "classification": "software completed; any remaining Raspberry Pi perceived-latency evidence separate"
+    }
+  },
+  "blocked_evidence_lanes": {
+    "issue_444": {
+      "status": "open_blocked_runtime_acceptance",
+      "pull_request": 501,
+      "merge_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+      "software_verification": "GREEN",
+      "raspberry_pi_runtime_acceptance": "PENDING",
+      "blocker": "controlled redeploy capacity preflight; any signing-key activation requires Product Owner action"
+    },
+    "issue_189": {
+      "status": "open_blocked_hardware_evidence",
+      "hardware_acceptance": "PENDING",
+      "blocker": "controlled central-host/Raspberry Pi restore/reboot/rollback/power-loss evidence required"
+    }
   },
   "selected_next_work_package": {
-    "issue": 355,
-    "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-    "status": "ready",
+    "issue": 507,
+    "title": "Make Overview telemetry graph full-width and move secondary panels below",
+    "status": "ready_after_state_reconciliation",
     "priority": "critical",
-    "selection_reason": "next independent critical product defect after #444 software merge; does not require Raspberry Pi redeploy to begin software implementation"
+    "selection_reason": "Epic #450 predecessors #451/#453/#457/#461/#465 are completed; #355/#357 are already completed; #444/#189 are blocked evidence lanes; #507 is independently actionable software work"
   },
-  "critical_order_after_355": [357, 189, 450],
   "runtime": {
     "mode": "lan",
     "dashboard": "http://172.18.48.34:3000",
@@ -55,5 +70,5 @@
     "mandatory_public_runtime_dependency": "none",
     "secret_activation": "not_authorized"
   },
-  "next_action": "Start Issue #355 on a dedicated feature branch; implement canonical measurement-catalog inventory without telemetry-history scans; verify targeted tests, PostgreSQL timing/query plan, browser acceptance, production build and Offline Bundle; record Raspberry Pi latency acceptance separately."
+  "next_action": "Finish Issue #508 state-only verification and merge; add status:ready to #507; then implement #507 on a dedicated feature branch with targeted tests, full frontend checks, browser acceptance and Offline Bundle evidence."
 }
