@@ -44,12 +44,7 @@
     "selection_reason": "highest-priority independently actionable critical product defect after explicit Product Owner approval to continue by criticality",
     "secret_boundary": "software work may proceed; any signing-key/secret activation requires separate Product Owner action"
   },
-  "critical_order_after_444": [
-    355,
-    357,
-    189,
-    450
-  ],
+  "critical_order_after_444": [355, 357, 189, 450],
   "runtime": {
     "mode": "lan",
     "dashboard": "http://172.18.48.34:3000",
@@ -64,10 +59,7 @@
     "reserve_bytes": 2147483648,
     "current_runtime_affected": false
   },
-  "superseded_state_issues": [
-    416,
-    449
-  ],
+  "superseded_state_issues": [416, 449],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
