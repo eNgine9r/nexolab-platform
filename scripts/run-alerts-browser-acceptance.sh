@@ -264,7 +264,7 @@ BEGIN
   FROM alert_transitions t
   JOIN alert_instances a ON a.id = t.alert_id
   WHERE a.organization_id = '$ORGANIZATION_A'
-    AND t.event_type = 'triggered';
+    AND t.event_type = 'alert_triggered';
   IF trigger_count <> 1 THEN
     RAISE EXCEPTION 'expected one trigger transition, found %', trigger_count;
   END IF;
@@ -273,7 +273,7 @@ BEGIN
   FROM alert_transitions t
   JOIN alert_instances a ON a.id = t.alert_id
   WHERE a.organization_id = '$ORGANIZATION_A'
-    AND t.event_type = 'resolved';
+    AND t.event_type = 'alert_resolved';
   IF resolve_count <> 1 THEN
     RAISE EXCEPTION 'expected one resolve transition, found %', resolve_count;
   END IF;
@@ -282,7 +282,7 @@ BEGIN
   FROM alert_transitions t
   JOIN alert_instances a ON a.id = t.alert_id
   WHERE a.organization_id = '$ORGANIZATION_A'
-    AND t.event_type = 'closed';
+    AND t.event_type = 'alert_closed';
   IF close_count <> 1 THEN
     RAISE EXCEPTION 'expected one close transition, found %', close_count;
   END IF;
@@ -291,7 +291,7 @@ BEGIN
   FROM alert_transitions t
   JOIN alert_instances a ON a.id = t.alert_id
   WHERE a.organization_id = '$ORGANIZATION_A'
-    AND t.event_type IN ('acknowledged', 'closed')
+    AND t.event_type IN ('alert_acknowledged', 'alert_closed')
     AND t.actor_id = '$MANAGER_A_ID';
   IF manager_actor_count <> 2 THEN
     RAISE EXCEPTION 'expected verified manager actor on acknowledge/close transitions, found %', manager_actor_count;
