@@ -2,23 +2,58 @@
 
 Updated: 2026-08-17
 
-## Issue #507 — no software merge blocker
+## Autonomous Sprint selection — hard blocker
 
-Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** is implemented in PR #510.
+Fresh post-merge repository audit after Issue #507 / PR #510 confirms:
 
-Product verification head `394fe941a3c80e6f76bc6be64a1ff54f0be9f463` has GREEN CI, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance and disconnected Offline Bundle evidence.
+- current product `main` is `ba988930ba78bc44c6ec6b003a13af79d552f9fa`;
+- Issue #507 is closed completed / `status:done`;
+- fresh GitHub search returns **zero open Issues labelled `status:ready`**.
+
+Per the NEXOLAB Autonomous Sprint policy, absence of an independent Ready Work Package is a hard selection blocker. Autonomous product implementation stops here until a repository-backed priority is selected.
+
+Do not automatically promote:
+
+- remaining Epic #450 selector consumer integrations: session, report, alarm and equipment-map integrations are explicitly separate follow-up Work Packages, but their order is not currently defined by the repository;
+- #245 while it remains `status:needs-validation` and requires real standalone Raspberry Pi acceptance;
+- #444 while controlled Raspberry Pi runtime acceptance remains blocked;
+- #189 while hardware/recovery evidence remains blocked.
+
+## Issue #507 — completed; Raspberry Pi evidence remains separate
+
+Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** is completed through PR #510 / merge `ba988930ba78bc44c6ec6b003a13af79d552f9fa`.
+
+Final exact PR head `74bdb039744d4da427adb5aacc557e148dfc2022` had GREEN:
+
+- CI #3271 / run `32026588140`;
+- Refrigeration Browser Acceptance #1782 / run `32026588024`;
+- Authenticated Dashboard Acceptance #1857 / run `32026588105`;
+- Offline Bundle #1250 / run `32026588165`.
 
 Classification:
 
 `software/browser/offline verified; Raspberry Pi operator acceptance pending`
 
-The pending Raspberry Pi operator/browser evidence is a separate acceptance classification and does not block the focused software merge. Do not claim Raspberry Pi acceptance without real evidence.
+No Raspberry Pi operator/browser acceptance is claimed without real evidence.
+
+## Epic #450 — remaining product sequencing decision
+
+The following Epic #450 children are closed completed:
+
+- #451 canonical chart continuity / inspector / event provenance;
+- #453 equipment-centric multi-metric charts with dynamic Y axes;
+- #457 graph-first Live Data composition;
+- #461 reusable hierarchical `TelemetryPointSelector`;
+- #465 first consumer integration into Live Dashboard editor;
+- #507 Overview graph-first full-width composition.
+
+Epic #450 Work Package 5 explicitly leaves session/report/alarm/equipment-map selector integrations as separate follow-up Issues/PRs. Those follow-up Issues are not currently Ready and their order is not repository-defined. Do not close the Epic or fabricate the next child Work Package by assumption.
 
 ## Issue #444 — software complete, controlled Raspberry Pi runtime acceptance blocked
 
 PR #501 is merged at `efd190a70309039d498e2a9bab2cf47c3598e8b7` with exact-head software/offline/browser verification GREEN.
 
-Issue #444 remains open `status:blocked` because its own acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. This does not block independent software Work Packages.
+Issue #444 remains open `status:blocked` because its own acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. This does not invalidate already completed software work.
 
 Two boundaries apply:
 
@@ -45,29 +80,11 @@ Issue #189 remains open `status:blocked`.
 
 Its final acceptance requires controlled central-host and Raspberry Pi evidence for isolated restore, restart/reboot, edge outbox preservation, rollback and approved power-loss behavior. No destructive production restore, named-volume deletion, product-data deletion or hardware write is authorized.
 
-This is an evidence/hardware blocker for #189 only. It does not block independent software work.
-
-## Closed work packages removed from the blocker/Ready queue
-
-- #355 is closed `completed` / `status:done`; its Live Dashboard canonical inventory software work is no longer pending.
-- #357 is closed `completed` / `status:done`; its refrigeration hydration software work is no longer pending.
-- #508 is completed through PR #509 / merge `db69046da24e20a642485f7d7dfd5df80f48312e`.
-
-Any remaining Raspberry Pi latency observations for #355/#357 must be recorded as evidence or as a newly reproduced defect, not as stale future software work.
-
-## Ready queue status
-
-Fresh pre-merge GitHub audit found zero open `status:ready` Issues. #507 is the active `status:in-progress` Work Package; the next software Work Package must be selected by a fresh post-merge audit.
-
-Do not automatically promote:
-
-- Epic #450 before its post-#507 completion audit;
-- #245 while it remains `status:needs-validation` and requires real standalone Raspberry Pi acceptance;
-- #444 or #189 while their evidence/runtime blockers remain open.
+This is an evidence/hardware blocker for #189 only.
 
 ## Independent pending physical/evidence items
 
-These remain separate unless promoted into a focused Work Package:
+These remain separate unless explicitly promoted into a focused Work Package:
 
 - #507 Raspberry Pi operator/browser acceptance;
 - #444 LOCAL_LAN user-administration runtime retest;
