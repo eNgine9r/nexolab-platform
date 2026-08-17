@@ -2,52 +2,47 @@
 
 Updated: 2026-08-17
 
-## Autonomous Sprint selection — hard blocker
+## Autonomous Sprint selection — resolved for Issue #513
 
-Fresh post-merge repository audit after Issue #507 / PR #510 confirms:
+The previous post-#507 hard selection blocker was resolved by an explicit Product Owner decision to continue Epic #450 with the Test Sessions selector integration.
 
-- current product `main` is `ba988930ba78bc44c6ec6b003a13af79d552f9fa`;
-- Issue #507 is closed completed / `status:done`;
-- fresh GitHub search returns **zero open Issues labelled `status:ready`**.
+Issue #513 **Integrate canonical TelemetryPointSelector into Test Sessions** is now the active Work Package through PR #514. Exact product head `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a` is software/browser/backend/offline verified and ready for the final merge audit.
 
-Per the NEXOLAB Autonomous Sprint policy, absence of an independent Ready Work Package is a hard selection blocker. Autonomous product implementation stops here until a repository-backed priority is selected.
+Fresh GitHub search still returns **zero open Issues labelled `status:ready`**. This does not block the already-selected active Issue #513, which is `status:in-progress`. It means the post-merge next Work Package must be selected again unless a new repository-backed Ready task appears.
 
-Do not automatically promote:
+Do not automatically promote or bundle into PR #514:
 
-- remaining Epic #450 selector consumer integrations: session, report, alarm and equipment-map integrations are explicitly separate follow-up Work Packages, but their order is not currently defined by the repository;
+- remaining Epic #450 selector consumer integrations for reports, alarms or equipment maps;
 - #245 while it remains `status:needs-validation` and requires real standalone Raspberry Pi acceptance;
 - #444 while controlled Raspberry Pi runtime acceptance remains blocked;
 - #189 while hardware/recovery evidence remains blocked.
 
+## Issue #513 — no open implementation blocker
+
+PR #514 exact product head `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a` has GREEN:
+
+- CI #3290 / run `32033655886` — format, lint, typecheck, 442 tests and production build;
+- Test Sessions Browser Acceptance #878 / run `32033655829` — canonical selector subset plus existing production session flow;
+- Telemetry service #1593 / run `32033655867` — backend/runtime contract, migrations, recovery and container build;
+- Offline Bundle #1265 / run `32033655901` — disconnected runtime with blocked egress/pull disabled and persistent-data-preserving update/rollback.
+
+No unresolved PR reviews or review threads were present at the product-head audit. No Raspberry Pi deployment or hardware action is required by Issue #513.
+
+## Epic #450 — remaining product sequencing decision after Sessions
+
+Completed Epic #450 work now includes the previously merged children #451, #453, #457, #461, #465 and #507, with #513 pending merge as the Sessions consumer integration.
+
+Epic #450 Work Package 5 requires each remaining consumer integration to be a separate focused Issue/PR. Reports, alarms and equipment maps are therefore post-merge candidates only; their order is not automatically inferred.
+
 ## Issue #507 — completed; Raspberry Pi evidence remains separate
 
-Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** is completed through PR #510 / merge `ba988930ba78bc44c6ec6b003a13af79d552f9fa`.
+Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** is completed through PR #510 / product merge `ba988930ba78bc44c6ec6b003a13af79d552f9fa`.
 
-Final exact PR head `74bdb039744d4da427adb5aacc557e148dfc2022` had GREEN:
-
-- CI #3271 / run `32026588140`;
-- Refrigeration Browser Acceptance #1782 / run `32026588024`;
-- Authenticated Dashboard Acceptance #1857 / run `32026588105`;
-- Offline Bundle #1250 / run `32026588165`.
-
-Classification:
+Classification remains:
 
 `software/browser/offline verified; Raspberry Pi operator acceptance pending`
 
 No Raspberry Pi operator/browser acceptance is claimed without real evidence.
-
-## Epic #450 — remaining product sequencing decision
-
-The following Epic #450 children are closed completed:
-
-- #451 canonical chart continuity / inspector / event provenance;
-- #453 equipment-centric multi-metric charts with dynamic Y axes;
-- #457 graph-first Live Data composition;
-- #461 reusable hierarchical `TelemetryPointSelector`;
-- #465 first consumer integration into Live Dashboard editor;
-- #507 Overview graph-first full-width composition.
-
-Epic #450 Work Package 5 explicitly leaves session/report/alarm/equipment-map selector integrations as separate follow-up Issues/PRs. Those follow-up Issues are not currently Ready and their order is not repository-defined. Do not close the Epic or fabricate the next child Work Package by assumption.
 
 ## Issue #444 — software complete, controlled Raspberry Pi runtime acceptance blocked
 
