@@ -3,75 +3,79 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T08:36:30Z",
+  "timestamp": "2026-08-17T09:05:00Z",
   "actor": "ChatGPT",
-  "event": "issue_289_and_epic_282_completed_state_reconciliation",
+  "event": "post_498_state_reconciliation_and_issue_444_ready_selection",
+  "repository_selection_base_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "state_reconciliation_issue": 497,
-  "state_reconciliation_branch": "chore/497-reconcile-289-493-completion",
-  "completion_classification": "Issue #493 software and hardware verified; Issue #289 full scale/stability/truthful-state acceptance completed; parent Epic #282 completed; state-only reconciliation in progress",
+  "state_reconciliation": {
+    "issue": 499,
+    "branch": "chore/499-post-498-ready-reconciliation",
+    "status": "in_progress",
+    "purpose": "clear stale #497 active state and select Product Owner-approved critical backlog work"
+  },
+  "completed_reconciliation": {
+    "issue": 497,
+    "pull_request": 498,
+    "merge_sha": "b7b0df6bd49e8416b2073a83310b4eb2aa0468c3",
+    "status": "closed_merged"
+  },
   "issue_493": {
     "status": "closed_completed",
     "pull_request": 496,
     "merge_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
     "software_verification": "GREEN",
     "hardware_acceptance": "PASS",
-    "hardware_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2",
-    "baseline_websocket_clients": 1,
-    "before_manual_retry_websocket_clients": 0,
-    "final_websocket_clients": 1,
-    "browser_reload_used": false,
-    "chromium_network_service_restarted": false,
-    "physical_requests_before": 6914,
-    "physical_requests_after": 8376
+    "hardware_evidence": "runtime/evidence/issue-289-20260817T080201Z-phase12b-postfix-r2"
   },
   "issue_289": {
     "status": "closed_completed",
     "hardware_acceptance": "PASS",
     "deterministic_scale_matrix": "40/40 PASS",
-    "phase_12a_mqtt_ui_truthfulness": "PASS",
-    "phase_12b_terminal_offline_recovery": "PASS",
     "final_disconnected_browser_route_acceptance": "PASS",
-    "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2",
-    "route_sequence": "Overview -> Refrigeration -> Energy -> Saved Live Dashboard -> Overview",
-    "public_ipv4_egress_blocked": true,
-    "ipv6_default_route_present": false,
-    "physical_requests_before": 2152,
-    "physical_requests_after": 3062,
-    "temporary_nft_rule_present_after_test": false
+    "final_disconnected_evidence": "runtime/evidence/issue-289-20260817T082747Z-disconnected-browser-routes-r2"
   },
-  "epic_282": {
-    "status": "closed_completed",
-    "classification": "ordered performance and data acquisition optimization sequence accepted"
+  "selected_next_work_package": {
+    "issue": 444,
+    "title": "Restore LOCAL_LAN user administration API availability",
+    "status": "ready",
+    "priority": "critical",
+    "selection_reason": "highest-priority independently actionable critical product defect after explicit Product Owner approval to continue by criticality",
+    "secret_boundary": "software work may proceed; any signing-key/secret activation requires separate Product Owner action"
   },
+  "critical_order_after_444": [
+    355,
+    357,
+    189,
+    450
+  ],
   "runtime": {
     "mode": "lan",
     "dashboard": "http://172.18.48.34:3000",
     "api": "http://172.18.48.34:8082",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
-    "post_reboot_runtime_healthy": true
+    "current_runtime_healthy": true
   },
   "deployment_capacity": {
-    "redundant_post_reboot_redeploy_result": "preflight_blocked_before_runtime_mutation",
+    "next_redeploy_preflight_blocked": true,
     "free_bytes": 15310114816,
     "required_bytes": 16595036807,
     "reserve_bytes": 2147483648,
-    "current_runtime_affected": false,
-    "next_redeploy_requires_capacity_recovery": true
+    "current_runtime_affected": false
   },
-  "ready_audit": {
-    "open_status_ready_issues": 0,
-    "open_dependabot_prs_are_not_selected_product_work": true,
-    "classification": "no independent Ready Work Package after Issue #497 reconciliation"
-  },
+  "superseded_state_issues": [
+    416,
+    449
+  ],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_site_cutover": "none",
-    "mandatory_public_runtime_dependency": "none"
+    "mandatory_public_runtime_dependency": "none",
+    "secret_activation": "not_authorized"
   },
-  "next_action": "Complete Issue #497 state-only validation and GREEN merge. Then stop at the Ready boundary because no open status:ready Issue exists; require explicit backlog promotion or a new focused Product Owner priority before further implementation."
+  "next_action": "Finish Issue #499 state-only verification and merge; then start Issue #444 on a dedicated feature branch, run software checks, merge only GREEN, and perform Raspberry Pi runtime acceptance without secret changes unless separately authorized."
 }
