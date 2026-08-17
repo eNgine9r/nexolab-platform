@@ -15,6 +15,8 @@ import {
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
+const ENERGY_CONSUMPTION_SETTLE_DELAY_MS = 600;
+
 const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label: string }> = [
   { value: "today", label: "Сьогодні" },
   { value: "yesterday", label: "Вчора" },
@@ -25,7 +27,8 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
 ];
 
 type ConsumptionView =
-  { status: "loading"; result: null } | { status: "ready"; result: EnergyConsumptionResult };
+  | { status: "loading"; result: null }
+  | { status: "ready"; result: EnergyConsumptionResult };
 
 type ConsumptionLoadState = {
   requestKey: string;
@@ -125,25 +128,31 @@ export function EnergyConsumptionPanel({
     if (!window || !loader.enabled) return;
 
     const controller = new AbortController();
-    void loader
-      .load(unitId, window, currentCumulative, controller.signal)
-      .then((result) => {
-        if (!controller.signal.aborted) setLoadState({ requestKey, result });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setLoadState({
-          requestKey,
-          result: {
-            status: "error",
-            valueKwh: null,
-            startSample: null,
-            endSample: null,
-            message: error instanceof Error ? error.message : "Не вдалося завантажити споживання.",
-          },
+    const timer = window.setTimeout(() => {
+      void loader
+        .load(unitId, window, currentCumulative, controller.signal)
+        .then((result) => {
+          if (!controller.signal.aborted) setLoadState({ requestKey, result });
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          setLoadState({
+            requestKey,
+            result: {
+              status: "error",
+              valueKwh: null,
+              startSample: null,
+              endSample: null,
+              message: error instanceof Error ? error.message : "Не вдалося завантажити споживання.",
+            },
+          });
         });
-      });
-    return () => controller.abort();
+    }, ENERGY_CONSUMPTION_SETTLE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [currentCumulative, loader, requestKey, unitId, window]);
 
   const view = useMemo<ConsumptionView>(() => {
