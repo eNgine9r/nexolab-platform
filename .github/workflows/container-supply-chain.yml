@@ -156,13 +156,12 @@ jobs:
           load: true
           push: false
           pull: true
+          no-cache: true
           tags: ${{ env.LOCAL_IMAGE }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
             org.opencontainers.image.title=${{ matrix.id }}
-          cache-from: type=gha,scope=${{ matrix.cache_scope }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
       - name: Verify immutable OCI labels and capture image digest
         id: image
@@ -344,12 +343,11 @@ jobs:
           platforms: ${{ join(matrix.platforms, ',') }}
           push: true
           pull: true
+          no-cache: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=${{ matrix.cache_scope }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
       - name: Record published registry digest
         run: |
