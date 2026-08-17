@@ -5,13 +5,7 @@ export const ENERGY_CONSUMPTION_METRIC = "electrical.energy.active" as const;
 export const ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS = 5 * 60 * 1000;
 
 export type EnergyConsumptionPreset =
-  | "today"
-  | "yesterday"
-  | "last24h"
-  | "last7d"
-  | "last30d"
-  | "month"
-  | "custom";
+  "today" | "yesterday" | "last24h" | "last7d" | "last30d" | "month" | "custom";
 
 export interface EnergyConsumptionWindow {
   from: Date;
@@ -58,13 +52,7 @@ function parseLocalDateTime(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!match) return null;
   const [, year, month, day, hour, minute] = match;
-  const parsed = new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-  );
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
   if (
     parsed.getFullYear() !== Number(year) ||
     parsed.getMonth() !== Number(month) - 1 ||
@@ -242,7 +230,8 @@ export function deriveEnergyConsumption(
       valueKwh: null,
       startSample,
       endSample,
-      message: "Виявлено зменшення накопичувального лічильника. Споживання не обчислюється до класифікації reset/rollover.",
+      message:
+        "Виявлено зменшення накопичувального лічильника. Споживання не обчислюється до класифікації reset/rollover.",
     };
   }
 
@@ -277,29 +266,10 @@ export async function loadEnergyConsumption(
 
   try {
     const [startSample, persistedEndSample] = await Promise.all([
-      loadBoundarySample(
-        adapter,
-        options.nodeId,
-        options.meter,
-        options.window.from,
-        toleranceMs,
-        signal,
-      ),
-      boundarySample(
-        options.currentCumulative,
-        options.meter,
-        options.window.to,
-        toleranceMs,
-      )
+      loadBoundarySample(adapter, options.nodeId, options.meter, options.window.from, toleranceMs, signal),
+      boundarySample(options.currentCumulative, options.meter, options.window.to, toleranceMs)
         ? Promise.resolve(null)
-        : loadBoundarySample(
-            adapter,
-            options.nodeId,
-            options.meter,
-            options.window.to,
-            toleranceMs,
-            signal,
-          ),
+        : loadBoundarySample(adapter, options.nodeId, options.meter, options.window.to, toleranceMs, signal),
     ]);
     const liveEndSample = boundarySample(
       options.currentCumulative,

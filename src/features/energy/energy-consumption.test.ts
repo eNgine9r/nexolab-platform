@@ -53,10 +53,12 @@ describe("energy consumption windows", () => {
     });
     expect(custom?.from.getHours()).toBe(8);
     expect(custom?.to.getHours()).toBe(20);
-    expect(resolveEnergyConsumptionWindow("custom", now, {
-      fromLocal: "2026-08-17T20:00",
-      toLocal: "2026-08-17T08:00",
-    })).toBeNull();
+    expect(
+      resolveEnergyConsumptionWindow("custom", now, {
+        fromLocal: "2026-08-17T20:00",
+        toLocal: "2026-08-17T08:00",
+      }),
+    ).toBeNull();
   });
 });
 

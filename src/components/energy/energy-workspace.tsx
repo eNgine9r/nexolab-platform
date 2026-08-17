@@ -38,9 +38,7 @@ const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
   { value: "24h", label: "24 год" },
 ];
 
-const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter(
-  (metric) => metric.id !== "electrical.energy.active",
-);
+const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter((metric) => metric.id !== "electrical.energy.active");
 
 const METER_COLORS: Record<number, string> = {
   200: "#38bdf8",
@@ -238,11 +236,7 @@ function MeterCard({
         </div>
       </button>
 
-      <EnergyConsumptionPanel
-        unitId={unitId}
-        currentCumulative={cumulativeEnergy}
-        loader={consumption}
-      />
+      <EnergyConsumptionPanel unitId={unitId} currentCumulative={cumulativeEnergy} loader={consumption} />
 
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
         <div>
@@ -590,7 +584,9 @@ export function EnergyWorkspace({
             </div>
             <div>
               <p className="text-[10px] tracking-[0.14em] text-emerald-300 uppercase">Evidence status</p>
-              <h2 className="mt-1 text-base font-semibold text-white">Споживання з підтвердженого лічильника</h2>
+              <h2 className="mt-1 text-base font-semibold text-white">
+                Споживання з підтвердженого лічильника
+              </h2>
             </div>
           </div>
           <p className="mt-4 text-[11px] leading-5 text-slate-400">

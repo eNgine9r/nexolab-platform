@@ -25,8 +25,7 @@ const PRESETS: Array<{ value: Exclude<EnergyConsumptionPreset, "custom">; label:
 ];
 
 type ConsumptionView =
-  | { status: "loading"; result: null }
-  | { status: "ready"; result: EnergyConsumptionResult };
+  { status: "loading"; result: null } | { status: "ready"; result: EnergyConsumptionResult };
 
 function toLocalInputValue(value: Date): string {
   const pad = (part: number) => String(part).padStart(2, "0");
@@ -99,7 +98,11 @@ export function EnergyConsumptionPanel({
 
   const window = useMemo<EnergyConsumptionWindow | null>(() => {
     const referenceNow = refreshKey ? new Date() : initialNow;
-    return resolveEnergyConsumptionWindow(preset, referenceNow, preset === "custom" ? customRange : undefined);
+    return resolveEnergyConsumptionWindow(
+      preset,
+      referenceNow,
+      preset === "custom" ? customRange : undefined,
+    );
   }, [customRange, initialNow, preset, refreshKey]);
 
   useEffect(() => {
@@ -237,7 +240,9 @@ export function EnergyConsumptionPanel({
                     className="min-w-0 rounded-lg border border-white/10 bg-[#06142a] px-2 py-1.5 text-[10px] text-slate-200 outline-none focus:border-cyan-300/35"
                   />
                 </label>
-                {customError ? <p className="mt-2 text-[9px] leading-4 text-red-200/80">{customError}</p> : null}
+                {customError ? (
+                  <p className="mt-2 text-[9px] leading-4 text-red-200/80">{customError}</p>
+                ) : null}
                 <div className="mt-3 flex justify-end gap-2">
                   <button
                     type="button"
