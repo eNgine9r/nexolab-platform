@@ -40,7 +40,7 @@ export interface SessionWizardForm {
   temperatureHysteresis: number;
   temperatureDurationSeconds: number;
   powerUpper: number;
-  productionBindings: boolean;
+  selectedTelemetryKeys: string[];
   stages: SessionWizardStagePlan[];
 }
 
@@ -95,7 +95,7 @@ export function createInitialWizardForm(): SessionWizardForm {
     temperatureHysteresis: 0.5,
     temperatureDurationSeconds: 60,
     powerUpper: 3500,
-    productionBindings: true,
+    selectedTelemetryKeys: [],
     stages: DEFAULT_STAGES.map((stage) => ({ ...stage })),
   };
 }
@@ -109,7 +109,7 @@ export function isWizardStepValid(step: number, form: SessionWizardForm): boolea
     return required(form.testObject) && required(form.model) && required(form.serialNumber);
   }
   if (step === 2) return required(form.standard) && required(form.method);
-  if (step === 3) return form.productionBindings;
+  if (step === 3) return form.selectedTelemetryKeys.length > 0;
   if (step === 4) return form.samplingSeconds >= 1 && form.samplingSeconds <= 3600;
   if (step === 5) {
     return form.temperatureLower <= form.temperatureUpper && form.powerUpper > 0;
