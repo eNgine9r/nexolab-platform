@@ -4,9 +4,7 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The current `main` control-state commit is `6f0c4f3bc39c2bccbe24dafa5218a8f49cf553e3`, the state-only reconciliation after PR #510. The latest merged product baseline remains `ba988930ba78bc44c6ec6b003a13af79d552f9fa`, the squash merge of PR #510 — **make Overview chart full-width**.
-
-Issue #513 / PR #514 is not merged yet. Its exact verified product head is `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a`.
+The current repository/product baseline is `5015e7d492d7ece67a73707ae732954c20c1dce1`, the squash merge of PR #514 — **add exact telemetry selection to Test Sessions**.
 
 The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. No controlled Raspberry Pi deployment was performed for Issue #513.
 
@@ -23,49 +21,63 @@ The current accepted Raspberry Pi `LOCAL_LAN` runtime remains healthy on that de
 
 Repository software and deployed runtime remain intentionally separate. No repository merge after `1d226d6d...` is treated as Raspberry Pi runtime-accepted until controlled deployment evidence exists.
 
-## Issue #513 — software/browser/offline verified; ready for final merge audit
+## Issue #513 — completed and merged
 
-Issue #513 **Integrate canonical TelemetryPointSelector into Test Sessions** is the Product Owner-selected Epic #450 Sessions Work Package. PR #514 is open from `feat/513-sessions-telemetry-selector`.
+Issue #513 **Integrate canonical TelemetryPointSelector into Test Sessions** is closed completed / `status:done` through PR #514, product merge `5015e7d492d7ece67a73707ae732954c20c1dce1`.
 
-Implemented outcome on exact product head `b884bf2e531e1eb6f3dbd99fbeef0ec9de77f21a`:
+Final verified PR head: `445222e4339d939b9475c4b82f3ba9396a3b484c`.
+
+Delivered outcome:
 
 - the Test Sessions equipment step uses the canonical hierarchical `TelemetryPointSelector`;
 - the selectable hierarchy is derived from real organization-scoped local inventory intersected with the server-authoritative validated production session binding contract;
-- identity matching includes node, equipment, channel, metric and unit, so unsupported or drifted inventory entries are not selectable;
+- exact node/equipment/channel/metric/unit identity prevents unsupported or drifted points from being selectable;
 - at least one validated telemetry point is required before the wizard can continue;
 - committed selection survives Back/Next navigation;
 - session creation persists exactly the selected validated subset as individual bindings;
-- there is no hidden fallback to all 34 production bindings;
-- stable per-binding idempotency keys and frozen retry selection protect partial-create retries from duplication or silent selection changes;
-- the new binding-options API is read-only and reuses the same server production contract already used for binding validation;
-- no database migration, acquisition scheduler change, WebSocket polling change, Modbus write, controller write or hardware write was introduced.
+- no hidden fallback to all 34 production bindings exists;
+- stable per-binding idempotency keys and frozen retry selection protect partial-create retries;
+- the binding-options API is read-only and reuses the same server production contract already used for binding validation;
+- `/sessions/new` remains production-build/prerender safe because Sessions API client construction is deferred to browser callbacks;
+- no database migration, dependency change, acquisition scheduler change, new WebSocket subscription, Modbus write, controller write or hardware write was introduced.
 
-Exact-head verification is GREEN:
+Final exact-head verification was GREEN:
 
-- CI #3290 / run `32033655886` — standalone runtime contracts, ADR/dependency policy, format, lint, typecheck, 100 test files / 442 tests and production Next.js build GREEN; `/sessions/new` prerenders successfully;
-- Test Sessions Browser Acceptance #878 / run `32033655829` — GREEN; both the canonical selector-subset scenario and existing organization-scoped production session scenario pass against the controlled acceptance backend/PostgreSQL;
-- Telemetry service #1593 / run `32033655867` — GREEN; compile, migrations, PostgreSQL/MQTT/REST/WebSocket/object-storage coverage, outage recovery, offline migration SQL and container build pass;
-- Offline Bundle #1265 / run `32033655901` — GREEN; disconnected startup with egress blocked and pull disabled succeeds, and update/rollback preserve persistent data.
+- CI #3294 / run `32034864169` — format, lint, typecheck, full test suite and production Next.js build GREEN;
+- Test Sessions Browser Acceptance #882 / run `32034864360` — canonical selector-subset persistence plus the existing production session flow GREEN;
+- Telemetry service #1597 / run `32034864089` — compile, migrations, PostgreSQL/MQTT/REST/WebSocket/object storage, outage recovery, offline SQL and container build GREEN;
+- Offline Bundle #1269 / run `32034864363` — disconnected clean-host startup with blocked egress/pull disabled and persistent-data-preserving update/rollback GREEN;
+- Authenticated Dashboard Acceptance #1876 and Disaster Recovery Browser #766 were GREEN on the same exact SHA after successful retries of transient browser-only failures;
+- Security Browser, Reports Browser, Refrigeration Browser, Offline Auth, MQTT TLS, Device Agent Fleet, Broker Control, Container Supply Chain, Disaster Recovery domain/TLS and Capacity Release gates were GREEN.
 
-Additional exact-head browser/security/runtime workflows are GREEN, including Authenticated Dashboard, Security Browser, Reports Browser, Refrigeration Browser, Offline Auth, MQTT TLS, Device Agent Fleet, Disaster Recovery and Capacity Release gates.
-
-Completion classification before merge:
+Completion classification:
 
 `software/browser/backend/offline verified; Raspberry Pi deployment/operator acceptance not performed and not required by Issue #513`
 
-## Epic #450 — Sessions selected; remaining consumers stay separate
+## Autonomous Sprint selection — hard blocker after #513
 
-The previous no-Ready selection blocker was resolved for the current Work Package by the Product Owner decision to continue Epic #450 with Sessions. Issue #513 was created as that focused vertical slice and is now verified for merge.
+Fresh post-merge GitHub audit returns **zero open Issues labelled `status:ready`**.
 
-Fresh repository audit still returns zero open Issues labelled `status:ready` besides the already-active #513 lane, which is `status:in-progress` rather than Ready.
+Per NEXOLAB Autonomous Sprint policy, absence of an independent Ready Work Package is a hard selection blocker. No next product Issue is promoted or invented automatically where the repository does not define the priority.
 
-Epic #450 Work Package 5 continues to require separate follow-up Issues/PRs for remaining selector consumers. Reports, alarms and equipment maps are not automatically promoted or bundled into PR #514. Their execution order remains a post-merge Product Owner priority decision unless the repository gains a Ready task.
+Current non-Ready candidates are:
+
+- Epic #450 remaining selector consumer integrations — Reports, Alarms and Equipment Maps; each must be a separate focused Issue/PR and their order requires Product Owner priority;
+- #245 standalone offline Raspberry Pi monitoring — `status:needs-validation`, requires real physical Raspberry Pi acceptance actions;
+- #444 LOCAL_LAN user administration — `status:blocked`, software verified but controlled runtime acceptance is blocked;
+- #189 backup/restore/rollback/power-loss acceptance — `status:blocked`, requires controlled hardware/evidence work.
+
+## Epic #450 — remaining consumers stay separate
+
+Completed Epic #450 work includes #451, #453, #457, #461, #465, #507 and now #513.
+
+Work Package 5 continues to require Reports, Alarms and Equipment Maps selector integrations as separate focused follow-up Issues/PRs. Their execution order is not repository-defined, so Epic #450 is not closed or advanced by assumption.
 
 ## Issue #507 — completed and merged
 
 Issue #507 **Make Overview telemetry graph full-width and move secondary panels below** remains closed completed / `status:done` through PR #510, product merge `ba988930ba78bc44c6ec6b003a13af79d552f9fa`.
 
-Its final classification remains:
+Its classification remains:
 
 `software/browser/offline verified; Raspberry Pi operator acceptance pending`
 
