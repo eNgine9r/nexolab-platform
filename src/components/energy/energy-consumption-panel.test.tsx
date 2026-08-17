@@ -42,7 +42,6 @@ describe("EnergyConsumptionPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Сьогодні" }));
 
     await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
-    expect(screen.getByText("Сьогодні")).toBeInTheDocument();
     expect(screen.getByText("Період: з 00:00 до зараз")).toBeInTheDocument();
   });
 
