@@ -18,10 +18,26 @@
     "raspberry_pi_operator_acceptance": "PENDING_SEPARATE_EVIDENCE"
   },
   "verification": {
-    "ci": {"run_id": 32026588140, "run_number": 3271, "status": "GREEN"},
-    "refrigeration_browser": {"run_id": 32026588024, "run_number": 1782, "status": "GREEN"},
-    "authenticated_dashboard": {"run_id": 32026588105, "run_number": 1857, "status": "GREEN"},
-    "offline_bundle": {"run_id": 32026588165, "run_number": 1250, "status": "GREEN"}
+    "ci": {
+      "run_id": 32026588140,
+      "run_number": 3271,
+      "status": "GREEN"
+    },
+    "refrigeration_browser": {
+      "run_id": 32026588024,
+      "run_number": 1782,
+      "status": "GREEN"
+    },
+    "authenticated_dashboard": {
+      "run_id": 32026588105,
+      "run_number": 1857,
+      "status": "GREEN"
+    },
+    "offline_bundle": {
+      "run_id": 32026588165,
+      "run_number": 1250,
+      "status": "GREEN"
+    }
   },
   "ready_audit": {
     "open_status_ready_issue_count": 0,
