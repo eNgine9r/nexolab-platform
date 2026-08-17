@@ -176,9 +176,7 @@ function seedEnergyEvidence(): void {
   });
 }
 
-test("renders verified LE-01MP cumulative kWh in latest, history and live updates", async ({
-  browser,
-}) => {
+test("renders verified LE-01MP cumulative kWh in latest, history and live updates", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   seedEnergyEvidence();
   await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -213,7 +211,9 @@ test("renders verified LE-01MP cumulative kWh in latest, history and live update
       .poll(() =>
         requests.some((item) => {
           const url = new URL(item.url);
-          return url.pathname.endsWith("/history") && url.searchParams.get("metric") === "electrical.energy.active";
+          return (
+            url.pathname.endsWith("/history") && url.searchParams.get("metric") === "electrical.energy.active"
+          );
         }),
       )
       .toBe(true);
