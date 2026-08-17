@@ -1,5 +1,5 @@
-import { AlertsWorkspace } from "@/components/alerts/alerts-workspace";
+import { AlertsTelemetryScope } from "@/components/alerts/alerts-telemetry-scope";
 
 export default function AlertsPage() {
-  return <AlertsWorkspace />;
+  return <AlertsTelemetryScope />;
 }
