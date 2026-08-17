@@ -19,15 +19,28 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
+  "repository_product_baseline_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 536,
-    "selection_status": "open_pr_independent_lane",
-    "reason": "Issue #537/#538 is merged. Issue #536 / PR #539 is the existing independent product Work Package; it requires its own current-head/check audit before any merge decision."
+    "selected_issue": null,
+    "selection_status": "hard_blocked_no_ready_work_package",
+    "ready_issue_count": 0,
+    "reason": "After Issue #536 / PR #539 completion, the repository has zero open product Issues carrying status:ready. Issue #544 is state-only reconciliation and does not authorize new product scope. Epic #450 names Equipment Maps as a possible later selector consumer, but no focused Equipment Maps child Issue is currently Ready."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-536",
+      "issue": 536,
+      "pull_request": 539,
+      "title": "Integrate TelemetryPointSelector into Alarms feed scope",
+      "status": "completed_software_browser_backend_offline_verified",
+      "priority": "critical",
+      "parent_issue": 450,
+      "merge_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
+      "final_pr_head": "a903710ee34b37181770d87640ec31f2efeda948",
+      "raspberry_pi_runtime_acceptance": "not_required_not_deployed"
+    },
     {
       "id": "NEXOLAB-537",
       "issue": 537,
@@ -47,7 +60,8 @@
       "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
       "priority": "high",
       "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-      "hardware_acceptance": "partial_normal_operation_verified"
+      "hardware_acceptance": "partial_normal_operation_verified",
+      "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
     },
     {
       "id": "NEXOLAB-444",
@@ -65,22 +79,60 @@
     }
   ],
   "active_work_package": null,
-  "next_work_package": {
-    "issue": 536,
-    "pull_request": 539,
-    "title": "Integrate TelemetryPointSelector into Alarms feed scope",
-    "status": "requires_current_head_check_audit"
-  },
+  "next_work_package": null,
   "verification": {
-    "issue_537_merge_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
-    "issue_537_final_pr_head": "3df744d36000d719cff02fd756e0610354b1eebc",
-    "issue_537_ci": { "run_number": 3397, "status": "GREEN" },
-    "issue_537_authenticated_dashboard": { "run_number": 1949, "status": "GREEN" },
-    "issue_537_refrigeration_browser": { "run_number": 1830, "status": "GREEN" },
-    "issue_537_offline_bundle": { "run_number": 1342, "status": "GREEN" },
+    "issue_536_merge_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
+    "issue_536_final_pr_head": "a903710ee34b37181770d87640ec31f2efeda948",
+    "issue_536_ci": { "run_number": 3413, "status": "GREEN" },
+    "issue_536_alerts_browser": { "run_number": 861, "status": "GREEN" },
+    "issue_536_telemetry_service": { "run_number": 1646, "status": "GREEN" },
+    "issue_536_authenticated_dashboard": { "run_number": 1960, "status": "GREEN" },
+    "issue_536_offline_bundle": { "run_number": 1353, "status": "GREEN" },
+    "issue_536_offline_auth": { "run_number": 506, "status": "GREEN" },
+    "issue_536_refrigeration_browser": { "run_number": 1840, "status": "GREEN" },
+    "issue_536_disaster_recovery_browser": { "run_number": 813, "status": "GREEN_AFTER_TARGETED_RERUN" },
+    "issue_536_disaster_recovery_domain": { "run_number": 415, "status": "GREEN" },
+    "issue_536_disaster_recovery_tls": { "run_number": 782, "status": "GREEN" },
+    "issue_536_container_supply_chain": { "run_number": 821, "status": "GREEN" },
+    "issue_536_device_agent_fleet": { "run_number": 841, "status": "GREEN" },
+    "issue_536_mqtt_tls_fleet": { "run_number": 791, "status": "GREEN" },
+    "issue_536_broker_control": { "run_number": 752, "status": "GREEN" },
+    "issue_536_capacity_release_gate": { "run_number": 648, "status": "GREEN" },
+    "alerts_browser_artifact_sha256": "4d79b7d6221c0f9cb734f466c2f021934ce5a6fcb434ffa6d06f2d5718c3664a",
+    "authenticated_dashboard_artifact_sha256": "018a3f23811dd8beff1d600af043f8f5232285ad3147d2dcc5ff8f63f0ba7fe0",
+    "offline_bundle_artifact_sha256": "911deaf6e972da0ec6dd7b3e02efbabe1abb63657b64eae17cb75e4af1b98942",
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
-    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
+    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
+    "ready_issue_count": 0
   },
+  "governance": {
+    "direct_main_state_commit": "907edd86552130dde50b70579fb9945eedc3f503",
+    "classification": "STATE_ONLY_POLICY_DEVIATION_RECORDED",
+    "product_runtime_hardware_or_data_change": false,
+    "follow_up": "Issue -> branch -> PR discipline restored for Issue #544 and all subsequent work."
+  },
+  "independent_pending_lanes": [
+    {
+      "issue": 201,
+      "status": "needs_validation",
+      "description": "Approved restart/power-cycle and rollover/reset evidence pending."
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation",
+      "description": "Physical standalone Raspberry Pi acceptance pending."
+    },
+    {
+      "issue": 444,
+      "status": "blocked",
+      "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."
+    },
+    {
+      "issue": 189,
+      "status": "blocked",
+      "description": "Hardware recovery evidence pending."
+    }
+  ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
     "next_redeploy_preflight_blocked": true,
