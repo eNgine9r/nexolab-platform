@@ -59,8 +59,7 @@
       "status": "in_progress",
       "priority": "critical",
       "parent_issue": 450,
-      "branch": "feat/521-reports-telemetry-selector",
-      "current_pr_head": "ee6c121b1f5f7434fdc99548c3eb2ca91b19d7c3"
+      "branch": "feat/521-reports-telemetry-selector"
     },
     {
       "id": "NEXOLAB-444",
