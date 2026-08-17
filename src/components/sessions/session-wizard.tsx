@@ -50,7 +50,6 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 
 export function SessionWizard() {
   const router = useRouter();
-  const sessionClient = useMemo(() => createSessionApiClient(), []);
   const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
   const [step, setStep] = useState(0);
@@ -78,6 +77,7 @@ export function SessionWizard() {
   useEffect(() => {
     if (!selectionEnabled) return;
     const controller = new AbortController();
+    const sessionClient = createSessionApiClient();
     void sessionClient
       .listProductionBindingOptions(controller.signal)
       .then((options) => {
@@ -94,7 +94,7 @@ export function SessionWizard() {
         setBindingOptionsStatus("error");
       });
     return () => controller.abort();
-  }, [bindingOptionsRevision, selectionEnabled, sessionClient]);
+  }, [bindingOptionsRevision, selectionEnabled]);
 
   const selectionModel = useMemo(
     () => buildSessionTelemetrySelectionModel(hierarchyOrganizationId, inventory.items, bindingOptions),
@@ -136,6 +136,7 @@ export function SessionWizard() {
     setSubmitting(true);
     setError(null);
     try {
+      const sessionClient = createSessionApiClient();
       if (
         selectionStatus !== "ready" ||
         selectedBindings.length === 0 ||
