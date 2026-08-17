@@ -156,6 +156,7 @@ jobs:
           load: true
           push: false
           pull: true
+          no-cache: true
           tags: ${{ env.LOCAL_IMAGE }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -344,6 +345,7 @@ jobs:
           platforms: ${{ join(matrix.platforms, ',') }}
           push: true
           pull: true
+          no-cache: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           provenance: mode=max

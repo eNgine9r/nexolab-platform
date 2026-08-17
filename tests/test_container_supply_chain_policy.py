@@ -145,10 +145,10 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     assert decision["owner"] == "platform-security"
     assert decision["expires_on"] == "2026-09-05"
     assert "mosquitto_ctrl" in decision["reason"]
-    assert "Reviewed 2026-08-06" in decision["reason"]
+    assert "Reviewed 2026-08-17" in decision["reason"]
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 6),
+        date(2026, 8, 17),
     )
 
 
