@@ -19,16 +19,26 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
+  "repository_product_baseline_sha": "426d834390cde83cdec99defa40cf7e165ee711b",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": null,
-    "selection_status": "hard_blocked_no_ready_work_package",
-    "ready_issue_count": 0,
-    "reason": "Post-#521 audit found zero open status:ready Issues. Epic #450 names future selector consumers but no focused Alarms or Equipment Maps child Issue is currently Ready; open Dependabot PRs are not auto-promoted into the product lane."
+    "selected_issue": 537,
+    "selection_status": "implementation_green_pending_merge",
+    "reason": "Product Owner selected period-based Energy Monitoring consumption. PR #538 is implemented and exact implementation head checks are GREEN; state checkpoint is being finalized before Ready/merge audit."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-537",
+      "issue": 537,
+      "pull_request": 538,
+      "title": "Add selectable period consumption to Energy Monitoring cards",
+      "status": "implementation_green_pending_merge",
+      "priority": "high",
+      "branch": "feat/537-energy-period-consumption",
+      "implementation_head": "3df744d36000d719cff02fd756e0610354b1eebc",
+      "hardware_acceptance": "not_required_software_read_model_only"
+    },
     {
       "id": "NEXOLAB-201",
       "issue": 201,
@@ -37,31 +47,7 @@
       "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
       "priority": "high",
       "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-      "hardware_acceptance": "partial_normal_operation_verified",
-      "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
-    },
-    {
-      "id": "NEXOLAB-526",
-      "issue": 526,
-      "pull_request": 527,
-      "title": "Surface verified LE-01MP cumulative energy in Energy Monitoring",
-      "status": "completed_software_browser_offline_verified",
-      "priority": "high",
-      "merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
-      "final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81",
-      "raspberry_pi_runtime_acceptance": "not_deployed"
-    },
-    {
-      "id": "NEXOLAB-521",
-      "issue": 521,
-      "pull_request": 529,
-      "title": "Integrate TelemetryPointSelector into report evidence selection",
-      "status": "completed_software_browser_backend_offline_verified",
-      "priority": "critical",
-      "parent_issue": 450,
-      "merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
-      "final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
-      "raspberry_pi_runtime_acceptance": "not_required_out_of_scope"
+      "hardware_acceptance": "partial_normal_operation_verified"
     },
     {
       "id": "NEXOLAB-444",
@@ -78,43 +64,21 @@
       "priority": "high"
     }
   ],
-  "active_work_package": null,
+  "active_work_package": {
+    "issue": 537,
+    "pull_request": 538,
+    "status": "implementation_green_pending_merge"
+  },
   "next_work_package": null,
   "verification": {
-    "issue_521_merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
-    "issue_521_final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15",
-    "issue_521_ci": { "run_number": 3362, "status": "GREEN" },
-    "issue_521_reports_browser": { "run_number": 882, "status": "GREEN" },
-    "issue_521_rendered_reports_browser": { "run_number": 727, "status": "GREEN" },
-    "issue_521_telemetry_service": { "run_number": 1629, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_authenticated_dashboard": { "run_number": 1920, "status": "GREEN" },
-    "issue_521_offline_bundle": { "run_number": 1313, "status": "GREEN" },
-    "issue_521_offline_auth": { "run_number": 490, "status": "GREEN" },
-    "issue_521_refrigeration_browser": { "run_number": 1821, "status": "GREEN" },
-    "issue_521_disaster_recovery_browser": { "run_number": 796, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_521_container_supply_chain": { "run_number": 804, "status": "GREEN" },
+    "issue_537_implementation_head": "3df744d36000d719cff02fd756e0610354b1eebc",
+    "issue_537_ci": { "run_number": 3397, "status": "GREEN" },
+    "issue_537_authenticated_dashboard": { "run_number": 1949, "status": "GREEN" },
+    "issue_537_refrigeration_browser": { "run_number": 1830, "status": "GREEN" },
+    "issue_537_offline_bundle": { "run_number": 1342, "status": "GREEN" },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
-    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
-    "ready_issue_count": 0
+    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
   },
-  "independent_pending_lanes": [
-    {
-      "issue": 201,
-      "status": "needs_validation",
-      "description": "Approved restart/power-cycle and rollover/reset evidence pending."
-    },
-    {
-      "issue": 245,
-      "status": "needs_validation",
-      "description": "Physical standalone Raspberry Pi acceptance pending."
-    },
-    {
-      "issue": 444,
-      "status": "blocked",
-      "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."
-    },
-    { "issue": 189, "status": "blocked", "description": "Hardware recovery evidence pending." }
-  ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
     "next_redeploy_preflight_blocked": true,

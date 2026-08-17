@@ -3,77 +3,48 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T16:03:00Z",
+  "timestamp": "2026-08-17T18:10:00Z",
   "actor": "ChatGPT",
-  "event": "reports_521_merged_no_ready_work_package",
-  "repository_product_baseline_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
+  "event": "issue_537_energy_period_consumption_green_pending_merge",
+  "repository_product_baseline_sha": "426d834390cde83cdec99defa40cf7e165ee711b",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "completed_work_package": {
-    "issue": 521,
-    "pull_request": 529,
-    "title": "Integrate TelemetryPointSelector into report evidence selection",
-    "status": "completed_software_browser_backend_offline_verified",
-    "merge_sha": "1c17719c4dccbef735d58fdea9be87d44f8b8a46",
-    "final_pr_head": "b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15"
+  "active_work_package": {
+    "issue": 537,
+    "pull_request": 538,
+    "title": "Add selectable period consumption to Energy Monitoring cards",
+    "branch": "feat/537-energy-period-consumption",
+    "implementation_head": "3df744d36000d719cff02fd756e0610354b1eebc",
+    "status": "implementation_green_pending_merge"
   },
   "verification": {
-    "ci": { "run_number": 3362, "status": "GREEN" },
-    "reports_browser": { "run_number": 882, "status": "GREEN" },
-    "rendered_reports_browser": { "run_number": 727, "status": "GREEN" },
-    "telemetry_service": { "run_number": 1629, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "authenticated_dashboard": { "run_number": 1920, "status": "GREEN" },
-    "offline_bundle": { "run_number": 1313, "status": "GREEN" },
-    "offline_auth": { "run_number": 490, "status": "GREEN" },
-    "refrigeration_browser": { "run_number": 1821, "status": "GREEN" },
-    "disaster_recovery_browser": { "run_number": 796, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "disaster_recovery_domain": { "run_number": 398, "status": "GREEN" },
-    "disaster_recovery_tls": { "run_number": 765, "status": "GREEN" },
-    "container_supply_chain": { "run_number": 804, "status": "GREEN" },
-    "device_agent_fleet": { "run_number": 824, "status": "GREEN" },
-    "mqtt_tls_fleet": { "run_number": 774, "status": "GREEN" },
-    "broker_control": { "run_number": 735, "status": "GREEN" },
-    "capacity_release_gate": { "run_number": 631, "status": "GREEN" }
+    "ci": { "run_number": 3397, "status": "GREEN" },
+    "authenticated_dashboard": { "run_number": 1949, "status": "GREEN" },
+    "refrigeration_browser": { "run_number": 1830, "status": "GREEN" },
+    "offline_bundle": { "run_number": 1342, "status": "GREEN" }
   },
-  "reports_outcome": {
-    "selector_source": "PERSISTED_SESSION_BINDINGS",
-    "taxonomy_enrichment": "CURRENT_INVENTORY_PRESENTATION_ONLY",
-    "default_selection": "ALL_REPORTABLE_SESSION_BINDINGS",
-    "explicit_selection": "SERVER_VALIDATED_AND_COMMITTED_TO_IMMUTABLE_SOURCE_HASH",
-    "legacy_omitted_selection": "PRESERVED_UNFILTERED_FULL_SESSION_PATH",
+  "energy_consumption_outcome": {
+    "operator_primary_metric": "DERIVED_PERIOD_CONSUMPTION_KWH",
+    "source_metric": "electrical.energy.active",
+    "source_storage_mutation": "NONE",
+    "period_scope": "INDEPENDENT_PER_METER",
+    "presets": ["today", "yesterday", "last24h", "last7d", "last30d", "month", "custom"],
+    "missing_boundary_behavior": "UNAVAILABLE_FAIL_CLOSED",
+    "negative_delta_behavior": "DISCONTINUITY_FAIL_CLOSED",
     "physical_polling_change": "NONE",
     "modbus_change": "NONE"
   },
   "hardware_evidence": {
+    "issue_537_required": false,
     "issue_201_normal_operation": "VERIFIED",
-    "units": [200, 201, 202, 203],
-    "display_correlation": "VERIFIED",
-    "monotonicity_under_load": "VERIFIED",
-    "power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
+    "issue_201_power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
     "rollover_reset_discontinuity": "PENDING_POWER_CYCLE_EVIDENCE"
-  },
-  "selection": {
-    "selected_issue": null,
-    "status": "HARD_BLOCKED_NO_READY_WORK_PACKAGE",
-    "ready_issue_count": 0,
-    "reason": "No open status:ready Issue exists after #521 completion. Epic #450 future consumers are not yet represented by a focused Ready child Issue, and maintenance Dependabot PRs are not auto-promoted."
   },
   "runtime": {
     "mode": "lan",
-    "dashboard": "http://172.18.48.34:3000",
-    "api": "http://172.18.48.34:8082",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
     "current_runtime_healthy": true,
-    "issue_201_driver_deployed": false,
-    "issue_526_energy_ui_deployed": false,
-    "issue_521_reports_selector_deployed": false
-  },
-  "deployment_capacity": {
-    "next_redeploy_preflight_blocked": true,
-    "free_bytes": 15310114816,
-    "required_bytes": 16595036807,
-    "reserve_bytes": 2147483648,
-    "current_runtime_affected": false
+    "issue_537_deployed": false
   },
   "safety": {
     "modbus_write": "none",
@@ -83,5 +54,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Stop autonomous feature implementation at the no-Ready hard blocker. Product Owner must select or approve creation/promotion of the next focused Ready Work Package; Issue #201 physical power-cycle validation remains a separate explicit-approval lane."
+  "next_action": "Run exact-head checks on the state checkpoint, audit focused diff/reviews, mark PR #538 Ready and merge only if GREEN."
 }
