@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Callable
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
@@ -13,6 +14,7 @@ from app.alerts.repository import (
     AlertRuleConflictError,
     AlertRuleNotFoundError,
     RuleRecord,
+    TelemetryPointIdentity,
 )
 from app.alerts.schemas import (
     AlertEvidencePage,
@@ -41,6 +43,9 @@ IdempotencyKey = Annotated[
         max_length=128,
     ),
 ]
+
+MAX_ALERT_TELEMETRY_POINTS = 64
+MAX_ALERT_TELEMETRY_POINT_LENGTH = 512
 
 
 def create_alert_router(
@@ -187,6 +192,7 @@ def create_alert_router(
         state_filter: Annotated[AlertState | None, Query(alias="state")] = None,
         severity: Annotated[AlertSeverity | None, Query()] = None,
         metric: Annotated[str | None, Query(max_length=128)] = None,
+        telemetry_point: Annotated[list[str] | None, Query()] = None,
         limit: Annotated[int, Query(ge=1, le=200)] = 50,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> AlertPage:
@@ -200,6 +206,7 @@ def create_alert_router(
             ),
             severity=severity,
             metric=metric,
+            telemetry_points=_parse_telemetry_points(telemetry_point),
             limit=limit,
             offset=offset,
         )
@@ -325,6 +332,7 @@ def _alert_page(
     states: frozenset[AlertState] | None,
     severity: AlertSeverity | None,
     metric: str | None,
+    telemetry_points: tuple[TelemetryPointIdentity, ...] | None = None,
     limit: int,
     offset: int,
 ) -> AlertPage:
@@ -335,6 +343,7 @@ def _alert_page(
             states=states,
             severity=severity.value if severity is not None else None,
             metric=metric,
+            telemetry_points=telemetry_points,
             limit=limit,
             offset=offset,
         )
@@ -347,6 +356,51 @@ def _alert_page(
         )
     except Exception as error:
         raise _http_error(error) from error
+
+
+def _parse_telemetry_points(
+    values: list[str] | None,
+) -> tuple[TelemetryPointIdentity, ...] | None:
+    if values is None:
+        return None
+    if not values or len(values) > MAX_ALERT_TELEMETRY_POINTS:
+        raise _invalid_telemetry_scope(
+            f"telemetry_point must contain 1 to {MAX_ALERT_TELEMETRY_POINTS} values"
+        )
+
+    parsed: list[TelemetryPointIdentity] = []
+    seen: set[TelemetryPointIdentity] = set()
+    for raw in values:
+        if not raw or len(raw) > MAX_ALERT_TELEMETRY_POINT_LENGTH:
+            raise _invalid_telemetry_scope("telemetry_point is empty or too long")
+        encoded_parts = raw.split("|")
+        if len(encoded_parts) != 5:
+            raise _invalid_telemetry_scope(
+                "telemetry_point must contain node, equipment, channel, metric and unit"
+            )
+        decoded = tuple(unquote(part).strip() for part in encoded_parts)
+        if any(not part for part in decoded):
+            raise _invalid_telemetry_scope("telemetry_point components must not be empty")
+        identity: TelemetryPointIdentity = (
+            decoded[0],
+            decoded[1],
+            decoded[2],
+            decoded[3],
+        )
+        if identity not in seen:
+            seen.add(identity)
+            parsed.append(identity)
+
+    if not parsed:
+        raise _invalid_telemetry_scope("telemetry_point must contain at least one exact identity")
+    return tuple(parsed)
+
+
+def _invalid_telemetry_scope(message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail={"code": "alert_telemetry_scope_invalid", "message": message},
+    )
 
 
 def _rule_read(record: object) -> AlertRuleRead:

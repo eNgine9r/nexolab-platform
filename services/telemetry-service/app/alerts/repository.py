@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -43,6 +43,9 @@ class AlertConflictError(AlertRepositoryError):
 
 class AlertRuleConflictError(AlertRepositoryError):
     code = "alert_rule_conflict"
+
+
+TelemetryPointIdentity = tuple[str, str, str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -255,6 +258,7 @@ class AlertRepository:
         states: frozenset[AlertState] | None,
         severity: str | None,
         metric: str | None,
+        telemetry_points: tuple[TelemetryPointIdentity, ...] | None = None,
         limit: int,
         offset: int,
     ) -> Page:
@@ -266,6 +270,20 @@ class AlertRepository:
             filters.append(AlertInstance.severity == severity)
         if metric is not None:
             filters.append(AlertInstance.metric == metric)
+        if telemetry_points:
+            filters.append(
+                or_(
+                    *(
+                        and_(
+                            AlertInstance.node_id == node_id,
+                            AlertInstance.equipment_id == equipment_id,
+                            AlertInstance.channel_id == channel_id,
+                            AlertInstance.metric == point_metric,
+                        )
+                        for node_id, equipment_id, channel_id, point_metric in telemetry_points
+                    )
+                )
+            )
         with Session(self._engine, expire_on_commit=False) as session:
             count = int(
                 session.scalar(

@@ -22,6 +22,7 @@ export interface AlertListQuery {
   state?: AlertState;
   severity?: AlertSeverity;
   metric?: string;
+  telemetryPoints?: readonly string[];
   limit?: number;
   offset?: number;
 }
@@ -33,10 +34,17 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function withQuery(path: string, values: Record<string, string | number | undefined>): string {
+type QueryValue = string | number | readonly string[] | undefined;
+
+function withQuery(path: string, values: Record<string, QueryValue>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) {
-    if (value !== undefined) params.set(key, String(value));
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) params.append(key, item);
+    } else {
+      params.set(key, String(value));
+    }
   }
   const query = params.toString();
   return query ? `${path}?${query}` : path;
@@ -89,6 +97,7 @@ export class AlertApiClient {
         state: query.state,
         severity: query.severity,
         metric: query.metric,
+        telemetry_point: query.telemetryPoints,
         limit: query.limit ?? 200,
         offset: query.offset ?? 0,
       }),

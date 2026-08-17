@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -98,8 +98,15 @@ function durationLabel(alert: AlertInstance, now: number): string {
   return `${remainder} с`;
 }
 
-export function AlertsWorkspace() {
+export function AlertsWorkspace({
+  telemetryPoints,
+  telemetrySelector,
+}: {
+  telemetryPoints?: readonly string[];
+  telemetrySelector?: ReactNode;
+}) {
   const [alerts, setAlerts] = useState<AlertInstance[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transitions, setTransitions] = useState<AlertTransition[]>([]);
   const [stateFilter, setStateFilter] = useState<"all" | AlertState>("all");
@@ -125,10 +132,12 @@ export function AlertsWorkspace() {
         const query: AlertListQuery = {
           state: stateFilter === "all" ? undefined : stateFilter,
           severity: severityFilter === "all" ? undefined : severityFilter,
+          telemetryPoints,
           limit: 200,
         };
         const page = await client.listAlerts(query, signal);
         setAlerts(page.items);
+        setTotalCount(page.count);
         setSelectedId((current) => {
           if (current && page.items.some((item) => item.id === current)) return current;
           return page.items[0]?.id ?? null;
@@ -143,7 +152,7 @@ export function AlertsWorkspace() {
         if (!signal.aborted && !quiet) setLoading(false);
       }
     },
-    [severityFilter, stateFilter],
+    [severityFilter, stateFilter, telemetryPoints],
   );
 
   useEffect(() => {
@@ -246,19 +255,24 @@ export function AlertsWorkspace() {
             </p>
           </div>
           <div className="grid grid-cols-4 gap-2 sm:min-w-[520px]">
-            <Summary label="Усього" value={alerts.length} />
-            <Summary label="Активні" value={alerts.filter((item) => item.state === "active").length} />
+            <Summary label="Усього у scope" value={totalCount} />
             <Summary
-              label="Підтверджені"
+              label="Активні на сторінці"
+              value={alerts.filter((item) => item.state === "active").length}
+            />
+            <Summary
+              label="Підтверджені на сторінці"
               value={alerts.filter((item) => item.state === "acknowledged").length}
             />
             <Summary
-              label="Критичні"
+              label="Критичні на сторінці"
               value={alerts.filter((item) => item.severity === "critical" && item.state !== "closed").length}
             />
           </div>
         </div>
       </section>
+
+      {telemetrySelector}
 
       <section className="panel overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-white/[0.055] p-4 xl:flex-row xl:items-center xl:justify-between xl:p-5">
