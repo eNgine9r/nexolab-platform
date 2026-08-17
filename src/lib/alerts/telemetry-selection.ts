@@ -1,4 +1,7 @@
-import { buildTelemetryPointHierarchy, type TelemetryPointHierarchy } from "@/features/telemetry-selection/hierarchy";
+import {
+  buildTelemetryPointHierarchy,
+  type TelemetryPointHierarchy,
+} from "@/features/telemetry-selection/hierarchy";
 import { liveDashboardInventoryToTelemetryPointDescriptor } from "@/features/live-dashboards/telemetry-selection-adapter";
 import type { LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 
