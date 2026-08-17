@@ -17,6 +17,7 @@ import {
   WifiOff,
 } from "lucide-react";
 
+import { ReportTelemetrySelector } from "@/components/reports/report-telemetry-selector";
 import {
   createAuthenticatedFetch,
   hasPermission,
@@ -57,6 +58,10 @@ export function ReportsWorkspace() {
   const [sessions, setSessions] = useState<LaboratorySession[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState("");
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [selectedBindingIds, setSelectedBindingIds] = useState<string[]>([]);
+  const [selectionSessionId, setSelectionSessionId] = useState<string | null>(null);
+  const [selectionReady, setSelectionReady] = useState(false);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -106,12 +111,13 @@ export function ReportsWorkspace() {
         if (current && terminalSessions.some((item) => item.id === current)) return current;
         return terminalSessions[0]?.id ?? "";
       });
-      const organizationId = snapshot.organizationId;
+      const nextOrganizationId = snapshot.organizationId;
+      setOrganizationId(nextOrganizationId);
       setCanGenerate(
         Boolean(
           securityResult.ok &&
-          organizationId &&
-          hasPermission(securityResult.value, organizationId, "reports.generate"),
+          nextOrganizationId &&
+          hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
         ),
       );
       setError(null);
@@ -140,14 +146,35 @@ export function ReportsWorkspace() {
   }, []);
 
   const stale = lastSuccessfulAt !== null && now - lastSuccessfulAt > 30_000;
+  const telemetrySelectionReady =
+    selectionReady &&
+    selectionSessionId === selectedSessionId &&
+    selectedBindingIds.length > 0;
 
   const refresh = () => {
     setLoading(true);
     setGeneration((value) => value + 1);
   };
 
+  const selectSession = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setSelectedBindingIds([]);
+    setSelectionSessionId(null);
+    setSelectionReady(false);
+    setActionError(null);
+  };
+
+  const handleTelemetrySelection = useCallback(
+    (sessionId: string, bindingIds: string[], ready: boolean) => {
+      setSelectionSessionId(sessionId);
+      setSelectedBindingIds(bindingIds);
+      setSelectionReady(ready);
+    },
+    [],
+  );
+
   const generateReport = async () => {
-    if (!selectedSessionId || !canGenerate) return;
+    if (!selectedSessionId || !canGenerate || !telemetrySelectionReady) return;
     setMutating(true);
     setActionError(null);
     try {
@@ -155,6 +182,9 @@ export function ReportsWorkspace() {
         selectedSessionId,
         reason,
         createReportIdempotencyKey(selectedSessionId),
+        undefined,
+        undefined,
+        selectedBindingIds,
       );
       setReports((items) => [response, ...items.filter((item) => item.id !== response.id)]);
       setSelectedReportId(response.id);
@@ -226,7 +256,7 @@ export function ReportsWorkspace() {
               </span>
               <select
                 value={selectedSessionId}
-                onChange={(event) => setSelectedSessionId(event.target.value)}
+                onChange={(event) => selectSession(event.target.value)}
                 className="form-input"
                 data-testid="report-session-select"
               >
@@ -252,7 +282,7 @@ export function ReportsWorkspace() {
             <button
               type="button"
               onClick={() => void generateReport()}
-              disabled={mutating || !selectedSessionId}
+              disabled={mutating || !selectedSessionId || !telemetrySelectionReady}
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-4 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-45"
               data-testid="generate-report"
             >
@@ -264,6 +294,17 @@ export function ReportsWorkspace() {
               Сформувати версію
             </button>
           </div>
+
+          {selectedSessionId ? (
+            <div className="mt-4">
+              <ReportTelemetrySelector
+                sessionId={selectedSessionId}
+                organizationId={organizationId}
+                onSelectionChange={handleTelemetrySelection}
+              />
+            </div>
+          ) : null}
+
           {selectedSession ? (
             <p className="mt-3 text-[10px] text-slate-500">
               Source boundary: {selectedSession.started_at ? formatDate(selectedSession.started_at) : "—"} —{" "}
