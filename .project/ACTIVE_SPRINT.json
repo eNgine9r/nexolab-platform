@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
+  "repository_product_baseline_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
     "selected_issue": null,
     "selection_status": "hard_blocked_no_ready_work_package",
     "ready_issue_count": 0,
-    "reason": "Fresh post-#513 merge GitHub audit found zero open status:ready Issues. Remaining lanes require either a Product Owner priority decision or physical/runtime evidence and cannot be promoted automatically."
+    "reason": "Fresh post-#519 merge GitHub audit found zero open status:ready Issues. Issue #201 software is merged but remains status:needs-validation for an explicitly approved restart/power-cycle hardware observation; other lanes require Product Owner priority or physical/runtime evidence."
   },
   "tasks": [
     {
@@ -59,37 +59,12 @@
       "blocker": "controlled redeploy capacity preflight; signing-key activation remains unauthorized"
     },
     {
-      "id": "NEXOLAB-355",
-      "issue": 355,
-      "title": "Load Live Dashboard channel inventory without telemetry-history timeout",
-      "status": "completed",
-      "priority": "critical",
-      "raspberry_pi_runtime_acceptance": "separate_evidence_classification"
-    },
-    {
-      "id": "NEXOLAB-357",
-      "issue": 357,
-      "title": "Hydrate refrigeration image, layout and sensor placements immediately",
-      "status": "completed",
-      "priority": "critical",
-      "raspberry_pi_runtime_acceptance": "separate_evidence_classification"
-    },
-    {
       "id": "NEXOLAB-189",
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked_hardware_evidence",
       "priority": "high",
       "hardware_acceptance": "pending"
-    },
-    {
-      "id": "NEXOLAB-508",
-      "issue": 508,
-      "pull_request": 509,
-      "title": "Reconcile closed #355/#357 and promote Overview WP #507",
-      "status": "completed",
-      "priority": "high",
-      "merge_sha": "db69046da24e20a642485f7d7dfd5df80f48312e"
     },
     {
       "id": "NEXOLAB-507",
@@ -112,6 +87,18 @@
       "merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
       "final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
       "raspberry_pi_runtime_acceptance": "not_required_out_of_scope"
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "pull_request": 519,
+      "title": "Validate LE-01MP cumulative energy, scale and rollover",
+      "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
+      "priority": "high",
+      "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+      "final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
+      "hardware_acceptance": "partial_normal_operation_verified",
+      "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
     }
   ],
   "active_work_package": null,
@@ -122,45 +109,57 @@
     "priority": null
   },
   "verification": {
-    "issue_513_merge_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
-    "issue_513_final_pr_head": "445222e4339d939b9475c4b82f3ba9396a3b484c",
-    "issue_513_ci": {
-      "run_id": 32034864169,
-      "run_number": 3294,
+    "issue_201_merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
+    "issue_201_final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
+    "issue_201_ci": {
+      "run_id": 32037544241,
+      "run_number": 3304,
       "status": "GREEN"
     },
-    "issue_513_test_sessions_browser": {
-      "run_id": 32034864360,
-      "run_number": 882,
+    "issue_201_edge_image": {
+      "run_id": 32037544248,
+      "run_number": 267,
       "status": "GREEN"
     },
-    "issue_513_telemetry_service": {
-      "run_id": 32034864089,
-      "run_number": 1597,
+    "issue_201_acquisition_scale": {
+      "run_id": 32037544291,
+      "run_number": 166,
+      "status": "GREEN",
+      "active_target_profiles": [38, 144, 252]
+    },
+    "issue_201_device_agent_fleet": {
+      "run_id": 32037544260,
+      "run_number": 794,
       "status": "GREEN"
     },
-    "issue_513_offline_bundle": {
-      "run_id": 32034864363,
-      "run_number": 1269,
+    "issue_201_telemetry_service": {
+      "run_id": 32037544282,
+      "run_number": 1599,
       "status": "GREEN"
     },
-    "issue_513_authenticated_dashboard": {
-      "run_id": 32034864313,
-      "run_number": 1876,
-      "status": "GREEN_AFTER_SAME_SHA_RETRY"
+    "issue_201_authenticated_dashboard": {
+      "run_id": 32037544232,
+      "run_number": 1881,
+      "status": "GREEN"
     },
-    "issue_513_disaster_recovery_browser": {
-      "run_id": 32034864255,
-      "run_number": 766,
-      "status": "GREEN_AFTER_SAME_SHA_RETRY"
+    "issue_201_offline_bundle": {
+      "run_id": 32037544237,
+      "run_number": 1274,
+      "status": "GREEN"
     },
-    "issue_513_raspberry_pi_operator_acceptance": "NOT_REQUIRED_OUT_OF_SCOPE",
+    "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
+    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
     "issue_444_software_verification": "GREEN",
     "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
     "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
     "ready_issue_count": 0
   },
   "selection_candidates": [
+    {
+      "issue": 201,
+      "status": "needs_validation",
+      "description": "LE-01MP cumulative energy software is merged and normal-operation hardware semantics are verified; full acceptance requires an explicitly approved restart/power-cycle observation."
+    },
     {
       "source": "epic_450_wp5",
       "status": "product_priority_required",
