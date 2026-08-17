@@ -191,10 +191,12 @@ function MeterCard({
 }) {
   const meter = ENERGY_METERS.find((item) => item.unitId === unitId)!;
   const power = findEnergySample(samples, unitId, "electrical.power.active");
+  const cumulativeEnergy = findEnergySample(samples, unitId, "electrical.energy.active");
   const voltage = findEnergySample(samples, unitId, "electrical.voltage");
   const current = findEnergySample(samples, unitId, "electrical.current");
   const powerFactor = findEnergySample(samples, unitId, "electrical.power_factor");
-  const state = energySampleState(power ?? voltage ?? current ?? powerFactor);
+  const state = energySampleState(power ?? voltage ?? current ?? powerFactor ?? cumulativeEnergy);
+  const energyState = energySampleState(cumulativeEnergy);
   const stateCopy = STATE_COPY[state];
 
   return (
@@ -225,6 +227,15 @@ function MeterCard({
         <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{formatEnergyValue(power)}</p>
       </div>
 
+      <div className="mt-3 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] px-3 py-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[9px] tracking-[0.1em] text-cyan-300/80 uppercase">Накопичена енергія</p>
+          <span className="text-[8px] text-slate-600">{STATE_COPY[energyState].label}</span>
+        </div>
+        <p className="mt-1 text-sm font-semibold text-slate-100">{formatEnergyValue(cumulativeEnergy)}</p>
+        <p className="mt-1 text-[8px] text-slate-600">Загальний лічильник · не інтервальне споживання</p>
+      </div>
+
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
         <div>
           <dt className="text-[9px] text-slate-600">U</dt>
@@ -242,7 +253,7 @@ function MeterCard({
 
       <p className="mt-4 flex items-center gap-1.5 text-[9px] text-slate-600">
         <Clock3 className="h-3 w-3" />
-        {formatCapturedAt(power ?? voltage ?? current ?? powerFactor)}
+        {formatCapturedAt(power ?? cumulativeEnergy ?? voltage ?? current ?? powerFactor)}
       </p>
     </button>
   );
@@ -542,11 +553,11 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
                     </th>
                     {ENERGY_METERS.map((meter) => {
                       const sample = findEnergySample(telemetry.samples, meter.unitId, metric.id);
-                      const state = energySampleState(sample);
+                      const sampleState = energySampleState(sample);
                       return (
                         <td key={meter.unitId} className="px-4 py-3">
                           <p className="font-medium text-slate-100">{formatEnergyValue(sample)}</p>
-                          <p className="mt-1 text-[8px] text-slate-600">{STATE_COPY[state].label}</p>
+                          <p className="mt-1 text-[8px] text-slate-600">{STATE_COPY[sampleState].label}</p>
                         </td>
                       );
                     })}
@@ -557,22 +568,23 @@ export function EnergyWorkspace({ telemetry }: { telemetry: EnergyTelemetryModel
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.035] p-5">
+        <aside className="rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.035] p-5">
           <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-300/15 bg-amber-400/10">
-              <ShieldAlert className="h-5 w-5 text-amber-300" />
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-300/15 bg-emerald-400/10">
+              <ShieldAlert className="h-5 w-5 text-emerald-300" />
             </div>
             <div>
-              <p className="text-[10px] tracking-[0.14em] text-amber-300 uppercase">Evidence boundary</p>
-              <h2 className="mt-1 text-base font-semibold text-white">Накопичена енергія недоступна</h2>
+              <p className="text-[10px] tracking-[0.14em] text-emerald-300 uppercase">Evidence status</p>
+              <h2 className="mt-1 text-base font-semibold text-white">Накопичена енергія доступна</h2>
             </div>
           </div>
           <p className="mt-4 text-[11px] leading-5 text-slate-400">
-            Значення `kWh` не показується, тому що регістр, масштаб, word order і rollover ще не підтверджені
-            фізичними показами W1–W4. Це окремий hardware Work Package #201.
+            Загальний лічильник `kWh` підтверджений на W1–W4: FC03 R7:R8, uint32 high/low word, масштаб 0.01
+            kWh, збіг із фізичними дисплеями та монотонне зростання під навантаженням.
           </p>
-          <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3 text-[10px] text-slate-500">
-            Дозволено: V, A, Hz, W, var, VA, PF і температура лічильника.
+          <div className="mt-4 rounded-xl border border-amber-300/10 bg-amber-400/[0.03] p-3 text-[10px] leading-4 text-amber-100/70">
+            Work Package #201 ще очікує окремого погодженого restart/power-cycle доказу для rollover/reset
+            класифікації. Цей екран показує cumulative total і не обчислює інтервальне споживання.
           </div>
         </aside>
       </section>
