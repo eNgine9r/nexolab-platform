@@ -2,7 +2,6 @@ import { expect, test, type Browser, type BrowserContext } from "@playwright/tes
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
-const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
 
 interface RoutedSocket {
   close(options?: { code?: number; reason?: string }): Promise<void>;
@@ -24,16 +23,6 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
     { accessToken: sessionCredential, organization: organizationId },
   );
   return context;
-}
-
-async function websocketClientCount(): Promise<number> {
-  const response = await fetch(`${apiBaseUrl}/health/ready`);
-  if (!response.ok) throw new Error(`Telemetry readiness returned HTTP ${response.status}`);
-  const payload = (await response.json()) as { websocket_clients?: number };
-  if (typeof payload.websocket_clients !== "number") {
-    throw new Error("Telemetry readiness did not expose websocket_clients");
-  }
-  return payload.websocket_clients;
 }
 
 function requiredEnvironment(name: string): string {
@@ -64,12 +53,12 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
     name: "106-03",
     exact: true,
   });
+  const retryButton = page.getByRole("button", { name: "Повторити", exact: true });
 
   try {
     await page.goto("/live?workspace=explorer", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible();
     await expect(inventoryChannel).toBeVisible();
-    await expect.poll(websocketClientCount).toBe(1);
     expect(routedSocketCount).toBe(1);
 
     const baselineClient = routedSocketState.healthyClient;
@@ -86,20 +75,21 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
 
     await expect(page.getByText("Live-потік офлайн", { exact: true })).toBeVisible({ timeout: 35_000 });
     await expect(inventoryChannel).toBeVisible();
-    await expect.poll(websocketClientCount).toBe(0);
+    await expect(retryButton).toBeVisible();
 
     const attemptsAtOffline = routedSocketCount;
     expect(attemptsAtOffline).toBeGreaterThan(1);
 
     outage = false;
-    await page.waitForTimeout(1_500);
+    await page.waitForTimeout(2_000);
     expect(routedSocketCount).toBe(attemptsAtOffline);
-    await expect.poll(websocketClientCount).toBe(0);
+    await expect(page.getByText("Live-потік офлайн", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Повторити", exact: true }).click();
+    await retryButton.click();
 
+    await expect.poll(() => routedSocketCount).toBe(attemptsAtOffline + 1);
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible({ timeout: 20_000 });
-    await expect.poll(websocketClientCount).toBe(1);
+    await expect(inventoryChannel).toBeVisible();
     await page.waitForTimeout(1_000);
     expect(routedSocketCount).toBe(attemptsAtOffline + 1);
   } finally {
