@@ -88,18 +88,34 @@
   "verification": {
     "issue_526_merge_sha": "df91a5bc0f55ef7d3be029fd743dd4fa26218afc",
     "issue_526_final_pr_head": "7e94ba32b2b23492bcaeb19cdb9f073b0a439f81",
-    "issue_526_ci": {"run_id": 32040481038, "run_number": 3330, "status": "GREEN"},
-    "issue_526_refrigeration_browser": {"run_id": 32040480994, "run_number": 1804, "status": "GREEN"},
-    "issue_526_authenticated_dashboard": {"run_id": 32040480992, "run_number": 1898, "status": "GREEN_AFTER_RETRY"},
-    "issue_526_offline_bundle": {"run_id": 32040481023, "run_number": 1291, "status": "GREEN"},
+    "issue_526_ci": { "run_id": 32040481038, "run_number": 3330, "status": "GREEN" },
+    "issue_526_refrigeration_browser": { "run_id": 32040480994, "run_number": 1804, "status": "GREEN" },
+    "issue_526_authenticated_dashboard": {
+      "run_id": 32040480992,
+      "run_number": 1898,
+      "status": "GREEN_AFTER_RETRY"
+    },
+    "issue_526_offline_bundle": { "run_id": 32040481023, "run_number": 1291, "status": "GREEN" },
     "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
     "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL"
   },
   "independent_pending_lanes": [
-    {"issue": 201, "status": "needs_validation", "description": "Approved restart/power-cycle and rollover/reset evidence pending."},
-    {"issue": 245, "status": "needs_validation", "description": "Physical standalone Raspberry Pi acceptance pending."},
-    {"issue": 444, "status": "blocked", "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."},
-    {"issue": 189, "status": "blocked", "description": "Hardware recovery evidence pending."}
+    {
+      "issue": 201,
+      "status": "needs_validation",
+      "description": "Approved restart/power-cycle and rollover/reset evidence pending."
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation",
+      "description": "Physical standalone Raspberry Pi acceptance pending."
+    },
+    {
+      "issue": 444,
+      "status": "blocked",
+      "description": "LOCAL_LAN runtime acceptance blocked by deployment capacity/signing-key boundary."
+    },
+    { "issue": 189, "status": "blocked", "description": "Hardware recovery evidence pending." }
   ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
