@@ -6,7 +6,7 @@
     "id": "ENGINEERING-HARDENING-1",
     "title": "Engineering governance, critical operator defects and toolchain hardening",
     "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated critical operator and reliability work packages.",
-    "status": "in_progress",
+    "status": "hard_blocked_no_ready_work_package",
     "started_at": "2026-08-06",
     "epic_issue": 326
   },
@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_selection_base_sha": "db69046da24e20a642485f7d7dfd5df80f48312e",
+  "repository_product_baseline_sha": "ba988930ba78bc44c6ec6b003a13af79d552f9fa",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": 507,
-    "selection_status": "software_browser_offline_verified_ready_for_merge",
+    "selected_issue": null,
+    "selection_status": "hard_blocked_no_ready_work_package",
     "ready_issue_count": 0,
-    "reason": "#507 is the active in-progress Work Package and has GREEN product-head CI/browser/offline evidence. Fresh GitHub audit found no additional open status:ready Issues; a post-merge Ready audit is required."
+    "reason": "Fresh post-#507 merge GitHub audit found zero open status:ready Issues. Remaining lanes require either a Product Owner priority decision or physical/runtime evidence and cannot be promoted automatically."
   },
   "tasks": [
     {
@@ -96,49 +96,41 @@
       "issue": 507,
       "pull_request": 510,
       "title": "Make Overview telemetry graph full-width and move secondary panels below",
-      "status": "software_browser_offline_verified_ready_for_merge",
+      "status": "completed_software_browser_offline_verified",
       "priority": "critical",
-      "branch": "feat/507-overview-full-width-chart",
-      "product_verification_sha": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
-      "depends_on": [451, 453, 457, 461, 465],
+      "merge_sha": "ba988930ba78bc44c6ec6b003a13af79d552f9fa",
+      "final_pr_head": "74bdb039744d4da427adb5aacc557e148dfc2022",
       "raspberry_pi_runtime_acceptance": "pending_separate_evidence"
     }
   ],
-  "active_work_package": {
-    "issue": 507,
-    "pull_request": 510,
-    "title": "Make Overview telemetry graph full-width and move secondary panels below",
-    "status": "software_browser_offline_verified_ready_for_merge",
-    "priority": "critical",
-    "product_verification_sha": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
-    "next_step": "Validate the state-only checkpoint tail, mark PR #510 Ready, run the final merge audit and merge only with GREEN required checks."
-  },
+  "active_work_package": null,
   "next_work_package": {
     "issue": null,
-    "title": "Pending post-merge Ready audit",
-    "status": "not_selected",
+    "title": "No repository-backed Ready Work Package",
+    "status": "hard_blocked_pending_product_owner_priority_or_physical_unblock",
     "priority": null
   },
   "verification": {
-    "issue_507_product_head": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
+    "issue_507_merge_sha": "ba988930ba78bc44c6ec6b003a13af79d552f9fa",
+    "issue_507_final_pr_head": "74bdb039744d4da427adb5aacc557e148dfc2022",
     "issue_507_ci": {
-      "run_id": 32025536430,
-      "run_number": 3267,
+      "run_id": 32026588140,
+      "run_number": 3271,
       "status": "GREEN"
     },
     "issue_507_refrigeration_browser": {
-      "run_id": 32025536533,
-      "run_number": 1778,
+      "run_id": 32026588024,
+      "run_number": 1782,
       "status": "GREEN"
     },
     "issue_507_authenticated_dashboard": {
-      "run_id": 32025536598,
-      "run_number": 1853,
+      "run_id": 32026588105,
+      "run_number": 1857,
       "status": "GREEN"
     },
     "issue_507_offline_bundle": {
-      "run_id": 32025536444,
-      "run_number": 1246,
+      "run_id": 32026588165,
+      "run_number": 1250,
       "status": "GREEN"
     },
     "issue_507_raspberry_pi_operator_acceptance": "PENDING_SEPARATE_EVIDENCE",
@@ -147,6 +139,28 @@
     "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
     "ready_issue_count": 0
   },
+  "selection_candidates": [
+    {
+      "source": "epic_450_wp5",
+      "status": "product_priority_required",
+      "description": "Create the next focused TelemetryPointSelector consumer integration for sessions, reports, alarms or equipment maps; repository does not define their execution order."
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation",
+      "description": "Standalone offline Raspberry Pi monitoring; requires real physical acceptance actions."
+    },
+    {
+      "issue": 444,
+      "status": "blocked",
+      "description": "LOCAL_LAN user-administration runtime acceptance; blocked by controlled redeploy capacity and possible signing-key activation boundary."
+    },
+    {
+      "issue": 189,
+      "status": "blocked",
+      "description": "Backup/restore/rollback/power-loss acceptance; requires controlled hardware evidence."
+    }
+  ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
     "next_redeploy_preflight_blocked": true,
