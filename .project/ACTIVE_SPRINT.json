@@ -19,7 +19,6 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_main_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
   "repository_product_baseline_sha": "5015e7d492d7ece67a73707ae732954c20c1dce1",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
