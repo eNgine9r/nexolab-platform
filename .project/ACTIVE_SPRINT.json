@@ -19,14 +19,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_selection_base_sha": "1a7d929351c52421e8d94cdee5469e1f017beb38",
+  "repository_selection_base_sha": "db69046da24e20a642485f7d7dfd5df80f48312e",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
     "selected_issue": 507,
-    "selection_status": "ready_after_closed_355_357_reconciliation",
-    "ready_issue_count": 1,
-    "reason": "Fresh GitHub audit shows #355 and #357 closed completed; #444 and #189 remain runtime/evidence blocked; Epic #450 predecessors #451/#453/#457/#461/#465 are completed; #507 is the next independent critical software Work Package."
+    "selection_status": "software_browser_offline_verified_ready_for_merge",
+    "ready_issue_count": 0,
+    "reason": "#507 is the active in-progress Work Package and has GREEN product-head CI/browser/offline evidence. Fresh GitHub audit found no additional open status:ready Issues; a post-merge Ready audit is required."
   },
   "tasks": [
     {
@@ -85,41 +85,67 @@
     {
       "id": "NEXOLAB-508",
       "issue": 508,
+      "pull_request": 509,
       "title": "Reconcile closed #355/#357 and promote Overview WP #507",
-      "status": "in_progress_state_reconciliation",
+      "status": "completed",
       "priority": "high",
-      "branch": "chore/508-reconcile-closed-355-357-promote-507"
+      "merge_sha": "db69046da24e20a642485f7d7dfd5df80f48312e"
     },
     {
       "id": "NEXOLAB-507",
       "issue": 507,
+      "pull_request": 510,
       "title": "Make Overview telemetry graph full-width and move secondary panels below",
-      "status": "ready",
+      "status": "software_browser_offline_verified_ready_for_merge",
       "priority": "critical",
+      "branch": "feat/507-overview-full-width-chart",
+      "product_verification_sha": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
       "depends_on": [451, 453, 457, 461, 465],
-      "raspberry_pi_runtime_acceptance_required": true
+      "raspberry_pi_runtime_acceptance": "pending_separate_evidence"
     }
   ],
   "active_work_package": {
-    "issue": 508,
-    "title": "Reconcile closed #355/#357 and promote Overview WP #507",
-    "status": "in_progress_state_reconciliation",
-    "priority": "high",
-    "next_step": "Finish the focused four-file state-only PR, run state checks/CI, merge, then start Issue #507 on a dedicated feature branch."
+    "issue": 507,
+    "pull_request": 510,
+    "title": "Make Overview telemetry graph full-width and move secondary panels below",
+    "status": "software_browser_offline_verified_ready_for_merge",
+    "priority": "critical",
+    "product_verification_sha": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
+    "next_step": "Validate the state-only checkpoint tail, mark PR #510 Ready, run the final merge audit and merge only with GREEN required checks."
   },
   "next_work_package": {
-    "issue": 507,
-    "title": "Make Overview telemetry graph full-width and move secondary panels below",
-    "status": "ready",
-    "priority": "critical"
+    "issue": null,
+    "title": "Pending post-merge Ready audit",
+    "status": "not_selected",
+    "priority": null
   },
   "verification": {
+    "issue_507_product_head": "394fe941a3c80e6f76bc6be64a1ff54f0be9f463",
+    "issue_507_ci": {
+      "run_id": 32025536430,
+      "run_number": 3267,
+      "status": "GREEN"
+    },
+    "issue_507_refrigeration_browser": {
+      "run_id": 32025536533,
+      "run_number": 1778,
+      "status": "GREEN"
+    },
+    "issue_507_authenticated_dashboard": {
+      "run_id": 32025536598,
+      "run_number": 1853,
+      "status": "GREEN"
+    },
+    "issue_507_offline_bundle": {
+      "run_id": 32025536444,
+      "run_number": 1246,
+      "status": "GREEN"
+    },
+    "issue_507_raspberry_pi_operator_acceptance": "PENDING_SEPARATE_EVIDENCE",
     "issue_444_software_verification": "GREEN",
     "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
-    "issue_355_status": "COMPLETED",
-    "issue_357_status": "COMPLETED",
     "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
-    "ready_issue_count": 1
+    "ready_issue_count": 0
   },
   "deployment_capacity": {
     "current_runtime_healthy": true,
