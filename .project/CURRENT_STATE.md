@@ -4,36 +4,49 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The latest merged **product baseline** is `df91a5bc0f55ef7d3be029fd743dd4fa26218afc`, the squash merge of PR #527 — **surface verified LE-01MP cumulative kWh in Energy Monitoring**.
+The latest merged **product baseline** is `1c17719c4dccbef735d58fdea9be87d44f8b8a46`, the squash merge of PR #529 — **select exact telemetry evidence for Reports**.
 
-The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. Neither the LE-01MP cumulative-energy software from PR #519 nor the Energy UI from PR #527 has been deployed to the Raspberry Pi.
+The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. The cumulative-energy driver/UI work from PR #519/#527 and the Reports selector from PR #529 have not been deployed to the Raspberry Pi.
 
 The accepted `LOCAL_LAN` runtime remains healthy on deployment evidence `runtime/deployments/20260817T074249Z`, with central PostgreSQL/MQTT/Telemetry healthy, edge MQTT/Device Agent healthy, and one serialized RS-485 worker.
 
 Repository software and deployed runtime remain intentionally separate. No repository merge after `1d226d6d...` is treated as Raspberry Pi runtime-accepted until controlled deployment evidence exists.
 
-## Issue #526 — completed and merged
+## Issue #521 — completed and merged
 
-Issue #526 **Surface verified LE-01MP cumulative energy in Energy Monitoring** is closed `status:done` through PR #527 / merge `df91a5bc0f55ef7d3be029fd743dd4fa26218afc`.
+Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is closed `status:done` through PR #529 / merge `1c17719c4dccbef735d58fdea9be87d44f8b8a46`.
 
 Product outcome:
 
-- `/energy` accepts `electrical.energy.active` / `kWh` for W1–W4 with two-decimal formatting;
-- cumulative energy appears in the latest-values matrix and existing bounded PostgreSQL history selector;
-- each meter card shows the cumulative total without presenting it as interval consumption;
-- the stale `Накопичена енергія недоступна` boundary is removed;
-- evidence status truthfully says normal-operation semantics are verified while #201 restart/power-cycle/rollover acceptance remains pending;
-- the authenticated Energy browser flow proves local MQTT ingestion, current kWh, cumulative-history query selection, authorization, and live WebSocket update;
-- no backend schema, acquisition, scheduler, dependency, cloud-runtime, Modbus-write or hardware-action change was introduced.
+- Reports generation exposes the canonical hierarchical `TelemetryPointSelector` over persisted session bindings rather than arbitrary current inventory;
+- current inventory may enrich taxonomy, but bindings missing from inventory remain reportable and are shown truthfully under unclassified/not-specified taxonomy;
+- a newly selected terminal session defaults to all persisted reportable bindings;
+- an explicit selected binding subset is validated server-side, canonicalized, recorded in the immutable report source snapshot and committed into the source hash;
+- explicit selection filters binding-scoped telemetry, limits and alert-transition evidence before artifact generation while session-global evidence remains deterministic;
+- omitted selection preserves the legacy unfiltered full-session evidence path;
+- reusing an idempotency key with a different selection intent fails as a conflict;
+- selector interaction creates no new physical polling, discovery, acquisition-registry mutation, WebSocket ownership or Modbus request.
 
-Final PR head `7e94ba32b2b23492bcaeb19cdb9f073b0a439f81` had GREEN:
+Final implementation head `b1d3003d36a36ca1eef4bc88952a76e6ab5f9a15` had GREEN:
 
-- CI #3330 / run `32040481038`;
-- Refrigeration Browser Acceptance #1804 / run `32040480994`;
-- Authenticated Dashboard Acceptance #1898 / run `32040480992` after a retry of two unrelated transient Live/equipment WebSocket assertions; the complete retry was GREEN;
-- Offline Bundle #1291 / run `32040481023`, including disconnected startup and persistent-data-preserving update/rollback.
+- CI #3362;
+- Reports Browser Acceptance #882;
+- Rendered Reports Browser Acceptance #727;
+- Telemetry service #1629 after a targeted rerun of an unrelated PostgreSQL planner nondeterminism;
+- Authenticated Dashboard Acceptance #1920;
+- Offline Bundle #1313;
+- Offline Auth Acceptance #490;
+- Refrigeration Browser Acceptance #1821;
+- Disaster Recovery Browser #796 after a targeted rerun of an unrelated route-render flake;
+- Disaster Recovery Domain Completeness #398;
+- Disaster Recovery TLS Fleet #765;
+- Container Supply Chain #804;
+- Device Agent Fleet Acceptance #824;
+- MQTT TLS Fleet Acceptance #774;
+- Broker Control Acceptance #735;
+- Capacity Release Gate #631.
 
-No Raspberry Pi deployment/operator acceptance is claimed for PR #527.
+No Raspberry Pi deployment or hardware acceptance was required or claimed for #521.
 
 ## Issue #201 — normal-operation hardware verified; full power-cycle boundary pending
 
@@ -49,13 +62,13 @@ Verified normal-operation semantics remain:
 
 Full #201 hardware acceptance still requires an explicitly approved restart/power-cycle observation and rollover/reset/discontinuity classification.
 
-## Active Work Package — Reports #521
+## Sprint selection — hard blocked: no Ready Work Package
 
-Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is `status:in-progress` with draft PR #529 `feat: select exact telemetry evidence for Reports`.
+The post-#521 repository audit found **zero open Issues carrying `status:ready`**. There is no active implementation Work Package and no repository-authorized next product package.
 
-PR #529 is actively advancing on `feat/521-reports-telemetry-selector`; inspect GitHub for its exact current head rather than copying a moving implementation SHA into current-state documentation. Preserve #521 as the single active implementation package; do not start another independent software Work Package while it remains active.
+Epic #450 still names future incremental selector consumers such as Alarms and Equipment Maps, but no focused child Issue is currently open and Ready for either consumer. Existing open Dependabot PRs are maintenance proposals, not repository-selected Ready Work Packages, and must not be auto-promoted into the product lane.
 
-Reports boundaries remain unchanged: selector eligibility comes from persisted session bindings, report sources remain immutable/content-hashed, omitted selection remains backward compatible, excluded bindings must not remain in evidence artifacts, and selector interaction must create zero new acquisition/Modbus work.
+Per autonomous Sprint policy, `hard_blocked_no_ready_work_package` is now the truthful selection state. Product Owner selection or creation/promotion of a focused Ready Issue is required before another implementation branch starts.
 
 ## Existing operational blockers
 
