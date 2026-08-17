@@ -16,6 +16,13 @@ export const ENERGY_METRICS = [
     digits: 0,
   },
   {
+    id: "electrical.energy.active",
+    label: "Накопичена активна енергія",
+    shortLabel: "EΣ",
+    expectedUnit: "kWh",
+    digits: 2,
+  },
+  {
     id: "electrical.voltage",
     label: "Напруга",
     shortLabel: "U",
