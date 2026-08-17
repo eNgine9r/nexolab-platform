@@ -20,7 +20,7 @@
     "test:e2e:rendered-reports": "playwright test --config=playwright.rendered-reports.config.ts",
     "test:e2e:nodes": "playwright test --config=playwright.nodes.config.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --write src/components/alerts/alerts-telemetry-scope.tsx && git diff -- src/components/alerts/alerts-telemetry-scope.tsx && exit 1",
+    "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "dependencies": {
