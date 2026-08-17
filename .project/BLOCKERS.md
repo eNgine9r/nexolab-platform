@@ -2,44 +2,68 @@
 
 Updated: 2026-08-17
 
-## Autonomous Sprint selection — hard blocker after Issue #201 software merge
+## Autonomous Sprint selection — resolved for Reports Issue #521
 
-PR #519 merged the verified LE-01MP cumulative active-energy software to product `main` as `21cddfbb041d4b5c1dc8271c1ee4604460c50170`.
+The previous `hard_blocked_no_ready_work_package` selection blocker is resolved by the explicit Product Owner decision to continue Epic #450 with **Reports**.
 
-Fresh post-merge GitHub audit returns **zero open Issues labelled `status:ready`**.
+Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is open, assigned, `priority:critical` and `status:ready`. It is the single next software Work Package after state reconciliation.
 
-Issue #201 remains open as `status:needs-validation`. Its software implementation and normal-operation hardware semantics are verified, but full hardware acceptance requires an explicitly approved restart/power-cycle observation and consequent rollover/reset/discontinuity classification. No such physical action is authorized by the software merge.
+Do not bundle or auto-promote:
 
-Per NEXOLAB Autonomous Sprint policy, autonomous product implementation has no independent Ready Work Package after state reconciliation. Continue only after Product Owner selects another independent package or explicitly approves the physical validation required by a `needs-validation` lane.
+- Epic #450 Alarms selector integration;
+- Epic #450 Equipment Maps selector integration;
+- Issue #201 physical restart/power-cycle/rollover validation;
+- Issue #245 standalone Raspberry Pi acceptance;
+- Issue #444 LOCAL_LAN user-administration runtime retest;
+- Issue #189 recovery/power-loss evidence.
 
-## Issue #201 — normal-operation hardware verified; power-cycle boundary pending
+## Issue #201 — software merged; physical restart/rollover boundary pending
 
-Verified normal-operation evidence on installed LE-01MP Units `200–203`:
+PR #519 merged product commit `21cddfbb041d4b5c1dc8271c1ee4604460c50170`. Exact final head `48bcad8f3fbb9b71cda3a438863078013fd2d9fb` had GREEN CI, Edge image/Device Agent tests, Acquisition Scale, Device Agent Fleet, Telemetry Service, Authenticated Dashboard, Offline Bundle, Container Supply Chain, Disaster Recovery TLS and MQTT TLS gates.
+
+Normal-operation hardware evidence is verified on installed Units `200–203`:
 
 - read-only FC03 start `7`, count `2`;
 - R7 high word + R8 low word, unsigned uint32;
 - scale `0.01 kWh`;
-- decoded values correlated with W1–W4 displays;
+- decoded values correlated with physical W1–W4 displays;
 - loaded meters increased cumulatively while zero-load meters remained unchanged;
 - Device Agent returned healthy after controlled probes;
 - no Modbus write, meter reset, configuration change or electrical installation change occurred.
 
-PR #519 exact head `48bcad8f3fbb9b71cda3a438863078013fd2d9fb` had GREEN CI, Edge image/Device Agent tests, Acquisition Scale, Device Agent Fleet, Telemetry Service, Authenticated Dashboard, Offline Bundle, Container Supply Chain, Disaster Recovery TLS and MQTT TLS gates.
+Issue #201 remains `status:needs-validation`. Full hardware acceptance still requires an explicitly approved restart/power-cycle observation and consequent rollover/reset/discontinuity classification. That physical lane is independent and does not block Reports #521.
 
-Remaining boundary:
+## Reports #521 — no implementation blocker identified
 
-- controlled restart/power-cycle observation requires explicit Product Owner approval;
-- rollover/reset/discontinuity behavior must not be invented before that evidence;
-- negative cumulative deltas are treated as discontinuity/reset/rollover candidates, not silently converted to consumption;
-- the new software has not yet been deployed to the accepted Raspberry Pi runtime.
+Repository audit confirmed a focused software path exists without hardware or migration prerequisites:
+
+- terminal Test Sessions already expose persisted `SessionChannelBinding` configuration;
+- canonical `TelemetryPointSelector` already exists and is used by prior consumers;
+- existing local organization-scoped inventory can enrich taxonomy without becoming the authority for report eligibility;
+- report sources and artifacts are already immutable and content-hashed;
+- the selected binding subset can be validated server-side and embedded in the immutable source contract without changing physical acquisition.
+
+Implementation must preserve these boundaries:
+
+- selector eligibility comes from the persisted session binding set, not arbitrary live inventory;
+- omitted explicit selection remains backward compatible with the current all-session-binding report behavior;
+- explicit selection must fail closed for unknown/foreign/duplicate binding IDs;
+- excluded bindings must not silently remain in `telemetry.csv` or binding-scoped evidence;
+- existing report versions remain immutable;
+- selector interaction creates zero new Modbus/polling/discovery/WebSocket/acquisition work;
+- LOCAL_LAN/offline runtime remains mandatory.
+
+## Repository repair #524 — completed
+
+The accidental empty root `.tmp` file created during connector preparation was removed through normal PR #525 after exact-head standard CI. The accidental add remains transparently in Git history; no force push/history rewrite was used. No product/runtime/state/data/hardware behavior changed.
 
 ## Issue #444 — software complete, controlled Raspberry Pi runtime acceptance blocked
 
-PR #501 is merged at `efd190a70309039d498e2a9bab2cf47c3598e8b7` with software/offline/browser verification GREEN.
+PR #501 is merged with software/offline/browser verification GREEN. Issue #444 still requires a controlled Raspberry Pi `LOCAL_LAN` retest.
 
-Issue #444 remains open because its own acceptance plan still requires a controlled Raspberry Pi `LOCAL_LAN` retest. Two boundaries apply:
+Two boundaries apply:
 
-- the next controlled redeploy is stopped by the existing deployment-capacity preflight constraint;
+- the next controlled redeploy is stopped by deployment-capacity preflight;
 - local signing-key generation/activation/rotation or secret exposure is not authorized.
 
 Do not claim #444 Raspberry Pi runtime acceptance until real deployment evidence exists.
