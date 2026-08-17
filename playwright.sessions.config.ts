@@ -8,7 +8,7 @@ const webPort = new URL(webUrl).port || "13030";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "test-sessions.production.e2e.ts",
+  testMatch: ["test-sessions.production.e2e.ts", "test-sessions-selector.production.e2e.ts"],
   fullyParallel: false,
   workers: 1,
   retries: 0,

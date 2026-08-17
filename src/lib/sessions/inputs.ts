@@ -1,5 +1,14 @@
 import type { LimitRuleInput, SessionCommandInput, SessionStageType, TelemetryQuality } from "./types";
 
+export interface SessionBindingInput extends SessionCommandInput {
+  node_id: string;
+  equipment_id: string;
+  channel_id: string;
+  metric: string;
+  unit: string;
+  binding_metadata?: Record<string, unknown>;
+}
+
 export interface ProductionBindingsInput extends SessionCommandInput {
   binding_metadata?: Record<string, unknown>;
 }

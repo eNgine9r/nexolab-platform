@@ -15,13 +15,17 @@ from app.sessions.configuration_schemas import (
     ProductionBindingsCreate,
     ProductionBindingsResponse,
     SessionBindingCreate,
+    SessionBindingOptionRead,
     SessionBindingRead,
     SessionBindingRemove,
     SessionConfigurationRead,
     SessionLimitRead,
     SessionLimitSetCreate,
 )
-from app.sessions.production_contract import EXPECTED_PRODUCTION_SERIES_COUNT
+from app.sessions.production_contract import (
+    EXPECTED_PRODUCTION_SERIES_COUNT,
+    PRODUCTION_CHANNELS,
+)
 from app.sessions.schemas import SessionRead
 
 
@@ -48,6 +52,29 @@ def create_session_configuration_router(
         security_dependencies,
         Permission.MANAGE_SESSIONS,
     )
+
+    @router.get(
+        "/binding-options/production",
+        response_model=list[SessionBindingOptionRead],
+    )
+    def list_production_binding_options(
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> list[SessionBindingOptionRead]:
+        del authorized
+        return [
+            SessionBindingOptionRead(
+                node_id=channel.node_id,
+                equipment_id=channel.equipment_id,
+                channel_id=channel.channel_id,
+                metric=channel.metric,
+                unit=channel.unit,
+                device_type=channel.device_type,
+                profile_version=channel.profile_version,
+                register_key=channel.register_key,
+                register_address=channel.register_address,
+            )
+            for channel in PRODUCTION_CHANNELS
+        ]
 
     @router.post(
         "/{session_id}/bindings",

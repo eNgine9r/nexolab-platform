@@ -1,15 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 
+import {
+  buildSessionTelemetrySelectionModel,
+  resolveSelectedSessionBindings,
+} from "@/features/test-sessions/telemetry-selection";
 import { invalidateSessionListReadModels } from "@/features/test-sessions/use-session-list-read-model";
+import { useLiveDashboardInventory } from "@/hooks/use-live-dashboard-inventory";
 import {
   createIdempotencyKey,
   createOperatorCommand,
   createSessionApiClient,
 } from "@/lib/sessions/api-client";
+import type { SessionBindingOption } from "@/lib/sessions/types";
 
 import {
   EquipmentStep,
@@ -28,35 +34,140 @@ import {
   type SessionWizardForm,
 } from "./wizard-model";
 
+type SelectionLoadStatus = "loading" | "ready" | "error";
+
+function bindingIdentity(binding: SessionBindingOption): string {
+  return [binding.node_id, binding.equipment_id, binding.channel_id, binding.metric, binding.unit]
+    .map(encodeURIComponent)
+    .join("|");
+}
+
+function sameSelection(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every((value) => rightSet.has(value));
+}
+
 export function SessionWizard() {
   const router = useRouter();
+  const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+  const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
   const [step, setStep] = useState(0);
+  const selectionEnabled = step >= 3;
   const [form, setForm] = useState<SessionWizardForm>(createInitialWizardForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
+  const [bindingOptions, setBindingOptions] = useState<SessionBindingOption[]>([]);
+  const [bindingOptionsStatus, setBindingOptionsStatus] = useState<SelectionLoadStatus>("loading");
+  const [bindingOptionsError, setBindingOptionsError] = useState<Error | null>(null);
+  const [bindingOptionsRevision, setBindingOptionsRevision] = useState(0);
+  const inventory = useLiveDashboardInventory({
+    enabled: selectionEnabled,
+    organizationId: configuredOrganizationId,
+  });
   const operation = useRef({
     sessionId: null as string | null,
+    selectionKeys: null as string[] | null,
     createKey: createIdempotencyKey("session-create"),
-    bindingsKey: createIdempotencyKey("production-bindings"),
+    bindingKeys: new Map<string, string>(),
     limitsKey: createIdempotencyKey("limit-version"),
   });
 
-  const stepValid = useMemo(() => isWizardStepValid(step, form), [form, step]);
+  useEffect(() => {
+    if (!selectionEnabled) return;
+    const controller = new AbortController();
+    const sessionClient = createSessionApiClient();
+    void sessionClient
+      .listProductionBindingOptions(controller.signal)
+      .then((options) => {
+        if (controller.signal.aborted) return;
+        setBindingOptions(options);
+        setBindingOptionsError(null);
+        setBindingOptionsStatus("ready");
+      })
+      .catch((nextError: unknown) => {
+        if (controller.signal.aborted) return;
+        setBindingOptionsError(
+          nextError instanceof Error ? nextError : new Error("Не вдалося завантажити session contract."),
+        );
+        setBindingOptionsStatus("error");
+      });
+    return () => controller.abort();
+  }, [bindingOptionsRevision, selectionEnabled]);
+
+  const selectionModel = useMemo(
+    () => buildSessionTelemetrySelectionModel(hierarchyOrganizationId, inventory.items, bindingOptions),
+    [bindingOptions, hierarchyOrganizationId, inventory.items],
+  );
+  const selectedBindings = useMemo(
+    () => resolveSelectedSessionBindings(selectionModel, form.selectedTelemetryKeys),
+    [form.selectedTelemetryKeys, selectionModel],
+  );
+  const selectionStatus: SelectionLoadStatus =
+    inventory.status === "error" || bindingOptionsStatus === "error"
+      ? "error"
+      : inventory.status === "ready" && bindingOptionsStatus === "ready"
+        ? "ready"
+        : "loading";
+  const selectionError = bindingOptionsError ?? inventory.error;
+  const selectedKeyCount = new Set(form.selectedTelemetryKeys).size;
+  const baseStepValid = useMemo(() => isWizardStepValid(step, form), [form, step]);
+  const stepValid =
+    step === 3
+      ? baseStepValid &&
+        selectionStatus === "ready" &&
+        selectedBindings.length === selectedKeyCount &&
+        selectedKeyCount > 0
+      : baseStepValid;
 
   const update = <K extends keyof SessionWizardForm>(key: K, value: SessionWizardForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const retrySelection = () => {
+    setBindingOptionsStatus("loading");
+    setBindingOptionsError(null);
+    inventory.retry();
+    setBindingOptionsRevision((value) => value + 1);
   };
 
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      const client = createSessionApiClient();
+      const sessionClient = createSessionApiClient();
+      if (
+        selectionStatus !== "ready" ||
+        selectedBindings.length === 0 ||
+        selectedBindings.length !== selectedKeyCount
+      ) {
+        throw new Error(
+          "Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.",
+        );
+      }
+
+      if (operation.current.selectionKeys) {
+        if (!sameSelection(operation.current.selectionKeys, form.selectedTelemetryKeys)) {
+          throw new Error(
+            "Draft уже створено з попереднім telemetry selection. Повторіть операцію з початковим вибором без зміни каналів.",
+          );
+        }
+      } else {
+        operation.current.selectionKeys = [...form.selectedTelemetryKeys];
+      }
+
+      const frozenBindings = resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
+      if (frozenBindings.length !== operation.current.selectionKeys.length) {
+        throw new Error(
+          "Збережений telemetry selection більше не доступний у поточному локальному inventory.",
+        );
+      }
+
       let sessionId = operation.current.sessionId;
 
       if (!sessionId) {
-        const created = await client.createSession(
+        const created = await sessionClient.createSession(
           {
             session_number: form.sessionNumber.trim(),
             title: form.title.trim(),
@@ -75,7 +186,8 @@ export function SessionWizard() {
                 mode: "fixed_interval",
               },
               stage_plan: form.stages,
-              created_by: "nexolab-dashboard-wizard-v1",
+              telemetry_selection_count: frozenBindings.length,
+              created_by: "nexolab-dashboard-wizard-v2",
             },
             ...createOperatorCommand("Created from the NEXOLAB 8-step laboratory wizard"),
           },
@@ -87,19 +199,32 @@ export function SessionWizard() {
         invalidateSessionListReadModels();
       }
 
-      await client.addProductionBindings(
-        sessionId,
-        {
-          ...createOperatorCommand("Assigned validated edge-01 production channels from wizard"),
-          binding_metadata: {
-            source: "nexolab-dashboard-wizard-v1",
-            expected_series_count: 34,
+      for (const binding of frozenBindings) {
+        const identity = bindingIdentity(binding);
+        let idempotencyKey = operation.current.bindingKeys.get(identity);
+        if (!idempotencyKey) {
+          idempotencyKey = createIdempotencyKey("session-binding");
+          operation.current.bindingKeys.set(identity, idempotencyKey);
+        }
+        await sessionClient.addBinding(
+          sessionId,
+          {
+            ...createOperatorCommand("Assigned selected validated telemetry point from wizard"),
+            node_id: binding.node_id,
+            equipment_id: binding.equipment_id,
+            channel_id: binding.channel_id,
+            metric: binding.metric,
+            unit: binding.unit,
+            binding_metadata: {
+              source: "nexolab-dashboard-wizard-v2",
+              selection_mode: "telemetry-point-selector",
+            },
           },
-        },
-        operation.current.bindingsKey,
-      );
+          idempotencyKey,
+        );
+      }
 
-      await client.addLimitSet(
+      await sessionClient.addLimitSet(
         sessionId,
         {
           ...createOperatorCommand("Created initial laboratory limit version from wizard"),
@@ -130,6 +255,12 @@ export function SessionWizard() {
 
       router.push(`/sessions/${sessionId}`);
     } catch (nextError) {
+      if (operation.current.selectionKeys) {
+        setForm((current) => ({
+          ...current,
+          selectedTelemetryKeys: [...(operation.current.selectionKeys ?? current.selectedTelemetryKeys)],
+        }));
+      }
       setError(nextError instanceof Error ? nextError : new Error("Не вдалося створити сесію."));
     } finally {
       setSubmitting(false);
@@ -150,7 +281,7 @@ export function SessionWizard() {
               <button
                 key={label}
                 onClick={() => index <= step && setStep(index)}
-                disabled={index > step}
+                disabled={index > step || submitting}
                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
                   active
                     ? "border-blue-400/35 bg-blue-500/10 text-white"
@@ -194,7 +325,17 @@ export function SessionWizard() {
           {step === 0 && <GeneralStep form={form} update={update} />}
           {step === 1 && <ObjectStep form={form} update={update} />}
           {step === 2 && <MethodStep form={form} update={update} />}
-          {step === 3 && <EquipmentStep form={form} update={update} />}
+          {step === 3 && (
+            <EquipmentStep
+              form={form}
+              update={update}
+              hierarchy={selectionModel.hierarchy}
+              eligibleCount={selectionModel.eligibleInventoryCount}
+              selectionStatus={selectionStatus}
+              selectionError={selectionError}
+              onRetry={retrySelection}
+            />
+          )}
           {step === 4 && <SamplingStep form={form} update={update} />}
           {step === 5 && <LimitsStep form={form} update={update} />}
           {step === 6 && <StagesStep form={form} update={update} />}
@@ -206,7 +347,8 @@ export function SessionWizard() {
               <p className="mt-1 text-[10px] leading-5 text-slate-400">{error.message}</p>
               {createdSessionId && (
                 <p className="mt-2 font-mono text-[9px] text-cyan-300">
-                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі.
+                  Draft {createdSessionId} уже існує; повтор використає ті самі ключі та початковий telemetry
+                  selection.
                 </p>
               )}
             </div>
@@ -225,7 +367,7 @@ export function SessionWizard() {
           {step < WIZARD_STEPS.length - 1 ? (
             <button
               className="primary-button gap-2 disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!stepValid}
+              disabled={!stepValid || submitting}
               onClick={() => setStep((value) => Math.min(WIZARD_STEPS.length - 1, value + 1))}
             >
               Далі
@@ -234,7 +376,7 @@ export function SessionWizard() {
           ) : (
             <button
               className="primary-button gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={submitting}
+              disabled={submitting || selectedKeyCount === 0}
               onClick={() => void submit()}
             >
               {submitting ? (
