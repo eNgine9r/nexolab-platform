@@ -1,0 +1,33 @@
+name: Temporary format probe
+
+on:
+  pull_request:
+    paths:
+      - "src/features/energy/energy-telemetry.test.ts"
+      - ".github/workflows/temp-format-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+          check-latest: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Render canonical file
+        run: |
+          npx prettier --write src/features/energy/energy-telemetry.test.ts
+          printf 'FORMATTED_BASE64='
+          base64 -w0 src/features/energy/energy-telemetry.test.ts
+          printf '\n'
