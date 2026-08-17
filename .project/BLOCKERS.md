@@ -2,11 +2,13 @@
 
 Updated: 2026-08-17
 
-## Active implementation lane — Reports #521
+## Autonomous Sprint — no Ready Work Package
 
-Issue #521 **Integrate TelemetryPointSelector into report evidence selection** is `status:in-progress` with draft PR #529. It is the single active implementation Work Package. Issue #526 / PR #527 is completed and must not create a second active software lane.
+Issue #521 / PR #529 completed the Product Owner-selected Reports consumer integration and merged as product SHA `1c17719c4dccbef735d58fdea9be87d44f8b8a46`.
 
-Reports currently has no recorded hard blocker. Its existing boundaries remain authoritative: selector eligibility comes from persisted session bindings, immutable report sources remain content-hashed, omitted selection stays backward compatible, excluded bindings must not remain in generated evidence, and selector interaction creates zero acquisition/Modbus work.
+The post-merge repository audit returns **zero open `status:ready` Issues**. There is no active product implementation Work Package. Open PRs are Dependabot dependency lanes only and do not establish product priority.
+
+Autonomous Sprint execution is therefore hard blocked as `hard_blocked_no_ready_work_package`. Remaining Epic #450 selector consumers include Alarms and Equipment Maps, but their execution order is not repository-backed. Do not create/promote/start either by assumption; Product Owner priority is required.
 
 ## Issue #201 — Energy software/UI available; final hardware boundary pending
 
@@ -14,7 +16,7 @@ PR #519 merged the evidence-backed cumulative-energy read path, and PR #527 merg
 
 Issue #201 remains `status:needs-validation`. Full hardware acceptance still requires an explicitly approved restart/power-cycle observation and rollover/reset/discontinuity classification. No such physical action is authorized by PR #519 or #527.
 
-The new #519/#527 product software has not been deployed to the accepted Raspberry Pi runtime.
+The #519/#527 product software has not been deployed to the accepted Raspberry Pi runtime.
 
 ## Issue #444 — controlled Raspberry Pi runtime acceptance blocked
 
@@ -46,7 +48,7 @@ Issue #189 remains blocked pending controlled central-host and Raspberry Pi reco
 - KK2/Unit 115 field retest;
 - Raspberry Pi version-management acceptance.
 
-These do not replace or bundle into active Reports #521.
+These lanes remain independent and do not create a Ready software implementation package.
 
 ## Safety boundaries
 
