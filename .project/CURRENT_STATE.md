@@ -4,7 +4,7 @@ Updated: 2026-08-17
 
 ## Repository and deployed baseline
 
-The current repository/product baseline is `5015e7d492d7ece67a73707ae732954c20c1dce1`, the squash merge of PR #514 — **add exact telemetry selection to Test Sessions**.
+The latest merged **product baseline** is `5015e7d492d7ece67a73707ae732954c20c1dce1`, the squash merge of PR #514 — **add exact telemetry selection to Test Sessions**. State-only reconciliation commits may advance `main` without changing this product baseline; the actual current `main` SHA must be verified from Git rather than self-recorded inside a state file that itself changes `main` when merged.
 
 The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`, the squash merge of PR #496 — **restart terminal shared telemetry transport**. No controlled Raspberry Pi deployment was performed for Issue #513.
 
