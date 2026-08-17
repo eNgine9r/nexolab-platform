@@ -31,12 +31,17 @@ def headers(organization_id: str = ORGANIZATION_A) -> dict[str, str]:
     return {"X-Organization-ID": organization_id}
 
 
-def create_rule(client: TestClient, organization_id: str = ORGANIZATION_A) -> dict:
+def create_rule(
+    client: TestClient,
+    organization_id: str = ORGANIZATION_A,
+    *,
+    name: str | None = None,
+) -> dict:
     response = client.post(
         "/api/v1/alerts/rules",
         headers=headers(organization_id),
         json={
-            "name": f"Telemetry scope {organization_id}",
+            "name": name or f"Telemetry scope {organization_id}",
             "severity": "critical",
             "node_id": "edge-01",
             "equipment_id": "K106",
@@ -169,6 +174,7 @@ def test_exact_multi_point_scope_is_applied_before_pagination(tmp_path: Path) ->
 def test_telemetry_scope_composes_with_state_severity_and_organization(tmp_path: Path) -> None:
     with build_client(tmp_path) as client:
         rule_a = create_rule(client)
+        resolved_rule_a = create_rule(client, name="Telemetry scope resolved")
         rule_b = create_rule(client, ORGANIZATION_B)
         now = datetime.now(UTC)
         selected_active = seed_alert(
@@ -184,7 +190,7 @@ def test_telemetry_scope_composes_with_state_severity_and_organization(tmp_path:
         )
         seed_alert(
             client,
-            rule_a,
+            resolved_rule_a,
             node_id="edge-01",
             equipment_id="K106",
             channel_id="106-03",
@@ -232,7 +238,10 @@ def test_invalid_or_oversized_telemetry_scope_fails_closed(tmp_path: Path) -> No
         oversized = client.get(
             "/api/v1/alerts",
             headers=headers(),
-            params=[("telemetry_point", point_key("edge-01", f"K{index}", "01", "temperature.probe")) for index in range(65)],
+            params=[
+                ("telemetry_point", point_key("edge-01", f"K{index}", "01", "temperature.probe"))
+                for index in range(65)
+            ],
         )
         assert oversized.status_code == 422
         assert oversized.json()["detail"]["code"] == "alert_telemetry_scope_invalid"
