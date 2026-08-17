@@ -83,10 +83,13 @@ export function ReportTelemetrySelector({
     });
   }, [configuration, inventory.items, organizationId]);
 
-  const committedPointKeys =
-    model && selectionState?.sessionId === sessionId
-      ? selectionState.pointKeys
-      : (model?.orderedPointKeys ?? []);
+  const committedPointKeys = useMemo(
+    () =>
+      model && selectionState?.sessionId === sessionId
+        ? selectionState.pointKeys
+        : (model?.orderedPointKeys ?? []),
+    [model, selectionState, sessionId],
+  );
   const committedBindingIds = useMemo(
     () => (model ? reportBindingIdsForSelection(model, committedPointKeys) : []),
     [committedPointKeys, model],
