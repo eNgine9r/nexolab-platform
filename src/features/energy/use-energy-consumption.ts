@@ -3,10 +3,15 @@
 import { useCallback, useMemo } from "react";
 
 import {
-  loadEnergyConsumption,
+  ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+  deriveEnergyConsumption,
   type EnergyConsumptionResult,
   type EnergyConsumptionWindow,
 } from "@/features/energy/energy-consumption";
+import {
+  createEnergyBoundaryHistoryCache,
+  selectEnergyBoundarySample,
+} from "@/features/energy/energy-consumption-cache";
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
@@ -15,6 +20,7 @@ import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
+const boundaryHistoryCache = createEnergyBoundaryHistoryCache();
 
 export interface EnergyConsumptionLoader {
   enabled: boolean;
@@ -43,12 +49,15 @@ function securedAdapter(organizationId: string | null): TelemetryAdapter {
 export function useEnergyConsumption({
   enabled,
   organizationId,
+  securityScopeId,
 }: {
   enabled: boolean;
   organizationId: string | null;
+  securityScopeId: string | null;
 }): EnergyConsumptionLoader {
   const resolvedOrganizationId =
     organizationId?.trim() || process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+  const resolvedSecurityScopeId = securityScopeId?.trim() || "anonymous";
   const adapter = useMemo(() => {
     if (!enabled) return null;
     try {
@@ -57,6 +66,7 @@ export function useEnergyConsumption({
       return null;
     }
   }, [enabled, resolvedOrganizationId]);
+  const cacheScopeKey = `${resolvedSecurityScopeId}:${resolvedOrganizationId ?? "no-organization"}`;
 
   const load = useCallback<EnergyConsumptionLoader["load"]>(
     async (unitId, window, currentCumulative, signal) => {
@@ -79,18 +89,52 @@ export function useEnergyConsumption({
           message: `Невідомий LE-01MP Unit ${unitId}.`,
         };
       }
-      return loadEnergyConsumption(
-        adapter,
-        {
+
+      try {
+        signal?.throwIfAborted();
+        const startSamples = await boundaryHistoryCache.load({
+          adapter,
+          scopeKey: cacheScopeKey,
           nodeId: ENERGY_NODE_ID,
+          boundary: window.from,
+        });
+        signal?.throwIfAborted();
+        const startSample = selectEnergyBoundarySample(startSamples, meter, window.from);
+
+        let endSample = selectEnergyBoundarySample(
+          currentCumulative ? [currentCumulative] : [],
           meter,
-          window,
-          currentCumulative,
-        },
-        signal,
-      );
+          window.to,
+        );
+        if (!endSample) {
+          const endSamples = await boundaryHistoryCache.load({
+            adapter,
+            scopeKey: cacheScopeKey,
+            nodeId: ENERGY_NODE_ID,
+            boundary: window.to,
+          });
+          signal?.throwIfAborted();
+          endSample = selectEnergyBoundarySample(
+            endSamples,
+            meter,
+            window.to,
+            ENERGY_CONSUMPTION_ANCHOR_TOLERANCE_MS,
+          );
+        }
+
+        return deriveEnergyConsumption(startSample, endSample, meter);
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        return {
+          status: "error",
+          valueKwh: null,
+          startSample: null,
+          endSample: null,
+          message: error instanceof Error ? error.message : "Не вдалося завантажити дані споживання.",
+        };
+      }
     },
-    [adapter, enabled],
+    [adapter, cacheScopeKey, enabled],
   );
 
   const consumptionEnabled = enabled && adapter !== null;
