@@ -35,25 +35,13 @@ function text(value: string | null | undefined): string | null {
 }
 
 function inventoryIdentity(item: LiveDashboardInventoryItem): string {
-  return JSON.stringify([
-    item.node_id,
-    item.equipment_id,
-    item.channel_id,
-    item.metric,
-    item.native_unit,
-  ]);
+  return JSON.stringify([item.node_id, item.equipment_id, item.channel_id, item.metric, item.native_unit]);
 }
 
 function bindingIdentity(binding: SessionBinding): string | null {
   const unit = text(binding.unit);
   if (!unit) return null;
-  return JSON.stringify([
-    binding.node_id,
-    binding.equipment_id,
-    binding.channel_id,
-    binding.metric,
-    unit,
-  ]);
+  return JSON.stringify([binding.node_id, binding.equipment_id, binding.channel_id, binding.metric, unit]);
 }
 
 function compareBindings(left: SessionBinding, right: SessionBinding): number {
@@ -121,9 +109,7 @@ export function buildReportTelemetrySelectionModel({
   inventory: readonly LiveDashboardInventoryItem[];
   organizationId: string;
 }): ReportTelemetrySelectionModel {
-  const inventoryByIdentity = new Map(
-    inventory.map((item) => [inventoryIdentity(item), item] as const),
-  );
+  const inventoryByIdentity = new Map(inventory.map((item) => [inventoryIdentity(item), item] as const));
   const pointKeyByBindingId = new Map<string, string>();
   const bindingIdByPointKey = new Map<string, string>();
   const descriptors: TelemetryPointDescriptor[] = [];
@@ -148,9 +134,7 @@ export function buildReportTelemetrySelectionModel({
   }
 
   const hierarchy = buildTelemetryPointHierarchy(descriptors, organizationId);
-  const orderedPointKeys = hierarchy.orderedLeafKeys.filter((pointKey) =>
-    bindingIdByPointKey.has(pointKey),
-  );
+  const orderedPointKeys = hierarchy.orderedLeafKeys.filter((pointKey) => bindingIdByPointKey.has(pointKey));
   const orderedBindingIds = orderedPointKeys.map((pointKey) => {
     const bindingId = bindingIdByPointKey.get(pointKey);
     if (!bindingId) {
