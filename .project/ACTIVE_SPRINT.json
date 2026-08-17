@@ -6,7 +6,7 @@
     "id": "ENGINEERING-HARDENING-1",
     "title": "Engineering governance, critical operator defects and toolchain hardening",
     "goal": "Preserve LOCAL_LAN, offline-runtime, data and hardware safety while completing isolated critical operator and reliability work packages.",
-    "status": "hard_blocked_no_ready_work_package",
+    "status": "in_progress",
     "started_at": "2026-08-06",
     "epic_issue": 326
   },
@@ -23,10 +23,10 @@
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": null,
-    "selection_status": "hard_blocked_no_ready_work_package",
-    "ready_issue_count": 0,
-    "reason": "Fresh post-#519 merge GitHub audit found zero open status:ready Issues. Issue #201 software is merged but remains status:needs-validation for an explicitly approved restart/power-cycle hardware observation; other lanes require Product Owner priority or physical/runtime evidence."
+    "selected_issue": 521,
+    "selection_status": "ready_selected_by_product_owner",
+    "ready_issue_count": 1,
+    "reason": "Product Owner explicitly selected Epic #450 Reports. Issue #521 is open, assigned, priority:critical and status:ready; it is the single next implementation Work Package after the #201 software merge."
   },
   "tasks": [
     {
@@ -99,14 +99,24 @@
       "final_pr_head": "48bcad8f3fbb9b71cda3a438863078013fd2d9fb",
       "hardware_acceptance": "partial_normal_operation_verified",
       "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
+    },
+    {
+      "id": "NEXOLAB-521",
+      "issue": 521,
+      "title": "Integrate TelemetryPointSelector into report evidence selection",
+      "status": "ready_selected_by_product_owner",
+      "priority": "critical",
+      "parent_issue": 450,
+      "depends_on": [461, 513]
     }
   ],
   "active_work_package": null,
   "next_work_package": {
-    "issue": null,
-    "title": "No repository-backed Ready Work Package",
-    "status": "hard_blocked_pending_product_owner_priority_or_physical_unblock",
-    "priority": null
+    "issue": 521,
+    "title": "Integrate TelemetryPointSelector into report evidence selection",
+    "status": "ready_selected_by_product_owner",
+    "priority": "critical",
+    "next_step": "After the state-only reconciliation is GREEN and merged, change Issue #521 to status:in-progress, create its feature branch and implement the focused Reports selector/evidence slice."
   },
   "verification": {
     "issue_201_merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
@@ -152,18 +162,13 @@
     "issue_444_software_verification": "GREEN",
     "issue_444_raspberry_pi_runtime_acceptance": "PENDING",
     "issue_189_status": "BLOCKED_HARDWARE_EVIDENCE",
-    "ready_issue_count": 0
+    "ready_issue_count": 1
   },
-  "selection_candidates": [
+  "independent_pending_lanes": [
     {
       "issue": 201,
       "status": "needs_validation",
-      "description": "LE-01MP cumulative energy software is merged and normal-operation hardware semantics are verified; full acceptance requires an explicitly approved restart/power-cycle observation."
-    },
-    {
-      "source": "epic_450_wp5",
-      "status": "product_priority_required",
-      "description": "Create one focused TelemetryPointSelector consumer integration for Reports, Alarms or Equipment Maps; repository does not define their execution order."
+      "description": "LE-01MP cumulative-energy software and normal-operation hardware semantics are verified; full acceptance requires an explicitly approved restart/power-cycle observation."
     },
     {
       "issue": 245,
@@ -181,6 +186,7 @@
       "description": "Backup/restore/rollback/power-loss acceptance; requires controlled hardware evidence."
     }
   ],
+  "future_epic_450_consumers": ["Alarms", "Equipment Maps"],
   "deployment_capacity": {
     "current_runtime_healthy": true,
     "next_redeploy_preflight_blocked": true,
