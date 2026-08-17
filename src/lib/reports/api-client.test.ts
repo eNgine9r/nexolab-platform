@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setSecurityCredentials } from "@/features/security/security-session";
 
-import {
-  createReportApiClient,
-  createReportIdempotencyKey,
-  type ReportFetch,
-} from "./api-client";
+import { createReportApiClient, createReportIdempotencyKey, type ReportFetch } from "./api-client";
 
 const emptyPage = {
   items: [],
@@ -42,9 +38,7 @@ describe("authenticated Reports API client", () => {
 
     const [url, init] = fetchImpl.mock.calls[0]!;
     const headers = new Headers(init?.headers);
-    expect(url).toBe(
-      "https://api.example.test/api/v1/reports?session_id=session-1&limit=200&offset=0",
-    );
+    expect(url).toBe("https://api.example.test/api/v1/reports?session_id=session-1&limit=200&offset=0");
     expect(headers.get("Authorization")).toBe("Bearer verified-access-token");
     expect(headers.get("X-Organization-ID")).toBe("selected-org");
   });
@@ -91,16 +85,9 @@ describe("authenticated Reports API client", () => {
     });
     const fetchImpl = createFetchMock(response);
 
-    await createReportApiClient({ fetch: fetchImpl }).generateReport(
-      "session-1",
-      "",
-      "legacy-key",
-    );
+    await createReportApiClient({ fetch: fetchImpl }).generateReport("session-1", "", "legacy-key");
 
-    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)) as Record<
-      string,
-      unknown
-    >;
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)) as Record<string, unknown>;
     expect(body).toEqual({
       reason: null,
       expected_source_sha256: null,
