@@ -238,7 +238,7 @@ def _le_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
         profile_version="f-and-f-le01mp-fc03-v1",
         lifecycle=lifecycle,
         function=READ_FUNCTION,
-        addresses=(register.address,),
+        addresses=register.addresses,
     )
 
 
