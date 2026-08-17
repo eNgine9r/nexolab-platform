@@ -295,19 +295,19 @@ def profiles() -> tuple[InventoryProfile, ...]:
             name="pilot",
             xjp_points=((106, 3), (106, 4)),
             le_unit_ids=(200, 201, 202, 203),
-            expected_targets=34,
+            expected_targets=38,
         ),
         InventoryProfile(
             name="expanded",
             xjp_points=xjp_points(101, 12),
             le_unit_ids=tuple(range(200, 208)),
-            expected_targets=136,
+            expected_targets=144,
         ),
         InventoryProfile(
             name="stress",
             xjp_points=xjp_points(101, 24),
             le_unit_ids=tuple(range(200, 212)),
-            expected_targets=240,
+            expected_targets=252,
         ),
     )
 

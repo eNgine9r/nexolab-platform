@@ -16,6 +16,8 @@ SCHEMA_VERSION = 1
 BUS_ID = "rs485-main"
 READ_FUNCTION = 3
 XJP60D_PROFILE_VERSION = "dixell-xjp60d-fc03-v1"
+LE01MP_PROFILE_VERSION = "f-and-f-le01mp-fc03-v2"
+_LEGACY_LE01MP_PROFILE_VERSION = "f-and-f-le01mp-fc03-v1"
 LIFECYCLES = frozenset(
     {
         "active",
@@ -235,11 +237,112 @@ def _le_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
         telemetry_channel_id=channel_id,
         metric=register.metric,
         unit=register.unit,
-        profile_version="f-and-f-le01mp-fc03-v1",
+        profile_version=LE01MP_PROFILE_VERSION,
         lifecycle=lifecycle,
         function=READ_FUNCTION,
-        addresses=(register.address,),
+        addresses=register.addresses,
     )
+
+
+def _reconcile_le01mp_profile(
+    document: RegistryDocument,
+) -> tuple[RegistryDocument, list[dict[str, str]]]:
+    """Upgrade the known LE-01MP v1 registry to the evidence-backed v2 profile."""
+
+    migratable_versions = {
+        _LEGACY_LE01MP_PROFILE_VERSION,
+        LE01MP_PROFILE_VERSION,
+    }
+    le_devices = {
+        device.device_id: device
+        for device in document.devices
+        if (
+            device.device_family == "le01mp"
+            and device.profile_version in migratable_versions
+        )
+    }
+    if not le_devices:
+        return document, []
+
+    canonical_registers = {item.key: item for item in LE01MP_REGISTERS}
+    changes: list[dict[str, str]] = []
+    devices: list[RegistryDevice] = []
+
+    for device in document.devices:
+        if device.device_id not in le_devices:
+            devices.append(device)
+            continue
+        updated = replace(device, profile_version=LE01MP_PROFILE_VERSION)
+        if updated != device:
+            changes.append(
+                {
+                    "entity": "device_profile",
+                    "id": device.device_id,
+                    "from": device.profile_version,
+                    "to": LE01MP_PROFILE_VERSION,
+                }
+            )
+        devices.append(updated)
+
+    targets: list[RegistryTarget] = []
+    existing_keys: dict[str, set[str]] = {
+        device_id: set() for device_id in le_devices
+    }
+    for target in document.targets:
+        if target.device_id not in le_devices:
+            targets.append(target)
+            continue
+
+        existing_keys[target.device_id].add(target.key)
+        register = canonical_registers.get(target.key)
+        updated = replace(target, profile_version=LE01MP_PROFILE_VERSION)
+        if register is not None:
+            updated = replace(
+                updated,
+                kind="metric",
+                metric=register.metric,
+                unit=register.unit,
+                function=READ_FUNCTION,
+                addresses=register.addresses,
+            )
+        if updated != target:
+            changes.append(
+                {
+                    "entity": "target_profile",
+                    "id": target.target_id,
+                    "from": target.profile_version,
+                    "to": LE01MP_PROFILE_VERSION,
+                }
+            )
+        targets.append(updated)
+
+    for device_id, device in sorted(le_devices.items()):
+        for register in LE01MP_REGISTERS:
+            if register.key in existing_keys[device_id]:
+                continue
+            target = _le_target(device.unit_id, register.key, "active")
+            targets.append(target)
+            changes.append(
+                {
+                    "entity": "target",
+                    "id": target.target_id,
+                    "from": "absent",
+                    "to": "active",
+                }
+            )
+
+    if not changes:
+        return document, []
+
+    reconciled = RegistryDocument(
+        schema_version=document.schema_version,
+        revision=document.revision + 1,
+        buses=document.buses,
+        devices=tuple(devices),
+        targets=tuple(targets),
+        updated_at=_now(),
+    )
+    return _validate_document(reconciled), changes
 
 
 def build_initial_document(
@@ -296,7 +399,7 @@ def build_initial_document(
                 bus_id=BUS_ID,
                 device_family="le01mp",
                 unit_id=unit_id,
-                profile_version="f-and-f-le01mp-fc03-v1",
+                profile_version=LE01MP_PROFILE_VERSION,
                 lifecycle="active",
             )
         )
@@ -622,7 +725,41 @@ class AcquisitionRegistryStore:
                 "SELECT document FROM acquisition_registry_state WHERE singleton = 1"
             ).fetchone()
             if row is not None:
-                return AcquisitionRegistry(document_from_json(str(row[0])))
+                document = document_from_json(str(row[0]))
+                reconciled, changes = _reconcile_le01mp_profile(document)
+                if changes:
+                    self._connection.execute(
+                        """
+                        UPDATE acquisition_registry_state
+                        SET schema_version = ?, revision = ?, document = ?, updated_at = ?
+                        WHERE singleton = 1
+                        """,
+                        (
+                            reconciled.schema_version,
+                            reconciled.revision,
+                            document_to_json(reconciled),
+                            reconciled.updated_at,
+                        ),
+                    )
+                    self._connection.execute(
+                        """
+                        INSERT INTO acquisition_registry_audit(
+                            revision, actor, reason, changes, changed_at
+                        ) VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            reconciled.revision,
+                            "system:migration",
+                            "Upgrade LE-01MP read-only profile with cumulative active energy",
+                            json.dumps(
+                                changes,
+                                separators=(",", ":"),
+                                ensure_ascii=False,
+                            ),
+                            reconciled.updated_at,
+                        ),
+                    )
+                return AcquisitionRegistry(reconciled)
             document = build_initial_document(
                 settings,
                 discovery_units=discovery_units,
