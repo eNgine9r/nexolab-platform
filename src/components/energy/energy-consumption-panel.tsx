@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Clock3, LoaderCircle, TriangleAlert } from "lucide-react";
 
 import {
-  energyConsumptionPresetLabel,
   formatEnergyConsumptionSelector,
   formatEnergyConsumptionWindow,
   resolveEnergyConsumptionWindow,
@@ -96,11 +95,12 @@ export function EnergyConsumptionPanel({
   const [customOpen, setCustomOpen] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
   const [view, setView] = useState<ConsumptionView>({ status: "loading", result: null });
+  const refreshKey = currentCumulative?.event_id ?? null;
 
   const window = useMemo<EnergyConsumptionWindow | null>(() => {
-    const referenceNow = new Date();
+    const referenceNow = refreshKey ? new Date() : initialNow;
     return resolveEnergyConsumptionWindow(preset, referenceNow, preset === "custom" ? customRange : undefined);
-  }, [currentCumulative?.event_id, customRange, preset]);
+  }, [customRange, initialNow, preset, refreshKey]);
 
   useEffect(() => {
     if (!window || !loader.enabled) {
@@ -138,9 +138,9 @@ export function EnergyConsumptionPanel({
         });
       });
     return () => controller.abort();
-  }, [currentCumulative, loader, unitId, window]);
+  }, [currentCumulative, loader.enabled, loader.load, unitId, window]);
 
-  const resolvedWindow = window ?? resolveEnergyConsumptionWindow("last24h", new Date())!;
+  const resolvedWindow = window ?? resolveEnergyConsumptionWindow("last24h", initialNow)!;
   const selectorLabel = formatEnergyConsumptionSelector(preset, resolvedWindow);
   const periodCopy = formatEnergyConsumptionWindow(preset, resolvedWindow);
   const copy = statusCopy(view);
