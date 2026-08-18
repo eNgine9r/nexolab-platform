@@ -4,64 +4,94 @@ Updated: 2026-08-18
 
 ## Repository and deployed baseline
 
-The latest merged **repository product baseline** is `9c8f205fb17452205c5905eaea49ce878834a9c4`, the merge of PR #552 — **auth-aware central deployment smoke**.
+The current repository, accepted product and deployed Raspberry Pi LOCAL_LAN baseline is:
 
-The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. Later repository changes, including #546 and #551, are not claimed as Raspberry Pi runtime acceptance until a separately approved controlled deployment produces physical/runtime evidence.
+`2d7740ff1cc2e638f47f2f0787a8e0516626c61e`
 
-The accepted `LOCAL_LAN` runtime remains healthy on deployment evidence `runtime/deployments/20260817T074249Z`. The failed pre-fix deployment evidence for #551 is `runtime/deployments/20260818T060358Z`.
+This is the merge of PR #558 — **scope authenticated central smoke requests**.
 
-The next controlled Raspberry Pi redeploy remains subject to the existing capacity/signing/backup safeguards and must not be bypassed by deleting product data, PostgreSQL history, named volumes or protected evidence.
+Successful controlled deployment evidence:
 
-## Issue #551 — software merged; Raspberry Pi validation pending
+`runtime/deployments/20260818T073437Z`
 
-Issue #551 **Make central smoke gate compatible with fail-closed LOCAL_LAN authentication** is software/CI/offline verified through PR #552 / merge `9c8f205fb17452205c5905eaea49ce878834a9c4` and remains open as `status:needs-validation` until an explicitly approved Raspberry Pi LOCAL_LAN retest completes.
+Verified deployment state:
 
-Product/runtime contract now verified in software:
+- deployment script: `DEPLOYMENT PASSED`;
+- `runtime_mode=lan`;
+- `bind_address=172.18.48.34`;
+- Dashboard: `http://172.18.48.34:3000`;
+- API: `http://172.18.48.34:8082`;
+- `AUTH_MODE=jwt`;
+- `local_auth_overlay=true`;
+- authenticated central smoke PASS;
+- local `administrator` login PASS with provider `nexolab-local`;
+- `/api/v1/admin/users` HTTP 200;
+- Dashboard enabled and active;
+- Central API ready;
+- Device Agent expected/active bus workers `1/1`;
+- `workers_healthy=true`;
+- RS485 worker state `running`;
+- telemetry freshness advanced over a 30-second acceptance window.
 
-- public `/health/ready` and `/metrics` smoke remains unchanged;
-- `AUTH_MODE=disabled` preserves positive anonymous telemetry latest/history/WebSocket smoke;
-- authenticated modes no longer treat expected fail-closed telemetry authentication as deployment failure;
-- authenticated telemetry REST smoke explicitly requires HTTP 401 for unauthenticated requests;
-- authenticated telemetry WebSocket smoke explicitly requires structured `missing_bearer_token` rejection for an empty bearer token;
-- `central-smoke.sh` receives no operator password, access token, private key or auth bypass;
-- the deployment route-contract check for local login and local user administration remains separate and authoritative.
+Deployment capacity preflight also passed:
 
-Final software head `b08536a8e5a11ab10b59bb387fff54d611673f42` was synchronized with `main` (`behind=0`) and GREEN:
+- `free_bytes=20475432960`;
+- `required_bytes=16999167491`;
+- `reserve_bytes=2147483648`;
+- root filesystem after deployment: 57G total, 37G used, 18G available, 68% used.
 
-- CI #3445;
-- Telemetry service #1652, including executable auth-mode regression, full PostgreSQL/MQTT/REST/WebSocket/object-storage tests, outage recovery, migration validation and container build;
-- Offline Bundle #1376, including disconnected build/load/start with container egress blocked and pull disabled, plus update/rollback persistent-data preservation.
+## Issues #551 and #557 — completed
 
-The final diff contained exactly three authorized files and had no open review threads or submitted reviews.
+Issue #551 **Make central smoke gate compatible with fail-closed LOCAL_LAN authentication** is closed `status:done`.
 
-Hardware/runtime evidence remains **unverified post-fix**. A controlled Raspberry Pi retest must record exact deployed SHA, auth mode, local-auth overlay, Dashboard/API/Device Agent readiness and advancing telemetry before #551 can close.
+Issue #557 **Send organization scope before bearer-token assertion in authenticated central smoke** is closed `status:done`.
 
-## Issue #546 — completed and merged
+The final runtime contract is proven on Raspberry Pi:
 
-Issue #546 **Replace Equipment Map sensor dropdowns with TelemetryPointSelector** is closed `status:done` through PR #547 / merge `ef9d69b63abecee39ff7c120ed9d11ff40082a36`.
+- public readiness remains available;
+- authenticated protected REST smoke sends `X-Organization-ID` first and then requires HTTP 401 when bearer credentials are absent;
+- protected WebSocket smoke rejects missing bearer credentials deterministically;
+- no operator password, access token, private key or auth bypass is embedded in the smoke gate.
 
-Equipment Map Add/Replace uses the canonical hierarchical `TelemetryPointSelector`, explicit Confirm/Cancel, workspace-owned organization scope and the unchanged atomic `replaceSensorConfiguration` persistence path. No new telemetry ownership, acquisition work, Modbus write or hardware mutation was introduced.
+## Issue #444 — deployment blocker cleared; functional validation remains
 
-## Sprint selection — next Ready product Work Package
+Issue #444 **Restore LOCAL_LAN user administration API availability** is now `status:needs-validation`, not blocked.
 
-The post-#551 merge audit identifies exactly one current open product Issue carrying `status:ready`:
+Runtime evidence now proves:
 
-**Issue #548 — Add GitHub-aware safe Raspberry Pi update orchestration.**
+- local-auth overlay is active in controlled LOCAL_LAN deployment;
+- `/api/v1/admin/users` is mounted;
+- local administrator authentication succeeds;
+- authenticated administrator receives HTTP 200 from the users API.
 
-#548 extends the existing privileged version-management control plane. GitHub remains update-plane only; core `LOCAL_LAN` monitoring must remain functional with no internet/GitHub access. The package must preserve package/schema/capacity/backup/authorization gates and cannot introduce browser shell execution, Modbus/hardware writes, persistent-data deletion or mandatory cloud runtime dependencies.
+Remaining acceptance is limited to the end-to-end user-management flow not exercised in the deployment acceptance block, including real create/manage behavior and non-admin authorization/frontend diagnostic validation as applicable.
 
-State-only Issue #555 reconciles #551 before #548 implementation begins.
+## Active implementation lane
 
-## Existing operational blockers / validation lanes
+Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** is the active product Work Package and is `status:in-progress`.
 
-- #551 post-fix Raspberry Pi LOCAL_LAN deployment retest remains pending explicit deployment approval.
-- #201 cumulative-energy normal operation is hardware verified; approved restart/power-cycle and rollover/reset/discontinuity evidence remains pending.
-- #444 LOCAL_LAN user-administration runtime acceptance remains blocked by controlled redeploy capacity/signing-key boundaries and now depends on a future #551 retest proving the corrected smoke path.
-- #189 recovery acceptance remains hardware/evidence blocked.
+Draft PR #559 — **feat: add safe GitHub update discovery plane** — is the existing implementation lane and must be resumed after state-only Issue #562 is reconciled.
+
+Do not create a parallel #548 implementation branch.
+
+#548 must preserve these boundaries:
+
+- GitHub is update-plane only;
+- core LOCAL_LAN monitoring works without internet;
+- no browser-to-shell bridge;
+- no GitHub token in frontend payloads;
+- no bypass of package/schema/capacity/backup/version-manager gates;
+- no Modbus/controller/hardware writes;
+- no persistent-data or named-volume deletion.
+
+## Existing validation lanes
+
+- #444 local user-management end-to-end acceptance remains `needs-validation`;
+- #201 cumulative-energy normal operation is hardware verified; restart/power-cycle and rollover/reset/discontinuity evidence remain pending;
+- #189 recovery acceptance remains hardware/evidence blocked;
 - #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence.
-- next Raspberry Pi redeploy remains capacity-gated by the last recorded preflight: `free_bytes=15310114816`, `required_bytes=16595036807`, `reserve_bytes=2147483648`.
 
-These lanes do not prevent software implementation of #548, but they do prevent claiming production Raspberry Pi activation/acceptance without new evidence.
+The previous deployment-capacity blocker is cleared by the successful 2026-08-18 preflight. Future deployments must still run the capacity guard and may not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
 ## Safety boundaries
 

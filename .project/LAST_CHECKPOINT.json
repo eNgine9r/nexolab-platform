@@ -3,91 +3,71 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T06:50:00Z",
+  "timestamp": "2026-08-18T07:44:00Z",
   "actor": "ChatGPT",
-  "event": "issue_551_auth_aware_central_smoke_software_merge_reconciliation",
-  "repository_product_baseline_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-  "repository_main_at_reconciliation_base_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-  "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "completed_software_work_package": {
-    "issue": 551,
-    "pull_request": 552,
-    "title": "Make central smoke gate compatible with fail-closed LOCAL_LAN authentication",
-    "status": "software_ci_offline_verified_runtime_validation_pending",
-    "merge_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-    "final_pr_head": "b08536a8e5a11ab10b59bb387fff54d611673f42",
-    "hardware_runtime_acceptance": "PENDING_EXPLICIT_CONTROLLED_RASPBERRY_PI_RETEST"
+  "event": "successful_local_lan_auth_deployment_acceptance",
+  "repository_product_baseline_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "accepted_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "deployed_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "deployment": {
+    "evidence": "runtime/deployments/20260818T073437Z",
+    "status": "PASS",
+    "runtime_mode": "lan",
+    "bind_address": "172.18.48.34",
+    "dashboard": "http://172.18.48.34:3000",
+    "api": "http://172.18.48.34:8082",
+    "auth_mode": "jwt",
+    "local_auth_overlay": true
   },
-  "verification": {
-    "ci": {
-      "run_number": 3445,
-      "status": "GREEN"
+  "runtime_acceptance": {
+    "central_api_ready": true,
+    "dashboard_enabled": true,
+    "dashboard_active": true,
+    "dashboard_login_route": "PASS",
+    "auth_routes": {
+      "/api/v1/auth/session": "PASS",
+      "/api/v1/auth/local/login": "PASS",
+      "/api/v1/admin/users": "PASS"
     },
-    "telemetry_service": {
-      "run_number": 1652,
-      "status": "GREEN",
-      "includes": [
-        "executable central-smoke auth-mode regression",
-        "PostgreSQL MQTT REST WebSocket object storage suite",
-        "PostgreSQL outage recovery",
-        "offline migration validation",
-        "container build"
-      ]
+    "fail_closed_bearer_boundary_http": 401,
+    "local_admin_login": "PASS",
+    "identity_provider": "nexolab-local",
+    "admin_users_http": 200,
+    "device_agent": {
+      "status": "degraded_endpoint_failure_separate",
+      "mqtt_connected": true,
+      "queue_size": 0,
+      "expected_bus_workers": 1,
+      "active_bus_workers": 1,
+      "workers_healthy": true,
+      "worker_state": "running"
     },
-    "offline_bundle": {
-      "run_number": 1376,
-      "status": "GREEN",
-      "includes": [
-        "disconnected build and load",
-        "container egress blocked",
-        "pull disabled runtime start",
-        "update rollback persistent-data preservation"
-      ]
-    },
-    "branch_currentness": "BEHIND_0",
-    "review_threads": 0,
-    "reviews": 0,
-    "changed_files": 3
+    "telemetry_advancement": "PASS"
   },
-  "central_smoke_outcome": {
-    "public_readiness_metrics": "UNCHANGED",
-    "disabled_auth_mode": "POSITIVE_ANONYMOUS_TELEMETRY_SMOKE_PRESERVED",
-    "authenticated_rest": "UNAUTHENTICATED_ACCESS_MUST_RETURN_401",
-    "authenticated_websocket": "EMPTY_BEARER_MUST_RETURN_MISSING_BEARER_TOKEN",
-    "operator_credentials_in_smoke": "NONE",
-    "auth_bypass": "NONE",
-    "deployment_route_contract": "LOCAL_LOGIN_AND_ADMIN_USERS_REMAIN_SEPARATE_AUTHORITATIVE_CHECK"
-  },
-  "runtime_evidence": {
-    "accepted_deployment": "runtime/deployments/20260817T074249Z",
-    "pre_fix_failed_deployment": "runtime/deployments/20260818T060358Z",
-    "post_fix_raspberry_pi_retest": "PENDING_EXPLICIT_APPROVAL",
-    "current_accepted_runtime_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0"
-  },
-  "deployment_capacity": {
-    "next_redeploy_preflight_blocked": true,
-    "free_bytes": 15310114816,
-    "required_bytes": 16595036807,
+  "capacity": {
+    "status": "PASS",
+    "free_bytes": 20475432960,
+    "required_bytes": 16999167491,
     "reserve_bytes": 2147483648,
-    "current_runtime_affected": false
+    "root_filesystem_used_percent": 68
   },
-  "selection": {
-    "selected_issue": 548,
-    "status": "READY",
-    "ready_issue_count": 1,
-    "reason": "Issue #551 software fix is merged and moved to needs-validation pending hardware/runtime evidence. Post-merge Ready audit identifies Issue #548 as the single open product Issue carrying status:ready."
+  "issue_state": {
+    "551": "closed_done",
+    "557": "closed_done",
+    "444": "needs_validation",
+    "548": "in_progress_draft_pr_559"
   },
-  "state_reconciliation": {
-    "issue": 555,
-    "type": "state_only",
-    "authorized_paths": [
+  "active_state_reconciliation": {
+    "issue": 562,
+    "branch": "state/562-local-lan-auth-acceptance",
+    "scope": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
       ".project/BLOCKERS.md",
       ".project/LAST_CHECKPOINT.json"
     ]
   },
+  "next_action": "Complete state-only Issue #562 through GREEN PR, then resume Issue #548 on existing draft PR #559 and synchronize it with current main before further implementation or merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -95,6 +75,5 @@
     "volume_deletion": "none",
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
-  },
-  "next_action": "Complete state-only Issue #555 through a focused Pull Request, then start Ready Issue #548 without a parallel implementation lane."
+  }
 }

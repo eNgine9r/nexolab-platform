@@ -19,64 +19,63 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-  "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
-  "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
+  "repository_product_baseline_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "accepted_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "deployed_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
   "selection_state": {
     "selected_issue": 548,
-    "selection_status": "ready",
-    "ready_issue_count": 1,
-    "reason": "Issue #551 software fix is merged and moved to status:needs-validation pending explicit Raspberry Pi retest. The post-merge Ready audit identifies Issue #548 as the single open product Issue carrying status:ready."
+    "selection_status": "in_progress",
+    "ready_issue_count": 0,
+    "reason": "Critical auth/deployment validation lane #551/#557 is complete on Raspberry Pi. Issue #548 has resumed as the single active implementation lane through draft PR #559."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-557",
+      "issue": 557,
+      "pull_request": 558,
+      "title": "Send organization scope before bearer-token assertion in authenticated central smoke",
+      "status": "completed_software_ci_offline_runtime_verified",
+      "priority": "critical",
+      "merge_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+      "runtime_acceptance": "PASS",
+      "runtime_evidence": "runtime/deployments/20260818T073437Z"
+    },
     {
       "id": "NEXOLAB-551",
       "issue": 551,
       "pull_request": 552,
       "title": "Make central smoke gate compatible with fail-closed LOCAL_LAN authentication",
-      "status": "software_ci_offline_verified_runtime_validation_pending",
+      "status": "completed_software_ci_offline_runtime_verified",
       "priority": "critical",
-      "parent_issue": 444,
       "merge_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-      "final_pr_head": "b08536a8e5a11ab10b59bb387fff54d611673f42",
-      "raspberry_pi_runtime_acceptance": "pending_explicit_controlled_retest"
-    },
-    {
-      "id": "NEXOLAB-546",
-      "issue": 546,
-      "pull_request": 547,
-      "title": "Replace Equipment Map sensor dropdowns with TelemetryPointSelector",
-      "status": "completed_software_browser_offline_verified",
-      "priority": "critical",
-      "parent_issue": 450,
-      "merge_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
-      "final_pr_head": "fcf64d0fa842293facbc9762a85446f8898b43e2",
-      "raspberry_pi_runtime_acceptance": "not_required_not_deployed"
+      "runtime_acceptance": "PASS_VIA_FOLLOWUP_557_558",
+      "runtime_evidence": "runtime/deployments/20260818T073437Z"
     },
     {
       "id": "NEXOLAB-548",
       "issue": 548,
+      "pull_request": 559,
       "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
-      "status": "ready",
+      "status": "in_progress",
       "priority": "high"
-    },
-    {
-      "id": "NEXOLAB-201",
-      "issue": 201,
-      "pull_request": 519,
-      "title": "Validate LE-01MP cumulative energy, scale and rollover",
-      "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
-      "priority": "high",
-      "merge_sha": "21cddfbb041d4b5c1dc8271c1ee4604460c50170",
-      "hardware_acceptance": "partial_normal_operation_verified",
-      "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
     },
     {
       "id": "NEXOLAB-444",
       "issue": 444,
       "title": "Restore LOCAL_LAN user administration API availability",
-      "status": "software_verified_runtime_acceptance_blocked",
-      "priority": "critical"
+      "status": "needs_validation",
+      "priority": "critical",
+      "runtime_list_api": "PASS",
+      "remaining_validation": "real create/manage user flow plus non-admin authorization/frontend diagnostic acceptance"
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy, scale and rollover",
+      "status": "software_merged_normal_operation_hardware_verified_power_cycle_pending",
+      "priority": "high",
+      "hardware_acceptance": "partial_normal_operation_verified",
+      "remaining_validation": "approved restart/power-cycle and rollover/reset/discontinuity classification"
     },
     {
       "id": "NEXOLAB-189",
@@ -87,41 +86,37 @@
     }
   ],
   "active_work_package": {
-    "issue": 555,
-    "title": "Reconcile auth-aware central smoke software merge",
+    "issue": 562,
+    "title": "Reconcile successful LOCAL_LAN auth deployment acceptance",
     "type": "state_only",
     "status": "in_progress"
   },
   "next_work_package": {
     "issue": 548,
+    "pull_request": 559,
     "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
-    "status": "ready"
+    "status": "resume_in_progress"
   },
   "verification": {
-    "issue_551_merge_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-    "issue_551_final_pr_head": "b08536a8e5a11ab10b59bb387fff54d611673f42",
-    "issue_551_ci": {
-      "run_number": 3445,
-      "status": "GREEN"
-    },
-    "issue_551_telemetry_service": {
-      "run_number": 1652,
-      "status": "GREEN"
-    },
-    "issue_551_offline_bundle": {
-      "run_number": 1376,
-      "status": "GREEN"
-    },
-    "issue_551_branch_currentness": "BEHIND_0",
-    "issue_551_review_threads": 0,
-    "issue_551_changed_files": 3,
-    "ready_issue_count": 1
+    "runtime_acceptance_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+    "runtime_evidence": "runtime/deployments/20260818T073437Z",
+    "deployment_status": "PASS",
+    "runtime_mode": "lan",
+    "auth_mode": "jwt",
+    "local_auth_overlay": true,
+    "local_admin_login": "PASS",
+    "admin_users_http": 200,
+    "expected_bus_workers": 1,
+    "active_bus_workers": 1,
+    "workers_healthy": true,
+    "telemetry_advancement": "PASS",
+    "capacity_preflight": "PASS"
   },
   "independent_pending_lanes": [
     {
-      "issue": 551,
+      "issue": 444,
       "status": "needs_validation",
-      "description": "Software/CI/offline fix merged; controlled Raspberry Pi LOCAL_LAN retest requires explicit deployment approval."
+      "description": "Deployment/auth blocker cleared; remaining end-to-end user-management acceptance pending."
     },
     {
       "issue": 201,
@@ -134,11 +129,6 @@
       "description": "Physical standalone Raspberry Pi acceptance pending."
     },
     {
-      "issue": 444,
-      "status": "blocked",
-      "description": "LOCAL_LAN runtime acceptance remains behind controlled deployment capacity/signing safeguards and a future #551 retest."
-    },
-    {
       "issue": 189,
       "status": "blocked",
       "description": "Hardware recovery evidence pending."
@@ -146,10 +136,11 @@
   ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
-    "next_redeploy_preflight_blocked": true,
-    "free_bytes": 15310114816,
-    "required_bytes": 16595036807,
-    "reserve_bytes": 2147483648
+    "latest_preflight_status": "PASS",
+    "free_bytes": 20475432960,
+    "required_bytes": 16999167491,
+    "reserve_bytes": 2147483648,
+    "root_filesystem_used_percent": 68
   },
   "safety": {
     "modbus_write": "none",
