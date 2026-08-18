@@ -31,8 +31,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.22.1
-          cache: npm
-          cache-dependency-path: services/nexolab-mcp/package-lock.json
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
