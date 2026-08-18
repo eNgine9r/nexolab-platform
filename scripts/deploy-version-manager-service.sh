@@ -75,7 +75,29 @@ install -d -o 10001 -g 10001 -m 0750 \
 install -d -o root -g root -m 0755 /var/lib/nexolab/version-management/catalog
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-version-manager.py" /usr/local/lib/nexolab/nexolab-version-manager.py
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" /usr/local/lib/nexolab/nexolab-update-orchestrator.py
-install -m 0755 "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" /usr/local/lib/nexolab/deploy-capacity-guard.sh
+install -m 0755 "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" /usr/local/lib/nexolab/deploy-capacity-guard-base.sh
+cat > /usr/local/lib/nexolab/deploy-capacity-guard.sh <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repository_path="${NEXOLAB_REPOSITORY_PATH:-/home/nexolab/nexolab-platform}"
+args=()
+while (($#)); do
+  case "$1" in
+    --repo)
+      (($# >= 2)) || { echo "--repo requires a path" >&2; exit 64; }
+      args+=(--repo "$repository_path")
+      shift 2
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+exec bash /usr/local/lib/nexolab/deploy-capacity-guard-base.sh "${args[@]}"
+EOF
+chmod 0755 /usr/local/lib/nexolab/deploy-capacity-guard.sh
 install -m 0644 "$UNIT_ROOT/nexolab-version-manager.service" /etc/systemd/system/nexolab-version-manager.service
 install -m 0644 "$UNIT_ROOT/nexolab-version-manager.path" /etc/systemd/system/nexolab-version-manager.path
 install -m 0644 "$UPDATE_UNIT_ROOT/nexolab-update-check.service" /etc/systemd/system/nexolab-update-check.service
@@ -86,13 +108,16 @@ install -m 0644 "$UPDATE_UNIT_ROOT/nexolab-update-request.path" /etc/systemd/sys
 if [[ ! -f /etc/nexolab/version-manager.env ]]; then
   install -d -m 0750 /etc/nexolab
   install -m 0640 /dev/null /etc/nexolab/version-manager.env
-  cat > /etc/nexolab/version-manager.env <<'EOF'
+  cat > /etc/nexolab/version-manager.env <<EOF
 NEXOLAB_VERSION_ROOT=/var/lib/nexolab/version-management
 NEXOLAB_CENTRAL_ENV=/etc/nexolab/central.env
 NEXOLAB_EDGE_ENV=/etc/nexolab/edge.env
 NEXOLAB_VERSION_BACKUP_DIR=/var/backups/nexolab
 NEXOLAB_VERSION_MANAGER_FLAGS=--local-auth
+NEXOLAB_REPOSITORY_PATH=$REPOSITORY_PATH
 EOF
+elif ! grep -q '^NEXOLAB_REPOSITORY_PATH=' /etc/nexolab/version-manager.env; then
+  printf 'NEXOLAB_REPOSITORY_PATH=%s\n' "$REPOSITORY_PATH" >> /etc/nexolab/version-manager.env
 fi
 
 if [[ ! -f /etc/nexolab/update-orchestrator.env ]]; then
