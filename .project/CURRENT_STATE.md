@@ -6,73 +6,84 @@ Updated: 2026-08-18
 
 The current repository and accepted software baseline is:
 
-`4cf20a173c793f67b7befb239d8489977d0df4b5`
+`60797b22e461e3078b535aaaf5b885411eb63aef`
 
-This is the squash merge of PR #561 — **preserve LOCAL_LAN bearer-token rotation**.
+This is the squash merge of PR #568 — **preserve LOCAL_LAN dashboard auth provider during controlled Raspberry Pi deployment**.
 
-Issue #560 is closed `status:done` after exact-head software, browser and offline verification.
+Issue #567 is closed `status:done` after exact-head software verification.
 
-The fix routes the established legacy frontend runtime credential provider through the existing LOCAL_LAN refresh-token provider when `NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local`. Protected clients therefore resolve a current bearer token instead of reusing an expired in-memory access token. Missing local API configuration fails closed with no bearer token.
+The fix keeps the generated dashboard build contract aligned with the active backend local-auth overlay:
 
-Exact-head evidence on PR #561 head `4ee47fddb9ec903361dd5382ec40cb0d9eb1e9ac`:
+- when the controlled deployment enables local operator authentication, `NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local` is generated before the frontend build;
+- the frontend organization id is taken from the canonical backend `AUTH_DEFAULT_ORGANIZATION_ID`;
+- the deployment fails closed before the dashboard build if the generated local-auth contract is inconsistent;
+- the provider and organization scope are passed explicitly into the production build;
+- non-secret dashboard auth provider/organization facts are included in deployment evidence;
+- deterministic deployment-auth regression coverage now runs through the existing CI standalone Raspberry Pi runtime-contract gate.
 
-- CI #3473 PASS: formatting, lint, typecheck, full tests and production build;
-- Security Browser Acceptance #1197 PASS;
-- Authenticated Dashboard Acceptance #1988 PASS;
-- Offline Auth Acceptance #527 PASS;
-- Nodes Browser Acceptance #703 PASS;
-- Alerts Browser Acceptance #866 PASS;
-- Test Sessions Browser Acceptance #889 PASS;
-- Reports Browser Acceptance #889 PASS;
-- Rendered Reports Browser Acceptance #734 PASS;
-- Offline Bundle #1398 PASS, including disconnected startup and update/rollback persistent-data preservation.
+Exact-head evidence on PR #568 head `1fd470e54f9d420e864950aeaf9e27cfb9996d2c`:
 
-## Deployed Raspberry Pi baseline
+- CI #3491 PASS;
+- standalone Raspberry Pi runtime-contract gate PASS, including the deployment-auth regression suite;
+- ADR registry PASS;
+- dependency update policy PASS;
+- exact Node baseline PASS;
+- formatting PASS;
+- lint PASS;
+- typecheck PASS;
+- tests PASS;
+- production build PASS.
 
-The currently accepted deployed Raspberry Pi LOCAL_LAN baseline remains:
+Authenticated Dashboard, Security Browser, Offline Auth and Offline Bundle were not triggered by the scripts-only #568 diff under their repository path filters. Their previously accepted GREEN auth/offline baseline remains unchanged because #568 did not modify frontend/backend runtime code or dependencies.
 
-`2d7740ff1cc2e638f47f2f0787a8e0516626c61e`
+## Current Raspberry Pi runtime
 
-Successful controlled deployment evidence:
+The Raspberry Pi code checkout deployed during acceptance Issue #566 is:
 
-`runtime/deployments/20260818T073437Z`
+`0bfc4fcc56f7a669545be166c585573550f2fb44`
 
-That deployed baseline verified:
+Controlled deployment evidence:
 
-- deployment script: `DEPLOYMENT PASSED`;
+`runtime/deployments/20260818T083157Z`
+
+That deployment reported `DEPLOYMENT PASSED` and verified:
+
 - `runtime_mode=lan`;
 - `bind_address=172.18.48.34`;
 - Dashboard: `http://172.18.48.34:3000`;
 - API: `http://172.18.48.34:8082`;
 - `AUTH_MODE=jwt`;
-- `local_auth_overlay=true`;
-- authenticated central smoke PASS;
-- local `administrator` login PASS with provider `nexolab-local`;
-- `/api/v1/admin/users` HTTP 200;
-- Dashboard enabled and active;
-- Central API ready;
-- Device Agent expected/active bus workers `1/1`;
-- `workers_healthy=true`;
-- RS485 worker state `running`;
-- telemetry freshness advanced over a 30-second acceptance window.
+- `AUTH_LOCAL_ENABLED=true` / local-auth overlay enabled;
+- central backend healthy;
+- Device Agent healthy;
+- expected/active bus workers `1/1`;
+- telemetry services running.
 
-Deployment capacity preflight passed with `free_bytes=20475432960`, `required_bytes=16999167491`, `reserve_bytes=2147483648`; root filesystem was 68% used.
+However that `0bfc4fcc...` deployment exposed the defect fixed by #567: the generated `.env.local` omitted the local frontend auth provider and organization scope, so the login page incorrectly entered the Supabase path and displayed `Supabase Auth не налаштовано для цього середовища.`
 
-## Issue #560 — software/offline complete; post-fix Pi runtime unverified
+The operator then applied a temporary local `.env.local` correction, rebuilt the dashboard and restarted only the dashboard service. Local `administrator` login succeeded afterward. This is valid runtime evidence for the diagnosis, but it is **not repository-backed deployment acceptance of `60797b22...`** and must not be represented as such.
 
-The operator-observed Energy Monitoring failure after roughly 1–2 minutes was classified as a stale LOCAL_LAN bearer-token path, not a Modbus acquisition failure:
+## Issue #560 / #566 — permanent-fix Raspberry Pi acceptance still pending
 
-`401 invalid_bearer_token / bearer token validation failed`
+Issue #560 fixed the stale LOCAL_LAN bearer-token rotation path in software. Issue #566 performed the separately approved deployment of target `0bfc4fcc...`, but the deployment-auth defect discovered during that acceptance prevented the run from closing the final token-rotation evidence boundary cleanly.
 
-Software and disconnected-runtime verification are complete in `4cf20a173c793f67b7befb239d8489977d0df4b5`.
+The permanent deployment-auth correction is now merged in `60797b22...`.
 
-The Raspberry Pi has **not** been deployed to `4cf20a...` in this Work Package. Therefore post-fix physical/runtime acceptance remains unverified. The deployed `2d7740...` system may continue to reproduce the 401 until a separately approved controlled deployment is performed and Energy Monitoring is observed through at least one complete local access-token rotation window.
+Full runtime acceptance still requires a separately approved controlled Raspberry Pi deployment of `60797b22...` or newer containing both fixes, followed by:
+
+- successful local `administrator` login without any manual `.env.local` correction;
+- Energy Monitoring remaining active through at least one complete local access-token rotation window;
+- protected history/consumption requests continuing to succeed;
+- no recurrence of `401 invalid_bearer_token`;
+- deployment evidence recording `dashboard_auth_provider=local` and the canonical organization id.
+
+Do not claim #560/#566 runtime completion before that evidence exists.
 
 ## Active implementation lane
 
-Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** remains the active product Work Package and is `status:in-progress`.
+Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** remains the active product Work Package and draft PR #559 remains its single implementation lane.
 
-Draft PR #559 — **feat: add safe GitHub update discovery plane** — is the existing implementation lane. Resume this same branch/PR after state-only Issue #564 is merged; do not create a parallel #548 implementation branch.
+State-only Issue #569 reconciles the #567/#568 result. After #569 is GREEN and merged, resume Issue #548 on existing PR #559; do not create a parallel #548 branch.
 
 #548 must preserve these boundaries:
 
@@ -86,11 +97,11 @@ Draft PR #559 — **feat: add safe GitHub update discovery plane** — is the ex
 
 ## Existing validation lanes
 
+- #566 / #560 permanent-fix Raspberry Pi token-rotation acceptance remains in progress and requires a separately approved deployment;
 - #444 local user-management end-to-end acceptance remains `needs-validation`;
 - #201 cumulative-energy normal operation is hardware verified; restart/power-cycle and rollover/reset/discontinuity evidence remain pending;
 - #189 recovery acceptance remains hardware/evidence blocked;
-- #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence;
-- #560 post-fix Raspberry Pi token-rotation runtime acceptance is pending a separately approved deployment of `4cf20a...` or newer containing the fix.
+- #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence.
 
 Future deployments must continue to run the capacity guard and may not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
