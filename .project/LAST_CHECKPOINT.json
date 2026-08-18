@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T21:10:00Z",
+  "timestamp": "2026-08-18T21:20:00Z",
   "actor": "ChatGPT",
-  "event": "issue_594_mcp_acceptance_complete_ready_for_merge",
-  "repository_main_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
+  "event": "issue_594_merged_next_ready_587",
+  "repository_main_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_584": {
@@ -51,8 +51,7 @@
     "issue_594": {
       "issue": 594,
       "pull_request": 593,
-      "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE",
-      "head_sha": "1ff1c8717a0b3b44ec76b4794cc836f2e7f276d8",
+      "status": "COMPLETED_SOFTWARE_CI_AND_PI_RUNTIME_ACCEPTANCE",
       "identity": {
         "username": "nexolab-mcp",
         "role": "laboratory_technician",
@@ -76,7 +75,8 @@
         "ephemeral_container_removed": true,
         "port_8787_after_acceptance": "free"
       },
-      "cutover": false
+      "cutover": false,
+      "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     }
   },
   "blocked_work": {
@@ -98,16 +98,11 @@
     }
   },
   "current_boundary": {
-    "issue": 594,
-    "title": "Add production-oriented read-only NEXOLAB MCP gateway",
-    "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE"
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
+    "status": "READY"
   },
-  "next_action": "Run exact-head CI after state reconciliation, mark PR #593 ready, squash merge only while GREEN, reconcile post-merge main state, then resume Ready Issue #587.",
-  "separate_draft_lane": {
-    "issue": 594,
-    "pull_request": 593,
-    "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE"
-  },
+  "next_action": "Begin Issue #587 on its dedicated feature branch. Reuse the canonical complete-history/reconciliation path and add Saved Dashboard persisted ranges plus CSV export without changing physical acquisition.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
