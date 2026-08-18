@@ -2,44 +2,40 @@
 
 Updated: 2026-08-18
 
-## Issue #548 / PR #559 — software merged, no software blocker
+## Issue #566 / #560 — controlled Raspberry Pi deployment completed
 
-Issue #548 is closed with `status:done`. PR #559 is squash-merged into the accepted product baseline:
+The approved LOCAL_LAN deployment completed successfully on Raspberry Pi at:
 
-`9732b68b0d14e4056e5773e0a9bec3f3741e267f`
+`7a19f53950492a40255c53b1d2018bbdff9466e2`
 
-Final PR exact head `76120bef1108086fdc1648cddbcf9bd293502e6e` passed all 13 triggered workflows. The software/security/offline boundary is accepted; Raspberry Pi runtime acceptance remains pending the controlled deployment now approved under Issue #566.
+Evidence:
 
-## Raspberry Pi deployment — approval granted
+`runtime/deployments/20260818T131726Z`
 
-The Product Owner explicitly approved the post-#548 controlled Raspberry Pi deployment on 2026-08-18 at 16:03 Europe/Uzhgorod.
+Verified PASS facts include capacity preflight, PostgreSQL pre-upgrade backup, fail-closed JWT/local-auth preservation, Dashboard/API readiness, healthy Device Agent bus-worker invariant, advancing telemetry and Energy Monitoring continuity through the 300-second access-token rotation window.
 
-Issue #566 is no longer blocked on approval. The controlled deployment may proceed on the existing Raspberry Pi in `lan` mode using `scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan`.
+Issue #560 runtime acceptance is PASS: `/api/v1/auth/local/refresh` returned HTTP 200 and the previous `invalid_bearer_token` Energy Monitoring failure did not recur after rotation.
 
-The current pre-deployment Raspberry Pi baseline is:
+## Issue #576 — current-release evidence blocks update candidate eligibility
 
-`0bfc4fcc56f7a669545be166c585573550f2fb44`
+The #548 host update plane is installed, active and safe. Automatic updates remain OFF and the fixed scheduler remains 02:00.
 
-Existing evidence:
+A manual non-mutating `check-now` executed successfully as an update-plane request but returned the fail-closed eligibility state:
 
-`runtime/deployments/20260818T083157Z`
+`current_revision_unknown`
 
-The deployment must stop on any failed clean-tree, capacity, backup, build, health or smoke gate. No bypass by deleting product data, PostgreSQL history, named volumes or protected evidence is authorized.
+The controlled source-based deployment has no trusted version-management `current.json` package evidence. This is not a monitoring outage and did not restart or mutate runtime data. Issue #576 is Ready and owns the evidence-backed initialization/adoption path. Do not write `current.json` manually or fabricate a bundle identity.
 
-## Remaining evidence for Issue #566 / #560 / #548
+## Issue #575 — LE-01MP Unit 201 runtime connectivity
 
-- exact deployed SHA and repository-backed deployment evidence;
-- local administrator login without manual auth-provider correction;
-- access-token rotation continuity for Energy Monitoring/history requests;
-- no recurrence of `401 invalid_bearer_token`;
-- #548 automatic-update policy default OFF;
-- safe manual update discovery and truthful offline/update-plane behavior;
-- installed 02:00 host-local scheduler/policy state;
-- version-management capacity/backup/package-validation/runtime-verification/rollback evidence where exercised;
-- API/Dashboard readiness, Device Agent health and advancing telemetry.
+Device Agent reports one degraded/cooldown endpoint group: LE-01MP Unit ID 201 has timeout-only outcomes in the current runtime. The shared bus worker remains healthy, MQTT is connected, telemetry advances and Units 200/202/203 plus XJP60D continue returning successful reads.
 
-## Other evidence lanes
+Issue #575 is Ready for read-only diagnosis. Previous hardware evidence in Issue #201 confirmed Unit 201 worked on 2026-08-17, so it must not be silently disabled. Any physical power/cable/address intervention requires separate approval.
 
+## Remaining evidence lanes
+
+- #576 trusted current-release evidence for GitHub-aware update eligibility;
+- #575 Unit 201 read-only connectivity diagnosis;
 - #444 end-to-end local user-management acceptance;
 - #201 approved restart/power-cycle and rollover/reset/discontinuity validation;
 - #245 standalone loopback-only Raspberry Pi acceptance;
