@@ -1,3 +1,5 @@
+import { versionReconnectDelayMs } from "./version-reconnect";
+
 export type VersionAction = "update" | "rollback";
 
 export type CurrentVersion = {
@@ -112,6 +114,8 @@ export class VersionManagementApiError extends Error {
   }
 }
 
+const MAX_VERSION_RECONNECT_RETRIES = 5;
+
 export class VersionManagementClient {
   private readonly base: string;
 
@@ -123,7 +127,16 @@ export class VersionManagementClient {
   }
 
   async read(): Promise<VersionSnapshot> {
-    return parseSnapshot(await this.request("", { method: "GET" }));
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return parseSnapshot(await this.request("", { method: "GET" }));
+      } catch (error) {
+        if (attempt >= MAX_VERSION_RECONNECT_RETRIES || !shouldRetryVersionRead(error)) {
+          throw error;
+        }
+        await waitForReconnect(versionReconnectDelayMs(attempt));
+      }
+    }
   }
 
   async setAutomaticUpdates(enabled: boolean): Promise<UpdatePolicy> {
@@ -183,6 +196,17 @@ export class VersionManagementClient {
     }
     return payload;
   }
+}
+
+function shouldRetryVersionRead(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!(error instanceof VersionManagementApiError)) return false;
+  if (error.code === "invalid_version_response") return false;
+  return error.status === 502 || error.status === 503 || error.status === 504;
+}
+
+async function waitForReconnect(delayMs: number): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 }
 
 function parseSnapshot(value: unknown): VersionSnapshot {
