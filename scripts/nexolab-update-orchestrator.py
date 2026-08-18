@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -147,6 +148,118 @@ def current_source_commit(root: Path) -> str | None:
     return value if isinstance(value, str) and len(value) == 40 else None
 
 
+def _validated_catalog_manifest(bundle_root: Path) -> dict[str, Any] | None:
+    manifest_path = bundle_root / "manifest.json"
+    marker_path = bundle_root / ".nexolab-validated.json"
+    try:
+        raw = manifest_path.read_bytes()
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        manifest = json.loads(raw)
+    except (FileNotFoundError, OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(marker, dict) or not isinstance(manifest, dict):
+        return None
+    digest = hashlib.sha256(raw).hexdigest()
+    if marker.get("manifest_sha256") != digest or manifest.get("schema_version") != 1:
+        return None
+    management = manifest.get("version_management")
+    if not isinstance(management, dict) or management.get("bundle_id") != bundle_root.name:
+        return None
+    schema = management.get("database_schema")
+    if not isinstance(schema, dict):
+        return None
+    policy = manifest.get("persistent_data_policy")
+    if not isinstance(policy, dict) or any(
+        policy.get(key) is not expected
+        for key, expected in (
+            ("packaged", False),
+            ("delete_volumes", False),
+            ("compose_down_v_allowed", False),
+        )
+    ):
+        return None
+    if any(
+        management.get(key) is not True
+        for key in (
+            "backup_required",
+            "migration_before_readiness",
+            "preserve_named_volumes",
+            "preserve_edge_sqlite",
+        )
+    ):
+        return None
+    return manifest
+
+
+def validated_candidate_bundle(root: Path, target_commit: str) -> tuple[str | None, str]:
+    """Return an activation hint only after both current and target packages are validated.
+
+    This never authorizes installation by itself. The authenticated API and privileged
+    version manager revalidate package identity, platform and schema compatibility again
+    before any runtime mutation.
+    """
+
+    current = read_json(root / "current.json")
+    if current is None:
+        return None, "current_release_unverified"
+    current_bundle = current.get("bundle_id")
+    current_release = current.get("release")
+    current_commit = current.get("source_commit")
+    current_platform = current.get("platform")
+    current_schema = current.get("schema_head")
+    if not all(
+        isinstance(value, str) and value.strip()
+        for value in (
+            current_bundle,
+            current_release,
+            current_commit,
+            current_platform,
+            current_schema,
+        )
+    ):
+        return None, "current_release_unverified"
+
+    current_manifest = _validated_catalog_manifest(root / "catalog" / str(current_bundle))
+    if current_manifest is None:
+        return None, "current_release_unverified"
+    if (
+        current_manifest.get("bundle_version") != current_release
+        or current_manifest.get("source_commit") != current_commit
+        or current_manifest.get("platform") != current_platform
+    ):
+        return None, "current_release_unverified"
+
+    saw_target_package = False
+    saw_platform_mismatch = False
+    saw_schema_mismatch = False
+    catalog_root = root / "catalog"
+    if not catalog_root.is_dir():
+        return None, "validated_package_required"
+    for bundle_root in sorted(path for path in catalog_root.iterdir() if path.is_dir()):
+        manifest = _validated_catalog_manifest(bundle_root)
+        if manifest is None or manifest.get("source_commit") != target_commit:
+            continue
+        saw_target_package = True
+        if manifest.get("platform") != current_platform:
+            saw_platform_mismatch = True
+            continue
+        management = manifest.get("version_management")
+        schema = management.get("database_schema") if isinstance(management, dict) else None
+        upgrade_from = schema.get("upgrade_from") if isinstance(schema, dict) else None
+        if not isinstance(upgrade_from, list) or current_schema not in upgrade_from:
+            saw_schema_mismatch = True
+            continue
+        return bundle_root.name, ""
+
+    if saw_schema_mismatch:
+        return None, "schema_compatibility_unknown"
+    if saw_platform_mismatch:
+        return None, "platform_incompatible"
+    if saw_target_package:
+        return None, "target_release_unverified"
+    return None, "validated_package_required"
+
+
 def discover(
     root: Path,
     repo: Path,
@@ -167,6 +280,7 @@ def discover(
         "current_commit": current_source_commit(root),
         "target_commit": None,
         "candidate_available": False,
+        "candidate_bundle_id": None,
         "activation_eligible": False,
         "blocked_reason": None,
     }
@@ -219,15 +333,23 @@ def discover(
                 "non_fast_forward",
                 "origin/main is not fast-forward reachable from deployed lineage",
             )
+        candidate_bundle_id, blocked_reason = validated_candidate_bundle(root, target)
         result["status"] = "completed"
         result["result_code"] = "candidate_discovered"
-        result["message"] = (
-            "A newer main revision exists but is not installable until a validated "
-            "local package is staged."
-        )
         result["candidate_available"] = True
-        result["activation_eligible"] = False
-        result["blocked_reason"] = "validated_package_required"
+        result["candidate_bundle_id"] = candidate_bundle_id
+        result["activation_eligible"] = candidate_bundle_id is not None
+        result["blocked_reason"] = blocked_reason or None
+        if candidate_bundle_id is None:
+            result["message"] = (
+                "A newer main revision exists but activation remains blocked until its local "
+                "validated package satisfies the current platform and schema gates."
+            )
+        else:
+            result["message"] = (
+                "A newer main revision matches a validated local package. The authenticated "
+                "version-management API must still revalidate every activation gate."
+            )
         return finalize(root, result)
     except CheckBlocked as error:
         result["status"] = "blocked"
@@ -315,6 +437,7 @@ def process_requested_check(
             "current_commit": current_source_commit(root),
             "target_commit": None,
             "candidate_available": False,
+            "candidate_bundle_id": None,
             "activation_eligible": False,
             "blocked_reason": "invalid_update_check_request",
         }
