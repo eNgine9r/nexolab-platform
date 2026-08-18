@@ -318,7 +318,7 @@ export function CameraScopedLayoutEditor({
 
         {mode === "edit" ? (
           <SensorPlacementManager
-            equipmentId={equipment.id}
+            equipment={equipment}
             totalSlots={equipment.totalSensors}
             channels={channels}
             configuration={configuration}
