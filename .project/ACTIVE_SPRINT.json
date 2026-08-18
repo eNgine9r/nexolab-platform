@@ -100,10 +100,7 @@
       "head_sha": "1ff1c8717a0b3b44ec76b4794cc836f2e7f276d8",
       "raspberry_pi_runtime_acceptance": "PASS",
       "backend_identity_role": "laboratory_technician",
-      "backend_identity_permissions": [
-        "nodes.read",
-        "telemetry.read"
-      ]
+      "backend_identity_permissions": ["nodes.read", "telemetry.read"]
     },
     {
       "id": "NEXOLAB-444",
@@ -163,10 +160,7 @@
     "issue_594_tool_count": 6,
     "issue_594_all_tools_read_only": true,
     "issue_594_backend_identity_role": "laboratory_technician",
-    "issue_594_backend_identity_permissions": [
-      "nodes.read",
-      "telemetry.read"
-    ],
+    "issue_594_backend_identity_permissions": ["nodes.read", "telemetry.read"],
     "issue_594_protected_nodes": "PASS",
     "issue_594_protected_node_status": "PASS",
     "issue_594_protected_latest": "PASS",

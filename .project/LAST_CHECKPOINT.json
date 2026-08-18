@@ -56,10 +56,7 @@
       "identity": {
         "username": "nexolab-mcp",
         "role": "laboratory_technician",
-        "permissions": [
-          "nodes.read",
-          "telemetry.read"
-        ],
+        "permissions": ["nodes.read", "telemetry.read"],
         "secret_in_repository": false
       },
       "runtime_proof": {
