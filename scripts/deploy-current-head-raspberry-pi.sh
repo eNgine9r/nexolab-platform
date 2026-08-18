@@ -371,6 +371,13 @@ if [[ "$AUTH_MODE_VALUE" == "jwt" ]]; then
   fi
 fi
 
+FRONTEND_AUTH_PROVIDER="disabled"
+if [[ "$LOCAL_AUTH_OVERLAY_ENABLED" == "true" ]]; then
+  FRONTEND_AUTH_PROVIDER="local"
+fi
+FRONTEND_ORGANIZATION_ID="$(env_get "$CENTRAL_ENV" AUTH_DEFAULT_ORGANIZATION_ID)"
+[[ -n "$FRONTEND_ORGANIZATION_ID" ]] || fail "AUTH_DEFAULT_ORGANIZATION_ID must be configured"
+
 if [[ ! -f "$EDGE_ENV" ]]; then
   if [[ -f "$CENTRAL_DIR/.env.edge" ]]; then
     cp "$CENTRAL_DIR/.env.edge" "$EDGE_ENV"
@@ -395,8 +402,17 @@ cat > "$ROOT_ENV" <<EOF_ENV
 NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
 NEXT_PUBLIC_NEXOLAB_API_BASE_URL=$NEXOLAB_API_BASE_URL
 NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=$NEXOLAB_WEBSOCKET_URL
+NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$FRONTEND_AUTH_PROVIDER
+NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$FRONTEND_ORGANIZATION_ID
 EOF_ENV
 chmod 0600 "$ROOT_ENV"
+
+if [[ "$LOCAL_AUTH_OVERLAY_ENABLED" == "true" ]]; then
+  [[ "$(env_get "$ROOT_ENV" NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER)" == "local" ]] \
+    || fail "local-auth overlay requires NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local before dashboard build"
+  [[ "$(env_get "$ROOT_ENV" NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID)" == "$FRONTEND_ORGANIZATION_ID" ]] \
+    || fail "local-auth overlay requires dashboard organization scope to match AUTH_DEFAULT_ORGANIZATION_ID"
+fi
 
 mkdir -p "$REPO/runtime/observability"
 chmod 0700 "$REPO/runtime/observability"
@@ -434,6 +450,8 @@ if [[ -f package-lock.json ]]; then
 else
   npm install
 fi
+NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER" \
+NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID" \
 NEXT_TELEMETRY_DISABLED=1 npm run build
 
 log "Starting central backend, MinIO and observability"
@@ -563,6 +581,8 @@ install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
   echo "minio=$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL"
   echo "auth_mode=$AUTH_MODE_VALUE"
   echo "local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED"
+  echo "dashboard_auth_provider=$FRONTEND_AUTH_PROVIDER"
+  echo "dashboard_organization_id=$FRONTEND_ORGANIZATION_ID"
   echo "grafana_local=http://127.0.0.1:3001"
   echo "prometheus_local=http://127.0.0.1:9090"
   echo "alertmanager_local=http://127.0.0.1:9093"

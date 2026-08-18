@@ -18,6 +18,7 @@ assert_eq() {
 bash -n "$REPO_ROOT/scripts/deploy-current-head-raspberry-pi.sh"
 bash -n "$REPO_ROOT/scripts/verify-standalone-offline-raspberry-pi.sh"
 bash -n "$REPO_ROOT/scripts/lib/raspberry-pi-runtime-mode.sh"
+python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_auth.py"
 
 nexolab_configure_runtime_contract standalone ""
 assert_eq standalone "$NEXOLAB_RUNTIME_MODE" "standalone mode"
@@ -105,7 +106,6 @@ docker compose --env-file "$CENTRAL_ENV" \
   -f "$REPO_ROOT/infrastructure/compose/compose.observability.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.central-standalone.yaml" \
   config --quiet
-
 docker compose --env-file "$EDGE_ENV" \
   -f "$REPO_ROOT/infrastructure/compose/compose.edge.yaml" \
   -f "$REPO_ROOT/infrastructure/compose/compose.hardware.yaml" \
