@@ -30,7 +30,14 @@ else
   echo "Version-manager unit directory is missing under $SOURCE_ROOT" >&2
   exit 1
 fi
-UPDATE_UNIT_ROOT="$SOURCE_ROOT/infrastructure/systemd"
+if [[ -d "$SOURCE_ROOT/infrastructure/systemd" ]]; then
+  UPDATE_UNIT_ROOT="$SOURCE_ROOT/infrastructure/systemd"
+elif [[ -d "$SOURCE_ROOT/deploy/systemd" ]]; then
+  UPDATE_UNIT_ROOT="$SOURCE_ROOT/deploy/systemd"
+else
+  echo "Update-maintenance unit directory is missing under $SOURCE_ROOT" >&2
+  exit 1
+fi
 for file in \
   "$SOURCE_ROOT/scripts/nexolab-version-manager.py" \
   "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" \
