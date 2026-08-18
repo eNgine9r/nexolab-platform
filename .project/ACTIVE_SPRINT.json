@@ -19,17 +19,31 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "last_reconciled_repository_sha": "11432d5f0f41164db9621b7567b95466136b574d",
+  "repository_product_baseline_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+  "accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+  "last_reconciled_repository_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 576,
-    "selection_status": "software_ci_green_runtime_acceptance_pending",
+    "selection_status": "hard_blocked_waiting_separate_user_approval",
     "ready_issue_count": 1,
-    "reason": "Issue #576 software is implemented in PR #579 and exact implementation-head CI/Telemetry are GREEN. Real Raspberry Pi source-adoption metadata acceptance is a separate host mutation boundary requiring explicit approval after merge. Issue #575 remains independently Ready."
+    "reason": "Issue #576 software is merged and exact-head CI is GREEN. The remaining action writes bounded version-management metadata on the controlled Raspberry Pi and requires a new separate Product Owner approval. Issue #575 remains independently Ready."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-576",
+      "issue": 576,
+      "pull_request": 579,
+      "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
+      "status": "software_merged_runtime_acceptance_pending",
+      "priority": "high",
+      "merge_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+      "final_pr_head_sha": "cbb0dfba44d8d6cce256ffbf45b8577a9d114629",
+      "ci": "PASS_3564",
+      "telemetry_service": "PASS_1744",
+      "software_acceptance": "PASS",
+      "pi_runtime_acceptance": "PENDING_SEPARATE_APPROVAL"
+    },
     {
       "id": "NEXOLAB-566",
       "issue": 566,
@@ -40,28 +54,6 @@
       "runtime_evidence": "runtime/deployments/20260818T131726Z",
       "deployment_acceptance": "PASS",
       "token_rotation_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-560",
-      "issue": 560,
-      "pull_request": 561,
-      "title": "Preserve LOCAL_LAN bearer-token rotation across authenticated frontend clients",
-      "status": "completed_software_ci_offline_and_pi_runtime_acceptance",
-      "priority": "critical",
-      "post_fix_pi_runtime_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-576",
-      "issue": 576,
-      "pull_request": 579,
-      "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-      "status": "software_implemented_ci_green_runtime_acceptance_pending",
-      "priority": "high",
-      "implementation_head_sha": "994c2e66cd05e161172fc76654173805cea72c75",
-      "ci": "PASS_3560",
-      "telemetry_service": "PASS_1740",
-      "software_acceptance": "PASS",
-      "pi_runtime_acceptance": "PENDING_SEPARATE_APPROVAL"
     },
     {
       "id": "NEXOLAB-575",
@@ -94,24 +86,24 @@
   ],
   "active_work_package": {
     "issue": 576,
-    "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
+    "title": "Raspberry Pi acceptance of trusted source deployment lineage evidence",
     "type": "physical_runtime_acceptance",
-    "status": "hard_blocked_waiting_separate_user_approval_after_merge"
+    "status": "hard_blocked_waiting_separate_user_approval"
   },
   "next_work_package": {
     "issue": 576,
-    "title": "Raspberry Pi acceptance of trusted source deployment lineage evidence",
-    "status": "hard_boundary_requires_separate_user_approval_after_merge"
+    "title": "Run bounded source-adoption metadata acceptance on Raspberry Pi",
+    "status": "hard_boundary_requires_separate_user_approval"
   },
   "verification": {
-    "repository_accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
+    "repository_accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+    "issue_576_final_pr_head": "cbb0dfba44d8d6cce256ffbf45b8577a9d114629",
+    "issue_576_ci": "PASS_3564",
+    "issue_576_telemetry_service": "PASS_1744",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "runtime_evidence": "runtime/deployments/20260818T131726Z",
-    "issue_576_implementation_head": "994c2e66cd05e161172fc76654173805cea72c75",
-    "issue_576_ci": "PASS_3560",
-    "issue_576_telemetry_service": "PASS_1740",
-    "manual_update_check_before_fix": "BLOCKED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
-    "issue_576_pi_metadata_write_performed": false,
+    "source_adoption_performed": false,
+    "manual_update_check": "BLOCKED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
     "unit_201_runtime_state": "DEGRADED_TIMEOUT_COOLDOWN_ISSUE_575"
@@ -147,7 +139,6 @@
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_site_cutover": "none_pending_issue_576_acceptance",
     "mandatory_public_runtime_dependency": "none"
   }
 }

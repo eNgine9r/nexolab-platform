@@ -4,46 +4,49 @@ Updated: 2026-08-18
 
 ## Accepted product baseline
 
-The current accepted product baseline remains:
+The current accepted NEXOLAB product baseline is:
 
-`9732b68b0d14e4056e5773e0a9bec3f3741e267f`
+`dc4e3186d115d7e2877c0a02c5f315df5946da7e`
 
-Repository state reconciliation after the approved Raspberry Pi deployment is merged through:
+This is the squash merge of PR #579 — **fix: add trusted source deployment lineage evidence**.
 
-`11432d5f0f41164db9621b7567b95466136b574d`
+Final PR #579 head:
 
-The controlled Raspberry Pi runtime remains deployed at:
+`cbb0dfba44d8d6cce256ffbf45b8577a9d114629`
+
+Exact-head verification on that final state-inclusive head:
+
+- CI #3564 — GREEN: repository contracts, formatting, lint, typecheck, tests and production build;
+- Telemetry service #1744 — GREEN: targeted source-adoption/update-orchestrator/version-manager contracts, full Telemetry integration tests, PostgreSQL outage recovery, migration validation and container build.
+
+## Current Raspberry Pi runtime
+
+The Raspberry Pi remains deployed at:
 
 `7a19f53950492a40255c53b1d2018bbdff9466e2`
 
-with evidence:
+Evidence:
 
 `runtime/deployments/20260818T131726Z`
 
-## Issue #566 / #560 runtime acceptance
+Issue #566 deployment and Issue #560 token-rotation runtime acceptance remain PASS. Energy Monitoring survived the full 300-second access-token rotation window without recurrence of `invalid_bearer_token`.
 
-Issue #566 is completed. The LOCAL_LAN deployment passed capacity, PostgreSQL backup, Dashboard/API readiness, JWT/local-auth preservation, Device Agent worker health and telemetry advancement gates.
+## Issue #576 — software merged, real Pi adoption pending
 
-Issue #560 post-fix runtime acceptance is PASS: Energy Monitoring remained correct beyond the full 300-second access-token rotation window and `/api/v1/auth/local/refresh` returned HTTP 200 without recurrence of the prior `invalid_bearer_token` defect.
+The merged implementation introduces an explicit source-lineage adoption gate for source-deployed Raspberry Pi runtimes. It does **not** retroactively call the running source deployment a validated package.
 
-## Issue #576 — software verified, Raspberry Pi acceptance pending
+A successful adoption record is marked:
 
-PR #579 implements trusted lineage evidence for controlled source deployments without claiming validated package authority.
+- `deployment_authority=controlled_source_deployment`;
+- `known_packaged_release=false`.
 
-Implementation head before project-state checkpoint:
+The adopter requires canonical repo/main lineage, clean tracked state, exact deployment-evidence commit, fast-forward ancestry to `origin/main`, runtime/auth consistency, live Alembic revision, API/database/MQTT readiness, healthy Device Agent bus-worker invariant and supported host platform.
 
-`994c2e66cd05e161172fc76654173805cea72c75`
+It creates no catalog entry, stages no package, queues no update/rollback, restarts no service and does not enable automatic updates. Manual discovery can learn the deployed commit, while activation remains fail-closed as `current_release_unverified` until genuine validated package authority exists.
 
-Exact-head verification on that implementation state:
+The adopter has **not** been run on the Raspberry Pi. The host therefore still reports `current_revision_unknown` for manual discovery. Issue #576 is open with `status:blocked` at a new explicit approval boundary: writing `/var/lib/nexolab/version-management/current.json` source-lineage metadata and collecting post-adoption runtime evidence require separate Product Owner approval.
 
-- CI #3560 — GREEN: repository contracts, formatting, lint, typecheck, tests and production build;
-- Telemetry service #1740 — GREEN: the new source-adoption tests, existing update-orchestrator/version-manager contracts, full Telemetry tests, PostgreSQL outage recovery, migration validation and container build.
-
-The implementation adds `scripts/nexolab-adopt-source-deployment.py` and an operator runbook. The adopter requires canonical repository/main lineage, a clean tracked tree, deployment evidence whose commit equals deployed HEAD, fast-forward ancestry to the current `origin/main`, matching runtime/auth mode, live Alembic revision, API/database/MQTT readiness, healthy Device Agent bus-worker invariant and host platform.
-
-A successful source record is explicitly marked `deployment_authority=controlled_source_deployment` and `known_packaged_release=false`. It creates no catalog entry, stages no bundle, queues no update/rollback and does not enable automatic updates. Manual discovery can therefore know the deployed source commit while activation remains fail-closed as `current_release_unverified` until genuine validated package authority exists.
-
-The Raspberry Pi has **not** run this adopter yet. Its version-management state therefore still returns `current_revision_unknown`. Writing the bounded host metadata and collecting real Pi acceptance requires a new separate explicit Product Owner approval after PR #579 is GREEN/merged.
+Automatic updates remain OFF and the host-local timer remains fixed at 02:00.
 
 ## Independent runtime defect: Issue #575
 
@@ -51,7 +54,7 @@ LE-01MP Unit 201 remains an independent Ready read-only diagnostic lane. Device 
 
 ## Current execution boundary
 
-Issue #576 software is verified and PR #579 is being finalized for merge. After merge, stop at the physical/runtime boundary and request separate approval before any Raspberry Pi source-adoption metadata write or acceptance action.
+Stop before any Issue #576 Raspberry Pi metadata mutation. Request separate explicit Product Owner approval for the bounded source-adoption acceptance action. Issue #575 remains independently Ready but does not remove the #576 physical/runtime approval boundary.
 
 ## Safety boundaries
 
