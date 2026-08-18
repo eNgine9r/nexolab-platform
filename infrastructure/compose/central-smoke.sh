@@ -95,7 +95,8 @@ python3 - \
   "$SMOKE_HTTP_ATTEMPTS" \
   "$SMOKE_HTTP_TIMEOUT_SECONDS" \
   "$SMOKE_HTTP_RETRY_DELAY_SECONDS" \
-  "$AUTH_MODE" <<'PY'
+  "$AUTH_MODE" \
+  "$AUTH_DEFAULT_ORGANIZATION_ID" <<'PY'
 from __future__ import annotations
 
 import json
@@ -104,13 +105,14 @@ import time
 from datetime import UTC, datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 base_url = sys.argv[1]
 attempts = int(sys.argv[2])
 timeout_seconds = int(sys.argv[3])
 retry_delay_seconds = int(sys.argv[4])
 auth_mode = sys.argv[5].strip().lower()
+organization_id = sys.argv[6].strip()
 authenticated_mode = auth_mode != "disabled"
 
 
@@ -144,10 +146,11 @@ def load_json(path: str) -> dict[str, object]:
 def expect_http_status(path: str, expected_status: int) -> None:
     url = f"{base_url}{path}"
     last_error: BaseException | None = None
+    request = Request(url, headers={"X-Organization-ID": organization_id})
 
     for attempt in range(1, attempts + 1):
         try:
-            with urlopen(url, timeout=timeout_seconds) as response:
+            with urlopen(request, timeout=timeout_seconds) as response:
                 actual_status = response.status
             last_error = RuntimeError(
                 f"GET {url} returned HTTP {actual_status}; expected HTTP {expected_status}"
@@ -185,9 +188,13 @@ query = urlencode(
 )
 
 if authenticated_mode:
+    if not organization_id:
+        raise RuntimeError(
+            "AUTH_DEFAULT_ORGANIZATION_ID must be configured for authenticated central smoke"
+        )
     expect_http_status("/api/v1/telemetry/latest?limit=1", 401)
     expect_http_status(f"/api/v1/telemetry/history?{query}", 401)
-    print("Central smoke protected REST: anonymous access rejected as expected")
+    print("Central smoke protected REST: anonymous bearer access rejected as expected")
 else:
     latest = load_json("/api/v1/telemetry/latest?limit=1")
     assert isinstance(latest.get("count"), int)
