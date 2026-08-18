@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
+
 
 SCRIPT = Path(__file__).resolve().parents[1] / "nexolab-update-orchestrator.py"
 SPEC = importlib.util.spec_from_file_location("nexolab_update_orchestrator_requests", SCRIPT)
@@ -49,6 +51,115 @@ def test_scheduled_check_uses_deterministic_system_actor_when_enabled(
         fetch_remote=True,
         git_user=None,
     )
+
+
+def test_scheduled_check_queues_only_an_eligible_candidate(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "versions"
+    orchestrator.save_policy(root, True, "admin")
+    discovered = {
+        "schema_version": 1,
+        "status": "completed",
+        "source": "scheduled",
+        "actor": "system:update-timer",
+        "target_commit": "2" * 40,
+        "candidate_bundle_id": "release-2",
+        "activation_eligible": True,
+        "blocked_reason": None,
+        "message": "eligible",
+    }
+    discover = Mock(return_value=discovered)
+    enqueue = Mock(return_value={"id": "operation-1", "status": "queued"})
+    monkeypatch.setattr(orchestrator, "discover", discover)
+    monkeypatch.setattr(orchestrator, "enqueue_scheduled_activation", enqueue)
+
+    result = orchestrator.scheduled_check(root, tmp_path / "repo")
+
+    assert result["automatic_activation_operation_id"] == "operation-1"
+    assert result["activation_eligible"] is True
+    enqueue.assert_called_once_with(root, discovered)
+
+
+def test_enqueue_scheduled_activation_uses_existing_version_manager_queue(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "versions"
+    (root / "catalog" / "release-2").mkdir(parents=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "bundle_id": "release-1",
+                "release": "1.0.0",
+                "source_commit": "1" * 40,
+                "platform": "linux/arm64",
+                "schema_head": "schema-1",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "validated_candidate_bundle",
+        lambda _root, _commit: ("release-2", ""),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_validated_catalog_manifest",
+        lambda _path: {"bundle_version": "2.0.0"},
+    )
+    check = {
+        "source": "scheduled",
+        "actor": "system:update-timer",
+        "target_commit": "2" * 40,
+        "candidate_bundle_id": "release-2",
+        "activation_eligible": True,
+    }
+
+    operation = orchestrator.enqueue_scheduled_activation(root, check)
+
+    assert operation["actor_subject"] == "system:update-timer"
+    assert operation["action"] == "update"
+    assert operation["source_bundle_id"] == "release-1"
+    assert operation["target_bundle_id"] == "release-2"
+    assert operation["target_commit"] == "2" * 40
+    assert operation["status"] == "queued"
+    request = root / "requests" / f"{operation['id']}.json"
+    evidence = root / "operations" / f"{operation['id']}.json"
+    assert request.is_file()
+    assert evidence.is_file()
+    assert json.loads(request.read_text(encoding="utf-8")) == operation
+    assert json.loads(evidence.read_text(encoding="utf-8")) == operation
+
+
+def test_enqueue_scheduled_activation_blocks_when_an_operation_is_active(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "versions"
+    (root / "catalog" / "release-2").mkdir(parents=True)
+    (root / "operations").mkdir(parents=True)
+    (root / "operations" / "active.json").write_text(
+        json.dumps({"status": "running"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "validated_candidate_bundle",
+        lambda _root, _commit: ("release-2", ""),
+    )
+    check = {
+        "source": "scheduled",
+        "actor": "system:update-timer",
+        "target_commit": "2" * 40,
+        "candidate_bundle_id": "release-2",
+        "activation_eligible": True,
+    }
+
+    with pytest.raises(orchestrator.CheckBlocked) as caught:
+        orchestrator.enqueue_scheduled_activation(root, check)
+
+    assert caught.value.code == "operation_in_progress"
+    assert list((root / "requests").glob("*.json")) == []
 
 
 def test_manual_request_is_consumed_once_and_keeps_human_actor(
