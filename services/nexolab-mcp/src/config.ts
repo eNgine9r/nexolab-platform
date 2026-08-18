@@ -22,6 +22,8 @@ function readUrl(name: string, fallback?: string): string {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`${name} must use http or https.`);
   }
+  parsed.hash = "";
+  parsed.search = "";
   parsed.pathname = parsed.pathname.replace(/\/$/, "");
   return parsed.toString().replace(/\/$/, "");
 }
@@ -50,7 +52,7 @@ export type McpConfig = {
 
 export function loadConfig(): McpConfig {
   const host = process.env.NEXOLAB_MCP_HOST?.trim() || "127.0.0.1";
-  const telemetryApiUrl = readUrl("NEXOLAB_TELEMETRY_API_URL", "http://127.0.0.1:8100");
+  const telemetryApiUrl = readUrl("NEXOLAB_TELEMETRY_API_URL");
   const nodesApiUrl = readUrl("NEXOLAB_NODES_API_URL", telemetryApiUrl);
   const backendBearerToken = process.env.NEXOLAB_BACKEND_BEARER_TOKEN?.trim() || undefined;
   const mcpBearerToken = process.env.NEXOLAB_MCP_BEARER_TOKEN?.trim() || undefined;
