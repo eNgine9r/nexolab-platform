@@ -3,30 +3,33 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T19:58:00Z",
+  "timestamp": "2026-08-18T20:13:00Z",
   "actor": "ChatGPT",
-  "event": "issue_586_implementation_complete_final_validation_pending",
-  "repository_main_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+  "event": "issue_586_merged_next_ready_587",
+  "repository_main_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-  "active_work": {
+  "completed_work": {
+    "issue_584": {
+      "issue": 584,
+      "pull_request": 591,
+      "status": "COMPLETED",
+      "merge_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+      "runtime_registry_revision": 8,
+      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z"
+    },
     "issue_586": {
       "issue": 586,
       "pull_request": 592,
-      "status": "IMPLEMENTATION_COMPLETE_FINAL_VALIDATION_PENDING",
+      "status": "COMPLETED_SOFTWARE_CI_AND_PI_RUNTIME_ACCEPTANCE",
+      "merge_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
       "runtime_proof": {
         "status": "PASS",
         "evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
         "browser_max_established_connections": 0,
         "registry_revision_before": 8,
         "registry_revision_after": 8,
-        "physical_requests_total_before": 5049,
-        "physical_requests_total_after": 5392,
         "physical_requests_delta": 343,
-        "postgresql_rows_before": 4665493,
-        "postgresql_rows_after": 4665722,
-        "postgresql_rows_delta": 229,
-        "captured_at_before": "2026-08-18 19:18:52.033946+00",
-        "captured_at_after": "2026-08-18 19:20:28.276628+00"
+        "postgresql_rows_delta": 229
       },
       "implementation": {
         "canonical_complete_history_loader": true,
@@ -39,26 +42,11 @@
         "backend_schema_changed": false,
         "acquisition_changed": false
       },
-      "core_ci": {
-        "run_id": 32179097680,
-        "status": "PASS",
-        "format": "PASS",
-        "lint": "PASS",
-        "typecheck": "PASS",
-        "tests": "PASS",
-        "build": "PASS"
-      },
-      "final_required_gates": "PENDING_ON_CHECKPOINT_HEAD"
-    }
-  },
-  "completed_work": {
-    "issue_584": {
-      "issue": 584,
-      "pull_request": 591,
-      "status": "COMPLETED",
-      "merge_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
-      "runtime_registry_revision": 8,
-      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z"
+      "final_gates": {
+        "core_ci": "PASS_32179697028",
+        "authenticated_dashboard_acceptance": "PASS_32179696964",
+        "offline_bundle": "PASS_32179696933"
+      }
     }
   },
   "blocked_work": {
@@ -66,17 +54,13 @@
       "issue": 585,
       "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
     },
-    "issue_587": {
-      "issue": 587,
-      "reason": "Depends on GREEN merge of Issue #586 canonical history foundation"
-    },
     "issue_588": {
       "issue": 588,
-      "reason": "Depends on GREEN merge of Issue #586 canonical history foundation"
+      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
     },
     "issue_589": {
       "issue": 589,
-      "reason": "Held behind current single-WIP software sequence; no physical restoration dependency for software implementation"
+      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
     },
     "issue_590": {
       "issue": 590,
@@ -84,12 +68,16 @@
     }
   },
   "current_boundary": {
-    "issue": 586,
-    "pull_request": 592,
-    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
-    "status": "FINAL_VALIDATION_PENDING"
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
+    "status": "READY"
   },
-  "next_action": "Run required CI, Authenticated Dashboard Acceptance and Offline Bundle on the final checkpoint head. Merge PR #592 only when all required checks are GREEN, reconcile main/state, then unblock and begin Issue #587.",
+  "next_action": "Begin Issue #587 on a dedicated feature branch. Reuse the merged #586 canonical complete-history loader and stable snapshot/reconciliation contract; add view-level 1h/6h/24h/7d/30d/Custom ranges and persisted CSV export without affecting physical acquisition.",
+  "separate_draft_lane": {
+    "issue": 594,
+    "pull_request": 593,
+    "status": "DRAFT_NEEDS_POST_ACTIVE_WP_AUDIT"
+  },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
