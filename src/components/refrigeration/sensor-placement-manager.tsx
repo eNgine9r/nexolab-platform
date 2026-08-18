@@ -115,21 +115,14 @@ export function SensorPlacementManager({
   const add = (pointKeys: string[]) => {
     const model = addSelection.model;
     const channelId = model ? selectedSensorChannelId(model, pointKeys) : null;
-    const channel = channelId
-      ? assignable.find((candidate) => candidate.channelId === channelId)
-      : undefined;
+    const channel = channelId ? assignable.find((candidate) => candidate.channelId === channelId) : undefined;
     if (!channel) {
       setError("Оберіть рівно один доступний канал перед підтвердженням.");
       return;
     }
     setError(null);
     try {
-      const next = addChannelToConfiguration(
-        configuration,
-        channel,
-        effectiveTotalSlots,
-        equipment.id,
-      );
+      const next = addChannelToConfiguration(configuration, channel, effectiveTotalSlots, equipment.id);
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
@@ -276,7 +269,8 @@ export function SensorPlacementManager({
 
       {conflictedUnused.length > 0 ? (
         <p className="mt-3 rounded-xl border border-slate-400/10 bg-slate-500/[0.04] px-3 py-2 text-[10px] text-slate-400">
-          Недоступні через активну прив’язку: {conflictedUnused.map((channel) => channel.channelId).join(", ")}.
+          Недоступні через активну прив’язку:{" "}
+          {conflictedUnused.map((channel) => channel.channelId).join(", ")}.
         </p>
       ) : null}
 
@@ -386,7 +380,8 @@ export function SensorPlacementManager({
 
           {conflictedReplacements.length > 0 ? (
             <p className="mt-3 text-[10px] text-slate-500">
-              Не можна використати через інше обладнання: {conflictedReplacements.map((channel) => channel.channelId).join(", ")}.
+              Не можна використати через інше обладнання:{" "}
+              {conflictedReplacements.map((channel) => channel.channelId).join(", ")}.
             </p>
           ) : null}
 
