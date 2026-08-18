@@ -24,7 +24,8 @@ Before writing `current.json` it requires:
 - canonical origin `eNgine9r/nexolab-platform`;
 - branch `main`;
 - no tracked working-tree changes;
-- local `HEAD` exactly equal to the existing `origin/main` ref;
+- valid local `HEAD` and `origin/main` revisions;
+- deployed `HEAD` to be a fast-forward ancestor of the existing `origin/main` ref;
 - deployment evidence under `runtime/deployments/**`;
 - `summary.txt` containing `DEPLOYMENT PASSED`;
 - `final-state.txt` commit exactly equal to repository `HEAD`;
@@ -35,6 +36,8 @@ Before writing `current.json` it requires:
 - Telemetry API, database and MQTT readiness;
 - healthy Device Agent bus-worker invariant and telemetry-attempt evidence;
 - host platform supported by NEXOLAB.
+
+`origin/main` is allowed to be newer than the deployed `HEAD`; that is the normal state in which update discovery needs trustworthy current lineage. A non-fast-forward relationship fails closed.
 
 Any mismatch fails closed before the metadata record is created.
 
@@ -64,7 +67,7 @@ sudo python3 scripts/nexolab-adopt-source-deployment.py \
 
 A successful result reports the exact source commit, runtime mode, platform, schema head, runtime health and evidence path. It also reports `known_packaged_release=false`.
 
-If `current.json` already represents a validated packaged release, the adopter refuses to replace it.
+If the same verified source deployment has already been recorded, the command is idempotent. A later verified source deployment may replace an older source-lineage record while retaining previous source commit/evidence references. If `current.json` represents a validated packaged release, the adopter refuses to replace it.
 
 ## Expected update-plane behavior after adoption
 
