@@ -120,7 +120,7 @@ def test_up_to_date_discovery_is_non_mutating_and_not_eligible(tmp_path: Path, m
     assert result["target_commit"] == current
     assert result["candidate_available"] is False
     assert result["activation_eligible"] is False
-    assert list((root / "catalog").glob("*")) if (root / "catalog").exists() else [] == []
+    assert not (root / "catalog").exists()
 
 
 def test_newer_fast_forward_revision_is_candidate_but_never_install_authority(
