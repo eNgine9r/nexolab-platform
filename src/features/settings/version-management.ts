@@ -350,10 +350,7 @@ function parseOperation(value: unknown): VersionOperation {
   }
   const phase = parseOperationPhase(row.phase);
   const phaseStatus = row.phase_status;
-  if (
-    row.phase_status != null &&
-    !["running", "succeeded", "failed"].includes(String(phaseStatus))
-  ) {
+  if (row.phase_status != null && !["running", "succeeded", "failed"].includes(String(phaseStatus))) {
     throw invalidResponse();
   }
   const completedPhases = Array.isArray(row.completed_phases)
