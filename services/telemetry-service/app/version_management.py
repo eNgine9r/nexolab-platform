@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -21,12 +21,23 @@ from app.security.repository import AuditEventInput, SecurityRepository
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 BUNDLE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+UPDATE_POLICY_SCHEMA = 1
+UPDATE_CHECK_REQUEST_SCHEMA = 1
+UPDATE_SCHEDULE_LOCAL_TIME = "02:00"
 
 
 class VersionActionRequest(BaseModel):
     action: Literal["update", "rollback"]
     target_bundle_id: str = Field(min_length=1, max_length=128)
     confirmation: str = Field(min_length=1, max_length=160)
+    reason: str | None = Field(default=None, max_length=1024)
+
+
+class UpdatePolicyRequest(BaseModel):
+    automatic_updates_enabled: bool
+
+
+class UpdateCheckRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=1024)
 
 
@@ -61,7 +72,7 @@ class VersionCatalogEntry:
 
 
 class VersionManagementStore:
-    """Durable bounded handoff between the API and a privileged host worker."""
+    """Durable bounded handoff between the API and privileged host workers."""
 
     def __init__(self, root: str | Path, *, catalog_limit: int = 20) -> None:
         self.root = Path(root)
@@ -97,9 +108,81 @@ class VersionManagementStore:
                 ),
                 None,
             ),
+            "update_policy": self._update_policy(),
+            "update_check": self._update_check(),
             "offline": True,
             "catalog_limit": self.catalog_limit,
         }
+
+    def set_update_policy(
+        self,
+        enabled: bool,
+        authorized: AuthorizedRequest,
+        *,
+        before_publish: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
+    ) -> dict[str, Any]:
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o750)
+        with (self.root / "update-plane.lock").open("a+", encoding="utf-8") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            previous = self._update_policy()
+            policy = {
+                "schema_version": UPDATE_POLICY_SCHEMA,
+                "automatic_updates_enabled": enabled,
+                "schedule_local_time": UPDATE_SCHEDULE_LOCAL_TIME,
+                "updated_at": _now(),
+                "updated_by": authorized.principal.subject,
+                "error_code": None,
+            }
+            if before_publish is not None:
+                before_publish(previous, policy)
+            self._atomic_json(self.root / "update-policy.json", policy)
+            return policy
+
+    def enqueue_update_check(
+        self,
+        authorized: AuthorizedRequest,
+        *,
+        reason: str | None = None,
+        before_publish: Callable[[dict[str, Any]], None] | None = None,
+    ) -> dict[str, Any]:
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o750)
+        with (self.root / "update-plane.lock").open("a+", encoding="utf-8") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            snapshot = self.snapshot()
+            if snapshot["active_operation"] is not None:
+                raise VersionManagementError(
+                    "operation_in_progress",
+                    "A version update or rollback is active; update discovery is temporarily unavailable",
+                )
+            if any((self.root / "update-check-requests").glob("*.json")):
+                raise VersionManagementError(
+                    "update_check_in_progress",
+                    "An update check is already queued",
+                )
+            current_check = snapshot["update_check"]
+            if current_check and current_check.get("status") == "checking":
+                raise VersionManagementError(
+                    "update_check_in_progress",
+                    "An update check is already running",
+                )
+            request_id = str(uuid4())
+            check_request = {
+                "schema_version": UPDATE_CHECK_REQUEST_SCHEMA,
+                "id": request_id,
+                "organization_id": authorized.principal.organization_id,
+                "actor_subject": authorized.principal.subject,
+                "source": "manual",
+                "status": "queued",
+                "requested_at": _now(),
+                "reason": reason.strip() if reason and reason.strip() else None,
+            }
+            if before_publish is not None:
+                before_publish(check_request)
+            self._atomic_json(
+                self.root / "update-check-requests" / f"{request_id}.json",
+                check_request,
+            )
+            return check_request
 
     def enqueue(
         self,
@@ -200,6 +283,56 @@ class VersionManagementStore:
         self._atomic_json(self.root / "requests" / f"{operation_id}.json", operation)
         self._atomic_json(self.root / "operations" / f"{operation_id}.json", operation)
         return operation
+
+    def _update_policy(self) -> dict[str, Any]:
+        payload = self._read_optional_json(self.root / "update-policy.json")
+        default = {
+            "schema_version": UPDATE_POLICY_SCHEMA,
+            "automatic_updates_enabled": False,
+            "schedule_local_time": UPDATE_SCHEDULE_LOCAL_TIME,
+            "updated_at": None,
+            "updated_by": None,
+            "error_code": None,
+        }
+        if payload is None:
+            return default
+        try:
+            if payload.get("schema_version") != UPDATE_POLICY_SCHEMA:
+                raise ValueError("unsupported update policy schema")
+            if not isinstance(payload.get("automatic_updates_enabled"), bool):
+                raise ValueError("automatic update policy must be boolean")
+            if payload.get("schedule_local_time") != UPDATE_SCHEDULE_LOCAL_TIME:
+                raise ValueError("automatic update schedule must remain fixed at 02:00")
+            return {
+                **default,
+                "automatic_updates_enabled": payload["automatic_updates_enabled"],
+                "updated_at": _optional_text(payload, "updated_at"),
+                "updated_by": _optional_text(payload, "updated_by"),
+            }
+        except ValueError:
+            return {**default, "error_code": "invalid_update_policy"}
+
+    def _update_check(self) -> dict[str, Any] | None:
+        payload = self._read_optional_json(self.root / "update-check.json")
+        if payload is None:
+            return None
+        if payload.get("schema_version") != 1 or not isinstance(payload.get("status"), str):
+            return {
+                "schema_version": 1,
+                "status": "failed",
+                "source": "host",
+                "actor": "system:update-plane",
+                "started_at": None,
+                "completed_at": None,
+                "result_code": "invalid_update_check_state",
+                "message": "Host update-check state is invalid.",
+                "current_commit": None,
+                "target_commit": None,
+                "candidate_available": False,
+                "activation_eligible": False,
+                "blocked_reason": "invalid_update_check_state",
+            }
+        return payload
 
     def _catalog(self) -> tuple[list[VersionCatalogEntry], list[dict[str, str]]]:
         entries: list[VersionCatalogEntry] = []
@@ -326,6 +459,81 @@ def create_version_management_router(
     @router.get("")
     def read_version(_: AuthorizedRequest = Depends(authenticated_access)) -> dict[str, Any]:
         return store.snapshot()
+
+    @router.put("/update/policy")
+    def set_update_policy(
+        payload: UpdatePolicyRequest,
+        request: Request,
+        authorized: AuthorizedRequest = Depends(authenticated_access),
+    ) -> dict[str, Any]:
+        def audit_before_publish(previous: dict[str, Any], policy: dict[str, Any]) -> None:
+            security_repository.append_audit_event(
+                AuditEventInput(
+                    organization_id=authorized.principal.organization_id,
+                    actor_identity_id=authorized.identity_id,
+                    actor_subject=authorized.principal.subject,
+                    actor_roles=authorized.principal.roles,
+                    action="project_version.update_policy.set",
+                    entity_type="project_version_update_policy",
+                    entity_id="automatic-updates",
+                    before_snapshot={
+                        "automatic_updates_enabled": previous["automatic_updates_enabled"],
+                        "schedule_local_time": previous["schedule_local_time"],
+                    },
+                    after_snapshot={
+                        "automatic_updates_enabled": policy["automatic_updates_enabled"],
+                        "schedule_local_time": policy["schedule_local_time"],
+                    },
+                    request_id=request.headers.get("X-Request-ID"),
+                    source_ip=request.client.host if request.client else None,
+                    user_agent=request.headers.get("User-Agent"),
+                )
+            )
+
+        return store.set_update_policy(
+            payload.automatic_updates_enabled,
+            authorized,
+            before_publish=audit_before_publish,
+        )
+
+    @router.post("/update/checks", status_code=status.HTTP_202_ACCEPTED)
+    def request_update_check(
+        payload: UpdateCheckRequest,
+        request: Request,
+        authorized: AuthorizedRequest = Depends(authenticated_access),
+    ) -> dict[str, Any]:
+        def audit_before_publish(check_request: dict[str, Any]) -> None:
+            security_repository.append_audit_event(
+                AuditEventInput(
+                    organization_id=authorized.principal.organization_id,
+                    actor_identity_id=authorized.identity_id,
+                    actor_subject=authorized.principal.subject,
+                    actor_roles=authorized.principal.roles,
+                    action="project_version.update_check.requested",
+                    entity_type="project_version_update_check",
+                    entity_id=check_request["id"],
+                    after_snapshot={
+                        "source": "manual",
+                        "status": "queued",
+                    },
+                    reason=payload.reason,
+                    request_id=request.headers.get("X-Request-ID"),
+                    source_ip=request.client.host if request.client else None,
+                    user_agent=request.headers.get("User-Agent"),
+                )
+            )
+
+        try:
+            return store.enqueue_update_check(
+                authorized,
+                reason=payload.reason,
+                before_publish=audit_before_publish,
+            )
+        except VersionManagementError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": error.code, "message": str(error)},
+            ) from error
 
     @router.post("/actions", status_code=status.HTTP_202_ACCEPTED)
     def request_action(
