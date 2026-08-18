@@ -3,63 +3,59 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T07:44:00Z",
+  "timestamp": "2026-08-18T08:14:00Z",
   "actor": "ChatGPT",
-  "event": "successful_local_lan_auth_deployment_acceptance",
-  "repository_product_baseline_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
-  "accepted_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "event": "local_lan_bearer_token_rotation_hotfix_merged",
+  "repository_product_baseline_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
+  "accepted_product_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
   "deployed_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
-  "deployment": {
-    "evidence": "runtime/deployments/20260818T073437Z",
-    "status": "PASS",
-    "runtime_mode": "lan",
-    "bind_address": "172.18.48.34",
-    "dashboard": "http://172.18.48.34:3000",
-    "api": "http://172.18.48.34:8082",
-    "auth_mode": "jwt",
-    "local_auth_overlay": true
+  "hotfix": {
+    "issue": 560,
+    "pull_request": 561,
+    "merge_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
+    "observed_failure": "401 invalid_bearer_token after local access-token expiry",
+    "root_cause": "legacy frontend runtime credential provider bypassed LOCAL_LAN refresh-token provider",
+    "fix": "delegate local legacy runtime credentials to createLocalCredentialProvider and fail closed without API base URL",
+    "software_acceptance": "PASS",
+    "offline_acceptance": "PASS",
+    "post_fix_pi_runtime_acceptance": "PENDING_APPROVED_DEPLOYMENT"
   },
-  "runtime_acceptance": {
-    "central_api_ready": true,
-    "dashboard_enabled": true,
-    "dashboard_active": true,
-    "dashboard_login_route": "PASS",
-    "auth_routes": {
-      "/api/v1/auth/session": "PASS",
-      "/api/v1/auth/local/login": "PASS",
-      "/api/v1/admin/users": "PASS"
-    },
-    "fail_closed_bearer_boundary_http": 401,
-    "local_admin_login": "PASS",
-    "identity_provider": "nexolab-local",
-    "admin_users_http": 200,
-    "device_agent": {
-      "status": "degraded_endpoint_failure_separate",
-      "mqtt_connected": true,
-      "queue_size": 0,
-      "expected_bus_workers": 1,
-      "active_bus_workers": 1,
-      "workers_healthy": true,
-      "worker_state": "running"
-    },
+  "exact_head_verification": {
+    "head_sha": "4ee47fddb9ec903361dd5382ec40cb0d9eb1e9ac",
+    "ci_3473": "PASS",
+    "security_browser_1197": "PASS",
+    "authenticated_dashboard_1988": "PASS",
+    "offline_auth_527": "PASS",
+    "nodes_browser_703": "PASS",
+    "alerts_browser_866": "PASS",
+    "test_sessions_browser_889": "PASS",
+    "reports_browser_889": "PASS",
+    "rendered_reports_browser_734": "PASS",
+    "offline_bundle_1398": "PASS"
+  },
+  "deployed_runtime": {
+    "sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+    "evidence": "runtime/deployments/20260818T073437Z",
+    "status": "PASS_FOR_CURRENTLY_DEPLOYED_BASELINE",
+    "runtime_mode": "lan",
+    "auth_mode": "jwt",
+    "local_auth_overlay": true,
+    "expected_bus_workers": 1,
+    "active_bus_workers": 1,
+    "workers_healthy": true,
     "telemetry_advancement": "PASS"
   },
-  "capacity": {
-    "status": "PASS",
-    "free_bytes": 20475432960,
-    "required_bytes": 16999167491,
-    "reserve_bytes": 2147483648,
-    "root_filesystem_used_percent": 68
-  },
   "issue_state": {
-    "551": "closed_done",
-    "557": "closed_done",
+    "560": "closed_done_software_offline_verified_pi_postfix_pending",
+    "548": "in_progress_draft_pr_559",
     "444": "needs_validation",
-    "548": "in_progress_draft_pr_559"
+    "201": "needs_validation",
+    "245": "needs_validation",
+    "189": "blocked_hardware_evidence"
   },
   "active_state_reconciliation": {
-    "issue": 562,
-    "branch": "state/562-local-lan-auth-acceptance",
+    "issue": 564,
+    "branch": "state/564-local-auth-token-rotation",
     "scope": [
       ".project/CURRENT_STATE.md",
       ".project/ACTIVE_SPRINT.json",
@@ -67,7 +63,7 @@
       ".project/LAST_CHECKPOINT.json"
     ]
   },
-  "next_action": "Complete state-only Issue #562 through GREEN PR, then resume Issue #548 on existing draft PR #559 and synchronize it with current main before further implementation or merge.",
+  "next_action": "Complete state-only Issue #564 through GREEN merge, then resume Issue #548 on existing draft PR #559, re-audit its current head against latest main and continue the safe update-orchestration implementation without a parallel branch.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
