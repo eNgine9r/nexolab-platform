@@ -74,20 +74,13 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Check repository formatting
+      - name: Print exact Prettier diff
         shell: bash
         run: |
           set -euo pipefail
-          npm run format:check 2>&1 | tee prettier-diagnostics.txt
-
-      - name: Upload formatting diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: prettier-diagnostics-${{ github.sha }}
-          path: prettier-diagnostics.txt
-          if-no-files-found: error
-          retention-days: 3
+          npx prettier --write src/features/settings/version-management.ts
+          git diff -- src/features/settings/version-management.ts
+          exit 1
 
       - name: Lint
         run: npm run lint
