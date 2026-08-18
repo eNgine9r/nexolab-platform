@@ -19,16 +19,28 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
+  "repository_product_baseline_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "selection_state": {
-    "selected_issue": null,
-    "selection_status": "hard_blocked_no_ready_work_package",
-    "ready_issue_count": 0,
-    "reason": "After Issue #536 / PR #539 completion, the repository has zero open product Issues carrying status:ready. Issue #544 is state-only reconciliation and does not authorize new product scope. Epic #450 names Equipment Maps as a possible later selector consumer, but no focused Equipment Maps child Issue is currently Ready."
+    "selected_issue": 548,
+    "selection_status": "ready",
+    "ready_issue_count": 1,
+    "reason": "Issue #546 / PR #547 completed and merged. The post-merge Ready audit identifies Issue #548 as the single open product Issue carrying status:ready."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-546",
+      "issue": 546,
+      "pull_request": 547,
+      "title": "Replace Equipment Map sensor dropdowns with TelemetryPointSelector",
+      "status": "completed_software_browser_offline_verified",
+      "priority": "critical",
+      "parent_issue": 450,
+      "merge_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
+      "final_pr_head": "fcf64d0fa842293facbc9762a85446f8898b43e2",
+      "raspberry_pi_runtime_acceptance": "not_required_not_deployed"
+    },
     {
       "id": "NEXOLAB-536",
       "issue": 536,
@@ -51,6 +63,13 @@
       "merge_sha": "b00c996a1990dde4f5427e0caa44cc34f1e4f6a6",
       "final_pr_head": "3df744d36000d719cff02fd756e0610354b1eebc",
       "raspberry_pi_runtime_acceptance": "not_required_not_deployed"
+    },
+    {
+      "id": "NEXOLAB-548",
+      "issue": 548,
+      "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
+      "status": "ready",
+      "priority": "high"
     },
     {
       "id": "NEXOLAB-201",
@@ -78,38 +97,49 @@
       "priority": "high"
     }
   ],
-  "active_work_package": null,
-  "next_work_package": null,
-  "verification": {
-    "issue_536_merge_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
-    "issue_536_final_pr_head": "a903710ee34b37181770d87640ec31f2efeda948",
-    "issue_536_ci": { "run_number": 3413, "status": "GREEN" },
-    "issue_536_alerts_browser": { "run_number": 861, "status": "GREEN" },
-    "issue_536_telemetry_service": { "run_number": 1646, "status": "GREEN" },
-    "issue_536_authenticated_dashboard": { "run_number": 1960, "status": "GREEN" },
-    "issue_536_offline_bundle": { "run_number": 1353, "status": "GREEN" },
-    "issue_536_offline_auth": { "run_number": 506, "status": "GREEN" },
-    "issue_536_refrigeration_browser": { "run_number": 1840, "status": "GREEN" },
-    "issue_536_disaster_recovery_browser": { "run_number": 813, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "issue_536_disaster_recovery_domain": { "run_number": 415, "status": "GREEN" },
-    "issue_536_disaster_recovery_tls": { "run_number": 782, "status": "GREEN" },
-    "issue_536_container_supply_chain": { "run_number": 821, "status": "GREEN" },
-    "issue_536_device_agent_fleet": { "run_number": 841, "status": "GREEN" },
-    "issue_536_mqtt_tls_fleet": { "run_number": 791, "status": "GREEN" },
-    "issue_536_broker_control": { "run_number": 752, "status": "GREEN" },
-    "issue_536_capacity_release_gate": { "run_number": 648, "status": "GREEN" },
-    "alerts_browser_artifact_sha256": "4d79b7d6221c0f9cb734f466c2f021934ce5a6fcb434ffa6d06f2d5718c3664a",
-    "authenticated_dashboard_artifact_sha256": "018a3f23811dd8beff1d600af043f8f5232285ad3147d2dcc5ff8f63f0ba7fe0",
-    "offline_bundle_artifact_sha256": "911deaf6e972da0ec6dd7b3e02efbabe1abb63657b64eae17cb75e4af1b98942",
-    "issue_201_normal_hardware": "VERIFIED_UNITS_200_203_DISPLAY_AND_MONOTONICITY",
-    "issue_201_power_cycle_rollover": "PENDING_EXPLICIT_APPROVAL",
-    "ready_issue_count": 0
+  "active_work_package": {
+    "issue": 553,
+    "title": "Reconcile merged Equipment Map telemetry-selector state",
+    "type": "state_only",
+    "status": "in_progress"
   },
-  "governance": {
-    "direct_main_state_commit": "907edd86552130dde50b70579fb9945eedc3f503",
-    "classification": "STATE_ONLY_POLICY_DEVIATION_RECORDED",
-    "product_runtime_hardware_or_data_change": false,
-    "follow_up": "Issue -> branch -> PR discipline restored for Issue #544 and all subsequent work."
+  "next_work_package": {
+    "issue": 548,
+    "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
+    "status": "ready"
+  },
+  "verification": {
+    "issue_546_merge_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
+    "issue_546_final_pr_head": "fcf64d0fa842293facbc9762a85446f8898b43e2",
+    "issue_546_ci": {
+      "run_number": 3437,
+      "status": "GREEN"
+    },
+    "issue_546_refrigeration_browser": {
+      "run_number": 1858,
+      "status": "GREEN"
+    },
+    "issue_546_authenticated_dashboard": {
+      "run_number": 1967,
+      "status": "GREEN"
+    },
+    "issue_546_offline_bundle": {
+      "run_number": 1371,
+      "status": "GREEN"
+    },
+    "issue_546_security_browser": {
+      "run_number": 1192,
+      "status": "GREEN"
+    },
+    "issue_546_acquisition_scale": {
+      "run_number": 174,
+      "status": "GREEN"
+    },
+    "issue_546_disaster_recovery_browser": {
+      "run_number": 832,
+      "status": "GREEN"
+    },
+    "ready_issue_count": 1
   },
   "independent_pending_lanes": [
     {

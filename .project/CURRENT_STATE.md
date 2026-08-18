@@ -1,72 +1,51 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-17
+Updated: 2026-08-18
 
 ## Repository and deployed baseline
 
-The latest merged **product baseline** is `27e21a7ff6380c8961ff83e8507c008fcd05bf8d`, the squash merge of PR #539 — **server-authoritative Alarms telemetry-point scope**.
+The latest merged **product baseline** is `ef9d69b63abecee39ff7c120ed9d11ff40082a36`, the squash merge of PR #547 — **Equipment Map TelemetryPointSelector integration**.
 
-This state-only reconciliation is based on `main` at `27e21a7ff6380c8961ff83e8507c008fcd05bf8d`. A later state-only merge may advance the repository HEAD without changing the product baseline; product and state-only SHAs must not be conflated.
+The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. Issue #546 and other later repository changes are not claimed as Raspberry Pi runtime acceptance until a separately controlled deployment produces physical/runtime evidence.
 
-The accepted/deployed Raspberry Pi product/runtime baseline remains `1d226d6ddcd0c009b8f83367599d7a64521190f0`. The merged Alarms selector, Energy Monitoring period-consumption work and other later repository changes are not claimed as Raspberry Pi runtime acceptance until a separately controlled deployment produces evidence.
+The accepted `LOCAL_LAN` runtime remains healthy on deployment evidence `runtime/deployments/20260817T074249Z`. The next controlled Raspberry Pi redeploy remains blocked by the capacity preflight and must not be bypassed by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
-The accepted `LOCAL_LAN` runtime remains healthy on deployment evidence `runtime/deployments/20260817T074249Z`. The next controlled Raspberry Pi redeploy remains blocked by the capacity preflight and must not be bypassed by deleting product data, history, named volumes or evidence.
+## Issue #546 — completed and merged
 
-## Issue #536 — completed and merged
-
-Issue #536 **Integrate TelemetryPointSelector into Alarms feed scope** is closed `status:done` through PR #539 / product merge `27e21a7ff6380c8961ff83e8507c008fcd05bf8d`.
+Issue #546 **Replace Equipment Map sensor dropdowns with TelemetryPointSelector** is closed `status:done` through PR #547 / product merge `ef9d69b63abecee39ff7c120ed9d11ff40082a36`.
 
 Product outcome:
 
-- `/alerts` reuses the canonical organization-scoped hierarchical `TelemetryPointSelector` rather than introducing a duplicate selector;
-- committed telemetry scope is sent to the alerts API as bounded exact telemetry-point keys;
-- the server maps selected points to persisted authoritative alert identity and applies the predicates before count, ordering, limit and offset;
-- state and severity compose with telemetry scope using AND semantics, while multiple selected points use OR semantics;
-- malformed, empty narrowed or oversized telemetry scope fails closed with deterministic `422` behavior instead of silently broadening to all alerts;
-- omitted scope preserves the existing all-alert feed behavior;
-- Confirm commits one deterministic selection, Cancel preserves the previous committed scope, and detail selection is invalidated safely when an alert leaves scope;
-- the existing 5-second alert refresh remains one feed request per refresh and does not multiply by selected telemetry points;
-- alert lifecycle, transition history, evaluator/rule semantics, immutable evidence, acquisition registry, polling, Modbus and WebSocket ownership remain unchanged.
+- Equipment Map Add and Replace flows reuse the canonical hierarchical `TelemetryPointSelector` instead of flat channel dropdowns;
+- selection remains single-point and explicit: Confirm mutates the staged configuration, while Cancel produces no staged-config leakage;
+- offline, stale, no-data and planned configured channels remain eligible when otherwise valid and unbound;
+- already placed channels and cross-equipment binding conflicts remain fail-closed;
+- the canonical organization scope is handed explicitly from `SecurityAwareRefrigerationLayoutWorkspace` through `CameraScopedLayoutEditor` to `SensorPlacementManager`;
+- `SensorPlacementManager` no longer obtains a second organization authority from global security credentials;
+- persistence still uses the existing atomic `replaceSensorConfiguration` path with unchanged optimistic concurrency, audit attribution, marker metadata, coordinates and layout lifecycle;
+- selector interaction adds no telemetry history owner, WebSocket owner, acquisition/scheduler work or physical polling.
 
-Exact implementation head `a903710ee34b37181770d87640ec31f2efeda948` was synchronized with base `907edd86552130dde50b70579fb9945eedc3f503` (`behind=0`) and was GREEN:
+Final implementation head `fcf64d0fa842293facbc9762a85446f8898b43e2` was synchronized with `main` (`behind=0`) and GREEN:
 
-- CI #3413;
-- Alerts Browser Acceptance #861;
-- Telemetry service #1646;
-- Authenticated Dashboard Acceptance #1960;
-- Offline Bundle #1353;
-- Offline Auth Acceptance #506;
-- Refrigeration Browser Acceptance #1840;
-- Device Agent Fleet Acceptance #841;
-- MQTT TLS Fleet Acceptance #791;
-- Broker Control Acceptance #752;
-- Capacity Release Gate #648;
-- Disaster Recovery Browser #813 after a targeted rerun of an unrelated restored-route render flake;
-- Disaster Recovery Domain Completeness #415;
-- Disaster Recovery TLS Fleet #782;
-- Container Supply Chain #821.
+- CI #3437;
+- Refrigeration Browser Acceptance #1858;
+- Authenticated Dashboard Acceptance #1967;
+- Offline Bundle #1371;
+- Security Browser Acceptance #1192;
+- Acquisition Scale Acceptance #174;
+- Disaster Recovery Browser #832.
 
-Evidence artifacts:
+The final diff contained eight authorized product/verification files and had no open review threads. No Raspberry Pi deployment or new hardware acceptance was required or claimed for #546.
 
-- Alerts Browser: `alerts-browser-acceptance-evidence`, SHA-256 `4d79b7d6221c0f9cb734f466c2f021934ce5a6fcb434ffa6d06f2d5718c3664a`;
-- Authenticated Dashboard: `authenticated-dashboard-acceptance-32057208215-1`, SHA-256 `018a3f23811dd8beff1d600af043f8f5232285ad3147d2dcc5ff8f63f0ba7fe0`;
-- Offline Bundle: `nexolab-offline-amd64-a903710ee34b37181770d87640ec31f2efeda948`, SHA-256 `911deaf6e972da0ec6dd7b3e02efbabe1abb63657b64eae17cb75e4af1b98942`.
+## Sprint selection — next Ready product Work Package
 
-No Raspberry Pi deployment or new hardware acceptance was required or claimed for #536.
+The post-#546 repository audit identifies exactly one current open product Issue carrying `status:ready`:
 
-## Sprint selection — no independent Ready product Work Package
+**Issue #548 — Add GitHub-aware safe Raspberry Pi update orchestration.**
 
-The post-#536 repository audit found **zero open product Issues carrying `status:ready`**. Issue #544 is only the state-reconciliation package for the completed #536 merge and does not authorize new product scope.
+#548 extends the existing privileged version-management control plane. GitHub remains update-plane only; core `LOCAL_LAN` monitoring must remain functional with no internet/GitHub access. The package must preserve package/schema/capacity/backup/authorization gates and cannot introduce browser shell execution, Modbus/hardware writes, persistent-data deletion or mandatory cloud runtime dependencies.
 
-Epic #450 still identifies another possible incremental selector consumer, Equipment Maps, but no focused Equipment Maps child Issue is currently open and Ready. Existing maintenance proposals and physical-validation lanes are not auto-promoted into the product lane.
-
-After Issue #544 is merged, the truthful autonomous selection state is `hard_blocked_no_ready_work_package`. Product Owner selection or creation/promotion of a focused Ready Issue is required before another product implementation branch starts.
-
-## Governance record
-
-State-only commit `907edd86552130dde50b70579fb9945eedc3f503` was written directly to `main` while correcting stale `CURRENT_STATE.md` text. That bypassed the required Issue → branch → PR policy. It changed no product/runtime code, hardware state, persistent data or deployment behavior, but the process deviation is recorded explicitly and is not treated as an acceptable precedent.
-
-All subsequent work, including this reconciliation, returns to the required Issue → branch → PR discipline.
+State-only Issue #553 reconciles these facts before #548 implementation begins.
 
 ## Existing operational blockers
 
@@ -75,6 +54,8 @@ All subsequent work, including this reconciliation, returns to the required Issu
 - #189 recovery acceptance remains hardware/evidence blocked.
 - #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence.
 - next Raspberry Pi redeploy remains capacity-blocked: `free_bytes=15310114816`, `required_bytes=16595036807`, `reserve_bytes=2147483648`.
+
+These blockers do not prevent software implementation of #548, but they do block any controlled Raspberry Pi deployment/activation step that depends on the same capacity boundary.
 
 ## Safety boundaries
 
