@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -53,6 +54,69 @@ def current_file(root: Path, commit: str) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def write_validated_catalog_entry(
+    root: Path,
+    *,
+    bundle_id: str,
+    release: str,
+    commit: str,
+    platform: str = "linux/arm64",
+    schema_head: str = "schema-1",
+    upgrade_from: tuple[str, ...] = ("schema-1",),
+) -> Path:
+    bundle_root = root / "catalog" / bundle_id
+    bundle_root.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "schema_version": 1,
+        "bundle_version": release,
+        "source_commit": commit,
+        "platform": platform,
+        "persistent_data_policy": {
+            "packaged": False,
+            "delete_volumes": False,
+            "compose_down_v_allowed": False,
+        },
+        "version_management": {
+            "bundle_id": bundle_id,
+            "database_schema": {
+                "head": schema_head,
+                "upgrade_from": list(upgrade_from),
+                "runtime_compatible_schema_heads": [schema_head],
+            },
+            "backup_required": True,
+            "migration_before_readiness": True,
+            "preserve_named_volumes": True,
+            "preserve_edge_sqlite": True,
+        },
+    }
+    raw = (json.dumps(manifest, sort_keys=True) + "\n").encode()
+    (bundle_root / "manifest.json").write_bytes(raw)
+    (bundle_root / ".nexolab-validated.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+            }
+        ),
+        encoding="utf-8",
+    )
+    return bundle_root
+
+
+def advance_remote(tmp_path: Path, repo: Path) -> str:
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", str(tmp_path / "remote.git"), str(other)], check=True, capture_output=True)
+    run_git(other, "config", "user.email", "nexolab-tests@example.invalid")
+    run_git(other, "config", "user.name", "NEXOLAB Tests")
+    run_git(other, "checkout", "main")
+    (other / "README.md").write_text("two\n", encoding="utf-8")
+    run_git(other, "add", "README.md")
+    run_git(other, "commit", "-m", "two")
+    run_git(other, "push", "origin", "main")
+    run_git(repo, "fetch", "origin", "main")
+    return run_git(repo, "rev-parse", "origin/main")
 
 
 def test_policy_defaults_off_and_persists_explicit_enable(tmp_path: Path) -> None:
@@ -135,23 +199,106 @@ def test_newer_fast_forward_revision_is_candidate_but_never_install_authority(
         lambda _remote: orchestrator.EXPECTED_REPOSITORY,
     )
 
-    other = tmp_path / "other"
-    subprocess.run(["git", "clone", str(tmp_path / "remote.git"), str(other)], check=True, capture_output=True)
-    run_git(other, "config", "user.email", "nexolab-tests@example.invalid")
-    run_git(other, "config", "user.name", "NEXOLAB Tests")
-    run_git(other, "checkout", "main")
-    (other / "README.md").write_text("two\n", encoding="utf-8")
-    run_git(other, "add", "README.md")
-    run_git(other, "commit", "-m", "two")
-    run_git(other, "push", "origin", "main")
-    run_git(repo, "fetch", "origin", "main")
-    target = run_git(repo, "rev-parse", "origin/main")
+    target = advance_remote(tmp_path, repo)
 
     result = orchestrator.discover(root, repo, actor="admin", fetch_remote=False)
 
     assert result["result_code"] == "candidate_discovered"
     assert result["target_commit"] == target
     assert result["candidate_available"] is True
+    assert result["activation_eligible"] is False
+    assert result["blocked_reason"] == "validated_package_required"
+
+
+def test_newer_revision_becomes_eligible_only_with_matching_validated_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, current = init_repo(tmp_path)
+    root = tmp_path / "versions"
+    root.mkdir(parents=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "source_commit": current,
+                "bundle_id": "release-1",
+                "release": "1.0.0",
+                "platform": "linux/arm64",
+                "schema_head": "schema-1",
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_validated_catalog_entry(
+        root,
+        bundle_id="release-1",
+        release="1.0.0",
+        commit=current,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "normalized_repository",
+        lambda _remote: orchestrator.EXPECTED_REPOSITORY,
+    )
+    target = advance_remote(tmp_path, repo)
+    write_validated_catalog_entry(
+        root,
+        bundle_id="release-2",
+        release="2.0.0",
+        commit=target,
+    )
+
+    result = orchestrator.discover(root, repo, actor="admin", fetch_remote=False)
+
+    assert result["candidate_available"] is True
+    assert result["candidate_bundle_id"] == "release-2"
+    assert result["activation_eligible"] is True
+    assert result["blocked_reason"] is None
+
+
+def test_tampered_target_validation_marker_never_becomes_activation_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, current = init_repo(tmp_path)
+    root = tmp_path / "versions"
+    root.mkdir(parents=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "source_commit": current,
+                "bundle_id": "release-1",
+                "release": "1.0.0",
+                "platform": "linux/arm64",
+                "schema_head": "schema-1",
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_validated_catalog_entry(
+        root,
+        bundle_id="release-1",
+        release="1.0.0",
+        commit=current,
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "normalized_repository",
+        lambda _remote: orchestrator.EXPECTED_REPOSITORY,
+    )
+    target = advance_remote(tmp_path, repo)
+    target_root = write_validated_catalog_entry(
+        root,
+        bundle_id="release-2",
+        release="2.0.0",
+        commit=target,
+    )
+    marker = json.loads((target_root / ".nexolab-validated.json").read_text(encoding="utf-8"))
+    marker["manifest_sha256"] = "0" * 64
+    (target_root / ".nexolab-validated.json").write_text(json.dumps(marker), encoding="utf-8")
+
+    result = orchestrator.discover(root, repo, actor="admin", fetch_remote=False)
+
+    assert result["candidate_available"] is True
+    assert result["candidate_bundle_id"] is None
     assert result["activation_eligible"] is False
     assert result["blocked_reason"] == "validated_package_required"
 
