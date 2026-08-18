@@ -54,9 +54,7 @@ function descriptorForChannel(
     organizationId,
     laboratory: laboratory ? identity("laboratory", laboratory) : UNCLASSIFIED_LABORATORY,
     zone: zone ? identity("zone", zone) : UNCLASSIFIED_ZONE,
-    equipmentType: equipmentType
-      ? identity("equipment-type", equipmentType)
-      : UNCLASSIFIED_EQUIPMENT_TYPE,
+    equipmentType: equipmentType ? identity("equipment-type", equipmentType) : UNCLASSIFIED_EQUIPMENT_TYPE,
     equipment: {
       id: equipment.id,
       label: equipment.name,
