@@ -212,11 +212,7 @@ function parseCurrent(value: unknown): CurrentVersion {
     "deployed_at",
     "health",
   ] as const;
-  if (
-    !row ||
-    required.some((key) => !text(row[key])) ||
-    typeof row.known_packaged_release !== "boolean"
-  ) {
+  if (!row || required.some((key) => !text(row[key])) || typeof row.known_packaged_release !== "boolean") {
     throw invalidResponse();
   }
   return {
