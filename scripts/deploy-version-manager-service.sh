@@ -34,6 +34,7 @@ UPDATE_UNIT_ROOT="$SOURCE_ROOT/infrastructure/systemd"
 for file in \
   "$SOURCE_ROOT/scripts/nexolab-version-manager.py" \
   "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" \
+  "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" \
   "$UNIT_ROOT/nexolab-version-manager.service" \
   "$UNIT_ROOT/nexolab-version-manager.path" \
   "$UPDATE_UNIT_ROOT/nexolab-update-check.service" \
@@ -58,6 +59,7 @@ install -d -o 10001 -g 10001 -m 0750 \
 install -d -o root -g root -m 0755 /var/lib/nexolab/version-management/catalog
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-version-manager.py" /usr/local/lib/nexolab/nexolab-version-manager.py
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" /usr/local/lib/nexolab/nexolab-update-orchestrator.py
+install -m 0755 "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" /usr/local/lib/nexolab/deploy-capacity-guard.sh
 install -m 0644 "$UNIT_ROOT/nexolab-version-manager.service" /etc/systemd/system/nexolab-version-manager.service
 install -m 0644 "$UNIT_ROOT/nexolab-version-manager.path" /etc/systemd/system/nexolab-version-manager.path
 install -m 0644 "$UPDATE_UNIT_ROOT/nexolab-update-check.service" /etc/systemd/system/nexolab-update-check.service
