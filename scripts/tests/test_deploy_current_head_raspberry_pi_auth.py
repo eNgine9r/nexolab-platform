@@ -39,6 +39,46 @@ class ControlledDeploymentAuthContractTests(unittest.TestCase):
         self.assertIn('"/api/v1/admin/users"', text)
         self.assertIn("if local_auth_enabled:", text)
 
+    def test_local_auth_overlay_generates_complete_frontend_auth_contract(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+
+        self.assertIn('FRONTEND_AUTH_PROVIDER="disabled"', text)
+        self.assertIn('FRONTEND_AUTH_PROVIDER="local"', text)
+        self.assertIn(
+            'FRONTEND_ORGANIZATION_ID="$(env_get "$CENTRAL_ENV" AUTH_DEFAULT_ORGANIZATION_ID)"',
+            text,
+        )
+        self.assertIn('NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$FRONTEND_AUTH_PROVIDER', text)
+        self.assertIn('NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$FRONTEND_ORGANIZATION_ID', text)
+
+        contract_guard = text.index(
+            "local-auth overlay requires NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local before dashboard build"
+        )
+        frontend_build = text.index('log "Installing and building current frontend"')
+        self.assertLess(contract_guard, frontend_build)
+
+    def test_frontend_build_receives_explicit_auth_contract(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index('log "Installing and building current frontend"')
+        end = text.index('log "Starting central backend, MinIO and observability"')
+        build_section = text[start:end]
+
+        self.assertIn(
+            'NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER"',
+            build_section,
+        )
+        self.assertIn(
+            'NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID"',
+            build_section,
+        )
+        self.assertIn("NEXT_TELEMETRY_DISABLED=1 npm run build", build_section)
+
+    def test_deployment_evidence_records_dashboard_auth_contract(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+
+        self.assertIn('echo "dashboard_auth_provider=$FRONTEND_AUTH_PROVIDER"', text)
+        self.assertIn('echo "dashboard_organization_id=$FRONTEND_ORGANIZATION_ID"', text)
+
     def test_deploy_never_generates_local_signing_keys(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
 
