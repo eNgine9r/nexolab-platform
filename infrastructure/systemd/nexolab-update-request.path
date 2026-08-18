@@ -1,0 +1,9 @@
+[Unit]
+Description=NEXOLAB manual update discovery request watcher
+
+[Path]
+PathExistsGlob=/var/lib/nexolab/version-management/update-check-requests/*.json
+Unit=nexolab-update-request.service
+
+[Install]
+WantedBy=multi-user.target
