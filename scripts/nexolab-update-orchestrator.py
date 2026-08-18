@@ -25,10 +25,11 @@ POLICY_SCHEMA = 1
 CHECK_SCHEMA = 1
 CHECK_REQUEST_SCHEMA = 1
 DEFAULT_SCHEDULE = "02:00"
-DEFAULT_ROOT = Path("/var/lib/nexolab/versions")
+DEFAULT_ROOT = Path("/var/lib/nexolab/version-management")
 DEFAULT_REPOSITORY_PATH = Path(
     os.environ.get("NEXOLAB_REPOSITORY_PATH", "/home/nexolab/nexolab-platform")
 )
+DEFAULT_GIT_USER = os.environ.get("NEXOLAB_GIT_USER", "nexolab").strip() or None
 
 
 def now() -> str:
@@ -99,9 +100,21 @@ def save_policy(root: Path, enabled: bool, actor: str) -> dict[str, Any]:
     return policy
 
 
-def git(repo: Path, *args: str, check: bool = True) -> str:
+def git_command(repo: Path, *args: str, git_user: str | None = None) -> list[str]:
+    command = ["git", "-C", str(repo), *args]
+    if git_user:
+        return ["runuser", "-u", git_user, "--", *command]
+    return command
+
+
+def git(
+    repo: Path,
+    *args: str,
+    check: bool = True,
+    git_user: str | None = None,
+) -> str:
     result = subprocess.run(
-        ["git", "-C", str(repo), *args],
+        git_command(repo, *args, git_user=git_user),
         check=False,
         capture_output=True,
         text=True,
@@ -142,6 +155,7 @@ def discover(
     *,
     actor: str,
     fetch_remote: bool = True,
+    git_user: str | None = None,
 ) -> dict[str, Any]:
     started_at = now()
     result: dict[str, Any] = {
@@ -162,21 +176,27 @@ def discover(
     atomic_json(root / "update-check.json", result)
 
     try:
-        remote = git(repo, "remote", "get-url", "origin")
+        remote = git(repo, "remote", "get-url", "origin", git_user=git_user)
         if normalized_repository(remote) != EXPECTED_REPOSITORY:
             raise CheckBlocked(
                 "repository_mismatch",
                 "Configured origin is not the NEXOLAB repository",
             )
 
-        branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
+        branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD", git_user=git_user)
         if branch != EXPECTED_BRANCH:
             raise CheckBlocked(
                 "branch_mismatch",
                 "Update discovery is allowed only from main",
             )
 
-        tracked_changes = git(repo, "status", "--porcelain", "--untracked-files=no")
+        tracked_changes = git(
+            repo,
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+            git_user=git_user,
+        )
         if tracked_changes:
             raise CheckBlocked(
                 "tracked_worktree_dirty",
@@ -192,15 +212,14 @@ def discover(
 
         if fetch_remote:
             fetch = subprocess.run(
-                [
-                    "git",
-                    "-C",
-                    str(repo),
+                git_command(
+                    repo,
                     "fetch",
                     "--quiet",
                     "origin",
                     EXPECTED_BRANCH,
-                ],
+                    git_user=git_user,
+                ),
                 check=False,
                 capture_output=True,
                 text=True,
@@ -212,7 +231,12 @@ def discover(
                     "GitHub/origin is unavailable",
                 )
 
-        target = git(repo, "rev-parse", f"origin/{EXPECTED_BRANCH}")
+        target = git(
+            repo,
+            "rev-parse",
+            f"origin/{EXPECTED_BRANCH}",
+            git_user=git_user,
+        )
         result["target_commit"] = target
         if target == current:
             result["status"] = "completed"
@@ -221,15 +245,14 @@ def discover(
             return finalize(root, result)
 
         ancestor = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(repo),
+            git_command(
+                repo,
                 "merge-base",
                 "--is-ancestor",
                 current,
                 target,
-            ],
+                git_user=git_user,
+            ),
             check=False,
             capture_output=True,
             text=True,
@@ -271,7 +294,12 @@ def finalize(root: Path, result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def scheduled_check(root: Path, repo: Path) -> dict[str, Any]:
+def scheduled_check(
+    root: Path,
+    repo: Path,
+    *,
+    git_user: str | None = None,
+) -> dict[str, Any]:
     policy = load_policy(root)
     if policy["automatic_updates_enabled"] is not True:
         return {
@@ -279,7 +307,13 @@ def scheduled_check(root: Path, repo: Path) -> dict[str, Any]:
             "result_code": "automatic_updates_disabled",
             "schedule_local_time": DEFAULT_SCHEDULE,
         }
-    return discover(root, repo, actor="system:update-timer", fetch_remote=True)
+    return discover(
+        root,
+        repo,
+        actor="system:update-timer",
+        fetch_remote=True,
+        git_user=git_user,
+    )
 
 
 def _validate_check_request(payload: dict[str, Any] | None) -> dict[str, Any]:
@@ -298,7 +332,12 @@ def _validate_check_request(payload: dict[str, Any] | None) -> dict[str, Any]:
     return payload
 
 
-def process_requested_check(root: Path, repo: Path) -> dict[str, Any]:
+def process_requested_check(
+    root: Path,
+    repo: Path,
+    *,
+    git_user: str | None = None,
+) -> dict[str, Any]:
     request_dir = root / "update-check-requests"
     pending = sorted(request_dir.glob("*.json"))
     if not pending:
@@ -334,6 +373,7 @@ def process_requested_check(root: Path, repo: Path) -> dict[str, Any]:
         repo,
         actor=str(request["actor_subject"]),
         fetch_remote=True,
+        git_user=git_user,
     )
     request_path.unlink()
     return {"request_id": request["id"], "check": result}
@@ -349,6 +389,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--repo", type=Path, default=DEFAULT_REPOSITORY_PATH)
+    parser.add_argument("--git-user", default=DEFAULT_GIT_USER)
     sub = parser.add_subparsers(dest="command", required=True)
 
     policy = sub.add_parser("set-policy")
@@ -376,11 +417,20 @@ def main() -> int:
                 args.repo,
                 actor=args.actor,
                 fetch_remote=not args.no_fetch,
+                git_user=args.git_user,
             )
         elif args.command == "scheduled-check":
-            payload = scheduled_check(args.root, args.repo)
+            payload = scheduled_check(
+                args.root,
+                args.repo,
+                git_user=args.git_user,
+            )
         elif args.command == "run-requested-check":
-            payload = process_requested_check(args.root, args.repo)
+            payload = process_requested_check(
+                args.root,
+                args.repo,
+                git_user=args.git_user,
+            )
         else:
             payload = {
                 "policy": load_policy(args.root),
