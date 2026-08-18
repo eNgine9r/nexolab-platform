@@ -28,6 +28,14 @@ export type VersionCatalogItem = {
   manifestSha256: string;
 };
 
+export type VersionOperationPhase =
+  | "verifying_package"
+  | "checking_capacity"
+  | "creating_backup"
+  | "applying_update"
+  | "verifying_runtime"
+  | "done";
+
 export type VersionOperation = {
   id: string;
   actorSubject: string;
@@ -40,7 +48,12 @@ export type VersionOperation = {
   startedAt: string;
   endedAt: string | null;
   backupEvidenceId: string | null;
+  capacityEvidenceId: string | null;
   resultCode: string | null;
+  phase: VersionOperationPhase | null;
+  phaseStatus: "running" | "succeeded" | "failed" | null;
+  completedPhases: VersionOperationPhase[];
+  safeMessage: string | null;
 };
 
 export type UpdatePolicy = {
@@ -62,7 +75,10 @@ export type UpdateCheck = {
   currentCommit: string | null;
   targetCommit: string | null;
   candidateAvailable: boolean;
+  candidateBundleId: string | null;
+  greenRevisionVerified: boolean;
   activationEligible: boolean;
+  automaticActivationOperationId: string | null;
   blockedReason: string | null;
 };
 
@@ -298,7 +314,10 @@ function parseUpdateCheck(value: unknown): UpdateCheck {
     currentCommit: optionalText(row.current_commit),
     targetCommit: optionalText(row.target_commit),
     candidateAvailable: row.candidate_available,
+    candidateBundleId: optionalText(row.candidate_bundle_id),
+    greenRevisionVerified: row.green_revision_verified === true,
     activationEligible: row.activation_eligible,
+    automaticActivationOperationId: optionalText(row.automatic_activation_operation_id),
     blockedReason: optionalText(row.blocked_reason),
   };
 }
@@ -329,6 +348,21 @@ function parseOperation(value: unknown): VersionOperation {
   ) {
     throw invalidResponse();
   }
+  const phase = parseOperationPhase(row.phase);
+  const phaseStatus = row.phase_status;
+  if (
+    row.phase_status != null &&
+    !["running", "succeeded", "failed"].includes(String(phaseStatus))
+  ) {
+    throw invalidResponse();
+  }
+  const completedPhases = Array.isArray(row.completed_phases)
+    ? row.completed_phases.map((item) => {
+        const parsed = parseOperationPhase(item);
+        if (!parsed) throw invalidResponse();
+        return parsed;
+      })
+    : [];
   return {
     id: requiredText(row.id),
     actorSubject: requiredText(row.actor_subject),
@@ -341,8 +375,30 @@ function parseOperation(value: unknown): VersionOperation {
     startedAt: requiredText(row.started_at),
     endedAt: optionalText(row.ended_at),
     backupEvidenceId: optionalText(row.backup_evidence_id),
+    capacityEvidenceId: optionalText(row.capacity_evidence_id),
     resultCode: optionalText(row.result_code),
+    phase,
+    phaseStatus: phaseStatus == null ? null : (phaseStatus as VersionOperation["phaseStatus"]),
+    completedPhases,
+    safeMessage: optionalText(row.safe_message),
   };
+}
+
+function parseOperationPhase(value: unknown): VersionOperationPhase | null {
+  if (value == null) return null;
+  if (
+    ![
+      "verifying_package",
+      "checking_capacity",
+      "creating_backup",
+      "applying_update",
+      "verifying_runtime",
+      "done",
+    ].includes(String(value))
+  ) {
+    throw invalidResponse();
+  }
+  return value as VersionOperationPhase;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
