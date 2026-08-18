@@ -10,6 +10,7 @@ existing privileged version manager may activate it.
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import fcntl
 import json
 import os
@@ -17,13 +18,17 @@ from pathlib import Path
 import subprocess
 from typing import Any
 from uuid import uuid4
-from datetime import UTC, datetime
 
 EXPECTED_REPOSITORY = "eNgine9r/nexolab-platform"
 EXPECTED_BRANCH = "main"
 POLICY_SCHEMA = 1
 CHECK_SCHEMA = 1
+CHECK_REQUEST_SCHEMA = 1
 DEFAULT_SCHEDULE = "02:00"
+DEFAULT_ROOT = Path("/var/lib/nexolab/versions")
+DEFAULT_REPOSITORY_PATH = Path(
+    os.environ.get("NEXOLAB_REPOSITORY_PATH", "/home/nexolab/nexolab-platform")
+)
 
 
 def now() -> str:
@@ -63,6 +68,7 @@ def default_policy() -> dict[str, Any]:
         "schedule_local_time": DEFAULT_SCHEDULE,
         "updated_at": None,
         "updated_by": None,
+        "error_code": None,
     }
 
 
@@ -87,6 +93,7 @@ def save_policy(root: Path, enabled: bool, actor: str) -> dict[str, Any]:
         "schedule_local_time": DEFAULT_SCHEDULE,
         "updated_at": now(),
         "updated_by": actor,
+        "error_code": None,
     }
     atomic_json(root / "update-policy.json", policy)
     return policy
@@ -101,7 +108,11 @@ def git(repo: Path, *args: str, check: bool = True) -> str:
         timeout=30,
     )
     if check and result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or f"git exited {result.returncode}"
+        detail = (
+            result.stderr.strip()
+            or result.stdout.strip()
+            or f"git exited {result.returncode}"
+        )
         raise RuntimeError(detail)
     return result.stdout.strip()
 
@@ -125,7 +136,13 @@ def current_source_commit(root: Path) -> str | None:
     return value if isinstance(value, str) and len(value) == 40 else None
 
 
-def discover(root: Path, repo: Path, *, actor: str, fetch_remote: bool = True) -> dict[str, Any]:
+def discover(
+    root: Path,
+    repo: Path,
+    *,
+    actor: str,
+    fetch_remote: bool = True,
+) -> dict[str, Any]:
     started_at = now()
     result: dict[str, Any] = {
         "schema_version": CHECK_SCHEMA,
@@ -147,30 +164,53 @@ def discover(root: Path, repo: Path, *, actor: str, fetch_remote: bool = True) -
     try:
         remote = git(repo, "remote", "get-url", "origin")
         if normalized_repository(remote) != EXPECTED_REPOSITORY:
-            raise CheckBlocked("repository_mismatch", "Configured origin is not the NEXOLAB repository")
+            raise CheckBlocked(
+                "repository_mismatch",
+                "Configured origin is not the NEXOLAB repository",
+            )
 
         branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD")
         if branch != EXPECTED_BRANCH:
-            raise CheckBlocked("branch_mismatch", "Update discovery is allowed only from main")
+            raise CheckBlocked(
+                "branch_mismatch",
+                "Update discovery is allowed only from main",
+            )
 
         tracked_changes = git(repo, "status", "--porcelain", "--untracked-files=no")
         if tracked_changes:
-            raise CheckBlocked("tracked_worktree_dirty", "Tracked local changes block update discovery")
+            raise CheckBlocked(
+                "tracked_worktree_dirty",
+                "Tracked local changes block update discovery",
+            )
 
         current = result["current_commit"]
         if not current:
-            raise CheckBlocked("current_revision_unknown", "Current deployed source commit is unknown")
+            raise CheckBlocked(
+                "current_revision_unknown",
+                "Current deployed source commit is unknown",
+            )
 
         if fetch_remote:
             fetch = subprocess.run(
-                ["git", "-C", str(repo), "fetch", "--quiet", "origin", EXPECTED_BRANCH],
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "fetch",
+                    "--quiet",
+                    "origin",
+                    EXPECTED_BRANCH,
+                ],
                 check=False,
                 capture_output=True,
                 text=True,
                 timeout=60,
             )
             if fetch.returncode != 0:
-                raise CheckBlocked("github_unavailable", "GitHub/origin is unavailable")
+                raise CheckBlocked(
+                    "github_unavailable",
+                    "GitHub/origin is unavailable",
+                )
 
         target = git(repo, "rev-parse", f"origin/{EXPECTED_BRANCH}")
         result["target_commit"] = target
@@ -181,18 +221,32 @@ def discover(root: Path, repo: Path, *, actor: str, fetch_remote: bool = True) -
             return finalize(root, result)
 
         ancestor = subprocess.run(
-            ["git", "-C", str(repo), "merge-base", "--is-ancestor", current, target],
+            [
+                "git",
+                "-C",
+                str(repo),
+                "merge-base",
+                "--is-ancestor",
+                current,
+                target,
+            ],
             check=False,
             capture_output=True,
             text=True,
             timeout=30,
         )
         if ancestor.returncode != 0:
-            raise CheckBlocked("non_fast_forward", "origin/main is not fast-forward reachable from deployed lineage")
+            raise CheckBlocked(
+                "non_fast_forward",
+                "origin/main is not fast-forward reachable from deployed lineage",
+            )
 
         result["status"] = "completed"
         result["result_code"] = "candidate_discovered"
-        result["message"] = "A newer main revision exists but is not installable until a validated local package is staged."
+        result["message"] = (
+            "A newer main revision exists but is not installable until a validated "
+            "local package is staged."
+        )
         result["candidate_available"] = True
         result["activation_eligible"] = False
         result["blocked_reason"] = "validated_package_required"
@@ -217,6 +271,74 @@ def finalize(root: Path, result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def scheduled_check(root: Path, repo: Path) -> dict[str, Any]:
+    policy = load_policy(root)
+    if policy["automatic_updates_enabled"] is not True:
+        return {
+            "status": "skipped",
+            "result_code": "automatic_updates_disabled",
+            "schedule_local_time": DEFAULT_SCHEDULE,
+        }
+    return discover(root, repo, actor="system:update-timer", fetch_remote=True)
+
+
+def _validate_check_request(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        raise RuntimeError("update check request is missing")
+    if payload.get("schema_version") != CHECK_REQUEST_SCHEMA:
+        raise RuntimeError("unsupported update check request schema")
+    if payload.get("source") != "manual" or payload.get("status") != "queued":
+        raise RuntimeError("update check request must be a queued manual request")
+    actor = payload.get("actor_subject")
+    request_id = payload.get("id")
+    if not isinstance(actor, str) or not actor.strip():
+        raise RuntimeError("update check request actor is missing")
+    if not isinstance(request_id, str) or not request_id.strip():
+        raise RuntimeError("update check request id is missing")
+    return payload
+
+
+def process_requested_check(root: Path, repo: Path) -> dict[str, Any]:
+    request_dir = root / "update-check-requests"
+    pending = sorted(request_dir.glob("*.json"))
+    if not pending:
+        return {"status": "idle", "result_code": "no_pending_update_check"}
+
+    request_path = pending[0]
+    try:
+        request = _validate_check_request(read_json(request_path))
+    except (OSError, RuntimeError, json.JSONDecodeError) as error:
+        rejected_dir = root / "update-check-rejected"
+        rejected_dir.mkdir(parents=True, exist_ok=True, mode=0o750)
+        request_path.replace(rejected_dir / request_path.name)
+        failed = {
+            "schema_version": CHECK_SCHEMA,
+            "status": "failed",
+            "source": "host",
+            "actor": "system:update-plane",
+            "started_at": now(),
+            "completed_at": now(),
+            "result_code": "invalid_update_check_request",
+            "message": str(error),
+            "current_commit": current_source_commit(root),
+            "target_commit": None,
+            "candidate_available": False,
+            "activation_eligible": False,
+            "blocked_reason": "invalid_update_check_request",
+        }
+        atomic_json(root / "update-check.json", failed)
+        return failed
+
+    result = discover(
+        root,
+        repo,
+        actor=str(request["actor_subject"]),
+        fetch_remote=True,
+    )
+    request_path.unlink()
+    return {"request_id": request["id"], "check": result}
+
+
 class CheckBlocked(RuntimeError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
@@ -225,8 +347,8 @@ class CheckBlocked(RuntimeError):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, default=Path("/var/lib/nexolab/versions"))
-    parser.add_argument("--repo", type=Path, default=Path("/opt/nexolab-platform"))
+    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--repo", type=Path, default=DEFAULT_REPOSITORY_PATH)
     sub = parser.add_subparsers(dest="command", required=True)
 
     policy = sub.add_parser("set-policy")
@@ -237,6 +359,8 @@ def main() -> int:
     check_now.add_argument("--actor", default="system:update-timer")
     check_now.add_argument("--no-fetch", action="store_true")
 
+    sub.add_parser("scheduled-check")
+    sub.add_parser("run-requested-check")
     sub.add_parser("status")
     args = parser.parse_args()
 
@@ -247,7 +371,16 @@ def main() -> int:
         if args.command == "set-policy":
             payload = save_policy(args.root, args.state == "on", args.actor)
         elif args.command == "check-now":
-            payload = discover(args.root, args.repo, actor=args.actor, fetch_remote=not args.no_fetch)
+            payload = discover(
+                args.root,
+                args.repo,
+                actor=args.actor,
+                fetch_remote=not args.no_fetch,
+            )
+        elif args.command == "scheduled-check":
+            payload = scheduled_check(args.root, args.repo)
+        elif args.command == "run-requested-check":
+            payload = process_requested_check(args.root, args.repo)
         else:
             payload = {
                 "policy": load_policy(args.root),
