@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   ArrowLeftRight,
   CheckCircle2,
-  Clock3,
   Download,
   History,
   PackageCheck,
@@ -21,9 +20,7 @@ import {
   createAuthenticatedFetch,
   createRuntimeCredentialProvider,
 } from "@/features/security/supabase-auth";
-import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
-import { cn } from "@/lib/utils";
-
+import { versionConfirmationPhrase } from "@/features/settings/version-confirmation";
 import {
   VersionManagementApiError,
   VersionManagementClient,
@@ -31,6 +28,8 @@ import {
   type VersionCatalogItem,
   type VersionSnapshot,
 } from "@/features/settings/version-management";
+import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import { cn } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -91,10 +90,7 @@ export function VersionScreen() {
   const current = snapshot?.current ?? null;
   const selected = snapshot?.catalog.find((item) => item.bundleId === selectedBundleId) ?? null;
   const availableTargets = useMemo(
-    () =>
-      snapshot?.catalog.filter(
-        (item) => !current || item.bundleId !== current.bundleId,
-      ) ?? [],
+    () => snapshot?.catalog.filter((item) => !current || item.bundleId !== current.bundleId) ?? [],
     [current, snapshot?.catalog],
   );
   const updateCheck = snapshot?.updateCheck ?? null;
@@ -219,7 +215,12 @@ export function VersionScreen() {
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <Fact label="Release" value={current.release} />
                     <Fact label="Bundle" value={current.bundleId} mono />
-                    <Fact label="Commit" value={shortCommit(current.sourceCommit)} mono title={current.sourceCommit} />
+                    <Fact
+                      label="Commit"
+                      value={shortCommit(current.sourceCommit)}
+                      mono
+                      title={current.sourceCommit}
+                    />
                     <Fact label="Schema" value={current.schemaHead} mono />
                     <Fact label="Platform" value={current.platform} />
                     <Fact label="Runtime" value={current.runtimeMode} />
@@ -271,8 +272,8 @@ export function VersionScreen() {
                   <p className="text-xs tracking-[.18em] text-slate-500 uppercase">GitHub update plane</p>
                   <h2 className="mt-1 text-lg font-semibold">Автоматичні оновлення</h2>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-                    GitHub не потрібен для monitoring runtime. Перевірка виконується host-side; remote commit не
-                    стає installation authority без GREEN main CI та відповідного validated local package.
+                    GitHub не потрібен для monitoring runtime. Перевірка виконується host-side; remote commit
+                    не стає installation authority без GREEN main CI та відповідного validated local package.
                   </p>
                 </div>
                 <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#06101f]/75 px-4 py-3">
@@ -308,10 +309,7 @@ export function VersionScreen() {
                   label="Schedule"
                   value={automaticUpdatesEnabled ? "Щодня о 02:00" : "Автоматичний запуск вимкнено"}
                 />
-                <Fact
-                  label="Policy source"
-                  value="Локальний host state"
-                />
+                <Fact label="Policy source" value="Локальний host state" />
                 <Fact
                   label="Last policy change"
                   value={snapshot?.updatePolicy.updatedAt ? formatTime(snapshot.updatePolicy.updatedAt) : "—"}
@@ -325,7 +323,9 @@ export function VersionScreen() {
                   onClick={() => void checkForUpdates()}
                   className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/8 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <RefreshCw className={cn("h-4 w-4", checkBusy && "animate-spin motion-reduce:animate-none")} />
+                  <RefreshCw
+                    className={cn("h-4 w-4", checkBusy && "animate-spin motion-reduce:animate-none")}
+                  />
                   {checkBusy ? "Запит передано…" : "Перевірити оновлення зараз"}
                 </button>
                 <span className="text-xs text-slate-500">
@@ -337,7 +337,9 @@ export function VersionScreen() {
                 {updateCheck ? (
                   <div className="grid gap-2 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-100">{updateCheckLabel(updateCheck.resultCode)}</span>
+                      <span className="font-medium text-slate-100">
+                        {updateCheckLabel(updateCheck.resultCode)}
+                      </span>
                       <span className="rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-slate-400">
                         {updateCheck.source === "scheduled" ? "02:00 scheduler" : "manual"}
                       </span>
@@ -350,19 +352,26 @@ export function VersionScreen() {
                     {updateCheck.message ? <p className="text-slate-400">{updateCheck.message}</p> : null}
                     <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
                       {updateCheck.completedAt ? <span>{formatTime(updateCheck.completedAt)}</span> : null}
-                      {updateCheck.currentCommit ? <span>current {shortCommit(updateCheck.currentCommit)}</span> : null}
-                      {updateCheck.targetCommit ? <span>target {shortCommit(updateCheck.targetCommit)}</span> : null}
-                      {updateCheck.candidateBundleId ? <span>package {updateCheck.candidateBundleId}</span> : null}
+                      {updateCheck.currentCommit ? (
+                        <span>current {shortCommit(updateCheck.currentCommit)}</span>
+                      ) : null}
+                      {updateCheck.targetCommit ? (
+                        <span>target {shortCommit(updateCheck.targetCommit)}</span>
+                      ) : null}
+                      {updateCheck.candidateBundleId ? (
+                        <span>package {updateCheck.candidateBundleId}</span>
+                      ) : null}
                     </div>
                     {updateCheck.candidateAvailable && !updateCheck.activationEligible ? (
                       <div className="mt-1 rounded-lg border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-amber-100">
-                        Оновлення виявлено, але активація заблокована: {updateBlockReason(updateCheck.blockedReason)}
+                        Оновлення виявлено, але активація заблокована:{" "}
+                        {updateBlockReason(updateCheck.blockedReason)}
                       </div>
                     ) : null}
                     {updateCheck.activationEligible && updateCandidate ? (
                       <div className="mt-1 rounded-lg border border-emerald-300/20 bg-emerald-300/5 px-3 py-2 text-xs text-emerald-100">
-                        Eligible update: {current?.release ?? "current"} → {updateCandidate.release}. Пакет обрано
-                        для existing version-management confirmation flow.
+                        Eligible update: {current?.release ?? "current"} → {updateCandidate.release}. Пакет
+                        обрано для existing version-management confirmation flow.
                       </div>
                     ) : null}
                     {updateCheck.automaticActivationOperationId ? (
@@ -441,7 +450,12 @@ export function VersionScreen() {
                   <div className="mt-4 grid gap-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Fact label="Target release" value={selected.release} />
-                      <Fact label="Target commit" value={shortCommit(selected.sourceCommit)} mono title={selected.sourceCommit} />
+                      <Fact
+                        label="Target commit"
+                        value={shortCommit(selected.sourceCommit)}
+                        mono
+                        title={selected.sourceCommit}
+                      />
                       <Fact label="Target schema" value={selected.schemaHead} mono />
                       <Fact label="Platform" value={selected.platform} />
                     </div>
@@ -460,7 +474,11 @@ export function VersionScreen() {
                       onClick={() => setShowConfirm(true)}
                       className="inline-flex w-fit items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/8 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-300/12 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {action === "update" ? <Download className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                      {action === "update" ? (
+                        <Download className="h-4 w-4" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
                       {action === "update" ? "Підготувати update" : "Підготувати rollback"}
                     </button>
                     {!current?.runtimeStateKnown ? (
@@ -534,7 +552,10 @@ export function VersionScreen() {
                 </div>
                 <div className="mt-3 grid gap-2 text-sm">
                   {snapshot.rejectedPackages.map((item) => (
-                    <div key={item.directory} className="rounded-lg border border-amber-300/10 bg-black/10 px-3 py-2">
+                    <div
+                      key={item.directory}
+                      className="rounded-lg border border-amber-300/10 bg-black/10 px-3 py-2"
+                    >
                       <span className="font-mono text-xs text-amber-200">{item.directory}</span>
                       <span className="mx-2 text-amber-500">·</span>
                       <span className="text-amber-100">{item.code}</span>
@@ -568,12 +589,13 @@ export function VersionScreen() {
               </div>
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Target: <strong>{selected.release}</strong> / {shortCommit(selected.sourceCommit)}. Перед runtime
-              mutation host worker повторно перевірить package, schema, capacity і створить PostgreSQL backup.
+              Target: <strong>{selected.release}</strong> / {shortCommit(selected.sourceCommit)}. Перед
+              runtime mutation host worker повторно перевірить package, schema, capacity і створить PostgreSQL
+              backup.
             </p>
             <label className="mt-4 grid gap-1.5 text-sm">
               <span className="text-slate-400">
-                Введіть <code className="text-cyan-200">{confirmationPhrase(action)}</code>
+                Введіть <code className="text-cyan-200">{versionConfirmationPhrase(action, selected.bundleId)}</code>
               </span>
               <input
                 autoFocus
@@ -595,7 +617,7 @@ export function VersionScreen() {
               </button>
               <button
                 type="button"
-                disabled={busy || confirmation !== confirmationPhrase(action)}
+                disabled={busy || confirmation !== versionConfirmationPhrase(action, selected.bundleId)}
                 onClick={() => void submitAction()}
                 className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm text-amber-100 hover:bg-amber-300/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -675,10 +697,6 @@ function OperationBadge({ status }: { status: "queued" | "running" | "succeeded"
           ? "border-cyan-300/25 bg-cyan-300/8 text-cyan-200"
           : "border-amber-300/25 bg-amber-300/8 text-amber-200";
   return <span className={cn("rounded-full border px-2 py-1 text-xs", style)}>{status}</span>;
-}
-
-function confirmationPhrase(action: VersionAction): string {
-  return action === "update" ? "UPDATE NEXOLAB" : "ROLLBACK NEXOLAB";
 }
 
 function updateCheckLabel(resultCode: string | null): string {
