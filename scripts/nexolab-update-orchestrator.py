@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Host-side GitHub update discovery for the existing NEXOLAB version control plane.
 
-This process is maintenance-plane only. It never activates a revision, never writes
-product data, and never turns a remote commit into installation authority. A remote
-candidate must still enter the validated local version-management catalog before the
-existing privileged version manager may activate it.
+This process is maintenance-plane only. It never mutates product data directly and
+never turns a remote commit into installation authority. A remote candidate must pass
+the main-branch GREEN contract and match an already validated local package before an
+automatic operation can enter the existing privileged version-manager queue.
 """
 
 from __future__ import annotations
@@ -313,6 +313,74 @@ def validated_candidate_bundle(root: Path, target_commit: str) -> tuple[str | No
     return None, "validated_package_required"
 
 
+def _active_operation(root: Path) -> dict[str, Any] | None:
+    operations_root = root / "operations"
+    if not operations_root.is_dir():
+        return None
+    for path in sorted(operations_root.glob("*.json")):
+        try:
+            payload = read_json(path)
+        except (OSError, RuntimeError, json.JSONDecodeError):
+            continue
+        if payload and payload.get("status") in {"queued", "running"}:
+            return payload
+    return None
+
+
+def enqueue_scheduled_activation(root: Path, check: dict[str, Any]) -> dict[str, Any]:
+    if check.get("source") != "scheduled" or check.get("actor") != "system:update-timer":
+        raise CheckBlocked("invalid_scheduled_activation", "Only the scheduled system actor may auto-activate")
+    if check.get("activation_eligible") is not True:
+        raise CheckBlocked("candidate_not_eligible", "Scheduled candidate is not activation eligible")
+    target_commit = check.get("target_commit")
+    expected_bundle = check.get("candidate_bundle_id")
+    if not isinstance(target_commit, str) or not isinstance(expected_bundle, str):
+        raise CheckBlocked("candidate_identity_missing", "Scheduled candidate identity is incomplete")
+
+    root.mkdir(parents=True, exist_ok=True, mode=0o750)
+    with (root / "queue.lock").open("a+", encoding="utf-8") as queue_lock:
+        fcntl.flock(queue_lock, fcntl.LOCK_EX)
+        if _active_operation(root) is not None or any((root / "requests").glob("*.json")):
+            raise CheckBlocked("operation_in_progress", "Another update or rollback operation is active")
+        bundle_id, blocked_reason = validated_candidate_bundle(root, target_commit)
+        if bundle_id != expected_bundle:
+            raise CheckBlocked(
+                blocked_reason or "candidate_revalidation_failed",
+                "Validated target package changed before scheduled activation",
+            )
+        current = read_json(root / "current.json")
+        target = _validated_catalog_manifest(root / "catalog" / bundle_id)
+        if current is None or target is None:
+            raise CheckBlocked("candidate_revalidation_failed", "Current or target package evidence is missing")
+        source_bundle = current.get("bundle_id")
+        source_release = current.get("release")
+        target_release = target.get("bundle_version")
+        if not all(isinstance(value, str) and value for value in (source_bundle, source_release, target_release)):
+            raise CheckBlocked("candidate_identity_missing", "Version operation identity is incomplete")
+        operation_id = str(uuid4())
+        operation = {
+            "schema_version": 1,
+            "id": operation_id,
+            "organization_id": None,
+            "actor_subject": "system:update-timer",
+            "action": "update",
+            "source_bundle_id": source_bundle,
+            "source_release": source_release,
+            "target_bundle_id": bundle_id,
+            "target_release": target_release,
+            "target_commit": target_commit,
+            "status": "queued",
+            "started_at": now(),
+            "ended_at": None,
+            "backup_evidence_id": None,
+            "result_code": None,
+            "reason": "automatic 02:00 update",
+        }
+        atomic_json(root / "requests" / f"{operation_id}.json", operation)
+        atomic_json(root / "operations" / f"{operation_id}.json", operation)
+        return operation
+
+
 def discover(
     root: Path,
     repo: Path,
@@ -336,6 +404,7 @@ def discover(
         "candidate_bundle_id": None,
         "green_revision_verified": False,
         "activation_eligible": False,
+        "automatic_activation_operation_id": None,
         "blocked_reason": None,
     }
     atomic_json(root / "update-check.json", result)
@@ -411,7 +480,7 @@ def discover(
         else:
             result["message"] = (
                 "A newer GREEN main revision matches a validated local package. The authenticated "
-                "version-management API must still revalidate every activation gate."
+                "version-management API must still revalidate every manual activation gate."
             )
         return finalize(root, result)
     except CheckBlocked as error:
@@ -447,13 +516,28 @@ def scheduled_check(
             "result_code": "automatic_updates_disabled",
             "schedule_local_time": DEFAULT_SCHEDULE,
         }
-    return discover(
+    result = discover(
         root,
         repo,
         actor="system:update-timer",
         fetch_remote=True,
         git_user=git_user,
     )
+    if result.get("activation_eligible") is not True:
+        return result
+    try:
+        operation = enqueue_scheduled_activation(root, result)
+    except CheckBlocked as error:
+        result["activation_eligible"] = False
+        result["blocked_reason"] = error.code
+        result["message"] = str(error)
+        return finalize(root, result)
+    result["automatic_activation_operation_id"] = operation["id"]
+    result["message"] = (
+        "Eligible GREEN package queued for the existing privileged version manager by "
+        "system:update-timer. Runtime mutation remains inside the normal version operation gates."
+    )
+    return finalize(root, result)
 
 
 def _validate_check_request(payload: dict[str, Any] | None) -> dict[str, Any]:
@@ -503,6 +587,7 @@ def process_requested_check(
             "candidate_bundle_id": None,
             "green_revision_verified": False,
             "activation_eligible": False,
+            "automatic_activation_operation_id": None,
             "blocked_reason": "invalid_update_check_request",
         }
         atomic_json(root / "update-check.json", failed)
