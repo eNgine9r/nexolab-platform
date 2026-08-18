@@ -133,7 +133,11 @@ def repository_schema_head(repo: Path) -> str:
         for node in tree.body:
             name: str | None = None
             value: ast.expr | None = None
-            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+            ):
                 name = node.targets[0].id
                 value = node.value
             elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
@@ -249,26 +253,21 @@ def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str,
     return resolved, facts
 
 
+def _existing_current(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    if not isinstance(payload, dict):
+        raise AdoptionFailure("existing current deployment evidence is invalid")
+    return payload
+
+
 def adopt(args: argparse.Namespace) -> dict[str, Any]:
     root = args.root.resolve()
     repo = args.repo.resolve()
-    if not (repo / ".git").exists():
+    if not repo.is_dir():
         raise AdoptionFailure(f"repository not found: {repo}")
-
-    current_path = root / "current.json"
-    if current_path.exists():
-        existing = json.loads(current_path.read_text(encoding="utf-8"))
-        if (
-            isinstance(existing, dict)
-            and existing.get("deployment_authority") == SOURCE_AUTHORITY
-            and isinstance(existing.get("source_commit"), str)
-        ):
-            return {
-                "status": "already_recorded",
-                "source_commit": existing["source_commit"],
-                "deployment_authority": SOURCE_AUTHORITY,
-            }
-        raise AdoptionFailure("current deployment evidence already exists; refusing to replace it")
 
     remote = git(repo, "remote", "get-url", "origin")
     if normalized_repository(remote) != EXPECTED_REPOSITORY:
@@ -281,8 +280,9 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
         raise AdoptionFailure("tracked local changes block source adoption")
     head = git(repo, "rev-parse", "HEAD")
     origin_head = git(repo, "rev-parse", f"origin/{EXPECTED_BRANCH}")
-    if not SHA.fullmatch(head) or head != origin_head:
-        raise AdoptionFailure("local main must exactly match the existing origin/main ref")
+    if not SHA.fullmatch(head) or not SHA.fullmatch(origin_head):
+        raise AdoptionFailure("repository source revision is invalid")
+    git(repo, "merge-base", "--is-ancestor", head, origin_head)
 
     evidence_dir, facts = deployment_evidence(repo, args.evidence_dir)
     if facts["commit"] != head:
@@ -303,6 +303,32 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
     build_timestamp = git(repo, "show", "-s", "--format=%cI", head)
     source_identity = f"source-main-{head[:12]}"
     relative_evidence = evidence_dir.relative_to(repo).as_posix()
+    current_path = root / "current.json"
+    existing = _existing_current(current_path)
+
+    previous_source_commit: str | None = None
+    previous_source_evidence: str | None = None
+    if existing is not None:
+        if existing.get("deployment_authority") != SOURCE_AUTHORITY:
+            raise AdoptionFailure("current deployment evidence already exists; refusing to replace it")
+        existing_commit = existing.get("source_commit")
+        existing_evidence = existing.get("source_deployment_evidence")
+        if existing_commit == head and existing_evidence == relative_evidence:
+            return {
+                "status": "already_recorded",
+                "source_commit": head,
+                "runtime_mode": runtime_mode,
+                "platform": platform_name,
+                "schema_head": schema_head,
+                "health": health,
+                "deployment_authority": SOURCE_AUTHORITY,
+                "known_packaged_release": False,
+                "evidence": relative_evidence,
+            }
+        if isinstance(existing_commit, str):
+            previous_source_commit = existing_commit
+        if isinstance(existing_evidence, str):
+            previous_source_evidence = existing_evidence
 
     payload: dict[str, Any] = {
         "schema_version": 1,
@@ -323,6 +349,8 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
         "deployment_authority": SOURCE_AUTHORITY,
         "known_packaged_release": False,
         "source_deployment_evidence": relative_evidence,
+        "previous_source_commit": previous_source_commit,
+        "previous_source_deployment_evidence": previous_source_evidence,
         "recorded_at": now(),
     }
     atomic_json(current_path, payload)
