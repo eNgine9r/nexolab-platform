@@ -2,40 +2,52 @@
 
 Updated: 2026-08-18
 
-## Issue #576 — software merged, Raspberry Pi approval required
+## Issue #576 — completed
 
-PR #579 is squash-merged at:
+Issue #576 Raspberry Pi source-adoption acceptance is PASS and the Issue is closed `status:done`.
 
-`dc4e3186d115d7e2877c0a02c5f315df5946da7e`
+The host version-management state now knows the exact deployed source revision without fabricating validated package authority:
 
-Final PR head `cbb0dfba44d8d6cce256ffbf45b8577a9d114629` passed CI #3564 and Telemetry service #1744.
+- `source_commit=7a19f53950492a40255c53b1d2018bbdff9466e2`;
+- `deployment_authority=controlled_source_deployment`;
+- `known_packaged_release=false`;
+- `runtime_state_known=true`;
+- `schema_head=20260807_0024`;
+- deployment evidence `runtime/deployments/20260818T131726Z`.
 
-The remaining gate is real Raspberry Pi acceptance. The bounded adopter writes only version-management source-lineage metadata to `/var/lib/nexolab/version-management/current.json`, but this is a new host-state mutation and requires separate explicit Product Owner approval. The earlier Issue #566 deployment approval must not be reused.
+Manual discovery now reports `candidate_discovered` instead of `current_revision_unknown`, with current `7a19f539...`, target `20221323...`, target GREEN verified, and activation correctly blocked at `current_release_unverified` because no validated local package authority exists.
 
-Until approved and executed:
+Automatic updates remain OFF and the fixed timer remains 02:00. Monitoring remained uninterrupted during acceptance: API/database/MQTT ready, Device Agent bus workers 1/1 healthy and telemetry advanced. The deployed Raspberry Pi HEAD remained unchanged.
 
-- Raspberry Pi remains at `7a19f53950492a40255c53b1d2018bbdff9466e2`;
-- deployment evidence remains `runtime/deployments/20260818T131726Z`;
-- monitoring runtime remains healthy;
-- manual update discovery remains fail-closed at `current_revision_unknown`;
-- automatic updates remain OFF;
-- fixed timer remains 02:00.
-
-Do not hand-edit `current.json`, fabricate a validated package identity, enable automatic updates or run update/rollback merely to satisfy acceptance.
+There is no remaining Issue #576 blocker.
 
 ## Issue #575 — LE-01MP Unit 201 runtime connectivity
 
-Issue #575 remains independently Ready for read-only diagnosis. Unit 201 is timeout/cooldown while the shared bus worker remains healthy and neighboring telemetry advances. Any physical cable/power/address intervention requires separate approval.
+Issue #575 is the only current product `status:ready` Work Package.
+
+Current evidence:
+
+- Device Agent overall status `degraded`;
+- shared bus worker remains healthy (`expected=1`, `active=1`, `workers_healthy=true`);
+- MQTT and telemetry continue advancing;
+- LE-01MP Unit 201 targets return timeout-only outcomes and enter cooldown;
+- neighboring LE-01MP Units 200/202/203 and XJP60D acquisition continue responding;
+- Issue #201 contains real hardware evidence that Unit 201 responded successfully on 2026-08-17.
+
+The next phase is read-only diagnosis. Do not disable Unit 201 to clear health state and do not assume it is physically absent.
+
+Any meter address/configuration change, Modbus write, reset, power-cycle, cable/power intervention or other hardware mutation is a hard boundary requiring separate explicit approval.
 
 ## Remaining evidence lanes
 
-- #576 Raspberry Pi source-lineage metadata acceptance;
 - #575 Unit 201 read-only connectivity diagnosis;
 - #444 end-to-end local user-management acceptance;
-- #201 approved restart/power-cycle and rollover/reset/discontinuity validation;
+- #201 restart/power-cycle and rollover/reset/discontinuity validation;
 - #245 standalone loopback-only Raspberry Pi acceptance;
 - #189 backup/restore/rollback/power-loss acceptance;
 - KK2/Unit 115 field retest.
+
+Open Dependabot PRs remain isolated dependency lanes and are not selected ahead of the current product/runtime defect.
 
 ## Safety boundaries
 

@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
   "accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-  "last_reconciled_repository_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+  "last_reconciled_repository_sha": "20221323fe891e3111cf4af3f51d4e182ba67ce3",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 576,
-    "selection_status": "hard_blocked_waiting_separate_user_approval",
+    "selected_issue": 575,
+    "selection_status": "ready",
     "ready_issue_count": 1,
-    "reason": "Issue #576 software is merged and exact-head CI is GREEN. The remaining action writes bounded version-management metadata on the controlled Raspberry Pi and requires a new separate Product Owner approval. Issue #575 remains independently Ready."
+    "reason": "Issue #576 software and Raspberry Pi runtime acceptance are complete. Current Ready audit returns only Issue #575 as a product Ready Work Package. Open Dependabot PRs remain separate dependency lanes and do not supersede the active Unit 201 runtime defect."
   },
   "tasks": [
     {
@@ -35,14 +35,20 @@
       "issue": 576,
       "pull_request": 579,
       "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-      "status": "software_merged_runtime_acceptance_pending",
+      "status": "completed_software_ci_and_pi_runtime_acceptance",
       "priority": "high",
       "merge_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
       "final_pr_head_sha": "cbb0dfba44d8d6cce256ffbf45b8577a9d114629",
       "ci": "PASS_3564",
       "telemetry_service": "PASS_1744",
       "software_acceptance": "PASS",
-      "pi_runtime_acceptance": "PENDING_SEPARATE_APPROVAL"
+      "pi_runtime_acceptance": "PASS",
+      "source_commit": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+      "deployment_authority": "controlled_source_deployment",
+      "known_packaged_release": false,
+      "manual_update_check": "PASS_CANDIDATE_DISCOVERED_FAIL_CLOSED_CURRENT_RELEASE_UNVERIFIED",
+      "automatic_updates_enabled": false,
+      "automatic_update_schedule": "02:00"
     },
     {
       "id": "NEXOLAB-566",
@@ -60,7 +66,8 @@
       "issue": 575,
       "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
       "status": "ready",
-      "priority": "high"
+      "priority": "high",
+      "runtime_fact": "Device Agent workers healthy while Unit 201 remains timeout-only and in cooldown"
     },
     {
       "id": "NEXOLAB-444",
@@ -85,34 +92,39 @@
     }
   ],
   "active_work_package": {
-    "issue": 576,
-    "title": "Raspberry Pi acceptance of trusted source deployment lineage evidence",
-    "type": "physical_runtime_acceptance",
-    "status": "hard_blocked_waiting_separate_user_approval"
+    "issue": 575,
+    "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
+    "type": "read_only_runtime_diagnosis",
+    "status": "ready"
   },
   "next_work_package": {
-    "issue": 576,
-    "title": "Run bounded source-adoption metadata acceptance on Raspberry Pi",
-    "status": "hard_boundary_requires_separate_user_approval"
+    "issue": 575,
+    "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
+    "status": "ready"
   },
   "verification": {
     "repository_accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-    "issue_576_final_pr_head": "cbb0dfba44d8d6cce256ffbf45b8577a9d114629",
-    "issue_576_ci": "PASS_3564",
-    "issue_576_telemetry_service": "PASS_1744",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "runtime_evidence": "runtime/deployments/20260818T131726Z",
-    "source_adoption_performed": false,
-    "manual_update_check": "BLOCKED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
+    "issue_576_source_adoption": "PASS",
+    "source_deployment_authority": "controlled_source_deployment",
+    "source_runtime_state_known": true,
+    "source_known_packaged_release": false,
+    "source_schema_head": "20260807_0024",
+    "manual_update_check": "CANDIDATE_DISCOVERED",
+    "manual_update_current_commit": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+    "manual_update_target_commit": "20221323fe891e3111cf4af3f51d4e182ba67ce3",
+    "manual_update_green_revision_verified": true,
+    "manual_update_activation_eligible": false,
+    "manual_update_blocked_reason": "current_release_unverified",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
+    "api_database_mqtt_readiness": "PASS",
+    "device_agent_worker_invariant": "PASS_1_OF_1",
+    "telemetry_advancing": true,
     "unit_201_runtime_state": "DEGRADED_TIMEOUT_COOLDOWN_ISSUE_575"
   },
   "independent_pending_lanes": [
-    {
-      "issue": 576,
-      "status": "hardware_runtime_acceptance_requires_separate_approval"
-    },
     {
       "issue": 575,
       "status": "ready"
