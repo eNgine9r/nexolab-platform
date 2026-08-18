@@ -47,46 +47,42 @@ export function getSupabaseAuthClient(): SupabaseClient | null {
   return client;
 }
 
-/**
- * Compatibility entry point for production clients that predate auth-runtime.ts.
- * Local authentication must still rotate through the local refresh-token provider;
- * never fall back to a stale in-memory bearer token.
- */
 export function createRuntimeCredentialProvider(organizationId: string | null): SecurityCredentialProvider {
   const resolvedOrganizationId =
     organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
-  const providerKind = (process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER ?? "supabase").trim().toLowerCase();
-  const localApiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim() ?? "";
-  const providerScope = providerKind === "local" ? localApiBaseUrl : "";
-  const cacheKey = `${providerKind}:${providerScope}:${resolvedOrganizationId ?? "__default_organization__"}`;
+  const providerKind = process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER ?? "supabase";
+
+  if (providerKind === "local") {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+    if (!apiBaseUrl) {
+      return async (): Promise<SecurityCredentialSnapshot> => {
+        const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+        setSecurityCredentials(snapshot);
+        return snapshot;
+      };
+    }
+    return createLocalCredentialProvider(apiBaseUrl, resolvedOrganizationId);
+  }
+
+  const cacheKey = `${providerKind}:${resolvedOrganizationId ?? "__default_organization__"}`;
   const cached = runtimeCredentialProviders.get(cacheKey);
   if (cached) return cached;
 
-  let provider: SecurityCredentialProvider;
-  if (providerKind === "acceptance") {
-    provider = async (): Promise<SecurityCredentialSnapshot> => {
-      if (typeof window === "undefined") {
-        return { accessToken: null, organizationId: resolvedOrganizationId };
-      }
-      const snapshot = {
-        accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
-        organizationId:
-          window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? resolvedOrganizationId,
-      };
-      setSecurityCredentials(snapshot);
-      return snapshot;
-    };
-  } else if (providerKind === "local") {
-    provider = localApiBaseUrl
-      ? createLocalCredentialProvider(localApiBaseUrl, resolvedOrganizationId)
-      : async (): Promise<SecurityCredentialSnapshot> => {
-          const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+  const provider =
+    providerKind === "acceptance"
+      ? async (): Promise<SecurityCredentialSnapshot> => {
+          if (typeof window === "undefined") {
+            return { accessToken: null, organizationId: resolvedOrganizationId };
+          }
+          const snapshot = {
+            accessToken: window.sessionStorage.getItem(ACCEPTANCE_TOKEN_KEY),
+            organizationId:
+              window.sessionStorage.getItem(ACCEPTANCE_ORGANIZATION_KEY) ?? resolvedOrganizationId,
+          };
           setSecurityCredentials(snapshot);
           return snapshot;
-        };
-  } else {
-    provider = createSupabaseCredentialProvider(resolvedOrganizationId);
-  }
+        }
+      : createSupabaseCredentialProvider(resolvedOrganizationId);
 
   runtimeCredentialProviders.set(cacheKey, provider);
   return provider;
