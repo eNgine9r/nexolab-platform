@@ -69,7 +69,6 @@ def default_policy() -> dict[str, Any]:
         "schedule_local_time": DEFAULT_SCHEDULE,
         "updated_at": None,
         "updated_by": None,
-        "error_code": None,
     }
 
 
@@ -94,7 +93,6 @@ def save_policy(root: Path, enabled: bool, actor: str) -> dict[str, Any]:
         "schedule_local_time": DEFAULT_SCHEDULE,
         "updated_at": now(),
         "updated_by": actor,
-        "error_code": None,
     }
     atomic_json(root / "update-policy.json", policy)
     return policy
@@ -182,14 +180,12 @@ def discover(
                 "repository_mismatch",
                 "Configured origin is not the NEXOLAB repository",
             )
-
         branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD", git_user=git_user)
         if branch != EXPECTED_BRANCH:
             raise CheckBlocked(
                 "branch_mismatch",
                 "Update discovery is allowed only from main",
             )
-
         tracked_changes = git(
             repo,
             "status",
@@ -202,14 +198,12 @@ def discover(
                 "tracked_worktree_dirty",
                 "Tracked local changes block update discovery",
             )
-
         current = result["current_commit"]
         if not current:
             raise CheckBlocked(
                 "current_revision_unknown",
                 "Current deployed source commit is unknown",
             )
-
         if fetch_remote:
             fetch = subprocess.run(
                 git_command(
@@ -230,7 +224,6 @@ def discover(
                     "github_unavailable",
                     "GitHub/origin is unavailable",
                 )
-
         target = git(
             repo,
             "rev-parse",
@@ -243,7 +236,6 @@ def discover(
             result["result_code"] = "up_to_date"
             result["message"] = "Installed revision matches origin/main."
             return finalize(root, result)
-
         ancestor = subprocess.run(
             git_command(
                 repo,
@@ -263,7 +255,6 @@ def discover(
                 "non_fast_forward",
                 "origin/main is not fast-forward reachable from deployed lineage",
             )
-
         result["status"] = "completed"
         result["result_code"] = "candidate_discovered"
         result["message"] = (
@@ -342,7 +333,6 @@ def process_requested_check(
     pending = sorted(request_dir.glob("*.json"))
     if not pending:
         return {"status": "idle", "result_code": "no_pending_update_check"}
-
     request_path = pending[0]
     try:
         request = _validate_check_request(read_json(request_path))
@@ -367,7 +357,6 @@ def process_requested_check(
         }
         atomic_json(root / "update-check.json", failed)
         return failed
-
     result = discover(
         root,
         repo,
@@ -391,20 +380,16 @@ def main() -> int:
     parser.add_argument("--repo", type=Path, default=DEFAULT_REPOSITORY_PATH)
     parser.add_argument("--git-user", default=DEFAULT_GIT_USER)
     sub = parser.add_subparsers(dest="command", required=True)
-
     policy = sub.add_parser("set-policy")
     policy.add_argument("state", choices=("on", "off"))
     policy.add_argument("--actor", required=True)
-
     check_now = sub.add_parser("check-now")
     check_now.add_argument("--actor", default="system:update-timer")
     check_now.add_argument("--no-fetch", action="store_true")
-
     sub.add_parser("scheduled-check")
     sub.add_parser("run-requested-check")
     sub.add_parser("status")
     args = parser.parse_args()
-
     args.root.mkdir(parents=True, exist_ok=True, mode=0o750)
     lock_path = args.root / "update-plane.lock"
     with lock_path.open("a+", encoding="utf-8") as lock:
