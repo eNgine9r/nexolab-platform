@@ -3,54 +3,29 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T12:45:00Z",
+  "timestamp": "2026-08-18T12:55:00Z",
   "actor": "ChatGPT",
-  "event": "issue_548_merged_post_merge_state_reconciliation",
+  "event": "post_issue_548_state_finalized_at_raspberry_pi_approval_boundary",
   "repository_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
   "accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "main_repository_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
+  "last_reconciled_repository_sha": "0339bef188ac482a6b77450c3b14861dc58ed29e",
   "deployed_product_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
-  "issue_548": {
-    "issue": 548,
-    "pull_request": 559,
-    "final_pr_head_sha": "76120bef1108086fdc1648cddbcf9bd293502e6e",
-    "merge_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-    "status": "MERGED_SOFTWARE_CI_OFFLINE_ACCEPTED_RUNTIME_UNVERIFIED",
-    "exact_head_verification": "PASS_ALL_13_TRIGGERED_WORKFLOWS",
-    "final_diff_security_offline_audit": "PASS",
-    "raspberry_pi_touched": false
-  },
-  "issue_571": {
-    "issue": 571,
-    "branch": "chore/571-reconcile-548-post-merge-state",
-    "type": "state_only_reconciliation",
-    "status": "IN_PROGRESS",
-    "scope": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "exact_head_checks": "PENDING_AFTER_STATE_COMMITS"
-  },
-  "verification": {
-    "issue_548_final_pr_head_sha": "76120bef1108086fdc1648cddbcf9bd293502e6e",
-    "ci_3548": "PASS",
-    "telemetry_service_1738": "PASS",
-    "offline_bundle_1465": "PASS",
-    "offline_auth_594": "PASS",
-    "authenticated_dashboard_2055": "PASS",
-    "device_agent_fleet_925": "PASS",
-    "capacity_release_gate_732": "PASS",
-    "disaster_recovery_browser_916": "PASS",
-    "disaster_recovery_tls_fleet_866": "PASS",
-    "mqtt_tls_fleet_875": "PASS",
-    "broker_control_836": "PASS",
-    "refrigeration_browser_1863": "PASS",
-    "container_supply_chain_905": "PASS",
-    "offline_disconnected_start": "PASS",
-    "offline_update_rollback_persistent_data_preservation": "PASS",
-    "issue_571_state_only_exact_head": "PENDING"
+  "completed_work": {
+    "issue_548": {
+      "issue": 548,
+      "pull_request": 559,
+      "merge_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
+      "final_pr_head_sha": "76120bef1108086fdc1648cddbcf9bd293502e6e",
+      "status": "MERGED_SOFTWARE_CI_OFFLINE_ACCEPTED_RUNTIME_UNVERIFIED",
+      "exact_head_verification": "PASS_ALL_13_TRIGGERED_WORKFLOWS"
+    },
+    "issue_571": {
+      "issue": 571,
+      "pull_request": 572,
+      "merge_sha": "0339bef188ac482a6b77450c3b14861dc58ed29e",
+      "status": "COMPLETED_STATE_ONLY",
+      "exact_head_ci": "PASS"
+    }
   },
   "deployed_runtime": {
     "code_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
@@ -59,20 +34,20 @@
     "auth_mode": "jwt",
     "local_auth_overlay": true,
     "post_548_merge_deployment_performed": false,
-    "issue_548_hardware_acceptance": "UNVERIFIED",
-    "next_deployment": "REQUIRES_SEPARATE_EXPLICIT_USER_APPROVAL"
+    "issue_548_hardware_acceptance": "UNVERIFIED"
   },
-  "issue_state": {
-    "571": "open_state_reconciliation_in_progress",
-    "548": "closed_merged_software_offline_accepted_runtime_unverified",
-    "566": "in_progress_permanent_fix_redeploy_and_token_rotation_pending_approval",
-    "560": "closed_done_software_offline_verified_runtime_acceptance_pending_issue_566",
-    "444": "needs_validation",
-    "201": "needs_validation",
-    "245": "needs_validation",
-    "189": "blocked_hardware_evidence"
+  "current_boundary": {
+    "issue": 566,
+    "title": "Controlled Raspberry Pi deployment and combined post-merge runtime acceptance",
+    "status": "HARD_BLOCKED_WAITING_USER_APPROVAL",
+    "approval_required_before": [
+      "Raspberry Pi repository update",
+      "deployment script execution",
+      "service restart or host installation",
+      "runtime cutover or hardware acceptance"
+    ]
   },
-  "next_action": "Complete Issue #571 exact-head checks and merge the state-only reconciliation. Then stop before any Raspberry Pi deployment and request separate explicit user approval for the controlled deployment/acceptance of merged main 9732b68b0d14e4056e5773e0a9bec3f3741e267f.",
+  "next_action": "Stop. Request separate explicit user approval before any Raspberry Pi change. After approval, perform controlled deployment of the accepted product baseline and collect combined #566/#560/#548 runtime, token-rotation, offline/update-plane, capacity/backup and telemetry evidence.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
