@@ -1,0 +1,17 @@
+[Unit]
+Description=NEXOLAB scheduled GitHub update discovery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/nexolab/update-orchestrator.env
+ExecStart=/usr/bin/python3 /usr/local/lib/nexolab/nexolab-update-orchestrator.py --root $NEXOLAB_VERSION_ROOT --repo $NEXOLAB_REPOSITORY_PATH --git-user $NEXOLAB_GIT_USER scheduled-check
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/nexolab/version-management /home/nexolab/nexolab-platform/.git

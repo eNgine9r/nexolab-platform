@@ -12,6 +12,6 @@ ExecStart=/usr/bin/python3 /usr/local/lib/nexolab/nexolab-version-manager.py run
 UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectHome=true
+ProtectHome=read-only
 ProtectSystem=strict
 ReadWritePaths=/var/lib/nexolab/version-management /var/backups/nexolab

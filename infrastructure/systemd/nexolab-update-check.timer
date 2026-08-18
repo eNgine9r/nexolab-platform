@@ -1,0 +1,11 @@
+[Unit]
+Description=NEXOLAB daily update discovery at 02:00 local host time
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+AccuracySec=1min
+RandomizedDelaySec=0
+Unit=nexolab-update-check.service
+
+[Install]
+WantedBy=timers.target

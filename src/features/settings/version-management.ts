@@ -1,3 +1,5 @@
+import { versionReconnectDelayMs } from "./version-reconnect";
+
 export type VersionAction = "update" | "rollback";
 
 export type CurrentVersion = {
@@ -28,6 +30,14 @@ export type VersionCatalogItem = {
   manifestSha256: string;
 };
 
+export type VersionOperationPhase =
+  | "verifying_package"
+  | "checking_capacity"
+  | "creating_backup"
+  | "applying_update"
+  | "verifying_runtime"
+  | "done";
+
 export type VersionOperation = {
   id: string;
   actorSubject: string;
@@ -40,7 +50,47 @@ export type VersionOperation = {
   startedAt: string;
   endedAt: string | null;
   backupEvidenceId: string | null;
+  capacityEvidenceId: string | null;
   resultCode: string | null;
+  phase: VersionOperationPhase | null;
+  phaseStatus: "running" | "succeeded" | "failed" | null;
+  completedPhases: VersionOperationPhase[];
+  safeMessage: string | null;
+};
+
+export type UpdatePolicy = {
+  automaticUpdatesEnabled: boolean;
+  scheduleLocalTime: "02:00";
+  updatedAt: string | null;
+  updatedBy: string | null;
+  errorCode: string | null;
+};
+
+export type UpdateCheck = {
+  status: "checking" | "completed" | "blocked" | "failed";
+  source: "manual" | "scheduled" | "host";
+  actor: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  resultCode: string | null;
+  message: string | null;
+  currentCommit: string | null;
+  targetCommit: string | null;
+  candidateAvailable: boolean;
+  candidateBundleId: string | null;
+  greenRevisionVerified: boolean;
+  activationEligible: boolean;
+  automaticActivationOperationId: string | null;
+  blockedReason: string | null;
+};
+
+export type QueuedUpdateCheck = {
+  id: string;
+  actorSubject: string;
+  source: "manual";
+  status: "queued";
+  requestedAt: string;
+  reason: string | null;
 };
 
 export type VersionSnapshot = {
@@ -49,6 +99,8 @@ export type VersionSnapshot = {
   history: VersionOperation[];
   activeOperation: VersionOperation | null;
   rejectedPackages: { directory: string; code: string; message: string }[];
+  updatePolicy: UpdatePolicy;
+  updateCheck: UpdateCheck | null;
   offline: true;
 };
 
@@ -62,8 +114,11 @@ export class VersionManagementApiError extends Error {
   }
 }
 
+const MAX_VERSION_RECONNECT_RETRIES = 5;
+
 export class VersionManagementClient {
   private readonly base: string;
+
   constructor(
     apiBaseUrl: string,
     private readonly fetchImpl: typeof fetch,
@@ -72,7 +127,34 @@ export class VersionManagementClient {
   }
 
   async read(): Promise<VersionSnapshot> {
-    return parseSnapshot(await this.request("", { method: "GET" }));
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return parseSnapshot(await this.request("", { method: "GET" }));
+      } catch (error) {
+        if (attempt >= MAX_VERSION_RECONNECT_RETRIES || !shouldRetryVersionRead(error)) {
+          throw error;
+        }
+        await waitForReconnect(versionReconnectDelayMs(attempt));
+      }
+    }
+  }
+
+  async setAutomaticUpdates(enabled: boolean): Promise<UpdatePolicy> {
+    return parseUpdatePolicy(
+      await this.request("/update/policy", {
+        method: "PUT",
+        body: JSON.stringify({ automatic_updates_enabled: enabled }),
+      }),
+    );
+  }
+
+  async requestUpdateCheck(reason?: string): Promise<QueuedUpdateCheck> {
+    return parseQueuedUpdateCheck(
+      await this.request("/update/checks", {
+        method: "POST",
+        body: JSON.stringify({ reason: reason?.trim() || null }),
+      }),
+    );
   }
 
   async requestAction(input: {
@@ -98,7 +180,10 @@ export class VersionManagementClient {
     const response = await this.fetchImpl(`${this.base}/api/v1/system/version${path}`, {
       ...init,
       cache: "no-store",
-      headers: { Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}) },
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+      },
     });
     const payload = await readJson(response);
     if (!response.ok) {
@@ -113,13 +198,25 @@ export class VersionManagementClient {
   }
 }
 
+function shouldRetryVersionRead(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!(error instanceof VersionManagementApiError)) return false;
+  if (error.code === "invalid_version_response") return false;
+  return error.status === 502 || error.status === 503 || error.status === 504;
+}
+
+async function waitForReconnect(delayMs: number): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+}
+
 function parseSnapshot(value: unknown): VersionSnapshot {
   const row = record(value);
   if (
     !row ||
     !Array.isArray(row.catalog) ||
     !Array.isArray(row.history) ||
-    !Array.isArray(row.rejected_packages)
+    !Array.isArray(row.rejected_packages) ||
+    !record(row.update_policy)
   ) {
     throw invalidResponse();
   }
@@ -136,6 +233,8 @@ function parseSnapshot(value: unknown): VersionSnapshot {
       if (!directory || !code || !message) throw invalidResponse();
       return { directory, code, message };
     }),
+    updatePolicy: parseUpdatePolicy(row.update_policy),
+    updateCheck: row.update_check === null ? null : parseUpdateCheck(row.update_check),
     offline: true,
   };
 }
@@ -153,8 +252,9 @@ function parseCurrent(value: unknown): CurrentVersion {
     "deployed_at",
     "health",
   ] as const;
-  if (!row || required.some((key) => !text(row[key])) || typeof row.known_packaged_release !== "boolean")
+  if (!row || required.some((key) => !text(row[key])) || typeof row.known_packaged_release !== "boolean") {
     throw invalidResponse();
+  }
   return {
     bundleId: text(row.bundle_id)!,
     release: text(row.release)!,
@@ -174,8 +274,9 @@ function parseCurrent(value: unknown): CurrentVersion {
 
 function parseCatalog(value: unknown): VersionCatalogItem {
   const row = record(value);
-  if (!row || !Array.isArray(row.upgrade_from) || !Array.isArray(row.runtime_compatible_schema_heads))
+  if (!row || !Array.isArray(row.upgrade_from) || !Array.isArray(row.runtime_compatible_schema_heads)) {
     throw invalidResponse();
+  }
   const fields = [
     "bundle_id",
     "release",
@@ -199,6 +300,67 @@ function parseCatalog(value: unknown): VersionCatalogItem {
   };
 }
 
+function parseUpdatePolicy(value: unknown): UpdatePolicy {
+  const row = record(value);
+  if (!row || typeof row.automatic_updates_enabled !== "boolean" || row.schedule_local_time !== "02:00") {
+    throw invalidResponse();
+  }
+  return {
+    automaticUpdatesEnabled: row.automatic_updates_enabled,
+    scheduleLocalTime: "02:00",
+    updatedAt: optionalText(row.updated_at),
+    updatedBy: optionalText(row.updated_by),
+    errorCode: optionalText(row.error_code),
+  };
+}
+
+function parseUpdateCheck(value: unknown): UpdateCheck {
+  const row = record(value);
+  const checkStatus = row?.status;
+  const source = row?.source;
+  if (
+    !row ||
+    !["checking", "completed", "blocked", "failed"].includes(String(checkStatus)) ||
+    !["manual", "scheduled", "host"].includes(String(source)) ||
+    typeof row.candidate_available !== "boolean" ||
+    typeof row.activation_eligible !== "boolean"
+  ) {
+    throw invalidResponse();
+  }
+  return {
+    status: checkStatus as UpdateCheck["status"],
+    source: source as UpdateCheck["source"],
+    actor: requiredText(row.actor),
+    startedAt: optionalText(row.started_at),
+    completedAt: optionalText(row.completed_at),
+    resultCode: optionalText(row.result_code),
+    message: optionalText(row.message),
+    currentCommit: optionalText(row.current_commit),
+    targetCommit: optionalText(row.target_commit),
+    candidateAvailable: row.candidate_available,
+    candidateBundleId: optionalText(row.candidate_bundle_id),
+    greenRevisionVerified: row.green_revision_verified === true,
+    activationEligible: row.activation_eligible,
+    automaticActivationOperationId: optionalText(row.automatic_activation_operation_id),
+    blockedReason: optionalText(row.blocked_reason),
+  };
+}
+
+function parseQueuedUpdateCheck(value: unknown): QueuedUpdateCheck {
+  const row = record(value);
+  if (!row || row.source !== "manual" || row.status !== "queued") {
+    throw invalidResponse();
+  }
+  return {
+    id: requiredText(row.id),
+    actorSubject: requiredText(row.actor_subject),
+    source: "manual",
+    status: "queued",
+    requestedAt: requiredText(row.requested_at),
+    reason: optionalText(row.reason),
+  };
+}
+
 function parseOperation(value: unknown): VersionOperation {
   const row = record(value);
   const action = row?.action;
@@ -207,8 +369,21 @@ function parseOperation(value: unknown): VersionOperation {
     !row ||
     (action !== "update" && action !== "rollback") ||
     !["queued", "running", "succeeded", "failed"].includes(String(operationStatus))
-  )
+  ) {
     throw invalidResponse();
+  }
+  const phase = parseOperationPhase(row.phase);
+  const phaseStatus = row.phase_status;
+  if (row.phase_status != null && !["running", "succeeded", "failed"].includes(String(phaseStatus))) {
+    throw invalidResponse();
+  }
+  const completedPhases = Array.isArray(row.completed_phases)
+    ? row.completed_phases.map((item) => {
+        const parsed = parseOperationPhase(item);
+        if (!parsed) throw invalidResponse();
+        return parsed;
+      })
+    : [];
   return {
     id: requiredText(row.id),
     actorSubject: requiredText(row.actor_subject),
@@ -221,8 +396,30 @@ function parseOperation(value: unknown): VersionOperation {
     startedAt: requiredText(row.started_at),
     endedAt: optionalText(row.ended_at),
     backupEvidenceId: optionalText(row.backup_evidence_id),
+    capacityEvidenceId: optionalText(row.capacity_evidence_id),
     resultCode: optionalText(row.result_code),
+    phase,
+    phaseStatus: phaseStatus == null ? null : (phaseStatus as VersionOperation["phaseStatus"]),
+    completedPhases,
+    safeMessage: optionalText(row.safe_message),
   };
+}
+
+function parseOperationPhase(value: unknown): VersionOperationPhase | null {
+  if (value == null) return null;
+  if (
+    ![
+      "verifying_package",
+      "checking_capacity",
+      "creating_backup",
+      "applying_update",
+      "verifying_runtime",
+      "done",
+    ].includes(String(value))
+  ) {
+    throw invalidResponse();
+  }
+  return value as VersionOperationPhase;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -230,17 +427,21 @@ function record(value: unknown): Record<string, unknown> | null {
     ? (value as Record<string, unknown>)
     : null;
 }
+
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
+
 function optionalText(value: unknown): string | null {
   return value == null ? null : text(value);
 }
+
 function requiredText(value: unknown): string {
   const valueText = text(value);
   if (!valueText) throw invalidResponse();
   return valueText;
 }
+
 async function readJson(response: Response): Promise<unknown> {
   const body = await response.text();
   try {
@@ -249,6 +450,7 @@ async function readJson(response: Response): Promise<unknown> {
     return null;
   }
 }
+
 function invalidResponse(): VersionManagementApiError {
   return new VersionManagementApiError(
     502,

@@ -21,12 +21,13 @@
   },
   "repository_product_baseline_sha": "60797b22e461e3078b535aaaf5b885411eb63aef",
   "accepted_product_sha": "60797b22e461e3078b535aaaf5b885411eb63aef",
+  "main_repository_sha": "0829e758700385e15fa496e160790b061625ad94",
   "deployed_product_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
   "selection_state": {
     "selected_issue": 548,
-    "selection_status": "resume_after_state_reconciliation",
+    "selection_status": "implementation_green_state_reconciliation_in_progress",
     "ready_issue_count": 0,
-    "reason": "Critical deployment-auth defect #567 is software-complete and merged through PR #568. State-only #569 reconciles the accepted/deployed boundary, after which Issue #548 resumes through existing draft PR #559."
+    "reason": "Issue #548 implementation on PR #559 passed all 13 exact-head workflows at f068192268bed20afbd4890f20f4c52d21086f71. Final state-only reconciliation is being committed before a fresh exact-head check set, Ready transition and GREEN merge."
   },
   "tasks": [
     {
@@ -38,7 +39,6 @@
       "priority": "critical",
       "merge_sha": "60797b22e461e3078b535aaaf5b885411eb63aef",
       "software_acceptance": "PASS",
-      "ci_run": 3491,
       "pi_repository_backed_acceptance": "PENDING_APPROVED_DEPLOYMENT"
     },
     {
@@ -49,9 +49,7 @@
       "priority": "critical",
       "deployed_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
       "runtime_evidence": "runtime/deployments/20260818T083157Z",
-      "deployment_script": "PASS",
-      "manual_dashboard_auth_correction": "PASS_FOR_OPERATOR_LOGIN_DIAGNOSIS_ONLY",
-      "remaining_validation": "approved deployment of 60797b22 or newer plus full access-token rotation observation"
+      "remaining_validation": "separately approved deployment of the post-548 merged main plus full access-token rotation and version-management runtime acceptance"
     },
     {
       "id": "NEXOLAB-560",
@@ -66,34 +64,18 @@
       "post_fix_pi_runtime_acceptance": "PENDING_ISSUE_566"
     },
     {
-      "id": "NEXOLAB-557",
-      "issue": 557,
-      "pull_request": 558,
-      "title": "Send organization scope before bearer-token assertion in authenticated central smoke",
-      "status": "completed_software_ci_offline_runtime_verified",
-      "priority": "critical",
-      "merge_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
-      "runtime_acceptance": "PASS",
-      "runtime_evidence": "runtime/deployments/20260818T073437Z"
-    },
-    {
-      "id": "NEXOLAB-551",
-      "issue": 551,
-      "pull_request": 552,
-      "title": "Make central smoke gate compatible with fail-closed LOCAL_LAN authentication",
-      "status": "completed_software_ci_offline_runtime_verified",
-      "priority": "critical",
-      "merge_sha": "9c8f205fb17452205c5905eaea49ce878834a9c4",
-      "runtime_acceptance": "PASS_VIA_FOLLOWUP_557_558",
-      "runtime_evidence": "runtime/deployments/20260818T073437Z"
-    },
-    {
       "id": "NEXOLAB-548",
       "issue": 548,
       "pull_request": 559,
       "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
-      "status": "in_progress_resume_after_569",
-      "priority": "high"
+      "status": "implementation_green_state_reconciliation_in_progress",
+      "priority": "high",
+      "branch": "feat/548-github-update-orchestration",
+      "implementation_head_sha": "f068192268bed20afbd4890f20f4c52d21086f71",
+      "software_acceptance": "PASS",
+      "offline_acceptance": "PASS",
+      "security_audit": "PASS",
+      "runtime_acceptance": "PENDING_SEPARATE_PI_APPROVAL"
     },
     {
       "id": "NEXOLAB-444",
@@ -101,7 +83,6 @@
       "title": "Restore LOCAL_LAN user administration API availability",
       "status": "needs_validation",
       "priority": "critical",
-      "runtime_list_api": "PASS",
       "remaining_validation": "real create/manage user flow plus non-admin authorization/frontend diagnostic acceptance"
     },
     {
@@ -122,45 +103,55 @@
     }
   ],
   "active_work_package": {
-    "issue": 569,
-    "title": "Reconcile LOCAL_LAN dashboard auth deployment fix state",
-    "type": "state_only",
-    "status": "in_progress"
-  },
-  "next_work_package": {
     "issue": 548,
     "pull_request": 559,
+    "branch": "feat/548-github-update-orchestration",
     "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
-    "status": "resume_in_progress"
+    "type": "product_implementation",
+    "status": "state_reconciliation_before_ready"
+  },
+  "next_work_package": {
+    "issue": 566,
+    "title": "Controlled Raspberry Pi deployment and acceptance of the post-548 merged main",
+    "status": "hard_boundary_requires_separate_user_approval_after_548_merge"
   },
   "verification": {
     "repository_accepted_sha": "60797b22e461e3078b535aaaf5b885411eb63aef",
-    "latest_software_ci_status": "PASS_CI_3491",
-    "latest_offline_bundle_status": "PASS_PREEXISTING_AUTH_BASELINE_NOT_TRIGGERED_BY_SCRIPTS_ONLY_568",
+    "main_repository_sha": "0829e758700385e15fa496e160790b061625ad94",
+    "issue_548_implementation_head_sha": "f068192268bed20afbd4890f20f4c52d21086f71",
+    "issue_548_implementation_exact_head": "PASS_ALL_13_TRIGGERED_WORKFLOWS",
+    "ci_3544": "PASS",
+    "telemetry_service_1734": "PASS",
+    "offline_bundle_1461": "PASS",
+    "offline_auth_590": "PASS",
+    "authenticated_dashboard_2051": "PASS",
+    "device_agent_fleet_921": "PASS",
+    "capacity_release_gate_728": "PASS",
+    "disaster_recovery_browser_912": "PASS",
+    "disaster_recovery_tls_fleet_862": "PASS",
+    "mqtt_tls_fleet_871": "PASS",
+    "broker_control_832": "PASS",
+    "refrigeration_browser_1859": "PASS",
+    "container_supply_chain_901": "PASS",
+    "final_diff_security_offline_audit": "PASS",
+    "state_only_exact_head_checks": "PENDING_AFTER_PROJECT_STATE_COMMIT",
     "runtime_code_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
     "runtime_evidence": "runtime/deployments/20260818T083157Z",
-    "deployment_status": "DEPLOYMENT_PASSED_MANUAL_FRONTEND_AUTH_CORRECTION_REQUIRED",
-    "post_fix_567_pi_runtime_acceptance": "PENDING",
-    "post_fix_560_token_rotation_acceptance": "PENDING",
+    "post_fix_pi_runtime_acceptance": "PENDING_SEPARATE_APPROVAL",
     "runtime_mode": "lan",
     "auth_mode": "jwt",
-    "local_auth_overlay": true,
-    "local_admin_login_after_manual_frontend_correction": "PASS",
-    "expected_bus_workers": 1,
-    "active_bus_workers": 1,
-    "workers_healthy": true,
-    "capacity_preflight": "PASS"
+    "local_auth_overlay": true
   },
   "independent_pending_lanes": [
     {
       "issue": 566,
       "status": "needs_runtime_validation",
-      "description": "Permanent #567 fix is merged but requires separately approved Raspberry Pi deployment and full token-rotation observation."
+      "description": "Post-548 merged main requires a separately approved controlled Raspberry Pi deployment and full token-rotation/version-management acceptance."
     },
     {
       "issue": 444,
       "status": "needs_validation",
-      "description": "Deployment/auth blocker cleared; remaining end-to-end user-management acceptance pending."
+      "description": "Remaining end-to-end local user-management acceptance pending."
     },
     {
       "issue": 201,

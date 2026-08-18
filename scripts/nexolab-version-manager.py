@@ -12,9 +12,25 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
+
+
+OPERATION_PHASES = (
+    "verifying_package",
+    "checking_capacity",
+    "creating_backup",
+    "applying_update",
+    "verifying_runtime",
+    "done",
+)
+DEVICE_AGENT_HEALTH_URL = "http://127.0.0.1:8081/health"
+DEFAULT_POST_UPDATE_OBSERVATION_SECONDS = 60
+DEFAULT_POST_UPDATE_POLL_SECONDS = 3
 
 
 class VersionManagerFailure(RuntimeError):
@@ -51,6 +67,27 @@ def atomic_json(path: Path, payload: dict[str, Any]) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def enter_phase(operation_path: Path, operation: dict[str, Any], phase: str) -> None:
+    if phase not in OPERATION_PHASES:
+        raise VersionManagerFailure(f"unsupported operation phase: {phase}")
+    completed = operation.get("completed_phases")
+    if not isinstance(completed, list):
+        completed = []
+    previous = operation.get("phase")
+    if isinstance(previous, str) and previous in OPERATION_PHASES and previous != phase:
+        if previous not in completed:
+            completed.append(previous)
+    operation["completed_phases"] = completed
+    operation["phase"] = phase
+    operation["phase_status"] = "running" if phase != "done" else "succeeded"
+    atomic_json(operation_path, operation)
+
+
+def fail_current_phase(operation: dict[str, Any]) -> None:
+    if operation.get("phase") in OPERATION_PHASES:
+        operation["phase_status"] = "failed"
+
+
 def manifest_digest(bundle_root: Path) -> str:
     return hashlib.sha256((bundle_root / "manifest.json").read_bytes()).hexdigest()
 
@@ -83,7 +120,11 @@ def stage(args: argparse.Namespace) -> None:
             raise VersionManagerFailure("copied bundle identity changed")
         atomic_json(
             temporary / ".nexolab-validated.json",
-            {"schema_version": 1, "manifest_sha256": manifest_digest(temporary), "validated_at": now()},
+            {
+                "schema_version": 1,
+                "manifest_sha256": manifest_digest(temporary),
+                "validated_at": now(),
+            },
         )
         os.chmod(temporary / ".nexolab-validated.json", 0o644)
         os.replace(temporary, destination)
@@ -164,6 +205,119 @@ def deployed_schema_after(action: str, current_schema: str, target_schema: str) 
     raise VersionManagerFailure("unsupported version operation")
 
 
+def run_capacity_preflight(root: Path, operation_id: str) -> str:
+    guard = Path(__file__).resolve().with_name("deploy-capacity-guard.sh")
+    if not guard.is_file():
+        raise VersionManagerFailure("deployment capacity guard is missing")
+    evidence_dir = root / "operation-evidence" / operation_id
+    report = evidence_dir / "capacity-preflight.txt"
+    subprocess.run(
+        [
+            "bash",
+            str(guard),
+            "--repo",
+            str(root),
+            "--audit-dir",
+            str(evidence_dir),
+            "--report",
+            str(report),
+        ],
+        check=True,
+    )
+    if not report.is_file():
+        raise VersionManagerFailure("deployment capacity evidence was not created")
+    facts: dict[str, str] = {}
+    for raw in report.read_text(encoding="utf-8").splitlines():
+        if "=" in raw:
+            key, value = raw.split("=", 1)
+            facts[key] = value
+    if facts.get("status") != "PASS":
+        raise VersionManagerFailure("deployment capacity preflight did not pass")
+    return str(report.relative_to(root))
+
+
+def read_local_json(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "NEXOLAB-version-manager"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (
+        OSError,
+        TimeoutError,
+        UnicodeError,
+        json.JSONDecodeError,
+        urllib.error.URLError,
+    ) as error:
+        raise VersionManagerFailure(f"local runtime verification failed for {url}") from error
+    if not isinstance(payload, dict):
+        raise VersionManagerFailure(f"local runtime verification returned invalid JSON for {url}")
+    return payload
+
+
+def _device_agent_facts(payload: dict[str, Any]) -> tuple[int, int, bool, str | None]:
+    if payload.get("status") != "ok":
+        raise VersionManagerFailure("Device Agent health is not ok after version activation")
+    acquisition = payload.get("acquisition")
+    scheduler = acquisition.get("scheduler") if isinstance(acquisition, dict) else None
+    if not isinstance(scheduler, dict):
+        raise VersionManagerFailure("Device Agent scheduler health evidence is missing")
+    expected = scheduler.get("expected_bus_workers")
+    active = scheduler.get("active_bus_workers")
+    workers_healthy = scheduler.get("workers_healthy")
+    if (
+        not isinstance(expected, int)
+        or isinstance(expected, bool)
+        or expected <= 0
+        or not isinstance(active, int)
+        or isinstance(active, bool)
+        or active != expected
+        or workers_healthy is not True
+    ):
+        raise VersionManagerFailure("Device Agent bus workers are not healthy after version activation")
+    latest = payload.get("latest_values")
+    last_attempt_at = latest.get("last_attempt_at") if isinstance(latest, dict) else None
+    if last_attempt_at is not None and not isinstance(last_attempt_at, str):
+        raise VersionManagerFailure("Device Agent telemetry freshness evidence is invalid")
+    return expected, active, True, last_attempt_at
+
+
+def verify_device_agent_progress(
+    *,
+    observation_seconds: int = DEFAULT_POST_UPDATE_OBSERVATION_SECONDS,
+    poll_seconds: int = DEFAULT_POST_UPDATE_POLL_SECONDS,
+) -> dict[str, Any]:
+    observation_seconds = max(1, observation_seconds)
+    poll_seconds = max(1, min(poll_seconds, observation_seconds))
+    deadline = time.monotonic() + observation_seconds
+    baseline: str | None = None
+    expected = 0
+    active = 0
+
+    while time.monotonic() < deadline:
+        payload = read_local_json(DEVICE_AGENT_HEALTH_URL)
+        expected, active, _, last_attempt_at = _device_agent_facts(payload)
+        if last_attempt_at:
+            if baseline is None:
+                baseline = last_attempt_at
+            elif last_attempt_at != baseline:
+                return {
+                    "status": "verified",
+                    "expected_bus_workers": expected,
+                    "active_bus_workers": active,
+                    "workers_healthy": True,
+                    "baseline_last_attempt_at": baseline,
+                    "advanced_last_attempt_at": last_attempt_at,
+                }
+        time.sleep(poll_seconds)
+
+    if baseline is None:
+        raise VersionManagerFailure("Device Agent produced no telemetry attempt during post-update observation")
+    raise VersionManagerFailure("Device Agent telemetry did not advance during post-update observation")
+
+
 def run_once(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o750)
@@ -194,9 +348,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
     target_root = root / "catalog" / target_id
 
     operation["status"] = "running"
+    operation.setdefault("completed_phases", [])
     atomic_json(operation_path, operation)
     mutation_started = False
     try:
+        enter_phase(operation_path, operation, "verifying_package")
         target = verify_staged_bundle(target_root, target_id)
         schema = target["version_management"]["database_schema"]
         current_schema = str(current["schema_head"])
@@ -206,10 +362,6 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         if current_schema not in schema[compatibility_field]:
             raise VersionManagerFailure("schema compatibility is not explicitly declared")
 
-        backup_id = f"{operation_id}-postgresql.dump"
-        backup_path = args.backup_dir.resolve() / backup_id
-        partial_backup_path = backup_path.with_suffix(".dump.partial")
-        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         current_root = Path(str(current["bundle_root"])).resolve()
         current_manifest = verify_staged_bundle(current_root, str(current["bundle_id"]))
         if (
@@ -217,6 +369,16 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             or current_manifest.get("source_commit") != current.get("source_commit")
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
+
+        enter_phase(operation_path, operation, "checking_capacity")
+        operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
+        atomic_json(operation_path, operation)
+
+        enter_phase(operation_path, operation, "creating_backup")
+        backup_id = f"{operation_id}-postgresql.dump"
+        backup_path = args.backup_dir.resolve() / backup_id
+        partial_backup_path = backup_path.with_suffix(".dump.partial")
+        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         central = compose_args(
             current_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
@@ -247,6 +409,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         operation["backup_evidence_id"] = backup_id
         atomic_json(operation_path, operation)
 
+        enter_phase(operation_path, operation, "applying_update")
         installer = target_root / "scripts" / "install-offline-bundle.sh"
         command = [str(installer), "--central-env", str(args.central_env.resolve())]
         if args.skip_edge:
@@ -257,7 +420,10 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             command.append("--local-auth")
         mutation_started = True
         subprocess.run(command, check=True)
+        operation["offline_bundle_smoke_verified"] = True
+        atomic_json(operation_path, operation)
 
+        enter_phase(operation_path, operation, "verifying_runtime")
         target_central = compose_args(
             target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
@@ -274,6 +440,23 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         )
         if str(expected_schema) not in revision:
             raise VersionManagerFailure("deployed database revision does not match target manifest")
+
+        if args.skip_edge:
+            operation["device_agent_verification"] = {
+                "status": "not_applicable",
+                "reason": "edge_skipped",
+            }
+        else:
+            observation_seconds = int(
+                os.environ.get(
+                    "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
+                    str(DEFAULT_POST_UPDATE_OBSERVATION_SECONDS),
+                )
+            )
+            operation["device_agent_verification"] = verify_device_agent_progress(
+                observation_seconds=observation_seconds
+            )
+        atomic_json(operation_path, operation)
 
         atomic_json(
             root / "current.json",
@@ -297,10 +480,12 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         )
         operation["status"] = "succeeded"
         operation["result_code"] = "verified_ready"
+        enter_phase(operation_path, operation, "done")
     except Exception as error:
         operation["status"] = "failed"
         operation["result_code"] = type(error).__name__
         operation["safe_message"] = str(error)[:500]
+        fail_current_phase(operation)
         if mutation_started:
             current["health"] = "verification_failed"
             current["runtime_state_known"] = False
@@ -354,6 +539,13 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (OSError, KeyError, ValueError, json.JSONDecodeError, subprocess.CalledProcessError, VersionManagerFailure) as error:
+    except (
+        OSError,
+        KeyError,
+        ValueError,
+        json.JSONDecodeError,
+        subprocess.CalledProcessError,
+        VersionManagerFailure,
+    ) as error:
         print(f"NEXOLAB version manager stopped safely: {error}", file=sys.stderr)
         raise SystemExit(1) from error
