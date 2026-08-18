@@ -19,43 +19,17 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
-  "accepted_product_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
-  "last_reconciled_repository_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+  "repository_product_baseline_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "last_reconciled_repository_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 586,
-    "selection_status": "in_progress",
-    "ready_issue_count": 0,
-    "reason": "Issue #586 is the only active implementation package. Browser-closed Raspberry Pi persistence evidence and core CI are PASS. Final-head required gates and merge remain before dependent Issue #587 can become Ready. Issue #585 remains a separate blocked physical restoration lane."
+    "selected_issue": 587,
+    "selection_status": "ready",
+    "ready_issue_count": 1,
+    "reason": "Issue #586 is merged GREEN and closed status:done. GitHub Ready audit returns only Issue #587. Issue #585 remains a separate blocked physical restoration lane; Issue #594/PR #593 is a separate draft lane without Ready priority and does not supersede #587."
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-576",
-      "issue": 576,
-      "pull_request": 579,
-      "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-      "status": "completed_software_ci_and_pi_runtime_acceptance",
-      "priority": "high",
-      "merge_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-      "pi_runtime_acceptance": "PASS"
-    },
-    {
-      "id": "NEXOLAB-566",
-      "issue": 566,
-      "title": "Deploy LOCAL_LAN bearer-token rotation fix to Raspberry Pi",
-      "status": "completed_runtime_acceptance",
-      "priority": "critical",
-      "deployed_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-      "runtime_evidence": "runtime/deployments/20260818T131726Z"
-    },
-    {
-      "id": "NEXOLAB-575",
-      "issue": 575,
-      "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
-      "status": "completed_root_cause_external_rs485_ownership",
-      "priority": "high"
-    },
     {
       "id": "NEXOLAB-584",
       "issue": 584,
@@ -79,24 +53,27 @@
       "issue": 586,
       "pull_request": 592,
       "title": "Prove and repair persistent telemetry history across browser-offline intervals",
-      "status": "in_progress_final_validation",
+      "status": "completed_software_ci_and_pi_runtime_acceptance",
       "priority": "critical",
+      "merge_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
       "browser_closed_persistence": "PASS",
       "runtime_evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
-      "core_ci": "PASS_32179097680"
+      "core_ci": "PASS_32179697028",
+      "authenticated_dashboard_acceptance": "PASS_32179696964",
+      "offline_bundle": "PASS_32179696933"
     },
     {
       "id": "NEXOLAB-587",
       "issue": 587,
       "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-      "status": "blocked_dependency_586",
+      "status": "ready",
       "priority": "high"
     },
     {
       "id": "NEXOLAB-588",
       "issue": 588,
       "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-      "status": "blocked_dependency_586",
+      "status": "blocked_current_wip_sequence",
       "priority": "high"
     },
     {
@@ -112,6 +89,14 @@
       "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
       "status": "blocked_dependency_589",
       "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-594",
+      "issue": 594,
+      "pull_request": 593,
+      "title": "Add read-only MCP gateway over existing NEXOLAB internal APIs",
+      "status": "draft_lane_needs_post_active_wp_audit",
+      "priority": "unclassified"
     },
     {
       "id": "NEXOLAB-444",
@@ -136,19 +121,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 586,
-    "pull_request": 592,
-    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
-    "type": "persistent_telemetry_history_correctness",
-    "status": "in_progress_final_validation"
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
+    "type": "saved_dashboard_persisted_history_export",
+    "status": "ready"
   },
   "next_work_package": {
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "blocked_until_586_green_merge"
+    "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+    "repository_accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -163,8 +147,9 @@
     "issue_586_physical_requests_delta": 343,
     "issue_586_postgresql_rows_delta": 229,
     "issue_586_runtime_evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
-    "issue_586_core_ci": "PASS_32179097680",
-    "issue_586_final_required_gates": "PENDING"
+    "issue_586_core_ci": "PASS_32179697028",
+    "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
+    "issue_586_offline_bundle": "PASS_32179696933"
   },
   "independent_pending_lanes": [
     {
@@ -173,11 +158,11 @@
     },
     {
       "issue": 587,
-      "status": "blocked_dependency_586"
+      "status": "ready"
     },
     {
       "issue": 588,
-      "status": "blocked_dependency_586"
+      "status": "blocked_current_wip_sequence"
     },
     {
       "issue": 589,
@@ -186,6 +171,10 @@
     {
       "issue": 590,
       "status": "blocked_dependency_589"
+    },
+    {
+      "issue": 594,
+      "status": "draft_needs_audit"
     },
     {
       "issue": 444,
