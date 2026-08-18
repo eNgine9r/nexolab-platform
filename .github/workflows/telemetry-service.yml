@@ -5,6 +5,13 @@ on:
     branches: [main]
     paths:
       - "services/telemetry-service/**"
+      - "scripts/nexolab-update-orchestrator.py"
+      - "scripts/nexolab-version-manager.py"
+      - "scripts/deploy-version-manager-service.sh"
+      - "scripts/deploy-capacity-guard.sh"
+      - "scripts/build-offline-bundle.sh"
+      - "scripts/tests/test_nexolab_update_orchestrator*.py"
+      - "scripts/tests/test_nexolab_version_manager.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -16,6 +23,7 @@ on:
       - "infrastructure/compose/m3-*"
       - "infrastructure/compose/m4-*"
       - "infrastructure/observability/**"
+      - "infrastructure/systemd/nexolab-update-*"
       - "docs/adr/**"
       - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
@@ -23,6 +31,13 @@ on:
     branches: [main]
     paths:
       - "services/telemetry-service/**"
+      - "scripts/nexolab-update-orchestrator.py"
+      - "scripts/nexolab-version-manager.py"
+      - "scripts/deploy-version-manager-service.sh"
+      - "scripts/deploy-capacity-guard.sh"
+      - "scripts/build-offline-bundle.sh"
+      - "scripts/tests/test_nexolab_update_orchestrator*.py"
+      - "scripts/tests/test_nexolab_version_manager.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -34,6 +49,7 @@ on:
       - "infrastructure/compose/m3-*"
       - "infrastructure/compose/m4-*"
       - "infrastructure/observability/**"
+      - "infrastructure/systemd/nexolab-update-*"
       - "docs/adr/**"
       - "docs/operations/**"
       - ".github/workflows/telemetry-service.yml"
@@ -89,6 +105,13 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Test GitHub-aware version orchestration contracts
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pytest -q \
+            scripts/tests/test_nexolab_update_orchestrator.py \
+            scripts/tests/test_nexolab_update_orchestrator_requests.py \
+            scripts/tests/test_nexolab_version_manager.py
       - name: Validate central deployment, cutover and M4 recovery contracts
         working-directory: ${{ github.workspace }}
         run: |
