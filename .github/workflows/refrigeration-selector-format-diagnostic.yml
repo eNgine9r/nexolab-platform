@@ -1,0 +1,40 @@
+name: Refrigeration Selector Format Diagnostic
+
+on:
+  push:
+    branches:
+      - feat/546-equipment-map-telemetry-selector
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Format focused files
+        run: >-
+          npx prettier --write
+          src/components/refrigeration/camera-scoped-layout-editor-implementation.tsx
+          src/components/refrigeration/sensor-placement-manager.tsx
+          src/features/refrigeration/sensor-telemetry-selection.test.ts
+          src/features/refrigeration/sensor-telemetry-selection.ts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: equipment-map-selector-formatted
+          path: |
+            src/components/refrigeration/camera-scoped-layout-editor-implementation.tsx
+            src/components/refrigeration/sensor-placement-manager.tsx
+            src/features/refrigeration/sensor-telemetry-selection.test.ts
+            src/features/refrigeration/sensor-telemetry-selection.ts
+          retention-days: 1
