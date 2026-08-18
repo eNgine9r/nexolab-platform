@@ -4,19 +4,17 @@ Updated: 2026-08-18
 
 ## Issue #548 / PR #559 — software merged, no software blocker
 
-Issue #548 is closed and PR #559 is squash-merged into `main` at:
+Issue #548 is closed with `status:done`. PR #559 is squash-merged into the accepted product baseline:
 
 `9732b68b0d14e4056e5773e0a9bec3f3741e267f`
 
-Final PR exact head:
+Final PR exact head `76120bef1108086fdc1648cddbcf9bd293502e6e` passed all 13 triggered workflows. The software/security/offline boundary is accepted; Raspberry Pi runtime acceptance remains unverified.
 
-`76120bef1108086fdc1648cddbcf9bd293502e6e`
+## State reconciliation — completed
 
-All 13 triggered exact-head workflows were GREEN before merge, including CI, Telemetry service, Offline Bundle, Offline Auth, Authenticated Dashboard, Device Agent Fleet, Capacity Release Gate, Disaster Recovery browser/TLS, MQTT TLS, Broker Control, Refrigeration Browser and Container Supply Chain.
+Issue #571 is closed with `status:done`. PR #572 merged the focused post-#548 state reconciliation at `0339bef188ac482a6b77450c3b14861dc58ed29e` after exact-head CI #3550 passed.
 
-The #548 software/security/offline boundary is therefore accepted. Raspberry Pi runtime acceptance is still unverified and must not be inferred from software CI.
-
-## Raspberry Pi deployment — current hard approval boundary
+## Raspberry Pi deployment — current hard blocker
 
 The current Raspberry Pi remains untouched at:
 
@@ -26,9 +24,9 @@ Evidence remains:
 
 `runtime/deployments/20260818T083157Z`
 
-The next product-relevant action is a controlled deployment of merged `main` `9732b68b0d14e4056e5773e0a9bec3f3741e267f`, followed by combined #566/#560/#548 runtime acceptance.
+The next product-relevant Work Package is Issue #566: controlled deployment of the merged NEXOLAB product baseline and combined #566/#560/#548 runtime acceptance.
 
-This is a **hard boundary requiring separate explicit user approval before any Raspberry Pi change, service restart, host installation or cutover**.
+This is a **hard blocker waiting for separate explicit user approval** before any Raspberry Pi change, service restart, host installation or cutover.
 
 Required runtime evidence includes:
 
@@ -38,12 +36,8 @@ Required runtime evidence includes:
 - #548 automatic-update policy default OFF;
 - safe manual update discovery and truthful offline/update-plane behavior;
 - installed 02:00 host-local scheduler/policy state;
-- version-management capacity/backup/package-validation/rollback evidence where exercised;
+- version-management capacity/backup/package-validation/runtime-verification/rollback evidence where exercised;
 - actual Raspberry Pi runtime identity, API/Dashboard readiness, Device Agent health and telemetry freshness.
-
-## Issue #571 — state-only reconciliation
-
-Issue #571 is in progress only to reconcile repository state after the #548 merge. It is not a product or runtime blocker and changes only `.project` files. Its PR must receive exact-head GREEN checks before merge.
 
 ## Deployment capacity
 
