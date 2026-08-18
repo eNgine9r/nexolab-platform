@@ -12,9 +12,12 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
 
 
 OPERATION_PHASES = (
@@ -25,6 +28,9 @@ OPERATION_PHASES = (
     "verifying_runtime",
     "done",
 )
+DEVICE_AGENT_HEALTH_URL = "http://127.0.0.1:8081/health"
+DEFAULT_POST_UPDATE_OBSERVATION_SECONDS = 60
+DEFAULT_POST_UPDATE_POLL_SECONDS = 3
 
 
 class VersionManagerFailure(RuntimeError):
@@ -114,7 +120,11 @@ def stage(args: argparse.Namespace) -> None:
             raise VersionManagerFailure("copied bundle identity changed")
         atomic_json(
             temporary / ".nexolab-validated.json",
-            {"schema_version": 1, "manifest_sha256": manifest_digest(temporary), "validated_at": now()},
+            {
+                "schema_version": 1,
+                "manifest_sha256": manifest_digest(temporary),
+                "validated_at": now(),
+            },
         )
         os.chmod(temporary / ".nexolab-validated.json", 0o644)
         os.replace(temporary, destination)
@@ -226,6 +236,88 @@ def run_capacity_preflight(root: Path, operation_id: str) -> str:
     return str(report.relative_to(root))
 
 
+def read_local_json(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "NEXOLAB-version-manager"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (
+        OSError,
+        TimeoutError,
+        UnicodeError,
+        json.JSONDecodeError,
+        urllib.error.URLError,
+    ) as error:
+        raise VersionManagerFailure(f"local runtime verification failed for {url}") from error
+    if not isinstance(payload, dict):
+        raise VersionManagerFailure(f"local runtime verification returned invalid JSON for {url}")
+    return payload
+
+
+def _device_agent_facts(payload: dict[str, Any]) -> tuple[int, int, bool, str | None]:
+    if payload.get("status") != "ok":
+        raise VersionManagerFailure("Device Agent health is not ok after version activation")
+    acquisition = payload.get("acquisition")
+    scheduler = acquisition.get("scheduler") if isinstance(acquisition, dict) else None
+    if not isinstance(scheduler, dict):
+        raise VersionManagerFailure("Device Agent scheduler health evidence is missing")
+    expected = scheduler.get("expected_bus_workers")
+    active = scheduler.get("active_bus_workers")
+    workers_healthy = scheduler.get("workers_healthy")
+    if (
+        not isinstance(expected, int)
+        or isinstance(expected, bool)
+        or expected <= 0
+        or not isinstance(active, int)
+        or isinstance(active, bool)
+        or active != expected
+        or workers_healthy is not True
+    ):
+        raise VersionManagerFailure("Device Agent bus workers are not healthy after version activation")
+    latest = payload.get("latest_values")
+    last_attempt_at = latest.get("last_attempt_at") if isinstance(latest, dict) else None
+    if last_attempt_at is not None and not isinstance(last_attempt_at, str):
+        raise VersionManagerFailure("Device Agent telemetry freshness evidence is invalid")
+    return expected, active, True, last_attempt_at
+
+
+def verify_device_agent_progress(
+    *,
+    observation_seconds: int = DEFAULT_POST_UPDATE_OBSERVATION_SECONDS,
+    poll_seconds: int = DEFAULT_POST_UPDATE_POLL_SECONDS,
+) -> dict[str, Any]:
+    observation_seconds = max(1, observation_seconds)
+    poll_seconds = max(1, min(poll_seconds, observation_seconds))
+    deadline = time.monotonic() + observation_seconds
+    baseline: str | None = None
+    expected = 0
+    active = 0
+
+    while time.monotonic() < deadline:
+        payload = read_local_json(DEVICE_AGENT_HEALTH_URL)
+        expected, active, _, last_attempt_at = _device_agent_facts(payload)
+        if last_attempt_at:
+            if baseline is None:
+                baseline = last_attempt_at
+            elif last_attempt_at != baseline:
+                return {
+                    "status": "verified",
+                    "expected_bus_workers": expected,
+                    "active_bus_workers": active,
+                    "workers_healthy": True,
+                    "baseline_last_attempt_at": baseline,
+                    "advanced_last_attempt_at": last_attempt_at,
+                }
+        time.sleep(poll_seconds)
+
+    if baseline is None:
+        raise VersionManagerFailure("Device Agent produced no telemetry attempt during post-update observation")
+    raise VersionManagerFailure("Device Agent telemetry did not advance during post-update observation")
+
+
 def run_once(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o750)
@@ -328,6 +420,8 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             command.append("--local-auth")
         mutation_started = True
         subprocess.run(command, check=True)
+        operation["offline_bundle_smoke_verified"] = True
+        atomic_json(operation_path, operation)
 
         enter_phase(operation_path, operation, "verifying_runtime")
         target_central = compose_args(
@@ -346,6 +440,23 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         )
         if str(expected_schema) not in revision:
             raise VersionManagerFailure("deployed database revision does not match target manifest")
+
+        if args.skip_edge:
+            operation["device_agent_verification"] = {
+                "status": "not_applicable",
+                "reason": "edge_skipped",
+            }
+        else:
+            observation_seconds = int(
+                os.environ.get(
+                    "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
+                    str(DEFAULT_POST_UPDATE_OBSERVATION_SECONDS),
+                )
+            )
+            operation["device_agent_verification"] = verify_device_agent_progress(
+                observation_seconds=observation_seconds
+            )
+        atomic_json(operation_path, operation)
 
         atomic_json(
             root / "current.json",
@@ -428,6 +539,13 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (OSError, KeyError, ValueError, json.JSONDecodeError, subprocess.CalledProcessError, VersionManagerFailure) as error:
+    except (
+        OSError,
+        KeyError,
+        ValueError,
+        json.JSONDecodeError,
+        subprocess.CalledProcessError,
+        VersionManagerFailure,
+    ) as error:
         print(f"NEXOLAB version manager stopped safely: {error}", file=sys.stderr)
         raise SystemExit(1) from error
