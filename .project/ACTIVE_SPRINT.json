@@ -21,29 +21,15 @@
   },
   "repository_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
   "accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "last_reconciled_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+  "last_reconciled_repository_sha": "11432d5f0f41164db9621b7567b95466136b574d",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 576,
-    "selection_status": "ready",
-    "ready_issue_count": 2,
-    "reason": "Issue #566 controlled Raspberry Pi deployment and Issue #560 token-rotation runtime acceptance are complete. Issue #576 is the direct dependency for trusted current-release evidence required by the installed GitHub-aware update plane. Issue #575 is an independent Ready read-only diagnosis for LE-01MP Unit 201 timeouts."
+    "selection_status": "software_ci_green_runtime_acceptance_pending",
+    "ready_issue_count": 1,
+    "reason": "Issue #576 software is implemented in PR #579 and exact implementation-head CI/Telemetry are GREEN. Real Raspberry Pi source-adoption metadata acceptance is a separate host mutation boundary requiring explicit approval after merge. Issue #575 remains independently Ready."
   },
   "tasks": [
-    {
-      "id": "NEXOLAB-548",
-      "issue": 548,
-      "pull_request": 559,
-      "title": "Add GitHub-aware safe Raspberry Pi update orchestration",
-      "status": "completed_software_ci_offline_merged_pi_host_plane_verified_followup_576",
-      "priority": "high",
-      "merge_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-      "software_acceptance": "PASS",
-      "offline_acceptance": "PASS",
-      "security_audit": "PASS",
-      "pi_host_plane_acceptance": "PASS_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
-      "follow_up_issue": 576
-    },
     {
       "id": "NEXOLAB-566",
       "issue": 566,
@@ -53,9 +39,7 @@
       "deployed_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
       "runtime_evidence": "runtime/deployments/20260818T131726Z",
       "deployment_acceptance": "PASS",
-      "token_rotation_acceptance": "PASS",
-      "update_plane_manual_check": "PASS_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
-      "follow_up_issue": 576
+      "token_rotation_acceptance": "PASS"
     },
     {
       "id": "NEXOLAB-560",
@@ -64,26 +48,27 @@
       "title": "Preserve LOCAL_LAN bearer-token rotation across authenticated frontend clients",
       "status": "completed_software_ci_offline_and_pi_runtime_acceptance",
       "priority": "critical",
-      "merge_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
-      "software_acceptance": "PASS",
-      "offline_acceptance": "PASS",
       "post_fix_pi_runtime_acceptance": "PASS"
     },
     {
       "id": "NEXOLAB-576",
       "issue": 576,
+      "pull_request": 579,
       "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-      "status": "ready",
+      "status": "software_implemented_ci_green_runtime_acceptance_pending",
       "priority": "high",
-      "dependency": "required before GitHub update candidate eligibility can be operational on the current source-deployed Pi runtime"
+      "implementation_head_sha": "994c2e66cd05e161172fc76654173805cea72c75",
+      "ci": "PASS_3560",
+      "telemetry_service": "PASS_1740",
+      "software_acceptance": "PASS",
+      "pi_runtime_acceptance": "PENDING_SEPARATE_APPROVAL"
     },
     {
       "id": "NEXOLAB-575",
       "issue": 575,
       "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
       "status": "ready",
-      "priority": "high",
-      "runtime_fact": "Device Agent workers healthy but Unit 201 timeout-only and in cooldown"
+      "priority": "high"
     },
     {
       "id": "NEXOLAB-444",
@@ -110,36 +95,31 @@
   "active_work_package": {
     "issue": 576,
     "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-    "type": "bugfix",
-    "status": "ready"
+    "type": "physical_runtime_acceptance",
+    "status": "hard_blocked_waiting_separate_user_approval_after_merge"
   },
   "next_work_package": {
     "issue": 576,
-    "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-    "status": "ready"
+    "title": "Raspberry Pi acceptance of trusted source deployment lineage evidence",
+    "status": "hard_boundary_requires_separate_user_approval_after_merge"
   },
   "verification": {
     "repository_accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "runtime_evidence": "runtime/deployments/20260818T131726Z",
-    "deployment_result": "PASS",
-    "runtime_mode": "lan",
-    "auth_mode": "jwt",
-    "local_auth_overlay": true,
-    "dashboard_auth_provider": "local",
-    "api_dashboard_readiness": "PASS",
-    "device_agent_worker_invariant": "PASS",
-    "telemetry_advancing": true,
-    "issue_560_token_rotation_runtime": "PASS",
+    "issue_576_implementation_head": "994c2e66cd05e161172fc76654173805cea72c75",
+    "issue_576_ci": "PASS_3560",
+    "issue_576_telemetry_service": "PASS_1740",
+    "manual_update_check_before_fix": "BLOCKED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
+    "issue_576_pi_metadata_write_performed": false,
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
-    "manual_update_check": "BLOCKED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
     "unit_201_runtime_state": "DEGRADED_TIMEOUT_COOLDOWN_ISSUE_575"
   },
   "independent_pending_lanes": [
     {
       "issue": 576,
-      "status": "ready"
+      "status": "hardware_runtime_acceptance_requires_separate_approval"
     },
     {
       "issue": 575,
@@ -162,19 +142,12 @@
       "status": "blocked"
     }
   ],
-  "deployment_capacity": {
-    "current_runtime_healthy": true,
-    "latest_preflight_status": "PASS",
-    "free_bytes": 20393951232,
-    "required_bytes": 17093875203,
-    "reserve_bytes": 2147483648
-  },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_site_cutover": "approved_existing_raspberry_pi_deployment_completed",
+    "production_site_cutover": "none_pending_issue_576_acceptance",
     "mandatory_public_runtime_dependency": "none"
   }
 }
