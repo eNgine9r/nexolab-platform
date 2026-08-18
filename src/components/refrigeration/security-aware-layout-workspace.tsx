@@ -198,6 +198,10 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const cameraScoped = Boolean(
     effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
   );
+  const selectorOrganizationId =
+    runtime.mode === "demo"
+      ? "demo:equipment-map"
+      : (runtime.organizationId ?? membership?.organizationId ?? null);
   const effectiveMode = capabilities.canEdit ? mode : "view";
   const effectiveModeChange = capabilities.canEdit ? onModeChange : () => undefined;
   const configurationChanged = () => {
@@ -296,6 +300,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
         <CameraScopedLayoutEditor
           key={`camera-editor-${equipment.id}-${workspaceEpoch}`}
           equipment={equipment}
+          organizationId={selectorOrganizationId}
           visibleSensors={visibleSensors}
           selectedId={selectedId}
           mode={effectiveMode}
