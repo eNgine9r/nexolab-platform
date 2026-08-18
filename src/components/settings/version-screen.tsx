@@ -102,27 +102,15 @@ export function VersionScreen() {
   }, [checkQueued, refresh, snapshot?.activeOperation, snapshot?.updateCheck?.status]);
 
   const current = snapshot?.current ?? null;
-  const selected = snapshot?.catalog.find((item) => item.bundleId === selectedBundleId) ?? null;
-  const availableTargets = useMemo(
-    () => snapshot?.catalog.filter((item) => !current || item.bundleId !== current.bundleId) ?? [],
-    [current, snapshot?.catalog],
-  );
   const updateCheck = snapshot?.updateCheck ?? null;
   const automaticUpdatesEnabled = snapshot?.updatePolicy.automaticUpdatesEnabled ?? false;
-  const updateCandidate = useMemo(
-    () =>
-      updateCheck?.candidateBundleId
-        ? (snapshot?.catalog.find((item) => item.bundleId === updateCheck.candidateBundleId) ?? null)
-        : null,
-    [snapshot?.catalog, updateCheck?.candidateBundleId],
-  );
-
-  useEffect(() => {
-    if (updateCandidate && updateCheck?.activationEligible) {
-      setSelectedBundleId(updateCandidate.bundleId);
-      setAction("update");
-    }
-  }, [updateCandidate, updateCheck?.activationEligible]);
+  const updateCandidate = updateCheck?.candidateBundleId
+    ? (snapshot?.catalog.find((item) => item.bundleId === updateCheck.candidateBundleId) ?? null)
+    : null;
+  const effectiveSelectedBundleId =
+    selectedBundleId ?? (updateCheck?.activationEligible ? updateCandidate?.bundleId : null);
+  const selected = snapshot?.catalog.find((item) => item.bundleId === effectiveSelectedBundleId) ?? null;
+  const availableTargets = snapshot?.catalog.filter((item) => !current || item.bundleId !== current.bundleId) ?? [];
 
   if (security.mode === "demo") {
     return (
@@ -433,7 +421,7 @@ export function VersionScreen() {
                           <PackageRow
                             key={item.bundleId}
                             item={item}
-                            selected={selectedBundleId === item.bundleId}
+                            selected={effectiveSelectedBundleId === item.bundleId}
                             onSelect={() => {
                               setSelectedBundleId(item.bundleId);
                               setAction(item.bundleId === current?.previousBundleId ? "rollback" : "update");
