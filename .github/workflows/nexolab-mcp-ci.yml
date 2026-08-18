@@ -1,0 +1,48 @@
+name: NEXOLAB MCP CI
+
+on:
+  pull_request:
+    paths:
+      - "services/nexolab-mcp/**"
+      - ".github/workflows/nexolab-mcp-ci.yml"
+  push:
+    branches:
+      - "feat/nexolab-mcp"
+    paths:
+      - "services/nexolab-mcp/**"
+      - ".github/workflows/nexolab-mcp-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/nexolab-mcp
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Build container image
+        run: docker build -t nexolab-mcp:ci .

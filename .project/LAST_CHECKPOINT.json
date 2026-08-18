@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T20:13:00Z",
+  "timestamp": "2026-08-18T21:10:00Z",
   "actor": "ChatGPT",
-  "event": "issue_586_merged_next_ready_587",
-  "repository_main_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "event": "issue_594_mcp_acceptance_complete_ready_for_merge",
+  "repository_main_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_584": {
@@ -47,6 +47,36 @@
         "authenticated_dashboard_acceptance": "PASS_32179696964",
         "offline_bundle": "PASS_32179696933"
       }
+    },
+    "issue_594": {
+      "issue": 594,
+      "pull_request": 593,
+      "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE",
+      "head_sha": "1ff1c8717a0b3b44ec76b4794cc836f2e7f276d8",
+      "identity": {
+        "username": "nexolab-mcp",
+        "role": "laboratory_technician",
+        "permissions": ["nodes.read", "telemetry.read"],
+        "secret_in_repository": false
+      },
+      "runtime_proof": {
+        "raspberry_pi": "PASS",
+        "protocol_version": "2026-07-28",
+        "protocol_era": "modern",
+        "tool_count": 6,
+        "all_tools_read_only": true,
+        "system_health": "PASS",
+        "nodes": "PASS",
+        "node_status": "PASS",
+        "latest_telemetry": "PASS",
+        "bounded_history": "PASS",
+        "active_alarms": "PASS",
+        "local_token_refresh": "PASS",
+        "runtime_non_regression": "PASS",
+        "ephemeral_container_removed": true,
+        "port_8787_after_acceptance": "free"
+      },
+      "cutover": false
     }
   },
   "blocked_work": {
@@ -68,15 +98,15 @@
     }
   },
   "current_boundary": {
-    "issue": 587,
-    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "READY"
+    "issue": 594,
+    "title": "Add production-oriented read-only NEXOLAB MCP gateway",
+    "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE"
   },
-  "next_action": "Begin Issue #587 on a dedicated feature branch. Reuse the merged #586 canonical complete-history loader and stable snapshot/reconciliation contract; add view-level 1h/6h/24h/7d/30d/Custom ranges and persisted CSV export without affecting physical acquisition.",
+  "next_action": "Run exact-head CI after state reconciliation, mark PR #593 ready, squash merge only while GREEN, reconcile post-merge main state, then resume Ready Issue #587.",
   "separate_draft_lane": {
     "issue": 594,
     "pull_request": 593,
-    "status": "DRAFT_NEEDS_POST_ACTIVE_WP_AUDIT"
+    "status": "ACCEPTANCE_COMPLETE_READY_FOR_MERGE"
   },
   "safety": {
     "modbus_write": "none",

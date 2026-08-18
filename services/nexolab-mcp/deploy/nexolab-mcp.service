@@ -1,0 +1,18 @@
+[Unit]
+Description=NEXOLAB MCP read-only gateway container
+Documentation=https://github.com/eNgine9r/nexolab-platform
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/nexolab/nexolab-platform/services/nexolab-mcp
+ExecStart=/usr/bin/docker compose -f deploy/compose.mcp.yaml up -d --no-build --remove-orphans
+ExecStop=/usr/bin/docker compose -f deploy/compose.mcp.yaml down
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
