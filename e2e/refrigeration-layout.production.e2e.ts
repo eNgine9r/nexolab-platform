@@ -172,11 +172,42 @@ async function enterEditMode(page: Page) {
   await expect(editor(page).getByRole("button", { name: "Зберегти всі зміни" })).toBeVisible();
 }
 
+async function openAddTelemetrySelector(page: Page) {
+  await editor(page).getByRole("button", { name: "Вибрати датчик або прилад для додавання" }).click();
+  const selector = editor(page).getByTestId("equipment-map-add-telemetry-selector");
+  await expect(selector).toBeVisible();
+  return selector;
+}
+
+async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, channelId: string) {
+  const search = selector.getByRole("searchbox", { name: "Пошук" });
+  await search.fill(channelId);
+  const point = selector.getByRole("treeitem").filter({ hasText: channelId });
+  await expect(point).toHaveCount(1);
+  await point.click();
+  await expect(selector.getByTestId("telemetry-selection-count")).toContainText("1 / 1");
+}
+
 async function addChannel(page: Page, channelId: string) {
-  const selector = editor(page).getByLabel("Доступний датчик кліматичної камери");
-  await expect(selector.locator(`option[value="${channelId}"]`)).toHaveCount(1);
-  await selector.selectOption(channelId);
-  await editor(page).getByRole("button", { name: "Додати вибраний датчик на підкладку" }).click();
+  const selector = await openAddTelemetrySelector(page);
+  await chooseTelemetryPoint(selector, channelId);
+  await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+  await expect(selector).toHaveCount(0);
+}
+
+async function replaceChannel(page: Page, channelId: string) {
+  await editor(page).getByRole("button", { name: "Вибрати інший канал вимірювання" }).click();
+  const selector = editor(page).getByTestId("equipment-map-replace-telemetry-selector");
+  await expect(selector).toBeVisible();
+  await chooseTelemetryPoint(selector, channelId);
+  await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+  await expect(selector).toHaveCount(0);
+}
+
+async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: width === 360 ? 800 : 1000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
 }
 
 async function readDraft(request: APIRequestContext, equipmentId: string): Promise<DraftPayload> {
@@ -346,6 +377,17 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
       }
     });
 
+    const cancelledSelector = await openAddTelemetrySelector(pageA);
+    await chooseTelemetryPoint(cancelledSelector, channelIds.temperatureOne);
+    await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
+    expect(configurationWrites).toBe(0);
+    await expectNoDocumentOverflow(pageA, 360);
+    await expectNoDocumentOverflow(pageA, 1440);
+    await expectNoDocumentOverflow(pageA, 1920);
+    await cancelledSelector.getByRole("button", { name: "Скасувати" }).click();
+    await expect(cancelledSelector).toHaveCount(0);
+    await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
+
     await addChannel(pageA, channelIds.temperatureOne);
     await addChannel(pageA, channelIds.temperatureTwo);
     expect(configurationWrites).toBe(0);
@@ -357,7 +399,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(preSaveDraft.placements).toEqual([]);
 
     await pageA.getByRole("button", { name: "Редагувати датчик 01F" }).click();
-    await editor(pageA).getByLabel("Замінити канал датчика").selectOption(channelIds.replacement);
+    await replaceChannel(pageA, channelIds.replacement);
     await editor(pageA).getByLabel("Підпис датчика").fill("T-03");
     await editor(pageA).getByLabel("Полиця датчика").selectOption("2");
     await editor(pageA).getByLabel("Позиція датчика").selectOption("3");
@@ -374,10 +416,18 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     const xAfter = await replacementMarker.getAttribute("data-x");
     expect(xBefore).not.toBe(xAfter);
 
-    const availableSelector = editor(pageA).getByLabel("Доступний датчик кліматичної камери");
-    await expect(availableSelector.locator(`option[value="${channelIds.temperatureTwo}"]`)).toHaveCount(1);
-    await expect(availableSelector.locator(`option[value="${channelIds.replacement}"]`)).toHaveCount(0);
-    await expect(availableSelector.locator(`option[value="${channelIds.temperatureOne}"]`)).toHaveCount(0);
+    const availableSelector = await openAddTelemetrySelector(pageA);
+    const availableSearch = availableSelector.getByRole("searchbox", { name: "Пошук" });
+    await availableSearch.fill(channelIds.temperatureTwo);
+    await expect(
+      availableSelector.getByRole("treeitem").filter({ hasText: channelIds.temperatureTwo }),
+    ).toHaveCount(1);
+    await availableSearch.fill(channelIds.replacement);
+    await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
+    await availableSearch.fill(channelIds.temperatureOne);
+    await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
+    await availableSelector.getByRole("button", { name: "Скасувати" }).click();
+    await expect(availableSelector).toHaveCount(0);
     expect(configurationWrites).toBe(0);
 
     const saveResponsePromise = pageA.waitForResponse(
