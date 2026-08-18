@@ -74,7 +74,10 @@ const snapshot = () => ({
   offline: true,
 });
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/settings/system/version",
+  useRouter: () => ({ replace: vi.fn() }),
+}));
 vi.mock("@/hooks/use-dashboard-security", () => ({ useDashboardSecurity: () => security.value }));
 vi.mock("@/lib/telemetry/runtime-config", () => ({
   getTelemetryRuntimeConfig: () => ({ mode: "live", apiBaseUrl: "http://127.0.0.1:8082" }),
