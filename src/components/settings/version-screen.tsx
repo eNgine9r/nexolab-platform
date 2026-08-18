@@ -287,7 +287,12 @@ export function VersionScreen() {
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <Fact label="Release" value={current.release} />
                         <Fact label="Bundle" value={current.bundleId} mono />
-                        <Fact label="Commit" value={shortCommit(current.sourceCommit)} mono title={current.sourceCommit} />
+                        <Fact
+                          label="Commit"
+                          value={shortCommit(current.sourceCommit)}
+                          mono
+                          title={current.sourceCommit}
+                        />
                         <Fact label="Schema" value={current.schemaHead} mono />
                         <Fact label="Platform" value={current.platform} />
                         <Fact label="Runtime / health" value={`${current.runtimeMode} / ${current.health}`} />
@@ -333,8 +338,8 @@ export function VersionScreen() {
                       <p className="text-xs tracking-[.18em] text-slate-500 uppercase">GitHub update plane</p>
                       <h2 className="mt-1 text-lg font-semibold">Автоматичні оновлення</h2>
                       <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-                        Політика зберігається на host. Вимкнений режим не забороняє manual check, local offline
-                        update або rollback.
+                        Політика зберігається на host. Вимкнений режим не забороняє manual check, local
+                        offline update або rollback.
                       </p>
                     </div>
                     <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/10 px-4 py-3">
@@ -371,7 +376,9 @@ export function VersionScreen() {
                     />
                     <Fact
                       label="Last policy change"
-                      value={snapshot.updatePolicy.updatedAt ? formatTime(snapshot.updatePolicy.updatedAt) : "—"}
+                      value={
+                        snapshot.updatePolicy.updatedAt ? formatTime(snapshot.updatePolicy.updatedAt) : "—"
+                      }
                     />
                   </div>
 
@@ -429,9 +436,7 @@ export function VersionScreen() {
                             selected={selectedBundleId === item.bundleId}
                             onSelect={() => {
                               setSelectedBundleId(item.bundleId);
-                              setAction(
-                                item.bundleId === current?.previousBundleId ? "rollback" : "update",
-                              );
+                              setAction(item.bundleId === current?.previousBundleId ? "rollback" : "update");
                             }}
                           />
                         ))
@@ -514,7 +519,9 @@ export function VersionScreen() {
                         ) : null}
                       </div>
                     ) : (
-                      <p className="mt-4 text-sm text-slate-500">Оберіть validated package з локального catalog.</p>
+                      <p className="mt-4 text-sm text-slate-500">
+                        Оберіть validated package з локального catalog.
+                      </p>
                     )}
                   </div>
                 </section>
@@ -610,8 +617,8 @@ export function VersionScreen() {
               </div>
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Target: <strong>{selected.release}</strong> / {shortCommit(selected.sourceCommit)}. Перед runtime
-              mutation host повторно перевірить package, schema, capacity та PostgreSQL backup.
+              Target: <strong>{selected.release}</strong> / {shortCommit(selected.sourceCommit)}. Перед
+              runtime mutation host повторно перевірить package, schema, capacity та PostgreSQL backup.
             </p>
             <label className="mt-4 grid gap-1.5 text-sm">
               <span className="text-slate-400">
@@ -717,9 +724,7 @@ function PackageRow({
       type="button"
       onClick={onSelect}
       className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-        selected
-          ? "border-cyan-300/40 bg-cyan-300/8"
-          : "border-white/10 bg-black/10 hover:border-white/20"
+        selected ? "border-cyan-300/40 bg-cyan-300/8" : "border-white/10 bg-black/10 hover:border-white/20"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -750,7 +755,10 @@ function Fact({
   return (
     <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-3">
       <div className="text-[11px] tracking-[.12em] text-slate-500 uppercase">{label}</div>
-      <div className={`mt-1 truncate text-sm text-slate-200 ${mono ? "font-mono" : ""}`} title={title ?? value}>
+      <div
+        className={`mt-1 truncate text-sm text-slate-200 ${mono ? "font-mono" : ""}`}
+        title={title ?? value}
+      >
         {value}
       </div>
     </div>
