@@ -18,10 +18,14 @@ import os
 from pathlib import Path
 import subprocess
 from typing import Any
+import urllib.error
+import urllib.request
 from uuid import uuid4
 
 EXPECTED_REPOSITORY = "eNgine9r/nexolab-platform"
 EXPECTED_BRANCH = "main"
+EXPECTED_GREEN_WORKFLOW = "CI"
+GITHUB_API_BASE = f"https://api.github.com/repos/{EXPECTED_REPOSITORY}"
 POLICY_SCHEMA = 1
 CHECK_SCHEMA = 1
 CHECK_REQUEST_SCHEMA = 1
@@ -146,6 +150,55 @@ def current_source_commit(root: Path) -> str | None:
     current = read_json(root / "current.json")
     value = current.get("source_commit") if current else None
     return value if isinstance(value, str) and len(value) == 40 else None
+
+
+def _github_ci_result(payload: dict[str, Any], target_commit: str) -> tuple[bool, str]:
+    runs = payload.get("workflow_runs")
+    if not isinstance(runs, list):
+        return False, "github_ci_unavailable"
+    matching = [
+        run
+        for run in runs
+        if isinstance(run, dict)
+        and run.get("name") == EXPECTED_GREEN_WORKFLOW
+        and run.get("event") == "push"
+        and run.get("head_sha") == target_commit
+        and run.get("status") == "completed"
+    ]
+    if any(run.get("conclusion") == "success" for run in matching):
+        return True, ""
+    if matching:
+        return False, "ci_not_green"
+    return False, "ci_pending_or_missing"
+
+
+def github_ci_green(target_commit: str) -> tuple[bool, str]:
+    url = (
+        f"{GITHUB_API_BASE}/actions/runs?head_sha={target_commit}"
+        f"&branch={EXPECTED_BRANCH}&status=completed&per_page=30"
+    )
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "NEXOLAB-update-orchestrator",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (
+        OSError,
+        TimeoutError,
+        UnicodeError,
+        json.JSONDecodeError,
+        urllib.error.URLError,
+    ):
+        return False, "github_ci_unavailable"
+    if not isinstance(payload, dict):
+        return False, "github_ci_unavailable"
+    return _github_ci_result(payload, target_commit)
 
 
 def _validated_catalog_manifest(bundle_root: Path) -> dict[str, Any] | None:
@@ -281,6 +334,7 @@ def discover(
         "target_commit": None,
         "candidate_available": False,
         "candidate_bundle_id": None,
+        "green_revision_verified": False,
         "activation_eligible": False,
         "blocked_reason": None,
     }
@@ -333,21 +387,30 @@ def discover(
                 "non_fast_forward",
                 "origin/main is not fast-forward reachable from deployed lineage",
             )
-        candidate_bundle_id, blocked_reason = validated_candidate_bundle(root, target)
         result["status"] = "completed"
         result["result_code"] = "candidate_discovered"
         result["candidate_available"] = True
+        green, green_reason = github_ci_green(target)
+        if not green:
+            result["blocked_reason"] = green_reason
+            result["message"] = (
+                "A newer main revision exists but its required main-branch CI success "
+                "has not been verified, so activation remains blocked."
+            )
+            return finalize(root, result)
+        result["green_revision_verified"] = True
+        candidate_bundle_id, blocked_reason = validated_candidate_bundle(root, target)
         result["candidate_bundle_id"] = candidate_bundle_id
         result["activation_eligible"] = candidate_bundle_id is not None
         result["blocked_reason"] = blocked_reason or None
         if candidate_bundle_id is None:
             result["message"] = (
-                "A newer main revision exists but activation remains blocked until its local "
-                "validated package satisfies the current platform and schema gates."
+                "A newer GREEN main revision exists but activation remains blocked until its "
+                "local validated package satisfies the current platform and schema gates."
             )
         else:
             result["message"] = (
-                "A newer main revision matches a validated local package. The authenticated "
+                "A newer GREEN main revision matches a validated local package. The authenticated "
                 "version-management API must still revalidate every activation gate."
             )
         return finalize(root, result)
@@ -438,6 +501,7 @@ def process_requested_check(
             "target_commit": None,
             "candidate_available": False,
             "candidate_bundle_id": None,
+            "green_revision_verified": False,
             "activation_eligible": False,
             "blocked_reason": "invalid_update_check_request",
         }
