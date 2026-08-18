@@ -204,7 +204,7 @@ describe("VersionScreen authorization boundary", () => {
     render(<VersionScreen />);
 
     expect(await screen.findByText("Знайдено новішу ревізію")).toBeVisible();
-    expect(screen.getByText(/validated local package/)).toBeVisible();
+    expect(screen.getByText("для remote revision ще немає validated local package")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Оновити зараз" })).not.toBeInTheDocument();
   });
 });
