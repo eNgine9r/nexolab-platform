@@ -180,9 +180,7 @@ export function VersionScreen() {
     setPolicySaving(true);
     setError(null);
     try {
-      const updatePolicy = await client.setAutomaticUpdates(
-        !snapshot.updatePolicy.automaticUpdatesEnabled,
-      );
+      const updatePolicy = await client.setAutomaticUpdates(!snapshot.updatePolicy.automaticUpdatesEnabled);
       setSnapshot((current) => (current ? { ...current, updatePolicy } : current));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Політику оновлень не збережено.");
@@ -204,7 +202,7 @@ export function VersionScreen() {
     }
   };
   const candidatePackage = snapshot?.updateCheck?.targetCommit
-    ? snapshot.catalog.find((item) => item.sourceCommit === snapshot.updateCheck?.targetCommit) ?? null
+    ? (snapshot.catalog.find((item) => item.sourceCommit === snapshot.updateCheck?.targetCommit) ?? null)
     : null;
 
   return (
@@ -317,9 +315,7 @@ export function VersionScreen() {
                       >
                         <span
                           className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
-                            snapshot.updatePolicy.automaticUpdatesEnabled
-                              ? "translate-x-6"
-                              : "translate-x-1"
+                            snapshot.updatePolicy.automaticUpdatesEnabled ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       </span>
@@ -333,10 +329,7 @@ export function VersionScreen() {
 
                   <div className="mt-5 grid gap-3 md:grid-cols-3">
                     <Metric label="Розклад" value={`Щодня о ${snapshot.updatePolicy.scheduleLocalTime}`} />
-                    <Metric
-                      label="Host timezone"
-                      value="Локальний системний час Raspberry Pi"
-                    />
+                    <Metric label="Host timezone" value="Локальний системний час Raspberry Pi" />
                     <Metric
                       label="Політика змінена"
                       value={snapshot.updatePolicy.updatedAt ?? "Ще не змінювалась"}
@@ -557,7 +550,10 @@ function UpdateCheckPanel({
   }
   if (check.resultCode === "up_to_date") {
     return (
-      <UpdateState icon={<CircleCheck className="h-5 w-5 text-emerald-300" />} title="Встановлено актуальну версію">
+      <UpdateState
+        icon={<CircleCheck className="h-5 w-5 text-emerald-300" />}
+        title="Встановлено актуальну версію"
+      >
         GitHub main не містить новішого fast-forward target для поточного runtime.
       </UpdateState>
     );
@@ -574,8 +570,8 @@ function UpdateCheckPanel({
     return (
       <UpdateState icon={<ShieldCheck className="h-5 w-5 text-cyan-300" />} title="Знайдено новішу ревізію">
         <p>
-          <span className="font-mono text-xs text-slate-300">{check.currentCommit ?? "unknown"}</span>{" "}
-          → <span className="font-mono text-xs text-slate-300">{check.targetCommit ?? "unknown"}</span>
+          <span className="font-mono text-xs text-slate-300">{check.currentCommit ?? "unknown"}</span> →{" "}
+          <span className="font-mono text-xs text-slate-300">{check.targetCommit ?? "unknown"}</span>
         </p>
         {check.activationEligible && candidatePackage ? (
           <button
@@ -597,7 +593,10 @@ function UpdateCheckPanel({
     );
   }
   return (
-    <UpdateState icon={<AlertTriangle className="h-5 w-5 text-amber-300" />} title="Перевірку завершено з блокуванням">
+    <UpdateState
+      icon={<AlertTriangle className="h-5 w-5 text-amber-300" />}
+      title="Перевірку завершено з блокуванням"
+    >
       {check.message ?? updateBlockReason(check.blockedReason)}
     </UpdateState>
   );
