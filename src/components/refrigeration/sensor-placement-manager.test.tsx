@@ -1,10 +1,21 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { refrigerationEquipment } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 import type { StagedSensorConfiguration } from "@/features/refrigeration/sensor-configuration";
 
 import { SensorPlacementManager } from "./sensor-placement-manager";
+
+const equipmentFixture = refrigerationEquipment[0];
+if (!equipmentFixture) throw new Error("Refrigeration equipment fixture is required.");
+const equipment = {
+  ...equipmentFixture,
+  id: "showcase-kk2",
+  name: "Showcase KK2",
+  transportNodeId: "edge-01",
+  totalSensors: 48,
+};
 
 const channels: AvailableSensor[] = [
   {
@@ -34,7 +45,7 @@ const channels: AvailableSensor[] = [
     metric: "temperature",
     unit: "degC",
     latestValue: null,
-    quality: "no-data",
+    quality: "planned",
     capturedAt: "2026-07-29T12:00:00.000Z",
     isBound: true,
     boundEquipmentId: "showcase-other",
@@ -74,7 +85,8 @@ function renderManager({
   const onSelect = vi.fn();
   render(
     <SensorPlacementManager
-      equipmentId="showcase-kk2"
+      equipment={equipment}
+      organizationId="org-equipment-map"
       totalSlots={totalSlots}
       channels={channels}
       configuration={configuration}
@@ -87,31 +99,52 @@ function renderManager({
   return { onConfigurationChange, onEditingSensorIdChange, onSelect };
 }
 
+function openAddSelector() {
+  fireEvent.click(screen.getByRole("button", { name: "Вибрати датчик або прилад для додавання" }));
+  return screen.getByTestId("equipment-map-add-telemetry-selector");
+}
+
+function choosePoint(selector: HTMLElement, channelId: string) {
+  const search = within(selector).getByRole("searchbox", { name: "Пошук" });
+  fireEvent.change(search, { target: { value: channelId } });
+  fireEvent.click(within(selector).getByRole("treeitem", { name: new RegExp(channelId) }));
+}
+
 describe("SensorPlacementManager", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("shows live and no-data KK2 channels and stages an active channel", () => {
+  it("keeps no-data channels eligible and mutates staged configuration only after Confirm", () => {
     const { onConfigurationChange, onEditingSensorIdChange, onSelect } = renderManager();
 
-    expect(screen.getByRole("option", { name: /106-03.*Live/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /106-04.*Немає даних/ })).toBeInTheDocument();
+    const selector = openAddSelector();
+    choosePoint(selector, "106-04");
+    expect(within(selector).getByTestId("telemetry-selection-count")).toHaveTextContent("1 / 1");
+    expect(onConfigurationChange).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
+    fireEvent.click(within(selector).getByRole("button", { name: "Скасувати" }));
+    expect(onConfigurationChange).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("equipment-map-add-telemetry-selector")).not.toBeInTheDocument();
+
+    const confirmedSelector = openAddSelector();
+    choosePoint(confirmedSelector, "106-04");
+    fireEvent.click(within(confirmedSelector).getByRole("button", { name: "Підтвердити вибір" }));
 
     expect(onConfigurationChange).toHaveBeenCalledTimes(1);
     expect(onConfigurationChange.mock.calls[0]?.[0]).toEqual([
       expect.objectContaining({
-        id: "106-03",
+        id: "106-04",
         slotKey: "front-01",
         side: "front",
         shelf: 1,
         position: 1,
+        temperatureC: null,
+        status: "no-data",
       }),
     ]);
-    expect(onSelect).toHaveBeenCalledWith("106-03");
-    expect(onEditingSensorIdChange).toHaveBeenCalledWith("106-03");
+    expect(onSelect).toHaveBeenCalledWith("106-04");
+    expect(onEditingSensorIdChange).toHaveBeenCalledWith("106-04");
   });
 
   it("recovers a legacy zero-capacity passport as a 48-slot layout", () => {
@@ -119,57 +152,53 @@ describe("SensorPlacementManager", () => {
 
     expect(screen.getByText("0/48")).toBeInTheDocument();
     expect(screen.getByText(/місткість датчиків була задана як 0/)).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" })).toBeEnabled();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }), {
-      target: { value: "106-04" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
+    const selector = openAddSelector();
+    choosePoint(selector, "106-03");
+    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
 
     expect(onConfigurationChange).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "106-04", slotKey: "front-01" }),
+      expect.objectContaining({ id: "106-03", slotKey: "front-01" }),
     ]);
   });
 
-  it("allows a configured channel without telemetry to be placed", () => {
-    const { onConfigurationChange } = renderManager();
-    fireEvent.change(screen.getByRole("combobox", { name: "Доступний датчик кліматичної камери" }), {
-      target: { value: "106-04" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Додати вибраний датчик на підкладку" }));
-
-    expect(onConfigurationChange).toHaveBeenCalledWith([
-      expect.objectContaining({
-        id: "106-04",
-        temperatureC: null,
-        status: "no-data",
-      }),
-    ]);
-  });
-
-  it("keeps a foreign-bound channel visible but disables conflicting placement", () => {
+  it("keeps foreign-bound channels visible as conflicts but outside the selectable tree", () => {
     renderManager();
 
-    const option = screen.getByRole("option", { name: /107-01.*уже розміщений/ });
-    expect(option).toBeDisabled();
-    expect(option).toHaveTextContent("showcase-other");
+    expect(screen.getByText(/Недоступні через активну прив’язку: 107-01/)).toBeInTheDocument();
+    const selector = openAddSelector();
+    const search = within(selector).getByRole("searchbox", { name: "Пошук" });
+    fireEvent.change(search, { target: { value: "107-01" } });
+    expect(within(selector).getByText("Точок телеметрії не знайдено")).toBeInTheDocument();
   });
 
-  it("hides the current channel and stages replacement through the editor", () => {
+  it("does not offer an already configured channel in Add and confirms replacement explicitly", () => {
     const { onConfigurationChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
     });
 
-    const addSelector = screen.getByRole("combobox", {
-      name: "Доступний датчик кліматичної камери",
-    });
-    expect(addSelector).not.toHaveTextContent("106-03");
-    expect(addSelector).toHaveTextContent("106-04");
+    const addSelector = openAddSelector();
+    const addSearch = within(addSelector).getByRole("searchbox", { name: "Пошук" });
+    fireEvent.change(addSearch, { target: { value: "106-03" } });
+    expect(within(addSelector).getByText("Точок телеметрії не знайдено")).toBeInTheDocument();
+    fireEvent.click(within(addSelector).getByRole("button", { name: "Скасувати" }));
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Замінити канал датчика" }), {
-      target: { value: "106-04" },
-    });
+    expect(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" })).toHaveTextContent(
+      "106-03 · temperature · degC",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
+    const replaceSelector = screen.getByTestId("equipment-map-replace-telemetry-selector");
+    choosePoint(replaceSelector, "106-04");
+    expect(onConfigurationChange).not.toHaveBeenCalled();
+
+    fireEvent.click(within(replaceSelector).getByRole("button", { name: "Скасувати" }));
+    expect(onConfigurationChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
+    const confirmedSelector = screen.getByTestId("equipment-map-replace-telemetry-selector");
+    choosePoint(confirmedSelector, "106-04");
+    fireEvent.click(within(confirmedSelector).getByRole("button", { name: "Підтвердити вибір" }));
 
     expect(onConfigurationChange).toHaveBeenCalledWith([
       expect.objectContaining({
@@ -179,6 +208,21 @@ describe("SensorPlacementManager", () => {
         status: "no-data",
       }),
     ]);
+  });
+
+  it("treats confirming the current replacement channel as a no-op", () => {
+    const { onConfigurationChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
+    const selector = screen.getByTestId("equipment-map-replace-telemetry-selector");
+    choosePoint(selector, "106-03");
+    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
+
+    expect(onConfigurationChange).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("equipment-map-replace-telemetry-selector")).not.toBeInTheDocument();
   });
 
   it("stages marker parameter edits and removal only through edit controls", () => {
