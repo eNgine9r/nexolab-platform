@@ -1,0 +1,35 @@
+name: Issue 548 format preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/components/settings/version-operation-progress.test.tsx"
+      - "src/components/settings/version-screen.tsx"
+      - ".github/workflows/issue-548-format-preview.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --no-audit
+        env:
+          HUSKY: 0
+      - name: Render canonical Prettier diff
+        run: |
+          npm exec -- prettier --write \
+            src/components/settings/version-operation-progress.test.tsx \
+            src/components/settings/version-screen.tsx
+          git --no-pager diff -- \
+            src/components/settings/version-operation-progress.test.tsx \
+            src/components/settings/version-screen.tsx
