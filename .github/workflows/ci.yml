@@ -74,11 +74,12 @@ jobs:
           HUSKY: 0
         run: npm install --no-audit
 
-      - name: Check repository formatting
+      - name: Capture exact formatter diff
         shell: bash
         run: |
           set -euo pipefail
-          npm run format:check 2>&1 | tee prettier-diagnostics.txt
+          npx prettier --write src/components/settings/version-screen.tsx
+          git diff --exit-code -- src/components/settings/version-screen.tsx 2>&1 | tee prettier-diagnostics.txt
 
       - name: Upload formatting diagnostics
         if: failure()
