@@ -5,7 +5,9 @@ import type { VersionOperation } from "@/features/settings/version-management";
 
 import { VersionOperationProgress } from "./version-operation-progress";
 
-function operation(overrides: Partial<VersionOperation> = {}): VersionOperation {
+function operation(
+  overrides: Partial<VersionOperation> = {},
+): VersionOperation {
   return {
     id: "operation-1",
     actorSubject: "admin",
