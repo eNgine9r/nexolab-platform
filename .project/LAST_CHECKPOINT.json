@@ -3,70 +3,71 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-17T19:08:00Z",
+  "timestamp": "2026-08-18T06:20:14Z",
   "actor": "ChatGPT",
-  "event": "issue_536_alarms_selector_merged_state_reconciliation",
-  "repository_product_baseline_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
-  "repository_main_at_reconciliation_base_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
+  "event": "issue_546_equipment_map_selector_merged_state_reconciliation",
+  "repository_product_baseline_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
+  "repository_main_at_reconciliation_base_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
   "accepted_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "deployed_product_sha": "1d226d6ddcd0c009b8f83367599d7a64521190f0",
   "completed_work_package": {
-    "issue": 536,
-    "pull_request": 539,
-    "title": "Integrate TelemetryPointSelector into Alarms feed scope",
-    "status": "completed_software_browser_backend_offline_verified",
-    "merge_sha": "27e21a7ff6380c8961ff83e8507c008fcd05bf8d",
-    "final_pr_head": "a903710ee34b37181770d87640ec31f2efeda948",
-    "base_sha": "907edd86552130dde50b70579fb9945eedc3f503"
+    "issue": 546,
+    "pull_request": 547,
+    "title": "Replace Equipment Map sensor dropdowns with TelemetryPointSelector",
+    "status": "completed_software_browser_offline_verified",
+    "merge_sha": "ef9d69b63abecee39ff7c120ed9d11ff40082a36",
+    "final_pr_head": "fcf64d0fa842293facbc9762a85446f8898b43e2",
+    "base_sha": "1d430cc2a607c04b3420944bdd9d0f7349676168"
   },
   "verification": {
-    "ci": { "run_number": 3413, "status": "GREEN" },
-    "alerts_browser": { "run_number": 861, "status": "GREEN" },
-    "telemetry_service": { "run_number": 1646, "status": "GREEN" },
-    "authenticated_dashboard": { "run_number": 1960, "status": "GREEN" },
-    "offline_bundle": { "run_number": 1353, "status": "GREEN" },
-    "offline_auth": { "run_number": 506, "status": "GREEN" },
-    "refrigeration_browser": { "run_number": 1840, "status": "GREEN" },
-    "device_agent_fleet": { "run_number": 841, "status": "GREEN" },
-    "mqtt_tls_fleet": { "run_number": 791, "status": "GREEN" },
-    "broker_control": { "run_number": 752, "status": "GREEN" },
-    "capacity_release_gate": { "run_number": 648, "status": "GREEN" },
-    "disaster_recovery_browser": { "run_number": 813, "status": "GREEN_AFTER_TARGETED_RERUN" },
-    "disaster_recovery_domain": { "run_number": 415, "status": "GREEN" },
-    "disaster_recovery_tls": { "run_number": 782, "status": "GREEN" },
-    "container_supply_chain": { "run_number": 821, "status": "GREEN" }
-  },
-  "evidence_artifacts": {
-    "alerts_browser": {
-      "name": "alerts-browser-acceptance-evidence",
-      "sha256": "4d79b7d6221c0f9cb734f466c2f021934ce5a6fcb434ffa6d06f2d5718c3664a"
+    "ci": {
+      "run_number": 3437,
+      "status": "GREEN"
+    },
+    "refrigeration_browser": {
+      "run_number": 1858,
+      "status": "GREEN"
     },
     "authenticated_dashboard": {
-      "name": "authenticated-dashboard-acceptance-32057208215-1",
-      "sha256": "018a3f23811dd8beff1d600af043f8f5232285ad3147d2dcc5ff8f63f0ba7fe0"
+      "run_number": 1967,
+      "status": "GREEN"
     },
     "offline_bundle": {
-      "name": "nexolab-offline-amd64-a903710ee34b37181770d87640ec31f2efeda948",
-      "sha256": "911deaf6e972da0ec6dd7b3e02efbabe1abb63657b64eae17cb75e4af1b98942"
-    }
+      "run_number": 1371,
+      "status": "GREEN"
+    },
+    "security_browser": {
+      "run_number": 1192,
+      "status": "GREEN"
+    },
+    "acquisition_scale": {
+      "run_number": 174,
+      "status": "GREEN"
+    },
+    "disaster_recovery_browser": {
+      "run_number": 832,
+      "status": "GREEN"
+    },
+    "branch_currentness": "BEHIND_0",
+    "review_threads": 0,
+    "changed_files": 8
   },
-  "alarms_selector_outcome": {
+  "equipment_map_selector_outcome": {
     "selector": "CANONICAL_TELEMETRY_POINT_SELECTOR",
-    "default_scope": "ALL_ALERTS_WHEN_FILTER_OMITTED",
-    "narrowed_scope": "EXACT_SERVER_AUTHORITATIVE_TELEMETRY_POINTS",
-    "filter_order": "BEFORE_COUNT_ORDER_LIMIT_OFFSET",
-    "multi_point_semantics": "OR",
-    "state_severity_composition": "AND",
-    "malformed_or_oversized_behavior": "422_FAIL_CLOSED",
-    "polling_cadence": "UNCHANGED_5_SECONDS_ONE_FEED_REQUEST_PER_REFRESH",
-    "alert_rule_mutation": "NONE",
-    "acquisition_mutation": "NONE",
+    "add_and_replace": "HIERARCHICAL_SINGLE_POINT_CONFIRM_CANCEL",
+    "preconfirm_staged_mutation": "NONE",
+    "organization_scope": "EXPLICIT_WORKSPACE_OWNED_RUNTIME_OR_MEMBERSHIP_ID",
+    "secondary_global_security_authority": "NONE",
+    "persistence_path": "EXISTING_REPLACE_SENSOR_CONFIGURATION",
+    "binding_conflicts": "PRESERVED_FAIL_CLOSED",
+    "coordinates_and_layout_lifecycle": "UNCHANGED",
     "new_websocket_ownership": "NONE",
+    "acquisition_mutation": "NONE",
     "physical_polling_change": "NONE",
     "modbus_change": "NONE"
   },
   "hardware_evidence": {
-    "issue_536_required": false,
+    "issue_546_required": false,
     "issue_201_normal_operation": "VERIFIED",
     "issue_201_power_cycle_restart": "PENDING_EXPLICIT_APPROVAL",
     "rollover_reset_discontinuity": "PENDING_POWER_CYCLE_EVIDENCE"
@@ -75,7 +76,7 @@
     "mode": "lan",
     "deployment_evidence": "runtime/deployments/20260817T074249Z",
     "current_runtime_healthy": true,
-    "issue_536_deployed": false
+    "issue_546_deployed": false
   },
   "deployment_capacity": {
     "next_redeploy_preflight_blocked": true,
@@ -84,17 +85,21 @@
     "reserve_bytes": 2147483648,
     "current_runtime_affected": false
   },
-  "governance": {
-    "direct_main_state_commit": "907edd86552130dde50b70579fb9945eedc3f503",
-    "classification": "STATE_ONLY_POLICY_DEVIATION_RECORDED",
-    "product_runtime_hardware_or_data_change": false,
-    "corrective_action": "Issue #544 uses the required state-only feature branch and Pull Request path; direct main writes are not repeated."
-  },
   "selection": {
-    "selected_issue": null,
-    "status": "HARD_BLOCKED_NO_READY_WORK_PACKAGE",
-    "ready_issue_count": 0,
-    "reason": "No open product Issue carries status:ready after #536 completion. Issue #544 is state-only reconciliation. Epic #450 future Equipment Maps work is not yet represented by a focused Ready child Issue."
+    "selected_issue": 548,
+    "status": "READY",
+    "ready_issue_count": 1,
+    "reason": "Post-#546 Ready audit identifies Issue #548 as the single open product Issue carrying status:ready."
+  },
+  "state_reconciliation": {
+    "issue": 553,
+    "type": "state_only",
+    "authorized_paths": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ]
   },
   "safety": {
     "modbus_write": "none",
@@ -104,5 +109,5 @@
     "production_site_cutover": "none",
     "mandatory_public_runtime_dependency": "none"
   },
-  "next_action": "Complete Issue #544 as a state-only Pull Request. After that, stop autonomous product implementation at the no-Ready hard blocker until the Product Owner selects or approves a focused Ready Work Package."
+  "next_action": "Complete state-only Issue #553 through a focused Pull Request, then start Ready Issue #548 without opening a parallel implementation lane."
 }
