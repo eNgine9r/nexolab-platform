@@ -1,104 +1,105 @@
 # NEXOLAB MCP Server
 
-Production-oriented, read-only Model Context Protocol gateway for NEXOLAB telemetry and edge-node data.
+Read-only Model Context Protocol gateway for NEXOLAB telemetry and edge-node data.
 
-## Why this service exists
-
-The MCP service is an adapter, not a second NEXOLAB backend. It calls the existing NEXOLAB Nodes and Telemetry HTTP APIs and exposes a deliberately small, bounded tool surface to MCP clients.
-
-It does **not** call the OpenAI API and does not require an `OPENAI_API_KEY`.
+The service is intentionally a thin adapter over the existing NEXOLAB HTTP APIs. It does **not** call the OpenAI API, does not require `OPENAI_API_KEY`, does not connect directly to the database, and exposes no shell or arbitrary network tool.
 
 ## Architecture
 
 ```text
 MCP client
-   |
-   | Streamable HTTP /mcp
-   v
-NEXOLAB MCP (Node.js, read-only)
-   |                |
-   | GET only       | GET only
-   v                v
-Telemetry API     Nodes API
-   |                |
-   +------ NEXOLAB runtime ------+
+    |
+    | Streamable HTTP /mcp
+    v
+NEXOLAB MCP
+    | GET only
+    +--------------------+
+    |                    |
+    v                    v
+Telemetry API         Nodes API
+    |                    |
+    +------ NEXOLAB -----+
 ```
 
-The MCP process has no shell tool, no arbitrary URL-fetch tool, no SQL tool, and no write endpoint.
-
-## Exposed tools
+## MCP tool surface
 
 | Tool | Purpose |
 | --- | --- |
-| `nexolab_get_system_health` | Telemetry ingestion/readiness status |
+| `nexolab_get_system_health` | Read telemetry service readiness |
 | `nexolab_list_nodes` | List configured edge nodes |
-| `nexolab_get_node_status` | Operational state + most recent health/status |
-| `nexolab_get_latest_telemetry` | Latest samples with bounded filters |
-| `nexolab_get_telemetry_history` | Bounded historical telemetry interval |
-| `nexolab_get_active_alarms` | Latest low/high alarm samples |
+| `nexolab_get_node_status` | Read operational state and latest health/status |
+| `nexolab_get_latest_telemetry` | Read current telemetry with filters |
+| `nexolab_get_telemetry_history` | Read a bounded historical interval |
+| `nexolab_get_active_alarms` | Read current low/high telemetry alarms |
 
-Every tool is annotated `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, and `openWorldHint: false`.
+Every tool is annotated as read-only, non-destructive and idempotent. v0.1 deliberately has no start/stop, setpoint, Modbus-write, node-lifecycle, credential-rotation, SQL, filesystem or reboot tool.
 
-## Requirements
+## Runtime requirements
 
-- Raspberry Pi OS / Linux, Windows, or another OS supported by Node.js.
-- Node.js matching the NEXOLAB project engine requirement (Node 22.22.1+ in the 22.x line, or Node 24.x).
+- Node.js compatible with the main NEXOLAB project (`>=22.22.1 <23` or `>=24 <25`).
 - npm 10+.
-- Reachable NEXOLAB Telemetry and Nodes APIs.
-- A backend Bearer credential if those APIs require authentication.
+- Reachable NEXOLAB Telemetry API.
+- Reachable Nodes API, if it is served separately.
+- A dedicated backend Bearer credential when the NEXOLAB APIs require authentication.
 
-## 1. Install dependencies
-
-From the repository root:
+## 1. Install
 
 ```bash
 cd services/nexolab-mcp
 npm install
 ```
 
-Before deployment, keep the generated `package-lock.json` in version control so production installs can use `npm ci`.
+`npm install` creates `package-lock.json`. Commit the lockfile before production deployment; after that, deploy with `npm ci`.
 
-## 2. Configure the service
-
-Copy the example file:
+## 2. Configure
 
 ```bash
 cp .env.example .env
 chmod 600 .env
 ```
 
-Minimum local configuration:
+The Telemetry API URL is **required**. Use the real base URL from the deployment. The NEXOLAB frontend currently obtains this from `NEXT_PUBLIC_NEXOLAB_API_BASE_URL`; use the corresponding server-reachable URL here.
+
+Example:
 
 ```dotenv
 NEXOLAB_MCP_HOST=127.0.0.1
 NEXOLAB_MCP_PORT=8787
-NEXOLAB_TELEMETRY_API_URL=http://127.0.0.1:8100
-NEXOLAB_NODES_API_URL=http://127.0.0.1:8100
+
+NEXOLAB_TELEMETRY_API_URL=http://127.0.0.1:<actual-port>
+# Optional: omit when Nodes API uses the same base URL.
+NEXOLAB_NODES_API_URL=
+
+# Set when backend endpoints require authentication.
+NEXOLAB_BACKEND_BEARER_TOKEN=
+
+# Strongly recommended. Mandatory when MCP binds outside loopback.
+NEXOLAB_MCP_BEARER_TOKEN=
+
+NEXOLAB_MCP_ALLOWED_HOSTS=
+NEXOLAB_MCP_ALLOWED_ORIGINS=
+
+NEXOLAB_MCP_REQUEST_TIMEOUT_MS=8000
+NEXOLAB_MCP_MAX_LATEST_ITEMS=200
+NEXOLAB_MCP_MAX_HISTORY_ITEMS=500
+NEXOLAB_MCP_MAX_HISTORY_HOURS=744
 ```
 
-If the backend APIs are protected:
-
-```dotenv
-NEXOLAB_BACKEND_BEARER_TOKEN=<dedicated-read-only-backend-token>
-```
-
-Use a dedicated least-privilege credential. Do not permanently copy a personal browser session token into production configuration.
-
-Generate a separate token for access to the MCP endpoint:
+Generate the MCP access secret with:
 
 ```bash
 openssl rand -hex 32
 ```
 
-Put the output in:
+Put the result in `NEXOLAB_MCP_BEARER_TOKEN`. Never commit the real token or `.env`.
 
-```dotenv
-NEXOLAB_MCP_BEARER_TOKEN=<generated-secret>
-```
+### Backend credential rule
 
-Never commit `.env` or the real token.
+`NEXOLAB_BACKEND_BEARER_TOKEN` is for MCP -> NEXOLAB API calls. In production, use a dedicated least-privilege identity that can only read the required APIs. Do not permanently reuse a personal browser/session token.
 
-## 3. Validate before running
+## 3. Validate locally
+
+Run all gates before deployment:
 
 ```bash
 npm run typecheck
@@ -106,11 +107,7 @@ npm test
 npm run build
 ```
 
-All three commands must pass before deployment.
-
-## 4. Run locally
-
-Load `.env` into the shell and start the compiled service:
+Then load the environment and run the compiled server:
 
 ```bash
 set -a
@@ -119,13 +116,7 @@ set +a
 npm start
 ```
 
-Expected log includes:
-
-```text
-{"service":"nexolab-mcp","event":"server_started",...}
-```
-
-Check liveness:
+Liveness check:
 
 ```bash
 curl http://127.0.0.1:8787/healthz
@@ -137,26 +128,26 @@ Expected response:
 {"status":"ok","service":"nexolab-mcp","version":"0.1.0"}
 ```
 
-`/healthz` is process liveness. NEXOLAB backend readiness is intentionally exposed through the `nexolab_get_system_health` MCP tool.
+`/healthz` verifies the MCP process. Backend/ingestion readiness is read through the `nexolab_get_system_health` MCP tool.
 
-## 5. Test with the official MCP Inspector
+## 4. Verify with MCP Inspector
 
-Run the Inspector:
+Run the official Inspector:
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
-Select **Streamable HTTP** and use:
+Choose **Streamable HTTP** and connect to:
 
 ```text
 http://127.0.0.1:8787/mcp
 ```
 
-If `NEXOLAB_MCP_BEARER_TOKEN` is set, add the HTTP header:
+When `NEXOLAB_MCP_BEARER_TOKEN` is configured, send:
 
 ```text
-Authorization: Bearer <your-token>
+Authorization: Bearer <token>
 ```
 
 CLI smoke test:
@@ -166,22 +157,22 @@ npx @modelcontextprotocol/inspector --cli \
   http://127.0.0.1:8787/mcp \
   --transport http \
   --method tools/list \
-  --header "Authorization: Bearer <your-token>"
+  --header "Authorization: Bearer <token>"
 ```
 
-Then test at least these calls:
+Verify that exactly the six documented tools are present. Then call, in order:
 
 1. `nexolab_get_system_health`
 2. `nexolab_list_nodes`
-3. `nexolab_get_latest_telemetry` with `metric=temperature`
-4. `nexolab_get_telemetry_history` for a short known interval
+3. `nexolab_get_latest_telemetry` with a known metric
+4. `nexolab_get_telemetry_history` for a short interval
 5. `nexolab_get_active_alarms`
 
-Do not deploy if the tool list contains any unexpected write-capable tool.
+Do not deploy if an unexpected write-capable tool appears.
 
-## 6. Raspberry Pi production deployment with systemd
+## 5. Raspberry Pi deployment
 
-The recommended production layout is:
+Recommended layout:
 
 ```text
 /opt/nexolab/nexolab-platform/services/nexolab-mcp
@@ -189,14 +180,9 @@ The recommended production layout is:
 /etc/systemd/system/nexolab-mcp.service
 ```
 
-Create the configuration directory:
+If the repository currently lives elsewhere, either deploy/copy it under `/opt/nexolab/nexolab-platform` or edit `WorkingDirectory` and `ExecStart` in `deploy/nexolab-mcp.service` to match the real path.
 
-```bash
-sudo install -d -m 0750 -o root -g nexolab /etc/nexolab
-sudo install -m 0640 -o root -g nexolab .env /etc/nexolab/nexolab-mcp.env
-```
-
-Build the service:
+Build:
 
 ```bash
 cd /opt/nexolab/nexolab-platform/services/nexolab-mcp
@@ -206,7 +192,14 @@ npm test
 npm run build
 ```
 
-Install the unit:
+Install the environment file:
+
+```bash
+sudo install -d -m 0750 -o root -g nexolab /etc/nexolab
+sudo install -m 0640 -o root -g nexolab .env /etc/nexolab/nexolab-mcp.env
+```
+
+Install and start systemd service:
 
 ```bash
 sudo cp deploy/nexolab-mcp.service /etc/systemd/system/nexolab-mcp.service
@@ -214,24 +207,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now nexolab-mcp
 ```
 
-Inspect status and logs:
+Check:
 
 ```bash
 systemctl status nexolab-mcp --no-pager
 journalctl -u nexolab-mcp -n 100 --no-pager
-```
-
-Verify locally:
-
-```bash
 curl http://127.0.0.1:8787/healthz
 ```
 
-The supplied unit uses `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `PrivateDevices`, and other systemd hardening because the MCP gateway does not need local filesystem or device access.
+The supplied systemd unit enables process hardening such as `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, and `PrivateDevices` because this gateway does not need local device or filesystem access.
 
-## 7. Network exposure
+## 6. Network security
 
-### Recommended: keep MCP on loopback
+### Preferred deployment
 
 Keep:
 
@@ -239,119 +227,81 @@ Keep:
 NEXOLAB_MCP_HOST=127.0.0.1
 ```
 
-Then expose it only through a trusted tunnel or reverse proxy. This keeps the raw MCP listener unreachable from the LAN/Internet.
+Expose the service only through a trusted tunnel or authenticated HTTPS reverse proxy. This keeps the raw MCP listener off the LAN/Internet.
 
-### Direct LAN/public bind
+### Non-loopback bind
 
-Direct exposure is deliberately fail-closed. If you set:
+The process refuses to start on a non-loopback address unless both conditions are met:
+
+1. `NEXOLAB_MCP_BEARER_TOKEN` is configured.
+2. `NEXOLAB_MCP_ALLOWED_HOSTS` is explicitly configured.
+
+Example:
 
 ```dotenv
 NEXOLAB_MCP_HOST=0.0.0.0
-```
-
-you must also set both a Bearer token and explicit allowed hosts:
-
-```dotenv
 NEXOLAB_MCP_BEARER_TOKEN=<strong-random-secret>
 NEXOLAB_MCP_ALLOWED_HOSTS=mcp.example.com
-```
-
-TLS must terminate before traffic reaches the public Internet. Do not expose plain HTTP externally.
-
-For a browser-facing deployment, configure an explicit Origin allow-list as well:
-
-```dotenv
 NEXOLAB_MCP_ALLOWED_ORIGINS=chatgpt.com
 ```
 
-For a proper multi-user ChatGPT deployment, prefer standards-based OAuth in front of the MCP resource server rather than sharing one static Bearer token.
+Use TLS for any external route. For a real multi-user ChatGPT integration, prefer OAuth/resource-server authorization over sharing a static token.
 
-## 8. ChatGPT connection status as of 2026-08-18
+## 7. Resource limits
 
-The server itself is standards-compliant MCP and can be built/tested now without OpenAI API usage.
+The MCP gateway deliberately limits context and backend load:
 
-At the time this document was written, direct custom-MCP access in ChatGPT depends on the ChatGPT plan and Developer Mode availability. A Plus account should therefore use the local MCP Inspector for validation today; do not redesign the NEXOLAB server around a temporary product-plan limitation.
+- latest telemetry: default maximum 200 items;
+- history: default maximum 500 items;
+- history interval: default maximum 744 hours (31 days);
+- backend timeout: default 8 seconds;
+- node listing: maximum 100 nodes per call.
 
-When custom MCP is available for the account/workspace:
+All limits are validated server-side; the model cannot bypass them by crafting a larger request.
 
-1. Keep the MCP server on `127.0.0.1` if using OpenAI Secure MCP Tunnel, or expose it through a properly authenticated HTTPS endpoint.
-2. In ChatGPT web, enable Developer Mode where the plan/workspace supports it.
-3. Create a custom app/MCP connection.
-4. Enter the remote `/mcp` endpoint.
-5. Configure the supported authentication mechanism.
-6. Run **Scan Tools**.
-7. Confirm that exactly the six intended read-only NEXOLAB tools appear.
-8. Test health and one narrow telemetry query before broader use.
+## 8. ChatGPT connection status (2026-08-18)
 
-Do not add write tools merely to make remote connectivity work. Connectivity and authorization are transport concerns; equipment control is a separate safety decision.
+The MCP service can be built and validated now without any OpenAI API call or token billing.
 
-## 9. Configuration reference
+Direct custom-MCP support inside ChatGPT depends on the current plan and Developer Mode availability. As of this document date, the public OpenAI documentation does not list Plus as a plan with direct custom MCP Developer Mode access. Use MCP Inspector for local validation on Plus. When the account/workspace supports custom MCP, point it to the remote `/mcp` endpoint and scan the tools; no NEXOLAB MCP redesign should be required.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `NEXOLAB_MCP_HOST` | `127.0.0.1` | MCP bind address |
-| `NEXOLAB_MCP_PORT` | `8787` | MCP HTTP port |
-| `NEXOLAB_TELEMETRY_API_URL` | `http://127.0.0.1:8100` | Telemetry service base URL |
-| `NEXOLAB_NODES_API_URL` | telemetry URL | Nodes service base URL |
-| `NEXOLAB_BACKEND_BEARER_TOKEN` | empty | Credential for MCP -> NEXOLAB APIs |
-| `NEXOLAB_MCP_BEARER_TOKEN` | empty on loopback | Credential for client -> MCP |
-| `NEXOLAB_MCP_ALLOWED_HOSTS` | loopback hostnames | DNS-rebinding/Host allow-list |
-| `NEXOLAB_MCP_ALLOWED_ORIGINS` | Host allow-list | Browser Origin allow-list |
-| `NEXOLAB_MCP_REQUEST_TIMEOUT_MS` | `8000` | Backend request timeout |
-| `NEXOLAB_MCP_MAX_LATEST_ITEMS` | `200` | Max latest samples per tool call |
-| `NEXOLAB_MCP_MAX_HISTORY_ITEMS` | `500` | Max history samples per tool call |
-| `NEXOLAB_MCP_MAX_HISTORY_HOURS` | `744` | Max time span (31 days) |
+ChatGPT cannot directly connect to `localhost`. For supported plans/workspaces, an on-premises/private MCP server should be reached through OpenAI Secure MCP Tunnel or another properly authenticated remote HTTPS route.
 
-## 10. Security rules for future development
+## 9. Future write tools
 
-Any future MCP tool must follow these rules unless a separate design/security review explicitly approves otherwise:
+Do **not** simply add equipment-control methods beside these read tools. Any future write capability must have a separate review and should include:
 
-- Prefer NEXOLAB application APIs over direct database access.
-- Never accept arbitrary SQL, shell commands, filesystem paths, or arbitrary URLs.
-- Validate every argument with a strict schema and explicit size/range limits.
-- Keep read and write tools separate.
-- Mark read-only tools with MCP annotations.
-- Treat text originating from devices, notes, labels, reports, or external services as untrusted data, not instructions.
-- Never place secrets in tool results, logs, descriptions, or error messages.
-- Use short backend timeouts and bounded response sizes.
-- Use a dedicated least-privilege backend identity.
-- Require explicit authorization for remote access.
-- Keep an audit trail for any future state-changing action.
-- For equipment control, add domain-level interlocks in NEXOLAB itself; never rely only on an LLM confirmation dialog.
+- dedicated authorization scopes;
+- explicit audit records;
+- idempotency for repeatable commands;
+- domain-level safety interlocks in NEXOLAB;
+- clear destructive/write MCP annotations;
+- strict target/value/range validation;
+- no generic shell/SQL/Modbus-write escape hatch;
+- confirmation where appropriate, without treating confirmation as the only safety barrier.
 
-## 11. Troubleshooting
+## 10. Troubleshooting
 
-### `401 unauthorized`
+### `NEXOLAB_TELEMETRY_API_URL is required`
 
-The MCP Bearer token is enabled but the client did not send the correct `Authorization` header.
+Set it to the actual server-reachable NEXOLAB Telemetry API base URL. Do not guess the port.
 
-### `403 forbidden`
+### `401 unauthorized` from `/mcp`
 
-Check `Host` and `Origin`. For a reverse proxy, either preserve an allow-listed public hostname and configure it in `NEXOLAB_MCP_ALLOWED_HOSTS`, or deliberately rewrite the upstream Host to the loopback host.
+The client is missing or has the wrong `Authorization: Bearer ...` value.
+
+### `403 forbidden` from `/mcp`
+
+The request Host or Origin is outside the configured allow-list. Check reverse-proxy/tunnel Host forwarding and `NEXOLAB_MCP_ALLOWED_HOSTS` / `NEXOLAB_MCP_ALLOWED_ORIGINS`.
 
 ### `NEXOLAB API returned HTTP 401/403`
 
-The MCP process can be reached, but its backend credential cannot read the NEXOLAB API. Configure a valid read-only `NEXOLAB_BACKEND_BEARER_TOKEN` or adjust the backend's service-auth mechanism.
+MCP itself is reachable, but its backend credential cannot read NEXOLAB. Fix `NEXOLAB_BACKEND_BEARER_TOKEN` or the backend service-auth policy.
 
 ### timeout
 
-Confirm the Telemetry/Nodes API URL, service health, firewall rules, and `NEXOLAB_MCP_REQUEST_TIMEOUT_MS`.
+Check the API URLs, service status and firewall, then inspect `NEXOLAB_MCP_REQUEST_TIMEOUT_MS`.
 
-### no telemetry
+### empty telemetry
 
-Call `nexolab_get_system_health`, then use `nexolab_get_latest_telemetry` without filters. Add one filter at a time after confirming the raw feed is available.
-
-## Non-goals of v0.1
-
-The initial release intentionally does not expose:
-
-- start/stop tests;
-- setpoint changes;
-- Modbus writes;
-- Raspberry Pi shell/reboot;
-- node provisioning/suspension/revocation;
-- credential rotation;
-- arbitrary report/file retrieval;
-- direct SQL access.
-
-Those capabilities require separate write-path authorization, auditability, and equipment-safety controls.
+Call `nexolab_get_system_health`, then call `nexolab_get_latest_telemetry` without filters. Add filters one by one only after confirming the raw feed is available.
