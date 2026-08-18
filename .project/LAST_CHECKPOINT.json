@@ -100,9 +100,9 @@
   "current_boundary": {
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "READY"
+    "status": "IN_PROGRESS"
   },
-  "next_action": "Begin Issue #587 on its dedicated feature branch. Reuse the canonical complete-history/reconciliation path and add Saved Dashboard persisted ranges plus CSV export without changing physical acquisition.",
+  "next_action": "Continue Issue #587 from its existing in-progress architecture checkpoint. First synchronize `feat/587-saved-dashboard-history-export` with current main, inspect actual branch diff/checkpoint, then implement the bounded persisted-history ranges and CSV export without changing physical acquisition.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

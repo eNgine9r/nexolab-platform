@@ -66,11 +66,11 @@ PR #593 merged GREEN as `b46e518f8769f83ba22c608bacd5a368776e1701` and Issue #59
 
 ## Current execution boundary
 
-The only open GitHub Issue labeled `status:ready` is **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards**.
+GitHub currently has **zero** open `status:ready` Issues. **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards** is already `status:in-progress`; its architecture-decision checkpoint is recorded and no PR is open yet.
 
-Issue #587 is the next Work Package. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
+Issue #587 remains the active Work Package to continue. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
 
-Issue #594 / PR #593 is complete and merged. Issue #587 remains the selected next Ready Work Package.
+Issue #594 / PR #593 is complete and merged.
 
 ## Safety boundaries
 

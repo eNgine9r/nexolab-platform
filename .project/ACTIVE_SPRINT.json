@@ -25,9 +25,9 @@
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 587,
-    "selection_status": "ready",
-    "ready_issue_count": 1,
-    "reason": "Issue #594 is merged GREEN and closed status:done after authenticated Raspberry Pi MCP acceptance. Issue #587 remains the only selected Ready Work Package. Issue #585 remains blocked on Product Owner physical handback confirmation."
+    "selection_status": "in_progress",
+    "ready_issue_count": 0,
+    "reason": "Issue #594 is merged GREEN and closed status:done. GitHub currently has zero open status:ready Issues. Issue #587 is already status:in-progress with an architecture-decision checkpoint and no open PR yet, so it remains the active Work Package to continue. Issue #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -66,7 +66,7 @@
       "id": "NEXOLAB-587",
       "issue": 587,
       "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-      "status": "ready",
+      "status": "in_progress_architecture_decision_recorded",
       "priority": "high"
     },
     {
@@ -128,12 +128,12 @@
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
     "type": "saved_dashboard_persisted_history_export",
-    "status": "ready"
+    "status": "in_progress"
   },
   "next_work_package": {
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "ready"
+    "status": "continue_in_progress"
   },
   "verification": {
     "repository_accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
@@ -178,7 +178,7 @@
     },
     {
       "issue": 587,
-      "status": "ready"
+      "status": "in_progress"
     },
     {
       "issue": 588,

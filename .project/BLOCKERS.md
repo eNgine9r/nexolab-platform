@@ -16,9 +16,9 @@ The 2026-08-21 through 2026-08-23 review window is a review window only; it is n
 
 PR #592 merged GREEN as `75c6f5471d77d781b124fbd40c33ba924aec26f8`. Browser-closed Raspberry Pi evidence, Core CI, Authenticated Dashboard Acceptance and Offline Bundle are all PASS. There is no remaining #586 blocker.
 
-## Issue #587 — Ready
+## Issue #587 — in progress
 
-Saved Live Dashboard complete persisted ranges and CSV export is the only current `status:ready` Work Package. Its dependency on #586 is satisfied.
+Saved Live Dashboard complete persisted ranges and CSV export is the current `status:in-progress` Work Package. Its dependency on #586 is satisfied; GitHub currently has zero open `status:ready` Issues.
 
 It must reuse the canonical complete-history/reconciliation path, keep range/export actions read-only with respect to acquisition, and generate CSV from persisted telemetry rather than reduced chart/browser memory.
 
