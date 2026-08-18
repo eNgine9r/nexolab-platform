@@ -45,12 +45,7 @@ describe("VersionOperationProgress", () => {
       <VersionOperationProgress
         operation={operation({
           phase: "verifying_runtime",
-          completedPhases: [
-            "verifying_package",
-            "checking_capacity",
-            "creating_backup",
-            "applying_update",
-          ],
+          completedPhases: ["verifying_package", "checking_capacity", "creating_backup", "applying_update"],
         })}
       />,
     );
