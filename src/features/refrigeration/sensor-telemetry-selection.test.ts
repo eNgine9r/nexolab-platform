@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import { refrigerationEquipment } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 
-import {
-  buildSensorTelemetrySelectionModel,
-  selectedSensorChannelId,
-} from "./sensor-telemetry-selection";
+import { buildSensorTelemetrySelectionModel, selectedSensorChannelId } from "./sensor-telemetry-selection";
 
 const channels: AvailableSensor[] = [
   {
@@ -49,9 +46,7 @@ describe("equipment map telemetry selection", () => {
     expect(model.orderedPointKeys).toHaveLength(2);
     expect(model.pointKeyByChannelId.get("106-03")).toContain("106-03");
     expect(model.pointKeyByChannelId.get("106-04")).toContain("106-04");
-    expect(
-      selectedSensorChannelId(model, [model.pointKeyByChannelId.get("106-04") ?? ""]),
-    ).toBe("106-04");
+    expect(selectedSensorChannelId(model, [model.pointKeyByChannelId.get("106-04") ?? ""])).toBe("106-04");
   });
 
   it("keeps missing layout taxonomy explicit instead of inventing metadata", () => {
@@ -67,9 +62,9 @@ describe("equipment map telemetry selection", () => {
   });
 
   it("fails closed when authoritative organization or physical transport identity is missing", () => {
-    expect(() =>
-      buildSensorTelemetrySelectionModel({ equipment, channels, organizationId: "" }),
-    ).toThrow("organization scope");
+    expect(() => buildSensorTelemetrySelectionModel({ equipment, channels, organizationId: "" })).toThrow(
+      "organization scope",
+    );
 
     expect(() =>
       buildSensorTelemetrySelectionModel({
