@@ -47,6 +47,7 @@ def test_scheduled_check_uses_deterministic_system_actor_when_enabled(
         tmp_path / "repo",
         actor="system:update-timer",
         fetch_remote=True,
+        git_user=None,
     )
 
 
@@ -84,6 +85,7 @@ def test_manual_request_is_consumed_once_and_keeps_human_actor(
         tmp_path / "repo",
         actor="admin@example.invalid",
         fetch_remote=True,
+        git_user=None,
     )
     assert not request_path.exists()
     assert orchestrator.process_requested_check(root, tmp_path / "repo") == {
@@ -111,3 +113,10 @@ def test_malformed_request_is_preserved_as_rejected_evidence(tmp_path: Path) -> 
     durable = json.loads((root / "update-check.json").read_text(encoding="utf-8"))
     assert durable["blocked_reason"] == "invalid_update_check_request"
     assert durable["activation_eligible"] is False
+
+
+def test_git_commands_can_run_as_the_repository_owner(tmp_path: Path) -> None:
+    command = orchestrator.git_command(tmp_path, "status", git_user="nexolab")
+
+    assert command[:5] == ["runuser", "-u", "nexolab", "--", "git"]
+    assert command[5:] == ["-C", str(tmp_path), "status"]
