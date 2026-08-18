@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
-import type { SensorSide } from "@/data/refrigeration";
+import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
+import type { RefrigerationEquipment, SensorSide } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 import {
   addChannelToConfiguration,
   channelPlacementConflict,
-  channelTelemetryLabel,
   removeConfiguredSensor,
   replaceConfiguredChannel,
   selectableReplacementChannels,
@@ -17,12 +17,24 @@ import {
   unusedClimateChamberChannels,
   updateConfiguredSensor,
 } from "@/features/refrigeration/sensor-configuration";
+import {
+  buildSensorTelemetrySelectionModel,
+  selectedSensorChannelId,
+  type SensorTelemetrySelectionModel,
+} from "@/features/refrigeration/sensor-telemetry-selection";
 
 const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
 const MAX_SENSOR_SLOT_CAPACITY = 48;
 
+type PickerState = { kind: "add" } | { kind: "replace"; sensorId: string } | null;
+type SelectionModelResult = {
+  model: SensorTelemetrySelectionModel | null;
+  error: string | null;
+};
+
 export function SensorPlacementManager({
-  equipmentId,
+  equipment,
+  organizationId,
   totalSlots,
   channels,
   configuration,
@@ -31,7 +43,8 @@ export function SensorPlacementManager({
   onConfigurationChange,
   onSelect,
 }: {
-  equipmentId: string;
+  equipment: RefrigerationEquipment;
+  organizationId: string | null;
   totalSlots: number;
   channels: readonly AvailableSensor[];
   configuration: readonly StagedSensorConfiguration[];
@@ -47,44 +60,94 @@ export function SensorPlacementManager({
     [channels, configuration],
   );
   const assignable = useMemo(
-    () => unused.filter((channel) => channelPlacementConflict(channel, equipmentId) === null),
-    [equipmentId, unused],
+    () => unused.filter((channel) => channelPlacementConflict(channel, equipment.id) === null),
+    [equipment.id, unused],
   );
-  const [selectedChannelId, setSelectedChannelId] = useState("");
+  const conflictedUnused = useMemo(
+    () => unused.filter((channel) => channelPlacementConflict(channel, equipment.id) !== null),
+    [equipment.id, unused],
+  );
+  const [picker, setPicker] = useState<PickerState>(null);
   const [error, setError] = useState<string | null>(null);
-  const effectiveSelectedChannelId = assignable.some((channel) => channel.channelId === selectedChannelId)
-    ? selectedChannelId
-    : (assignable[0]?.channelId ?? "");
   const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
   const replacementChannels = useMemo(
     () => (selectedSensor ? selectableReplacementChannels(channels, configuration, selectedSensor.id) : []),
     [channels, configuration, selectedSensor],
   );
+  const replacementEligible = useMemo(
+    () =>
+      selectedSensor
+        ? replacementChannels.filter(
+            (channel) =>
+              channel.channelId === selectedSensor.id ||
+              channelPlacementConflict(channel, equipment.id) === null,
+          )
+        : [],
+    [equipment.id, replacementChannels, selectedSensor],
+  );
+  const conflictedReplacements = useMemo(
+    () =>
+      selectedSensor
+        ? replacementChannels.filter(
+            (channel) =>
+              channel.channelId !== selectedSensor.id &&
+              channelPlacementConflict(channel, equipment.id) !== null,
+          )
+        : [],
+    [equipment.id, replacementChannels, selectedSensor],
+  );
+  const addSelection = useMemo(
+    () => buildSelectionModel(equipment, assignable, organizationId),
+    [assignable, organizationId, equipment],
+  );
+  const replacementSelection = useMemo(
+    () => buildSelectionModel(equipment, replacementEligible, organizationId),
+    [organizationId, equipment, replacementEligible],
+  );
 
-  const add = () => {
-    const channel = channels.find((candidate) => candidate.channelId === effectiveSelectedChannelId);
-    if (!channel) return;
+  const add = (pointKeys: string[]) => {
+    const model = addSelection.model;
+    const channelId = model ? selectedSensorChannelId(model, pointKeys) : null;
+    const channel = channelId ? assignable.find((candidate) => candidate.channelId === channelId) : undefined;
+    if (!channel) {
+      setError("Оберіть рівно один доступний канал перед підтвердженням.");
+      return;
+    }
     setError(null);
     try {
-      const next = addChannelToConfiguration(configuration, channel, effectiveTotalSlots, equipmentId);
+      const next = addChannelToConfiguration(configuration, channel, effectiveTotalSlots, equipment.id);
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
+      setPicker(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося додати датчик.");
     }
   };
 
-  const replace = (channelId: string) => {
+  const replace = (pointKeys: string[]) => {
     if (!selectedSensor) return;
-    const channel = channels.find((candidate) => candidate.channelId === channelId);
-    if (!channel) return;
+    const model = replacementSelection.model;
+    const channelId = model ? selectedSensorChannelId(model, pointKeys) : null;
+    const channel = channelId
+      ? replacementEligible.find((candidate) => candidate.channelId === channelId)
+      : undefined;
+    if (!channel) {
+      setError("Оберіть рівно один канал заміни перед підтвердженням.");
+      return;
+    }
+    if (channel.channelId === selectedSensor.id) {
+      setError(null);
+      setPicker(null);
+      return;
+    }
     setError(null);
     try {
-      const next = replaceConfiguredChannel(configuration, selectedSensor.id, channel, equipmentId);
+      const next = replaceConfiguredChannel(configuration, selectedSensor.id, channel, equipment.id);
       onConfigurationChange(next);
       onSelect(channel.channelId);
       onEditingSensorIdChange(channel.channelId);
+      setPicker(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Не вдалося замінити датчик.");
     }
@@ -107,8 +170,12 @@ export function SensorPlacementManager({
     if (!window.confirm(`Видалити датчик ${selectedSensor.label} з підкладки?`)) return;
     onConfigurationChange(removeConfiguredSensor(configuration, selectedSensor.id));
     onEditingSensorIdChange(null);
+    setPicker(null);
     setError(null);
   };
+
+  const replacementPickerOpen =
+    picker?.kind === "replace" && selectedSensor !== null && picker.sensorId === selectedSensor.id;
 
   return (
     <section
@@ -124,45 +191,51 @@ export function SensorPlacementManager({
             </span>
           </div>
           <p className="mt-1 text-[10px] leading-4 text-slate-500">
-            У списку залишаються всі конфігуровані канали камери: Live, Stale, Offline, без даних і
+            У виборі залишаються всі конфігуровані канали камери: Live, Stale, Offline, без даних і
             заплановані. Телеметрія не визначає доступність каналу для проєктування схеми.
           </p>
         </div>
 
-        <div className="flex min-w-0 items-end gap-2 xl:min-w-[520px]">
-          <label className="min-w-0 flex-1 space-y-1.5">
-            <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">
-              Доступний датчик або прилад
-            </span>
-            <select
-              aria-label="Доступний датчик кліматичної камери"
-              value={effectiveSelectedChannelId}
-              disabled={assignable.length === 0 || configuration.length >= effectiveTotalSlots}
-              onChange={(event) => setSelectedChannelId(event.target.value)}
-              className="w-full rounded-xl border border-white/[0.08] bg-[#0b1e38] px-3 py-2.5 text-xs text-slate-300 outline-none disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {unused.length === 0 ? <option value="">Немає нерозміщених каналів</option> : null}
-              {unused.map((channel) => {
-                const conflict = channelPlacementConflict(channel, equipmentId);
-                return (
-                  <option key={channel.channelId} value={channel.channelId} disabled={conflict !== null}>
-                    {channelOptionLabel(channel, conflict)}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <RefrigerationIconButton
-            label="Додати вибраний датчик на підкладку"
-            onClick={add}
-            disabled={!effectiveSelectedChannelId || configuration.length >= effectiveTotalSlots}
-            tone="success"
-            size="lg"
-          >
-            <Plus className="h-4 w-4" />
-          </RefrigerationIconButton>
-        </div>
+        <button
+          type="button"
+          aria-label="Вибрати датчик або прилад для додавання"
+          disabled={
+            assignable.length === 0 ||
+            configuration.length >= effectiveTotalSlots ||
+            addSelection.model === null
+          }
+          onClick={() => {
+            setPicker({ kind: "add" });
+            setError(null);
+          }}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-3 text-xs font-semibold text-emerald-100 hover:bg-emerald-400/15 focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Plus className="h-4 w-4" />
+          Обрати канал
+          <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[9px]">{assignable.length}</span>
+        </button>
       </div>
+
+      {addSelection.error && channels.length > 0 ? (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {addSelection.error}
+        </p>
+      ) : null}
+
+      {picker?.kind === "add" && addSelection.model && addSelection.model.hierarchy.leafCount > 0 ? (
+        <div className="mt-3" data-testid="equipment-map-add-telemetry-selector">
+          <TelemetryPointSelector
+            hierarchy={addSelection.model.hierarchy}
+            value={[]}
+            maxSelection={1}
+            maxVisibleNodes={300}
+            title="Додати точку на схему"
+            onCancel={() => setPicker(null)}
+            onConfirm={add}
+          />
+        </div>
+      ) : null}
 
       {recoveredZeroCapacity ? (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[10px] text-amber-100">
@@ -182,8 +255,15 @@ export function SensorPlacementManager({
       {channels.length > 0 && assignable.length === 0 && configuration.length < effectiveTotalSlots ? (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-slate-400/15 bg-slate-500/[0.06] px-3 py-2 text-[10px] text-slate-300">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Усі нерозміщені канали вже мають активну прив’язку до іншого обладнання. Вони показані у списку для
-          діагностики, але недоступні для подвійного розміщення.
+          Усі нерозміщені канали вже мають активну прив’язку до іншого обладнання. Вони недоступні для
+          подвійного розміщення.
+        </p>
+      ) : null}
+
+      {conflictedUnused.length > 0 ? (
+        <p className="mt-3 rounded-xl border border-slate-400/10 bg-slate-500/[0.04] px-3 py-2 text-[10px] text-slate-400">
+          Недоступні через активну прив’язку:{" "}
+          {conflictedUnused.map((channel) => channel.channelId).join(", ")}.
         </p>
       ) : null}
 
@@ -201,7 +281,10 @@ export function SensorPlacementManager({
             </div>
             <RefrigerationIconButton
               label="Закрити налаштування датчика"
-              onClick={() => onEditingSensorIdChange(null)}
+              onClick={() => {
+                setPicker(null);
+                onEditingSensorIdChange(null);
+              }}
               size="sm"
             >
               <X className="h-3.5 w-3.5" />
@@ -210,26 +293,21 @@ export function SensorPlacementManager({
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_140px_120px_120px_auto]">
             <EditorField label="Канал вимірювання">
-              <select
-                aria-label="Замінити канал датчика"
-                value={selectedSensor.id}
-                onChange={(event) => replace(event.target.value)}
-                className={inputClass}
+              <button
+                type="button"
+                aria-label="Вибрати інший канал вимірювання"
+                disabled={replacementSelection.model === null || replacementEligible.length === 0}
+                onClick={() => {
+                  setPicker({ kind: "replace", sensorId: selectedSensor.id });
+                  setError(null);
+                }}
+                className={`${inputClass} flex min-h-10 items-center justify-between gap-2 text-left disabled:cursor-not-allowed disabled:opacity-40`}
               >
-                {replacementChannels.map((channel) => {
-                  const conflict = channelPlacementConflict(channel, equipmentId);
-                  const isCurrent = channel.channelId === selectedSensor.id;
-                  return (
-                    <option
-                      key={channel.channelId}
-                      value={channel.channelId}
-                      disabled={!isCurrent && conflict !== null}
-                    >
-                      {channelOptionLabel(channel, !isCurrent ? conflict : null)}
-                    </option>
-                  );
-                })}
-              </select>
+                <span className="min-w-0 truncate">
+                  {selectedSensor.id} · {selectedSensor.metric} · {selectedSensor.unit}
+                </span>
+                <Replace className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+              </button>
             </EditorField>
             <EditorField label="Підпис маркера">
               <input
@@ -285,6 +363,34 @@ export function SensorPlacementManager({
               </RefrigerationIconButton>
             </div>
           </div>
+
+          {replacementSelection.error ? (
+            <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {replacementSelection.error}
+            </p>
+          ) : null}
+
+          {conflictedReplacements.length > 0 ? (
+            <p className="mt-3 text-[10px] text-slate-500">
+              Не можна використати через інше обладнання:{" "}
+              {conflictedReplacements.map((channel) => channel.channelId).join(", ")}.
+            </p>
+          ) : null}
+
+          {replacementPickerOpen && replacementSelection.model ? (
+            <div className="mt-3" data-testid="equipment-map-replace-telemetry-selector">
+              <TelemetryPointSelector
+                hierarchy={replacementSelection.model.hierarchy}
+                value={[]}
+                maxSelection={1}
+                maxVisibleNodes={300}
+                title={`Замінити канал ${selectedSensor.id}`}
+                onCancel={() => setPicker(null)}
+                onConfirm={replace}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -306,23 +412,36 @@ export function sensorSlotCapacity(value: number): number {
   return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
 }
 
-function channelOptionLabel(channel: AvailableSensor, conflict: string | null): string {
-  const [controller, input] = channel.channelId.split("-", 2);
-  const topology = input ? ` · контролер ${controller} · вхід ${Number(input)}` : "";
-  const value =
-    channel.latestValue === null
-      ? "Немає значення"
-      : `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 2 }).format(channel.latestValue)} ${channel.unit}`;
-  const status = channelTelemetryLabel(channel);
-  return `${channel.channelId}${topology} · ${value} · ${status}${conflict ? ` · ${conflict}` : ""}`;
+function buildSelectionModel(
+  equipment: RefrigerationEquipment,
+  channels: readonly AvailableSensor[],
+  organizationId: string | null,
+): SelectionModelResult {
+  if (!organizationId?.trim()) {
+    return {
+      model: null,
+      error: "Контекст організації недоступний. Вибір точки телеметрії заблоковано.",
+    };
+  }
+  try {
+    return {
+      model: buildSensorTelemetrySelectionModel({ equipment, channels, organizationId }),
+      error: null,
+    };
+  } catch (cause) {
+    return {
+      model: null,
+      error: cause instanceof Error ? cause.message : "Не вдалося побудувати каталог точок телеметрії.",
+    };
+  }
 }
 
 function EditorField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-[9px] font-semibold tracking-wider text-slate-600 uppercase">{label}</span>
+    <div className="space-y-1.5">
+      <span className="block text-[9px] font-semibold tracking-wider text-slate-600 uppercase">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 
