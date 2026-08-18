@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[2]
 SMOKE = ROOT / "infrastructure" / "compose" / "central-smoke.sh"
 DEPLOY = ROOT / "scripts" / "deploy-current-head-raspberry-pi.sh"
+EXPECTED_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
 
 
 class _SmokeFixtureServer(ThreadingHTTPServer):
@@ -39,7 +40,21 @@ class _SmokeFixtureHandler(BaseHTTPRequestHandler):
             return
         if path in {"/api/v1/telemetry/latest", "/api/v1/telemetry/history"}:
             if self.server.protected_status == 401:
-                self._send_json(401, {"detail": {"code": "missing_bearer_token"}})
+                if self.headers.get("X-Organization-ID") != EXPECTED_ORGANIZATION_ID:
+                    self._send_json(
+                        400,
+                        {
+                            "detail": {
+                                "code": "organization_header_required",
+                                "message": "X-Organization-ID header is required",
+                            }
+                        },
+                    )
+                else:
+                    self._send_json(
+                        401,
+                        {"detail": {"code": "missing_bearer_token"}},
+                    )
             else:
                 self._send_json(200, {"count": 0, "items": []})
             return
@@ -102,7 +117,7 @@ def _run_smoke(*, auth_mode: str, protected_status: int) -> subprocess.Completed
                         f"CENTRAL_API_PORT={server.server_port}",
                         "CORS_ALLOWED_ORIGINS=",
                         f"AUTH_MODE={auth_mode}",
-                        "AUTH_DEFAULT_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001",
+                        f"AUTH_DEFAULT_ORGANIZATION_ID={EXPECTED_ORGANIZATION_ID}",
                         "CENTRAL_SMOKE_HTTP_ATTEMPTS=1",
                         "CENTRAL_SMOKE_HTTP_TIMEOUT_SECONDS=2",
                         "CENTRAL_SMOKE_HTTP_RETRY_DELAY_SECONDS=1",
@@ -144,6 +159,10 @@ class CentralSmokeAuthContractTests(unittest.TestCase):
         text = SMOKE.read_text(encoding="utf-8")
 
         self.assertIn('AUTH_MODE="$(read_env AUTH_MODE disabled)"', text)
+        self.assertIn(
+            'AUTH_DEFAULT_ORGANIZATION_ID="$(read_env AUTH_DEFAULT_ORGANIZATION_ID ',
+            text,
+        )
         self.assertIn('authenticated_mode = auth_mode != "disabled"', text)
         self.assertIn('if authenticated_mode:', text)
 
@@ -159,12 +178,12 @@ class CentralSmokeAuthContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("failed after 1 attempts", result.stderr)
 
-    def test_authenticated_mode_requires_fail_closed_anonymous_rest(self) -> None:
+    def test_authenticated_mode_requires_organization_scoped_bearer_rejection(self) -> None:
         result = _run_smoke(auth_mode="jwt", protected_status=401)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
-            "Central smoke protected REST: anonymous access rejected as expected",
+            "Central smoke protected REST: anonymous bearer access rejected as expected",
             result.stdout,
         )
         self.assertIn("auth_mode=jwt", result.stdout)
@@ -175,9 +194,17 @@ class CentralSmokeAuthContractTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("expected HTTP 401", result.stderr)
 
-    def test_authenticated_rest_smoke_expects_fail_closed_401(self) -> None:
+    def test_authenticated_rest_smoke_sends_organization_scope_before_auth_check(self) -> None:
         text = SMOKE.read_text(encoding="utf-8")
 
+        self.assertIn(
+            'request = Request(url, headers={"X-Organization-ID": organization_id})',
+            text,
+        )
+        self.assertIn(
+            "AUTH_DEFAULT_ORGANIZATION_ID must be configured for authenticated central smoke",
+            text,
+        )
         self.assertIn(
             'expect_http_status("/api/v1/telemetry/latest?limit=1", 401)',
             text,
