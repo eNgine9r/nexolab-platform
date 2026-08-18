@@ -68,14 +68,17 @@ export function VersionScreen() {
   }, [runtime, security.membership]);
   const allowed = security.membership?.permissions.includes("project_versions.manage") ?? false;
 
-  const refresh = useCallback(async () => {
-    if (!client || !allowed) return;
+  const refresh = useCallback(async (): Promise<VersionSnapshot | null> => {
+    if (!client || !allowed) return null;
     setLoading(true);
     setError(null);
     try {
-      setSnapshot(await client.read());
+      const nextSnapshot = await client.read();
+      setSnapshot(nextSnapshot);
+      return nextSnapshot;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Version API недоступний.");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -93,21 +96,22 @@ export function VersionScreen() {
   }, [refresh, snapshot?.activeOperation]);
   useEffect(() => {
     if (!checkPending && snapshot?.updateCheck?.status !== "checking") return;
-    const id = window.setInterval(() => void refresh(), UPDATE_CHECK_POLL_MS);
+    const poll = async () => {
+      const nextSnapshot = await refresh();
+      const completedAt = nextSnapshot?.updateCheck?.completedAt;
+      if (!checkPending || !checkRequestedAt || !completedAt) return;
+      if (Date.parse(completedAt) >= Date.parse(checkRequestedAt)) {
+        setCheckPending(false);
+      }
+    };
+    const id = window.setInterval(() => void poll(), UPDATE_CHECK_POLL_MS);
     return () => window.clearInterval(id);
-  }, [checkPending, refresh, snapshot?.updateCheck?.status]);
+  }, [checkPending, checkRequestedAt, refresh, snapshot?.updateCheck?.status]);
   useEffect(() => {
     if (!checkPending) return;
     const id = window.setTimeout(() => setCheckPending(false), UPDATE_CHECK_TIMEOUT_MS);
     return () => window.clearTimeout(id);
   }, [checkPending]);
-  useEffect(() => {
-    const completedAt = snapshot?.updateCheck?.completedAt;
-    if (!checkPending || !checkRequestedAt || !completedAt) return;
-    if (Date.parse(completedAt) >= Date.parse(checkRequestedAt)) {
-      setCheckPending(false);
-    }
-  }, [checkPending, checkRequestedAt, snapshot?.updateCheck?.completedAt]);
 
   if (security.mode === "demo")
     return (
