@@ -38,6 +38,8 @@ require_positive_integer() {
 BIND_ADDRESS="$(read_env CENTRAL_BIND_ADDRESS 127.0.0.1)"
 API_PORT="$(read_env CENTRAL_API_PORT 8082)"
 CORS_ORIGINS="$(read_env CORS_ALLOWED_ORIGINS '')"
+AUTH_MODE="$(read_env AUTH_MODE disabled)"
+AUTH_DEFAULT_ORGANIZATION_ID="$(read_env AUTH_DEFAULT_ORGANIZATION_ID 00000000-0000-0000-0000-000000000001)"
 SMOKE_HTTP_ATTEMPTS="$(read_env CENTRAL_SMOKE_HTTP_ATTEMPTS 5)"
 SMOKE_HTTP_TIMEOUT_SECONDS="$(read_env CENTRAL_SMOKE_HTTP_TIMEOUT_SECONDS 15)"
 SMOKE_HTTP_RETRY_DELAY_SECONDS="$(read_env CENTRAL_SMOKE_HTTP_RETRY_DELAY_SECONDS 2)"
@@ -92,7 +94,8 @@ python3 - \
   "$BASE_URL" \
   "$SMOKE_HTTP_ATTEMPTS" \
   "$SMOKE_HTTP_TIMEOUT_SECONDS" \
-  "$SMOKE_HTTP_RETRY_DELAY_SECONDS" <<'PY'
+  "$SMOKE_HTTP_RETRY_DELAY_SECONDS" \
+  "$AUTH_MODE" <<'PY'
 from __future__ import annotations
 
 import json
@@ -107,6 +110,8 @@ base_url = sys.argv[1]
 attempts = int(sys.argv[2])
 timeout_seconds = int(sys.argv[3])
 retry_delay_seconds = int(sys.argv[4])
+auth_mode = sys.argv[5].strip().lower()
+authenticated_mode = auth_mode != "disabled"
 
 
 def load_json(path: str) -> dict[str, object]:
@@ -136,10 +141,39 @@ def load_json(path: str) -> dict[str, object]:
     ) from last_error
 
 
-latest = load_json("/api/v1/telemetry/latest?limit=1")
-assert isinstance(latest.get("count"), int)
-assert latest["count"] >= 0
-assert isinstance(latest.get("items"), list)
+def expect_http_status(path: str, expected_status: int) -> None:
+    url = f"{base_url}{path}"
+    last_error: BaseException | None = None
+
+    for attempt in range(1, attempts + 1):
+        try:
+            with urlopen(url, timeout=timeout_seconds) as response:
+                actual_status = response.status
+            last_error = RuntimeError(
+                f"GET {url} returned HTTP {actual_status}; expected HTTP {expected_status}"
+            )
+        except HTTPError as error:
+            if error.code == expected_status:
+                return
+            last_error = RuntimeError(
+                f"GET {url} returned HTTP {error.code}; expected HTTP {expected_status}"
+            )
+        except (URLError, TimeoutError, OSError) as error:
+            last_error = error
+
+        if attempt == attempts:
+            break
+        print(
+            f"Central smoke protected REST retry {attempt}/{attempts} for {url}: {last_error}",
+            file=sys.stderr,
+        )
+        time.sleep(retry_delay_seconds)
+
+    raise RuntimeError(
+        f"GET {url} did not produce expected HTTP {expected_status} "
+        f"after {attempts} attempts: {last_error}"
+    ) from last_error
+
 
 now = datetime.now(UTC)
 query = urlencode(
@@ -149,24 +183,62 @@ query = urlencode(
         "limit": 1,
     }
 )
-history = load_json(f"/api/v1/telemetry/history?{query}")
-assert isinstance(history.get("count"), int)
-assert history["count"] >= 0
-assert isinstance(history.get("items"), list)
+
+if authenticated_mode:
+    expect_http_status("/api/v1/telemetry/latest?limit=1", 401)
+    expect_http_status(f"/api/v1/telemetry/history?{query}", 401)
+    print("Central smoke protected REST: anonymous access rejected as expected")
+else:
+    latest = load_json("/api/v1/telemetry/latest?limit=1")
+    assert isinstance(latest.get("count"), int)
+    assert latest["count"] >= 0
+    assert isinstance(latest.get("items"), list)
+
+    history = load_json(f"/api/v1/telemetry/history?{query}")
+    assert isinstance(history.get("count"), int)
+    assert history["count"] >= 0
+    assert isinstance(history.get("items"), list)
 PY
 
-"${COMPOSE[@]}" exec -T telemetry-service python - <<'PY'
+"${COMPOSE[@]}" exec -T telemetry-service python - \
+  "$AUTH_MODE" \
+  "$AUTH_DEFAULT_ORGANIZATION_ID" <<'PY'
 from __future__ import annotations
 
 import asyncio
+import json
+import sys
 
 import websockets
 
 
+auth_mode = sys.argv[1].strip().lower()
+organization_id = sys.argv[2]
+
+
 async def main() -> None:
     uri = "ws://127.0.0.1:8082/api/v1/telemetry/live?node_id=smoke-test"
-    async with websockets.connect(uri, open_timeout=5, close_timeout=5):
-        return
+    async with websockets.connect(uri, open_timeout=5, close_timeout=5) as websocket:
+        if auth_mode == "disabled":
+            return
+
+        await websocket.send(
+            json.dumps(
+                {
+                    "type": "authenticate",
+                    "access_token": "",
+                    "organization_id": organization_id,
+                }
+            )
+        )
+        raw = await asyncio.wait_for(websocket.recv(), timeout=5)
+        payload = json.loads(raw)
+        if payload.get("type") != "error" or payload.get("code") != "missing_bearer_token":
+            raise RuntimeError(
+                "authenticated telemetry WebSocket did not reject an empty bearer token "
+                f"as expected: {payload!r}"
+            )
+        print("Central smoke protected WebSocket: anonymous access rejected as expected")
 
 
 asyncio.run(main())
@@ -182,4 +254,4 @@ if [[ -n "$CORS_ORIGINS" ]]; then
     /tmp/nexolab-central-cors.headers
 fi
 
-printf 'Central smoke test passed: %s\n' "$BASE_URL"
+printf 'Central smoke test passed: %s (auth_mode=%s)\n' "$BASE_URL" "$AUTH_MODE"
