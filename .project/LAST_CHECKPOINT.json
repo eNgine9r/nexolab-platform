@@ -3,65 +3,60 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T13:36:00Z",
+  "timestamp": "2026-08-18T14:08:00Z",
   "actor": "ChatGPT",
-  "event": "issue_566_raspberry_pi_deployment_and_token_rotation_acceptance_completed",
+  "event": "issue_576_software_green_waiting_raspberry_pi_acceptance",
   "repository_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
+  "last_reconciled_repository_sha": "11432d5f0f41164db9621b7567b95466136b574d",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "deployment_evidence": "runtime/deployments/20260818T131726Z",
-  "completed_work": {
-    "issue_566": {
-      "issue": 566,
-      "status": "RUNTIME_ACCEPTANCE_PASS",
-      "deployment_result": "PASS",
-      "runtime_mode": "lan",
-      "auth_mode": "jwt",
-      "local_auth_overlay": true,
-      "dashboard_auth_provider": "local",
-      "capacity_preflight": "PASS",
-      "postgresql_pre_upgrade_backup": "PASS",
-      "api_dashboard_readiness": "PASS",
-      "device_agent_worker_invariant": "PASS",
-      "telemetry_advancing": true
-    },
-    "issue_560": {
-      "issue": 560,
-      "status": "POST_FIX_PI_RUNTIME_ACCEPTANCE_PASS",
-      "access_token_seconds": 300,
-      "refresh_result": "HTTP_200",
-      "energy_monitoring_after_rotation": "PASS",
-      "invalid_bearer_token_recurrence": false
-    },
-    "issue_548_pi_host_plane": {
-      "issue": 548,
-      "status": "HOST_PLANE_VERIFIED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
-      "automatic_updates_enabled": false,
-      "schedule_local_time": "02:00",
-      "manual_check_executed": true,
-      "manual_check_result": "current_revision_unknown",
-      "follow_up_issue": 576
-    }
+  "active_work": {
+    "issue": 576,
+    "pull_request": 579,
+    "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
+    "implementation_head_sha": "994c2e66cd05e161172fc76654173805cea72c75",
+    "software_status": "PASS",
+    "ci": "PASS_3560",
+    "telemetry_service": "PASS_1740",
+    "runtime_acceptance": "PENDING_SEPARATE_APPROVAL"
+  },
+  "verified_software_contract": {
+    "source_lineage_evidence_only": true,
+    "deployment_authority": "controlled_source_deployment",
+    "known_packaged_release": false,
+    "catalog_entry_created": false,
+    "update_or_rollback_queued": false,
+    "automatic_updates_enabled_by_adoption": false,
+    "manual_discovery_can_resolve_source_commit": true,
+    "package_activation_remains_fail_closed": "current_release_unverified"
+  },
+  "current_pi_state": {
+    "source_commit": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+    "source_adoption_performed": false,
+    "manual_update_check": "current_revision_unknown",
+    "runtime_mode": "lan",
+    "monitoring_runtime_healthy": true
   },
   "independent_runtime_finding": {
     "issue": 575,
     "device": "LE-01MP Unit 201",
     "status": "DEGRADED_TIMEOUT_COOLDOWN",
-    "shared_bus_workers_healthy": true,
-    "neighboring_devices_advancing": true
+    "shared_bus_workers_healthy": true
   },
   "current_boundary": {
     "issue": 576,
-    "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
-    "status": "READY"
+    "status": "HARD_BLOCKED_WAITING_SEPARATE_USER_APPROVAL_AFTER_MERGE",
+    "approval_required_before": [
+      "Raspberry Pi version-management current.json source-lineage metadata write",
+      "post-adoption manual update discovery acceptance"
+    ]
   },
-  "next_action": "Implement Issue #576 as the next focused software Work Package. Preserve the single version-management state domain and fail closed unless exact validated current-release evidence can be proven. Issue #575 remains an independent Ready read-only hardware-connectivity diagnostic lane.",
+  "next_action": "Finalize PR #579 on an exact state-inclusive GREEN head, merge only after all required checks pass, then stop and request separate Product Owner approval before running source-deployment adoption on Raspberry Pi.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_site_cutover": "completed_existing_raspberry_pi_deployment_only",
     "mandatory_public_runtime_dependency": "none"
   }
 }
