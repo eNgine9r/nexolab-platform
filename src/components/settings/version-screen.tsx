@@ -2,7 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArchiveRestore, PackageCheck, RefreshCcw, Rocket } from "lucide-react";
+import {
+  AlertTriangle,
+  ArchiveRestore,
+  CalendarClock,
+  CircleCheck,
+  PackageCheck,
+  RefreshCcw,
+  Rocket,
+  Search,
+  ShieldCheck,
+  WifiOff,
+} from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -11,6 +22,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/auth-runtim
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import {
   VersionManagementClient,
+  type UpdateCheck,
   type VersionAction,
   type VersionCatalogItem,
   type VersionSnapshot,
@@ -18,12 +30,18 @@ import {
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
+const UPDATE_CHECK_POLL_MS = 2000;
+const UPDATE_CHECK_TIMEOUT_MS = 30000;
+
 export function VersionScreen() {
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<VersionSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
+  const [policySaving, setPolicySaving] = useState(false);
+  const [checkPending, setCheckPending] = useState(false);
+  const [checkRequestedAt, setCheckRequestedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ item: VersionCatalogItem; action: VersionAction } | null>(null);
   const [confirmation, setConfirmation] = useState("");
@@ -73,6 +91,23 @@ export function VersionScreen() {
     const id = window.setInterval(() => void refresh(), 3000);
     return () => window.clearInterval(id);
   }, [refresh, snapshot?.activeOperation]);
+  useEffect(() => {
+    if (!checkPending && snapshot?.updateCheck?.status !== "checking") return;
+    const id = window.setInterval(() => void refresh(), UPDATE_CHECK_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [checkPending, refresh, snapshot?.updateCheck?.status]);
+  useEffect(() => {
+    if (!checkPending) return;
+    const id = window.setTimeout(() => setCheckPending(false), UPDATE_CHECK_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [checkPending]);
+  useEffect(() => {
+    const completedAt = snapshot?.updateCheck?.completedAt;
+    if (!checkPending || !checkRequestedAt || !completedAt) return;
+    if (Date.parse(completedAt) >= Date.parse(checkRequestedAt)) {
+      setCheckPending(false);
+    }
+  }, [checkPending, checkRequestedAt, snapshot?.updateCheck?.completedAt]);
 
   if (security.mode === "demo")
     return (
@@ -140,6 +175,37 @@ export function VersionScreen() {
       setLoading(false);
     }
   };
+  const toggleAutomaticUpdates = async () => {
+    if (!snapshot) return;
+    setPolicySaving(true);
+    setError(null);
+    try {
+      const updatePolicy = await client.setAutomaticUpdates(
+        !snapshot.updatePolicy.automaticUpdatesEnabled,
+      );
+      setSnapshot((current) => (current ? { ...current, updatePolicy } : current));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Політику оновлень не збережено.");
+      await refresh();
+    } finally {
+      setPolicySaving(false);
+    }
+  };
+  const requestUpdateCheck = async () => {
+    setError(null);
+    setCheckPending(true);
+    try {
+      const queued = await client.requestUpdateCheck("Manual Settings update check");
+      setCheckRequestedAt(queued.requestedAt);
+      await refresh();
+    } catch (cause) {
+      setCheckPending(false);
+      setError(cause instanceof Error ? cause.message : "Перевірку оновлень не створено.");
+    }
+  };
+  const candidatePackage = snapshot?.updateCheck?.targetCommit
+    ? snapshot.catalog.find((item) => item.sourceCommit === snapshot.updateCheck?.targetCommit) ?? null
+    : null;
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -167,8 +233,8 @@ export function VersionScreen() {
                   <p className="text-xs tracking-[.22em] text-cyan-300 uppercase">Offline release control</p>
                   <h1 className="mt-1 text-2xl font-semibold">Системна версія</h1>
                   <p className="mt-2 text-sm text-slate-400">
-                    Тільки digest-validated local bundles. Backup, schema compatibility та readiness є
-                    обов’язковими gates.
+                    GitHub використовується тільки як optional update-plane. Runtime, validated packages,
+                    backup, schema compatibility та readiness залишаються локальними gates.
                   </p>
                 </div>
                 <button
@@ -178,7 +244,7 @@ export function VersionScreen() {
                   className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm disabled:opacity-50"
                 >
                   <RefreshCcw className="h-4 w-4" />
-                  Оновити
+                  Оновити стан
                 </button>
               </div>
             </section>
@@ -216,6 +282,95 @@ export function VersionScreen() {
                     </div>
                   ) : null}
                 </section>
+
+                <section
+                  aria-labelledby="automatic-update-heading"
+                  className="rounded-3xl border border-white/10 bg-[#091a31] p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="max-w-3xl">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="h-5 w-5 text-cyan-300" />
+                        <h2 id="automatic-update-heading" className="text-lg font-semibold">
+                          Автоматичні оновлення
+                        </h2>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-400">
+                        Щодня о 02:00 локального системного часу Raspberry Pi. Якщо політика вимкнена, host
+                        timer завершується до GitHub discovery і не перезапускає NEXOLAB.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-label="Автоматичні оновлення"
+                      aria-checked={snapshot.updatePolicy.automaticUpdatesEnabled}
+                      onClick={() => void toggleAutomaticUpdates()}
+                      disabled={policySaving || Boolean(snapshot.activeOperation)}
+                      className="inline-flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm disabled:opacity-50"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`relative h-6 w-11 rounded-full transition-colors ${
+                          snapshot.updatePolicy.automaticUpdatesEnabled ? "bg-emerald-500" : "bg-slate-700"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
+                            snapshot.updatePolicy.automaticUpdatesEnabled
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          }`}
+                        />
+                      </span>
+                      {policySaving
+                        ? "Збереження…"
+                        : snapshot.updatePolicy.automaticUpdatesEnabled
+                          ? "Увімкнено"
+                          : "Вимкнено"}
+                    </button>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <Metric label="Розклад" value={`Щодня о ${snapshot.updatePolicy.scheduleLocalTime}`} />
+                    <Metric
+                      label="Host timezone"
+                      value="Локальний системний час Raspberry Pi"
+                    />
+                    <Metric
+                      label="Політика змінена"
+                      value={snapshot.updatePolicy.updatedAt ?? "Ще не змінювалась"}
+                    />
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/10 pt-5">
+                    <button
+                      type="button"
+                      onClick={() => void requestUpdateCheck()}
+                      disabled={checkPending || loading || Boolean(snapshot.activeOperation)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium disabled:opacity-40"
+                    >
+                      {checkPending || snapshot.updateCheck?.status === "checking" ? (
+                        <RefreshCcw className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                      {checkPending ? "Перевіряємо…" : "Перевірити оновлення зараз"}
+                    </button>
+                    <p className="text-xs text-slate-500">
+                      Manual check доступний незалежно від стану автоматичних оновлень.
+                    </p>
+                  </div>
+
+                  <UpdateCheckPanel
+                    check={snapshot.updateCheck}
+                    checkPending={checkPending}
+                    candidatePackage={candidatePackage}
+                    onActivate={openAction}
+                    activeOperation={Boolean(snapshot.activeOperation)}
+                  />
+                </section>
+
                 {snapshot.activeOperation ? (
                   <section className="rounded-2xl border border-amber-300/20 bg-amber-400/5 p-4 text-sm">
                     <b>Операція {snapshot.activeOperation.status}:</b>{" "}
@@ -368,6 +523,127 @@ export function VersionScreen() {
       </div>
     </div>
   );
+}
+
+function UpdateCheckPanel({
+  check,
+  checkPending,
+  candidatePackage,
+  onActivate,
+  activeOperation,
+}: {
+  check: UpdateCheck | null;
+  checkPending: boolean;
+  candidatePackage: VersionCatalogItem | null;
+  onActivate: (item: VersionCatalogItem) => void;
+  activeOperation: boolean;
+}) {
+  if (checkPending || check?.status === "checking") {
+    return (
+      <div className="mt-5 rounded-2xl border border-cyan-300/15 bg-cyan-300/5 p-4 text-sm">
+        <div className="flex items-center gap-2 text-cyan-100">
+          <RefreshCcw className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+          Host worker перевіряє GitHub update-plane. Поточний runtime не перезапускається.
+        </div>
+      </div>
+    );
+  }
+  if (!check) {
+    return (
+      <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-400">
+        Перевірка GitHub ще не запускалась. LOCAL_LAN monitoring від цього не залежить.
+      </div>
+    );
+  }
+  if (check.resultCode === "up_to_date") {
+    return (
+      <UpdateState icon={<CircleCheck className="h-5 w-5 text-emerald-300" />} title="Встановлено актуальну версію">
+        GitHub main не містить новішого fast-forward target для поточного runtime.
+      </UpdateState>
+    );
+  }
+  if (check.resultCode === "github_unavailable" || check.status === "failed") {
+    return (
+      <UpdateState icon={<WifiOff className="h-5 w-5 text-amber-300" />} title="Update-plane недоступний">
+        GitHub не використовується для core monitoring. Поточний LOCAL_LAN runtime продовжує працювати без
+        змін.
+      </UpdateState>
+    );
+  }
+  if (check.candidateAvailable) {
+    return (
+      <UpdateState icon={<ShieldCheck className="h-5 w-5 text-cyan-300" />} title="Знайдено новішу ревізію">
+        <p>
+          <span className="font-mono text-xs text-slate-300">{check.currentCommit ?? "unknown"}</span>{" "}
+          → <span className="font-mono text-xs text-slate-300">{check.targetCommit ?? "unknown"}</span>
+        </p>
+        {check.activationEligible && candidatePackage ? (
+          <button
+            type="button"
+            onClick={() => onActivate(candidatePackage)}
+            disabled={activeOperation}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium disabled:opacity-40"
+          >
+            <Rocket className="h-4 w-4" />
+            Оновити зараз
+          </button>
+        ) : (
+          <p className="mt-2 text-amber-100">
+            Активація заблокована: {updateBlockReason(check.blockedReason)}. Remote commit сам по собі не є
+            installation authority.
+          </p>
+        )}
+      </UpdateState>
+    );
+  }
+  return (
+    <UpdateState icon={<AlertTriangle className="h-5 w-5 text-amber-300" />} title="Перевірку завершено з блокуванням">
+      {check.message ?? updateBlockReason(check.blockedReason)}
+    </UpdateState>
+  );
+}
+
+function UpdateState({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0">{icon}</div>
+        <div>
+          <p className="font-medium text-slate-100">{title}</p>
+          <div className="mt-1 text-slate-400">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function updateBlockReason(reason: string | null): string {
+  switch (reason) {
+    case "validated_package_required":
+      return "для target commit ще немає validated local package";
+    case "dirty_tree":
+      return "tracked working tree містить локальні зміни";
+    case "non_fast_forward":
+      return "target не є fast-forward продовженням поточного lineage";
+    case "wrong_repository":
+      return "configured origin не відповідає NEXOLAB repository";
+    case "wrong_branch":
+      return "локальна checkout-гілка не main";
+    case "runtime_state_unknown":
+      return "поточна deployed identity недостатньо підтверджена";
+    case null:
+      return "host eligibility gate не пройдено";
+    default:
+      return reason;
+  }
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
