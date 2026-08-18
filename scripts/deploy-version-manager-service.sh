@@ -56,6 +56,15 @@ command -v docker >/dev/null || { echo "Docker is required" >&2; exit 1; }
 command -v git >/dev/null || { echo "Git is required" >&2; exit 1; }
 command -v runuser >/dev/null || { echo "runuser is required" >&2; exit 1; }
 
+REPOSITORY_PATH="${NEXOLAB_REPOSITORY_PATH:-}"
+if [[ -z "$REPOSITORY_PATH" ]]; then
+  if git -C "$SOURCE_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    REPOSITORY_PATH="$SOURCE_ROOT"
+  else
+    REPOSITORY_PATH=/home/nexolab/nexolab-platform
+  fi
+fi
+
 install -d -m 0750 /usr/local/lib/nexolab /var/backups/nexolab
 install -d -o 10001 -g 10001 -m 0750 \
   /var/lib/nexolab/version-management \
@@ -91,7 +100,7 @@ if [[ ! -f /etc/nexolab/update-orchestrator.env ]]; then
   install -m 0640 /dev/null /etc/nexolab/update-orchestrator.env
   cat > /etc/nexolab/update-orchestrator.env <<EOF
 NEXOLAB_VERSION_ROOT=/var/lib/nexolab/version-management
-NEXOLAB_REPOSITORY_PATH=$SOURCE_ROOT
+NEXOLAB_REPOSITORY_PATH=$REPOSITORY_PATH
 NEXOLAB_GIT_USER=nexolab
 NEXOLAB_VERSION_STATE_UID=10001
 NEXOLAB_VERSION_STATE_GID=10001
