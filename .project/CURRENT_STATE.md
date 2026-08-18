@@ -4,32 +4,23 @@ Updated: 2026-08-18
 
 ## Repository and runtime baseline
 
-Repository `main` is `31e1a191b472703aa1fad90de8e8c57406a5b802`, the squash merge of PR #591 reconciling Issue #584 real Raspberry Pi runtime acceptance.
+Repository `main` is `75c6f5471d77d781b124fbd40c33ba924aec26f8`, the squash merge of PR #592 — **fix: restore complete persisted Overview history**.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
 ## Issue #584 — complete
 
-Issue #584 and PR #591 are complete. Real Raspberry Pi evidence proved:
-
-- AcquisitionRegistry revision `7 -> 8`;
-- `le01mp-201` lifecycle `active -> disabled`;
-- all 9 Unit 201 target definitions preserved;
-- Unit 201 poll-eligible targets `9 -> 0`;
-- Unit 201 scheduler jobs `9 -> 0`;
-- Device Agent health `degraded -> ok`;
-- Units 200/202/203 continued advancing;
-- revision 8 and the disabled lifecycle persisted after restarting only `device-agent`.
-
-Evidence: `runtime/deployments/issue-584-20260818T185455Z`.
+Temporary Unit 201 exclusion is complete and verified on the real Raspberry Pi. Evidence remains `runtime/deployments/issue-584-20260818T185455Z`.
 
 ## Issue #585 — blocked restoration lane
 
 Do not restore Unit 201 until the Product Owner confirms that the external controller no longer owns W2 and explicitly approves any required physical handback. The 2026-08-21 through 2026-08-23 review window is not authorization by itself.
 
-## Issue #586 — implementation complete, final PR validation in progress
+## Issue #586 — complete
 
-Real Raspberry Pi browser-closed evidence proved the acquisition and persistence planes are independent of browser lifetime before any #586 code change:
+Issue #586 is closed `status:done`. PR #592 merged GREEN as `75c6f5471d77d781b124fbd40c33ba924aec26f8`.
+
+Real Raspberry Pi browser-closed evidence proved the acquisition and persistence planes are independent of browser lifetime:
 
 - 60 sampled checks observed zero established browser/API connections on ports 3000/8081/8082;
 - AcquisitionRegistry remained `8 -> 8`;
@@ -39,27 +30,31 @@ Real Raspberry Pi browser-closed evidence proved the acquisition and persistence
 
 Evidence: `runtime/deployments/issue-586-browser-closed-20260818T191852Z`.
 
-The defect was therefore isolated to the Overview persisted-history bootstrap/reconciliation path rather than Device Agent, MQTT or PostgreSQL persistence.
-
-PR #592 implements the focused repair:
+The merged repair now provides:
 
 - one canonical complete-history loader with stable `snapshot_at`, captured-time pagination and event deduplication;
-- Live Data reuses that loader instead of maintaining a second pagination implementation;
-- Overview no longer treats one `limit=1000` page as complete history;
-- latest/WebSocket overlap is buffered during history bootstrap and reconciled deterministically;
-- duplicate and out-of-order live tail records are rejected;
-- newer non-valid samples remain available to the canonical Chart System so real gaps remain truthful;
-- Overview chart input no longer concatenates a second route-local latest buffer after history reconciliation.
+- Live Data reuse of that canonical loader;
+- complete persisted Overview bootstrap instead of a single `limit=1000` page;
+- deterministic buffered history-to-live reconciliation;
+- duplicate and out-of-order tail rejection;
+- preservation of newer non-valid samples for truthful Chart System gaps;
+- no duplicate route-local latest buffer appended after reconciliation.
 
-Core CI run `32179097680` is PASS for formatting, lint, TypeScript, full tests and production build on the pre-checkpoint implementation head. The final checkpoint commit intentionally requires the required CI/runtime/offline gates to run again before merge.
+Final PR #592 gates on head `6ef7c65b1e0838e75ebaff60d85881f4718cd7c7`:
+
+- Core CI `32179697028`: PASS;
+- Authenticated Dashboard Acceptance `32179696964`: PASS;
+- Offline Bundle `32179696933`: PASS.
 
 No backend schema, acquisition scheduler, physical polling cadence, dependency graph, Modbus behavior or hardware configuration changed in #586.
 
 ## Current execution boundary
 
-Active Work Package: **Issue #586 — Prove and repair persistent telemetry history across browser-offline intervals**.
+The only open GitHub Issue labeled `status:ready` is **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards**.
 
-Merge PR #592 only after the final head is GREEN for required CI, Authenticated Dashboard Acceptance and Offline Bundle. After GREEN merge and state reconciliation, Issue #587 becomes the next independent Ready Work Package.
+Issue #587 is the next Work Package. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
+
+PR #593 / Issue #594 (read-only NEXOLAB MCP gateway) is a separate draft lane and does not supersede the selected Sprint Work Package.
 
 ## Safety boundaries
 
