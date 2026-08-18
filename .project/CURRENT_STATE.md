@@ -4,71 +4,54 @@ Updated: 2026-08-18
 
 ## Accepted product baseline
 
-The current accepted NEXOLAB product baseline remains:
+The current accepted product baseline remains:
 
 `9732b68b0d14e4056e5773e0a9bec3f3741e267f`
 
-This is the squash merge of PR #559 — **feat: add safe GitHub update discovery plane**, closing Issue #548. Repository commits after that baseline through the deployed `7a19f53950492a40255c53b1d2018bbdff9466e2` are project-state-only and do not change product/runtime code.
+Repository state reconciliation after the approved Raspberry Pi deployment is merged through:
 
-## Current Raspberry Pi runtime
+`11432d5f0f41164db9621b7567b95466136b574d`
 
-The approved LOCAL_LAN deployment under Issue #566 completed successfully on 2026-08-18.
-
-Deployed repository SHA:
+The controlled Raspberry Pi runtime remains deployed at:
 
 `7a19f53950492a40255c53b1d2018bbdff9466e2`
 
-Deployment evidence:
+with evidence:
 
 `runtime/deployments/20260818T131726Z`
 
-Verified runtime facts:
+## Issue #566 / #560 runtime acceptance
 
-- controlled deployment reported `DEPLOYMENT PASSED`;
-- capacity preflight PASS (`free_bytes=20393951232`, `required_bytes=17093875203`, `reserve_bytes=2147483648`);
-- PostgreSQL pre-upgrade backup completed before runtime mutation;
-- runtime mode `lan`;
-- authentication mode `jwt`;
-- fail-closed local-auth overlay enabled;
-- Dashboard auth provider `local` with the canonical organization scope;
-- Dashboard and Telemetry API readiness PASS;
-- Device Agent bus worker invariant PASS: `expected_bus_workers=1`, `active_bus_workers=1`, `workers_healthy=true`;
-- MQTT remained connected and telemetry timestamps continued advancing.
+Issue #566 is completed. The LOCAL_LAN deployment passed capacity, PostgreSQL backup, Dashboard/API readiness, JWT/local-auth preservation, Device Agent worker health and telemetry advancement gates.
 
-## Issue #560 token-rotation runtime acceptance
+Issue #560 post-fix runtime acceptance is PASS: Energy Monitoring remained correct beyond the full 300-second access-token rotation window and `/api/v1/auth/local/refresh` returned HTTP 200 without recurrence of the prior `invalid_bearer_token` defect.
 
-The local access-token lifetime is 300 seconds. After deployment, Energy Monitoring remained operational beyond a complete token-rotation window. `/api/v1/auth/local/refresh` returned HTTP 200 and the Product Owner confirmed Energy Monitoring continued working correctly without the previous `invalid_bearer_token` failure.
+## Issue #576 — software verified, Raspberry Pi acceptance pending
 
-Two generic HTTP 401 access-log lines were observed at the deployment/startup boundary before a successful refresh. They did not contain `invalid_bearer_token` and the protected Energy Monitoring flow remained correct after rotation. Issue #560 post-fix Raspberry Pi runtime acceptance is therefore PASS.
+PR #579 implements trusted lineage evidence for controlled source deployments without claiming validated package authority.
 
-## Issue #548 update-plane Raspberry Pi evidence
+Implementation head before project-state checkpoint:
 
-The host update plane is installed and active:
+`994c2e66cd05e161172fc76654173805cea72c75`
 
-- `nexolab-version-manager.path` enabled/active;
-- `nexolab-update-request.path` enabled/active;
-- `nexolab-update-check.timer` enabled/active;
-- automatic-update policy remains OFF by default;
-- fixed local schedule remains `02:00`;
-- manual `check-now` executed non-destructively while policy was OFF.
+Exact-head verification on that implementation state:
 
-The manual check returned the truthful fail-closed state:
+- CI #3560 — GREEN: repository contracts, formatting, lint, typecheck, tests and production build;
+- Telemetry service #1740 — GREEN: the new source-adoption tests, existing update-orchestrator/version-manager contracts, full Telemetry tests, PostgreSQL outage recovery, migration validation and container build.
 
-`current_revision_unknown`
+The implementation adds `scripts/nexolab-adopt-source-deployment.py` and an operator runbook. The adopter requires canonical repository/main lineage, a clean tracked tree, deployment evidence whose commit equals deployed HEAD, fast-forward ancestry to the current `origin/main`, matching runtime/auth mode, live Alembic revision, API/database/MQTT readiness, healthy Device Agent bus-worker invariant and host platform.
 
-because the source-based deployment does not yet have trusted `/var/lib/nexolab/version-management/current.json` package evidence. No restart, product-data mutation or update activation occurred. Issue #576 owns the focused follow-up to establish trusted current-release evidence without fabricating bundle identity or weakening package/schema/backup gates.
+A successful source record is explicitly marked `deployment_authority=controlled_source_deployment` and `known_packaged_release=false`. It creates no catalog entry, stages no bundle, queues no update/rollback and does not enable automatic updates. Manual discovery can therefore know the deployed source commit while activation remains fail-closed as `current_release_unverified` until genuine validated package authority exists.
 
-## Independent runtime defect: LE-01MP Unit 201
+The Raspberry Pi has **not** run this adopter yet. Its version-management state therefore still returns `current_revision_unknown`. Writing the bounded host metadata and collecting real Pi acceptance requires a new separate explicit Product Owner approval after PR #579 is GREEN/merged.
 
-Device Agent overall health is `degraded` because LE-01MP Unit ID 201 currently returns timeout-only outcomes and is in cooldown. This does not invalidate the deployment: the shared bus worker is healthy, MQTT is connected, telemetry advances, LE-01MP Units 200/202/203 return successful reads, and XJP60D acquisition continues.
+## Independent runtime defect: Issue #575
 
-Issue #575 owns read-only diagnosis. Previous real-device evidence in Issue #201 showed Unit 201 responding successfully on 2026-08-17, so it must not be silently disabled or classified as absent.
+LE-01MP Unit 201 remains an independent Ready read-only diagnostic lane. Device Agent bus workers are healthy and telemetry advances, but Unit 201 has timeout-only/cooldown behavior. No Modbus or hardware write is authorized.
 
 ## Current execution boundary
 
-Issue #566 controlled deployment and token-rotation acceptance are complete. The update-plane manual check-path is verified fail-closed, with current-release initialization explicitly deferred to Issue #576.
-
-Open Ready Work Packages were audited after acceptance. The next Ready Work Package is Issue #576 because it is the direct dependency for making the already installed GitHub-aware 02:00 maintenance plane operational without weakening offline/runtime safety. Issue #575 remains an independent Ready hardware-connectivity diagnostic lane.
+Issue #576 software is verified and PR #579 is being finalized for merge. After merge, stop at the physical/runtime boundary and request separate approval before any Raspberry Pi source-adoption metadata write or acceptance action.
 
 ## Safety boundaries
 
