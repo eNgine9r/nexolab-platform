@@ -11,7 +11,7 @@ on:
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
-      - "scripts/tests/test_nexolab_version_manager.py"
+      - "scripts/tests/test_nexolab_version_manager*.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -37,7 +37,7 @@ on:
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
-      - "scripts/tests/test_nexolab_version_manager.py"
+      - "scripts/tests/test_nexolab_version_manager*.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -111,7 +111,8 @@ jobs:
           python -m pytest -q \
             scripts/tests/test_nexolab_update_orchestrator.py \
             scripts/tests/test_nexolab_update_orchestrator_requests.py \
-            scripts/tests/test_nexolab_version_manager.py
+            scripts/tests/test_nexolab_version_manager.py \
+            scripts/tests/test_nexolab_version_manager_runtime.py
       - name: Validate central deployment, cutover and M4 recovery contracts
         working-directory: ${{ github.workspace }}
         run: |
