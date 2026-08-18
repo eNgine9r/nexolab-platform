@@ -2,9 +2,9 @@
 
 Updated: 2026-08-18
 
-## Issue #584 — completed runtime acceptance
+## Issue #584 — complete
 
-Temporary exclusion of LE-01MP W2 / Unit 201 from active NEXOLAB polling is verified on the real Raspberry Pi.
+Temporary exclusion of LE-01MP W2 / Unit 201 from active NEXOLAB polling is verified and reconciled on `main` through PR #591.
 
 - registry revision `7 -> 8`;
 - device lifecycle is `disabled`;
@@ -15,7 +15,7 @@ Temporary exclusion of LE-01MP W2 / Unit 201 from active NEXOLAB polling is veri
 - state persists after restarting only `device-agent`;
 - evidence: `runtime/deployments/issue-584-20260818T185455Z`.
 
-There is no remaining runtime blocker for #584.
+There is no remaining #584 blocker.
 
 ## Issue #585 — blocked physical restoration lane
 
@@ -23,9 +23,15 @@ Restoring W2 / Unit 201 to NEXOLAB is blocked until the Product Owner confirms t
 
 The 2026-08-21 through 2026-08-23 review window is a review window only; it is not authorization to perform physical or hardware changes.
 
-## Issue #586 — Ready
+## Issue #586 — no product blocker; final validation in progress
 
-Persistent telemetry-history correctness is the next independent Ready software Work Package. No hardware mutation is required to begin it.
+Browser-closed Raspberry Pi evidence is PASS and proves Device Agent/PostgreSQL acquisition continuity without a browser. PR #592 contains the focused Overview persisted-history repair. Core formatting/lint/typecheck/tests/build are PASS on run `32179097680`; final-head required gates must be GREEN before merge.
+
+This is validation work, not a blocker requiring Product Owner action.
+
+## Issue #587 — dependency blocked until #586 merge
+
+Saved Live Dashboard complete persisted ranges and CSV export must continue to consume the canonical complete-history/reconciliation foundation from #586. Do not implement a parallel loader before #586 is GREEN and merged.
 
 ## Remaining evidence lanes
 
