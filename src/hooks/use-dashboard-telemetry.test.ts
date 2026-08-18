@@ -172,9 +172,7 @@ describe("useDashboardTelemetry", () => {
     const queries: TelemetryHistoryQuery[] = [];
     adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => {
       queries.push(query);
-      return queries.length === 1
-        ? historyResponse([newer], 1000)
-        : historyResponse([older], null);
+      return queries.length === 1 ? historyResponse([newer], 1000) : historyResponse([older], null);
     });
 
     const { result } = renderHook(() => useDashboardTelemetry());
