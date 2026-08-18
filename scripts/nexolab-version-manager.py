@@ -17,6 +17,16 @@ from pathlib import Path
 from typing import Any
 
 
+OPERATION_PHASES = (
+    "verifying_package",
+    "checking_capacity",
+    "creating_backup",
+    "applying_update",
+    "verifying_runtime",
+    "done",
+)
+
+
 class VersionManagerFailure(RuntimeError):
     pass
 
@@ -49,6 +59,27 @@ def atomic_json(path: Path, payload: dict[str, Any]) -> None:
             os.chmod(path, 0o640)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def enter_phase(operation_path: Path, operation: dict[str, Any], phase: str) -> None:
+    if phase not in OPERATION_PHASES:
+        raise VersionManagerFailure(f"unsupported operation phase: {phase}")
+    completed = operation.get("completed_phases")
+    if not isinstance(completed, list):
+        completed = []
+    previous = operation.get("phase")
+    if isinstance(previous, str) and previous in OPERATION_PHASES and previous != phase:
+        if previous not in completed:
+            completed.append(previous)
+    operation["completed_phases"] = completed
+    operation["phase"] = phase
+    operation["phase_status"] = "running" if phase != "done" else "succeeded"
+    atomic_json(operation_path, operation)
+
+
+def fail_current_phase(operation: dict[str, Any]) -> None:
+    if operation.get("phase") in OPERATION_PHASES:
+        operation["phase_status"] = "failed"
 
 
 def manifest_digest(bundle_root: Path) -> str:
@@ -164,6 +195,37 @@ def deployed_schema_after(action: str, current_schema: str, target_schema: str) 
     raise VersionManagerFailure("unsupported version operation")
 
 
+def run_capacity_preflight(root: Path, operation_id: str) -> str:
+    guard = Path(__file__).resolve().with_name("deploy-capacity-guard.sh")
+    if not guard.is_file():
+        raise VersionManagerFailure("deployment capacity guard is missing")
+    evidence_dir = root / "operation-evidence" / operation_id
+    report = evidence_dir / "capacity-preflight.txt"
+    subprocess.run(
+        [
+            "bash",
+            str(guard),
+            "--repo",
+            str(root),
+            "--audit-dir",
+            str(evidence_dir),
+            "--report",
+            str(report),
+        ],
+        check=True,
+    )
+    if not report.is_file():
+        raise VersionManagerFailure("deployment capacity evidence was not created")
+    facts: dict[str, str] = {}
+    for raw in report.read_text(encoding="utf-8").splitlines():
+        if "=" in raw:
+            key, value = raw.split("=", 1)
+            facts[key] = value
+    if facts.get("status") != "PASS":
+        raise VersionManagerFailure("deployment capacity preflight did not pass")
+    return str(report.relative_to(root))
+
+
 def run_once(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o750)
@@ -194,9 +256,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
     target_root = root / "catalog" / target_id
 
     operation["status"] = "running"
+    operation.setdefault("completed_phases", [])
     atomic_json(operation_path, operation)
     mutation_started = False
     try:
+        enter_phase(operation_path, operation, "verifying_package")
         target = verify_staged_bundle(target_root, target_id)
         schema = target["version_management"]["database_schema"]
         current_schema = str(current["schema_head"])
@@ -206,10 +270,6 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         if current_schema not in schema[compatibility_field]:
             raise VersionManagerFailure("schema compatibility is not explicitly declared")
 
-        backup_id = f"{operation_id}-postgresql.dump"
-        backup_path = args.backup_dir.resolve() / backup_id
-        partial_backup_path = backup_path.with_suffix(".dump.partial")
-        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         current_root = Path(str(current["bundle_root"])).resolve()
         current_manifest = verify_staged_bundle(current_root, str(current["bundle_id"]))
         if (
@@ -217,6 +277,16 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             or current_manifest.get("source_commit") != current.get("source_commit")
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
+
+        enter_phase(operation_path, operation, "checking_capacity")
+        operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
+        atomic_json(operation_path, operation)
+
+        enter_phase(operation_path, operation, "creating_backup")
+        backup_id = f"{operation_id}-postgresql.dump"
+        backup_path = args.backup_dir.resolve() / backup_id
+        partial_backup_path = backup_path.with_suffix(".dump.partial")
+        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         central = compose_args(
             current_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
@@ -247,6 +317,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         operation["backup_evidence_id"] = backup_id
         atomic_json(operation_path, operation)
 
+        enter_phase(operation_path, operation, "applying_update")
         installer = target_root / "scripts" / "install-offline-bundle.sh"
         command = [str(installer), "--central-env", str(args.central_env.resolve())]
         if args.skip_edge:
@@ -258,6 +329,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         mutation_started = True
         subprocess.run(command, check=True)
 
+        enter_phase(operation_path, operation, "verifying_runtime")
         target_central = compose_args(
             target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
@@ -297,10 +369,12 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         )
         operation["status"] = "succeeded"
         operation["result_code"] = "verified_ready"
+        enter_phase(operation_path, operation, "done")
     except Exception as error:
         operation["status"] = "failed"
         operation["result_code"] = type(error).__name__
         operation["safe_message"] = str(error)[:500]
+        fail_current_phase(operation)
         if mutation_started:
             current["health"] = "verification_failed"
             current["runtime_state_known"] = False
