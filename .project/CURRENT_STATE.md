@@ -4,7 +4,7 @@ Updated: 2026-08-18
 
 ## Repository and runtime baseline
 
-Repository `main` is `fa15f2ee851744c0e611888c052dc6a9446abf1c`, the state-only reconciliation merge PR #595. The accepted product-code baseline remains `75c6f5471d77d781b124fbd40c33ba924aec26f8`, the squash merge of PR #592 — **fix: restore complete persisted Overview history**.
+Accepted product-code baseline on `main` is `b46e518f8769f83ba22c608bacd5a368776e1701`, the squash merge of PR #593 — **feat: add read-only NEXOLAB MCP gateway**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
@@ -48,7 +48,7 @@ Final PR #592 gates on head `6ef7c65b1e0838e75ebaff60d85881f4718cd7c7`:
 
 No backend schema, acquisition scheduler, physical polling cadence, dependency graph, Modbus behavior or hardware configuration changed in #586.
 
-## Issue #594 — acceptance complete, ready for merge
+## Issue #594 — complete
 
 The Product Owner explicitly authorized provisioning a dedicated read-only LOCAL_LAN identity for the MCP gateway. The account `nexolab-mcp` is active under the supported `laboratory_technician` product role with exactly two explicit grants: `telemetry.read` and `nodes.read`. The password was generated outside Git, was never printed or committed, and remains in a mode-600 local secret file pending any separately approved persistent deployment.
 
@@ -62,15 +62,15 @@ Real Raspberry Pi acceptance on `nexolab-edge-01` proved:
 - the ephemeral acceptance container was removed and port 8787 returned free;
 - no Modbus write, hardware write, site exposure or persistent MCP service enablement occurred.
 
-PR #593 is ready for final exact-head CI/merge audit. Persistent systemd enablement, external tunnel/reverse-proxy exposure and production secret relocation remain a separate cutover decision.
+PR #593 merged GREEN as `b46e518f8769f83ba22c608bacd5a368776e1701` and Issue #594 is closed `status:done`. Persistent systemd enablement, external tunnel/reverse-proxy exposure and production credential relocation remain a separate cutover decision.
 
 ## Current execution boundary
 
-The only open GitHub Issue labeled `status:ready` is **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards**.
+GitHub currently has **zero** open `status:ready` Issues. **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards** is already `status:in-progress`; its architecture-decision checkpoint is recorded and no PR is open yet.
 
-Issue #587 is the next Work Package. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
+Issue #587 remains the active Work Package to continue. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
 
-PR #593 / Issue #594 is an explicitly Product-Owner-prioritized separate lane whose software/runtime acceptance is complete and ready for merge. After its post-merge state reconciliation, Issue #587 remains the selected next Ready Work Package.
+Issue #594 / PR #593 is complete and merged.
 
 ## Safety boundaries
 

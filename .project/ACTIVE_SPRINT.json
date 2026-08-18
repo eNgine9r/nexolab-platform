@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
-  "accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
-  "last_reconciled_repository_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
+  "repository_product_baseline_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+  "accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+  "last_reconciled_repository_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 587,
-    "selection_status": "ready",
-    "ready_issue_count": 1,
-    "reason": "Issue #586 is merged GREEN and closed status:done. Issue #594 was explicitly prioritized by the Product Owner as a separate read-only MCP acceptance lane and is now acceptance-complete/ready for merge; it does not supersede the post-merge next Ready Work Package #587. Issue #585 remains blocked on physical handback."
+    "selection_status": "in_progress",
+    "ready_issue_count": 0,
+    "reason": "Issue #594 is merged GREEN and closed status:done. GitHub currently has zero open status:ready Issues. Issue #587 is already status:in-progress with an architecture-decision checkpoint and no open PR yet, so it remains the active Work Package to continue. Issue #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -66,7 +66,7 @@
       "id": "NEXOLAB-587",
       "issue": 587,
       "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-      "status": "ready",
+      "status": "in_progress_architecture_decision_recorded",
       "priority": "high"
     },
     {
@@ -95,12 +95,12 @@
       "issue": 594,
       "pull_request": 593,
       "title": "Add read-only MCP gateway over existing NEXOLAB internal APIs",
-      "status": "acceptance_complete_ready_for_merge",
+      "status": "completed_software_ci_and_pi_runtime_acceptance",
       "priority": "user_prioritized",
-      "head_sha": "1ff1c8717a0b3b44ec76b4794cc836f2e7f276d8",
       "raspberry_pi_runtime_acceptance": "PASS",
       "backend_identity_role": "laboratory_technician",
-      "backend_identity_permissions": ["nodes.read", "telemetry.read"]
+      "backend_identity_permissions": ["nodes.read", "telemetry.read"],
+      "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     },
     {
       "id": "NEXOLAB-444",
@@ -128,15 +128,15 @@
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
     "type": "saved_dashboard_persisted_history_export",
-    "status": "ready"
+    "status": "in_progress"
   },
   "next_work_package": {
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "ready"
+    "status": "continue_in_progress"
   },
   "verification": {
-    "repository_accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+    "repository_accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -154,7 +154,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
+    "repository_state_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -167,7 +167,9 @@
     "issue_594_protected_history": "PASS",
     "issue_594_protected_alarms": "PASS",
     "issue_594_token_refresh": "PASS",
-    "issue_594_existing_runtime_non_regression": "PASS"
+    "issue_594_existing_runtime_non_regression": "PASS",
+    "issue_594_merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+    "issue_594_exact_head_ci": "PASS"
   },
   "independent_pending_lanes": [
     {
@@ -176,7 +178,7 @@
     },
     {
       "issue": 587,
-      "status": "ready"
+      "status": "in_progress"
     },
     {
       "issue": 588,
@@ -189,10 +191,6 @@
     {
       "issue": 590,
       "status": "blocked_dependency_589"
-    },
-    {
-      "issue": 594,
-      "status": "acceptance_complete_ready_for_merge"
     },
     {
       "issue": 444,
