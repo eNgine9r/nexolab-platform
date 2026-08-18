@@ -2,21 +2,30 @@
 
 Updated: 2026-08-18
 
-## Issue #576 — software GREEN, Raspberry Pi metadata acceptance pending
+## Issue #576 — software merged, Raspberry Pi approval required
 
-PR #579 implements a fail-closed trusted source-deployment lineage adopter. Implementation head `994c2e66cd05e161172fc76654173805cea72c75` passed CI #3560 and Telemetry service #1740, including the new targeted adoption tests and existing update-orchestrator/version-manager contracts.
+PR #579 is squash-merged at:
 
-The software does not treat a source deployment as a validated package. It creates no catalog entry and keeps activation blocked until genuine package authority exists.
+`dc4e3186d115d7e2877c0a02c5f315df5946da7e`
 
-The remaining #576 gate is physical/runtime acceptance on the controlled Raspberry Pi. Running the adopter writes bounded version-management metadata (`/var/lib/nexolab/version-management/current.json`) and therefore requires a new separate Product Owner approval after PR #579 is GREEN/merged.
+Final PR head `cbb0dfba44d8d6cce256ffbf45b8577a9d114629` passed CI #3564 and Telemetry service #1744.
 
-Until that approval/action, the Pi remains at repository SHA `7a19f53950492a40255c53b1d2018bbdff9466e2`, evidence `runtime/deployments/20260818T131726Z`, and manual update discovery continues to report `current_revision_unknown`.
+The remaining gate is real Raspberry Pi acceptance. The bounded adopter writes only version-management source-lineage metadata to `/var/lib/nexolab/version-management/current.json`, but this is a new host-state mutation and requires separate explicit Product Owner approval. The earlier Issue #566 deployment approval must not be reused.
 
-Do not hand-edit `current.json`, manufacture a catalog package identity, enable automatic updates, or reuse the earlier Issue #566 approval for this new host-state mutation.
+Until approved and executed:
+
+- Raspberry Pi remains at `7a19f53950492a40255c53b1d2018bbdff9466e2`;
+- deployment evidence remains `runtime/deployments/20260818T131726Z`;
+- monitoring runtime remains healthy;
+- manual update discovery remains fail-closed at `current_revision_unknown`;
+- automatic updates remain OFF;
+- fixed timer remains 02:00.
+
+Do not hand-edit `current.json`, fabricate a validated package identity, enable automatic updates or run update/rollback merely to satisfy acceptance.
 
 ## Issue #575 — LE-01MP Unit 201 runtime connectivity
 
-Device Agent reports Unit ID 201 timeout/cooldown while the shared bus worker is healthy, MQTT is connected and neighboring devices continue producing telemetry. Issue #575 remains Ready for read-only diagnosis. Any cable/power/address or other physical intervention requires separate approval.
+Issue #575 remains independently Ready for read-only diagnosis. Unit 201 is timeout/cooldown while the shared bus worker remains healthy and neighboring telemetry advances. Any physical cable/power/address intervention requires separate approval.
 
 ## Remaining evidence lanes
 
