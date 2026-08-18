@@ -35,12 +35,21 @@ const snapshot = {
   history: [],
   active_operation: null,
   rejected_packages: [],
+  update_policy: {
+    schema_version: 1,
+    automatic_updates_enabled: false,
+    schedule_local_time: "02:00",
+    updated_at: null,
+    updated_by: null,
+    error_code: null,
+  },
+  update_check: null,
   offline: true,
   catalog_limit: 20,
 };
 
 describe("VersionManagementClient", () => {
-  it("parses the offline current-version and catalog read model", async () => {
+  it("parses the offline current-version, catalog and update-policy read model", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(JSON.stringify(snapshot), { status: 200 }));
@@ -51,10 +60,119 @@ describe("VersionManagementClient", () => {
     expect(result.offline).toBe(true);
     expect(result.current).toMatchObject({ release: "2.0.0", previousBundleId: "release-1" });
     expect(result.catalog[0]).toMatchObject({ bundleId: "release-2", schemaHead: "schema-2" });
+    expect(result.updatePolicy).toEqual({
+      automaticUpdatesEnabled: false,
+      scheduleLocalTime: "02:00",
+      updatedAt: null,
+      updatedBy: null,
+      errorCode: null,
+    });
+    expect(result.updateCheck).toBeNull();
     expect(fetchImpl).toHaveBeenCalledWith(
       "http://127.0.0.1:8082/api/v1/system/version",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
+  });
+
+  it("parses durable update-check state without making it installation authority", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...snapshot,
+          update_check: {
+            schema_version: 1,
+            status: "completed",
+            source: "manual",
+            actor: "admin",
+            started_at: "2026-08-18T07:00:00Z",
+            completed_at: "2026-08-18T07:00:03Z",
+            result_code: "candidate_discovered",
+            message: "candidate",
+            current_commit: "2".repeat(40),
+            target_commit: "3".repeat(40),
+            candidate_available: true,
+            activation_eligible: false,
+            blocked_reason: "validated_package_required",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = new VersionManagementClient("http://127.0.0.1:8082", fetchImpl);
+
+    const result = await client.read();
+
+    expect(result.updateCheck).toMatchObject({
+      resultCode: "candidate_discovered",
+      candidateAvailable: true,
+      activationEligible: false,
+      blockedReason: "validated_package_required",
+    });
+  });
+
+  it("persists automatic-update policy through the bounded admin endpoint", async () => {
+    const policy = {
+      schema_version: 1,
+      automatic_updates_enabled: true,
+      schedule_local_time: "02:00",
+      updated_at: "2026-08-18T07:10:00Z",
+      updated_by: "admin",
+      error_code: null,
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(policy), { status: 200 }));
+    const client = new VersionManagementClient("http://127.0.0.1:8082", fetchImpl);
+
+    const result = await client.setAutomaticUpdates(true);
+
+    expect(result.automaticUpdatesEnabled).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://127.0.0.1:8082/api/v1/system/version/update/policy");
+    expect(init?.method).toBe("PUT");
+    expect(JSON.parse(String(init?.body))).toEqual({ automatic_updates_enabled: true });
+  });
+
+  it("queues manual update discovery independently of automatic policy", async () => {
+    const queued = {
+      schema_version: 1,
+      id: "check-1",
+      actor_subject: "admin",
+      source: "manual",
+      status: "queued",
+      requested_at: "2026-08-18T07:11:00Z",
+      reason: "operator requested",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(queued), { status: 202 }));
+    const client = new VersionManagementClient("http://127.0.0.1:8082", fetchImpl);
+
+    const result = await client.requestUpdateCheck(" operator requested ");
+
+    expect(result).toMatchObject({ id: "check-1", status: "queued", reason: "operator requested" });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://127.0.0.1:8082/api/v1/system/version/update/checks");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({ reason: "operator requested" });
+  });
+
+  it("rejects drift from the fixed 02:00 server schedule contract", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...snapshot,
+          update_policy: { ...snapshot.update_policy, schedule_local_time: "03:00" },
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = new VersionManagementClient("http://127.0.0.1:8082", fetchImpl);
+
+    await expect(client.read()).rejects.toMatchObject({
+      status: 502,
+      code: "invalid_version_response",
+    });
   });
 
   it("sends only the bounded action contract", async () => {
