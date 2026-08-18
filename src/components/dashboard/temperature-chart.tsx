@@ -284,7 +284,7 @@ function LiveTemperatureGrid({
       )}
 
       <HistoryChart
-        samples={[...historySamples, ...samples]}
+        samples={historySamples}
         range={historyRange}
         status={historyStatus}
         telemetryStatus={status}

@@ -19,55 +19,84 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
-  "accepted_product_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
-  "last_reconciled_repository_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
+  "repository_product_baseline_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "last_reconciled_repository_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 586,
+    "selected_issue": 587,
     "selection_status": "ready",
     "ready_issue_count": 1,
-    "reason": "Issue #584 real Raspberry Pi runtime acceptance is PASS. Issue #585 remains a separate blocked physical restoration lane. Issue #586 is the next independent status:ready software Work Package."
+    "reason": "Issue #586 is merged GREEN and closed status:done. GitHub Ready audit returns only Issue #587. Issue #585 remains a separate blocked physical restoration lane; Issue #594/PR #593 is a separate draft lane without Ready priority and does not supersede #587."
   },
   "tasks": [
     {
-      "id": "NEXOLAB-576",
-      "issue": 576,
-      "pull_request": 579,
-      "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
+      "id": "NEXOLAB-584",
+      "issue": 584,
+      "pull_request": 591,
+      "title": "Temporarily exclude LE-01MP Unit 201 while W2 is externally owned",
+      "status": "completed_runtime_acceptance_and_state_reconciliation",
+      "priority": "high",
+      "merge_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+      "runtime_registry_revision": 8,
+      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z"
+    },
+    {
+      "id": "NEXOLAB-585",
+      "issue": 585,
+      "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
+      "status": "blocked_product_owner_physical_handback_confirmation",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-586",
+      "issue": 586,
+      "pull_request": 592,
+      "title": "Prove and repair persistent telemetry history across browser-offline intervals",
       "status": "completed_software_ci_and_pi_runtime_acceptance",
-      "priority": "high",
-      "merge_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-      "final_pr_head_sha": "cbb0dfba44d8d6cce256ffbf45b8577a9d114629",
-      "ci": "PASS_3564",
-      "telemetry_service": "PASS_1744",
-      "software_acceptance": "PASS",
-      "pi_runtime_acceptance": "PASS",
-      "source_commit": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-      "deployment_authority": "controlled_source_deployment",
-      "known_packaged_release": false,
-      "manual_update_check": "PASS_CANDIDATE_DISCOVERED_FAIL_CLOSED_CURRENT_RELEASE_UNVERIFIED",
-      "automatic_updates_enabled": false,
-      "automatic_update_schedule": "02:00"
-    },
-    {
-      "id": "NEXOLAB-566",
-      "issue": 566,
-      "title": "Deploy LOCAL_LAN bearer-token rotation fix to Raspberry Pi",
-      "status": "completed_runtime_acceptance",
       "priority": "critical",
-      "deployed_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-      "runtime_evidence": "runtime/deployments/20260818T131726Z",
-      "deployment_acceptance": "PASS",
-      "token_rotation_acceptance": "PASS"
+      "merge_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+      "browser_closed_persistence": "PASS",
+      "runtime_evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
+      "core_ci": "PASS_32179697028",
+      "authenticated_dashboard_acceptance": "PASS_32179696964",
+      "offline_bundle": "PASS_32179696933"
     },
     {
-      "id": "NEXOLAB-575",
-      "issue": 575,
-      "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
+      "id": "NEXOLAB-587",
+      "issue": 587,
+      "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
       "status": "ready",
-      "priority": "high",
-      "runtime_fact": "Device Agent workers healthy while Unit 201 remains timeout-only and in cooldown"
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-588",
+      "issue": 588,
+      "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
+      "status": "blocked_current_wip_sequence",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-589",
+      "issue": 589,
+      "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
+      "status": "blocked_current_wip_sequence",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-590",
+      "issue": 590,
+      "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
+      "status": "blocked_dependency_589",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-594",
+      "issue": 594,
+      "pull_request": 593,
+      "title": "Add read-only MCP gateway over existing NEXOLAB internal APIs",
+      "status": "draft_lane_needs_post_active_wp_audit",
+      "priority": "unclassified"
     },
     {
       "id": "NEXOLAB-444",
@@ -89,59 +118,22 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked_hardware_evidence",
       "priority": "high"
-    },
-    {
-      "id": "NEXOLAB-584",
-      "issue": 584,
-      "title": "Temporarily exclude LE-01MP Unit 201 while W2 is externally owned",
-      "status": "completed_runtime_acceptance_pending_state_pr_merge",
-      "priority": "high",
-      "runtime_registry_revision": 8,
-      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
-      "hardware_write": "none",
-      "modbus_write": "none"
-    },
-    {
-      "id": "NEXOLAB-585",
-      "issue": 585,
-      "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
-      "status": "blocked_product_owner_physical_handback_confirmation",
-      "priority": "high"
-    },
-    {
-      "id": "NEXOLAB-586",
-      "issue": 586,
-      "title": "Prove and repair persistent telemetry history across browser-offline intervals",
-      "status": "ready",
-      "priority": "critical"
     }
   ],
   "active_work_package": {
-    "issue": 586,
-    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
-    "type": "persistent_telemetry_history_correctness",
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
+    "type": "saved_dashboard_persisted_history_export",
     "status": "ready"
   },
   "next_work_package": {
-    "issue": 586,
-    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
     "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
+    "repository_accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-    "runtime_evidence": "runtime/deployments/20260818T131726Z",
-    "issue_576_source_adoption": "PASS",
-    "source_deployment_authority": "controlled_source_deployment",
-    "source_runtime_state_known": true,
-    "source_known_packaged_release": false,
-    "source_schema_head": "20260807_0024",
-    "manual_update_check": "CANDIDATE_DISCOVERED",
-    "manual_update_current_commit": "7a19f53950492a40255c53b1d2018bbdff9466e2",
-    "manual_update_target_commit": "20221323fe891e3111cf4af3f51d4e182ba67ce3",
-    "manual_update_green_revision_verified": true,
-    "manual_update_activation_eligible": false,
-    "manual_update_blocked_reason": "current_release_unverified",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
     "api_database_mqtt_readiness": "PASS",
@@ -150,13 +142,39 @@
     "unit_201_runtime_state": "INTENTIONALLY_DISABLED_EXTERNAL_RS485_OWNERSHIP_ISSUE_584",
     "issue_584_runtime_acceptance": "PASS",
     "issue_584_registry_revision": 8,
-    "issue_584_runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
-    "device_agent_health_after_issue_584": "ok"
+    "issue_586_browser_closed_persistence": "PASS",
+    "issue_586_browser_max_established_connections": 0,
+    "issue_586_physical_requests_delta": 343,
+    "issue_586_postgresql_rows_delta": 229,
+    "issue_586_runtime_evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
+    "issue_586_core_ci": "PASS_32179697028",
+    "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
+    "issue_586_offline_bundle": "PASS_32179696933"
   },
   "independent_pending_lanes": [
     {
-      "issue": 575,
+      "issue": 585,
+      "status": "blocked"
+    },
+    {
+      "issue": 587,
       "status": "ready"
+    },
+    {
+      "issue": 588,
+      "status": "blocked_current_wip_sequence"
+    },
+    {
+      "issue": 589,
+      "status": "blocked_current_wip_sequence"
+    },
+    {
+      "issue": 590,
+      "status": "blocked_dependency_589"
+    },
+    {
+      "issue": 594,
+      "status": "draft_needs_audit"
     },
     {
       "issue": 444,

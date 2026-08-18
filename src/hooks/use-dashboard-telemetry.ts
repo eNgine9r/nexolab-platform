@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { kpis as demoKpis } from "@/data/dashboard";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
@@ -17,6 +17,13 @@ import {
   type DashboardTelemetryStore,
   type DashboardTelemetryView,
 } from "@/lib/telemetry/dashboard-state";
+import {
+  loadCompleteTelemetryHistory,
+  reconcileTelemetryHistoryEvents,
+  seedTelemetryHistoryOrderingState,
+  type TelemetryHistoryOrderingState,
+  type TelemetryHistoryWindow,
+} from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type {
@@ -31,10 +38,18 @@ const CLOCK_TICK_MS = 5_000;
 const STALE_AFTER_MS = 30_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
+const HISTORY_PENDING_LIVE_LIMIT = 5_000;
 
 interface RuntimeConfigResult {
   config: TelemetryRuntimeConfig | null;
   error: Error | null;
+}
+
+interface DashboardHistoryTailContext {
+  scopeKey: string;
+  historyKey: string;
+  durationMs: number;
+  window: TelemetryHistoryWindow;
 }
 
 export type DashboardHistoryRange = keyof typeof HISTORY_HOURS;
@@ -98,6 +113,42 @@ function filterTemperatureScope(
   return { ...view, samples, freshSamples, lastCapturedAt, ageMs };
 }
 
+function advanceHistoryWindow(
+  current: TelemetryHistoryWindow,
+  incoming: readonly TelemetrySample[],
+): TelemetryHistoryWindow {
+  const durationMs = current.to.getTime() - current.from.getTime();
+  let toMs = current.to.getTime();
+  for (const sample of incoming) {
+    const capturedAt = Date.parse(sample.captured_at);
+    if (Number.isFinite(capturedAt) && capturedAt > toMs) toMs = capturedAt;
+  }
+  return toMs === current.to.getTime() ? current : { from: new Date(toMs - durationMs), to: new Date(toMs) };
+}
+
+function samplesInsideHistoryWindow(
+  samples: readonly TelemetrySample[],
+  window: TelemetryHistoryWindow,
+): TelemetrySample[] {
+  const fromMs = window.from.getTime();
+  const toMs = window.to.getTime();
+  const byEventId = new Map<string, TelemetrySample>();
+  for (const sample of samples) {
+    const capturedAt = Date.parse(sample.captured_at);
+    if (!Number.isFinite(capturedAt) || capturedAt < fromMs || capturedAt > toMs) continue;
+    byEventId.set(sample.event_id, sample);
+  }
+  return [...byEventId.values()].sort(
+    (left, right) =>
+      Date.parse(left.captured_at) - Date.parse(right.captured_at) ||
+      left.event_id.localeCompare(right.event_id),
+  );
+}
+
+function serializedHistoryWindow(window: TelemetryHistoryWindow): { from: string; to: string } {
+  return { from: window.from.toISOString(), to: window.to.toISOString() };
+}
+
 export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): DashboardTelemetryModel {
   const enabled = options.enabled ?? true;
   const selectedOrganizationId = options.organizationId?.trim() || null;
@@ -132,6 +183,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
+  const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
+  const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
+  const historyTailContextRef = useRef<DashboardHistoryTailContext | null>(null);
   const historyKey = scopeKey === null ? null : `${scopeKey}:${historyRange}`;
 
   const retry = useCallback(() => {
@@ -149,6 +203,33 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     if (runtime.config?.mode !== "live") return;
     setHistoryGeneration((value) => value + 1);
   }, [runtime.config]);
+
+  const commitHistoryTail = useCallback((incoming: readonly TelemetrySample[], expectedScopeKey: string) => {
+    const temperatureSamples = incoming.filter(isTemperatureProbeSample);
+    if (temperatureSamples.length === 0) return;
+
+    const context = historyTailContextRef.current;
+    if (!context || context.scopeKey !== expectedScopeKey) return;
+
+    const ordering = historyOrderingRef.current;
+    if (ordering === null) {
+      historyPendingLiveRef.current = [...historyPendingLiveRef.current, ...temperatureSamples].slice(
+        -HISTORY_PENDING_LIVE_LIMIT,
+      );
+      return;
+    }
+
+    const reconciled = reconcileTelemetryHistoryEvents(temperatureSamples, ordering);
+    historyOrderingRef.current = reconciled.state;
+    if (reconciled.samples.length === 0) return;
+
+    const nextWindow = advanceHistoryWindow(context.window, reconciled.samples);
+    historyTailContextRef.current = { ...context, window: nextWindow };
+    setHistorySamples((current) =>
+      samplesInsideHistoryWindow([...current, ...reconciled.samples], nextWindow),
+    );
+    setHistoryWindow(serializedHistoryWindow(nextWindow));
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), CLOCK_TICK_MS);
@@ -179,6 +260,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     const commit = (samples: readonly TelemetrySample[]) => {
       if (disposed) return;
       setStore((current) => mergeDashboardTelemetry(current, samples, { now: Date.now() }));
+      commitHistoryTail(samples, scopeKey);
       setError(null);
       setClock(Date.now());
     };
@@ -221,11 +303,11 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       controller.abort();
       subscription?.close();
     };
-  }, [enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
+  }, [commitHistoryTail, enabled, generation, runtime.config, scopeKey, selectedOrganizationId]);
 
   useEffect(() => {
     const config = runtime.config;
-    if (!config || config.mode === "demo" || !enabled || historyKey === null) return;
+    if (!config || config.mode === "demo" || !enabled || historyKey === null || scopeKey === null) return;
 
     const controller = new AbortController();
     const organizationId =
@@ -233,8 +315,18 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     const adapter = securedAdapter(config, organizationId);
     const to = new Date();
     const from = new Date(to.getTime() - HISTORY_HOURS[historyRange] * 60 * 60 * 1000);
-    const nextWindow = { from: from.toISOString(), to: to.toISOString() };
+    const requestedWindow = { from, to };
+    const durationMs = to.getTime() - from.getTime();
     let disposed = false;
+
+    historyOrderingRef.current = null;
+    historyPendingLiveRef.current = [];
+    historyTailContextRef.current = {
+      scopeKey,
+      historyKey,
+      durationMs,
+      window: requestedWindow,
+    };
 
     void Promise.resolve().then(() => {
       if (disposed) return;
@@ -242,30 +334,37 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setHistoryStatus("loading");
       setHistoryError(null);
       setHistorySamples([]);
-      setHistoryWindow(nextWindow);
+      setHistoryWindow(serializedHistoryWindow(requestedWindow));
     });
 
-    void adapter
-      .history(
-        {
-          metric: "temperature.probe",
-          from,
-          to,
-          limit: 1000,
-        },
-        controller.signal,
-      )
-      .then((response) => {
-        if (disposed) return;
-        setHistorySamples(response.items);
-        setHistoryWindow(nextWindow);
+    void loadCompleteTelemetryHistory(adapter, { metric: "temperature.probe" }, requestedWindow, {
+      signal: controller.signal,
+    })
+      .then((result) => {
+        const context = historyTailContextRef.current;
+        if (disposed || !context || context.historyKey !== historyKey) return;
+
+        const persisted = result.samples.filter(isTemperatureProbeSample);
+        const ordering = seedTelemetryHistoryOrderingState(persisted);
+        const pending = historyPendingLiveRef.current;
+        const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
+        const finalWindow = advanceHistoryWindow(requestedWindow, reconciled.samples);
+        const combined = samplesInsideHistoryWindow([...persisted, ...reconciled.samples], finalWindow);
+
+        historyPendingLiveRef.current = [];
+        historyOrderingRef.current = reconciled.state;
+        historyTailContextRef.current = { ...context, window: finalWindow };
+        setHistorySamples(combined);
+        setHistoryWindow(serializedHistoryWindow(finalWindow));
         setHistoryStatus("ready");
         setHistoryError(null);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
+        historyOrderingRef.current = null;
+        historyPendingLiveRef.current = [];
         setHistorySamples([]);
-        setHistoryWindow(nextWindow);
+        setHistoryWindow(serializedHistoryWindow(requestedWindow));
         setHistoryStatus("error");
         setHistoryError(
           nextError instanceof Error ? nextError : new Error("Failed to load telemetry history"),
@@ -275,8 +374,21 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     return () => {
       disposed = true;
       controller.abort();
+      if (historyTailContextRef.current?.historyKey === historyKey) {
+        historyTailContextRef.current = null;
+        historyOrderingRef.current = null;
+        historyPendingLiveRef.current = [];
+      }
     };
-  }, [enabled, historyGeneration, historyKey, historyRange, runtime.config, selectedOrganizationId]);
+  }, [
+    enabled,
+    historyGeneration,
+    historyKey,
+    historyRange,
+    runtime.config,
+    scopeKey,
+    selectedOrganizationId,
+  ]);
 
   const view = useMemo(() => {
     if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {

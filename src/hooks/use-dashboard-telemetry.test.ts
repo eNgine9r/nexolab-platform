@@ -1,7 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TelemetryHistoryQuery, TelemetryLiveHandlers, TelemetrySample } from "@/lib/telemetry/types";
+import type {
+  TelemetryCollectionResponse,
+  TelemetryHistoryQuery,
+  TelemetryLiveHandlers,
+  TelemetrySample,
+} from "@/lib/telemetry/types";
 
 const adapterState = vi.hoisted(() => ({
   latest: vi.fn(),
@@ -45,6 +50,21 @@ const sample: TelemetrySample = {
   raw_status: null,
 };
 
+function historyResponse(
+  items: TelemetrySample[],
+  nextOffset: number | null = null,
+  snapshotAt = "2026-08-18T19:30:00.000Z",
+): TelemetryCollectionResponse {
+  return {
+    items,
+    count: items.length,
+    limit: 1000,
+    offset: 0,
+    next_offset: nextOffset,
+    snapshot_at: snapshotAt,
+  };
+}
+
 describe("useDashboardTelemetry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,13 +77,7 @@ describe("useDashboardTelemetry", () => {
       offset: 0,
       next_offset: null,
     });
-    adapterState.history.mockResolvedValue({
-      items: [sample],
-      count: 1,
-      limit: 1000,
-      offset: 0,
-      next_offset: null,
-    });
+    adapterState.history.mockResolvedValue(historyResponse([sample]));
     adapterState.subscribe.mockImplementation((_filters: unknown, handlers: TelemetryLiveHandlers) => {
       adapterState.handlers = handlers;
       return { close: vi.fn() };
@@ -115,7 +129,7 @@ describe("useDashboardTelemetry", () => {
     });
   });
 
-  it("loads authenticated history and reloads the selected time range", async () => {
+  it("loads authenticated complete history and reloads the selected time range", async () => {
     const { result } = renderHook(() => useDashboardTelemetry({ enabled: true, organizationId: "org-1" }));
 
     await waitFor(() => {
@@ -126,6 +140,9 @@ describe("useDashboardTelemetry", () => {
     const firstQuery = adapterState.history.mock.calls[0][0] as TelemetryHistoryQuery;
     expect(firstQuery.node_id).toBeUndefined();
     expect(firstQuery.metric).toBe("temperature.probe");
+    expect(firstQuery.limit).toBe(1000);
+    expect(firstQuery.offset).toBe(0);
+    expect(firstQuery.snapshot_at).toBeUndefined();
     expect(new Date(firstQuery.to).getTime() - new Date(firstQuery.from).getTime()).toBe(24 * 60 * 60 * 1000);
 
     act(() => {
@@ -135,9 +152,92 @@ describe("useDashboardTelemetry", () => {
     await waitFor(() => {
       expect(adapterState.history).toHaveBeenCalledTimes(2);
       expect(result.current.historyRange).toBe("1h");
+      expect(result.current.historyStatus).toBe("ready");
     });
     const secondQuery = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
     expect(new Date(secondQuery.to).getTime() - new Date(secondQuery.from).getTime()).toBe(60 * 60 * 1000);
+  });
+
+  it("loads every persisted page against one snapshot instead of treating 1000 as complete", async () => {
+    const newer = {
+      ...sample,
+      event_id: "newer",
+      captured_at: new Date(Date.now() - 60_000).toISOString(),
+    };
+    const older = {
+      ...sample,
+      event_id: "older",
+      captured_at: new Date(Date.now() - 2 * 60_000).toISOString(),
+    };
+    const queries: TelemetryHistoryQuery[] = [];
+    adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => {
+      queries.push(query);
+      return queries.length === 1 ? historyResponse([newer], 1000) : historyResponse([older], null);
+    });
+
+    const { result } = renderHook(() => useDashboardTelemetry());
+
+    await waitFor(() => {
+      expect(result.current.historyStatus).toBe("ready");
+      expect(result.current.historySamples.map((item) => item.event_id)).toEqual(["older", "newer"]);
+    });
+
+    expect(queries).toHaveLength(2);
+    expect(queries[0].snapshot_at).toBeUndefined();
+    expect(queries[1].snapshot_at).toBe("2026-08-18T19:30:00.000Z");
+    expect(queries[1].offset).toBe(0);
+    expect(new Date(queries[1].to).getTime()).toBeLessThan(new Date(queries[0].to).getTime());
+  });
+
+  it("reconciles persisted history with live tail without duplicates or backward replay", async () => {
+    const persisted = {
+      ...sample,
+      event_id: "persisted",
+      captured_at: new Date(Date.now() - 10_000).toISOString(),
+    };
+    adapterState.history.mockResolvedValue(historyResponse([persisted]));
+
+    const { result } = renderHook(() => useDashboardTelemetry());
+    await waitFor(() => {
+      expect(result.current.historyStatus).toBe("ready");
+      expect(adapterState.subscribe).toHaveBeenCalledOnce();
+    });
+
+    const handlers = adapterState.handlers as TelemetryLiveHandlers;
+    const delayed = {
+      ...persisted,
+      event_id: "delayed",
+      captured_at: new Date(Date.parse(persisted.captured_at) - 5_000).toISOString(),
+    };
+    const newer = {
+      ...persisted,
+      event_id: "newer-tail",
+      captured_at: new Date(Date.parse(persisted.captured_at) + 15_000).toISOString(),
+      value: 4.4,
+    };
+    const failure = {
+      ...persisted,
+      event_id: "communication-failure",
+      captured_at: new Date(Date.parse(newer.captured_at) + 5_000).toISOString(),
+      quality: "communication_error" as const,
+      value: null,
+    };
+
+    act(() => {
+      handlers.onSample({ ...persisted });
+      handlers.onSample(delayed);
+      handlers.onSample(newer);
+      handlers.onSample(newer);
+      handlers.onSample(failure);
+    });
+
+    await waitFor(() => {
+      expect(result.current.historySamples.map((item) => item.event_id)).toEqual([
+        "persisted",
+        "newer-tail",
+        "communication-failure",
+      ]);
+    });
   });
 
   it("hides history immediately when the organization scope changes", async () => {

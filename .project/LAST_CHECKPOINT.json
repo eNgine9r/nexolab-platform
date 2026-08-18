@@ -3,42 +3,81 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T18:57:45Z",
+  "timestamp": "2026-08-18T20:13:00Z",
   "actor": "ChatGPT",
-  "event": "issue_584_pi_runtime_acceptance_pass_next_ready_586",
-  "repository_main_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
+  "event": "issue_586_merged_next_ready_587",
+  "repository_main_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_584": {
       "issue": 584,
-      "status": "PI_RUNTIME_ACCEPTANCE_PASS",
-      "registry_revision_before": 7,
-      "registry_revision_after": 8,
-      "device_id": "le01mp-201",
-      "lifecycle": "disabled",
-      "inventory_targets_preserved": 9,
-      "poll_eligible_targets": 0,
-      "scheduler_jobs": 0,
-      "device_agent_health": "ok",
-      "neighbor_units_advancing": [200, 202, 203],
-      "restart_persistence": "PASS",
-      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
-      "modbus_write": "none",
-      "hardware_write": "none"
+      "pull_request": 591,
+      "status": "COMPLETED",
+      "merge_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
+      "runtime_registry_revision": 8,
+      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z"
+    },
+    "issue_586": {
+      "issue": 586,
+      "pull_request": 592,
+      "status": "COMPLETED_SOFTWARE_CI_AND_PI_RUNTIME_ACCEPTANCE",
+      "merge_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+      "runtime_proof": {
+        "status": "PASS",
+        "evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
+        "browser_max_established_connections": 0,
+        "registry_revision_before": 8,
+        "registry_revision_after": 8,
+        "physical_requests_delta": 343,
+        "postgresql_rows_delta": 229
+      },
+      "implementation": {
+        "canonical_complete_history_loader": true,
+        "stable_snapshot_pagination": true,
+        "overview_complete_persisted_bootstrap": true,
+        "history_live_reconciliation": true,
+        "duplicate_and_out_of_order_rejection": true,
+        "truthful_non_valid_tail_preserved": true,
+        "live_data_reuses_canonical_loader": true,
+        "backend_schema_changed": false,
+        "acquisition_changed": false
+      },
+      "final_gates": {
+        "core_ci": "PASS_32179697028",
+        "authenticated_dashboard_acceptance": "PASS_32179696964",
+        "offline_bundle": "PASS_32179696933"
+      }
     }
   },
   "blocked_work": {
     "issue_585": {
       "issue": 585,
       "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
+    },
+    "issue_588": {
+      "issue": 588,
+      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
+    },
+    "issue_589": {
+      "issue": 589,
+      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
+    },
+    "issue_590": {
+      "issue": 590,
+      "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
     }
   },
   "current_boundary": {
-    "issue": 586,
-    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
+    "issue": 587,
+    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
     "status": "READY"
   },
-  "next_action": "Begin Issue #586 with browser-closed acquisition/PostgreSQL evidence, then repair canonical persisted-history loading/reconciliation if the backend continues advancing.",
+  "next_action": "Begin Issue #587 on a dedicated feature branch. Reuse the merged #586 canonical complete-history loader and stable snapshot/reconciliation contract; add view-level 1h/6h/24h/7d/30d/Custom ranges and persisted CSV export without affecting physical acquisition.",
+  "separate_draft_lane": {
+    "issue": 594,
+    "pull_request": 593,
+    "status": "DRAFT_NEEDS_POST_ACTIVE_WP_AUDIT"
+  },
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
