@@ -1,9 +1,9 @@
 name: Refrigeration Selector Format Diagnostic
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/546-equipment-map-telemetry-selector
+      - main
 
 permissions:
   contents: read
