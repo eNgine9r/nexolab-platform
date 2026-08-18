@@ -134,11 +134,26 @@
     "local_auth_overlay": true
   },
   "independent_pending_lanes": [
-    {"issue": 566, "status": "needs_runtime_validation_and_approval"},
-    {"issue": 444, "status": "needs_validation"},
-    {"issue": 201, "status": "needs_validation"},
-    {"issue": 245, "status": "needs_validation"},
-    {"issue": 189, "status": "blocked"}
+    {
+      "issue": 566,
+      "status": "needs_runtime_validation_and_approval"
+    },
+    {
+      "issue": 444,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 201,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 189,
+      "status": "blocked"
+    }
   ],
   "deployment_capacity": {
     "current_runtime_healthy": true,
