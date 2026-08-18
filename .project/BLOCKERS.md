@@ -2,39 +2,25 @@
 
 Updated: 2026-08-18
 
-## Issue #566 / #560 — controlled Raspberry Pi deployment completed
+## Issue #576 — software GREEN, Raspberry Pi metadata acceptance pending
 
-The approved LOCAL_LAN deployment completed successfully on Raspberry Pi at:
+PR #579 implements a fail-closed trusted source-deployment lineage adopter. Implementation head `994c2e66cd05e161172fc76654173805cea72c75` passed CI #3560 and Telemetry service #1740, including the new targeted adoption tests and existing update-orchestrator/version-manager contracts.
 
-`7a19f53950492a40255c53b1d2018bbdff9466e2`
+The software does not treat a source deployment as a validated package. It creates no catalog entry and keeps activation blocked until genuine package authority exists.
 
-Evidence:
+The remaining #576 gate is physical/runtime acceptance on the controlled Raspberry Pi. Running the adopter writes bounded version-management metadata (`/var/lib/nexolab/version-management/current.json`) and therefore requires a new separate Product Owner approval after PR #579 is GREEN/merged.
 
-`runtime/deployments/20260818T131726Z`
+Until that approval/action, the Pi remains at repository SHA `7a19f53950492a40255c53b1d2018bbdff9466e2`, evidence `runtime/deployments/20260818T131726Z`, and manual update discovery continues to report `current_revision_unknown`.
 
-Verified PASS facts include capacity preflight, PostgreSQL pre-upgrade backup, fail-closed JWT/local-auth preservation, Dashboard/API readiness, healthy Device Agent bus-worker invariant, advancing telemetry and Energy Monitoring continuity through the 300-second access-token rotation window.
-
-Issue #560 runtime acceptance is PASS: `/api/v1/auth/local/refresh` returned HTTP 200 and the previous `invalid_bearer_token` Energy Monitoring failure did not recur after rotation.
-
-## Issue #576 — current-release evidence blocks update candidate eligibility
-
-The #548 host update plane is installed, active and safe. Automatic updates remain OFF and the fixed scheduler remains 02:00.
-
-A manual non-mutating `check-now` executed successfully as an update-plane request but returned the fail-closed eligibility state:
-
-`current_revision_unknown`
-
-The controlled source-based deployment has no trusted version-management `current.json` package evidence. This is not a monitoring outage and did not restart or mutate runtime data. Issue #576 is Ready and owns the evidence-backed initialization/adoption path. Do not write `current.json` manually or fabricate a bundle identity.
+Do not hand-edit `current.json`, manufacture a catalog package identity, enable automatic updates, or reuse the earlier Issue #566 approval for this new host-state mutation.
 
 ## Issue #575 — LE-01MP Unit 201 runtime connectivity
 
-Device Agent reports one degraded/cooldown endpoint group: LE-01MP Unit ID 201 has timeout-only outcomes in the current runtime. The shared bus worker remains healthy, MQTT is connected, telemetry advances and Units 200/202/203 plus XJP60D continue returning successful reads.
-
-Issue #575 is Ready for read-only diagnosis. Previous hardware evidence in Issue #201 confirmed Unit 201 worked on 2026-08-17, so it must not be silently disabled. Any physical power/cable/address intervention requires separate approval.
+Device Agent reports Unit ID 201 timeout/cooldown while the shared bus worker is healthy, MQTT is connected and neighboring devices continue producing telemetry. Issue #575 remains Ready for read-only diagnosis. Any cable/power/address or other physical intervention requires separate approval.
 
 ## Remaining evidence lanes
 
-- #576 trusted current-release evidence for GitHub-aware update eligibility;
+- #576 Raspberry Pi source-lineage metadata acceptance;
 - #575 Unit 201 read-only connectivity diagnosis;
 - #444 end-to-end local user-management acceptance;
 - #201 approved restart/power-cycle and rollover/reset/discontinuity validation;
