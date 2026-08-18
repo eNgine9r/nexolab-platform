@@ -157,6 +157,25 @@ describe("VersionManagementClient", () => {
     expect(JSON.parse(String(init?.body))).toEqual({ reason: "operator requested" });
   });
 
+  it("retries a transient local runtime disconnect with bounded reconnect delay", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValueOnce(new Response(JSON.stringify(snapshot), { status: 200 }));
+      const client = new VersionManagementClient("http://127.0.0.1:8082", fetchImpl);
+
+      const readPromise = client.read();
+      await vi.advanceTimersByTimeAsync(1500);
+
+      await expect(readPromise).resolves.toMatchObject({ offline: true });
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("rejects drift from the fixed 02:00 server schedule contract", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
