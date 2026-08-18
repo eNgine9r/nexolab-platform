@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { createLocalCredentialProvider } from "./local-auth";
 import {
   getSecurityCredentials,
   setSecurityCredentials,
@@ -50,6 +51,19 @@ export function createRuntimeCredentialProvider(organizationId: string | null): 
   const resolvedOrganizationId =
     organizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
   const providerKind = process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER ?? "supabase";
+
+  if (providerKind === "local") {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
+    if (!apiBaseUrl) {
+      return async (): Promise<SecurityCredentialSnapshot> => {
+        const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+        setSecurityCredentials(snapshot);
+        return snapshot;
+      };
+    }
+    return createLocalCredentialProvider(apiBaseUrl, resolvedOrganizationId);
+  }
+
   const cacheKey = `${providerKind}:${resolvedOrganizationId ?? "__default_organization__"}`;
   const cached = runtimeCredentialProviders.get(cacheKey);
   if (cached) return cached;
