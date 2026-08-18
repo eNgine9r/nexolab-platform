@@ -98,6 +98,7 @@ export class VersionManagementApiError extends Error {
 
 export class VersionManagementClient {
   private readonly base: string;
+
   constructor(
     apiBaseUrl: string,
     private readonly fetchImpl: typeof fetch,
@@ -147,18 +148,25 @@ export class VersionManagementClient {
   }
 
   private async request(path: string, init: RequestInit): Promise<unknown> {
-    const response = await this.fetchImpl(`${this.base}/api/v1/system/version${path}`, {
-      ...init,
-      cache: "no-store",
-      headers: { Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}) },
-    });
+    const response = await this.fetchImpl(
+      `${this.base}/api/v1/system/version${path}`,
+      {
+        ...init,
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          ...(init.body ? { "Content-Type": "application/json" } : {}),
+        },
+      },
+    );
     const payload = await readJson(response);
     if (!response.ok) {
       const detail = record(record(payload)?.detail);
       throw new VersionManagementApiError(
         response.status,
         text(detail?.code) ?? "version_management_error",
-        text(detail?.message) ?? `Version API returned HTTP ${response.status}.`,
+        text(detail?.message) ??
+          `Version API returned HTTP ${response.status}.`,
       );
     }
     return payload;
@@ -180,7 +188,10 @@ function parseSnapshot(value: unknown): VersionSnapshot {
     current: row.current === null ? null : parseCurrent(row.current),
     catalog: row.catalog.map(parseCatalog),
     history: row.history.map(parseOperation),
-    activeOperation: row.active_operation === null ? null : parseOperation(row.active_operation),
+    activeOperation:
+      row.active_operation === null
+        ? null
+        : parseOperation(row.active_operation),
     rejectedPackages: row.rejected_packages.map((item) => {
       const rejected = record(item);
       const directory = text(rejected?.directory);
@@ -190,7 +201,8 @@ function parseSnapshot(value: unknown): VersionSnapshot {
       return { directory, code, message };
     }),
     updatePolicy: parseUpdatePolicy(row.update_policy),
-    updateCheck: row.update_check === null ? null : parseUpdateCheck(row.update_check),
+    updateCheck:
+      row.update_check === null ? null : parseUpdateCheck(row.update_check),
     offline: true,
   };
 }
@@ -208,8 +220,13 @@ function parseCurrent(value: unknown): CurrentVersion {
     "deployed_at",
     "health",
   ] as const;
-  if (!row || required.some((key) => !text(row[key])) || typeof row.known_packaged_release !== "boolean")
+  if (
+    !row ||
+    required.some((key) => !text(row[key])) ||
+    typeof row.known_packaged_release !== "boolean"
+  ) {
     throw invalidResponse();
+  }
   return {
     bundleId: text(row.bundle_id)!,
     release: text(row.release)!,
@@ -229,8 +246,13 @@ function parseCurrent(value: unknown): CurrentVersion {
 
 function parseCatalog(value: unknown): VersionCatalogItem {
   const row = record(value);
-  if (!row || !Array.isArray(row.upgrade_from) || !Array.isArray(row.runtime_compatible_schema_heads))
+  if (
+    !row ||
+    !Array.isArray(row.upgrade_from) ||
+    !Array.isArray(row.runtime_compatible_schema_heads)
+  ) {
     throw invalidResponse();
+  }
   const fields = [
     "bundle_id",
     "release",
@@ -249,7 +271,8 @@ function parseCatalog(value: unknown): VersionCatalogItem {
     platform: text(row.platform)!,
     schemaHead: text(row.schema_head)!,
     upgradeFrom: row.upgrade_from.map(requiredText),
-    runtimeCompatibleSchemaHeads: row.runtime_compatible_schema_heads.map(requiredText),
+    runtimeCompatibleSchemaHeads:
+      row.runtime_compatible_schema_heads.map(requiredText),
     manifestSha256: text(row.manifest_sha256)!,
   };
 }
@@ -278,7 +301,9 @@ function parseUpdateCheck(value: unknown): UpdateCheck {
   const source = row?.source;
   if (
     !row ||
-    !["checking", "completed", "blocked", "failed"].includes(String(checkStatus)) ||
+    !["checking", "completed", "blocked", "failed"].includes(
+      String(checkStatus),
+    ) ||
     !["manual", "scheduled", "host"].includes(String(source)) ||
     typeof row.candidate_available !== "boolean" ||
     typeof row.activation_eligible !== "boolean"
@@ -303,7 +328,9 @@ function parseUpdateCheck(value: unknown): UpdateCheck {
 
 function parseQueuedUpdateCheck(value: unknown): QueuedUpdateCheck {
   const row = record(value);
-  if (!row || row.source !== "manual" || row.status !== "queued") throw invalidResponse();
+  if (!row || row.source !== "manual" || row.status !== "queued") {
+    throw invalidResponse();
+  }
   return {
     id: requiredText(row.id),
     actorSubject: requiredText(row.actor_subject),
@@ -321,9 +348,12 @@ function parseOperation(value: unknown): VersionOperation {
   if (
     !row ||
     (action !== "update" && action !== "rollback") ||
-    !["queued", "running", "succeeded", "failed"].includes(String(operationStatus))
-  )
+    !["queued", "running", "succeeded", "failed"].includes(
+      String(operationStatus),
+    )
+  ) {
     throw invalidResponse();
+  }
   return {
     id: requiredText(row.id),
     actorSubject: requiredText(row.actor_subject),
@@ -345,17 +375,21 @@ function record(value: unknown): Record<string, unknown> | null {
     ? (value as Record<string, unknown>)
     : null;
 }
+
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
+
 function optionalText(value: unknown): string | null {
   return value == null ? null : text(value);
 }
+
 function requiredText(value: unknown): string {
   const valueText = text(value);
   if (!valueText) throw invalidResponse();
   return valueText;
 }
+
 async function readJson(response: Response): Promise<unknown> {
   const body = await response.text();
   try {
@@ -364,6 +398,7 @@ async function readJson(response: Response): Promise<unknown> {
     return null;
   }
 }
+
 function invalidResponse(): VersionManagementApiError {
   return new VersionManagementApiError(
     502,
