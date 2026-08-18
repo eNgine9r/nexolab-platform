@@ -3,37 +3,65 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-18T13:03:00Z",
+  "timestamp": "2026-08-18T13:36:00Z",
   "actor": "ChatGPT",
-  "event": "issue_566_post_548_raspberry_pi_deployment_approved",
+  "event": "issue_566_raspberry_pi_deployment_and_token_rotation_acceptance_completed",
   "repository_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
   "accepted_product_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-  "repository_main_sha": "bfd8915b38fa03a4182c133fb84be02d51050217",
-  "deployed_product_sha": "0bfc4fcc56f7a669545be166c585573550f2fb44",
-  "current_boundary": {
-    "issue": 566,
-    "title": "Controlled Raspberry Pi deployment and combined post-merge runtime acceptance",
-    "status": "APPROVED_FOR_CONTROLLED_DEPLOYMENT",
-    "approval": {
-      "approved_by": "Product Owner",
-      "approved_at": "2026-08-18T16:03:00+03:00",
-      "request": "Update the Raspberry Pi to the new project version",
-      "scope": "controlled LOCAL_LAN deployment and #566/#560/#548 runtime acceptance"
+  "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+  "deployment_evidence": "runtime/deployments/20260818T131726Z",
+  "completed_work": {
+    "issue_566": {
+      "issue": 566,
+      "status": "RUNTIME_ACCEPTANCE_PASS",
+      "deployment_result": "PASS",
+      "runtime_mode": "lan",
+      "auth_mode": "jwt",
+      "local_auth_overlay": true,
+      "dashboard_auth_provider": "local",
+      "capacity_preflight": "PASS",
+      "postgresql_pre_upgrade_backup": "PASS",
+      "api_dashboard_readiness": "PASS",
+      "device_agent_worker_invariant": "PASS",
+      "telemetry_advancing": true
+    },
+    "issue_560": {
+      "issue": 560,
+      "status": "POST_FIX_PI_RUNTIME_ACCEPTANCE_PASS",
+      "access_token_seconds": 300,
+      "refresh_result": "HTTP_200",
+      "energy_monitoring_after_rotation": "PASS",
+      "invalid_bearer_token_recurrence": false
+    },
+    "issue_548_pi_host_plane": {
+      "issue": 548,
+      "status": "HOST_PLANE_VERIFIED_FAIL_CLOSED_CURRENT_REVISION_UNKNOWN",
+      "automatic_updates_enabled": false,
+      "schedule_local_time": "02:00",
+      "manual_check_executed": true,
+      "manual_check_result": "current_revision_unknown",
+      "follow_up_issue": 576
     }
   },
-  "deployment_target": {
-    "main_sha_at_approval": "bfd8915b38fa03a4182c133fb84be02d51050217",
-    "accepted_product_baseline_sha": "9732b68b0d14e4056e5773e0a9bec3f3741e267f",
-    "difference_from_product_baseline": "state_only_project_metadata",
-    "runtime_mode": "lan"
+  "independent_runtime_finding": {
+    "issue": 575,
+    "device": "LE-01MP Unit 201",
+    "status": "DEGRADED_TIMEOUT_COOLDOWN",
+    "shared_bus_workers_healthy": true,
+    "neighboring_devices_advancing": true
   },
-  "next_action": "On the existing Raspberry Pi, run the controlled repository deployment contract from ~/nexolab-platform with --runtime-mode lan. The script must complete capacity preflight, clean-tree validation, PostgreSQL backup when applicable, ff-only update to current origin/main, build/start, smoke checks and evidence capture. Stop on any failure and do not bypass safety gates.",
+  "current_boundary": {
+    "issue": 576,
+    "title": "Initialize trusted current-release evidence for source-deployed Raspberry Pi runtime",
+    "status": "READY"
+  },
+  "next_action": "Implement Issue #576 as the next focused software Work Package. Preserve the single version-management state domain and fail closed unless exact validated current-release evidence can be proven. Issue #575 remains an independent Ready read-only hardware-connectivity diagnostic lane.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_site_cutover": "approved_existing_raspberry_pi_controlled_deployment_only",
+    "production_site_cutover": "completed_existing_raspberry_pi_deployment_only",
     "mandatory_public_runtime_dependency": "none"
   }
 }
