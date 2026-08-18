@@ -2,19 +2,42 @@
 
 Updated: 2026-08-18
 
-## Repository and deployed baseline
+## Repository and accepted software baseline
 
-The current repository, accepted product and deployed Raspberry Pi LOCAL_LAN baseline is:
+The current repository and accepted software baseline is:
+
+`4cf20a173c793f67b7befb239d8489977d0df4b5`
+
+This is the squash merge of PR #561 — **preserve LOCAL_LAN bearer-token rotation**.
+
+Issue #560 is closed `status:done` after exact-head software, browser and offline verification.
+
+The fix routes the established legacy frontend runtime credential provider through the existing LOCAL_LAN refresh-token provider when `NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local`. Protected clients therefore resolve a current bearer token instead of reusing an expired in-memory access token. Missing local API configuration fails closed with no bearer token.
+
+Exact-head evidence on PR #561 head `4ee47fddb9ec903361dd5382ec40cb0d9eb1e9ac`:
+
+- CI #3473 PASS: formatting, lint, typecheck, full tests and production build;
+- Security Browser Acceptance #1197 PASS;
+- Authenticated Dashboard Acceptance #1988 PASS;
+- Offline Auth Acceptance #527 PASS;
+- Nodes Browser Acceptance #703 PASS;
+- Alerts Browser Acceptance #866 PASS;
+- Test Sessions Browser Acceptance #889 PASS;
+- Reports Browser Acceptance #889 PASS;
+- Rendered Reports Browser Acceptance #734 PASS;
+- Offline Bundle #1398 PASS, including disconnected startup and update/rollback persistent-data preservation.
+
+## Deployed Raspberry Pi baseline
+
+The currently accepted deployed Raspberry Pi LOCAL_LAN baseline remains:
 
 `2d7740ff1cc2e638f47f2f0787a8e0516626c61e`
-
-This is the merge of PR #558 — **scope authenticated central smoke requests**.
 
 Successful controlled deployment evidence:
 
 `runtime/deployments/20260818T073437Z`
 
-Verified deployment state:
+That deployed baseline verified:
 
 - deployment script: `DEPLOYMENT PASSED`;
 - `runtime_mode=lan`;
@@ -33,46 +56,23 @@ Verified deployment state:
 - RS485 worker state `running`;
 - telemetry freshness advanced over a 30-second acceptance window.
 
-Deployment capacity preflight also passed:
+Deployment capacity preflight passed with `free_bytes=20475432960`, `required_bytes=16999167491`, `reserve_bytes=2147483648`; root filesystem was 68% used.
 
-- `free_bytes=20475432960`;
-- `required_bytes=16999167491`;
-- `reserve_bytes=2147483648`;
-- root filesystem after deployment: 57G total, 37G used, 18G available, 68% used.
+## Issue #560 — software/offline complete; post-fix Pi runtime unverified
 
-## Issues #551 and #557 — completed
+The operator-observed Energy Monitoring failure after roughly 1–2 minutes was classified as a stale LOCAL_LAN bearer-token path, not a Modbus acquisition failure:
 
-Issue #551 **Make central smoke gate compatible with fail-closed LOCAL_LAN authentication** is closed `status:done`.
+`401 invalid_bearer_token / bearer token validation failed`
 
-Issue #557 **Send organization scope before bearer-token assertion in authenticated central smoke** is closed `status:done`.
+Software and disconnected-runtime verification are complete in `4cf20a173c793f67b7befb239d8489977d0df4b5`.
 
-The final runtime contract is proven on Raspberry Pi:
-
-- public readiness remains available;
-- authenticated protected REST smoke sends `X-Organization-ID` first and then requires HTTP 401 when bearer credentials are absent;
-- protected WebSocket smoke rejects missing bearer credentials deterministically;
-- no operator password, access token, private key or auth bypass is embedded in the smoke gate.
-
-## Issue #444 — deployment blocker cleared; functional validation remains
-
-Issue #444 **Restore LOCAL_LAN user administration API availability** is now `status:needs-validation`, not blocked.
-
-Runtime evidence now proves:
-
-- local-auth overlay is active in controlled LOCAL_LAN deployment;
-- `/api/v1/admin/users` is mounted;
-- local administrator authentication succeeds;
-- authenticated administrator receives HTTP 200 from the users API.
-
-Remaining acceptance is limited to the end-to-end user-management flow not exercised in the deployment acceptance block, including real create/manage behavior and non-admin authorization/frontend diagnostic validation as applicable.
+The Raspberry Pi has **not** been deployed to `4cf20a...` in this Work Package. Therefore post-fix physical/runtime acceptance remains unverified. The deployed `2d7740...` system may continue to reproduce the 401 until a separately approved controlled deployment is performed and Energy Monitoring is observed through at least one complete local access-token rotation window.
 
 ## Active implementation lane
 
-Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** is the active product Work Package and is `status:in-progress`.
+Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** remains the active product Work Package and is `status:in-progress`.
 
-Draft PR #559 — **feat: add safe GitHub update discovery plane** — is the existing implementation lane and must be resumed after state-only Issue #562 is reconciled.
-
-Do not create a parallel #548 implementation branch.
+Draft PR #559 — **feat: add safe GitHub update discovery plane** — is the existing implementation lane. Resume this same branch/PR after state-only Issue #564 is merged; do not create a parallel #548 implementation branch.
 
 #548 must preserve these boundaries:
 
@@ -89,9 +89,10 @@ Do not create a parallel #548 implementation branch.
 - #444 local user-management end-to-end acceptance remains `needs-validation`;
 - #201 cumulative-energy normal operation is hardware verified; restart/power-cycle and rollover/reset/discontinuity evidence remain pending;
 - #189 recovery acceptance remains hardware/evidence blocked;
-- #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence.
+- #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence;
+- #560 post-fix Raspberry Pi token-rotation runtime acceptance is pending a separately approved deployment of `4cf20a...` or newer containing the fix.
 
-The previous deployment-capacity blocker is cleared by the successful 2026-08-18 preflight. Future deployments must still run the capacity guard and may not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
+Future deployments must continue to run the capacity guard and may not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
 ## Safety boundaries
 

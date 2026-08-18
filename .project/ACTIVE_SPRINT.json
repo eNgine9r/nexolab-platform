@@ -19,16 +19,28 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
-  "accepted_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
+  "repository_product_baseline_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
+  "accepted_product_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
   "deployed_product_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
   "selection_state": {
     "selected_issue": 548,
     "selection_status": "in_progress",
     "ready_issue_count": 0,
-    "reason": "Critical auth/deployment validation lane #551/#557 is complete on Raspberry Pi. Issue #548 has resumed as the single active implementation lane through draft PR #559."
+    "reason": "Critical LOCAL_LAN bearer-token regression #560 is software/offline complete and merged. State-only #564 reconciles that result, after which Issue #548 resumes through its existing draft PR #559."
   },
   "tasks": [
+    {
+      "id": "NEXOLAB-560",
+      "issue": 560,
+      "pull_request": 561,
+      "title": "Preserve LOCAL_LAN bearer-token rotation across authenticated frontend clients",
+      "status": "completed_software_ci_offline_runtime_unverified_on_pi",
+      "priority": "critical",
+      "merge_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
+      "software_acceptance": "PASS",
+      "offline_acceptance": "PASS",
+      "post_fix_pi_runtime_acceptance": "PENDING_APPROVED_DEPLOYMENT"
+    },
     {
       "id": "NEXOLAB-557",
       "issue": 557,
@@ -86,8 +98,8 @@
     }
   ],
   "active_work_package": {
-    "issue": 562,
-    "title": "Reconcile successful LOCAL_LAN auth deployment acceptance",
+    "issue": 564,
+    "title": "Reconcile LOCAL_LAN bearer-token rotation hotfix",
     "type": "state_only",
     "status": "in_progress"
   },
@@ -98,9 +110,13 @@
     "status": "resume_in_progress"
   },
   "verification": {
+    "repository_accepted_sha": "4cf20a173c793f67b7befb239d8489977d0df4b5",
+    "latest_software_ci_status": "PASS",
+    "latest_offline_bundle_status": "PASS",
     "runtime_acceptance_sha": "2d7740ff1cc2e638f47f2f0787a8e0516626c61e",
     "runtime_evidence": "runtime/deployments/20260818T073437Z",
-    "deployment_status": "PASS",
+    "deployment_status": "PASS_FOR_DEPLOYED_BASELINE",
+    "post_fix_560_pi_runtime_acceptance": "PENDING",
     "runtime_mode": "lan",
     "auth_mode": "jwt",
     "local_auth_overlay": true,
@@ -113,6 +129,11 @@
     "capacity_preflight": "PASS"
   },
   "independent_pending_lanes": [
+    {
+      "issue": 560,
+      "status": "needs_runtime_validation",
+      "description": "Software/offline fix merged; post-fix Raspberry Pi deployment and token-rotation observation require separate approval."
+    },
     {
       "issue": 444,
       "status": "needs_validation",
