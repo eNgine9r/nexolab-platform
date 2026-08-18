@@ -1,0 +1,153 @@
+name: Refrigeration Selector E2E Migration
+
+on:
+  push:
+    branches:
+      - feat/546-equipment-map-telemetry-selector
+    paths:
+      - .github/workflows/refrigeration-selector-e2e-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/546-equipment-map-telemetry-selector
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Update refrigeration selector acceptance
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/refrigeration-layout.production.e2e.ts")
+          text = path.read_text()
+
+          old_helper = '''async function addChannel(page: Page, channelId: string) {
+            const selector = editor(page).getByLabel("Доступний датчик кліматичної камери");
+            await expect(selector.locator(`option[value="${channelId}"]`)).toHaveCount(1);
+            await selector.selectOption(channelId);
+            await editor(page).getByRole("button", { name: "Додати вибраний датчик на підкладку" }).click();
+          }
+          '''
+          new_helper = '''async function openAddTelemetrySelector(page: Page) {
+            await editor(page).getByRole("button", { name: "Вибрати датчик або прилад для додавання" }).click();
+            const selector = editor(page).getByTestId("equipment-map-add-telemetry-selector");
+            await expect(selector).toBeVisible();
+            return selector;
+          }
+
+          async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, channelId: string) {
+            const search = selector.getByRole("searchbox", { name: "Пошук" });
+            await search.fill(channelId);
+            const point = selector.getByRole("treeitem").filter({ hasText: channelId });
+            await expect(point).toHaveCount(1);
+            await point.click();
+            await expect(selector.getByTestId("telemetry-selection-count")).toContainText("1 / 1");
+          }
+
+          async function addChannel(page: Page, channelId: string) {
+            const selector = await openAddTelemetrySelector(page);
+            await chooseTelemetryPoint(selector, channelId);
+            await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+            await expect(selector).toHaveCount(0);
+          }
+
+          async function replaceChannel(page: Page, channelId: string) {
+            await editor(page).getByRole("button", { name: "Вибрати інший канал вимірювання" }).click();
+            const selector = editor(page).getByTestId("equipment-map-replace-telemetry-selector");
+            await expect(selector).toBeVisible();
+            await chooseTelemetryPoint(selector, channelId);
+            await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
+            await expect(selector).toHaveCount(0);
+          }
+
+          async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+            await page.setViewportSize({ width, height: width === 360 ? 800 : 1000 });
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            expect(overflow).toBeLessThanOrEqual(1);
+          }
+          '''
+          if text.count(old_helper) != 1:
+              raise SystemExit(f"Expected one legacy addChannel helper, found {text.count(old_helper)}")
+          text = text.replace(old_helper, new_helper)
+
+          old_adds = '''    await addChannel(pageA, channelIds.temperatureOne);
+              await addChannel(pageA, channelIds.temperatureTwo);
+              expect(configurationWrites).toBe(0);
+          '''
+          new_adds = '''    const cancelledSelector = await openAddTelemetrySelector(pageA);
+              await chooseTelemetryPoint(cancelledSelector, channelIds.temperatureOne);
+              await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
+              expect(configurationWrites).toBe(0);
+              await expectNoDocumentOverflow(pageA, 360);
+              await expectNoDocumentOverflow(pageA, 1440);
+              await expectNoDocumentOverflow(pageA, 1920);
+              await cancelledSelector.getByRole("button", { name: "Скасувати" }).click();
+              await expect(cancelledSelector).toHaveCount(0);
+              await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
+
+              await addChannel(pageA, channelIds.temperatureOne);
+              await addChannel(pageA, channelIds.temperatureTwo);
+              expect(configurationWrites).toBe(0);
+          '''
+          if text.count(old_adds) != 1:
+              raise SystemExit(f"Expected one primary add block, found {text.count(old_adds)}")
+          text = text.replace(old_adds, new_adds)
+
+          old_replace = '''    await pageA.getByRole("button", { name: "Редагувати датчик 01F" }).click();
+              await editor(pageA).getByLabel("Замінити канал датчика").selectOption(channelIds.replacement);
+          '''
+          new_replace = '''    await pageA.getByRole("button", { name: "Редагувати датчик 01F" }).click();
+              await replaceChannel(pageA, channelIds.replacement);
+          '''
+          if text.count(old_replace) != 1:
+              raise SystemExit(f"Expected one legacy replacement block, found {text.count(old_replace)}")
+          text = text.replace(old_replace, new_replace)
+
+          old_available = '''    const availableSelector = editor(pageA).getByLabel("Доступний датчик кліматичної камери");
+              await expect(availableSelector.locator(`option[value="${channelIds.temperatureTwo}"]`)).toHaveCount(1);
+              await expect(availableSelector.locator(`option[value="${channelIds.replacement}"]`)).toHaveCount(0);
+              await expect(availableSelector.locator(`option[value="${channelIds.temperatureOne}"]`)).toHaveCount(0);
+              expect(configurationWrites).toBe(0);
+          '''
+          new_available = '''    const availableSelector = await openAddTelemetrySelector(pageA);
+              const availableSearch = availableSelector.getByRole("searchbox", { name: "Пошук" });
+              await availableSearch.fill(channelIds.temperatureTwo);
+              await expect(availableSelector.getByRole("treeitem").filter({ hasText: channelIds.temperatureTwo })).toHaveCount(1);
+              await availableSearch.fill(channelIds.replacement);
+              await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
+              await availableSearch.fill(channelIds.temperatureOne);
+              await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
+              await availableSelector.getByRole("button", { name: "Скасувати" }).click();
+              await expect(availableSelector).toHaveCount(0);
+              expect(configurationWrites).toBe(0);
+          '''
+          if text.count(old_available) != 1:
+              raise SystemExit(f"Expected one legacy availability block, found {text.count(old_available)}")
+          text = text.replace(old_available, new_available)
+
+          path.write_text(text)
+          PY
+      - name: Format focused acceptance file
+        run: |
+          npm install --no-audit
+          npx prettier --write e2e/refrigeration-layout.production.e2e.ts
+        env:
+          HUSKY: 0
+      - name: Commit focused acceptance update
+        run: |
+          set -euo pipefail
+          git config user.name "NEXOLAB Automation"
+          git config user.email "92324923+eNgine9r@users.noreply.github.com"
+          git add e2e/refrigeration-layout.production.e2e.ts
+          test -n "$(git status --short)"
+          git commit -m "test: cover equipment map telemetry selector acceptance"
+          git push origin HEAD:feat/546-equipment-map-telemetry-selector
