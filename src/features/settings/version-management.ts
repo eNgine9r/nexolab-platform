@@ -43,12 +43,46 @@ export type VersionOperation = {
   resultCode: string | null;
 };
 
+export type UpdatePolicy = {
+  automaticUpdatesEnabled: boolean;
+  scheduleLocalTime: "02:00";
+  updatedAt: string | null;
+  updatedBy: string | null;
+  errorCode: string | null;
+};
+
+export type UpdateCheck = {
+  status: "checking" | "completed" | "blocked" | "failed";
+  source: "manual" | "scheduled" | "host";
+  actor: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  resultCode: string | null;
+  message: string | null;
+  currentCommit: string | null;
+  targetCommit: string | null;
+  candidateAvailable: boolean;
+  activationEligible: boolean;
+  blockedReason: string | null;
+};
+
+export type QueuedUpdateCheck = {
+  id: string;
+  actorSubject: string;
+  source: "manual";
+  status: "queued";
+  requestedAt: string;
+  reason: string | null;
+};
+
 export type VersionSnapshot = {
   current: CurrentVersion | null;
   catalog: VersionCatalogItem[];
   history: VersionOperation[];
   activeOperation: VersionOperation | null;
   rejectedPackages: { directory: string; code: string; message: string }[];
+  updatePolicy: UpdatePolicy;
+  updateCheck: UpdateCheck | null;
   offline: true;
 };
 
@@ -73,6 +107,24 @@ export class VersionManagementClient {
 
   async read(): Promise<VersionSnapshot> {
     return parseSnapshot(await this.request("", { method: "GET" }));
+  }
+
+  async setAutomaticUpdates(enabled: boolean): Promise<UpdatePolicy> {
+    return parseUpdatePolicy(
+      await this.request("/update/policy", {
+        method: "PUT",
+        body: JSON.stringify({ automatic_updates_enabled: enabled }),
+      }),
+    );
+  }
+
+  async requestUpdateCheck(reason?: string): Promise<QueuedUpdateCheck> {
+    return parseQueuedUpdateCheck(
+      await this.request("/update/checks", {
+        method: "POST",
+        body: JSON.stringify({ reason: reason?.trim() || null }),
+      }),
+    );
   }
 
   async requestAction(input: {
@@ -119,7 +171,8 @@ function parseSnapshot(value: unknown): VersionSnapshot {
     !row ||
     !Array.isArray(row.catalog) ||
     !Array.isArray(row.history) ||
-    !Array.isArray(row.rejected_packages)
+    !Array.isArray(row.rejected_packages) ||
+    !record(row.update_policy)
   ) {
     throw invalidResponse();
   }
@@ -136,6 +189,8 @@ function parseSnapshot(value: unknown): VersionSnapshot {
       if (!directory || !code || !message) throw invalidResponse();
       return { directory, code, message };
     }),
+    updatePolicy: parseUpdatePolicy(row.update_policy),
+    updateCheck: row.update_check === null ? null : parseUpdateCheck(row.update_check),
     offline: true,
   };
 }
@@ -196,6 +251,66 @@ function parseCatalog(value: unknown): VersionCatalogItem {
     upgradeFrom: row.upgrade_from.map(requiredText),
     runtimeCompatibleSchemaHeads: row.runtime_compatible_schema_heads.map(requiredText),
     manifestSha256: text(row.manifest_sha256)!,
+  };
+}
+
+function parseUpdatePolicy(value: unknown): UpdatePolicy {
+  const row = record(value);
+  if (
+    !row ||
+    typeof row.automatic_updates_enabled !== "boolean" ||
+    row.schedule_local_time !== "02:00"
+  ) {
+    throw invalidResponse();
+  }
+  return {
+    automaticUpdatesEnabled: row.automatic_updates_enabled,
+    scheduleLocalTime: "02:00",
+    updatedAt: optionalText(row.updated_at),
+    updatedBy: optionalText(row.updated_by),
+    errorCode: optionalText(row.error_code),
+  };
+}
+
+function parseUpdateCheck(value: unknown): UpdateCheck {
+  const row = record(value);
+  const checkStatus = row?.status;
+  const source = row?.source;
+  if (
+    !row ||
+    !["checking", "completed", "blocked", "failed"].includes(String(checkStatus)) ||
+    !["manual", "scheduled", "host"].includes(String(source)) ||
+    typeof row.candidate_available !== "boolean" ||
+    typeof row.activation_eligible !== "boolean"
+  ) {
+    throw invalidResponse();
+  }
+  return {
+    status: checkStatus as UpdateCheck["status"],
+    source: source as UpdateCheck["source"],
+    actor: requiredText(row.actor),
+    startedAt: optionalText(row.started_at),
+    completedAt: optionalText(row.completed_at),
+    resultCode: optionalText(row.result_code),
+    message: optionalText(row.message),
+    currentCommit: optionalText(row.current_commit),
+    targetCommit: optionalText(row.target_commit),
+    candidateAvailable: row.candidate_available,
+    activationEligible: row.activation_eligible,
+    blockedReason: optionalText(row.blocked_reason),
+  };
+}
+
+function parseQueuedUpdateCheck(value: unknown): QueuedUpdateCheck {
+  const row = record(value);
+  if (!row || row.source !== "manual" || row.status !== "queued") throw invalidResponse();
+  return {
+    id: requiredText(row.id),
+    actorSubject: requiredText(row.actor_subject),
+    source: "manual",
+    status: "queued",
+    requestedAt: requiredText(row.requested_at),
+    reason: optionalText(row.reason),
   };
 }
 
