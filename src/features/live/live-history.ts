@@ -2,19 +2,18 @@ import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { reduceChartSegments } from "@/features/charts/reduction";
 import { liveChannelKey } from "@/features/live/live-telemetry";
+import {
+  loadCompleteTelemetryHistory,
+  type TelemetryHistoryWindow,
+} from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
-const HISTORY_PAGE_SIZE = 1_000;
-const MAX_HISTORY_PAGES = 100;
 const SEGMENT_PREFIX = "nexolab-live-segment:";
 export const LIVE_HISTORY_MAX_POINTS_PER_CHANNEL = 240;
 export const LIVE_HISTORY_MIN_SOURCE_GAP_MS = 30_000;
 export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
-export interface LiveHistoryWindow {
-  from: Date;
-  to: Date;
-}
+export type LiveHistoryWindow = TelemetryHistoryWindow;
 
 export interface LiveHistoryResult {
   samples: TelemetrySample[];
@@ -56,10 +55,6 @@ function clearSegmentStart(sample: TelemetrySample): TelemetrySample {
 
 function isRenderable(sample: TelemetrySample): boolean {
   return sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value);
-}
-
-function belongsToIdentity(sample: TelemetrySample, identity: TelemetrySample): boolean {
-  return liveChannelKey(sample) === liveChannelKey(identity);
 }
 
 function acceptedSample(sample: TelemetrySample, now = Date.now()): boolean {
@@ -267,74 +262,6 @@ export function reconcileLiveHistoryEvents(
   };
 }
 
-async function loadIdentityHistory(
-  adapter: TelemetryAdapter,
-  identity: TelemetrySample,
-  window: LiveHistoryWindow,
-  sharedSnapshotAt: string | undefined,
-  signal?: AbortSignal,
-): Promise<{ samples: TelemetrySample[]; snapshotAt: string }> {
-  const samples = new Map<string, TelemetrySample>();
-  let cursorTo = new Date(window.to);
-  let snapshotAt = sharedSnapshotAt;
-
-  for (let page = 0; page < MAX_HISTORY_PAGES; page += 1) {
-    const response = await adapter.history(
-      {
-        node_id: identity.node_id,
-        equipment_id: identity.equipment_id,
-        channel_id: identity.channel_id,
-        metric: identity.metric,
-        from: window.from,
-        to: cursorTo,
-        snapshot_at: snapshotAt,
-        limit: HISTORY_PAGE_SIZE,
-        offset: 0,
-      },
-      signal,
-    );
-
-    const responseSnapshotAt = response.snapshot_at;
-    if (!responseSnapshotAt || Number.isNaN(Date.parse(responseSnapshotAt))) {
-      throw new Error("Telemetry history page did not provide an ingestion snapshot watermark");
-    }
-    if (snapshotAt === undefined) snapshotAt = responseSnapshotAt;
-    if (responseSnapshotAt !== snapshotAt) {
-      throw new Error("Telemetry history ingestion snapshot changed during channel comparison");
-    }
-
-    for (const sample of response.items) {
-      if (belongsToIdentity(sample, identity) && acceptedSample(sample)) {
-        samples.set(sourceEventId(sample.event_id), sample);
-      }
-    }
-
-    if (response.next_offset === null) {
-      return { samples: [...samples.values()], snapshotAt };
-    }
-
-    const capturedTimes = response.items
-      .map((sample) => parsedTimestamp(sample.captured_at))
-      .filter(Number.isFinite);
-    if (capturedTimes.length === 0) {
-      throw new Error("Telemetry history page did not provide a stable captured-time cursor");
-    }
-
-    const oldestCapturedAt = Math.min(...capturedTimes);
-    if (oldestCapturedAt <= window.from.getTime()) {
-      return { samples: [...samples.values()], snapshotAt };
-    }
-    if (capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length >= HISTORY_PAGE_SIZE) {
-      throw new Error("Telemetry history timestamp density exceeds the safe cursor window");
-    }
-
-    const currentCursor = cursorTo.getTime();
-    cursorTo = new Date(Math.min(oldestCapturedAt + 1, currentCursor - 1));
-  }
-
-  throw new Error("Telemetry history exceeded the supported pagination window");
-}
-
 export async function loadCompleteLiveHistory(
   adapter: TelemetryAdapter,
   identities: readonly TelemetrySample[],
@@ -349,7 +276,17 @@ export async function loadCompleteLiveHistory(
   let snapshotAt: string | undefined;
 
   for (const identity of identities) {
-    const result = await loadIdentityHistory(adapter, identity, window, snapshotAt, signal);
+    const result = await loadCompleteTelemetryHistory(
+      adapter,
+      {
+        node_id: identity.node_id,
+        equipment_id: identity.equipment_id,
+        channel_id: identity.channel_id,
+        metric: identity.metric,
+      },
+      window,
+      { signal, snapshotAt },
+    );
     snapshotAt = result.snapshotAt;
     allSamples.push(...result.samples);
   }
