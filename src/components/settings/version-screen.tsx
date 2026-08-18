@@ -595,7 +595,8 @@ export function VersionScreen() {
             </p>
             <label className="mt-4 grid gap-1.5 text-sm">
               <span className="text-slate-400">
-                Введіть <code className="text-cyan-200">{versionConfirmationPhrase(action, selected.bundleId)}</code>
+                Введіть{" "}
+                <code className="text-cyan-200">{versionConfirmationPhrase(action, selected.bundleId)}</code>
               </span>
               <input
                 autoFocus
