@@ -33,6 +33,7 @@ import {
 
 export type CameraScopedLayoutEditorProps = {
   equipment: RefrigerationEquipment;
+  organizationId: string | null;
   visibleSensors: RefrigerationSensor[];
   selectedId: string | null;
   mode: "view" | "edit";
@@ -54,6 +55,7 @@ type DragState = {
 
 export function CameraScopedLayoutEditor({
   equipment,
+  organizationId,
   visibleSensors,
   selectedId,
   mode,
@@ -319,6 +321,7 @@ export function CameraScopedLayoutEditor({
         {mode === "edit" ? (
           <SensorPlacementManager
             equipment={equipment}
+            organizationId={organizationId}
             totalSlots={equipment.totalSensors}
             channels={channels}
             configuration={configuration}
