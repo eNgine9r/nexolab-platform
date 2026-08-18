@@ -30,6 +30,8 @@ DEFAULT_REPOSITORY_PATH = Path(
     os.environ.get("NEXOLAB_REPOSITORY_PATH", "/home/nexolab/nexolab-platform")
 )
 DEFAULT_GIT_USER = os.environ.get("NEXOLAB_GIT_USER", "nexolab").strip() or None
+STATE_UID = int(os.environ.get("NEXOLAB_VERSION_STATE_UID", "10001"))
+STATE_GID = int(os.environ.get("NEXOLAB_VERSION_STATE_GID", "10001"))
 
 
 def now() -> str:
@@ -56,6 +58,8 @@ def atomic_json(path: Path, payload: dict[str, Any]) -> None:
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
+        if os.geteuid() == 0:
+            os.chown(temporary, STATE_UID, STATE_GID)
         os.replace(temporary, path)
     finally:
         if temporary.exists():
@@ -119,11 +123,7 @@ def git(
         timeout=30,
     )
     if check and result.returncode != 0:
-        detail = (
-            result.stderr.strip()
-            or result.stdout.strip()
-            or f"git exited {result.returncode}"
-        )
+        detail = result.stderr.strip() or result.stdout.strip() or f"git exited {result.returncode}"
         raise RuntimeError(detail)
     return result.stdout.strip()
 
@@ -155,13 +155,12 @@ def discover(
     fetch_remote: bool = True,
     git_user: str | None = None,
 ) -> dict[str, Any]:
-    started_at = now()
     result: dict[str, Any] = {
         "schema_version": CHECK_SCHEMA,
         "status": "checking",
         "source": "manual" if actor != "system:update-timer" else "scheduled",
         "actor": actor,
-        "started_at": started_at,
+        "started_at": now(),
         "completed_at": None,
         "result_code": None,
         "message": None,
@@ -172,20 +171,13 @@ def discover(
         "blocked_reason": None,
     }
     atomic_json(root / "update-check.json", result)
-
     try:
         remote = git(repo, "remote", "get-url", "origin", git_user=git_user)
         if normalized_repository(remote) != EXPECTED_REPOSITORY:
-            raise CheckBlocked(
-                "repository_mismatch",
-                "Configured origin is not the NEXOLAB repository",
-            )
+            raise CheckBlocked("repository_mismatch", "Configured origin is not the NEXOLAB repository")
         branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD", git_user=git_user)
         if branch != EXPECTED_BRANCH:
-            raise CheckBlocked(
-                "branch_mismatch",
-                "Update discovery is allowed only from main",
-            )
+            raise CheckBlocked("branch_mismatch", "Update discovery is allowed only from main")
         tracked_changes = git(
             repo,
             "status",
@@ -194,42 +186,21 @@ def discover(
             git_user=git_user,
         )
         if tracked_changes:
-            raise CheckBlocked(
-                "tracked_worktree_dirty",
-                "Tracked local changes block update discovery",
-            )
+            raise CheckBlocked("tracked_worktree_dirty", "Tracked local changes block update discovery")
         current = result["current_commit"]
         if not current:
-            raise CheckBlocked(
-                "current_revision_unknown",
-                "Current deployed source commit is unknown",
-            )
+            raise CheckBlocked("current_revision_unknown", "Current deployed source commit is unknown")
         if fetch_remote:
             fetch = subprocess.run(
-                git_command(
-                    repo,
-                    "fetch",
-                    "--quiet",
-                    "origin",
-                    EXPECTED_BRANCH,
-                    git_user=git_user,
-                ),
+                git_command(repo, "fetch", "--quiet", "origin", EXPECTED_BRANCH, git_user=git_user),
                 check=False,
                 capture_output=True,
                 text=True,
                 timeout=60,
             )
             if fetch.returncode != 0:
-                raise CheckBlocked(
-                    "github_unavailable",
-                    "GitHub/origin is unavailable",
-                )
-        target = git(
-            repo,
-            "rev-parse",
-            f"origin/{EXPECTED_BRANCH}",
-            git_user=git_user,
-        )
+                raise CheckBlocked("github_unavailable", "GitHub/origin is unavailable")
+        target = git(repo, "rev-parse", f"origin/{EXPECTED_BRANCH}", git_user=git_user)
         result["target_commit"] = target
         if target == current:
             result["status"] = "completed"
@@ -237,14 +208,7 @@ def discover(
             result["message"] = "Installed revision matches origin/main."
             return finalize(root, result)
         ancestor = subprocess.run(
-            git_command(
-                repo,
-                "merge-base",
-                "--is-ancestor",
-                current,
-                target,
-                git_user=git_user,
-            ),
+            git_command(repo, "merge-base", "--is-ancestor", current, target, git_user=git_user),
             check=False,
             capture_output=True,
             text=True,
@@ -329,8 +293,7 @@ def process_requested_check(
     *,
     git_user: str | None = None,
 ) -> dict[str, Any]:
-    request_dir = root / "update-check-requests"
-    pending = sorted(request_dir.glob("*.json"))
+    pending = sorted((root / "update-check-requests").glob("*.json"))
     if not pending:
         return {"status": "idle", "result_code": "no_pending_update_check"}
     request_path = pending[0]
@@ -391,8 +354,7 @@ def main() -> int:
     sub.add_parser("status")
     args = parser.parse_args()
     args.root.mkdir(parents=True, exist_ok=True, mode=0o750)
-    lock_path = args.root / "update-plane.lock"
-    with lock_path.open("a+", encoding="utf-8") as lock:
+    with (args.root / "update-plane.lock").open("a+", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.command == "set-policy":
             payload = save_policy(args.root, args.state == "on", args.actor)
@@ -405,17 +367,9 @@ def main() -> int:
                 git_user=args.git_user,
             )
         elif args.command == "scheduled-check":
-            payload = scheduled_check(
-                args.root,
-                args.repo,
-                git_user=args.git_user,
-            )
+            payload = scheduled_check(args.root, args.repo, git_user=args.git_user)
         elif args.command == "run-requested-check":
-            payload = process_requested_check(
-                args.root,
-                args.repo,
-                git_user=args.git_user,
-            )
+            payload = process_requested_check(args.root, args.repo, git_user=args.git_user)
         else:
             payload = {
                 "policy": load_policy(args.root),
