@@ -20,11 +20,7 @@
       "poll_eligible_targets": 0,
       "scheduler_jobs": 0,
       "device_agent_health": "ok",
-      "neighbor_units_advancing": [
-        200,
-        202,
-        203
-      ],
+      "neighbor_units_advancing": [200, 202, 203],
       "restart_persistence": "PASS",
       "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
       "modbus_write": "none",
