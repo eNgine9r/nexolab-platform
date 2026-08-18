@@ -2,37 +2,47 @@
 
 Updated: 2026-08-18
 
-## Current Sprint selection — not blocked
+## Issue #548 / PR #559 — no software blocker
 
-Critical deployment-auth defect #567 is software-complete and merged through PR #568 as:
+Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** has completed implementation verification on PR #559.
 
-`60797b22e461e3078b535aaaf5b885411eb63aef`
+Implementation exact head:
 
-Exact-head CI #3491 is GREEN, including the deployment-auth regression suite, formatting, lint, typecheck, tests and production build.
+`f068192268bed20afbd4890f20f4c52d21086f71`
 
-The active product implementation lane remains:
+All 13 triggered workflows are GREEN, including CI, Telemetry service, Offline Bundle, Offline Auth, Authenticated Dashboard, Device Agent Fleet, Capacity Release Gate, Disaster Recovery browser/TLS, MQTT TLS, Broker Control, Refrigeration Browser and Container Supply Chain.
 
-**Issue #548 / draft PR #559 — Add GitHub-aware safe Raspberry Pi update orchestration.**
+The final diff/security/offline audit is PASS:
 
-State-only Issue #569 is reconciling the #567/#568 result before #548 resumes. No parallel #548 branch should be created.
+- branch is current with `main` (`behind_by=0`), merge base `0829e758700385e15fa496e160790b061625ad94`;
+- no unresolved review threads;
+- GitHub remains optional update-plane only;
+- automatic updates remain default OFF and use the host-local 02:00 schedule when explicitly enabled;
+- exact successful `CI` evidence and validated local package identity are required before activation;
+- capacity preflight and PostgreSQL backup precede runtime mutation;
+- bounded local reconnect rereads durable operation state after expected restart;
+- no browser-to-shell bridge or GitHub credentials in the frontend;
+- no destructive fallback, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write.
 
-## Issue #566 / #560 — permanent-fix Raspberry Pi runtime validation pending
+The four `.project` files are being reconciled now. Their final state-only head must receive a fresh exact-head GREEN check set before PR #559 is marked Ready and merged.
 
-This is an evidence and deployment-approval boundary, not a software blocker for unrelated repository work.
+## Raspberry Pi deployment after #548 — hard approval boundary
 
-The separately approved Issue #566 deployment of target `0bfc4fcc56f7a669545be166c585573550f2fb44` completed with `DEPLOYMENT PASSED` and evidence:
+The current Raspberry Pi remains untouched at:
+
+`0bfc4fcc56f7a669545be166c585573550f2fb44`
+
+Evidence remains:
 
 `runtime/deployments/20260818T083157Z`
 
-Backend local auth, API and Device Agent were healthy, but the generated dashboard environment omitted `NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local` and organization scope. Operator login therefore entered the Supabase path.
+No deployment, service restart, host package installation, hardware action or runtime mutation was performed during #548.
 
-The operator applied a temporary `.env.local` correction and rebuilt/restarted the dashboard; local `administrator` login then succeeded. That manual correction confirms the diagnosis but is not repository-backed acceptance of the permanent #567 fix.
+After PR #559 is GREEN and merged, controlled Raspberry Pi deployment/acceptance of the post-#548 `main` is the next physical runtime action. This is a **hard boundary requiring separate explicit user approval** before any Pi change.
 
-The permanent fix is now in `60797b22...`. Full #566/#560 runtime acceptance still requires a separately approved controlled deployment of `60797b22...` or newer plus observation through at least one complete local access-token rotation window with no `401 invalid_bearer_token` recurrence.
+That acceptance must also close the remaining #566/#560 permanent-fix evidence where possible: repository-backed local administrator login, access-token rotation continuity, protected history/consumption requests and no `401 invalid_bearer_token` recurrence.
 
-Do not claim permanent-fix Pi acceptance from CI or from the manual frontend correction.
-
-## Deployment capacity — current blocker cleared
+## Deployment capacity — current software blocker cleared
 
 The latest controlled deployment capacity guard passed:
 
@@ -41,13 +51,13 @@ The latest controlled deployment capacity guard passed:
 - `reserve_bytes=2147483648`;
 - root filesystem was 68% used at the recorded preflight.
 
-Future deployments must still run the same guard. Do not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
+Issue #548 additionally corrects version-manager capacity preflight so repository-backed runtime/evidence accounting uses the canonical repository path while the worker retains read-only access to the checkout.
+
+Future deployments must run the guard. Do not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
 ## Issue #444 — end-to-end user-management validation pending
 
-Issue #444 remains `status:needs-validation`.
-
-The LOCAL_LAN runtime has already proven local-auth overlay availability and local administrator authentication. Remaining validation is the actual create/manage user flow and non-admin authorization/frontend diagnostic behavior as applicable.
+Issue #444 remains `status:needs-validation`. Remaining validation is the actual create/manage user flow and non-admin authorization/frontend diagnostic behavior as applicable.
 
 ## Issue #201 — final hardware boundary pending
 
@@ -65,7 +75,7 @@ Issue #189 remains blocked pending controlled central-host and Raspberry Pi reco
 - #245 standalone loopback-only Raspberry Pi acceptance;
 - #189 backup/restore/rollback/power-loss acceptance;
 - KK2/Unit 115 field retest;
-- future Raspberry Pi version-management acceptance for #548.
+- #548 Raspberry Pi version-management acceptance after merge and separate approval.
 
 ## Safety boundaries
 
