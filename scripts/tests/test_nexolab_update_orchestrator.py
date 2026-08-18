@@ -105,6 +105,28 @@ def write_validated_catalog_entry(
     return bundle_root
 
 
+def full_current(root: Path, *, commit: str) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "source_commit": commit,
+                "bundle_id": "release-1",
+                "release": "1.0.0",
+                "platform": "linux/arm64",
+                "schema_head": "schema-1",
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_validated_catalog_entry(
+        root,
+        bundle_id="release-1",
+        release="1.0.0",
+        commit=commit,
+    )
+
+
 def advance_remote(tmp_path: Path, repo: Path) -> str:
     other = tmp_path / "other"
     subprocess.run(["git", "clone", str(tmp_path / "remote.git"), str(other)], check=True, capture_output=True)
@@ -117,6 +139,10 @@ def advance_remote(tmp_path: Path, repo: Path) -> str:
     run_git(other, "push", "origin", "main")
     run_git(repo, "fetch", "origin", "main")
     return run_git(repo, "rev-parse", "origin/main")
+
+
+def allow_green_revision(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(orchestrator, "github_ci_green", lambda _commit: (True, ""))
 
 
 def test_policy_defaults_off_and_persists_explicit_enable(tmp_path: Path) -> None:
@@ -166,6 +192,50 @@ def test_repository_normalization_accepts_only_expected_github_shapes() -> None:
     assert orchestrator.normalized_repository("https://example.invalid/nexolab-platform.git") is None
 
 
+def test_green_revision_contract_requires_successful_push_ci() -> None:
+    commit = "a" * 40
+    successful = {
+        "workflow_runs": [
+            {
+                "name": "CI",
+                "event": "push",
+                "head_sha": commit,
+                "status": "completed",
+                "conclusion": "success",
+            }
+        ]
+    }
+    failed = {
+        "workflow_runs": [
+            {
+                "name": "CI",
+                "event": "push",
+                "head_sha": commit,
+                "status": "completed",
+                "conclusion": "failure",
+            }
+        ]
+    }
+    pull_request_only = {
+        "workflow_runs": [
+            {
+                "name": "CI",
+                "event": "pull_request",
+                "head_sha": commit,
+                "status": "completed",
+                "conclusion": "success",
+            }
+        ]
+    }
+
+    assert orchestrator._github_ci_result(successful, commit) == (True, "")
+    assert orchestrator._github_ci_result(failed, commit) == (False, "ci_not_green")
+    assert orchestrator._github_ci_result(pull_request_only, commit) == (
+        False,
+        "ci_pending_or_missing",
+    )
+
+
 def test_up_to_date_discovery_is_non_mutating_and_not_eligible(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo, current = init_repo(tmp_path)
     root = tmp_path / "versions"
@@ -198,6 +268,7 @@ def test_newer_fast_forward_revision_is_candidate_but_never_install_authority(
         "normalized_repository",
         lambda _remote: orchestrator.EXPECTED_REPOSITORY,
     )
+    allow_green_revision(monkeypatch)
 
     target = advance_remote(tmp_path, repo)
 
@@ -206,39 +277,23 @@ def test_newer_fast_forward_revision_is_candidate_but_never_install_authority(
     assert result["result_code"] == "candidate_discovered"
     assert result["target_commit"] == target
     assert result["candidate_available"] is True
+    assert result["green_revision_verified"] is True
     assert result["activation_eligible"] is False
     assert result["blocked_reason"] == "validated_package_required"
 
 
-def test_newer_revision_becomes_eligible_only_with_matching_validated_packages(
+def test_non_green_candidate_is_blocked_before_package_authority(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     repo, current = init_repo(tmp_path)
     root = tmp_path / "versions"
-    root.mkdir(parents=True)
-    (root / "current.json").write_text(
-        json.dumps(
-            {
-                "source_commit": current,
-                "bundle_id": "release-1",
-                "release": "1.0.0",
-                "platform": "linux/arm64",
-                "schema_head": "schema-1",
-            }
-        ),
-        encoding="utf-8",
-    )
-    write_validated_catalog_entry(
-        root,
-        bundle_id="release-1",
-        release="1.0.0",
-        commit=current,
-    )
+    full_current(root, commit=current)
     monkeypatch.setattr(
         orchestrator,
         "normalized_repository",
         lambda _remote: orchestrator.EXPECTED_REPOSITORY,
     )
+    monkeypatch.setattr(orchestrator, "github_ci_green", lambda _commit: (False, "ci_not_green"))
     target = advance_remote(tmp_path, repo)
     write_validated_catalog_entry(
         root,
@@ -250,6 +305,36 @@ def test_newer_revision_becomes_eligible_only_with_matching_validated_packages(
     result = orchestrator.discover(root, repo, actor="admin", fetch_remote=False)
 
     assert result["candidate_available"] is True
+    assert result["green_revision_verified"] is False
+    assert result["candidate_bundle_id"] is None
+    assert result["activation_eligible"] is False
+    assert result["blocked_reason"] == "ci_not_green"
+
+
+def test_newer_revision_becomes_eligible_only_with_matching_validated_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, current = init_repo(tmp_path)
+    root = tmp_path / "versions"
+    full_current(root, commit=current)
+    monkeypatch.setattr(
+        orchestrator,
+        "normalized_repository",
+        lambda _remote: orchestrator.EXPECTED_REPOSITORY,
+    )
+    allow_green_revision(monkeypatch)
+    target = advance_remote(tmp_path, repo)
+    write_validated_catalog_entry(
+        root,
+        bundle_id="release-2",
+        release="2.0.0",
+        commit=target,
+    )
+
+    result = orchestrator.discover(root, repo, actor="admin", fetch_remote=False)
+
+    assert result["candidate_available"] is True
+    assert result["green_revision_verified"] is True
     assert result["candidate_bundle_id"] == "release-2"
     assert result["activation_eligible"] is True
     assert result["blocked_reason"] is None
@@ -260,30 +345,13 @@ def test_tampered_target_validation_marker_never_becomes_activation_authority(
 ) -> None:
     repo, current = init_repo(tmp_path)
     root = tmp_path / "versions"
-    root.mkdir(parents=True)
-    (root / "current.json").write_text(
-        json.dumps(
-            {
-                "source_commit": current,
-                "bundle_id": "release-1",
-                "release": "1.0.0",
-                "platform": "linux/arm64",
-                "schema_head": "schema-1",
-            }
-        ),
-        encoding="utf-8",
-    )
-    write_validated_catalog_entry(
-        root,
-        bundle_id="release-1",
-        release="1.0.0",
-        commit=current,
-    )
+    full_current(root, commit=current)
     monkeypatch.setattr(
         orchestrator,
         "normalized_repository",
         lambda _remote: orchestrator.EXPECTED_REPOSITORY,
     )
+    allow_green_revision(monkeypatch)
     target = advance_remote(tmp_path, repo)
     target_root = write_validated_catalog_entry(
         root,
