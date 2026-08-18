@@ -36,20 +36,20 @@ Every tool is annotated as read-only, non-destructive and idempotent. v0.1 delib
 
 ## Runtime requirements
 
-- Node.js compatible with the main NEXOLAB project (`>=22.22.1 <23` or `>=24 <25`).
-- npm 10+.
+- Docker Engine + Docker Compose v2 for Raspberry Pi production deployment.
+- Node.js compatible with the main NEXOLAB project (`>=22.22.1 <23` or `>=24 <25`) only for host-local development.
 - Reachable NEXOLAB Telemetry API.
 - Reachable Nodes API, if it is served separately.
-- A dedicated backend Bearer credential when the NEXOLAB APIs require authentication.
+- A dedicated least-privilege backend identity when the NEXOLAB APIs require authentication.
 
 ## 1. Install
 
 ```bash
 cd services/nexolab-mcp
-npm install
+npm ci
 ```
 
-`npm install` creates `package-lock.json`. Commit the lockfile before production deployment; after that, deploy with `npm ci`.
+The repository contains a deterministic `package-lock.json`; normal verification and deployment must use `npm ci`. Use `npm install` only when intentionally changing the dependency graph and review the resulting lockfile diff.
 
 ## 2. Configure
 
@@ -69,8 +69,13 @@ NEXOLAB_MCP_PORT=8787
 NEXOLAB_TELEMETRY_API_URL=http://127.0.0.1:<actual-port>
 # Optional: omit when Nodes API uses the same base URL.
 NEXOLAB_NODES_API_URL=
+NEXOLAB_ORGANIZATION_ID=<organization-uuid>
 
-# Set when backend endpoints require authentication.
+# Backend auth: none | bearer | local.
+NEXOLAB_BACKEND_AUTH_MODE=local
+NEXOLAB_BACKEND_USERNAME=<dedicated-read-only-user>
+NEXOLAB_BACKEND_PASSWORD_FILE=/run/secrets/nexolab-mcp-backend-password
+# Used only when NEXOLAB_BACKEND_AUTH_MODE=bearer.
 NEXOLAB_BACKEND_BEARER_TOKEN=
 
 # Strongly recommended. Mandatory when MCP binds outside loopback.
@@ -93,9 +98,13 @@ openssl rand -hex 32
 
 Put the result in `NEXOLAB_MCP_BEARER_TOKEN`. Never commit the real token or `.env`.
 
-### Backend credential rule
+### Backend identity and organization scope
 
-`NEXOLAB_BACKEND_BEARER_TOKEN` is for MCP -> NEXOLAB API calls. In production, use a dedicated least-privilege identity that can only read the required APIs. Do not permanently reuse a personal browser/session token.
+Every NEXOLAB data request is organization-scoped through `X-Organization-ID`, so `NEXOLAB_ORGANIZATION_ID` is mandatory. The MCP gateway never guesses a tenant.
+
+For `LOCAL_LAN`, prefer `NEXOLAB_BACKEND_AUTH_MODE=local` with a dedicated least-privilege local account. Put its password in a root-managed file and configure `NEXOLAB_BACKEND_PASSWORD_FILE`; the MCP process reads the password only when it must establish a session, keeps access/refresh tokens in memory, refreshes them automatically, and retries one backend read after a `401`. Do not commit the password file or reuse an operator's browser token.
+
+`bearer` mode is intended for a dedicated externally managed service token. `none` is only valid when the backend itself permits unauthenticated reads.
 
 ## 3. Validate locally
 
@@ -172,36 +181,41 @@ Do not deploy if an unexpected write-capable tool appears.
 
 ## 5. Raspberry Pi deployment
 
+The production path is containerized. The NEXOLAB Raspberry Pi does not need a host Node.js installation. The supplied Compose file uses Linux host networking so the MCP process can still bind exclusively to `127.0.0.1`; no MCP LAN port is published.
+
 Recommended layout:
 
 ```text
-/opt/nexolab/nexolab-platform/services/nexolab-mcp
+/home/nexolab/nexolab-platform/services/nexolab-mcp
 /etc/nexolab/nexolab-mcp.env
+/run/secrets/nexolab-mcp-backend-password
 /etc/systemd/system/nexolab-mcp.service
 ```
 
-If the repository currently lives elsewhere, either deploy/copy it under `/opt/nexolab/nexolab-platform` or edit `WorkingDirectory` and `ExecStart` in `deploy/nexolab-mcp.service` to match the real path.
-
-Build:
+Before installation, build and verify the image from the checked-out release:
 
 ```bash
-cd /opt/nexolab/nexolab-platform/services/nexolab-mcp
-npm ci
-npm run typecheck
-npm test
-npm run build
+cd /home/nexolab/nexolab-platform/services/nexolab-mcp
+docker build -t nexolab-mcp:local .
 ```
 
-Install the environment file:
+Install the environment file without placing secrets in Git:
 
 ```bash
 sudo install -d -m 0750 -o root -g nexolab /etc/nexolab
 sudo install -m 0640 -o root -g nexolab .env /etc/nexolab/nexolab-mcp.env
 ```
 
-Install and start systemd service:
+For the default LOCAL_LAN local-auth deployment, create `/etc/nexolab/nexolab-mcp-backend-password` separately with restrictive permissions. Compose mounts it read-only at `/run/secrets/nexolab-mcp-backend-password`, which matches the example `NEXOLAB_BACKEND_PASSWORD_FILE`. Never echo the password into logs or shell history. The host source can be overridden with `NEXOLAB_MCP_BACKEND_PASSWORD_HOST_FILE` when needed.
+
+The image build is a deployment-time action. The systemd unit deliberately uses `--no-build`, so a reboot does not need package registries or the Internet.
+
+Install the optional systemd wrapper:
 
 ```bash
+# Build once during the controlled deployment while dependencies are available.
+docker compose -f deploy/compose.mcp.yaml build
+
 sudo cp deploy/nexolab-mcp.service /etc/systemd/system/nexolab-mcp.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now nexolab-mcp
@@ -211,11 +225,12 @@ Check:
 
 ```bash
 systemctl status nexolab-mcp --no-pager
-journalctl -u nexolab-mcp -n 100 --no-pager
+docker compose -f deploy/compose.mcp.yaml ps
+docker compose -f deploy/compose.mcp.yaml logs --tail=100
 curl http://127.0.0.1:8787/healthz
 ```
 
-The supplied systemd unit enables process hardening such as `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, and `PrivateDevices` because this gateway does not need local device or filesystem access.
+The container runs as the non-root Node user, read-only, with all Linux capabilities dropped, `no-new-privileges`, bounded PIDs/memory and only a small tmpfs. The systemd unit uses `--no-build`, and Compose uses `pull_policy: never`, so a normal reboot/start does not contact an image registry or npm. Build the image as a separate controlled deployment step. Stopping this Compose project does not stop or recreate the existing NEXOLAB central/edge Compose projects. `ExecStop` uses `docker compose down` without `-v`; no product data volume is removed.
 
 ## 6. Network security
 
@@ -259,7 +274,11 @@ The MCP gateway deliberately limits context and backend load:
 
 All limits are validated server-side; the model cannot bypass them by crafting a larger request.
 
-## 8. ChatGPT connection status (2026-08-18)
+## 8. MCP protocol compatibility
+
+The v2 server supports both protocol eras. A legacy client that begins with `initialize` negotiates a 2025-era revision; a v2 client configured with modern version negotiation can discover and negotiate `2026-07-28`. This is intentional compatibility behavior, not a downgrade.
+
+## 9. ChatGPT connection status (2026-08-18)
 
 The MCP service can be built and validated now without any OpenAI API call or token billing.
 
@@ -267,7 +286,7 @@ Direct custom-MCP support inside ChatGPT depends on the current plan and Develop
 
 ChatGPT cannot directly connect to `localhost`. For supported plans/workspaces, an on-premises/private MCP server should be reached through OpenAI Secure MCP Tunnel or another properly authenticated remote HTTPS route.
 
-## 9. Future write tools
+## 10. Future write tools
 
 Do **not** simply add equipment-control methods beside these read tools. Any future write capability must have a separate review and should include:
 
@@ -280,7 +299,11 @@ Do **not** simply add equipment-control methods beside these read tools. Any fut
 - no generic shell/SQL/Modbus-write escape hatch;
 - confirmation where appropriate, without treating confirmation as the only safety barrier.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
+
+### `NEXOLAB_ORGANIZATION_ID is required`
+
+Set the organization ID whose data this MCP instance is authorized to read. The gateway intentionally has no implicit tenant fallback.
 
 ### `NEXOLAB_TELEMETRY_API_URL is required`
 
@@ -296,7 +319,7 @@ The request Host or Origin is outside the configured allow-list. Check reverse-p
 
 ### `NEXOLAB API returned HTTP 401/403`
 
-MCP itself is reachable, but its backend credential cannot read NEXOLAB. Fix `NEXOLAB_BACKEND_BEARER_TOKEN` or the backend service-auth policy.
+MCP itself is reachable, but its backend identity cannot read NEXOLAB. In `local` mode verify the dedicated Viewer account, organization membership and mounted password secret. In `bearer` mode verify the externally managed service token. Never paste a token into logs or the PR.
 
 ### timeout
 

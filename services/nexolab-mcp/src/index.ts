@@ -124,7 +124,10 @@ const httpServer = createServer((req, res) => {
     return;
   }
 
-  void nodeMcpHandler(req, res);
+  // IncomingMessage is runtime-compatible with the SDK's duck-typed Node adapter.
+  // The cast only bridges exactOptionalPropertyTypes between Node's `string | undefined`
+  // method field and the adapter's optional method field.
+  void nodeMcpHandler(req as Parameters<typeof nodeMcpHandler>[0], res);
 });
 
 httpServer.requestTimeout = 30_000;

@@ -1,7 +1,7 @@
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { NexoLabBackend } from "./backend.js";
+import type { NexoLabBackend, TelemetryFilters } from "./backend.js";
 import type { McpConfig } from "./config.js";
 import { buildMcpServer } from "./server.js";
 
@@ -10,6 +10,8 @@ const config: McpConfig = {
   port: 8787,
   telemetryApiUrl: "http://127.0.0.1:8100",
   nodesApiUrl: "http://127.0.0.1:8100",
+  organizationId: "00000000-0000-0000-0000-000000000001",
+  backendAuth: { mode: "none" },
   allowedHosts: ["127.0.0.1", "localhost", "::1"],
   allowedOrigins: [],
   requestTimeoutMs: 8_000,
@@ -21,7 +23,7 @@ const config: McpConfig = {
 function fakeBackend(): NexoLabBackend {
   return {
     telemetryReadiness: async () => ({ status: "ready", database: "ready", mqtt: "ready" }),
-    latestTelemetry: async (_filters, limit) => ({
+    latestTelemetry: async (_filters: TelemetryFilters, limit: number) => ({
       items: [
         {
           event_id: "evt-1",
@@ -42,7 +44,7 @@ function fakeBackend(): NexoLabBackend {
       nextOffset: null,
       snapshotAt: "2026-08-18T12:00:01Z",
     }),
-    telemetryHistory: async (_filters, from, to, limit) => ({
+    telemetryHistory: async (_filters: TelemetryFilters, from: string, to: string, limit: number) => ({
       items: [{ captured_at: from, to, value: 4.2 }],
       count: 1,
       limit,

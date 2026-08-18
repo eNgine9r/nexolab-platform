@@ -33,7 +33,7 @@ jobs:
           node-version: 22.22.1
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Typecheck
         run: npm run typecheck
@@ -43,3 +43,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build container image
+        run: docker build -t nexolab-mcp:ci .

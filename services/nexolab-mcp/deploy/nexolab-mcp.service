@@ -1,36 +1,18 @@
 [Unit]
-Description=NEXOLAB MCP read-only gateway
+Description=NEXOLAB MCP read-only gateway container
 Documentation=https://github.com/eNgine9r/nexolab-platform
-After=network-online.target
+Requires=docker.service
+After=docker.service network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
-User=nexolab
-Group=nexolab
-WorkingDirectory=/opt/nexolab/nexolab-platform/services/nexolab-mcp
-EnvironmentFile=/etc/nexolab/nexolab-mcp.env
-ExecStart=/usr/bin/node /opt/nexolab/nexolab-platform/services/nexolab-mcp/dist/index.js
-Restart=on-failure
-RestartSec=5
-TimeoutStartSec=30
-TimeoutStopSec=15
-
-# Process hardening. The service only needs network access and read-only backend API calls.
-NoNewPrivileges=true
-PrivateTmp=true
-PrivateDevices=true
-ProtectSystem=strict
-ProtectHome=true
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectKernelLogs=true
-ProtectControlGroups=true
-RestrictSUIDSGID=true
-LockPersonality=true
-RestrictRealtime=true
-SystemCallArchitectures=native
-UMask=0077
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/nexolab/nexolab-platform/services/nexolab-mcp
+ExecStart=/usr/bin/docker compose -f deploy/compose.mcp.yaml up -d --no-build --remove-orphans
+ExecStop=/usr/bin/docker compose -f deploy/compose.mcp.yaml down
+TimeoutStartSec=60
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target

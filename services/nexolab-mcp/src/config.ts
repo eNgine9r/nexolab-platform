@@ -35,12 +35,18 @@ function csv(name: string): string[] {
     .filter(Boolean);
 }
 
+export type BackendAuthConfig =
+  | { mode: "none" }
+  | { mode: "bearer"; bearerToken: string }
+  | { mode: "local"; username: string; passwordFile: string };
+
 export type McpConfig = {
   host: string;
   port: number;
   telemetryApiUrl: string;
   nodesApiUrl: string;
-  backendBearerToken?: string;
+  organizationId: string;
+  backendAuth: BackendAuthConfig;
   mcpBearerToken?: string;
   allowedHosts: string[];
   allowedOrigins: string[];
@@ -54,7 +60,25 @@ export function loadConfig(): McpConfig {
   const host = process.env.NEXOLAB_MCP_HOST?.trim() || "127.0.0.1";
   const telemetryApiUrl = readUrl("NEXOLAB_TELEMETRY_API_URL");
   const nodesApiUrl = readUrl("NEXOLAB_NODES_API_URL", telemetryApiUrl);
-  const backendBearerToken = process.env.NEXOLAB_BACKEND_BEARER_TOKEN?.trim() || undefined;
+  const organizationId = process.env.NEXOLAB_ORGANIZATION_ID?.trim();
+  if (!organizationId) throw new Error("NEXOLAB_ORGANIZATION_ID is required.");
+  const backendAuthMode = process.env.NEXOLAB_BACKEND_AUTH_MODE?.trim() || "none";
+  let backendAuth: BackendAuthConfig;
+  if (backendAuthMode === "none") {
+    backendAuth = { mode: "none" };
+  } else if (backendAuthMode === "bearer") {
+    const bearerToken = process.env.NEXOLAB_BACKEND_BEARER_TOKEN?.trim();
+    if (!bearerToken) throw new Error("NEXOLAB_BACKEND_BEARER_TOKEN is required in bearer auth mode.");
+    backendAuth = { mode: "bearer", bearerToken };
+  } else if (backendAuthMode === "local") {
+    const username = process.env.NEXOLAB_BACKEND_USERNAME?.trim();
+    const passwordFile = process.env.NEXOLAB_BACKEND_PASSWORD_FILE?.trim();
+    if (!username) throw new Error("NEXOLAB_BACKEND_USERNAME is required in local auth mode.");
+    if (!passwordFile) throw new Error("NEXOLAB_BACKEND_PASSWORD_FILE is required in local auth mode.");
+    backendAuth = { mode: "local", username, passwordFile };
+  } else {
+    throw new Error("NEXOLAB_BACKEND_AUTH_MODE must be none, bearer, or local.");
+  }
   const mcpBearerToken = process.env.NEXOLAB_MCP_BEARER_TOKEN?.trim() || undefined;
 
   const explicitAllowedHosts = csv("NEXOLAB_MCP_ALLOWED_HOSTS");
@@ -78,7 +102,8 @@ export function loadConfig(): McpConfig {
     port: readPositiveInt("NEXOLAB_MCP_PORT", 8787, 65_535),
     telemetryApiUrl,
     nodesApiUrl,
-    ...(backendBearerToken ? { backendBearerToken } : {}),
+    organizationId,
+    backendAuth,
     ...(mcpBearerToken ? { mcpBearerToken } : {}),
     allowedHosts,
     allowedOrigins: csv("NEXOLAB_MCP_ALLOWED_ORIGINS"),

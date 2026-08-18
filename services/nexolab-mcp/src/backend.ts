@@ -1,3 +1,4 @@
+import { createBackendAccessTokenProvider, type AuthFetch, type BackendAccessTokenProvider } from "./auth.js";
 import type { McpConfig } from "./config.js";
 
 export type JsonObject = Record<string, unknown>;
@@ -62,8 +63,24 @@ function appendFilters(params: URLSearchParams, filters: TelemetryFilters): void
   if (filters.alarm) params.set("alarm", filters.alarm);
 }
 
+export type NexoLabBackendOptions = {
+  fetch?: AuthFetch;
+  accessTokenProvider?: BackendAccessTokenProvider;
+};
+
 export class NexoLabBackend {
-  constructor(private readonly config: McpConfig) {}
+  private readonly fetchImpl: AuthFetch;
+  private readonly accessTokenProvider: BackendAccessTokenProvider;
+
+  constructor(
+    private readonly config: McpConfig,
+    options: NexoLabBackendOptions = {},
+  ) {
+    this.fetchImpl = options.fetch ?? fetch.bind(globalThis);
+    this.accessTokenProvider =
+      options.accessTokenProvider ??
+      createBackendAccessTokenProvider(config.backendAuth, config.telemetryApiUrl, config.requestTimeoutMs);
+  }
 
   telemetryReadiness(): Promise<JsonObject> {
     return this.requestObject(this.config.telemetryApiUrl, "/health/ready");
@@ -136,33 +153,38 @@ export class NexoLabBackend {
   }
 
   private async requestJson(baseUrl: string, path: string): Promise<unknown> {
+    let response = await this.performGet(baseUrl, path);
+    if (response.status === 401 && this.accessTokenProvider.refreshable) {
+      this.accessTokenProvider.invalidate();
+      response = await this.performGet(baseUrl, path);
+    }
+    if (!response.ok) {
+      throw new BackendError(`NEXOLAB API returned HTTP ${response.status}.`, "http", response.status);
+    }
+    try {
+      return (await response.json()) as unknown;
+    } catch {
+      throw new BackendError("NEXOLAB API returned invalid JSON.", "contract", response.status);
+    }
+  }
+
+  private async performGet(baseUrl: string, path: string): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(
       () => controller.abort(new DOMException("Request timed out", "TimeoutError")),
       this.config.requestTimeoutMs,
     );
-
     try {
-      const response = await fetch(`${baseUrl}${path}`, {
+      const accessToken = await this.accessTokenProvider.getAccessToken();
+      return await this.fetchImpl(`${baseUrl}${path}`, {
         method: "GET",
         headers: {
           Accept: "application/json",
-          ...(this.config.backendBearerToken
-            ? { Authorization: `Bearer ${this.config.backendBearerToken}` }
-            : {}),
+          "X-Organization-ID": this.config.organizationId,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        throw new BackendError(`NEXOLAB API returned HTTP ${response.status}.`, "http", response.status);
-      }
-
-      try {
-        return (await response.json()) as unknown;
-      } catch {
-        throw new BackendError("NEXOLAB API returned invalid JSON.", "contract", response.status);
-      }
     } catch (error) {
       if (error instanceof BackendError) throw error;
       if (controller.signal.aborted) {
@@ -171,7 +193,10 @@ export class NexoLabBackend {
           "timeout",
         );
       }
-      throw new BackendError("NEXOLAB API request failed.", "network");
+      throw new BackendError(
+        error instanceof Error ? error.message : "NEXOLAB API request failed.",
+        "network",
+      );
     } finally {
       clearTimeout(timer);
     }

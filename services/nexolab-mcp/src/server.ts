@@ -46,12 +46,12 @@ function toolError(error: unknown): JsonResult {
 }
 
 function toFilters(input: {
-  nodeId?: string;
-  equipmentId?: string;
-  channelId?: string;
-  metric?: string;
-  quality?: (typeof QUALITY)[number];
-  alarm?: (typeof ALARM)[number];
+  nodeId?: string | undefined;
+  equipmentId?: string | undefined;
+  channelId?: string | undefined;
+  metric?: string | undefined;
+  quality?: (typeof QUALITY)[number] | undefined;
+  alarm?: (typeof ALARM)[number] | undefined;
 }): TelemetryFilters {
   return {
     ...(input.nodeId ? { nodeId: input.nodeId } : {}),
