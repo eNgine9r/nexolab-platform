@@ -123,9 +123,7 @@ function advanceHistoryWindow(
     const capturedAt = Date.parse(sample.captured_at);
     if (Number.isFinite(capturedAt) && capturedAt > toMs) toMs = capturedAt;
   }
-  return toMs === current.to.getTime()
-    ? current
-    : { from: new Date(toMs - durationMs), to: new Date(toMs) };
+  return toMs === current.to.getTime() ? current : { from: new Date(toMs - durationMs), to: new Date(toMs) };
 }
 
 function samplesInsideHistoryWindow(
@@ -215,10 +213,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
 
     const ordering = historyOrderingRef.current;
     if (ordering === null) {
-      historyPendingLiveRef.current = [
-        ...historyPendingLiveRef.current,
-        ...temperatureSamples,
-      ].slice(-HISTORY_PENDING_LIVE_LIMIT);
+      historyPendingLiveRef.current = [...historyPendingLiveRef.current, ...temperatureSamples].slice(
+        -HISTORY_PENDING_LIVE_LIMIT,
+      );
       return;
     }
 
@@ -340,12 +337,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
       setHistoryWindow(serializedHistoryWindow(requestedWindow));
     });
 
-    void loadCompleteTelemetryHistory(
-      adapter,
-      { metric: "temperature.probe" },
-      requestedWindow,
-      { signal: controller.signal },
-    )
+    void loadCompleteTelemetryHistory(adapter, { metric: "temperature.probe" }, requestedWindow, {
+      signal: controller.signal,
+    })
       .then((result) => {
         const context = historyTailContextRef.current;
         if (disposed || !context || context.historyKey !== historyKey) return;
@@ -355,10 +349,7 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
         const pending = historyPendingLiveRef.current;
         const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
         const finalWindow = advanceHistoryWindow(requestedWindow, reconciled.samples);
-        const combined = samplesInsideHistoryWindow(
-          [...persisted, ...reconciled.samples],
-          finalWindow,
-        );
+        const combined = samplesInsideHistoryWindow([...persisted, ...reconciled.samples], finalWindow);
 
         historyPendingLiveRef.current = [];
         historyOrderingRef.current = reconciled.state;
@@ -389,7 +380,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
         historyPendingLiveRef.current = [];
       }
     };
-  }, [enabled, historyGeneration, historyKey, historyRange, runtime.config, scopeKey, selectedOrganizationId]);
+  }, [
+    enabled,
+    historyGeneration,
+    historyKey,
+    historyRange,
+    runtime.config,
+    scopeKey,
+    selectedOrganizationId,
+  ]);
 
   const view = useMemo(() => {
     if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
