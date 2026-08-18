@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
   "accepted_product_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
-  "last_reconciled_repository_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
+  "last_reconciled_repository_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 587,
     "selection_status": "ready",
     "ready_issue_count": 1,
-    "reason": "Issue #586 is merged GREEN and closed status:done. GitHub Ready audit returns only Issue #587. Issue #585 remains a separate blocked physical restoration lane; Issue #594/PR #593 is a separate draft lane without Ready priority and does not supersede #587."
+    "reason": "Issue #586 is merged GREEN and closed status:done. Issue #594 was explicitly prioritized by the Product Owner as a separate read-only MCP acceptance lane and is now acceptance-complete/ready for merge; it does not supersede the post-merge next Ready Work Package #587. Issue #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -95,8 +95,15 @@
       "issue": 594,
       "pull_request": 593,
       "title": "Add read-only MCP gateway over existing NEXOLAB internal APIs",
-      "status": "draft_lane_needs_post_active_wp_audit",
-      "priority": "unclassified"
+      "status": "acceptance_complete_ready_for_merge",
+      "priority": "user_prioritized",
+      "head_sha": "1ff1c8717a0b3b44ec76b4794cc836f2e7f276d8",
+      "raspberry_pi_runtime_acceptance": "PASS",
+      "backend_identity_role": "laboratory_technician",
+      "backend_identity_permissions": [
+        "nodes.read",
+        "telemetry.read"
+      ]
     },
     {
       "id": "NEXOLAB-444",
@@ -149,7 +156,24 @@
     "issue_586_runtime_evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
-    "issue_586_offline_bundle": "PASS_32179696933"
+    "issue_586_offline_bundle": "PASS_32179696933",
+    "repository_state_sha": "fa15f2ee851744c0e611888c052dc6a9446abf1c",
+    "issue_594_mcp_pi_runtime_acceptance": "PASS",
+    "issue_594_protocol_version": "2026-07-28",
+    "issue_594_tool_count": 6,
+    "issue_594_all_tools_read_only": true,
+    "issue_594_backend_identity_role": "laboratory_technician",
+    "issue_594_backend_identity_permissions": [
+      "nodes.read",
+      "telemetry.read"
+    ],
+    "issue_594_protected_nodes": "PASS",
+    "issue_594_protected_node_status": "PASS",
+    "issue_594_protected_latest": "PASS",
+    "issue_594_protected_history": "PASS",
+    "issue_594_protected_alarms": "PASS",
+    "issue_594_token_refresh": "PASS",
+    "issue_594_existing_runtime_non_regression": "PASS"
   },
   "independent_pending_lanes": [
     {
@@ -174,7 +198,7 @@
     },
     {
       "issue": 594,
-      "status": "draft_needs_audit"
+      "status": "acceptance_complete_ready_for_merge"
     },
     {
       "issue": 444,

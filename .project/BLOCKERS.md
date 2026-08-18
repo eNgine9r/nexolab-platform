@@ -22,12 +22,17 @@ Saved Live Dashboard complete persisted ranges and CSV export is the only curren
 
 It must reuse the canonical complete-history/reconciliation path, keep range/export actions read-only with respect to acquisition, and generate CSV from persisted telemetry rather than reduced chart/browser memory.
 
+## Issue #594 — no remaining implementation blocker
+
+Dedicated MCP identity provisioning and authenticated Raspberry Pi acceptance are complete. The supported `laboratory_technician` account has only `telemetry.read` and `nodes.read`; all six read-only MCP tools passed against the real LOCAL_LAN runtime and token refresh passed. PR #593 is ready for final exact-head CI/merge audit.
+
+Persistent MCP service enablement, moving the password secret into the production root-owned `/etc/nexolab` location, and any external tunnel/reverse-proxy exposure are **not** blockers for this read-only gateway implementation; they remain separate production/site cutover actions requiring their own approval.
+
 ## Deferred software lanes
 
 - #588 Energy Monitoring chart parity — held behind the active single-WIP sequence;
 - #589 persisted acquisition cadence/capacity validation — held behind the active single-WIP sequence;
 - #590 Settings acquisition cadence controls — blocked on #589;
-- #594 / draft PR #593 read-only MCP gateway — separate unclassified draft lane; audit after the selected active Work Package rather than mixing scopes.
 
 ## Remaining evidence lanes
 
