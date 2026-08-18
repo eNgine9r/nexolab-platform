@@ -162,7 +162,12 @@ export function buildMcpServer(backend: NexoLabBackend, config: McpConfig): McpS
         "Read the latest telemetry samples with optional node, equipment, channel, metric, or quality filters.",
       inputSchema: z.object({
         ...telemetryFilterShape,
-        limit: z.number().int().min(1).max(config.maxLatestItems).default(Math.min(50, config.maxLatestItems)),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(config.maxLatestItems)
+          .default(Math.min(50, config.maxLatestItems)),
       }),
       annotations: readOnlyAnnotations,
     },
@@ -193,7 +198,12 @@ export function buildMcpServer(backend: NexoLabBackend, config: McpConfig): McpS
         ...telemetryFilterShape,
         from: z.string().trim().min(1).max(64),
         to: z.string().trim().min(1).max(64),
-        limit: z.number().int().min(1).max(config.maxHistoryItems).default(Math.min(200, config.maxHistoryItems)),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(config.maxHistoryItems)
+          .default(Math.min(200, config.maxHistoryItems)),
       }),
       annotations: readOnlyAnnotations,
     },
@@ -234,14 +244,19 @@ export function buildMcpServer(backend: NexoLabBackend, config: McpConfig): McpS
         equipmentId: optionalIdentifier,
         metric: optionalMetric,
         alarm: z.enum(["all", ...ALARM]).default("all"),
-        limitPerAlarm: z.number().int().min(1).max(config.maxLatestItems).default(Math.min(100, config.maxLatestItems)),
+        limitPerAlarm: z
+          .number()
+          .int()
+          .min(1)
+          .max(config.maxLatestItems)
+          .default(Math.min(100, config.maxLatestItems)),
       }),
       annotations: readOnlyAnnotations,
     },
     async ({ nodeId, equipmentId, metric, alarm, limitPerAlarm }) => {
       try {
         const common = toFilters({ nodeId, equipmentId, metric });
-        const requested = alarm === "all" ? ALARM : [alarm] as const;
+        const requested = alarm === "all" ? ALARM : ([alarm] as const);
         const collections = await Promise.all(
           requested.map((alarmValue) =>
             backend.latestTelemetry({ ...common, alarm: alarmValue }, limitPerAlarm),

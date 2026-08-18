@@ -23,14 +23,14 @@ Telemetry API         Nodes API
 
 ## MCP tool surface
 
-| Tool | Purpose |
-| --- | --- |
-| `nexolab_get_system_health` | Read telemetry service readiness |
-| `nexolab_list_nodes` | List configured edge nodes |
-| `nexolab_get_node_status` | Read operational state and latest health/status |
-| `nexolab_get_latest_telemetry` | Read current telemetry with filters |
-| `nexolab_get_telemetry_history` | Read a bounded historical interval |
-| `nexolab_get_active_alarms` | Read current low/high telemetry alarms |
+| Tool                            | Purpose                                         |
+| ------------------------------- | ----------------------------------------------- |
+| `nexolab_get_system_health`     | Read telemetry service readiness                |
+| `nexolab_list_nodes`            | List configured edge nodes                      |
+| `nexolab_get_node_status`       | Read operational state and latest health/status |
+| `nexolab_get_latest_telemetry`  | Read current telemetry with filters             |
+| `nexolab_get_telemetry_history` | Read a bounded historical interval              |
+| `nexolab_get_active_alarms`     | Read current low/high telemetry alarms          |
 
 Every tool is annotated as read-only, non-destructive and idempotent. v0.1 deliberately has no start/stop, setpoint, Modbus-write, node-lifecycle, credential-rotation, SQL, filesystem or reboot tool.
 
@@ -134,7 +134,7 @@ curl http://127.0.0.1:8787/healthz
 Expected response:
 
 ```json
-{"status":"ok","service":"nexolab-mcp","version":"0.1.0"}
+{ "status": "ok", "service": "nexolab-mcp", "version": "0.1.0" }
 ```
 
 `/healthz` verifies the MCP process. Backend/ingestion readiness is read through the `nexolab_get_system_health` MCP tool.

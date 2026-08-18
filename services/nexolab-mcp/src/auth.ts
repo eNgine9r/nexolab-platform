@@ -120,7 +120,11 @@ export class LocalSessionAccessTokenProvider implements BackendAccessTokenProvid
 
   private async refreshOrLogin(refreshToken: string): Promise<TokenPair> {
     try {
-      return await this.postAuth("/api/v1/auth/local/refresh", { refresh_token: refreshToken }, "Local auth refresh");
+      return await this.postAuth(
+        "/api/v1/auth/local/refresh",
+        { refresh_token: refreshToken },
+        "Local auth refresh",
+      );
     } catch {
       return this.login();
     }

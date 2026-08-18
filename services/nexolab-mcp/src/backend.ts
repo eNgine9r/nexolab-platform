@@ -188,10 +188,7 @@ export class NexoLabBackend {
     } catch (error) {
       if (error instanceof BackendError) throw error;
       if (controller.signal.aborted) {
-        throw new BackendError(
-          `NEXOLAB API request exceeded ${this.config.requestTimeoutMs} ms.`,
-          "timeout",
-        );
+        throw new BackendError(`NEXOLAB API request exceeded ${this.config.requestTimeoutMs} ms.`, "timeout");
       }
       throw new BackendError(
         error instanceof Error ? error.message : "NEXOLAB API request failed.",
