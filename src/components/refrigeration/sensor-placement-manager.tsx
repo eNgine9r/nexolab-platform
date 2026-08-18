@@ -22,11 +22,9 @@ import {
   selectedSensorChannelId,
   type SensorTelemetrySelectionModel,
 } from "@/features/refrigeration/sensor-telemetry-selection";
-import { getSecurityCredentials } from "@/features/security/security-session";
 
 const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
 const MAX_SENSOR_SLOT_CAPACITY = 48;
-const DEMO_SELECTION_SCOPE = "demo:equipment-map";
 
 type PickerState = { kind: "add" } | { kind: "replace"; sensorId: string } | null;
 type SelectionModelResult = {
@@ -46,7 +44,7 @@ export function SensorPlacementManager({
   onSelect,
 }: {
   equipment: RefrigerationEquipment;
-  organizationId?: string | null;
+  organizationId: string | null;
   totalSlots: number;
   channels: readonly AvailableSensor[];
   configuration: readonly StagedSensorConfiguration[];
@@ -57,11 +55,6 @@ export function SensorPlacementManager({
 }) {
   const effectiveTotalSlots = sensorSlotCapacity(totalSlots);
   const recoveredZeroCapacity = totalSlots <= 0;
-  const credentialOrganizationId = getSecurityCredentials().organizationId;
-  const effectiveOrganizationId =
-    organizationId ??
-    credentialOrganizationId ??
-    (process.env.NEXT_PUBLIC_NEXOLAB_DATA_MODE === "live" ? null : DEMO_SELECTION_SCOPE);
   const unused = useMemo(
     () => unusedClimateChamberChannels(channels, configuration),
     [channels, configuration],
@@ -104,12 +97,12 @@ export function SensorPlacementManager({
     [equipment.id, replacementChannels, selectedSensor],
   );
   const addSelection = useMemo(
-    () => buildSelectionModel(equipment, assignable, effectiveOrganizationId),
-    [assignable, effectiveOrganizationId, equipment],
+    () => buildSelectionModel(equipment, assignable, organizationId),
+    [assignable, organizationId, equipment],
   );
   const replacementSelection = useMemo(
-    () => buildSelectionModel(equipment, replacementEligible, effectiveOrganizationId),
-    [effectiveOrganizationId, equipment, replacementEligible],
+    () => buildSelectionModel(equipment, replacementEligible, organizationId),
+    [organizationId, equipment, replacementEligible],
   );
 
   const add = (pointKeys: string[]) => {
