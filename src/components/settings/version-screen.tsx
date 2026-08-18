@@ -110,7 +110,8 @@ export function VersionScreen() {
   const effectiveSelectedBundleId =
     selectedBundleId ?? (updateCheck?.activationEligible ? updateCandidate?.bundleId : null);
   const selected = snapshot?.catalog.find((item) => item.bundleId === effectiveSelectedBundleId) ?? null;
-  const availableTargets = snapshot?.catalog.filter((item) => !current || item.bundleId !== current.bundleId) ?? [];
+  const availableTargets =
+    snapshot?.catalog.filter((item) => !current || item.bundleId !== current.bundleId) ?? [];
 
   if (security.mode === "demo") {
     return (
@@ -154,7 +155,7 @@ export function VersionScreen() {
   }
 
   async function changeAutomaticUpdates(enabled: boolean) {
-    if (policyBusy) return;
+    if (!client || policyBusy) return;
     setPolicyBusy(true);
     setError(null);
     try {
@@ -176,7 +177,7 @@ export function VersionScreen() {
   }
 
   async function checkForUpdates() {
-    if (checkBusy || snapshot?.activeOperation) return;
+    if (!client || checkBusy || snapshot?.activeOperation) return;
     setCheckBusy(true);
     setError(null);
     try {
@@ -190,7 +191,7 @@ export function VersionScreen() {
   }
 
   async function submitAction() {
-    if (!selected || busy) return;
+    if (!client || !selected || busy) return;
     setBusy(true);
     setError(null);
     try {
