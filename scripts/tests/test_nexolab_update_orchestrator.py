@@ -279,7 +279,7 @@ def test_newer_fast_forward_revision_is_candidate_but_never_install_authority(
     assert result["candidate_available"] is True
     assert result["green_revision_verified"] is True
     assert result["activation_eligible"] is False
-    assert result["blocked_reason"] == "validated_package_required"
+    assert result["blocked_reason"] == "current_release_unverified"
 
 
 def test_non_green_candidate_is_blocked_before_package_authority(
