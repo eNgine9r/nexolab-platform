@@ -4,71 +4,59 @@ Updated: 2026-08-18
 
 ## Repository and accepted software baseline
 
-The current accepted product baseline remains:
+The current accepted product baseline and current `main` repository revision are:
 
-`60797b22e461e3078b535aaaf5b885411eb63aef`
+`9732b68b0d14e4056e5773e0a9bec3f3741e267f`
 
-This is the squash merge of PR #568 — **preserve LOCAL_LAN dashboard auth provider during controlled Raspberry Pi deployment**.
+This is the squash merge of PR #559 — **feat: add safe GitHub update discovery plane**, closing Issue #548.
 
-Current `main` repository revision before Issue #548 merge is:
+Final PR #559 exact-head verification was performed on:
 
-`0829e758700385e15fa496e160790b061625ad94`
+`76120bef1108086fdc1648cddbcf9bd293502e6e`
 
-This revision includes the completed state-only reconciliation from Issue #569 / PR #570.
+All 13 triggered PR workflows were GREEN on that exact head:
 
-## Issue #548 / PR #559 — implementation GREEN, pre-merge state reconciliation
+- CI #3548 PASS;
+- Telemetry service #1738 PASS;
+- Offline Bundle #1465 PASS;
+- Offline Auth Acceptance #594 PASS;
+- Authenticated Dashboard Acceptance #2055 PASS;
+- Device Agent Fleet Acceptance #925 PASS;
+- Capacity Release Gate #732 PASS;
+- Disaster Recovery Browser #916 PASS;
+- Disaster Recovery TLS Fleet #866 PASS;
+- MQTT TLS Fleet Acceptance #875 PASS;
+- Broker Control Acceptance #836 PASS;
+- Refrigeration Browser Acceptance #1863 PASS;
+- Container Supply Chain #905 PASS.
 
-Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** is the active product Work Package on existing PR #559 and branch `feat/548-github-update-orchestration`.
+## Issue #548 / PR #559 — software merged, Raspberry Pi acceptance pending
 
-The implementation exact head verified before this state-only update is:
+Issue #548 is closed and PR #559 is merged.
 
-`f068192268bed20afbd4890f20f4c52d21086f71`
+The merged software adds the bounded GitHub-aware maintenance plane while preserving the existing LOCAL_LAN/offline-first architecture:
 
-That head is fully GREEN across all 13 triggered workflows:
-
-- CI #3544 PASS;
-- Telemetry service #1734 PASS;
-- Offline Bundle #1461 PASS;
-- Offline Auth Acceptance #590 PASS;
-- Authenticated Dashboard Acceptance #2051 PASS;
-- Device Agent Fleet Acceptance #921 PASS;
-- Capacity Release Gate #728 PASS;
-- Disaster Recovery Browser #912 PASS;
-- Disaster Recovery TLS Fleet #862 PASS;
-- MQTT TLS Fleet Acceptance #871 PASS;
-- Broker Control Acceptance #832 PASS;
-- Refrigeration Browser Acceptance #1859 PASS;
-- Container Supply Chain #901 PASS.
-
-The final implementation audit also confirms the branch is current with `main` (`behind_by=0`) and uses `0829e758...` as its merge base.
-
-Implemented #548 boundaries include:
-
-- GitHub is an optional update/maintenance plane only; LOCAL_LAN monitoring remains independent of internet availability;
-- automatic updates are OFF by default and, when explicitly enabled, the host-local scheduled check is fixed at 02:00 without daytime catch-up;
-- manual update discovery remains available regardless of the automatic policy state;
+- GitHub remains optional update-plane only and is not required for monitoring runtime;
+- automatic updates are OFF by default;
+- when enabled, the scheduled host-local check is fixed at 02:00 with no daytime catch-up;
+- manual discovery remains available with automatic updates ON or OFF;
 - the browser receives neither shell access nor GitHub credentials;
 - only canonical `eNgine9r/nexolab-platform` / `main`, clean tracked worktrees and fast-forward lineage are eligible;
-- the exact target SHA must have successful GitHub `CI` evidence from a `push` to `main`;
-- a remote GitHub revision is discovery evidence only and never installation authority;
-- activation requires an exact matching validated local package with digest, platform, schema and persistent-data compatibility gates;
+- exact successful main-branch `CI` evidence is required for the target SHA;
+- remote GitHub revision discovery is never installation authority;
+- activation requires an exact matching validated local package plus digest/platform/schema/persistent-data compatibility gates;
 - the existing version-manager queue remains the single mutation authority;
 - capacity preflight runs against the canonical repository before backup or runtime mutation;
 - PostgreSQL backup remains mandatory before runtime mutation;
-- durable operation phases and safe progress messages survive the expected restart window;
-- transient local Version API disconnects use bounded reconnect backoff before durable state is reread;
-- post-update verification checks the exact runtime target, API/Dashboard, Device Agent workers and advancing telemetry;
-- no destructive fallback, named-volume deletion, persistent-data deletion, Modbus/controller write or hardware write was added.
+- durable progress state and bounded local reconnect preserve the same operation across expected restart;
+- final success requires exact target/runtime identity, API/Dashboard readiness, Device Agent workers and advancing telemetry evidence;
+- no destructive fallback, named-volume deletion, product-data deletion, Modbus/controller write or hardware write was added.
 
-Offline Bundle acceptance on the implementation head proved that a transferred bundle can start with container egress blocked and pull disabled, and that update/rollback preserve persistent data.
-
-Two pre-existing shell files appear as executable-bit-only diff noise with zero content changes; connector safety controls prevented a low-level mode-only rewrite. This has no runtime or product behavior impact and is recorded for merge review.
-
-The four `.project` files are now being reconciled on PR #559. Because these state-only commits move the PR head, the final PR head must receive a fresh exact-head GREEN check set before PR #559 is marked Ready and merged.
+Offline Bundle acceptance proved disconnected startup with pull disabled and container egress blocked, plus update/rollback preservation of persistent data.
 
 ## Current Raspberry Pi runtime
 
-The Raspberry Pi checkout remains unchanged at:
+The Raspberry Pi remains unchanged at:
 
 `0bfc4fcc56f7a669545be166c585573550f2fb44`
 
@@ -76,22 +64,29 @@ Controlled deployment evidence remains:
 
 `runtime/deployments/20260818T083157Z`
 
-No Raspberry Pi deployment, service restart, hardware action or runtime mutation was performed during Issue #548 implementation or verification.
+No Raspberry Pi deployment, service restart, host package installation, hardware action or runtime mutation was performed during Issue #548 implementation, PR verification, merge, or this state reconciliation.
 
-The previously deployed runtime reported `DEPLOYMENT PASSED` with `runtime_mode=lan`, healthy backend and Device Agent, and expected/active bus workers `1/1`. It still predates the repository-backed deployment-auth correction and #548 update orchestration.
+The deployed runtime therefore predates the repository-backed deployment-auth correction and the merged #548 update orchestration.
 
-## Issue #560 / #566 — permanent-fix Raspberry Pi acceptance still pending
+## Next physical runtime boundary — Issue #566 / #560 / #548 acceptance
 
-Full runtime acceptance still requires a separately approved controlled Raspberry Pi deployment of the post-#548 merged `main`, followed by:
+The next product-relevant action is a controlled deployment of the post-#548 merged `main` to the Raspberry Pi, followed by runtime acceptance.
 
-- successful local `administrator` login without manual `.env.local` correction;
-- Energy Monitoring remaining active through at least one complete local access-token rotation window;
-- protected history/consumption requests continuing to succeed;
+This is a **hard boundary requiring separate explicit user approval before any Pi change**.
+
+The controlled acceptance should prove together where practical:
+
+- repository-backed local `administrator` login without manual `.env.local` correction;
+- Energy Monitoring continuity through at least one complete local access-token rotation window;
+- protected history/consumption requests continue to succeed;
 - no recurrence of `401 invalid_bearer_token`;
-- repository-backed evidence for the permanent dashboard auth provider contract;
-- #548 update-plane runtime acceptance, including default-OFF policy, manual discovery, 02:00 scheduling behavior and safe local package activation/rollback evidence as applicable.
+- #548 automatic-update policy defaults OFF on the host;
+- manual update discovery works without making GitHub a runtime dependency;
+- 02:00 scheduler/policy installation and host-local semantics are present;
+- version-management runtime state, package validation, backup/capacity boundaries and rollback evidence behave truthfully;
+- hardware/runtime evidence is captured from the actual Raspberry Pi.
 
-Do not claim #560/#566 or #548 Raspberry Pi runtime completion before that physical evidence exists.
+Do not claim #566/#560 or #548 Raspberry Pi runtime completion before that physical evidence exists.
 
 ## Existing validation lanes
 
@@ -102,6 +97,10 @@ Do not claim #560/#566 or #548 Raspberry Pi runtime completion before that physi
 - #245 standalone offline Raspberry Pi monitoring remains `status:needs-validation` and requires physical evidence.
 
 Future deployments must continue to run the capacity guard and may not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
+
+## State reconciliation
+
+Issue #571 is a state-only post-merge reconciliation package. It changes only `.project` state files and must be merged only after its exact-head checks are GREEN.
 
 ## Safety boundaries
 
