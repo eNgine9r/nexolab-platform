@@ -7,11 +7,13 @@ on:
       - "services/telemetry-service/**"
       - "scripts/nexolab-update-orchestrator.py"
       - "scripts/nexolab-version-manager.py"
+      - "scripts/nexolab-adopt-source-deployment.py"
       - "scripts/deploy-version-manager-service.sh"
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
       - "scripts/tests/test_nexolab_version_manager*.py"
+      - "scripts/tests/test_nexolab_adopt_source_deployment.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -33,11 +35,13 @@ on:
       - "services/telemetry-service/**"
       - "scripts/nexolab-update-orchestrator.py"
       - "scripts/nexolab-version-manager.py"
+      - "scripts/nexolab-adopt-source-deployment.py"
       - "scripts/deploy-version-manager-service.sh"
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
       - "scripts/tests/test_nexolab_version_manager*.py"
+      - "scripts/tests/test_nexolab_adopt_source_deployment.py"
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
@@ -109,6 +113,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           python -m pytest -q \
+            scripts/tests/test_nexolab_adopt_source_deployment.py \
             scripts/tests/test_nexolab_update_orchestrator.py \
             scripts/tests/test_nexolab_update_orchestrator_requests.py \
             scripts/tests/test_nexolab_version_manager.py \
