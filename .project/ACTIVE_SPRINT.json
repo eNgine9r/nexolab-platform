@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-  "accepted_product_sha": "dc4e3186d115d7e2877c0a02c5f315df5946da7e",
-  "last_reconciled_repository_sha": "20221323fe891e3111cf4af3f51d4e182ba67ce3",
+  "repository_product_baseline_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
+  "accepted_product_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
+  "last_reconciled_repository_sha": "c7052d0749f673bf8ee952f20c47762b6d7b1848",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 575,
+    "selected_issue": 586,
     "selection_status": "ready",
     "ready_issue_count": 1,
-    "reason": "Issue #576 software and Raspberry Pi runtime acceptance are complete. Current Ready audit returns only Issue #575 as a product Ready Work Package. Open Dependabot PRs remain separate dependency lanes and do not supersede the active Unit 201 runtime defect."
+    "reason": "Issue #584 real Raspberry Pi runtime acceptance is PASS. Issue #585 remains a separate blocked physical restoration lane. Issue #586 is the next independent status:ready software Work Package."
   },
   "tasks": [
     {
@@ -89,17 +89,42 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked_hardware_evidence",
       "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-584",
+      "issue": 584,
+      "title": "Temporarily exclude LE-01MP Unit 201 while W2 is externally owned",
+      "status": "completed_runtime_acceptance_pending_state_pr_merge",
+      "priority": "high",
+      "runtime_registry_revision": 8,
+      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
+      "hardware_write": "none",
+      "modbus_write": "none"
+    },
+    {
+      "id": "NEXOLAB-585",
+      "issue": 585,
+      "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
+      "status": "blocked_product_owner_physical_handback_confirmation",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-586",
+      "issue": 586,
+      "title": "Prove and repair persistent telemetry history across browser-offline intervals",
+      "status": "ready",
+      "priority": "critical"
     }
   ],
   "active_work_package": {
-    "issue": 575,
-    "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
-    "type": "read_only_runtime_diagnosis",
+    "issue": 586,
+    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
+    "type": "persistent_telemetry_history_correctness",
     "status": "ready"
   },
   "next_work_package": {
-    "issue": 575,
-    "title": "Diagnose LE-01MP Unit 201 communication timeouts after Raspberry Pi deployment",
+    "issue": 586,
+    "title": "Prove and repair persistent telemetry history across browser-offline intervals",
     "status": "ready"
   },
   "verification": {
@@ -122,7 +147,11 @@
     "api_database_mqtt_readiness": "PASS",
     "device_agent_worker_invariant": "PASS_1_OF_1",
     "telemetry_advancing": true,
-    "unit_201_runtime_state": "DEGRADED_TIMEOUT_COOLDOWN_ISSUE_575"
+    "unit_201_runtime_state": "INTENTIONALLY_DISABLED_EXTERNAL_RS485_OWNERSHIP_ISSUE_584",
+    "issue_584_runtime_acceptance": "PASS",
+    "issue_584_registry_revision": 8,
+    "issue_584_runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z",
+    "device_agent_health_after_issue_584": "ok"
   },
   "independent_pending_lanes": [
     {
