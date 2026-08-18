@@ -2,10 +2,7 @@ import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
 import { reduceChartSegments } from "@/features/charts/reduction";
 import { liveChannelKey } from "@/features/live/live-telemetry";
-import {
-  loadCompleteTelemetryHistory,
-  type TelemetryHistoryWindow,
-} from "@/lib/telemetry/history";
+import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
