@@ -2,31 +2,21 @@
 
 Updated: 2026-08-18
 
-## Issue #548 / PR #559 — no software blocker
+## Issue #548 / PR #559 — software merged, no software blocker
 
-Issue #548 — **Add GitHub-aware safe Raspberry Pi update orchestration** has completed implementation verification on PR #559.
+Issue #548 is closed and PR #559 is squash-merged into `main` at:
 
-Implementation exact head:
+`9732b68b0d14e4056e5773e0a9bec3f3741e267f`
 
-`f068192268bed20afbd4890f20f4c52d21086f71`
+Final PR exact head:
 
-All 13 triggered workflows are GREEN, including CI, Telemetry service, Offline Bundle, Offline Auth, Authenticated Dashboard, Device Agent Fleet, Capacity Release Gate, Disaster Recovery browser/TLS, MQTT TLS, Broker Control, Refrigeration Browser and Container Supply Chain.
+`76120bef1108086fdc1648cddbcf9bd293502e6e`
 
-The final diff/security/offline audit is PASS:
+All 13 triggered exact-head workflows were GREEN before merge, including CI, Telemetry service, Offline Bundle, Offline Auth, Authenticated Dashboard, Device Agent Fleet, Capacity Release Gate, Disaster Recovery browser/TLS, MQTT TLS, Broker Control, Refrigeration Browser and Container Supply Chain.
 
-- branch is current with `main` (`behind_by=0`), merge base `0829e758700385e15fa496e160790b061625ad94`;
-- no unresolved review threads;
-- GitHub remains optional update-plane only;
-- automatic updates remain default OFF and use the host-local 02:00 schedule when explicitly enabled;
-- exact successful `CI` evidence and validated local package identity are required before activation;
-- capacity preflight and PostgreSQL backup precede runtime mutation;
-- bounded local reconnect rereads durable operation state after expected restart;
-- no browser-to-shell bridge or GitHub credentials in the frontend;
-- no destructive fallback, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write.
+The #548 software/security/offline boundary is therefore accepted. Raspberry Pi runtime acceptance is still unverified and must not be inferred from software CI.
 
-The four `.project` files are being reconciled now. Their final state-only head must receive a fresh exact-head GREEN check set before PR #559 is marked Ready and merged.
-
-## Raspberry Pi deployment after #548 — hard approval boundary
+## Raspberry Pi deployment — current hard approval boundary
 
 The current Raspberry Pi remains untouched at:
 
@@ -36,46 +26,45 @@ Evidence remains:
 
 `runtime/deployments/20260818T083157Z`
 
-No deployment, service restart, host package installation, hardware action or runtime mutation was performed during #548.
+The next product-relevant action is a controlled deployment of merged `main` `9732b68b0d14e4056e5773e0a9bec3f3741e267f`, followed by combined #566/#560/#548 runtime acceptance.
 
-After PR #559 is GREEN and merged, controlled Raspberry Pi deployment/acceptance of the post-#548 `main` is the next physical runtime action. This is a **hard boundary requiring separate explicit user approval** before any Pi change.
+This is a **hard boundary requiring separate explicit user approval before any Raspberry Pi change, service restart, host installation or cutover**.
 
-That acceptance must also close the remaining #566/#560 permanent-fix evidence where possible: repository-backed local administrator login, access-token rotation continuity, protected history/consumption requests and no `401 invalid_bearer_token` recurrence.
+Required runtime evidence includes:
 
-## Deployment capacity — current software blocker cleared
+- repository-backed local administrator login without manual auth-provider correction;
+- access-token rotation continuity for Energy Monitoring/history requests;
+- no recurrence of `401 invalid_bearer_token`;
+- #548 automatic-update policy default OFF;
+- safe manual update discovery and truthful offline/update-plane behavior;
+- installed 02:00 host-local scheduler/policy state;
+- version-management capacity/backup/package-validation/rollback evidence where exercised;
+- actual Raspberry Pi runtime identity, API/Dashboard readiness, Device Agent health and telemetry freshness.
 
-The latest controlled deployment capacity guard passed:
+## Issue #571 — state-only reconciliation
+
+Issue #571 is in progress only to reconcile repository state after the #548 merge. It is not a product or runtime blocker and changes only `.project` files. Its PR must receive exact-head GREEN checks before merge.
+
+## Deployment capacity
+
+The latest controlled Raspberry Pi deployment preflight remains PASS:
 
 - `free_bytes=20475432960`;
 - `required_bytes=16999167491`;
 - `reserve_bytes=2147483648`;
-- root filesystem was 68% used at the recorded preflight.
+- root filesystem was 68% used at recorded preflight.
 
-Issue #548 additionally corrects version-manager capacity preflight so repository-backed runtime/evidence accounting uses the canonical repository path while the worker retains read-only access to the checkout.
+Future deployments must run the capacity guard. Do not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
 
-Future deployments must run the guard. Do not bypass it by deleting product data, PostgreSQL history, named volumes or protected evidence.
+## Remaining evidence lanes
 
-## Issue #444 — end-to-end user-management validation pending
-
-Issue #444 remains `status:needs-validation`. Remaining validation is the actual create/manage user flow and non-admin authorization/frontend diagnostic behavior as applicable.
-
-## Issue #201 — final hardware boundary pending
-
-Normal-operation cumulative-energy semantics on LE-01MP Units `200–203` remain verified. Issue #201 still requires explicitly approved restart/power-cycle and rollover/reset/discontinuity evidence before full hardware acceptance.
-
-## Issue #189 — recovery hardware evidence pending
-
-Issue #189 remains blocked pending controlled central-host and Raspberry Pi recovery evidence. No destructive production restore, named-volume deletion, product-data deletion or hardware write is authorized.
-
-## Other pending physical/evidence lanes
-
-- #566 / #560 permanent-fix LOCAL_LAN token-rotation runtime acceptance;
+- #566 / #560 post-merge LOCAL_LAN deployment and token-rotation runtime acceptance;
 - #444 end-to-end local user-management acceptance;
-- #201 restart/power-cycle and rollover/reset/discontinuity validation;
+- #201 approved restart/power-cycle and rollover/reset/discontinuity validation;
 - #245 standalone loopback-only Raspberry Pi acceptance;
 - #189 backup/restore/rollback/power-loss acceptance;
 - KK2/Unit 115 field retest;
-- #548 Raspberry Pi version-management acceptance after merge and separate approval.
+- #548 Raspberry Pi version-management acceptance as part of the approved deployment lane.
 
 ## Safety boundaries
 
