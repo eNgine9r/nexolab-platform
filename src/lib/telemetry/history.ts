@@ -1,11 +1,7 @@
-import type {
-  TelemetryAdapter,
-  TelemetryFilters,
-  TelemetrySample,
-} from "./types";
+import type { TelemetryAdapter, TelemetryFilters, TelemetrySample } from "./types";
 
 const DEFAULT_PAGE_SIZE = 1_000;
-const DEFAULT_MAX_PAGES = 100;
+const DEFAULT_MAX_PAGES = 500;
 const MAX_FUTURE_SKEW_MS = 30_000;
 const MAX_SEEN_EVENT_IDS = 10_000;
 
