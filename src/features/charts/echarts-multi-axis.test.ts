@@ -133,12 +133,7 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
     });
     adapter.setScene({
       ...scene,
-      series: [
-        {
-          ...scene.series[0],
-          visible: false,
-        },
-      ],
+      series: [{ ...scene.series[0], visible: false }],
     });
 
     const option = instance.calls.at(-1)!.option as {
@@ -146,8 +141,6 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
       series: unknown[];
     };
     expect(option.series).toHaveLength(0);
-    expect(option.yAxis).toEqual([
-      expect.objectContaining({ id: "__nexolab-empty-axis__", show: false }),
-    ]);
+    expect(option.yAxis).toEqual([expect.objectContaining({ id: "__nexolab-empty-axis__", show: false })]);
   });
 });
