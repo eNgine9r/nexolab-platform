@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "84584640246f8985c0c303654def99365c8458c4",
   "accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
-  "last_reconciled_repository_sha": "84584640246f8985c0c303654def99365c8458c4",
+  "last_reconciled_repository_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 588,
-    "selection_status": "ready",
-    "ready_issue_count": 1,
-    "reason": "Issue #587 / PR #597 merged GREEN with complete Saved Dashboard persisted ranges, canonical complete-history reconciliation, persisted CSV export, acquisition invariants, Container Supply Chain and disconnected Offline Bundle all PASS. Issue #588 is the next independent chart-focused Work Package. Issue #585 remains blocked on physical handback; #589/#590 remain sequenced after #588."
+    "selection_status": "in_progress",
+    "ready_issue_count": 0,
+    "reason": "Issue #588 / PR #602 remains the active single-WIP package. Critical CI interrupt #608 / PR #609 merged GREEN and removed the Playwright APT bootstrap blocker. Product Owner reprioritized the post-#588 queue to Equipment #604 -> #605 -> #606, then dual-RS-485 architecture #607 before cadence #589/#590."
   },
   "tasks": [
     {
@@ -81,14 +81,15 @@
       "id": "NEXOLAB-588",
       "issue": 588,
       "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-      "status": "ready",
-      "priority": "high"
+      "status": "in_progress",
+      "priority": "high",
+      "pull_request": 602
     },
     {
       "id": "NEXOLAB-589",
       "issue": 589,
       "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
-      "status": "blocked_current_wip_sequence",
+      "status": "blocked_user_priority_and_bus_architecture_607",
       "priority": "critical"
     },
     {
@@ -143,18 +144,60 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "status": "blocked_hardware_evidence",
       "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-604",
+      "issue": 604,
+      "title": "Evolve Equipment Registry into a scalable operator workspace",
+      "status": "queued_after_588_user_prioritized",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-605",
+      "issue": 605,
+      "title": "Add permissioned equipment metadata editing from the Equipment workspace",
+      "status": "blocked_dependency_604",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-606",
+      "issue": 606,
+      "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+      "status": "blocked_dependencies_604_605",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-607",
+      "issue": 607,
+      "title": "Add dual RS-485 bus isolation for KK1 and KK2",
+      "status": "queued_after_equipment_lane_before_589",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-608",
+      "issue": 608,
+      "pull_request": 609,
+      "title": "Remove unstable APT dependency from Playwright browser acceptance bootstrap",
+      "status": "completed_green_ci_reliability",
+      "priority": "critical",
+      "merge_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+      "core_ci": "PASS_32237282201",
+      "authenticated_dashboard_acceptance": "PASS_32237282110",
+      "refrigeration_browser_acceptance": "PASS_32237282106",
+      "acquisition_scale": "PASS_32237282105"
     }
   ],
   "active_work_package": {
     "issue": 588,
     "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
     "type": "energy_canonical_chart_migration",
-    "status": "ready"
+    "status": "in_progress",
+    "pull_request": 602
   },
   "next_work_package": {
-    "issue": 588,
-    "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-    "status": "ready"
+    "issue": 604,
+    "title": "Evolve Equipment Registry into a scalable operator workspace",
+    "status": "queued_after_588_user_prioritized"
   },
   "verification": {
     "repository_accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
@@ -175,7 +218,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "84584640246f8985c0c303654def99365c8458c4",
+    "repository_state_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -203,7 +246,13 @@
     "issue_587_acquisition_scale": "PASS_32220599830",
     "issue_587_container_supply_chain": "PASS_32220599753",
     "issue_587_acquisition_mutations": 0,
-    "issue_587_modbus_writes": 0
+    "issue_587_modbus_writes": 0,
+    "issue_608_merge_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+    "issue_608_core_ci": "PASS_32237282201",
+    "issue_608_authenticated_dashboard_acceptance": "PASS_32237282110",
+    "issue_608_refrigeration_browser_acceptance": "PASS_32237282106",
+    "issue_608_acquisition_scale": "PASS_32237282105",
+    "issue_608_playwright_apt_bootstrap_removed": true
   },
   "independent_pending_lanes": [
     {
@@ -213,18 +262,6 @@
     {
       "issue": 587,
       "status": "completed"
-    },
-    {
-      "issue": 588,
-      "status": "ready"
-    },
-    {
-      "issue": 589,
-      "status": "blocked_current_wip_sequence"
-    },
-    {
-      "issue": 590,
-      "status": "blocked_dependency_589"
     },
     {
       "issue": 444,
@@ -241,6 +278,38 @@
     {
       "issue": 189,
       "status": "blocked"
+    },
+    {
+      "issue": 588,
+      "status": "in_progress"
+    },
+    {
+      "issue": 604,
+      "status": "queued_after_588_user_prioritized"
+    },
+    {
+      "issue": 605,
+      "status": "blocked_dependency_604"
+    },
+    {
+      "issue": 606,
+      "status": "blocked_dependencies_604_605"
+    },
+    {
+      "issue": 607,
+      "status": "queued_before_589"
+    },
+    {
+      "issue": 589,
+      "status": "blocked_user_priority_and_bus_architecture_607"
+    },
+    {
+      "issue": 590,
+      "status": "blocked_dependency_589"
+    },
+    {
+      "issue": 608,
+      "status": "completed"
     }
   ],
   "safety": {
