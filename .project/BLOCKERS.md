@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-19
+Updated: 2026-08-20
 
 ## Issue #584 — complete
 
@@ -48,47 +48,41 @@ PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry b
 
 PR #616 merged GREEN as `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`. Core CI `32263137097`, Refrigeration Browser Acceptance `32263134788`, Offline Bundle `32263135467`, focused large-inventory Equipment browser acceptance and acquisition-invariant acceptance all PASS. There is no remaining #604 blocker.
 
+## Issue #619 — rebased/local GREEN, pending fully GREEN exact-head CI
+
+PR #623 is the sole active reliability repair. It is rebased onto `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` and locally passes format, lint, typecheck, 514/514 unit tests, build, navigation 3/3 and both acquisition-invariant browser tests. The stronger 16-test browser matrix is 15/16 PASS; the sole failure is separately tracked Issue #618 CSV download. Push the rebased head and merge #623 only after **all exact-head #623 required checks are GREEN**.
+
+## Issue #620 / PR #622 — complete controlled exception
+
+PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` after explicit Product Owner approval for one narrowly scoped exception. Core CI `32296176882` and Offline Bundle `32296176711` were GREEN; Authenticated Dashboard `32296176725` was RED only because exact-main lacked #619. Synthetic `main + #620 + #619` verification passed 514/514 tests and production build before approval. No production runtime or hardware behavior changed.
+
+## Issue #605 / PR #621 — blocked only on #619
+
+The permissioned equipment metadata implementation remains isolated in PR #621. #620 is repaired on `main`; #605 must now wait only for #619 / PR #623 to merge fully GREEN, then update from repaired `main` and rerun all required checks.
+
+## Issue #618 — independent reliability lane
+
+Saved Dashboard CSV browser download acceptance remains separately open. It is not part of #619, #620 or #605.
+
 ## Issue #615 — non-blocking acceptance tooling defect
 
-The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. Issue #615 tracks the isolated script repair. #604 browser gates pass with an explicit lowercase project-name override, so this is not a product or merge blocker for #604.
-
-## Issue #605 — blocked by exact-main CI reliability prerequisites
-
-Draft PR #621 contains the focused permissioned metadata implementation, but required checks are red because exact-current-main reliability defects reproduce independently of the #605 diff.
-
-- #620 blocks Core CI `Quality and build`;
-- #619 blocks Authenticated Dashboard Acceptance.
-
-Do not merge PR #621 and do not mix either reliability repair into the #605 feature branch. Merge #620 and #619 independently, update #605 from the repaired `main`, then rerun all required checks.
-
-## Issue #620 — active blocking CI defect
-
-Persisted Live Dashboard unit fixtures used fixed 2026-08-18 telemetry with a preset window anchored to real wall-clock time. The two failures reproduce on exact `main`. #620 is the active single-WIP reliability interrupt and blocks PR #621 Core CI until merged.
-
-## Issue #619 — Ready blocking browser reliability defect
-
-PR #621 Authenticated Dashboard Acceptance passed 15/16 tests and failed only the repeated-navigation active-alert read bound. Exact-main focused navigation acceptance is independently unstable. #619 is Ready immediately after #620 and blocks PR #621 from becoming GREEN.
-
-## Issue #618 — open non-blocking Saved Dashboard export reliability defect
-
-Saved Dashboard CSV browser acceptance can time out waiting for the browser download event and reproduces on exact `main` locally. It did not fail the current PR #621 GitHub browser matrix, so it is not an immediate dependency of #605; keep it isolated as a separate high-priority reliability lane.
+The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. Issue #615 tracks the isolated repair; explicit lowercase overrides remain the local workaround.
 
 ## Planned product queue
 
-- #604 scalable Equipment workspace — complete in PR #616;
-- #620 persisted Live Dashboard deterministic clock repair — active CI reliability interrupt;
-- #619 telemetry navigation/read-model reliability — Ready after #620;
-- #605 permissioned equipment metadata editing — implementation published in draft PR #621, blocked on #620 and #619;
-- #606 read-only LOCAL_LAN discovery/adoption inbox — blocked on #605 canonical editing/adoption boundaries;
-- #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589 cadence/capacity is finalized; hardware installation/cutover remains unapproved;
-- #589 persisted cadence/capacity — held behind the user-prioritized Equipment lane and #607 bus-aware architecture;
+- #619 telemetry-navigation/read-model reliability — rebased/local GREEN; push and require fully GREEN PR #623;
+- #605 / PR #621 permissioned equipment metadata editing — blocked only on #619;
+- #618 Saved Dashboard CSV export — independent reliability lane;
+- #606 discovery/adoption inbox — blocked on #605;
+- #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
+- #589 persisted cadence/capacity — held behind #607;
 - #590 Settings cadence controls — blocked on #589.
 
 ## Deferred software lanes
 
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
-- #605 Equipment metadata editing — draft PR #621 blocked on #620 and #619;
+- #605 Equipment metadata editing — blocked only on #619;
 - #606 LOCAL_LAN discovery inbox — blocked on #605 boundaries;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;

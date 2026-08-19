@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T19:58:04Z",
+  "timestamp": "2026-08-20T03:38:37Z",
   "actor": "ChatGPT",
-  "event": "issue_620_ci_reliability_interrupt_in_progress",
-  "repository_main_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
+  "event": "issue_619_rebased_local_verification_complete_pending_exact_head_ci",
+  "repository_main_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -91,6 +91,15 @@
         "unit_tests": "PASS_513_OF_513",
         "production_build": "PASS"
       }
+    },
+    "issue_620": {
+      "issue": 620,
+      "pull_request": 622,
+      "merge_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+      "result": "COMPLETED_CONTROLLED_MERGE_EXCEPTION",
+      "core_ci": "PASS_32296176882",
+      "offline_bundle": "PASS_32296176711",
+      "product_owner_exception_approved": true
     }
   },
   "blocked_work": {
@@ -113,20 +122,16 @@
     "issue_605": {
       "issue": 605,
       "pull_request": 621,
-      "reason": "Required Core CI is blocked by exact-main Issue #620 and Authenticated Dashboard Acceptance is blocked by exact-main Issue #619."
-    },
-    "issue_618": {
-      "issue": 618,
-      "reason": "Open Saved Dashboard CSV browser reliability defect; independent and not an immediate PR #621 dependency."
+      "reason": "Draft PR #621 is blocked only until #619 / PR #623 merges fully GREEN."
     }
   },
   "current_boundary": {
-    "issue": 620,
-    "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
-    "status": "IN_PROGRESS_CI_RELIABILITY_INTERRUPT"
+    "issue": 619,
+    "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
+    "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI"
   },
-  "next_action": "Complete #620 as an isolated deterministic-clock test repair, merge GREEN, then execute Ready Issue #619 before resuming blocked Issue #605 / PR #621.",
-  "planned_queue": [620, 619, 605, 606, 607, 589, 590],
+  "next_action": "Amend and push the rebased #619 checkpoint, update PR #623, require every exact-head CI check GREEN, merge #623, reconcile main, then update #605 / PR #621 from repaired main and rerun all required gates.",
+  "planned_queue": [619, 605, 618, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -136,20 +141,93 @@
     "dual_rs485_cutover_authorized": false
   },
   "known_non_blocking_issues": {
-    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; use an explicit lowercase project-name override pending repair.",
-    "issue_618": "Saved Dashboard CSV download browser acceptance reproduces on exact main locally but did not fail the current PR #621 GitHub browser matrix."
+    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; use explicit lowercase override until its separate repair.",
+    "issue_618": "Saved Dashboard CSV browser download acceptance fails on exact main; separate reliability lane."
+  },
+  "in_progress_work": {
+    "issue_619": {
+      "issue": 619,
+      "pull_request": 623,
+      "branch": "fix/619-telemetry-navigation-read-model",
+      "base_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+      "local_unit_tests": "PASS_514_OF_514",
+      "format": "PASS",
+      "lint": "PASS",
+      "typecheck": "PASS",
+      "build": "PASS",
+      "navigation_browser": "PASS_3_OF_3",
+      "full_browser_matrix": "PASS_15_OF_16_ONLY_ISSUE_618_CSV_DOWNLOAD_FAILED",
+      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
+      "discovery_delta": 0,
+      "configuration_mutation_delta": 0,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI",
+      "root_causes": [
+        "polling_aware_alert_and_session_bounds",
+        "device_agent_fixture_isolation",
+        "retained_equipment_catalog_under_bounded_layout_lru",
+        "equipment_registry_scale_fixture_cleanup"
+      ],
+      "structural_cache_tests": "PASS_4_OF_4",
+      "warm_medians_ms": {
+        "overview": 605,
+        "refrigeration": 408,
+        "energy": 624,
+        "live": 460,
+        "nodes": 447,
+        "sessions": 379
+      },
+      "equipment_catalog_reads": 1,
+      "document_loads": 1,
+      "acquisition_expected_requests_per_second": 20,
+      "acquisition_websocket_max_per_document": 1,
+      "navigation_evidence": "runtime/evidence/issue-619-acquisition-rebased/telemetry-navigation-summary.json",
+      "acquisition_evidence": "runtime/evidence/issue-619-acquisition-rebased/acquisition-ui-invariant.json",
+      "runtime_changed": false,
+      "hardware_changed": false
+    }
   },
   "active_work": {
-    "issue_620": {
-      "issue": 620,
-      "branch": "fix/620-live-dashboard-history",
-      "root_cause": "Fixed 2026-08-18 telemetry fixtures drifted outside a real-time preset range; production logic is correct.",
-      "change": "Freeze only Date in the hook test at the fixture anchor.",
-      "focused_tests": "PASS_2_OF_2_TWICE",
-      "full_unit_tests": "PASS_513_OF_513",
+    "issue_619": {
+      "issue": 619,
+      "pull_request": 623,
+      "branch": "fix/619-telemetry-navigation-read-model",
+      "base_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+      "local_unit_tests": "PASS_514_OF_514",
+      "format": "PASS",
+      "lint": "PASS",
       "typecheck": "PASS",
-      "format_check": "PASS",
-      "production_build": "PASS",
+      "build": "PASS",
+      "navigation_browser": "PASS_3_OF_3",
+      "full_browser_matrix": "PASS_15_OF_16_ONLY_ISSUE_618_CSV_DOWNLOAD_FAILED",
+      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
+      "discovery_delta": 0,
+      "configuration_mutation_delta": 0,
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI",
+      "root_causes": [
+        "polling_aware_alert_and_session_bounds",
+        "device_agent_fixture_isolation",
+        "retained_equipment_catalog_under_bounded_layout_lru",
+        "equipment_registry_scale_fixture_cleanup"
+      ],
+      "structural_cache_tests": "PASS_4_OF_4",
+      "warm_medians_ms": {
+        "overview": 605,
+        "refrigeration": 408,
+        "energy": 624,
+        "live": 460,
+        "nodes": 447,
+        "sessions": 379
+      },
+      "equipment_catalog_reads": 1,
+      "document_loads": 1,
+      "acquisition_expected_requests_per_second": 20,
+      "acquisition_websocket_max_per_document": 1,
+      "navigation_evidence": "runtime/evidence/issue-619-acquisition-rebased/telemetry-navigation-summary.json",
+      "acquisition_evidence": "runtime/evidence/issue-619-acquisition-rebased/acquisition-ui-invariant.json",
       "runtime_changed": false,
       "hardware_changed": false
     }
