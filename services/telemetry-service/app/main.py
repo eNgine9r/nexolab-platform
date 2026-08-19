@@ -363,6 +363,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             security_dependencies=security_dependencies,
             security_repository=security_repository,
             default_organization_id=resolved.auth_default_organization_id,
+            database=database,
+            max_history_days=resolved.history_max_range_days,
         )
     )
     app.include_router(

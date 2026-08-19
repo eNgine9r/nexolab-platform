@@ -14,6 +14,7 @@ import {
   type ChartXDomain,
 } from "@/features/charts";
 import { timeWindowMilliseconds } from "@/features/live-dashboards/model";
+import { liveHistorySegments } from "@/features/live/live-history";
 import type {
   LiveDashboard,
   LiveDashboardSeries,
@@ -108,15 +109,27 @@ function buildSeries(
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[visualIndex % CHART_SERIES_TOKENS.length];
   const samples = orderedSamples(source.history);
-  const segments = buildChartSegments(
-    identity,
-    samples.map((sample) => ({
-      id: sample.event_id,
-      timestampMs: timestamp(sample),
-      value: sample.value,
-      quality: sample.quality,
-      sourceEventId: sample.event_id,
-    })),
+  const segments = liveHistorySegments(samples).flatMap((sourceSegment, segmentIndex) =>
+    buildChartSegments(
+      identity,
+      sourceSegment.map((sample) => ({
+        id: sample.event_id,
+        timestampMs: timestamp(sample),
+        value: sample.value,
+        quality: sample.quality,
+        sourceEventId: sample.event_id,
+      })),
+    ).map((segment, index) =>
+      segmentIndex > 0 && index === 0 && segment.points[0]
+        ? {
+            ...segment,
+            precedingBreak: {
+              reason: "explicit_gap" as const,
+              atMs: segment.points[0].timestampMs,
+            },
+          }
+        : segment,
+    ),
   );
 
   return {

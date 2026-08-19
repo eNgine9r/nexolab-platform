@@ -26,6 +26,18 @@ export interface LiveDashboardListQuery {
   offset?: number;
 }
 
+export interface LiveDashboardCsvExportQuery {
+  from: string;
+  to: string;
+  timezone: string;
+}
+
+export interface LiveDashboardCsvDownload {
+  blob: Blob;
+  filename: string;
+  mediaType: string;
+}
+
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
@@ -149,6 +161,20 @@ function parseCollection(value: unknown): LiveDashboardCollection {
   };
 }
 
+function filenameFromDisposition(value: string | null, fallback: string): string {
+  if (!value) return fallback;
+  const encoded = value.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      return fallback;
+    }
+  }
+  const quoted = value.match(/filename="([^"]+)"/i)?.[1];
+  return quoted?.trim() || fallback;
+}
+
 function withQuery(path: string, query: LiveDashboardListQuery): string {
   const params = new URLSearchParams();
   params.set("include_archived", String(Boolean(query.includeArchived)));
@@ -235,6 +261,30 @@ export class LiveDashboardApiClient {
     return { value, etag: response.headers.get("ETag") ?? liveDashboardEtag(value.version) };
   }
 
+  async exportTelemetryCsv(
+    dashboardId: string,
+    query: LiveDashboardCsvExportQuery,
+    signal?: AbortSignal,
+  ): Promise<LiveDashboardCsvDownload> {
+    const params = new URLSearchParams({
+      from: query.from,
+      to: query.to,
+      timezone: query.timezone,
+    });
+    const response = await this.performDownloadRequest(
+      `/api/v1/live-dashboards/${encodeURIComponent(dashboardId)}/telemetry.csv?${params.toString()}`,
+      signal,
+    );
+    return {
+      blob: await response.blob(),
+      filename: filenameFromDisposition(
+        response.headers.get("Content-Disposition"),
+        `live-dashboard-${dashboardId}.csv`,
+      ),
+      mediaType: response.headers.get("Content-Type") ?? "text/csv; charset=utf-8",
+    };
+  }
+
   async archive(
     dashboardId: string,
     etag: string,
@@ -248,6 +298,61 @@ export class LiveDashboardApiClient {
       signal,
     });
     return response.headers.get("ETag") ?? etag;
+  }
+
+  private async performDownloadRequest(path: string, signal?: AbortSignal): Promise<Response> {
+    const controller = new AbortController();
+    let timedOut = false;
+    const onAbort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener("abort", onAbort, { once: true });
+    const timer = globalThis.setTimeout(
+      () => {
+        timedOut = true;
+        controller.abort(new DOMException("Request timed out", "TimeoutError"));
+      },
+      Math.max(this.timeoutMs, 60_000),
+    );
+
+    try {
+      const response = await this.fetchImpl(`${this.apiBaseUrl}${path}`, {
+        method: "GET",
+        headers: { Accept: "text/csv" },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        let body: unknown = null;
+        const text = await response.text();
+        if (text) {
+          try {
+            body = JSON.parse(text) as unknown;
+          } catch {
+            body = null;
+          }
+        }
+        const detail = errorDetail(body, `Live Dashboard telemetry export returned HTTP ${response.status}.`);
+        throw new LiveDashboardClientError(detail.message, response.status, detail.code);
+      }
+      return response;
+    } catch (error) {
+      if (error instanceof LiveDashboardClientError) throw error;
+      const code = timedOut ? "timeout" : controller.signal.aborted ? "aborted" : "network";
+      throw new LiveDashboardClientError(
+        timedOut
+          ? "Live Dashboard telemetry export timed out."
+          : controller.signal.aborted
+            ? "Live Dashboard telemetry export was aborted."
+            : "Live Dashboard telemetry export failed.",
+        undefined,
+        code,
+        null,
+        null,
+        { cause: error },
+      );
+    } finally {
+      globalThis.clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    }
   }
 
   private async request(

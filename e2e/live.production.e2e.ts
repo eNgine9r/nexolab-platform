@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
@@ -72,26 +72,37 @@ function sqlString(value: string): string {
 
 function publishSavedDashboardSample(dashboardId: string, channelId: string, value: number): void {
   const selection = postgres(`
-SELECT metric || '|' || native_unit
-FROM live_dashboard_items
-WHERE dashboard_id = ${sqlString(dashboardId)}
-  AND channel_id = ${sqlString(channelId)}
-ORDER BY position
+SELECT item.metric || '|' || item.native_unit || '|' || bus.node_id || '|' || device.business_key
+FROM live_dashboard_items AS item
+JOIN measurement_channels AS channel
+  ON channel.organization_id = item.organization_id
+ AND channel.id = item.channel_ref_id
+JOIN measurement_devices AS device
+  ON device.organization_id = channel.organization_id
+ AND device.id = channel.device_id
+JOIN measurement_buses AS bus
+  ON bus.organization_id = channel.organization_id
+ AND bus.id = channel.bus_id
+WHERE item.dashboard_id = ${sqlString(dashboardId)}
+  AND item.channel_id = ${sqlString(channelId)}
+ORDER BY item.position
 LIMIT 1;
 `).trim();
-  const [metric, unit] = selection.split("|");
-  if (!metric || !unit) throw new Error("Saved Dashboard live-point identity was not found");
+  const [metric, unit, nodeId, equipmentId] = selection.split("|");
+  if (!metric || !unit || !nodeId || !equipmentId) {
+    throw new Error("Saved Dashboard canonical live-point identity was not found");
+  }
 
   const payload = JSON.stringify({
     event_id: randomUUID(),
-    node_id: "edge-chart-404",
+    node_id: nodeId,
     captured_at: new Date().toISOString(),
     metric,
     value,
     unit,
     quality: "valid",
     source: "issue-404-visual-continuity-regression",
-    equipment_id: "saved-dashboard-e2e",
+    equipment_id: equipmentId,
     channel_id: channelId,
     alarm: null,
     raw_value: Math.round(value * 10),
@@ -288,20 +299,29 @@ INSERT INTO telemetry_samples (
 )
 SELECT
   md5(item.id || ':' || sample_index::text),
-  'edge-chart-404',
+  bus.node_id,
   NOW() - ((5 - sample_index) * INTERVAL '5 minutes'),
   item.metric,
   (item.position * 10 + sample_index)::double precision,
   item.native_unit,
   'valid',
   'issue-404-e2e',
-  'saved-dashboard-e2e',
+  device.business_key,
   item.channel_id,
   CASE WHEN item.position = 1 AND sample_index = 3 THEN 'high' ELSE NULL END,
   item.position * 100 + sample_index,
   NULL,
   '{}'::json
 FROM live_dashboard_items AS item
+JOIN measurement_channels AS channel
+  ON channel.organization_id = item.organization_id
+ AND channel.id = item.channel_ref_id
+JOIN measurement_devices AS device
+  ON device.organization_id = channel.organization_id
+ AND device.id = channel.device_id
+JOIN measurement_buses AS bus
+  ON bus.organization_id = channel.organization_id
+ AND bus.id = channel.bus_id
 CROSS JOIN generate_series(1, 4) AS sample_index
 WHERE item.dashboard_id = ${sqlString(dashboardId)};
 
@@ -318,8 +338,7 @@ JOIN live_dashboard_items AS item
   ON item.dashboard_id = ${sqlString(dashboardId)}
  AND item.channel_id = sample.channel_id
  AND item.metric = sample.metric
-WHERE sample.node_id = 'edge-chart-404'
-  AND sample.equipment_id = 'saved-dashboard-e2e'
+WHERE sample.source = 'issue-404-e2e'
 ORDER BY sample.channel_id, sample.metric, sample.captured_at DESC, sample.id DESC;
 
 SELECT
@@ -655,6 +674,45 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     await expect
       .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
       .toBeGreaterThanOrEqual(4);
+    await expect(page.getByRole("button", { name: "1h", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "30d", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Custom", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Export CSV", exact: true })).toBeEnabled();
+
+    const historyRequestsBeforeRangeChange = requests.telemetry.filter((item) =>
+      item.url.includes("/history"),
+    ).length;
+    await page.getByRole("button", { name: "6h", exact: true }).click();
+    await expect
+      .poll(() => requests.telemetry.filter((item) => item.url.includes("/history")).length)
+      .toBeGreaterThan(historyRequestsBeforeRangeChange);
+
+    await page.getByRole("button", { name: "Custom", exact: true }).click();
+    await expect(page.getByLabel("Від · локальний час")).toBeVisible();
+    await expect(page.getByLabel("До · локальний час")).toBeVisible();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByLabel("Від · локальний час")).toHaveCount(0);
+
+    const exportPath = path.join(evidenceDirectory, "saved-dashboard-export.csv");
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.csv$/);
+    expect(await download.failure()).toBeNull();
+    await download.saveAs(exportPath);
+    const csv = readFileSync(exportPath, "utf8");
+    expect(csv.split("\n")[0]).toBe(
+      "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id",
+    );
+    expect(csv.trim().split("\n").length).toBeGreaterThan(1);
+    expect(
+      requests.dashboard.some(
+        (item) =>
+          item.method === "GET" &&
+          item.url.includes(`/api/v1/live-dashboards/${fixture.dashboardId}/telemetry.csv`),
+      ),
+    ).toBe(true);
+    expect(requests.acquisitionMutations).toEqual([]);
 
     const historyRequestsBeforeInteraction = requests.telemetry.filter((item) =>
       item.url.includes("/history"),

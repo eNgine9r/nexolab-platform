@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarRange,
   Clock3,
+  Download,
   Edit3,
   Gauge,
   Radio,
@@ -15,7 +17,8 @@ import {
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
 import type { ChartXDomain } from "@/features/charts/domain";
-import { buildSavedDashboardChartGroups, savedDashboardResetDomain } from "@/features/live-dashboards/chart";
+import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
+import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
 import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
 import { liveTelemetryState } from "@/features/live/live-telemetry";
 import type { LiveDashboardTelemetryModel } from "@/hooks/use-live-dashboard-telemetry";
@@ -105,12 +108,6 @@ function seriesState(series: LiveDashboardTelemetryModel["series"][number]): str
   return "Невідомий стан";
 }
 
-function domainAnchor(lastCapturedAt: string | null): number {
-  if (!lastCapturedAt) return Date.now();
-  const parsed = Date.parse(lastCapturedAt);
-  return Number.isFinite(parsed) ? parsed : Date.now();
-}
-
 export function DashboardLiveView({
   dashboard,
   telemetry,
@@ -130,10 +127,17 @@ export function DashboardLiveView({
   const [soloSeriesKey, setSoloSeriesKey] = useState<string | null>(null);
   const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
   const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
-  const dashboardViewKey = `${dashboard.id}:${dashboard.version}:${dashboard.time_window}`;
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [customError, setCustomError] = useState<string | null>(null);
+  const dashboardViewKey = `${dashboard.id}:${dashboard.version}:${telemetry.historyRange.kind}:${telemetry.historyRange.from}:${telemetry.historyRange.to}`;
   const resetDomain = useMemo(
-    () => savedDashboardResetDomain(dashboard.time_window, domainAnchor(telemetry.lastCapturedAt)),
-    [dashboard.time_window, telemetry.lastCapturedAt],
+    () => ({
+      fromMs: Date.parse(telemetry.historyWindow.from),
+      toMs: Date.parse(telemetry.historyWindow.to),
+    }),
+    [telemetry.historyWindow.from, telemetry.historyWindow.to],
   );
   const effectiveDomain = viewportDomain ?? resetDomain;
   const chartGroups = useMemo(
@@ -173,6 +177,44 @@ export function DashboardLiveView({
 
   const soloSeries = (seriesKey: string) => {
     setSoloSeriesKey((current) => (current === seriesKey ? null : seriesKey));
+  };
+
+  const localInputValue = (value: string): string => {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const openCustomRange = () => {
+    setCustomFrom(localInputValue(telemetry.historyWindow.from));
+    setCustomTo(localInputValue(telemetry.historyWindow.to));
+    setCustomError(null);
+    setCustomOpen(true);
+  };
+
+  const applyCustomRange = () => {
+    try {
+      telemetry.applyCustomHistoryRange(new Date(customFrom), new Date(customTo));
+      setCustomError(null);
+      setCustomOpen(false);
+    } catch (error) {
+      setCustomError(error instanceof Error ? error.message : "Некоректний Custom діапазон.");
+    }
+  };
+
+  const downloadCsv = async () => {
+    try {
+      const download = await telemetry.exportCsv();
+      const url = URL.createObjectURL(download.blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = download.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // The hook owns the truthful export error state rendered below the controls.
+    }
   };
 
   return (
@@ -290,11 +332,124 @@ export function DashboardLiveView({
         </div>
       ) : null}
 
+      {dashboard.items.length > 0 ? (
+        <section
+          className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5"
+          aria-label="Saved Dashboard history range and export"
+        >
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarRange className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+                <h2 className="text-sm font-semibold text-white">Persisted history</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Діапазон графіка та CSV не змінює фізичний polling або збережене визначення Dashboard.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {LIVE_DASHBOARD_HISTORY_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => telemetry.selectHistoryPreset(preset)}
+                  className={`min-h-9 rounded-xl border px-3 text-xs font-medium transition ${
+                    telemetry.historyRange.kind === preset
+                      ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100"
+                      : "border-white/10 text-slate-400 hover:border-cyan-300/25 hover:text-slate-200"
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={openCustomRange}
+                className={`min-h-9 rounded-xl border px-3 text-xs font-medium transition ${
+                  telemetry.historyRange.kind === "custom"
+                    ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100"
+                    : "border-white/10 text-slate-400 hover:border-cyan-300/25 hover:text-slate-200"
+                }`}
+              >
+                Custom
+              </button>
+              <button
+                type="button"
+                onClick={() => void downloadCsv()}
+                disabled={
+                  telemetry.historyStatus === "loading" ||
+                  telemetry.exportStatus === "exporting" ||
+                  dashboard.items.length === 0
+                }
+                className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-400/[0.06] px-3 text-xs font-medium text-emerald-100 hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                {telemetry.exportStatus === "exporting" ? "Експорт…" : "Export CSV"}
+              </button>
+            </div>
+          </div>
+
+          {customOpen ? (
+            <div className="mt-4 grid gap-3 rounded-2xl border border-white/[0.07] bg-[#06142a]/70 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+              <label className="grid gap-1.5 text-xs text-slate-400">
+                Від · локальний час
+                <input
+                  type="datetime-local"
+                  value={customFrom}
+                  onChange={(event) => setCustomFrom(event.target.value)}
+                  className="min-h-10 rounded-xl border border-white/10 bg-[#081a32] px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/35"
+                />
+              </label>
+              <label className="grid gap-1.5 text-xs text-slate-400">
+                До · локальний час
+                <input
+                  type="datetime-local"
+                  value={customTo}
+                  onChange={(event) => setCustomTo(event.target.value)}
+                  className="min-h-10 rounded-xl border border-white/10 bg-[#081a32] px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/35"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={applyCustomRange}
+                  className="min-h-10 rounded-xl bg-blue-500 px-4 text-sm font-medium text-white hover:bg-blue-400"
+                >
+                  Apply
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomOpen(false);
+                    setCustomError(null);
+                  }}
+                  className="min-h-10 rounded-xl border border-white/10 px-4 text-sm text-slate-400 hover:text-slate-200"
+                >
+                  Cancel
+                </button>
+              </div>
+              {customError ? <p className="text-xs text-red-200 md:col-span-3">{customError}</p> : null}
+            </div>
+          ) : null}
+
+          {telemetry.historyStatus === "loading" ? (
+            <p className="mt-3 text-xs text-cyan-200">Завантаження повної persisted history…</p>
+          ) : telemetry.historyStatus === "error" ? (
+            <p className="mt-3 text-xs text-red-200">
+              {telemetry.historyError?.message ?? "Не вдалося завантажити persisted history."}
+            </p>
+          ) : null}
+          {telemetry.exportError ? (
+            <p className="mt-3 text-xs text-red-200">{telemetry.exportError.message}</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {chartGroups.map((group) => (
         <DashboardChartPanel
           key={group.id}
           group={group}
-          rangeLabel={dashboard.time_window}
+          rangeLabel={telemetry.historyRange.label}
           sharedCursorMs={sharedCursorMs}
           resetDomain={resetDomain}
           onSharedCursorChange={setSharedCursorMs}
