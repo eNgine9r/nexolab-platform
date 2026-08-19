@@ -139,11 +139,40 @@ Exact-head `0da49e2ac1037efab78367cf76e201ce5a5133a4` gates:
 
 Local Raspberry Pi worktree checks on the exact branch content also passed `format:check`, lint, typecheck and 18 focused chart/energy tests. The diff contains no package/lockfile, service, infrastructure, script or workflow changes. No acquisition mutation, Modbus write, hardware write, dependency upgrade or mandatory cloud runtime dependency was introduced.
 
+## Issue #604 — implementation verified, PR pending
+
+Issue #604 is implemented on `feat/604-equipment-workspace`. The measured organization-wide registry did **not** justify a new backend universal-asset endpoint: existing canonical repositories remain authoritative. The UI bottleneck was all-at-once chamber completion plus unbounded rendering.
+
+The implementation now provides:
+
+- progressive registry results while bounded chamber catalog loads continue;
+- cancellation and partial-failure preservation without demo/fallback substitution;
+- an 80-row bounded DOM page with sticky header and identity column;
+- deterministic sorting, grouping and collapsible group risk counts;
+- URL-backed search/filter/risk/group/sort state without remounting the registry data loader;
+- locally persisted operator density and visible-column preferences only;
+- non-blocking right-side read-only asset inspector with keyboard adjacent navigation;
+- source-backed metrology sections that explicitly disclose fields the current contract does not store.
+
+Local exact implementation commit `ad06911d` passed:
+
+- `npm run format:check`;
+- `npm run lint`;
+- `npm run typecheck`;
+- `npm test` — 113 test files / 513 tests PASS;
+- `npm run build`;
+- focused Equipment Registry production browser acceptance with large seeded inventory — PASS;
+- acquisition-invariant browser acceptance — 3/3 PASS.
+
+Browser evidence is under `runtime/evidence/issue-604-equipment-registry` and `runtime/evidence/issue-604-acquisition-invariant`. No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime deployment or mandatory cloud dependency changed.
+
+A pre-existing acceptance-runner defect discovered during verification was isolated as Issue #615: the default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. #604 acceptance passed using an explicit valid lowercase project-name override; #615 is not a #604 product blocker.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #604 — Evolve Equipment Registry into a scalable operator workspace**.
+Current Work Package: **Issue #604 — Evolve Equipment Registry into a scalable operator workspace** — implementation and local verification complete; PR/CI pending.
 
-Product Owner priority remains **#604 → #605 → #606**, followed by dual-RS-485 architecture **#607** before cadence/capacity #589 and Settings controls #590. The resulting planned sequence is **#604 → #605 → #606 → #607 → #589 → #590**.
+Product Owner priority remains **#604 → #605 → #606**, followed by dual-RS-485 architecture **#607** before cadence/capacity #589 and Settings controls #590. After #604 merges GREEN, the next Ready candidate is #605; the planned sequence remains **#604 → #605 → #606 → #607 → #589 → #590**.
 
 Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized by this planning state.
 

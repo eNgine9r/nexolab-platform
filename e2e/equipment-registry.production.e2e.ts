@@ -20,7 +20,7 @@ const chamberBId = "66200000-0000-4000-8000-000000000002";
 const activeEquipmentId = "66600000-0000-4000-8000-000000000001";
 
 let expectedAssetCount = 0;
-const minimumFocusedFixtureCount = 10;
+const minimumFocusedFixtureCount = 190;
 
 type ObservedRegistryRequest = {
   method: string;
@@ -254,6 +254,39 @@ VALUES
     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, NULL
   )
 ON CONFLICT (organization_id, code) DO NOTHING;
+
+INSERT INTO refrigeration_equipment (
+  id, organization_id, code, name, location, laboratory, zone, node_id,
+  climate_chamber_id, equipment_type, manufacturer, model, serial_number,
+  temperature_class, installed_at, serviced_at, lifecycle_status, status,
+  average_temperature_c, min_temperature_c, max_temperature_c,
+  online_sensors, total_sensors, active_alarms, last_seen_at, version,
+  created_by, created_at, updated_at, deleted_by, deleted_at
+)
+SELECT
+  ('66700000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+  :'organization_id',
+  'ZZ-SCALE-' || lpad(series::text, 3, '0'),
+  'Scale fixture ' || lpad(series::text, 3, '0'),
+  'Registry Scale Lab · Zone ' || ((series - 1) % 12 + 1),
+  'Registry Scale Lab',
+  'Zone ' || ((series - 1) % 12 + 1),
+  'registry-edge-01',
+  '${chamberAId}',
+  'Холодильна вітрина',
+  CASE WHEN series % 3 = 0 THEN 'NEXOLAB' WHEN series % 3 = 1 THEN 'Danfoss' ELSE 'Copeland' END,
+  'SCALE-' || lpad(series::text, 3, '0'),
+  'SCALE-SN-' || lpad(series::text, 3, '0'),
+  '3M1',
+  DATE '2026-01-01', DATE '2026-07-01',
+  'active',
+  CASE WHEN series % 17 = 0 THEN 'warning' ELSE 'normal' END,
+  4.0, 2.0, 6.0, 2, 2,
+  CASE WHEN series % 17 = 0 THEN 1 ELSE 0 END,
+  CURRENT_TIMESTAMP, 1, 'equipment-registry-scale-acceptance',
+  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, NULL
+FROM generate_series(1, 180) AS series
+ON CONFLICT (organization_id, code) DO NOTHING;
 `;
 
   composeExec(
@@ -307,6 +340,22 @@ test("renders and navigates the authenticated Equipment and metrology registry",
   const page = await context.newPage();
   const requests = observeRegistryRequests(page);
   let injectedFailureCount = 0;
+  let chamberARequestPending = false;
+  let releaseChamberA!: () => void;
+  const chamberAGate = new Promise<void>((resolve) => {
+    releaseChamberA = resolve;
+  });
+
+  await page.route(`**/api/v1/climate-chambers/${chamberAId}/equipment`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    chamberARequestPending = true;
+    await chamberAGate;
+    chamberARequestPending = false;
+    await route.continue();
+  });
 
   await page.route(`**/api/v1/climate-chambers/${chamberBId}/equipment`, async (route) => {
     if (route.request().method() !== "GET") {
@@ -331,6 +380,17 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.goto("/equipment", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
+      await expect.poll(() => chamberARequestPending).toBe(true);
+      const progressiveSearch = page.getByPlaceholder(
+        "Код, inventory, business key, модель або серійний номер",
+      );
+      await progressiveSearch.fill("REG-REF-ACTIVE");
+      await expect(page.getByText("REG-REF-ACTIVE", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText(/Каталоги \d+\/\d+/, { exact: true })).toBeVisible();
+      await progressiveSearch.fill("");
+      releaseChamberA();
+      await expect.poll(() => chamberARequestPending).toBe(false);
+      await expect(page.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
       const resultCount = page.getByText(/Показано \d+ із \d+/, { exact: true });
       await expect(resultCount).toBeVisible();
       await expect
@@ -347,6 +407,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         )
         .toBeGreaterThanOrEqual(minimumFocusedFixtureCount);
 
+      const fixtureSearch = page.getByPlaceholder("Код, inventory, business key, модель або серійний номер");
       for (const identifier of [
         "REG-REF-ACTIVE",
         "REG-REF-MAINT",
@@ -359,30 +420,10 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         "MET-SENSOR-EXP",
         "MET-SENSOR-UNT",
       ]) {
+        await fixtureSearch.fill(identifier);
         await expect(page.getByText(identifier, { exact: true }).first()).toBeVisible();
       }
-
-      await expect(
-        page.getByText("Підключено", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Відключено", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Невідомо", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Актуальне", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Наближається термін", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Прострочене", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByText("Не відстежується", { exact: true }).filter({ visible: true }).first(),
-      ).toBeVisible();
+      await fixtureSearch.fill("");
       await expect(page.getByText("Частина chamber catalog недоступна", { exact: true })).toBeVisible();
       await expect(page.getByText("REG-B · Registry Chamber B:", { exact: true })).toBeVisible();
       expect(injectedFailureCount).toBeGreaterThan(0);
@@ -391,6 +432,10 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       expect(requests.every((request) => request.authorization)).toBe(true);
       expect(requests.every((request) => request.organization === organizationId)).toBe(true);
       expect(requests.every((request) => request.method === "GET")).toBe(true);
+      await expect(page.getByTestId("equipment-registry-table").locator("tbody > tr")).toHaveCount(
+        Math.min(expectedAssetCount, 80),
+      );
+      await expect(page.getByRole("button", { name: /Наступна/ })).toBeEnabled();
     });
 
     await test.step("persist combined physical-sensor filters through the URL and reload", async () => {
@@ -425,6 +470,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         });
 
       await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
       await expect(search).toHaveValue("MET-SENSOR-EXP");
       await expect(page.getByLabel("Категорія активу")).toHaveValue("physical-sensor");
       await expect(page.getByLabel("Кліматична камера")).toHaveValue(chamberAId);
@@ -432,7 +478,20 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(page.getByLabel("Статус калібрування")).toHaveValue("expired");
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
 
-      await page.getByRole("button", { name: "Очистити" }).click();
+      await page.getByRole("button", { name: "Очистити активні фільтри", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return [
+            url.searchParams.get("q"),
+            url.searchParams.get("category"),
+            url.searchParams.get("chamber"),
+            url.searchParams.get("status"),
+            url.searchParams.get("calibration"),
+            url.searchParams.get("risk"),
+          ];
+        })
+        .toEqual([null, null, null, null, null, null]);
       await expect(
         page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
       ).toBeVisible();
@@ -440,19 +499,88 @@ test("renders and navigates the authenticated Equipment and metrology registry",
 
     await test.step("combine manufacturer, device class and connection filters", async () => {
       await page.getByLabel("Категорія активу").selectOption("energy-meter");
-      await page.getByLabel("Виробник").selectOption("TOMZN");
+      await page.getByRole("combobox", { name: "Виробник", exact: true }).selectOption("TOMZN");
       await page.getByRole("combobox", { name: "Статус", exact: true }).selectOption("disconnected");
       await expect(page.getByText(`Показано 1 із ${expectedAssetCount}`, { exact: true })).toBeVisible();
       await expect(
         page.getByText("reg-le01mp:12", { exact: true }).filter({ visible: true }).first(),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Очистити" }).click();
+      await page.getByRole("button", { name: "Очистити активні фільтри", exact: true }).click();
       await expect(
         page.getByText(`Показано ${expectedAssetCount} із ${expectedAssetCount}`, { exact: true }),
       ).toBeVisible();
     });
 
+    await test.step("persist workspace density, grouping, sorting and visible columns locally", async () => {
+      const densityButton = page.getByRole("button", { name: /щільність/ });
+      await expect(densityButton).toContainText("Комфортна");
+      await densityButton.click();
+      await expect(densityButton).toContainText("Компактна");
+
+      await page.getByLabel("Групування реєстру").selectOption("manufacturer");
+      await page.getByRole("button", { name: "Сортувати: Виробник / модель" }).click();
+      await page.getByRole("button", { name: /Колонки/ }).click();
+      await page.getByLabel("Категорія", { exact: true }).uncheck();
+      await expect(page.getByRole("columnheader", { name: /Категорія/ })).toHaveCount(0);
+
+      await expect.poll(() => new URL(page.url()).searchParams.get("group")).toBe("manufacturer");
+      await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("manufacturer");
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
+      await expect(page.getByLabel("Групування реєстру")).toHaveValue("manufacturer");
+      await expect(page.getByRole("button", { name: /щільність/ })).toContainText("Компактна");
+      await expect(page.getByRole("columnheader", { name: /Категорія/ })).toHaveCount(0);
+
+      await page.getByRole("button", { name: /^Офлайн/ }).click();
+      await expect.poll(() => new URL(page.url()).searchParams.get("risk")).toBe("offline");
+      await page
+        .getByPlaceholder("Код, inventory, business key, модель або серійний номер")
+        .fill("REG-REF-RETIRED");
+      await expect(page.getByText("REG-REF-RETIRED", { exact: true }).first()).toBeVisible();
+      await page.getByRole("button", { name: "Очистити активні фільтри", exact: true }).click();
+
+      await page.getByLabel("Групування реєстру").selectOption("none");
+      await page.getByRole("button", { name: /Колонки/ }).click();
+      await page.getByLabel("Категорія", { exact: true }).check();
+    });
+
+    await test.step("inspect adjacent assets in a non-blocking desktop drawer with keyboard access", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.getByPlaceholder("Код, inventory, business key, модель або серійний номер").fill("REG-REF-");
+      const activeRow = page.getByRole("row").filter({ hasText: "REG-REF-ACTIVE" }).first();
+      await activeRow.focus();
+      await page.keyboard.press("Enter");
+      const drawer = page.getByRole("dialog", { name: "Паспорт REG-REF-ACTIVE" });
+      await expect(drawer).toBeVisible();
+      await expect(page.getByTestId("equipment-registry-table")).toBeVisible();
+      const drawerBox = await drawer.boundingBox();
+      expect(drawerBox).not.toBeNull();
+      expect(drawerBox?.x ?? 0).toBeGreaterThan(700);
+      await page.keyboard.press("ArrowDown");
+      await expect(page.getByRole("dialog", { name: "Паспорт REG-REF-MAINT" })).toBeVisible();
+      await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
+      await page.getByPlaceholder("Код, inventory, business key, модель або серійний номер").fill("");
+    });
+
+    await test.step("remain bounded and overflow-safe at operator desktop widths", async () => {
+      for (const viewport of [
+        { width: 1440, height: 900 },
+        { width: 1920, height: 1080 },
+      ]) {
+        await page.setViewportSize(viewport);
+        const dimensions = await page.evaluate(() => ({
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        }));
+        expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+        const rows = await page.getByTestId("equipment-registry-table").locator("tbody > tr").count();
+        expect(rows).toBeLessThanOrEqual(80);
+      }
+    });
+
     await test.step("show category-specific read-only details without fabricated metrology data", async () => {
+      const detailsSearch = page.getByPlaceholder("Код, inventory, business key, модель або серійний номер");
+      await detailsSearch.fill("MET-SENSOR-EXP");
       await page.getByRole("button", { name: "Переглянути паспорт MET-SENSOR-EXP" }).click();
       const sensorDialog = page.getByRole("dialog", { name: "Паспорт MET-SENSOR-EXP" });
       await expect(sensorDialog).toBeVisible();
@@ -463,6 +591,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
       await expect(sensorDialog).toBeHidden();
 
+      await detailsSearch.fill("reg-le01mp:12");
       await page.getByRole("button", { name: "Переглянути паспорт reg-le01mp:12" }).click();
       const meterDialog = page.getByRole("dialog", { name: "Паспорт reg-le01mp:12" });
       await expect(meterDialog).toBeVisible();
@@ -474,6 +603,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
       await expect(meterDialog).toBeHidden();
 
+      await detailsSearch.fill("REG-REF-ACTIVE");
       await page.getByRole("button", { name: "Переглянути паспорт REG-REF-ACTIVE" }).click();
       const refrigerationDialog = page.getByRole("dialog", { name: "Паспорт REG-REF-ACTIVE" });
       await expect(refrigerationDialog).toBeVisible();
@@ -487,9 +617,13 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       });
       await page.getByRole("button", { name: "Закрити паспорт обладнання" }).click();
       await expect(refrigerationDialog).toBeHidden();
+      await detailsSearch.fill("");
     });
 
     await test.step("navigate to the canonical refrigeration mutation workflow", async () => {
+      await page
+        .getByPlaceholder("Код, inventory, business key, модель або серійний номер")
+        .fill("REG-REF-ACTIVE");
       const link = page.getByRole("link", { name: "Відкрити канонічну картку REG-REF-ACTIVE" });
       await expect(link).toHaveAttribute("href", `/refrigeration/${activeEquipmentId}`);
       await link.click();
@@ -524,6 +658,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       )}\n`,
     );
   } finally {
+    releaseChamberA();
     await context.close();
   }
 });

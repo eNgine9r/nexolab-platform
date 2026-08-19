@@ -44,10 +44,14 @@ PR #609 merged GREEN as `3e13800f413eb2255b992b6ff9f3aec935acf602`. The blocking
 
 PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry browser acceptance now proves one routed WebSocket plus a fresh local telemetry sample before requiring the truthful Live state, and changes to that test now trigger Authenticated Dashboard Acceptance. There is no remaining #611 blocker.
 
+## Issue #615 — non-blocking acceptance tooling defect
+
+The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. Issue #615 tracks the isolated script repair. #604 browser gates pass with an explicit lowercase project-name override, so this is not a product or merge blocker for #604.
+
 ## Planned product queue
 
-- #604 scalable Equipment workspace — next Ready Work Package by Product Owner priority;
-- #605 permissioned equipment metadata editing — depends on #604;
+- #604 scalable Equipment workspace — implementation locally GREEN; PR/CI pending;
+- #605 permissioned equipment metadata editing — remains blocked until #604 merges GREEN;
 - #606 read-only LOCAL_LAN discovery/adoption inbox — depends on stable Equipment workspace and editing/adoption boundaries;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589 cadence/capacity is finalized; hardware installation/cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind the user-prioritized Equipment lane and #607 bus-aware architecture;
@@ -56,7 +60,7 @@ PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry b
 ## Deferred software lanes
 
 - #588 Energy Monitoring chart parity — complete in PR #602;
-- #604 Equipment workspace — Ready and next by Product Owner priority;
+- #604 Equipment workspace — implementation locally GREEN; PR/CI pending;
 - #605 Equipment metadata editing — blocked on #604;
 - #606 LOCAL_LAN discovery inbox — blocked on #604/#605 boundaries;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
