@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
+from datetime import datetime, timedelta
+from typing import Annotated, Callable
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter,
@@ -14,6 +16,15 @@ from fastapi import (
     status,
 )
 
+from app.db import Database
+from app.live_dashboard.export import (
+    DEFAULT_EXPORT_MAX_ROWS,
+    EXPORT_MEDIA_TYPE,
+    LiveDashboardExportError,
+    LiveDashboardExportTimezoneError,
+    LiveDashboardExportTooLargeError,
+    build_live_dashboard_csv_export,
+)
 from app.live_dashboard.inventory import list_live_dashboard_inventory
 from app.live_dashboard.repository import (
     DEFAULT_ORGANIZATION_ID,
@@ -56,6 +67,9 @@ def create_live_dashboard_router(
     security_dependencies: SecurityDependencies | None = None,
     security_repository: SecurityRepository | None = None,
     default_organization_id: str = DEFAULT_ORGANIZATION_ID,
+    database: Database | None = None,
+    max_history_days: int = 31,
+    export_max_rows: int = DEFAULT_EXPORT_MAX_ROWS,
 ) -> APIRouter:
     router = APIRouter(
         prefix="/api/v1/live-dashboards",
@@ -218,6 +232,105 @@ def create_live_dashboard_router(
             raise _repository_http_error(error) from error
         response.headers["ETag"] = _etag(dashboard.version)
         return _response(dashboard)
+
+    @router.get(
+        "/{dashboard_id}/telemetry.csv",
+        responses={
+            403: {"model": ApiErrorResponse},
+            404: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+            503: {"model": ApiErrorResponse},
+        },
+    )
+    def export_dashboard_telemetry(
+        dashboard_id: str,
+        from_at: Annotated[datetime, Query(alias="from")],
+        to_at: Annotated[datetime, Query(alias="to")],
+        timezone: Annotated[str, Query(min_length=1, max_length=128)] = "UTC",
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> Response:
+        if database is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "live_dashboard_export_unavailable",
+                    "message": "Saved Dashboard telemetry export is unavailable.",
+                },
+            )
+        if from_at.tzinfo is None or to_at.tzinfo is None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_timezone_required",
+                    "message": "from and to must be timezone-aware timestamps",
+                },
+            )
+        if from_at >= to_at:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_invalid_range",
+                    "message": "from must be earlier than to",
+                },
+            )
+        if to_at - from_at > timedelta(days=max_history_days):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_range_too_large",
+                    "message": f"history range must not exceed {max_history_days} days",
+                },
+            )
+        try:
+            dashboard = repository.get(
+                dashboard_id,
+                organization_id=authorized.principal.organization_id,
+            )
+            exported = build_live_dashboard_csv_export(
+                database,
+                dashboard,
+                from_at=from_at,
+                to_at=to_at,
+                timezone_name=timezone,
+                maximum_rows=export_max_rows,
+            )
+        except LiveDashboardRepositoryError as error:
+            raise _repository_http_error(error) from error
+        except LiveDashboardExportTooLargeError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_row_limit",
+                    "message": str(error),
+                    "maximum_rows": error.maximum_rows,
+                },
+            ) from error
+        except LiveDashboardExportTimezoneError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_invalid_timezone",
+                    "message": str(error),
+                },
+            ) from error
+        except LiveDashboardExportError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "live_dashboard_export_invalid",
+                    "message": str(error),
+                },
+            ) from error
+
+        return Response(
+            content=exported.content,
+            media_type=EXPORT_MEDIA_TYPE,
+            headers={
+                "Content-Disposition": (
+                    "attachment; filename*=UTF-8''" + quote(exported.filename, safe="")
+                ),
+            },
+        )
 
     @router.put(
         "/{dashboard_id}",

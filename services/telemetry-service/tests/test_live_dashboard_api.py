@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.contracts import TelemetryEvent
 from app.live_dashboard.api import create_live_dashboard_router
 from app.live_dashboard.repository import LiveDashboardRepository
 from app.security.authentication import JwtAuthenticator, VerifiedIdentityClaims
@@ -76,6 +78,7 @@ def secured_client(
     *,
     subject: str,
     roles: set[Role],
+    export_max_rows: int = 100_000,
 ) -> tuple[TestClient, SecurityRepository]:
     database, security = database_with_inventory(
         tmp_path,
@@ -110,8 +113,12 @@ def secured_client(
             security_dependencies=dependencies,
             security_repository=security,
             default_organization_id=ORG_A,
+            database=database,
+            max_history_days=31,
+            export_max_rows=export_max_rows,
         )
     )
+    app.state.database = database
     return TestClient(app), security
 
 
@@ -343,3 +350,149 @@ def test_unknown_channel_metric_mismatch_and_unit_conversion_are_explicit(
         unsupported.json()["detail"]["code"]
         == "live_dashboard_unit_conversion_unsupported"
     )
+
+
+def export_event(
+    *,
+    captured_at: datetime,
+    channel_id: str,
+    value: float | None,
+    quality: str = "valid",
+    node_id: str = "edge-a",
+    equipment_id: str = "controller-a",
+) -> TelemetryEvent:
+    return TelemetryEvent(
+        event_id=uuid4(),
+        node_id=node_id,
+        captured_at=captured_at,
+        metric="temperature",
+        value=value,
+        unit="°C",
+        quality=quality,
+        source="test-xjp60d",
+        equipment_id=equipment_id,
+        channel_id=channel_id,
+        alarm=None,
+        raw_value=None if value is None else int(value * 10),
+        raw_status=None,
+    )
+
+
+def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
+    tmp_path: Path,
+) -> None:
+    api, _ = secured_client(
+        tmp_path,
+        subject="export-operator",
+        roles={Role.OPERATOR},
+        export_max_rows=3,
+    )
+    headers = auth_headers("export-operator")
+    created = api.post(
+        "/api/v1/live-dashboards",
+        headers=headers,
+        json=payload(channels=["a-temperature-01"]),
+    )
+    assert created.status_code == 201
+    dashboard_id = created.json()["id"]
+    database = api.app.state.database
+    base = datetime(2026, 8, 18, 9, 0, tzinfo=UTC)
+    samples = [
+        export_event(
+            captured_at=base + timedelta(seconds=20),
+            channel_id="a-temperature-01",
+            value=None,
+            quality="communication_error",
+        ),
+        export_event(
+            captured_at=base,
+            channel_id="a-temperature-01",
+            value=4.2,
+        ),
+        export_event(
+            captured_at=base + timedelta(seconds=10),
+            channel_id="a-temperature-01",
+            value=4.3,
+        ),
+    ]
+    for sample in samples:
+        assert database.persist(sample, sample.normalized_payload())
+
+    foreign_same_series = export_event(
+        captured_at=base + timedelta(seconds=15),
+        channel_id="a-temperature-01",
+        value=99.9,
+        node_id="edge-b",
+        equipment_id="controller-b",
+    )
+    assert database.persist(
+        foreign_same_series, foreign_same_series.normalized_payload()
+    )
+
+    exported = api.get(
+        f"/api/v1/live-dashboards/{dashboard_id}/telemetry.csv",
+        headers=headers,
+        params={
+            "from": (base - timedelta(seconds=1)).isoformat(),
+            "to": (base + timedelta(seconds=30)).isoformat(),
+            "timezone": "Europe/Kyiv",
+        },
+    )
+    assert exported.status_code == 200, exported.text
+    assert exported.headers["content-type"].startswith("text/csv")
+    assert "live-dashboard-" in exported.headers["content-disposition"]
+    lines = exported.content.decode("utf-8").splitlines()
+    assert lines[0] == (
+        "timestamp_utc,timestamp_local,node,device,channel,metric,value,unit,quality,event_id"
+    )
+    assert [line.split(",")[0] for line in lines[1:]] == [
+        "2026-08-18T09:00:00Z",
+        "2026-08-18T09:00:10Z",
+        "2026-08-18T09:00:20Z",
+    ]
+    assert "+03:00" in lines[1]
+    assert ",communication_error," in lines[-1]
+    assert ",,°C,communication_error," in lines[-1]
+
+    too_many = export_event(
+        captured_at=base + timedelta(seconds=25),
+        channel_id="a-temperature-01",
+        value=4.4,
+    )
+    assert database.persist(too_many, too_many.normalized_payload())
+    oversized_rows = api.get(
+        f"/api/v1/live-dashboards/{dashboard_id}/telemetry.csv",
+        headers=headers,
+        params={
+            "from": (base - timedelta(seconds=1)).isoformat(),
+            "to": (base + timedelta(seconds=30)).isoformat(),
+            "timezone": "UTC",
+        },
+    )
+    assert oversized_rows.status_code == 422
+    assert oversized_rows.json()["detail"]["code"] == "live_dashboard_export_row_limit"
+    assert oversized_rows.json()["detail"]["maximum_rows"] == 3
+
+    oversized_range = api.get(
+        f"/api/v1/live-dashboards/{dashboard_id}/telemetry.csv",
+        headers=headers,
+        params={
+            "from": base.isoformat(),
+            "to": (base + timedelta(days=32)).isoformat(),
+            "timezone": "UTC",
+        },
+    )
+    assert oversized_range.status_code == 422
+    assert oversized_range.json()["detail"]["code"] == "live_dashboard_export_range_too_large"
+
+    invalid_timezone = api.get(
+        f"/api/v1/live-dashboards/{dashboard_id}/telemetry.csv",
+        headers=headers,
+        params={
+            "from": base.isoformat(),
+            "to": (base + timedelta(minutes=1)).isoformat(),
+            "timezone": "Mars/Olympus_Mons",
+        },
+    )
+    assert invalid_timezone.status_code == 422
+    assert invalid_timezone.json()["detail"]["code"] == "live_dashboard_export_invalid_timezone"

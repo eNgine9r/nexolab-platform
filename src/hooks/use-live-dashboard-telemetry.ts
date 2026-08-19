@@ -2,15 +2,35 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { dashboardItemIdentity, timeWindowMilliseconds } from "@/features/live-dashboards/model";
+import {
+  createLiveDashboardApiClient,
+  type LiveDashboardCsvDownload,
+} from "@/features/live-dashboards/api-client";
+import {
+  defaultLiveDashboardHistoryPreset,
+  liveDashboardCustomRange,
+  liveDashboardHistoryRangeKey,
+  liveDashboardPresetRange,
+  type LiveDashboardHistoryPreset,
+  type LiveDashboardHistoryRange,
+} from "@/features/live-dashboards/history-range";
+import { dashboardItemIdentity } from "@/features/live-dashboards/model";
 import type {
   LiveDashboard,
   LiveDashboardSeries,
   LiveDashboardTelemetryStatus,
 } from "@/features/live-dashboards/types";
+import { advanceLiveHistoryWindow, downsampleLiveHistory } from "@/features/live/live-history";
 import { createRuntimeCredentialProvider } from "@/features/security/auth-runtime";
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
+import {
+  loadCompleteTelemetryHistory,
+  reconcileTelemetryHistoryEvents,
+  seedTelemetryHistoryOrderingState,
+  type TelemetryHistoryOrderingState,
+  type TelemetryHistoryWindow,
+} from "@/lib/telemetry/history";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 import type {
   TelemetryAdapter,
@@ -21,8 +41,7 @@ import type {
 } from "@/lib/telemetry/types";
 
 const STALE_AFTER_MS = 30_000;
-const MAX_HISTORY_SAMPLES = 8_000;
-const MAX_HISTORY_SAMPLES_PER_SERIES = 500;
+const RENDERED_POINTS_PER_SERIES = 240;
 const DEFAULT_SCOPE = "__default_organization__";
 
 interface RuntimeResult {
@@ -30,11 +49,23 @@ interface RuntimeResult {
   error: Error | null;
 }
 
+export type LiveDashboardHistoryStatus = "idle" | "loading" | "ready" | "error";
+export type LiveDashboardExportStatus = "idle" | "exporting" | "error";
+
 export interface LiveDashboardTelemetryModel {
   status: LiveDashboardTelemetryStatus;
   connectionState: TelemetryConnectionState;
   series: LiveDashboardSeries[];
   lastCapturedAt: string | null;
+  historyRange: LiveDashboardHistoryRange;
+  historyWindow: LiveDashboardHistoryRange;
+  historyStatus: LiveDashboardHistoryStatus;
+  historyError: Error | null;
+  exportStatus: LiveDashboardExportStatus;
+  exportError: Error | null;
+  selectHistoryPreset: (preset: LiveDashboardHistoryPreset) => void;
+  applyCustomHistoryRange: (from: Date | string, to: Date | string) => void;
+  exportCsv: () => Promise<LiveDashboardCsvDownload>;
   error: Error | null;
   retry: () => void;
 }
@@ -75,21 +106,37 @@ function newestSample(current: TelemetrySample | undefined, incoming: TelemetryS
   return incoming.event_id.localeCompare(current.event_id) > 0 ? incoming : current;
 }
 
-function mergeHistory(
-  current: readonly TelemetrySample[],
-  incoming: readonly TelemetrySample[],
-  from: number,
-  limit: number,
+function rangeWindow(range: LiveDashboardHistoryRange): TelemetryHistoryWindow {
+  return { from: new Date(range.from), to: new Date(range.to) };
+}
+
+function serializedWindow(
+  window: TelemetryHistoryWindow,
+  kind: LiveDashboardHistoryRange["kind"],
+  label: string,
+): LiveDashboardHistoryRange {
+  return {
+    kind,
+    from: window.from.toISOString(),
+    to: window.to.toISOString(),
+    label,
+  };
+}
+
+function reduceHistory(
+  samples: readonly TelemetrySample[],
+  window: TelemetryHistoryWindow,
 ): TelemetrySample[] {
-  const events = new Map<string, TelemetrySample>();
-  for (const sample of [...current, ...incoming]) {
-    const captured = sampleTimestamp(sample);
-    if (captured < from) continue;
-    events.set(sample.event_id, sample);
-  }
-  return [...events.values()]
-    .sort((left, right) => sampleTimestamp(left) - sampleTimestamp(right))
-    .slice(-limit);
+  const fromMs = window.from.getTime();
+  const toMs = window.to.getTime();
+  return downsampleLiveHistory(
+    samples.filter((sample) => {
+      const capturedAt = sampleTimestamp(sample);
+      return capturedAt >= fromMs && capturedAt <= toMs;
+    }),
+    window,
+    RENDERED_POINTS_PER_SERIES,
+  );
 }
 
 function deriveStatus(
@@ -130,16 +177,85 @@ export function useLiveDashboardTelemetry({
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(Date.now);
   const [generation, setGeneration] = useState(0);
+  const [historyGeneration, setHistoryGeneration] = useState(0);
+  const [historyRange, setHistoryRange] = useState<LiveDashboardHistoryRange>(() =>
+    liveDashboardPresetRange(dashboard ? defaultLiveDashboardHistoryPreset(dashboard.time_window) : "24h"),
+  );
+  const [historyWindow, setHistoryWindow] = useState<LiveDashboardHistoryRange>(historyRange);
+  const [historyStatus, setHistoryStatus] = useState<LiveDashboardHistoryStatus>("idle");
+  const [historyError, setHistoryError] = useState<Error | null>(null);
+  const [exportStatus, setExportStatus] = useState<LiveDashboardExportStatus>("idle");
+  const [exportError, setExportError] = useState<Error | null>(null);
   const latestRef = useRef<Record<string, TelemetrySample>>({});
   const historyRef = useRef<Record<string, TelemetrySample[]>>({});
+  const historyOrderingRef = useRef<TelemetryHistoryOrderingState | null>(null);
+  const historyPendingLiveRef = useRef<TelemetrySample[]>([]);
+  const historyWindowRef = useRef<TelemetryHistoryWindow>(rangeWindow(historyRange));
+  const historySelectionRef = useRef<LiveDashboardHistoryRange>(historyRange);
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rangeScopeRef = useRef<string | null>(scopeKey);
+  const historyKey = liveDashboardHistoryRangeKey(historyRange);
+
+  const flush = useCallback(() => {
+    setLatest({ ...latestRef.current });
+    setHistory({ ...historyRef.current });
+    setClock(Date.now());
+    renderTimerRef.current = null;
+  }, []);
+
+  const scheduleFlush = useCallback(
+    (refreshSeconds: number, immediate = false) => {
+      if (immediate) {
+        if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
+        renderTimerRef.current = null;
+        flush();
+        return;
+      }
+      if (renderTimerRef.current !== null) return;
+      renderTimerRef.current = globalThis.setTimeout(flush, refreshSeconds * 1_000);
+    },
+    [flush],
+  );
 
   const retry = useCallback(() => {
     setError(null);
+    setHistoryError(null);
     setLoaded(false);
     setConnectionState("connecting");
     setGeneration((value) => value + 1);
+    setHistoryGeneration((value) => value + 1);
   }, []);
+
+  const selectHistoryPreset = useCallback((preset: LiveDashboardHistoryPreset) => {
+    setHistoryRange(liveDashboardPresetRange(preset));
+    setHistoryGeneration((value) => value + 1);
+  }, []);
+
+  const applyCustomHistoryRange = useCallback((from: Date | string, to: Date | string) => {
+    setHistoryRange(liveDashboardCustomRange(from, to));
+    setHistoryGeneration((value) => value + 1);
+  }, []);
+
+  const exportCsv = useCallback(async (): Promise<LiveDashboardCsvDownload> => {
+    if (!dashboard || !active) throw new Error("Saved Dashboard is not active.");
+    setExportStatus("exporting");
+    setExportError(null);
+    try {
+      const currentWindow = historyWindowRef.current;
+      const download = await createLiveDashboardApiClient(organizationId).exportTelemetryCsv(dashboard.id, {
+        from: currentWindow.from.toISOString(),
+        to: currentWindow.to.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      });
+      setExportStatus("idle");
+      return download;
+    } catch (nextError) {
+      const resolved = nextError instanceof Error ? nextError : new Error("CSV export failed.");
+      setExportStatus("error");
+      setExportError(resolved);
+      throw resolved;
+    }
+  }, [active, dashboard, organizationId]);
 
   useEffect(() => {
     const interval = globalThis.setInterval(() => setClock(Date.now()), 5_000);
@@ -147,23 +263,41 @@ export function useLiveDashboardTelemetry({
   }, []);
 
   useEffect(() => {
+    if (!active || !dashboard || scopeKey === null) {
+      rangeScopeRef.current = null;
+      return;
+    }
+    if (rangeScopeRef.current === scopeKey) return;
+    rangeScopeRef.current = scopeKey;
+    const preset = defaultLiveDashboardHistoryPreset(dashboard.time_window);
+    const nextRange = liveDashboardPresetRange(preset);
+    historySelectionRef.current = nextRange;
+    historyWindowRef.current = rangeWindow(nextRange);
+    void Promise.resolve().then(() => {
+      setHistoryRange(nextRange);
+      setHistoryWindow(nextRange);
+      setHistoryGeneration((value) => value + 1);
+    });
+  }, [active, dashboard, scopeKey]);
+
+  useEffect(() => {
     const config = runtime.config;
     if (!active || !dashboard || scopeKey === null) {
       latestRef.current = {};
       historyRef.current = {};
+      historyOrderingRef.current = null;
+      historyPendingLiveRef.current = [];
       return;
     }
 
     const controller = new AbortController();
     let disposed = false;
     latestRef.current = {};
-    historyRef.current = {};
 
     void Promise.resolve().then(() => {
       if (disposed || controller.signal.aborted) return;
       setActiveScopeKey(scopeKey);
       setLatest({});
-      setHistory({});
       setLoaded(false);
       if (!config || config.mode !== "live") {
         setError(runtime.error ?? new Error("Selected-series telemetry requires live mode."));
@@ -184,47 +318,39 @@ export function useLiveDashboardTelemetry({
     const adapter = securedAdapter(config, organizationId);
     const subscriptions: TelemetrySubscription[] = [];
     const itemKeys = new Set(dashboard.items.map(dashboardItemIdentity));
-    const windowMs = timeWindowMilliseconds(dashboard.time_window);
-    const windowFrom = Date.now() - windowMs;
-    const perSeriesLimit = Math.max(
-      50,
-      Math.min(
-        MAX_HISTORY_SAMPLES_PER_SERIES,
-        Math.floor(MAX_HISTORY_SAMPLES / Math.max(1, dashboard.items.length)),
-      ),
-    );
 
-    const flush = () => {
-      if (disposed) return;
-      setLatest({ ...latestRef.current });
-      setHistory({ ...historyRef.current });
-      setClock(Date.now());
-      renderTimerRef.current = null;
-    };
-
-    const scheduleFlush = (immediate = false) => {
-      if (disposed) return;
-      if (immediate) {
-        if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
-        renderTimerRef.current = null;
-        flush();
+    const commitHistoryTail = (sample: TelemetrySample) => {
+      const ordering = historyOrderingRef.current;
+      if (ordering === null) {
+        historyPendingLiveRef.current.push(sample);
         return;
       }
-      if (renderTimerRef.current !== null) return;
-      renderTimerRef.current = globalThis.setTimeout(flush, dashboard.refresh_seconds * 1_000);
+      const reconciled = reconcileTelemetryHistoryEvents([sample], ordering);
+      historyOrderingRef.current = reconciled.state;
+      if (reconciled.samples.length === 0) return;
+
+      const selection = historySelectionRef.current;
+      const currentWindow = historyWindowRef.current;
+      const nextWindow =
+        selection.kind === "custom"
+          ? currentWindow
+          : advanceLiveHistoryWindow(currentWindow, reconciled.samples);
+      historyWindowRef.current = nextWindow;
+      const key = dashboardItemIdentity(sample);
+      historyRef.current[key] = reduceHistory(
+        [...(historyRef.current[key] ?? []), ...reconciled.samples],
+        nextWindow,
+      );
+      setHistoryWindow(serializedWindow(nextWindow, selection.kind, selection.label));
+      scheduleFlush(dashboard.refresh_seconds);
     };
 
     const commitSample = (sample: TelemetrySample, immediate = false) => {
       const key = dashboardItemIdentity(sample);
       if (!itemKeys.has(key)) return;
       latestRef.current[key] = newestSample(latestRef.current[key], sample);
-      historyRef.current[key] = mergeHistory(
-        historyRef.current[key] ?? [],
-        [sample],
-        Date.now() - windowMs,
-        perSeriesLimit,
-      );
-      scheduleFlush(immediate || Object.keys(latestRef.current).length === 1);
+      commitHistoryTail(sample);
+      scheduleFlush(dashboard.refresh_seconds, immediate || Object.keys(latestRef.current).length === 1);
     };
 
     for (const item of dashboard.items) {
@@ -247,51 +373,26 @@ export function useLiveDashboardTelemetry({
       );
     }
 
-    const latestRequests = dashboard.items.map(async (item) => {
-      const response = await adapter.latest(
-        { channel_id: item.channel_id, metric: item.metric, limit: 1, offset: 0 },
-        controller.signal,
-      );
-      return response.items;
-    });
-    const historyRequests = dashboard.items.map(async (item) => {
-      const response = await adapter.history(
-        {
-          channel_id: item.channel_id,
-          metric: item.metric,
-          from: new Date(windowFrom),
-          to: new Date(),
-          limit: perSeriesLimit,
-          offset: 0,
-        },
-        controller.signal,
-      );
-      return { key: dashboardItemIdentity(item), samples: response.items };
-    });
-
-    void Promise.all([Promise.all(latestRequests), Promise.all(historyRequests)])
-      .then(([latestPages, historyPages]) => {
+    void Promise.all(
+      dashboard.items.map(async (item) => {
+        const response = await adapter.latest(
+          { channel_id: item.channel_id, metric: item.metric, limit: 1, offset: 0 },
+          controller.signal,
+        );
+        return response.items;
+      }),
+    )
+      .then((pages) => {
         if (disposed) return;
-        for (const page of latestPages) for (const sample of page) commitSample(sample, true);
-        for (const page of historyPages) {
-          historyRef.current[page.key] = mergeHistory(
-            historyRef.current[page.key] ?? [],
-            page.samples,
-            windowFrom,
-            perSeriesLimit,
-          );
-          for (const sample of page.samples) {
-            latestRef.current[page.key] = newestSample(latestRef.current[page.key], sample);
-          }
-        }
+        for (const page of pages) for (const sample of page) commitSample(sample, true);
         setLoaded(true);
-        scheduleFlush(true);
+        scheduleFlush(dashboard.refresh_seconds, true);
       })
       .catch((nextError: unknown) => {
         if (disposed || controller.signal.aborted) return;
         setLoaded(true);
         setError(nextError instanceof Error ? nextError : new Error("Selected telemetry failed to load."));
-        scheduleFlush(true);
+        scheduleFlush(dashboard.refresh_seconds, true);
       });
 
     return () => {
@@ -301,7 +402,116 @@ export function useLiveDashboardTelemetry({
       if (renderTimerRef.current !== null) globalThis.clearTimeout(renderTimerRef.current);
       renderTimerRef.current = null;
     };
-  }, [active, dashboard, generation, organizationId, runtime.config, runtime.error, scopeKey]);
+  }, [active, dashboard, generation, organizationId, runtime.config, runtime.error, scheduleFlush, scopeKey]);
+
+  useEffect(() => {
+    const config = runtime.config;
+    if (!active || !dashboard || scopeKey === null || !config || config.mode !== "live") {
+      historyRef.current = {};
+      historyOrderingRef.current = null;
+      historyPendingLiveRef.current = [];
+      let disposed = false;
+      void Promise.resolve().then(() => {
+        if (!disposed) setHistoryStatus(active ? "error" : "idle");
+      });
+      return () => {
+        disposed = true;
+      };
+    }
+
+    const controller = new AbortController();
+    let disposed = false;
+    const requestedRange = historyRange;
+    const requestedWindow = rangeWindow(requestedRange);
+    historySelectionRef.current = requestedRange;
+    historyWindowRef.current = requestedWindow;
+    historyRef.current = {};
+    historyOrderingRef.current = null;
+    historyPendingLiveRef.current = [];
+
+    void Promise.resolve().then(() => {
+      if (disposed) return;
+      setHistory({});
+      setHistoryStatus("loading");
+      setHistoryError(null);
+      setHistoryWindow(requestedRange);
+    });
+
+    const adapter = securedAdapter(config, organizationId);
+    void (async () => {
+      let snapshotAt: string | undefined;
+      const sourceTails: TelemetrySample[] = [];
+      const reducedBySeries: Record<string, TelemetrySample[]> = {};
+
+      for (const item of dashboard.items) {
+        const result = await loadCompleteTelemetryHistory(
+          adapter,
+          { channel_id: item.channel_id, metric: item.metric },
+          requestedWindow,
+          { signal: controller.signal, snapshotAt },
+        );
+        snapshotAt = result.snapshotAt;
+        const key = dashboardItemIdentity(item);
+        reducedBySeries[key] = reduceHistory(result.samples, requestedWindow);
+        const tail = result.samples.at(-1);
+        if (tail) {
+          sourceTails.push(tail);
+          latestRef.current[key] = newestSample(latestRef.current[key], tail);
+        }
+      }
+
+      if (disposed) return;
+      let ordering = seedTelemetryHistoryOrderingState(sourceTails);
+      const pending = historyPendingLiveRef.current;
+      const reconciled = reconcileTelemetryHistoryEvents(pending, ordering);
+      ordering = reconciled.state;
+      const finalWindow =
+        requestedRange.kind === "custom"
+          ? requestedWindow
+          : advanceLiveHistoryWindow(requestedWindow, reconciled.samples);
+
+      for (const sample of reconciled.samples) {
+        const key = dashboardItemIdentity(sample);
+        if (!(key in reducedBySeries)) continue;
+        reducedBySeries[key] = reduceHistory([...reducedBySeries[key], sample], finalWindow);
+        latestRef.current[key] = newestSample(latestRef.current[key], sample);
+      }
+
+      historyPendingLiveRef.current = [];
+      historyOrderingRef.current = ordering;
+      historyWindowRef.current = finalWindow;
+      historyRef.current = reducedBySeries;
+      setLatest({ ...latestRef.current });
+      setHistory({ ...reducedBySeries });
+      setHistoryWindow(serializedWindow(finalWindow, requestedRange.kind, requestedRange.label));
+      setHistoryStatus("ready");
+      setHistoryError(null);
+    })().catch((nextError: unknown) => {
+      if (disposed || controller.signal.aborted) return;
+      historyOrderingRef.current = null;
+      historyPendingLiveRef.current = [];
+      historyRef.current = {};
+      setHistory({});
+      setHistoryStatus("error");
+      setHistoryError(
+        nextError instanceof Error ? nextError : new Error("Saved Dashboard history failed to load."),
+      );
+    });
+
+    return () => {
+      disposed = true;
+      controller.abort();
+    };
+  }, [
+    active,
+    dashboard,
+    historyGeneration,
+    historyKey,
+    historyRange,
+    organizationId,
+    runtime.config,
+    scopeKey,
+  ]);
 
   const storedSeries = useMemo<LiveDashboardSeries[]>(() => {
     if (!dashboard) return [];
@@ -327,6 +537,15 @@ export function useLiveDashboardTelemetry({
     connectionState: visibleConnectionState,
     series,
     lastCapturedAt,
+    historyRange,
+    historyWindow,
+    historyStatus,
+    historyError,
+    exportStatus,
+    exportError,
+    selectHistoryPreset,
+    applyCustomHistoryRange,
+    exportCsv,
     error: visibleError,
     retry,
   };

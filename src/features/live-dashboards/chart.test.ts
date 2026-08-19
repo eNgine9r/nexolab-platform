@@ -208,4 +208,29 @@ describe("Saved Live Dashboard canonical chart mapping", () => {
       toMs: START,
     });
   });
+  it("preserves an explicit persisted gap marker after display reduction", () => {
+    const sourceItem = item("reduced-gap", 1, "T-gap", "degC", "line", "#00C6E0");
+    const afterGap = sample("nexolab-live-segment:valid-b", "T-gap", "degC", 20_000, 2);
+    const groups = buildSavedDashboardChartGroups({
+      dashboardId: "dashboard-reduced-gap",
+      series: [
+        series(sourceItem, [
+          sample("valid-a", "T-gap", "degC", 0, 1),
+          afterGap,
+          sample("valid-c", "T-gap", "degC", 30_000, 3),
+        ]),
+      ],
+      status: "live",
+      xDomain: { fromMs: START, toMs: START + 60_000 },
+    });
+
+    const segments = groups[0].scene.series[0].segments;
+    expect(segments).toHaveLength(2);
+    expect(segments[1].precedingBreak?.reason).toBe("explicit_gap");
+    expect(segments.flatMap((segment) => segment.points).map((point) => point.id)).toEqual([
+      "valid-a",
+      "valid-b",
+      "valid-c",
+    ]);
+  });
 });
