@@ -263,6 +263,7 @@ if [[ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]]; then
     exit 1
   fi
   printf 'Using preinstalled Playwright browser: %s\n' "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
+  npx playwright install ffmpeg
 elif [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
   npx playwright install --with-deps chromium
 else
