@@ -179,9 +179,13 @@ Issue #618 remains an independent Saved Dashboard CSV browser-download reliabili
 
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
+Active Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
 
-Issue #605 / draft PR #621 already contains the focused implementation and is restored to `status:ready`. The next action is to rebase it onto current `main` `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1`, preserve the #619 Equipment scale-fixture cleanup alongside #605 metadata-edit fixtures, reconcile the state files, and rerun all backend/frontend/browser/offline gates before a GREEN-only merge.
+PR #621 has been rebased onto reconciled `main` `5d81c2c05b41dc9f56010e31133e0aea164ecff6`; the rebased local feature head is `74f5a847a3d34af98afc8877ec66866cf5b35c9e`. The single Equipment E2E conflict was resolved by preserving both #619 scale-fixture cleanup and #605 metadata-edit database/evidence helpers.
+
+Rebased verification is GREEN for backend metadata tests 5/5, compile/migration checks with a single Alembic head `20260819_0025`, offline migration SQL, touched-file formatting/lint, focused Equipment/climate tests 18/18, repository formatting, typecheck, full Vitest 114/114 files / 519/519 tests, and lint-staged v17. Repository-wide ESLint on the 4 GiB Raspberry Pi caused a host hang requiring a Product Owner hard reset; post-reboot `main` and the #605 worktree are clean and Git integrity checks show no corruption. Full local ESLint will not be repeated on this constrained host; exact-head GitHub CI is the repository-wide lint/build source of truth.
+
+Next: run only bounded focused Equipment production-browser evidence locally if host resources remain stable, publish the rebased exact head to PR #621, then require fully GREEN exact-head GitHub CI before merge.
 
 The planned product dependency sequence remains **#605 → #606 → #607 → #589 → #590**. #618 stays independent; #585 remains blocked on physical W2/Unit 201 handback.
 

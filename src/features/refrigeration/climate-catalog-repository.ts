@@ -27,6 +27,7 @@ export type MeasurementDevice = {
   connectionStatus: "unknown" | "connected" | "disconnected";
   status: string;
   measuredParameters: Array<{ metric: string; unit: string }>;
+  version: number;
 };
 
 export type PhysicalSensor = {
@@ -36,6 +37,7 @@ export type PhysicalSensor = {
   serialNumber: string | null;
   calibrationStatus: "untracked" | "current" | "due" | "expired";
   status: string;
+  version: number;
 };
 
 export type MeasurementChannel = {
@@ -62,9 +64,45 @@ export type ClimateChamberEquipment = {
   energyMeterEmptyMessage: string | null;
 };
 
+export type MeasurementDeviceMetadataUpdate = {
+  displayName: string;
+  designation: string | null;
+  manufacturer: string;
+  model: string;
+};
+
+export type PhysicalSensorMetadataUpdate = {
+  inventoryNumber: string;
+  serialNumber: string | null;
+  calibrationStatus: PhysicalSensor["calibrationStatus"];
+};
+
 export interface ClimateCatalogRepository {
   listChambers(): Promise<ClimateChamber[]>;
   getEquipment(chamberId: string): Promise<ClimateChamberEquipment>;
+  updateMeasurementDevice(
+    chamberId: string,
+    deviceId: string,
+    input: MeasurementDeviceMetadataUpdate,
+    expectedVersion: number,
+  ): Promise<MeasurementDevice>;
+  updatePhysicalSensor(
+    chamberId: string,
+    sensorId: string,
+    input: PhysicalSensorMetadataUpdate,
+    expectedVersion: number,
+  ): Promise<PhysicalSensor>;
+}
+
+export class ClimateCatalogRepositoryError extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+    readonly status: number | null = null,
+  ) {
+    super(message);
+    this.name = "ClimateCatalogRepositoryError";
+  }
 }
 
 export class HttpClimateCatalogRepository implements ClimateCatalogRepository {
@@ -77,14 +115,16 @@ export class HttpClimateCatalogRepository implements ClimateCatalogRepository {
   }
 
   async listChambers(): Promise<ClimateChamber[]> {
-    const payload = asRecord(await this.json("/api/v1/climate-chambers"));
+    const payload = asRecord(await this.request("/api/v1/climate-chambers", { method: "GET" }));
     if (!payload || !Array.isArray(payload.items)) throw invalidResponse();
     return payload.items.map(parseChamber).sort(compareChambers);
   }
 
   async getEquipment(chamberId: string): Promise<ClimateChamberEquipment> {
     const payload = asRecord(
-      await this.json(`/api/v1/climate-chambers/${encodeURIComponent(chamberId)}/equipment`),
+      await this.request(`/api/v1/climate-chambers/${encodeURIComponent(chamberId)}/equipment`, {
+        method: "GET",
+      }),
     );
     if (!payload) throw invalidResponse();
     const chamber = parseChamber(payload.climateChamber ?? payload.climate_chamber);
@@ -112,21 +152,79 @@ export class HttpClimateCatalogRepository implements ClimateCatalogRepository {
     };
   }
 
-  private async json(path: string): Promise<unknown> {
+  async updateMeasurementDevice(
+    chamberId: string,
+    deviceId: string,
+    input: MeasurementDeviceMetadataUpdate,
+    expectedVersion: number,
+  ): Promise<MeasurementDevice> {
+    const payload = await this.request(
+      `/api/v1/climate-chambers/${encodeURIComponent(chamberId)}/measurement-devices/${encodeURIComponent(deviceId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": `W/"measurement-device-v${expectedVersion}"`,
+          "X-Audit-Reason": "Updated measurement device administrative metadata",
+        },
+        body: JSON.stringify({
+          display_name: input.displayName,
+          designation: input.designation,
+          manufacturer: input.manufacturer,
+          model: input.model,
+        }),
+      },
+    );
+    return parseDevice(payload);
+  }
+
+  async updatePhysicalSensor(
+    chamberId: string,
+    sensorId: string,
+    input: PhysicalSensorMetadataUpdate,
+    expectedVersion: number,
+  ): Promise<PhysicalSensor> {
+    const payload = await this.request(
+      `/api/v1/climate-chambers/${encodeURIComponent(chamberId)}/physical-sensors/${encodeURIComponent(sensorId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": `W/"physical-sensor-v${expectedVersion}"`,
+          "X-Audit-Reason": "Updated physical sensor administrative metadata",
+        },
+        body: JSON.stringify({
+          inventory_number: input.inventoryNumber,
+          serial_number: input.serialNumber,
+          calibration_status: input.calibrationStatus,
+        }),
+      },
+    );
+    return parsePhysicalSensor(payload);
+  }
+
+  private async request(path: string, init: RequestInit): Promise<unknown> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.apiBaseUrl}${path}`, {
-        method: "GET",
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
+        ...init,
+        credentials: init.credentials ?? "same-origin",
+        headers: { Accept: "application/json", ...init.headers },
       });
     } catch {
-      throw new Error("Не вдалося з’єднатися з каталогом кліматичних камер.");
+      throw new ClimateCatalogRepositoryError(
+        "Не вдалося з’єднатися з каталогом кліматичних камер.",
+        "request_failed",
+      );
     }
     const payload = await readJson(response);
     if (!response.ok) {
       const detail = asRecord(asRecord(payload)?.detail);
-      throw new Error(readString(detail?.message) ?? "Каталог кліматичних камер недоступний.");
+      throw new ClimateCatalogRepositoryError(
+        readString(detail?.message) ?? "Каталог кліматичних камер недоступний.",
+        readString(detail?.code) ?? "request_failed",
+        response.status,
+      );
     }
     return payload;
   }
@@ -187,6 +285,7 @@ function parseDevice(value: unknown): MeasurementDevice {
   const displayName = readString(record?.display_name);
   const connectionStatus = record?.connection_status;
   const status = readString(record?.status);
+  const version = readPositiveInteger(record?.version);
   if (
     !id ||
     !businessKey ||
@@ -198,7 +297,8 @@ function parseDevice(value: unknown): MeasurementDevice {
     (connectionStatus !== "unknown" &&
       connectionStatus !== "connected" &&
       connectionStatus !== "disconnected") ||
-    !status
+    !status ||
+    version === null
   ) {
     throw invalidResponse();
   }
@@ -220,6 +320,7 @@ function parseDevice(value: unknown): MeasurementDevice {
       if (!metric || !unit) throw invalidResponse();
       return { metric, unit };
     }),
+    version,
   };
 }
 
@@ -277,6 +378,7 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
   const inventoryNumber = readString(record?.inventory_number);
   const calibrationStatus = record?.calibration_status;
   const status = readString(record?.status);
+  const version = readPositiveInteger(record?.version);
   if (
     !id ||
     (sensorPosition !== "A" && sensorPosition !== "B") ||
@@ -285,7 +387,8 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
       calibrationStatus !== "current" &&
       calibrationStatus !== "due" &&
       calibrationStatus !== "expired") ||
-    !status
+    !status ||
+    version === null
   ) {
     throw invalidResponse();
   }
@@ -296,6 +399,7 @@ function parsePhysicalSensor(value: unknown): PhysicalSensor {
     serialNumber: readOptionalString(record?.serial_number),
     calibrationStatus,
     status,
+    version,
   };
 }
 

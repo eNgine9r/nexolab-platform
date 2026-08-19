@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T03:56:38Z",
+  "timestamp": "2026-08-20T05:06:42.574172Z",
   "actor": "ChatGPT",
-  "event": "issue_619_620_complete_ready_resume_issue_605",
-  "repository_main_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
+  "event": "issue_605_rebased_verification_checkpoint_after_pi_hard_reset",
+  "repository_main_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -140,9 +140,9 @@
   "current_boundary": {
     "issue": 605,
     "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "status": "READY_RESUME_AFTER_RELIABILITY_REPAIRS"
+    "status": "IN_PROGRESS_REBASED_VERIFICATION"
   },
-  "next_action": "Rebase PR #621 / Issue #605 onto current main, preserve both #619 Equipment scale-fixture cleanup and #605 metadata-edit browser evidence, reconcile state conflicts, rerun backend/frontend/browser/offline gates, and merge only after fully GREEN exact-head CI.",
+  "next_action": "Run bounded focused Equipment production browser acceptance on rebased #605 if Raspberry Pi resources remain stable; publish exact head to PR #621; require exact-head GitHub Core/Auth/Refrigeration/Offline/DR gates GREEN; merge #605 only fully GREEN.",
   "planned_queue": [605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -156,14 +156,48 @@
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
     "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
-  "in_progress_work": {},
+  "in_progress_work": {
+    "issue_605": {
+      "issue": 605,
+      "pull_request": 621,
+      "status": "IN_PROGRESS_REBASED_VERIFICATION",
+      "branch": "feat/605-equipment-metadata-editing",
+      "base_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
+      "rebased_head_sha": "74f5a847a3d34af98afc8877ec66866cf5b35c9e",
+      "backend_metadata_tests": "PASS_5_OF_5",
+      "alembic_head": "20260819_0025_SINGLE_HEAD",
+      "alembic_offline_sql": "PASS",
+      "frontend_targeted_tests": "PASS_18_OF_18",
+      "full_unit_tests": "PASS_519_OF_519",
+      "format_check": "PASS",
+      "typecheck": "PASS",
+      "lint_staged_contract": "PASS",
+      "touched_file_lint": "PASS",
+      "local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE",
+      "pi_resource_incident": "Repository-wide ESLint on the 4 GiB Raspberry Pi caused a host hang requiring Product Owner hard reset; repository and rebased worktree were verified clean after reboot.",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    }
+  },
   "active_work": {
     "issue_605": {
       "issue": 605,
       "pull_request": 621,
-      "status": "READY_RESUME_AFTER_RELIABILITY_REPAIRS",
-      "existing_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923",
-      "required_action": "rebase_on_current_main_and_reverify",
+      "status": "IN_PROGRESS_REBASED_VERIFICATION",
+      "branch": "feat/605-equipment-metadata-editing",
+      "base_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
+      "rebased_head_sha": "74f5a847a3d34af98afc8877ec66866cf5b35c9e",
+      "backend_metadata_tests": "PASS_5_OF_5",
+      "alembic_head": "20260819_0025_SINGLE_HEAD",
+      "alembic_offline_sql": "PASS",
+      "frontend_targeted_tests": "PASS_18_OF_18",
+      "full_unit_tests": "PASS_519_OF_519",
+      "format_check": "PASS",
+      "typecheck": "PASS",
+      "lint_staged_contract": "PASS",
+      "touched_file_lint": "PASS",
+      "local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE",
+      "pi_resource_incident": "Repository-wide ESLint on the 4 GiB Raspberry Pi caused a host hang requiring Product Owner hard reset; repository and rebased worktree were verified clean after reboot.",
       "modbus_write": "none",
       "hardware_write": "none"
     }

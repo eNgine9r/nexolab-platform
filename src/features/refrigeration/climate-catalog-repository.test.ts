@@ -33,6 +33,7 @@ const channel = (code: "KK1" | "KK2", controller: number, input: number, sensor:
     serial_number: null,
     calibration_status: "untracked",
     status: "active",
+    version: 1,
     created_at: "2026-07-30T08:00:00Z",
     updated_at: "2026-07-30T08:00:00Z",
   })),
@@ -90,6 +91,7 @@ describe("HttpClimateCatalogRepository", () => {
             connection_status: "unknown",
             status: "active",
             measured_parameters: [{ metric: "temperature.probe", unit: "degC" }],
+            version: 1,
             created_at: "2026-07-30T08:00:00Z",
             updated_at: "2026-07-30T08:00:00Z",
           },
@@ -127,5 +129,91 @@ describe("HttpClimateCatalogRepository", () => {
     expect(catalog.energyMeterEmptyMessage).toBe(
       "До цієї кліматичної камери лічильники електроенергії ще не підключені.",
     );
+  });
+
+  it("sends versioned safe metadata patches without transport fields", async () => {
+    const deviceResponse = {
+      id: "device-1",
+      business_key: "METER-1",
+      device_type: "energy_meter",
+      manufacturer: "TOMZN",
+      model: "DDS238-2",
+      unit_id: 12,
+      display_name: "Лічильник 1",
+      designation: "W1",
+      connection_status: "connected",
+      status: "active",
+      measured_parameters: [{ metric: "energy.total", unit: "kWh" }],
+      version: 4,
+      created_at: "2026-07-30T08:00:00Z",
+      updated_at: "2026-08-19T16:00:00Z",
+    };
+    const sensorResponse = {
+      id: "sensor-1",
+      sensor_position: "A",
+      inventory_number: "LAB-197",
+      serial_number: "SN-197",
+      calibration_status: "current",
+      status: "active",
+      version: 3,
+      created_at: "2026-07-30T08:00:00Z",
+      updated_at: "2026-08-19T16:00:00Z",
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response(deviceResponse))
+      .mockResolvedValueOnce(response(sensorResponse));
+    const repository = new HttpClimateCatalogRepository({
+      apiBaseUrl: "http://nexolab.test",
+      fetchImpl,
+    });
+
+    await expect(
+      repository.updateMeasurementDevice(
+        "chamber-kk1",
+        "device-1",
+        {
+          displayName: "Лічильник 1",
+          designation: "W1",
+          manufacturer: "TOMZN",
+          model: "DDS238-2",
+        },
+        3,
+      ),
+    ).resolves.toMatchObject({ id: "device-1", unitId: 12, version: 4 });
+    await expect(
+      repository.updatePhysicalSensor(
+        "chamber-kk1",
+        "sensor-1",
+        { inventoryNumber: "LAB-197", serialNumber: "SN-197", calibrationStatus: "current" },
+        2,
+      ),
+    ).resolves.toMatchObject({ id: "sensor-1", sensorPosition: "A", version: 3 });
+
+    const deviceInit = fetchImpl.mock.calls[0]?.[1] as RequestInit;
+    expect(deviceInit.method).toBe("PATCH");
+    expect(deviceInit.headers).toMatchObject({
+      "If-Match": 'W/"measurement-device-v3"',
+      "X-Audit-Reason": "Updated measurement device administrative metadata",
+    });
+    expect(JSON.parse(String(deviceInit.body))).toEqual({
+      display_name: "Лічильник 1",
+      designation: "W1",
+      manufacturer: "TOMZN",
+      model: "DDS238-2",
+    });
+    expect(String(deviceInit.body)).not.toContain("unit_id");
+
+    const sensorInit = fetchImpl.mock.calls[1]?.[1] as RequestInit;
+    expect(sensorInit.headers).toMatchObject({
+      "If-Match": 'W/"physical-sensor-v2"',
+      "X-Audit-Reason": "Updated physical sensor administrative metadata",
+    });
+    expect(JSON.parse(String(sensorInit.body))).toEqual({
+      inventory_number: "LAB-197",
+      serial_number: "SN-197",
+      calibration_status: "current",
+    });
+    expect(String(sensorInit.body)).not.toContain("sensor_position");
   });
 });

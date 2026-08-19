@@ -66,6 +66,8 @@ import {
   parseEquipmentWorkspaceColumns,
   serializeEquipmentWorkspaceColumns,
 } from "@/features/equipment/workspace-preferences";
+import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
+import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import type { SettingsTableDensity } from "@/features/settings/preferences";
 import type { EquipmentRegistryState } from "@/hooks/use-equipment-registry";
 import { useSettingsPreferences } from "@/hooks/use-settings-preferences";
@@ -116,6 +118,9 @@ export function EquipmentRegistryCatalog({
   failures,
   error,
   progress,
+  canManage,
+  equipmentRepository,
+  climateCatalogRepository,
   onRetry,
 }: {
   state: EquipmentRegistryState;
@@ -123,6 +128,9 @@ export function EquipmentRegistryCatalog({
   failures: EquipmentRegistryFailure[];
   error: string | null;
   progress?: { completedChambers: number; totalChambers: number } | null;
+  canManage: boolean;
+  equipmentRepository: RefrigerationEquipmentRepository | null;
+  climateCatalogRepository: ClimateCatalogRepository | null;
   onRetry: () => void;
 }) {
   const pathname = usePathname();
@@ -567,6 +575,10 @@ export function EquipmentRegistryCatalog({
       {selectedAsset ? (
         <EquipmentAssetDetails
           asset={selectedAsset}
+          canManage={canManage}
+          equipmentRepository={equipmentRepository}
+          climateCatalogRepository={climateCatalogRepository}
+          onSaved={onRetry}
           onClose={() => setSelectedKey(null)}
           hasPrevious={selectedIndex > 0}
           hasNext={selectedIndex >= 0 && selectedIndex < sortedAssets.length - 1}
