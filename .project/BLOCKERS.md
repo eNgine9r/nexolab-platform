@@ -26,9 +26,9 @@ There is no remaining #598 blocker.
 
 PR #597 merged GREEN as `84584640246f8985c0c303654def99365c8458c4`. Core CI, Telemetry Service, Authenticated Dashboard Acceptance, Offline Bundle, Acquisition Scale and Container Supply Chain are PASS. There is no remaining #587 blocker.
 
-## Issue #588 — Ready
+## Issue #588 — in progress
 
-Energy Monitoring canonical chart migration is the next independent software Work Package. It is presentation/read-model work only and has no hardware or acquisition mutation prerequisite.
+Energy Monitoring canonical chart migration remains the active single-WIP software package in PR #602. It is presentation/read-model work only and has no hardware or acquisition mutation prerequisite.
 
 ## Issue #594 — complete
 
@@ -39,6 +39,10 @@ Persistent MCP service enablement, production credential relocation, and any ext
 ## Issue #608 — complete CI reliability interrupt
 
 PR #609 merged GREEN as `3e13800f413eb2255b992b6ff9f3aec935acf602`. The blocking Playwright `--with-deps` / Ubuntu APT bootstrap dependency is removed from Authenticated Dashboard and Refrigeration Browser acceptance. There is no remaining #608 blocker.
+
+## Issue #611 — complete browser-readiness reliability interrupt
+
+PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry browser acceptance now proves one routed WebSocket plus a fresh local telemetry sample before requiring the truthful Live state, and changes to that test now trigger Authenticated Dashboard Acceptance. There is no remaining #611 blocker.
 
 ## Planned post-#588 product queue
 

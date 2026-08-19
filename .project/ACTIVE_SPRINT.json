@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "84584640246f8985c0c303654def99365c8458c4",
   "accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
-  "last_reconciled_repository_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+  "last_reconciled_repository_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 588,
     "selection_status": "in_progress",
     "ready_issue_count": 0,
-    "reason": "Issue #588 / PR #602 remains the active single-WIP package. Critical CI interrupt #608 / PR #609 merged GREEN and removed the Playwright APT bootstrap blocker. Product Owner reprioritized the post-#588 queue to Equipment #604 -> #605 -> #606, then dual-RS-485 architecture #607 before cadence #589/#590."
+    "reason": "Issue #588 / PR #602 remains the active single-WIP package. CI bootstrap #608 and stale Live retry evidence #611 are merged GREEN. Product Owner reprioritized the post-#588 queue to Equipment #604 -> #605 -> #606, then dual-RS-485 architecture #607 before cadence #589/#590."
   },
   "tasks": [
     {
@@ -108,7 +108,10 @@
       "priority": "user_prioritized",
       "raspberry_pi_runtime_acceptance": "PASS",
       "backend_identity_role": "laboratory_technician",
-      "backend_identity_permissions": ["nodes.read", "telemetry.read"],
+      "backend_identity_permissions": [
+        "nodes.read",
+        "telemetry.read"
+      ],
       "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     },
     {
@@ -185,6 +188,19 @@
       "authenticated_dashboard_acceptance": "PASS_32237282110",
       "refrigeration_browser_acceptance": "PASS_32237282106",
       "acquisition_scale": "PASS_32237282105"
+    },
+    {
+      "id": "NEXOLAB-611",
+      "issue": 611,
+      "pull_request": 612,
+      "title": "Stabilize terminal Live Data WebSocket retry acceptance",
+      "status": "completed_green_browser_readiness_reliability",
+      "priority": "high",
+      "merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+      "core_ci": "PASS_32242665739",
+      "authenticated_dashboard_acceptance": "PASS_32242665728",
+      "refrigeration_browser_acceptance": "PASS_32242665724",
+      "acquisition_scale": "PASS_32242665721"
     }
   ],
   "active_work_package": {
@@ -218,13 +234,16 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+    "repository_state_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
     "issue_594_all_tools_read_only": true,
     "issue_594_backend_identity_role": "laboratory_technician",
-    "issue_594_backend_identity_permissions": ["nodes.read", "telemetry.read"],
+    "issue_594_backend_identity_permissions": [
+      "nodes.read",
+      "telemetry.read"
+    ],
     "issue_594_protected_nodes": "PASS",
     "issue_594_protected_node_status": "PASS",
     "issue_594_protected_latest": "PASS",
@@ -252,7 +271,14 @@
     "issue_608_authenticated_dashboard_acceptance": "PASS_32237282110",
     "issue_608_refrigeration_browser_acceptance": "PASS_32237282106",
     "issue_608_acquisition_scale": "PASS_32237282105",
-    "issue_608_playwright_apt_bootstrap_removed": true
+    "issue_608_playwright_apt_bootstrap_removed": true,
+    "issue_611_merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+    "issue_611_core_ci": "PASS_32242665739",
+    "issue_611_authenticated_dashboard_acceptance": "PASS_32242665728",
+    "issue_611_refrigeration_browser_acceptance": "PASS_32242665724",
+    "issue_611_acquisition_scale": "PASS_32242665721",
+    "issue_611_live_requires_fresh_sample": true,
+    "issue_611_dashboard_trigger_covers_retry_test": true
   },
   "independent_pending_lanes": [
     {
@@ -309,6 +335,10 @@
     },
     {
       "issue": 608,
+      "status": "completed"
+    },
+    {
+      "issue": 611,
       "status": "completed"
     }
   ],

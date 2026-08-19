@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T09:30:54Z",
+  "timestamp": "2026-08-19T10:32:00Z",
   "actor": "ChatGPT",
-  "event": "issue_608_merged_resume_issue_588",
-  "repository_main_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+  "event": "issue_611_merged_resume_issue_588",
+  "repository_main_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -23,6 +23,21 @@
       },
       "playwright_system_chrome": true,
       "playwright_with_deps_apt_removed": true,
+      "runtime_changed": false,
+      "hardware_changed": false
+    },
+    "issue_611": {
+      "issue": 611,
+      "pull_request": 612,
+      "status": "COMPLETED_GREEN_BROWSER_READINESS_RELIABILITY",
+      "merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+      "exact_head_sha": "60bc5ac749abe52107d358b85e4302f29f6d46be",
+      "final_gates": {
+        "core_ci": "PASS_32242665739",
+        "authenticated_dashboard_acceptance": "PASS_32242665728",
+        "refrigeration_browser_acceptance": "PASS_32242665724",
+        "acquisition_scale": "PASS_32242665721"
+      },
       "runtime_changed": false,
       "hardware_changed": false
     }
@@ -55,8 +70,15 @@
     "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
     "status": "IN_PROGRESS"
   },
-  "next_action": "Update PR #602 onto current main containing #609 CI bootstrap repair, rerun exact-head Core CI/browser/offline gates, merge only if GREEN, reconcile #588 state, then begin user-prioritized Issue #604.",
-  "planned_queue": [604, 605, 606, 607, 589, 590],
+  "next_action": "Reconcile PR #602 onto current main containing the GREEN #611 Live retry readiness repair, finish the Energy ECharts runtime-crash fix, rerun exact-head Core CI/browser/offline gates, merge only if GREEN, reconcile #588 state, then begin user-prioritized Issue #604.",
+  "planned_queue": [
+    604,
+    605,
+    606,
+    607,
+    589,
+    590
+  ],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
