@@ -4,7 +4,7 @@ Updated: 2026-08-19
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline on `main` is `62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7`, the squash merge of PR #602 — **feat: migrate Energy history to canonical chart system**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
+Accepted product-code baseline on `main` is `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
@@ -139,40 +139,29 @@ Exact-head `0da49e2ac1037efab78367cf76e201ce5a5133a4` gates:
 
 Local Raspberry Pi worktree checks on the exact branch content also passed `format:check`, lint, typecheck and 18 focused chart/energy tests. The diff contains no package/lockfile, service, infrastructure, script or workflow changes. No acquisition mutation, Modbus write, hardware write, dependency upgrade or mandatory cloud runtime dependency was introduced.
 
-## Issue #604 — implementation verified, PR pending
+## Issue #604 — complete
 
-Issue #604 is implemented on `feat/604-equipment-workspace`. The measured organization-wide registry did **not** justify a new backend universal-asset endpoint: existing canonical repositories remain authoritative. The UI bottleneck was all-at-once chamber completion plus unbounded rendering.
+Issue #604 is closed. PR #616 merged GREEN as `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`. The Equipment Registry now publishes progressive results while bounded chamber loads continue, keeps partial failures truthful, bounds large inventories to 80 rendered asset rows per page, adds deterministic sorting/grouping/risk filters, persists only local operator view preferences, and provides a non-blocking read-only inspector.
 
-The implementation now provides:
+Measured evidence did **not** justify a second universal asset persistence model or new universal backend endpoint; existing canonical repositories remain authoritative.
 
-- progressive registry results while bounded chamber catalog loads continue;
-- cancellation and partial-failure preservation without demo/fallback substitution;
-- an 80-row bounded DOM page with sticky header and identity column;
-- deterministic sorting, grouping and collapsible group risk counts;
-- URL-backed search/filter/risk/group/sort state without remounting the registry data loader;
-- locally persisted operator density and visible-column preferences only;
-- non-blocking right-side read-only asset inspector with keyboard adjacent navigation;
-- source-backed metrology sections that explicitly disclose fields the current contract does not store.
+Final verification included:
 
-Local exact implementation commit `ad06911d` passed:
+- Core CI `32263137097`: PASS;
+- Refrigeration Browser Acceptance `32263134788`: PASS;
+- Offline Bundle `32263135467`: PASS;
+- local focused Equipment Registry production browser acceptance with large seeded inventory: PASS;
+- local acquisition-invariant browser acceptance: 3/3 PASS;
+- full local unit suite: 113 files / 513 tests PASS;
+- production build: PASS.
 
-- `npm run format:check`;
-- `npm run lint`;
-- `npm run typecheck`;
-- `npm test` — 113 test files / 513 tests PASS;
-- `npm run build`;
-- focused Equipment Registry production browser acceptance with large seeded inventory — PASS;
-- acquisition-invariant browser acceptance — 3/3 PASS.
-
-Browser evidence is under `runtime/evidence/issue-604-equipment-registry` and `runtime/evidence/issue-604-acquisition-invariant`. No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime deployment or mandatory cloud dependency changed.
-
-A pre-existing acceptance-runner defect discovered during verification was isolated as Issue #615: the default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. #604 acceptance passed using an explicit valid lowercase project-name override; #615 is not a #604 product blocker.
+No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime deployment or mandatory cloud dependency changed. Issue #615 separately tracks the non-blocking default Compose project-name defect in the authenticated-dashboard runner.
 
 ## Current execution boundary
 
-Current Work Package: **Issue #604 — Evolve Equipment Registry into a scalable operator workspace** — implementation and local verification complete; PR/CI pending.
+Next Ready Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
 
-Product Owner priority remains **#604 → #605 → #606**, followed by dual-RS-485 architecture **#607** before cadence/capacity #589 and Settings controls #590. After #604 merges GREEN, the next Ready candidate is #605; the planned sequence remains **#604 → #605 → #606 → #607 → #589 → #590**.
+Repository/GitHub audit after #604 confirms #605 as the sole Ready product Work Package. #606 remains blocked on #605; dual-RS-485 architecture #607 follows the Equipment lane before cadence/capacity #589 and Settings controls #590. Planned sequence is now **#605 → #606 → #607 → #589 → #590**.
 
 Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized by this planning state.
 

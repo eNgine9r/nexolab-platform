@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T14:14:15Z",
+  "timestamp": "2026-08-19T15:47:00Z",
   "actor": "ChatGPT",
-  "event": "issue_604_implementation_verified_pr_pending",
-  "repository_main_sha": "343efd69d9340c65ed908b20123d017f1e2d4871",
+  "event": "issue_604_merged_ready_issue_605",
+  "repository_main_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -60,7 +60,7 @@
     },
     "issue_604": {
       "issue": 604,
-      "status": "IMPLEMENTED_LOCAL_GREEN_PR_PENDING",
+      "status": "COMPLETED_GREEN_EQUIPMENT_OPERATOR_WORKSPACE",
       "branch": "feat/604-equipment-workspace",
       "exact_implementation_sha": "ad06911d",
       "backend_endpoint_added": false,
@@ -78,7 +78,19 @@
       "acquisition_mutations": 0,
       "modbus_writes": 0,
       "runtime_changed": false,
-      "hardware_changed": false
+      "hardware_changed": false,
+      "pull_request": 616,
+      "merge_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+      "exact_head_sha": "94bfbeb141fe4abb12b393d7c7fdc4fd6aa05237",
+      "final_gates": {
+        "core_ci": "PASS_32263137097",
+        "refrigeration_browser_acceptance": "PASS_32263134788",
+        "offline_bundle": "PASS_32263135467",
+        "equipment_registry_browser_acceptance": "PASS",
+        "acquisition_invariant_browser_acceptance": "PASS_3_OF_3",
+        "unit_tests": "PASS_513_OF_513",
+        "production_build": "PASS"
+      }
     }
   },
   "blocked_work": {
@@ -86,13 +98,9 @@
       "issue": 585,
       "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
     },
-    "issue_605": {
-      "issue": 605,
-      "reason": "Depends on #604 GREEN merge; #604 implementation is locally verified and PR/CI pending"
-    },
     "issue_606": {
       "issue": 606,
-      "reason": "Depends on stable #604/#605 Equipment/adoption boundaries"
+      "reason": "Depends on completed #604 workspace and on #605 canonical permissioned editing boundaries"
     },
     "issue_589": {
       "issue": 589,
@@ -104,11 +112,11 @@
     }
   },
   "current_boundary": {
-    "issue": 604,
-    "title": "Evolve Equipment Registry into a scalable operator workspace",
-    "status": "IMPLEMENTATION_COMPLETE_PR_CI_PENDING"
+    "issue": 605,
+    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
+    "status": "READY"
   },
-  "next_action": "Commit project-state reconciliation for #604, push feat/604-equipment-workspace, open the focused PR, verify all required CI, merge only when GREEN, then re-audit and begin #605 if it becomes Ready.",
+  "next_action": "Begin Issue #605 from current main as the sole implementation WIP: inventory canonical mutation/permission/audit contracts first, then implement only source-backed administrative metadata editing while preserving zero Modbus/acquisition/hardware side effects.",
   "planned_queue": [604, 605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
