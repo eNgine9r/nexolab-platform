@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
   "accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
-  "last_reconciled_repository_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+  "last_reconciled_repository_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 587,
     "selection_status": "in_progress",
     "ready_issue_count": 0,
-    "reason": "Issue #594 is merged GREEN and closed status:done. GitHub currently has zero open status:ready Issues. Issue #587 is already status:in-progress with an architecture-decision checkpoint and no open PR yet, so it remains the active Work Package to continue. Issue #585 remains blocked on physical handback."
+    "reason": "Issue #598 restored the Container Supply Chain gate GREEN with four exact, time-bounded CVE-2026-14456 decisions expiring 2026-08-26. Issue #587 is unblocked again and PR #597 remains the active single-WIP package; it must be rebased onto current main and rerun before merge. Issue #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -66,7 +66,7 @@
       "id": "NEXOLAB-587",
       "issue": 587,
       "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-      "status": "in_progress_architecture_decision_recorded",
+      "status": "in_progress_pr_597_rebase_after_security_598",
       "priority": "high"
     },
     {
@@ -103,6 +103,19 @@
       "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     },
     {
+      "id": "NEXOLAB-598",
+      "issue": 598,
+      "pull_request": 599,
+      "title": "Triage and time-bound CVE-2026-14456 OpenSSL QUIC container baseline",
+      "status": "completed_green_supply_chain",
+      "priority": "critical",
+      "merge_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
+      "exception_expires_on": "2026-08-26",
+      "container_supply_chain": "PASS_32219772068",
+      "core_ci": "PASS_32219771902",
+      "telemetry_service": "PASS_32219771893"
+    },
+    {
       "id": "NEXOLAB-444",
       "issue": 444,
       "title": "Restore LOCAL_LAN user administration API availability",
@@ -128,12 +141,12 @@
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
     "type": "saved_dashboard_persisted_history_export",
-    "status": "in_progress"
+    "status": "in_progress_pr_597"
   },
   "next_work_package": {
     "issue": 587,
     "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "continue_in_progress"
+    "status": "continue_in_progress_rebase_after_security_598"
   },
   "verification": {
     "repository_accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
@@ -154,7 +167,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+    "repository_state_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -169,7 +182,11 @@
     "issue_594_token_refresh": "PASS",
     "issue_594_existing_runtime_non_regression": "PASS",
     "issue_594_merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
-    "issue_594_exact_head_ci": "PASS"
+    "issue_594_exact_head_ci": "PASS",
+    "issue_598_container_supply_chain": "PASS_32219772068",
+    "issue_598_core_ci": "PASS_32219771902",
+    "issue_598_telemetry_service": "PASS_32219771893",
+    "issue_598_exception_expires_on": "2026-08-26"
   },
   "independent_pending_lanes": [
     {
@@ -178,7 +195,7 @@
     },
     {
       "issue": 587,
-      "status": "in_progress"
+      "status": "in_progress_pr_597"
     },
     {
       "issue": 588,
