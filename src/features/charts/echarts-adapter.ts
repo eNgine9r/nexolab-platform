@@ -238,7 +238,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     backgroundColor: "transparent",
     aria: {
       enabled: true,
-      decal: { show: true },
+      decal: { show: false },
       label: { description: `Telemetry chart with ${scene.series.length} series.` },
     },
     grid: {

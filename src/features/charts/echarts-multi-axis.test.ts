@@ -89,6 +89,9 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
     adapter.setScene(scene);
 
     const initial = latestOption(instance);
+    expect((instance.calls.at(-1)?.option as { aria?: { enabled?: boolean; decal?: { show?: boolean } } }).aria).toEqual(
+      expect.objectContaining({ enabled: true, decal: { show: false } }),
+    );
     expect(initial.yAxis).toHaveLength(3);
     for (const sourceSeries of scene.series) {
       const rendered = initial.series.find((series) => series.name === sourceSeries.name);
