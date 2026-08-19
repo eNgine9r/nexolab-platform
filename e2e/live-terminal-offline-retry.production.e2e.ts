@@ -106,9 +106,10 @@ test("Live Data Retry restarts one terminal shared WebSocket transport", async (
 
   try {
     await page.goto("/live?workspace=explorer", { waitUntil: "domcontentloaded" });
+    await expect.poll(() => routedSocketCount).toBe(1);
+    publishFreshTelemetry(6.2);
     await expect(page.getByText("Живий потік підключено", { exact: true })).toBeVisible();
     await expect(inventoryChannel).toBeVisible();
-    expect(routedSocketCount).toBe(1);
 
     const baselineClient = routedSocketState.healthyClient;
     const baselineServer = routedSocketState.healthyServer;
