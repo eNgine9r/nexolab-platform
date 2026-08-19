@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createBenchmarkScene } from "@/features/charts/fixtures";
@@ -76,4 +76,25 @@ describe("ChartRendererHost", () => {
     expect(observerState.disconnects).toBe(1);
     expect(adapter.dispose).toHaveBeenCalledTimes(1);
   });
+  it("supports deterministic keyboard inspection over real visible chart points", () => {
+    const adapter = fakeAdapter();
+    const scene = createBenchmarkScene(2);
+    const onCursor = vi.fn();
+    const view = render(
+      <ChartRendererHost adapter={adapter} scene={scene} onCursor={onCursor} onXDomainChange={vi.fn()} />,
+    );
+    const host = view.getByRole("application", { name: "Interactive telemetry plot" });
+    const firstTimestamp = scene.series[0].segments[0].points[0].timestampMs;
+    const lastTimestamp = scene.series.at(-1)!.segments.at(-1)!.points.at(-1)!.timestampMs;
+    fireEvent.keyDown(host, { key: "Home" });
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(firstTimestamp);
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: firstTimestamp });
+    fireEvent.keyDown(host, { key: "End" });
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(lastTimestamp);
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: lastTimestamp });
+    fireEvent.keyDown(host, { key: "Escape" });
+    expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(null);
+    expect(onCursor).toHaveBeenLastCalledWith(null);
+  });
+
 });

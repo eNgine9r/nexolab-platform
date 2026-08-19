@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { chartSeriesKey } from "@/features/charts/domain";
 import { createBenchmarkScene } from "@/features/charts/fixtures";
+import { formatChartExactTimestamp } from "@/features/charts/format";
 
 import { ChartShell } from "./chart-shell";
 
@@ -136,7 +137,7 @@ describe("ChartShell accessibility contract", () => {
 
     expect(screen.getByTestId("chart-inspector")).toBe(inspector);
     expect(inspector).toHaveTextContent("Nearest measured sample per visible series.");
-    expect(inspector).toHaveTextContent(new Date(firstPoint.timestampMs).toISOString());
+    expect(inspector).toHaveTextContent(formatChartExactTimestamp(firstPoint.timestampMs));
     expect(inspector).toHaveTextContent("25.70 °C");
     expect(inspector).not.toHaveTextContent("25.700000000000003");
     expect(within(inspector).getAllByRole("row")).toHaveLength(3);

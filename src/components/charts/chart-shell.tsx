@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
-import { formatChartValue } from "@/features/charts/format";
+import { formatChartExactTimestamp, formatChartValue } from "@/features/charts/format";
 import { buildChartYAxisModel } from "@/features/charts/units";
 
 function freshnessLabel(state: ChartSeries["freshness"]): string {
@@ -26,6 +26,7 @@ export function ChartShell({
   onToggleSeries,
   onSoloSeries,
   onResetZoom,
+  formatTimestamp = formatChartExactTimestamp,
 }: {
   title: string;
   context: string;
@@ -36,6 +37,7 @@ export function ChartShell({
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
   onResetZoom: () => void;
+  formatTimestamp?: (timestampMs: number) => string;
 }) {
   const visibleSeries = series.filter((item) => item.visible);
   const freshnessSeries = visibleSeries.length > 0 ? visibleSeries : series;
@@ -138,7 +140,7 @@ export function ChartShell({
           <div className="flex min-w-0 items-baseline justify-between gap-3">
             <p className="font-medium text-white">Exact inspector</p>
             <p className="min-w-0 truncate text-right text-[10px] text-slate-500 tabular-nums">
-              {inspection ? new Date(inspection.timestampMs).toISOString() : "—"}
+              {inspection ? formatTimestamp(inspection.timestampMs) : "—"}
             </p>
           </div>
           <p className="mt-2 min-h-4 text-slate-500">
@@ -162,7 +164,7 @@ export function ChartShell({
                   const key = chartSeriesKey(item.identity);
                   const inspected = inspectionBySeries.get(key);
                   const point = inspected?.point ?? null;
-                  const sampleTimestamp = point ? new Date(point.timestampMs).toISOString() : "—";
+                  const sampleTimestamp = point ? formatTimestamp(point.timestampMs) : "—";
                   const value = point
                     ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
                     : "—";
