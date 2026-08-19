@@ -110,6 +110,19 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
   };
 }
 
+function rendererStructureKey(scene: ChartRendererScene): string {
+  const axisModel = buildChartYAxisModel(scene.series);
+  return JSON.stringify({
+    axes: axisModel.visibleAxes.map((axis) => axis.id),
+    series: scene.series
+      .filter((series) => series.visible)
+      .flatMap((series) => {
+        const seriesKey = chartSeriesKey(series.identity);
+        return series.segments.map((segment) => `${seriesKey}:${segment.id}`);
+      }),
+  });
+}
+
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
   const axisModel = buildChartYAxisModel(scene.series);
@@ -303,6 +316,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private scene: ChartRendererScene | null = null;
   private options: ChartRendererInitOptions | null = null;
   private maximumLivePoints = 240;
+  private structureKey: string | null = null;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
@@ -351,12 +365,16 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   setScene(scene: ChartRendererScene): void {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
+    const nextStructureKey = rendererStructureKey(scene);
+    const structureChanged = this.structureKey !== null && this.structureKey !== nextStructureKey;
     this.scene = scene;
-    this.instance.setOption(rendererOption(scene, this.options?.reducedMotion ?? false), {
-      notMerge: false,
-      lazyUpdate: false,
-      replaceMerge: ["series", "yAxis"],
-    });
+    this.instance.setOption(
+      rendererOption(scene, this.options?.reducedMotion ?? false),
+      structureChanged
+        ? { notMerge: true, lazyUpdate: false }
+        : { notMerge: false, lazyUpdate: false, replaceMerge: ["series", "yAxis"] },
+    );
+    this.structureKey = nextStructureKey;
   }
 
   appendLiveTail(seriesKey: string, additions: readonly { segmentId: string; point: ChartPoint }[]): void {
@@ -437,6 +455,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container = null;
     this.scene = null;
     this.options = null;
+    this.structureKey = null;
   }
 
   isDisposed(): boolean {

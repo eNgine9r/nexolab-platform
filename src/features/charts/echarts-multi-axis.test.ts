@@ -100,12 +100,28 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
       ...scene,
       series: scene.series.map((series, index) => ({ ...series, visible: index !== 1 })),
     });
+    expect(instance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
     expect(latestOption(instance).yAxis.map((axis) => axis.id)).not.toContain(
       chartYAxisId(scene.series[1].identity),
     );
 
     adapter.setScene(scene);
+    expect(instance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
     expect(latestOption(instance).yAxis.map((axis) => axis.id)).toEqual(initial.yAxis.map((axis) => axis.id));
+
+    const sameStructureScene = {
+      ...scene,
+      series: scene.series.map((series) => ({
+        ...series,
+        freshness: "stale" as const,
+      })),
+    };
+    adapter.setScene(sameStructureScene);
+    expect(instance.calls.at(-1)?.options).toEqual({
+      notMerge: false,
+      lazyUpdate: false,
+      replaceMerge: ["series", "yAxis"],
+    });
 
     adapter.setScene({
       ...scene,
