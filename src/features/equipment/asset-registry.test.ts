@@ -12,6 +12,7 @@ import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/
 
 import {
   collectEquipmentRegistryOptions,
+  type EquipmentRegistryAsset,
   defaultEquipmentRegistryFilters,
   filterEquipmentRegistry,
   isEquipmentRegistryAbort,
@@ -205,6 +206,50 @@ describe("equipment asset registry", () => {
         error: "Камера тимчасово недоступна",
       },
     ]);
+  });
+
+  it("publishes useful progressive results before the slowest chamber completes", async () => {
+    let resolveFirst!: (value: ClimateChamberEquipment) => void;
+    let resolveSecond!: (value: ClimateChamberEquipment) => void;
+    const first = new Promise<ClimateChamberEquipment>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const second = new Promise<ClimateChamberEquipment>((resolve) => {
+      resolveSecond = resolve;
+    });
+    const progress = vi.fn();
+
+    const loading = loadEquipmentRegistry({
+      equipmentRepository: {
+        list: vi.fn(async () => [refrigeration]),
+      } as unknown as RefrigerationEquipmentRepository,
+      climateCatalogRepository: {
+        listChambers: vi.fn(async () => [chamberOne, chamberTwo]),
+        getEquipment: vi.fn((chamberId: string) => (chamberId === chamberOne.id ? first : second)),
+      },
+      concurrency: 2,
+      onProgress: progress,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(progress).toHaveBeenCalled();
+    expect(progress.mock.calls[0][0]).toMatchObject({ completedChambers: 0, totalChambers: 2 });
+    expect(
+      progress.mock.calls[0][0].assets.map((asset: EquipmentRegistryAsset) => asset.primaryIdentifier),
+    ).toContain("REF-01");
+
+    resolveFirst(chamberOneCatalog);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const partial = progress.mock.calls.at(-1)?.[0];
+    expect(partial).toMatchObject({ completedChambers: 1, totalChambers: 2 });
+    expect(partial.assets.map((asset: EquipmentRegistryAsset) => asset.primaryIdentifier)).toContain(
+      "106-04",
+    );
+
+    resolveSecond(emptyCatalog(chamberTwo));
+    const result = await loading;
+    expect(result.assets.map((asset) => asset.primaryIdentifier)).toContain("106-04");
+    expect(progress.mock.calls.at(-1)?.[0]).toMatchObject({ completedChambers: 2, totalChambers: 2 });
   });
 
   it("suppresses stale results after orchestration cancellation", async () => {

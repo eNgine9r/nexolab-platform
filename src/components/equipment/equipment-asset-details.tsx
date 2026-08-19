@@ -1,67 +1,147 @@
 "use client";
 
 import Link from "next/link";
-import { Cpu, ExternalLink, Gauge, Refrigerator, Thermometer, X } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  ExternalLink,
+  Gauge,
+  MapPin,
+  Network,
+  Refrigerator,
+  Thermometer,
+  X,
+} from "lucide-react";
 
 import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 
 export function EquipmentAssetDetails({
   asset,
   onClose,
+  onPrevious,
+  onNext,
+  hasPrevious = false,
+  hasNext = false,
 }: {
   asset: EquipmentRegistryAsset;
   onClose: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
 }) {
-  const metadata = detailsFor(asset);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const sections = useMemo(() => detailsSections(asset), [asset]);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowUp" && hasPrevious && onPrevious) onPrevious();
+      if (event.key === "ArrowDown" && hasNext && onNext) onNext();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hasNext, hasPrevious, onClose, onNext, onPrevious]);
+
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[#020817]/80 p-3 backdrop-blur-sm"
-      role="presentation"
-    >
+    <div className="pointer-events-none fixed inset-0 z-50">
+      <button
+        type="button"
+        aria-label="Закрити інспектор обладнання"
+        onClick={onClose}
+        className="pointer-events-auto absolute inset-0 bg-[#020817]/75 backdrop-blur-sm lg:hidden"
+      />
       <section
         role="dialog"
-        aria-modal="true"
         aria-label={`Паспорт ${asset.primaryIdentifier}`}
-        className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-cyan-300/15 bg-[#08182e] shadow-2xl shadow-black/50"
+        className="pointer-events-auto absolute inset-y-0 right-0 flex w-full max-w-[560px] flex-col border-l border-cyan-300/15 bg-[#08182e] shadow-2xl shadow-black/60"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-white/[0.07] p-5 sm:p-6">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/10">
-              {renderCategoryIcon(asset.category, "h-6 w-6 text-cyan-300")}
+        <header className="border-b border-white/[0.07] p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/10">
+                {renderCategoryIcon(asset.category, "h-6 w-6 text-cyan-300")}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+                  {categoryLabel(asset.category)} · Read-only inspector
+                </p>
+                <h2 className="mt-1 truncate text-xl font-semibold text-white">{asset.displayName}</h2>
+                <p className="mt-1 font-mono text-xs text-slate-400">{asset.primaryIdentifier}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-                {categoryLabel(asset.category)} · Read-only
-              </p>
-              <h2 className="mt-1 truncate text-xl font-semibold text-white">{asset.displayName}</h2>
-              <p className="mt-1 font-mono text-xs text-slate-400">{asset.primaryIdentifier}</p>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              aria-label="Закрити паспорт обладнання"
+              title="Закрити"
+              onClick={onClose}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-slate-300 hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-2">
+            <p className="px-2 text-[10px] text-slate-500">↑/↓ переходять між сусідніми активами</p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                aria-label="Попередній актив"
+                title="Попередній актив"
+                disabled={!hasPrevious}
+                onClick={onPrevious}
+                className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-slate-300 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Наступний актив"
+                title="Наступний актив"
+                disabled={!hasNext}
+                onClick={onNext}
+                className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-slate-300 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="Закрити паспорт обладнання"
-            title="Закрити"
-            onClick={onClose}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-slate-300 hover:bg-white/[0.06] hover:text-white focus:ring-2 focus:ring-cyan-300 focus:outline-none"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </header>
 
-        <div className="max-h-[calc(92vh-160px)] overflow-y-auto p-5 sm:p-6">
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {metadata.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3">
-                <dt className="text-[9px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
-                  {item.label}
-                </dt>
-                <dd className="mt-1.5 text-sm break-words text-slate-100">{item.value}</dd>
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+          {sections.map((section) => (
+            <section
+              key={section.title}
+              className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4"
+            >
+              <div className="flex items-center gap-2">
+                <section.icon className="h-4 w-4 text-cyan-300" />
+                <h3 className="text-xs font-semibold tracking-[0.08em] text-slate-200 uppercase">
+                  {section.title}
+                </h3>
               </div>
-            ))}
-          </dl>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                {section.items.map((item) => (
+                  <div
+                    key={item.label}
+                    className="min-w-0 rounded-xl border border-white/[0.05] bg-[#06142a]/60 p-3"
+                  >
+                    <dt className="text-[9px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
+                      {item.label}
+                    </dt>
+                    <dd className="mt-1.5 text-sm break-words text-slate-100">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
 
           {asset.category === "physical-sensor" ? (
-            <section className="mt-5 rounded-2xl border border-amber-300/15 bg-amber-400/[0.07] p-4">
+            <section className="rounded-2xl border border-amber-300/15 bg-amber-400/[0.07] p-4">
               <h3 className="text-sm font-semibold text-amber-100">Межа metrology contract</h3>
               <p className="mt-2 text-xs leading-5 text-amber-100/75">
                 Поточне локальне сховище містить лише статус калібрування. Дата калібрування, наступний
@@ -72,8 +152,8 @@ export function EquipmentAssetDetails({
           ) : null}
         </div>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] px-5 py-4 sm:px-6">
-          <p className="text-xs text-slate-500">Зміни з цього read-only реєстру не виконуються.</p>
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-4 sm:px-5">
+          <p className="text-xs text-slate-500">Інспектор не змінює обладнання або acquisition state.</p>
           {asset.canonicalHref ? (
             <Link
               href={asset.canonicalHref}
@@ -93,73 +173,121 @@ export function EquipmentAssetDetails({
   );
 }
 
-function detailsFor(asset: EquipmentRegistryAsset): Array<{ label: string; value: string }> {
-  const common = [
-    { label: "Категорія", value: categoryLabel(asset.category) },
-    { label: "Ідентифікатор", value: asset.primaryIdentifier },
-    { label: "Кліматична камера", value: asset.chamberLabel ?? "Не прив’язано" },
-    { label: "Розташування", value: asset.locationLabel ?? "Не задано" },
-  ];
+type DetailSection = {
+  title: string;
+  icon: typeof Cpu;
+  items: Array<{ label: string; value: string }>;
+};
+
+function detailsSections(asset: EquipmentRegistryAsset): DetailSection[] {
+  const passport = compactDetails([
+    ["Категорія", categoryLabel(asset.category)],
+    ["Ідентифікатор", asset.primaryIdentifier],
+    ["Виробник", asset.manufacturer],
+    ["Модель", asset.model],
+    ["Серійний номер", asset.serialNumber],
+  ]);
+  const placement = compactDetails([
+    ["Кліматична камера", asset.chamberLabel],
+    ["Розташування", asset.locationLabel],
+  ]);
+  const connection = compactDetails([
+    ["Lifecycle", asset.lifecycleStatus ? statusLabel(asset.lifecycleStatus) : null],
+    ["Технічний стан", asset.healthStatus ? statusLabel(asset.healthStatus) : null],
+    ["Підключення", asset.connectionStatus ? statusLabel(asset.connectionStatus) : null],
+    ["Catalog status", asset.catalogStatus ? statusLabel(asset.catalogStatus) : null],
+  ]);
 
   if (asset.category === "refrigeration-equipment") {
     const item = asset.source;
-    return [
-      ...common,
-      { label: "Тип", value: item.type },
-      { label: "Виробник", value: item.manufacturer },
-      { label: "Модель", value: item.model },
-      { label: "Серійний номер", value: item.serialNumber },
-      { label: "Температурний клас", value: item.temperatureClass },
-      { label: "Lifecycle", value: statusLabel(item.lifecycleStatus) },
-      { label: "Технічний стан", value: statusLabel(item.status) },
-      { label: "Встановлено", value: formatDate(item.installedAt) },
-      { label: "Останній сервіс", value: formatDate(item.servicedAt) },
-      { label: "Датчики", value: `${item.onlineSensors} онлайн із ${item.totalSensors}` },
-      { label: "Активні тривоги", value: String(item.activeAlarms) },
-      { label: "Останній зв’язок", value: formatDateTime(item.lastSeenAt) },
-      { label: "Версія паспорта", value: `v${item.version}` },
-    ];
+    passport.push(
+      ...compactDetails([
+        ["Тип", item.type],
+        ["Температурний клас", item.temperatureClass],
+        ["Версія паспорта", `v${item.version}`],
+      ]),
+    );
+    connection.push(
+      ...compactDetails([
+        ["Датчики", `${item.onlineSensors} онлайн із ${item.totalSensors}`],
+        ["Активні тривоги", String(item.activeAlarms)],
+        ["Останній зв’язок", item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null],
+      ]),
+    );
+    const service = compactDetails([
+      ["Встановлено", item.installedAt ? formatDate(item.installedAt) : null],
+      ["Останній сервіс", item.servicedAt ? formatDate(item.servicedAt) : null],
+    ]);
+    return sections([
+      ["Паспорт", Cpu, passport],
+      ["Підключення і стан", Network, connection],
+      ["Розміщення", MapPin, placement],
+      ["Сервіс", Gauge, service],
+    ]);
   }
 
   if (asset.category === "physical-sensor") {
     const item = asset.source;
-    return [
-      ...common,
-      { label: "Inventory number", value: item.inventoryNumber },
-      { label: "Серійний номер", value: item.serialNumber ?? "Не задано" },
-      { label: "Позиція сенсора", value: item.sensorPosition },
-      { label: "Калібрування", value: calibrationLabel(item.calibrationStatus) },
-      { label: "Catalog status", value: statusLabel(item.status) },
-      { label: "Канал", value: asset.channel.displayName },
-      { label: "Channel id", value: asset.channel.channelId },
-      { label: "Source channel", value: asset.channel.sourceChannelId },
-      { label: "Параметр", value: `${asset.channel.metricType} · ${asset.channel.unit}` },
-      { label: "Контролер", value: asset.controller?.displayName ?? "Не визначено" },
-      {
-        label: "Підключення контролера",
-        value: statusLabel(asset.controller?.connectionStatus ?? "unknown"),
-      },
-    ];
+    const metrology = compactDetails([
+      ["Inventory number", item.inventoryNumber],
+      ["Калібрування", calibrationLabel(item.calibrationStatus)],
+      ["Позиція сенсора", item.sensorPosition],
+      ["Канал", asset.channel.displayName],
+      ["Channel id", asset.channel.channelId],
+      ["Source channel", asset.channel.sourceChannelId],
+      ["Параметр", `${asset.channel.metricType} · ${asset.channel.unit}`],
+    ]);
+    const related = compactDetails([
+      ["Контролер", asset.controller?.displayName ?? null],
+      ["Business key контролера", asset.controller?.businessKey ?? null],
+    ]);
+    return sections([
+      ["Паспорт", Cpu, passport],
+      ["Підключення і стан", Network, connection],
+      ["Метрологія", Thermometer, metrology],
+      ["Розміщення", MapPin, placement],
+      ["Пов’язане обладнання", Refrigerator, related],
+    ]);
   }
 
   const item = asset.source;
-  return [
-    ...common,
-    { label: "Business key", value: item.businessKey },
-    { label: "Виробник", value: item.manufacturer },
-    { label: "Модель", value: item.model },
-    { label: "Modbus unit id", value: String(item.unitId) },
-    { label: "Позначення", value: item.designation ?? "Не задано" },
-    { label: "Підключення", value: statusLabel(item.connectionStatus) },
-    { label: "Catalog status", value: statusLabel(item.status) },
-    {
-      label: "Вимірювані параметри",
-      value:
-        item.measuredParameters.length > 0
-          ? item.measuredParameters.map((parameter) => `${parameter.metric} · ${parameter.unit}`).join(", ")
-          : "Не задано",
-    },
-  ];
+  passport.push(
+    ...compactDetails([
+      ["Business key", item.businessKey],
+      ["Modbus unit id", String(item.unitId)],
+      ["Позначення", item.designation],
+    ]),
+  );
+  const measurements = compactDetails([
+    [
+      "Вимірювані параметри",
+      item.measuredParameters.length > 0
+        ? item.measuredParameters.map((parameter) => `${parameter.metric} · ${parameter.unit}`).join(", ")
+        : null,
+    ],
+  ]);
+  return sections([
+    ["Паспорт", Cpu, passport],
+    ["Підключення і стан", Network, connection],
+    ["Вимірювання", Gauge, measurements],
+    ["Розміщення", MapPin, placement],
+  ]);
+}
+
+function sections(
+  values: Array<[string, typeof Cpu, Array<{ label: string; value: string }>]>,
+): DetailSection[] {
+  return values
+    .filter(([, , items]) => items.length > 0)
+    .map(([title, icon, items]) => ({ title, icon, items }));
+}
+
+function compactDetails(
+  entries: ReadonlyArray<readonly [string, string | null | undefined]>,
+): Array<{ label: string; value: string }> {
+  return entries
+    .filter((entry): entry is readonly [string, string] => Boolean(entry[1]?.trim()))
+    .map(([label, value]) => ({ label, value }));
 }
 
 export function categoryLabel(category: EquipmentRegistryAsset["category"]): string {
@@ -215,7 +343,6 @@ function renderCategoryIcon(category: EquipmentRegistryAsset["category"], classN
 }
 
 function formatDate(value: string): string {
-  if (!value) return "Не задано";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value

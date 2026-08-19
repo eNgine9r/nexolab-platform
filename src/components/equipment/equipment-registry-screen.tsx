@@ -132,6 +132,7 @@ export function EquipmentRegistryScreen() {
               assets={registry.assets}
               failures={registry.failures}
               error={registry.error}
+              progress={registry.progress}
               onRetry={registry.retry}
             />
           </div>

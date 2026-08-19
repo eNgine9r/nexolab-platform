@@ -7,6 +7,7 @@ import {
   loadEquipmentRegistry,
   type EquipmentRegistryAsset,
   type EquipmentRegistryFailure,
+  type EquipmentRegistryLoadProgress,
 } from "@/features/equipment/asset-registry";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
 import { RefrigerationEquipmentRepositoryError } from "@/features/refrigeration/equipment-repository";
@@ -19,6 +20,7 @@ export type UseEquipmentRegistryResult = {
   assets: EquipmentRegistryAsset[];
   failures: EquipmentRegistryFailure[];
   error: string | null;
+  progress: Pick<EquipmentRegistryLoadProgress, "completedChambers" | "totalChambers"> | null;
   retry: () => void;
 };
 
@@ -39,6 +41,10 @@ export function useEquipmentRegistry({
   const [failures, setFailures] = useState<EquipmentRegistryFailure[]>([]);
   const [state, setState] = useState<EquipmentRegistryState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Pick<
+    EquipmentRegistryLoadProgress,
+    "completedChambers" | "totalChambers"
+  > | null>(null);
   const [epoch, setEpoch] = useState(0);
   const runtimeUnavailable = !equipmentRepository || !climateCatalogRepository;
 
@@ -49,17 +55,27 @@ export function useEquipmentRegistry({
     const startId = window.setTimeout(() => {
       setState((current) => (current === "ready" ? "refreshing" : "loading"));
       setError(null);
+      setProgress(null);
 
       void loadEquipmentRegistry({
         equipmentRepository,
         climateCatalogRepository,
         concurrency: 4,
         signal: controller.signal,
+        onProgress: (next) => {
+          if (controller.signal.aborted) return;
+          setAssets(next.assets);
+          setFailures(next.failures);
+          setProgress({ completedChambers: next.completedChambers, totalChambers: next.totalChambers });
+        },
       })
         .then((result) => {
           if (controller.signal.aborted) return;
           setAssets(result.assets);
           setFailures(result.failures);
+          setProgress((current) =>
+            current ? { ...current, completedChambers: current.totalChambers } : current,
+          );
           setState("ready");
         })
         .catch((loadError: unknown) => {
@@ -86,6 +102,7 @@ export function useEquipmentRegistry({
     assets,
     failures,
     error: effectiveError,
+    progress,
     retry: () => setEpoch((current) => current + 1),
   };
 }

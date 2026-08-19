@@ -78,6 +78,11 @@ export type EquipmentRegistryLoadResult = {
   failures: EquipmentRegistryFailure[];
 };
 
+export type EquipmentRegistryLoadProgress = EquipmentRegistryLoadResult & {
+  completedChambers: number;
+  totalChambers: number;
+};
+
 export type EquipmentRegistryOptions = {
   chambers: Array<{ value: string; label: string }>;
   manufacturers: string[];
@@ -98,6 +103,7 @@ export type LoadEquipmentRegistryOptions = {
   climateCatalogRepository: ClimateCatalogRepository;
   concurrency?: number;
   signal?: AbortSignal;
+  onProgress?: (progress: EquipmentRegistryLoadProgress) => void;
 };
 
 const DEFAULT_CONCURRENCY = 4;
@@ -125,6 +131,7 @@ export async function loadEquipmentRegistry({
   climateCatalogRepository,
   concurrency = DEFAULT_CONCURRENCY,
   signal,
+  onProgress,
 }: LoadEquipmentRegistryOptions): Promise<EquipmentRegistryLoadResult> {
   throwIfAborted(signal);
   const [refrigerationEquipment, chambers] = await Promise.all([
@@ -138,6 +145,23 @@ export async function loadEquipmentRegistry({
   const failures = new Array<EquipmentRegistryFailure | null>(sortedChambers.length).fill(null);
   const workerCount = Math.min(normalizeConcurrency(concurrency), Math.max(1, sortedChambers.length));
   let nextIndex = 0;
+  let completedChambers = 0;
+
+  const publishProgress = () => {
+    if (!onProgress || signal?.aborted) return;
+    onProgress({
+      assets: normalizeEquipmentRegistry(
+        refrigerationEquipment,
+        sortedChambers,
+        catalogs.filter((catalog): catalog is ClimateChamberEquipment => catalog !== null),
+      ),
+      failures: failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
+      completedChambers,
+      totalChambers: sortedChambers.length,
+    });
+  };
+
+  publishProgress();
 
   async function worker(): Promise<void> {
     while (true) {
@@ -156,7 +180,9 @@ export async function loadEquipmentRegistry({
           error: registryErrorMessage(error),
         };
       }
+      completedChambers += 1;
       throwIfAborted(signal);
+      publishProgress();
     }
   }
 
