@@ -3,119 +3,28 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T05:55:15Z",
+  "timestamp": "2026-08-19T09:30:54Z",
   "actor": "ChatGPT",
-  "event": "issue_587_merged_next_ready_588",
-  "repository_main_sha": "84584640246f8985c0c303654def99365c8458c4",
+  "event": "issue_608_merged_resume_issue_588",
+  "repository_main_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
-    "issue_584": {
-      "issue": 584,
-      "pull_request": 591,
-      "status": "COMPLETED",
-      "merge_sha": "31e1a191b472703aa1fad90de8e8c57406a5b802",
-      "runtime_registry_revision": 8,
-      "runtime_evidence": "runtime/deployments/issue-584-20260818T185455Z"
-    },
-    "issue_586": {
-      "issue": 586,
-      "pull_request": 592,
-      "status": "COMPLETED_SOFTWARE_CI_AND_PI_RUNTIME_ACCEPTANCE",
-      "merge_sha": "75c6f5471d77d781b124fbd40c33ba924aec26f8",
-      "runtime_proof": {
-        "status": "PASS",
-        "evidence": "runtime/deployments/issue-586-browser-closed-20260818T191852Z",
-        "browser_max_established_connections": 0,
-        "registry_revision_before": 8,
-        "registry_revision_after": 8,
-        "physical_requests_delta": 343,
-        "postgresql_rows_delta": 229
-      },
-      "implementation": {
-        "canonical_complete_history_loader": true,
-        "stable_snapshot_pagination": true,
-        "overview_complete_persisted_bootstrap": true,
-        "history_live_reconciliation": true,
-        "duplicate_and_out_of_order_rejection": true,
-        "truthful_non_valid_tail_preserved": true,
-        "live_data_reuses_canonical_loader": true,
-        "backend_schema_changed": false,
-        "acquisition_changed": false
-      },
+    "issue_608": {
+      "issue": 608,
+      "pull_request": 609,
+      "status": "COMPLETED_GREEN_CI_RELIABILITY",
+      "merge_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
+      "exact_head_sha": "6ee2919d784048bf737e6d6f67427a08be0a228d",
       "final_gates": {
-        "core_ci": "PASS_32179697028",
-        "authenticated_dashboard_acceptance": "PASS_32179696964",
-        "offline_bundle": "PASS_32179696933"
-      }
-    },
-    "issue_594": {
-      "issue": 594,
-      "pull_request": 593,
-      "status": "COMPLETED_SOFTWARE_CI_AND_PI_RUNTIME_ACCEPTANCE",
-      "identity": {
-        "username": "nexolab-mcp",
-        "role": "laboratory_technician",
-        "permissions": ["nodes.read", "telemetry.read"],
-        "secret_in_repository": false
+        "core_ci": "PASS_32237282201",
+        "authenticated_dashboard_acceptance": "PASS_32237282110",
+        "refrigeration_browser_acceptance": "PASS_32237282106",
+        "acquisition_scale": "PASS_32237282105"
       },
-      "runtime_proof": {
-        "raspberry_pi": "PASS",
-        "protocol_version": "2026-07-28",
-        "protocol_era": "modern",
-        "tool_count": 6,
-        "all_tools_read_only": true,
-        "system_health": "PASS",
-        "nodes": "PASS",
-        "node_status": "PASS",
-        "latest_telemetry": "PASS",
-        "bounded_history": "PASS",
-        "active_alarms": "PASS",
-        "local_token_refresh": "PASS",
-        "runtime_non_regression": "PASS",
-        "ephemeral_container_removed": true,
-        "port_8787_after_acceptance": "free"
-      },
-      "cutover": false,
-      "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
-    },
-    "issue_598": {
-      "issue": 598,
-      "pull_request": 599,
-      "status": "COMPLETED_GREEN_SUPPLY_CHAIN",
-      "merge_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
-      "cve": "CVE-2026-14456",
-      "runtime_path": "openssl_quic_server_listener_unreachable",
-      "exception_count": 4,
-      "exception_expires_on": "2026-08-26",
-      "core_ci": "PASS_32219771902",
-      "telemetry_service": "PASS_32219771893",
-      "container_supply_chain": "PASS_32219772068",
+      "playwright_system_chrome": true,
+      "playwright_with_deps_apt_removed": true,
       "runtime_changed": false,
-      "dependencies_changed": false
-    },
-    "issue_587": {
-      "issue": 587,
-      "pull_request": 597,
-      "status": "COMPLETED_SOFTWARE_CI_AND_OFFLINE_ACCEPTANCE",
-      "merge_sha": "84584640246f8985c0c303654def99365c8458c4",
-      "implementation": {
-        "saved_dashboard_ranges": ["1h", "6h", "24h", "7d", "30d", "Custom"],
-        "canonical_complete_history_loader": true,
-        "stable_snapshot_across_series": true,
-        "persisted_csv_export": true,
-        "csv_row_limit": 100000,
-        "max_history_days": 31,
-        "organization_scoped_export_identity": true,
-        "acquisition_changed": false
-      },
-      "final_gates": {
-        "core_ci": "PASS_32220599757",
-        "telemetry_service": "PASS_32220599759",
-        "authenticated_dashboard_acceptance": "PASS_32220599864",
-        "offline_bundle": "PASS_32220599751",
-        "acquisition_scale": "PASS_32220599830",
-        "container_supply_chain": "PASS_32220599753"
-      }
+      "hardware_changed": false
     }
   },
   "blocked_work": {
@@ -123,9 +32,17 @@
       "issue": 585,
       "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
     },
+    "issue_605": {
+      "issue": 605,
+      "reason": "Depends on #604 Equipment workspace"
+    },
+    "issue_606": {
+      "issue": 606,
+      "reason": "Depends on stable #604/#605 Equipment/adoption boundaries"
+    },
     "issue_589": {
       "issue": 589,
-      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
+      "reason": "Held behind active #588, Product Owner Equipment priority and bus-aware #607 architecture"
     },
     "issue_590": {
       "issue": 590,
@@ -134,15 +51,25 @@
   },
   "current_boundary": {
     "issue": 588,
+    "pull_request": 602,
     "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-    "status": "READY"
+    "status": "IN_PROGRESS"
   },
-  "next_action": "Begin Issue #588 from current main after state reconciliation: retain the existing Energy persisted-history hook, replace route-local SVG history geometry with the canonical Chart System, add adaptive local date/time axes and exact nearest-real-point inspection, then prove zero acquisition mutations and offline-local rendering.",
+  "next_action": "Update PR #602 onto current main containing #609 CI bootstrap repair, rerun exact-head Core CI/browser/offline gates, merge only if GREEN, reconcile #588 state, then begin user-prioritized Issue #604.",
+  "planned_queue": [
+    604,
+    605,
+    606,
+    607,
+    589,
+    590
+  ],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "mandatory_public_runtime_dependency": "none"
+    "mandatory_public_runtime_dependency": "none",
+    "dual_rs485_cutover_authorized": false
   }
 }

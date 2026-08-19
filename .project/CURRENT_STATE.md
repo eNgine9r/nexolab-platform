@@ -100,13 +100,26 @@ Final exact-head gates:
 
 No acquisition-registry mutation, physical polling cadence change, Modbus write, hardware write, migration, dependency upgrade or mandatory cloud runtime dependency was introduced.
 
+## Issue #608 — complete CI reliability interrupt
+
+Issue #608 is closed `status:done`. PR #609 merged GREEN as `3e13800f413eb2255b992b6ff9f3aec935acf602`. The blocking browser gates now use a preinstalled GitHub-runner Chrome executable and install only Playwright's ffmpeg artifact for retained failure video; they no longer invoke `playwright install --with-deps chromium` or live Ubuntu APT dependency installation.
+
+Exact-head #609 gates on `6ee2919d784048bf737e6d6f67427a08be0a228d`:
+
+- Core CI `32237282201`: PASS;
+- Authenticated Dashboard Acceptance `32237282110`: PASS;
+- Refrigeration Browser Acceptance `32237282106`: PASS;
+- Acquisition Scale Acceptance `32237282105`: PASS.
+
+No application runtime, dependency version, database, acquisition, Modbus or hardware behavior changed.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**.
+Active Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**, PR #602. The CI reliability blocker from #608 is removed; #602 must now be updated onto current `main` and rerun exact-head gates before merge.
 
-Repository audit already established that Energy history acquisition/persistence is sound, while the visible chart still uses route-specific SVG geometry and proportional-index pointer selection. #588 must keep the existing persisted Energy read model and migrate only the presentation/inspection layer to the canonical Chart System (`ChartShell` + local ECharts renderer), preserving real gaps and zero acquisition side effects.
+Product Owner reprioritization after #588 is recorded as **#604 → #605 → #606** for the Equipment workspace. The planned dual-RS-485 architecture is **#607** and must be coordinated before #589 finalizes cadence/capacity assumptions. The resulting planned sequence is **#588 → #604 → #605 → #606 → #607 → #589 → #590**.
 
-Issue #589 follows #588; Issue #590 remains blocked on #589. Issue #585 remains independently blocked on physical W2/Unit 201 handback.
+Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized by this planning state.
 
 ## Safety boundaries
 
