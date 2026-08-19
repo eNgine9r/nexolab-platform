@@ -2,8 +2,7 @@ import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
-const browserExecutablePath =
-  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim();
+const browserExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim();
 
 const evidenceDirectory = process.env.NEXOLAB_ACCEPTANCE_EVIDENCE_DIR ?? "acceptance-evidence";
 const webUrl = process.env.NEXOLAB_ACCEPTANCE_WEB_URL ?? "http://127.0.0.1:13000";
@@ -36,9 +35,7 @@ export default defineConfig({
       name: "chromium-production",
       use: {
         ...devices["Desktop Chrome"],
-        ...(browserExecutablePath
-          ? { launchOptions: { executablePath: browserExecutablePath } }
-          : {}),
+        ...(browserExecutablePath ? { launchOptions: { executablePath: browserExecutablePath } } : {}),
       },
     },
   ],
