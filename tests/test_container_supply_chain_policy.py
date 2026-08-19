@@ -152,6 +152,34 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     )
 
 
+def test_current_openssl_quic_exceptions_are_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["vulnerability"] == "CVE-2026-14456"
+    ]
+
+    assert {
+        (entry["image_id"], entry["package"]) for entry in matches
+    } == {
+        ("device-agent", "libssl3t64"),
+        ("telemetry-service", "libssl3t64"),
+        ("telemetry-service", "openssl"),
+        ("telemetry-service", "openssl-provider-legacy"),
+    }
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-08-26" for entry in matches)
+    assert all("QUIC" in entry["reason"] for entry in matches)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 8, 19),
+    )
+
+
 def test_telemetry_image_installs_only_required_dynsec_client() -> None:
     dockerfile = (
         Path(__file__).resolve().parents[1]
