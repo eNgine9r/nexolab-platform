@@ -73,9 +73,13 @@ function latestOption(instance: FakeEChartsInstance) {
 }
 
 describe("ECharts equipment-centric multi-axis rendering", () => {
-  it("binds V/A/W series to stable axes and removes hidden axes without remounting", () => {
-    const instance = new FakeEChartsInstance();
-    const init = vi.fn(() => instance);
+  it("binds stable axes and recreates only structural visibility changes", () => {
+    const instances: FakeEChartsInstance[] = [];
+    const init = vi.fn(() => {
+      const instance = new FakeEChartsInstance();
+      instances.push(instance);
+      return instance;
+    });
     const adapter = new EChartsRendererAdapter({ init } satisfies EChartsRuntimePort);
     const scene = mixedScene();
 
@@ -88,39 +92,43 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
     });
     adapter.setScene(scene);
 
-    const initial = latestOption(instance);
-    expect(instance.calls.at(-1)?.option).toMatchObject({
-      aria: { enabled: true, decal: { show: false } },
+    const initialInstance = instances.at(-1)!;
+    const initial = latestOption(initialInstance);
+    expect(initialInstance.calls.at(-1)?.option).toMatchObject({
+      aria: { enabled: true, decal: { show: true } },
     });
     expect(initial.yAxis).toHaveLength(3);
     for (const sourceSeries of scene.series) {
       const rendered = initial.series.find((series) => series.name === sourceSeries.name);
       expect(rendered?.yAxisId).toBe(chartYAxisId(sourceSeries.identity));
     }
-    expect(instance.calls.at(-1)?.options).toMatchObject({ replaceMerge: ["series", "yAxis"] });
 
     adapter.setScene({
       ...scene,
       series: scene.series.map((series, index) => ({ ...series, visible: index !== 1 })),
     });
-    expect(instance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
-    expect(latestOption(instance).yAxis.map((axis) => axis.id)).not.toContain(
+    const hiddenInstance = instances.at(-1)!;
+    expect(init).toHaveBeenCalledTimes(2);
+    expect(initialInstance.disposeCount).toBe(1);
+    expect(hiddenInstance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
+    expect(latestOption(hiddenInstance).yAxis.map((axis) => axis.id)).not.toContain(
       chartYAxisId(scene.series[1].identity),
     );
 
     adapter.setScene(scene);
-    expect(instance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
-    expect(latestOption(instance).yAxis.map((axis) => axis.id)).toEqual(initial.yAxis.map((axis) => axis.id));
+    const restoredInstance = instances.at(-1)!;
+    expect(init).toHaveBeenCalledTimes(3);
+    expect(hiddenInstance.disposeCount).toBe(1);
+    expect(latestOption(restoredInstance).yAxis.map((axis) => axis.id)).toEqual(
+      initial.yAxis.map((axis) => axis.id),
+    );
 
-    const sameStructureScene = {
+    adapter.setScene({
       ...scene,
-      series: scene.series.map((series) => ({
-        ...series,
-        freshness: "stale" as const,
-      })),
-    };
-    adapter.setScene(sameStructureScene);
-    expect(instance.calls.at(-1)?.options).toEqual({
+      series: scene.series.map((series) => ({ ...series, freshness: "stale" as const })),
+    });
+    expect(init).toHaveBeenCalledTimes(3);
+    expect(restoredInstance.calls.at(-1)?.options).toEqual({
       notMerge: false,
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],
@@ -130,11 +138,13 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
       ...scene,
       series: scene.series.map((series, index) => ({ ...series, visible: index === 2 })),
     });
-    expect(latestOption(instance).yAxis.map((axis) => axis.id)).toEqual([
+    const soloInstance = instances.at(-1)!;
+    expect(init).toHaveBeenCalledTimes(4);
+    expect(restoredInstance.disposeCount).toBe(1);
+    expect(latestOption(soloInstance).yAxis.map((axis) => axis.id)).toEqual([
       chartYAxisId(scene.series[2].identity),
     ]);
-    expect(latestOption(instance).series).toHaveLength(1);
+    expect(latestOption(soloInstance).series).toHaveLength(1);
     expect(chartSeriesKey(scene.series[2].identity)).toContain("power");
-    expect(init).toHaveBeenCalledTimes(1);
   });
 });
