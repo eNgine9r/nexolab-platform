@@ -10,6 +10,7 @@ on:
       - "e2e/energy.production.e2e.ts"
       - "e2e/equipment-layouts.production.e2e.ts"
       - "e2e/live.production.e2e.ts"
+      - "e2e/live-terminal-offline-retry.production.e2e.ts"
       - "e2e/refrigeration-layout.production.e2e.ts"
       - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
       - "e2e/telemetry-navigation.production.e2e.ts"
