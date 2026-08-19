@@ -271,4 +271,25 @@ describe("useEnergyTelemetry startup coverage", () => {
     const to = queryTime(retryQuery.to);
     expect(to - from).toBeGreaterThanOrEqual(23 * 60 * 60 * 1000);
   });
+  it("loads a bounded seven-day persisted history window without changing acquisition semantics", async () => {
+    const { result } = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(1));
+    act(() => {
+      result.current.setHistoryRange("7d");
+    });
+    await waitFor(() => {
+      expect(adapterState.history).toHaveBeenCalledTimes(2);
+      expect(result.current.historyRange).toBe("7d");
+      expect(result.current.historyStatus).toBe("ready");
+    });
+    const query = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
+    const from = queryTime(query.from);
+    const to = queryTime(query.to);
+    expect(to - from).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
+    expect(to - from).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
+  });
 });

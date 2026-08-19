@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { EnergyConsumptionPanel } from "@/components/energy/energy-consumption-panel";
+import { EnergyHistoryChart } from "@/components/energy/energy-history-chart";
 import {
   ENERGY_METERS,
   ENERGY_METRICS,
@@ -27,7 +28,6 @@ import {
   type EnergyMetricId,
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
-import { buildEnergyHistoryPath } from "@/features/energy/energy-history-path";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -36,16 +36,10 @@ const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
   { value: "1h", label: "1 год" },
   { value: "6h", label: "6 год" },
   { value: "24h", label: "24 год" },
+  { value: "7d", label: "7 діб" },
 ];
 
 const OPERATOR_ENERGY_METRICS = ENERGY_METRICS.filter((metric) => metric.id !== "electrical.energy.active");
-
-const METER_COLORS: Record<number, string> = {
-  200: "#38bdf8",
-  201: "#22c55e",
-  202: "#a78bfa",
-  203: "#f59e0b",
-};
 
 const STATE_COPY: Record<EnergySampleState, { label: string; className: string }> = {
   live: {
@@ -73,73 +67,6 @@ const STATE_COPY: Record<EnergySampleState, { label: string; className: string }
     className: "border-slate-300/10 bg-slate-400/5 text-slate-500",
   },
 };
-
-type HistorySeries = {
-  unitId: number;
-  label: string;
-  color: string;
-  path: string;
-  points: Array<{ id: string; x: number; y: number; value: number; capturedAt: string }>;
-};
-
-function buildHistorySeries(
-  samples: readonly TelemetrySample[],
-  selectedMetric: EnergyMetricId,
-  selectedUnitIds: readonly number[],
-  window: EnergyTelemetryModel["historyWindow"],
-): HistorySeries[] {
-  const accepted = samples
-    .filter(
-      (sample): sample is TelemetrySample & { value: number } =>
-        sample.metric === selectedMetric &&
-        sample.quality === "valid" &&
-        sample.value !== null &&
-        Number.isFinite(sample.value) &&
-        Number.isFinite(Date.parse(sample.captured_at)),
-    )
-    .map((sample) => ({ sample, meter: resolveEnergyMeter(sample) }))
-    .filter(
-      (
-        item,
-      ): item is { sample: TelemetrySample & { value: number }; meter: (typeof ENERGY_METERS)[number] } =>
-        item.meter !== null && selectedUnitIds.includes(item.meter.unitId),
-    )
-    .sort((left, right) => Date.parse(left.sample.captured_at) - Date.parse(right.sample.captured_at));
-
-  if (accepted.length === 0) return [];
-
-  const timestamps = accepted.map((item) => Date.parse(item.sample.captured_at));
-  const values = accepted.map((item) => item.sample.value);
-  const requestedFrom = window ? Date.parse(window.from) : Number.NaN;
-  const requestedTo = window ? Date.parse(window.to) : Number.NaN;
-  const from = Number.isFinite(requestedFrom) ? requestedFrom : Math.min(...timestamps);
-  const to = Number.isFinite(requestedTo) ? requestedTo : Math.max(...timestamps);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const timeSpan = Math.max(1, to - from);
-  const valueSpan = Math.max(1, maximum - minimum);
-
-  return ENERGY_METERS.filter((meter) => selectedUnitIds.includes(meter.unitId))
-    .map((meter) => {
-      const points = accepted
-        .filter((item) => item.meter.unitId === meter.unitId)
-        .map(({ sample }) => ({
-          id: sample.event_id,
-          value: sample.value,
-          capturedAt: sample.captured_at,
-          x: 38 + ((Date.parse(sample.captured_at) - from) / timeSpan) * 712,
-          y: 24 + (1 - (sample.value - minimum) / valueSpan) * 176,
-        }));
-      return {
-        unitId: meter.unitId,
-        label: meter.label,
-        color: METER_COLORS[meter.unitId],
-        path: buildEnergyHistoryPath(points),
-        points,
-      };
-    })
-    .filter((series) => series.points.length > 0);
-}
 
 function statusLabel(status: EnergyTelemetryModel["status"]): string {
   switch (status) {
@@ -269,16 +196,17 @@ function HistoryPanel({
   selectedUnitIds: readonly number[];
 }) {
   const definition = ENERGY_METRICS.find((metric) => metric.id === telemetry.selectedMetric)!;
-  const series = useMemo(
-    () =>
-      buildHistorySeries(
-        telemetry.historySamples,
-        telemetry.selectedMetric,
-        selectedUnitIds,
-        telemetry.historyWindow,
-      ),
-    [selectedUnitIds, telemetry.historySamples, telemetry.historyWindow, telemetry.selectedMetric],
-  );
+  const hasSelectedHistory = telemetry.historySamples.some((sample) => {
+    const meter = resolveEnergyMeter(sample);
+    return (
+      sample.metric === telemetry.selectedMetric &&
+      meter !== null &&
+      selectedUnitIds.includes(meter.unitId) &&
+      sample.quality === "valid" &&
+      sample.value !== null &&
+      Number.isFinite(sample.value)
+    );
+  });
 
   return (
     <section className="rounded-2xl border border-white/[0.065] bg-[#091d39]/80 p-4 sm:p-5">
@@ -287,7 +215,7 @@ function HistoryPanel({
           <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">PostgreSQL history</p>
           <h2 className="mt-1 text-lg font-semibold text-white">Порівняння лічильників</h2>
           <p className="mt-1 text-[11px] text-slate-500">
-            {definition.label} · {series.length} серій · {telemetry.historySamples.length} записів
+            {definition.label} · {selectedUnitIds.length} вибрано · {telemetry.historySamples.length} записів
           </p>
         </div>
 
@@ -312,6 +240,7 @@ function HistoryPanel({
                 key={range.value}
                 type="button"
                 onClick={() => telemetry.setHistoryRange(range.value)}
+                aria-pressed={telemetry.historyRange === range.value}
                 className={`rounded-xl border px-3 py-2 text-[10px] transition ${
                   telemetry.historyRange === range.value
                     ? "border-blue-400/35 bg-blue-500/15 text-blue-200"
@@ -348,7 +277,7 @@ function HistoryPanel({
             Повторити
           </button>
         </div>
-      ) : series.length === 0 ? (
+      ) : !hasSelectedHistory ? (
         <div className="mt-5 grid min-h-48 place-items-center rounded-2xl border border-dashed border-white/[0.08] text-center">
           <div>
             <Database className="mx-auto h-6 w-6 text-slate-600" />
@@ -359,56 +288,9 @@ function HistoryPanel({
           </div>
         </div>
       ) : (
-        <>
-          <svg
-            viewBox="0 0 790 230"
-            className="mt-5 h-[280px] w-full"
-            role="img"
-            aria-label={`Історія показника ${definition.label} для вибраних лічильників`}
-          >
-            {[24, 59, 94, 129, 164, 200].map((y) => (
-              <line key={y} x1="38" y1={y} x2="750" y2={y} stroke="rgba(148,163,184,.1)" />
-            ))}
-            {series.map((item) => (
-              <g key={item.unitId}>
-                <path
-                  d={item.path}
-                  fill="none"
-                  stroke={item.color}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {item.points.map((point) => (
-                  <circle
-                    key={point.id}
-                    cx={point.x}
-                    cy={point.y}
-                    r="2.5"
-                    fill="#091d39"
-                    stroke={item.color}
-                    strokeWidth="1.5"
-                  />
-                ))}
-              </g>
-            ))}
-          </svg>
-          <div className="flex flex-wrap gap-2 border-t border-white/[0.055] pt-3">
-            {series.map((item) => (
-              <span
-                key={item.unitId}
-                className="inline-flex items-center gap-2 rounded-full border border-white/[0.07] px-3 py-1.5 text-[9px] text-slate-300"
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                  aria-hidden="true"
-                />
-                {item.label} · {item.points.length}
-              </span>
-            ))}
-          </div>
-        </>
+        <div className="mt-5">
+          <EnergyHistoryChart telemetry={telemetry} selectedUnitIds={selectedUnitIds} />
+        </div>
       )}
     </section>
   );

@@ -51,7 +51,7 @@ const MAX_STARTUP_LIVE_SAMPLES = 2_000;
 const DEFAULT_SCOPE = "__default_organization__";
 const DEFAULT_SECURITY_SCOPE = "__anonymous_identity__";
 const ENERGY_NODE_ID = process.env.NEXT_PUBLIC_NEXOLAB_ENERGY_NODE_ID?.trim() || "edge-01";
-const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24 } as const;
+const HISTORY_HOURS = { "1h": 1, "6h": 6, "24h": 24, "7d": 7 * 24 } as const;
 const TERMINAL_STARTUP_STATES = new Set<TelemetryConnectionState>([
   "offline",
   "unauthorized",

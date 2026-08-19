@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
+import { chartInspectionTimestamps, inspectChartAtTimestamp } from "@/features/charts/inspection";
 import type { ChartRendererAdapter, ChartRendererScene } from "@/features/charts/renderer-adapter";
 
 export function ChartRendererHost({
@@ -56,14 +57,41 @@ export function ChartRendererHost({
     if (!adapter.isDisposed()) adapter.setSharedCursor(sharedCursorMs);
   }, [adapter, sharedCursorMs]);
 
+  const inspectWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End", "Escape"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Escape") {
+      adapter.setSharedCursor(null);
+      onCursor(null);
+      return;
+    }
+    const timestamps = chartInspectionTimestamps(scene);
+    if (timestamps.length === 0) return;
+    let timestamp: number;
+    if (event.key === "Home") timestamp = timestamps[0];
+    else if (event.key === "End") timestamp = timestamps.at(-1)!;
+    else if (sharedCursorMs === null)
+      timestamp = event.key === "ArrowLeft" ? timestamps.at(-1)! : timestamps[0];
+    else if (event.key === "ArrowLeft") {
+      timestamp = [...timestamps].reverse().find((candidate) => candidate < sharedCursorMs) ?? timestamps[0];
+    } else {
+      timestamp = timestamps.find((candidate) => candidate > sharedCursorMs) ?? timestamps.at(-1)!;
+    }
+    adapter.setSharedCursor(timestamp);
+    onCursor(inspectChartAtTimestamp(scene, timestamp));
+  };
+
   return (
     <div
-      ref={containerRef}
       className="h-[320px] min-h-64 w-full min-w-0"
       data-testid="chart-renderer-host"
       role="application"
       aria-label="Interactive telemetry plot"
+      aria-keyshortcuts="ArrowLeft ArrowRight Home End Escape"
+      onKeyDown={inspectWithKeyboard}
       tabIndex={0}
-    />
+    >
+      <div ref={containerRef} className="h-full w-full min-w-0" data-testid="chart-renderer-surface" />
+    </div>
   );
 }

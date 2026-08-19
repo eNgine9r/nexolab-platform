@@ -118,4 +118,29 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
     expect(chartSeriesKey(scene.series[2].identity)).toContain("power");
     expect(init).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps renderer geometry valid when the last logical series is hidden", () => {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = mixedScene();
+
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene({
+      ...scene,
+      series: [{ ...scene.series[0], visible: false }],
+    });
+
+    const option = instance.calls.at(-1)!.option as {
+      yAxis: Array<{ id: string; show?: boolean }>;
+      series: unknown[];
+    };
+    expect(option.series).toHaveLength(0);
+    expect(option.yAxis).toEqual([expect.objectContaining({ id: "__nexolab-empty-axis__", show: false })]);
+  });
 });

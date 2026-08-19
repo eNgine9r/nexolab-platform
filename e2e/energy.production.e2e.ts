@@ -12,6 +12,18 @@ const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
 const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
 const acceptanceCompose = requiredEnvironment("NEXOLAB_DASHBOARD_ACCEPTANCE_COMPOSE");
 const mqttTopic = process.env.MQTT_TOPIC ?? "nexolab/telemetry";
+const acquisitionMetricsUrl = requiredEnvironment("NEXOLAB_ACQUISITION_METRICS_URL");
+const expectedAcquisitionRate = Number(process.env.ACQUISITION_FIXTURE_REQUESTS_PER_SECOND ?? "20");
+
+type AcquisitionMetrics = {
+  acquisition: {
+    normal: { physical_requests_total: number };
+    service_operations: {
+      discovery?: { physical_requests_total?: number };
+      configuration_mutation?: { requests_total?: number };
+    };
+  };
+};
 
 type EnergyMetric = {
   metric: string;
@@ -192,6 +204,19 @@ function seedEnergyEvidence(): void {
   });
 }
 
+async function readAcquisitionMetrics(): Promise<AcquisitionMetrics> {
+  const response = await fetch(acquisitionMetricsUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Acquisition fixture returned HTTP ${response.status}`);
+  return (await response.json()) as AcquisitionMetrics;
+}
+
+function acquisitionServiceCounters(metrics: AcquisitionMetrics) {
+  return {
+    discovery: metrics.acquisition.service_operations.discovery?.physical_requests_total ?? 0,
+    mutations: metrics.acquisition.service_operations.configuration_mutation?.requests_total ?? 0,
+  };
+}
+
 function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boolean }>): number {
   return requests.filter((item) => {
     const url = new URL(item.url);
@@ -211,6 +236,7 @@ test("renders selectable LE-01MP period consumption from verified cumulative bou
   const requests = observeTelemetryRequests(page);
 
   try {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/energy", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("heading", { name: "Енергомоніторинг" })).toBeVisible();
@@ -232,13 +258,60 @@ test("renders selectable LE-01MP period consumption from verified cumulative bou
     await expect(page.getByRole("heading", { name: "Споживання з підтвердженого лічильника" })).toBeVisible();
     await expect(page.getByText(/restart\/power-cycle доказу/i)).toBeVisible();
 
-    await expect(page.getByRole("img", { name: /Історія показника Активна потужність/ })).toBeVisible();
+    const chart = page.getByTestId("energy-history-chart");
+    const plot = chart.getByRole("application", { name: "Interactive telemetry plot" });
+    await expect(plot).toBeVisible();
+    await expect(chart.getByText("W · canonical persisted history", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("combobox", { name: "Показник" }).getByRole("option", {
         name: "Накопичена активна енергія",
       }),
     ).toHaveCount(0);
     await expect.poll(() => cumulativeHistoryReads(requests)).toBe(1);
+
+    const noHorizontalOverflow = async () =>
+      page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+    await expect.poll(noHorizontalOverflow).toBe(true);
+
+    const acquisitionBefore = await readAcquisitionMetrics();
+    const interactionStartedAt = Date.now();
+
+    await plot.focus();
+    await plot.press("Home");
+    await expect(chart.getByTestId("chart-inspector")).toContainText("W1 · LE01MP-200 · 200-active-power");
+    await expect(chart.getByTestId("chart-inspector")).toContainText("615 W");
+    await plot.press("End");
+
+    const range7d = page.getByRole("button", { name: "7 діб" });
+    await range7d.click();
+    await expect(range7d).toHaveAttribute("aria-pressed", "true");
+    await expect(chart.getByText(/7d ·/)).toBeVisible();
+
+    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
+    await expect(chart.getByText("V · canonical persisted history", { exact: true })).toBeVisible();
+    await expect(chart.getByText(/Напруга/).first()).toBeVisible();
+
+    const legend = chart.getByLabel("Chart legend");
+    await legend.getByRole("button", { name: "Hide" }).first().click();
+    await legend.getByRole("button", { name: "Solo" }).first().click();
+    await chart.getByRole("button", { name: "Reset zoom" }).click();
+
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(plot).toBeVisible();
+    await expect.poll(noHorizontalOverflow).toBe(true);
+    await page.waitForTimeout(1_200);
+
+    const acquisitionAfter = await readAcquisitionMetrics();
+    expect(acquisitionServiceCounters(acquisitionAfter)).toEqual(
+      acquisitionServiceCounters(acquisitionBefore),
+    );
+    const elapsedSeconds = (Date.now() - interactionStartedAt) / 1_000;
+    const physicalDelta =
+      acquisitionAfter.acquisition.normal.physical_requests_total -
+      acquisitionBefore.acquisition.normal.physical_requests_total;
+    const observedRate = physicalDelta / elapsedSeconds;
+    expect(observedRate).toBeGreaterThan(expectedAcquisitionRate * 0.7);
+    expect(observedRate).toBeLessThan(expectedAcquisitionRate * 1.3);
 
     await page.getByRole("button", { name: "Виключити лічильник W4 з порівняння" }).click();
     await expect(page.getByRole("button", { name: "Додати лічильник W4 з порівняння" })).toBeVisible();
