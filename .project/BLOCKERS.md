@@ -22,11 +22,13 @@ PR #599 merged GREEN as `b25ae18e196eb84fc56ae951003d0820a22dc579`. Container Su
 
 There is no remaining #598 blocker.
 
-## Issue #587 — in progress, unblocked
+## Issue #587 — complete
 
-Saved Live Dashboard complete persisted ranges and CSV export is again the current `status:in-progress` Work Package. PR #597 must be rebased onto the #598 merge and rerun. The dependency/security blocker is removed, but merge remains forbidden until the rebased exact head is fully GREEN.
+PR #597 merged GREEN as `84584640246f8985c0c303654def99365c8458c4`. Core CI, Telemetry Service, Authenticated Dashboard Acceptance, Offline Bundle, Acquisition Scale and Container Supply Chain are PASS. There is no remaining #587 blocker.
 
-It must continue to reuse the canonical complete-history/reconciliation path, keep range/export actions read-only with respect to acquisition, and generate CSV from persisted telemetry rather than reduced chart/browser memory.
+## Issue #588 — Ready
+
+Energy Monitoring canonical chart migration is the next independent software Work Package. It is presentation/read-model work only and has no hardware or acquisition mutation prerequisite.
 
 ## Issue #594 — complete
 
@@ -36,7 +38,7 @@ Persistent MCP service enablement, production credential relocation, and any ext
 
 ## Deferred software lanes
 
-- #588 Energy Monitoring chart parity — held behind the active single-WIP sequence;
+- #588 Energy Monitoring chart parity — Ready and selected next;
 - #589 persisted acquisition cadence/capacity validation — held behind the active single-WIP sequence;
 - #590 Settings acquisition cadence controls — blocked on #589;
 

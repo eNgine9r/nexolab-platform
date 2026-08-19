@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T05:36:30Z",
+  "timestamp": "2026-08-19T05:55:15Z",
   "actor": "ChatGPT",
-  "event": "issue_598_security_baseline_green_resume_587",
-  "repository_main_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
+  "event": "issue_587_merged_next_ready_588",
+  "repository_main_sha": "84584640246f8985c0c303654def99365c8458c4",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_584": {
@@ -92,16 +92,36 @@
       "container_supply_chain": "PASS_32219772068",
       "runtime_changed": false,
       "dependencies_changed": false
+    },
+    "issue_587": {
+      "issue": 587,
+      "pull_request": 597,
+      "status": "COMPLETED_SOFTWARE_CI_AND_OFFLINE_ACCEPTANCE",
+      "merge_sha": "84584640246f8985c0c303654def99365c8458c4",
+      "implementation": {
+        "saved_dashboard_ranges": ["1h", "6h", "24h", "7d", "30d", "Custom"],
+        "canonical_complete_history_loader": true,
+        "stable_snapshot_across_series": true,
+        "persisted_csv_export": true,
+        "csv_row_limit": 100000,
+        "max_history_days": 31,
+        "organization_scoped_export_identity": true,
+        "acquisition_changed": false
+      },
+      "final_gates": {
+        "core_ci": "PASS_32220599757",
+        "telemetry_service": "PASS_32220599759",
+        "authenticated_dashboard_acceptance": "PASS_32220599864",
+        "offline_bundle": "PASS_32220599751",
+        "acquisition_scale": "PASS_32220599830",
+        "container_supply_chain": "PASS_32220599753"
+      }
     }
   },
   "blocked_work": {
     "issue_585": {
       "issue": 585,
       "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
-    },
-    "issue_588": {
-      "issue": 588,
-      "reason": "Held behind selected Issue #587 by single-WIP sequencing"
     },
     "issue_589": {
       "issue": 589,
@@ -113,11 +133,11 @@
     }
   },
   "current_boundary": {
-    "issue": 587,
-    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "IN_PROGRESS_PR_597_REBASE_REQUIRED"
+    "issue": 588,
+    "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
+    "status": "READY"
   },
-  "next_action": "Rebase PR #597 onto main b25ae18e196eb84fc56ae951003d0820a22dc579, rerun all required checks including Container Supply Chain, merge only GREEN, then reconcile #587 and advance to #588.",
+  "next_action": "Begin Issue #588 from current main after state reconciliation: retain the existing Energy persisted-history hook, replace route-local SVG history geometry with the canonical Chart System, add adaptive local date/time axes and exact nearest-real-point inspection, then prove zero acquisition mutations and offline-local rendering.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
