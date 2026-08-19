@@ -108,10 +108,7 @@
       "priority": "user_prioritized",
       "raspberry_pi_runtime_acceptance": "PASS",
       "backend_identity_role": "laboratory_technician",
-      "backend_identity_permissions": [
-        "nodes.read",
-        "telemetry.read"
-      ],
+      "backend_identity_permissions": ["nodes.read", "telemetry.read"],
       "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     },
     {
@@ -126,6 +123,19 @@
       "container_supply_chain": "PASS_32219772068",
       "core_ci": "PASS_32219771902",
       "telemetry_service": "PASS_32219771893"
+    },
+    {
+      "id": "NEXOLAB-611",
+      "issue": 611,
+      "pull_request": 612,
+      "title": "Stabilize terminal Live Data WebSocket retry acceptance",
+      "status": "completed_green_browser_readiness_reliability",
+      "priority": "high",
+      "merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+      "core_ci": "PASS_32242665739",
+      "authenticated_dashboard_acceptance": "PASS_32242665728",
+      "refrigeration_browser_acceptance": "PASS_32242665724",
+      "acquisition_scale": "PASS_32242665721"
     },
     {
       "id": "NEXOLAB-444",
@@ -188,19 +198,6 @@
       "authenticated_dashboard_acceptance": "PASS_32237282110",
       "refrigeration_browser_acceptance": "PASS_32237282106",
       "acquisition_scale": "PASS_32237282105"
-    },
-    {
-      "id": "NEXOLAB-611",
-      "issue": 611,
-      "pull_request": 612,
-      "title": "Stabilize terminal Live Data WebSocket retry acceptance",
-      "status": "completed_green_browser_readiness_reliability",
-      "priority": "high",
-      "merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
-      "core_ci": "PASS_32242665739",
-      "authenticated_dashboard_acceptance": "PASS_32242665728",
-      "refrigeration_browser_acceptance": "PASS_32242665724",
-      "acquisition_scale": "PASS_32242665721"
     }
   ],
   "active_work_package": {
@@ -240,10 +237,7 @@
     "issue_594_tool_count": 6,
     "issue_594_all_tools_read_only": true,
     "issue_594_backend_identity_role": "laboratory_technician",
-    "issue_594_backend_identity_permissions": [
-      "nodes.read",
-      "telemetry.read"
-    ],
+    "issue_594_backend_identity_permissions": ["nodes.read", "telemetry.read"],
     "issue_594_protected_nodes": "PASS",
     "issue_594_protected_node_status": "PASS",
     "issue_594_protected_latest": "PASS",
