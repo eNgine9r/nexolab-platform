@@ -73,13 +73,9 @@ function latestOption(instance: FakeEChartsInstance) {
 }
 
 describe("ECharts equipment-centric multi-axis rendering", () => {
-  it("binds stable axes and recreates only structural visibility changes", () => {
-    const instances: FakeEChartsInstance[] = [];
-    const init = vi.fn(() => {
-      const instance = new FakeEChartsInstance();
-      instances.push(instance);
-      return instance;
-    });
+  it("binds V/A/W series to stable axes and removes hidden axes without remounting", () => {
+    const instance = new FakeEChartsInstance();
+    const init = vi.fn(() => instance);
     const adapter = new EChartsRendererAdapter({ init } satisfies EChartsRuntimePort);
     const scene = mixedScene();
 
@@ -92,59 +88,66 @@ describe("ECharts equipment-centric multi-axis rendering", () => {
     });
     adapter.setScene(scene);
 
-    const initialInstance = instances.at(-1)!;
-    const initial = latestOption(initialInstance);
-    expect(initialInstance.calls.at(-1)?.option).toMatchObject({
-      aria: { enabled: true, decal: { show: true } },
-    });
+    const initial = latestOption(instance);
     expect(initial.yAxis).toHaveLength(3);
     for (const sourceSeries of scene.series) {
       const rendered = initial.series.find((series) => series.name === sourceSeries.name);
       expect(rendered?.yAxisId).toBe(chartYAxisId(sourceSeries.identity));
     }
+    expect(instance.calls.at(-1)?.options).toMatchObject({ replaceMerge: ["series", "yAxis"] });
 
     adapter.setScene({
       ...scene,
       series: scene.series.map((series, index) => ({ ...series, visible: index !== 1 })),
     });
-    const hiddenInstance = instances.at(-1)!;
-    expect(init).toHaveBeenCalledTimes(2);
-    expect(initialInstance.disposeCount).toBe(1);
-    expect(hiddenInstance.calls.at(-1)?.options).toEqual({ notMerge: true, lazyUpdate: false });
-    expect(latestOption(hiddenInstance).yAxis.map((axis) => axis.id)).not.toContain(
+    expect(latestOption(instance).yAxis.map((axis) => axis.id)).not.toContain(
       chartYAxisId(scene.series[1].identity),
     );
 
     adapter.setScene(scene);
-    const restoredInstance = instances.at(-1)!;
-    expect(init).toHaveBeenCalledTimes(3);
-    expect(hiddenInstance.disposeCount).toBe(1);
-    expect(latestOption(restoredInstance).yAxis.map((axis) => axis.id)).toEqual(
-      initial.yAxis.map((axis) => axis.id),
-    );
-
-    adapter.setScene({
-      ...scene,
-      series: scene.series.map((series) => ({ ...series, freshness: "stale" as const })),
-    });
-    expect(init).toHaveBeenCalledTimes(3);
-    expect(restoredInstance.calls.at(-1)?.options).toEqual({
-      notMerge: false,
-      lazyUpdate: false,
-      replaceMerge: ["series", "yAxis"],
-    });
+    expect(latestOption(instance).yAxis.map((axis) => axis.id)).toEqual(initial.yAxis.map((axis) => axis.id));
 
     adapter.setScene({
       ...scene,
       series: scene.series.map((series, index) => ({ ...series, visible: index === 2 })),
     });
-    const soloInstance = instances.at(-1)!;
-    expect(init).toHaveBeenCalledTimes(4);
-    expect(restoredInstance.disposeCount).toBe(1);
-    expect(latestOption(soloInstance).yAxis.map((axis) => axis.id)).toEqual([
+    expect(latestOption(instance).yAxis.map((axis) => axis.id)).toEqual([
       chartYAxisId(scene.series[2].identity),
     ]);
-    expect(latestOption(soloInstance).series).toHaveLength(1);
+    expect(latestOption(instance).series).toHaveLength(1);
     expect(chartSeriesKey(scene.series[2].identity)).toContain("power");
+    expect(init).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps renderer geometry valid when the last logical series is hidden", () => {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = mixedScene();
+
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene({
+      ...scene,
+      series: [
+        {
+          ...scene.series[0],
+          visible: false,
+        },
+      ],
+    });
+
+    const option = instance.calls.at(-1)!.option as {
+      yAxis: Array<{ id: string; show?: boolean }>;
+      series: unknown[];
+    };
+    expect(option.series).toHaveLength(0);
+    expect(option.yAxis).toEqual([
+      expect.objectContaining({ id: "__nexolab-empty-axis__", show: false }),
+    ]);
   });
 });

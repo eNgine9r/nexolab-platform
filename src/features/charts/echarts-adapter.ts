@@ -110,14 +110,6 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
   };
 }
 
-function rendererStructureKey(scene: ChartRendererScene): string {
-  const axisModel = buildChartYAxisModel(scene.series);
-  return JSON.stringify({
-    axes: axisModel.visibleAxes.map((axis) => axis.id),
-    series: scene.series.filter((series) => series.visible).map((series) => chartSeriesKey(series.identity)),
-  });
-}
-
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
   const visibleSeries = scene.series.filter((series) => series.visible);
   const axisModel = buildChartYAxisModel(scene.series);
@@ -274,24 +266,35 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
       },
       splitLine: { show: true, lineStyle: { color: "rgba(148,163,184,.10)" } },
     },
-    yAxis: axisModel.visibleAxes.map((axis, visibleIndex) => ({
-      id: axis.id,
-      type: "value" as const,
-      scale: true,
-      position: axis.position,
-      offset: axis.offset,
-      name: axis.nativeUnit,
-      nameLocation: "middle" as const,
-      nameGap: 38,
-      nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },
-      axisLine: { show: true, lineStyle: { color: "rgba(148,163,184,.42)" } },
-      axisTick: { show: true },
-      axisLabel: { color: "#94A3B8", hideOverlap: true },
-      splitLine: {
-        show: visibleIndex === 0,
-        lineStyle: { color: "rgba(148,163,184,.10)" },
-      },
-    })),
+    yAxis:
+      axisModel.visibleAxes.length > 0
+        ? axisModel.visibleAxes.map((axis, visibleIndex) => ({
+            id: axis.id,
+            type: "value" as const,
+            scale: true,
+            position: axis.position,
+            offset: axis.offset,
+            name: axis.nativeUnit,
+            nameLocation: "middle" as const,
+            nameGap: 38,
+            nameTextStyle: { color: "#CBD5E1", fontWeight: 600 },
+            axisLine: { show: true, lineStyle: { color: "rgba(148,163,184,.42)" } },
+            axisTick: { show: true },
+            axisLabel: { color: "#94A3B8", hideOverlap: true },
+            splitLine: {
+              show: visibleIndex === 0,
+              lineStyle: { color: "rgba(148,163,184,.10)" },
+            },
+          }))
+        : [
+            {
+              id: "__nexolab-empty-axis__",
+              type: "value" as const,
+              show: false,
+              min: 0,
+              max: 1,
+            },
+          ],
     dataZoom: [
       {
         type: "inside",
@@ -311,38 +314,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private scene: ChartRendererScene | null = null;
   private options: ChartRendererInitOptions | null = null;
   private maximumLivePoints = 240;
-  private structureKey: string | null = null;
-  private sharedCursorMs: number | null = null;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
-
-  private bindInstance(instance: EChartsInstancePort): void {
-    instance.on("updateAxisPointer", this.handleAxisPointer);
-    instance.on("dataZoom", this.handleDataZoom);
-  }
-
-  private unbindInstance(instance: EChartsInstancePort): void {
-    instance.off("updateAxisPointer", this.handleAxisPointer);
-    instance.off("dataZoom", this.handleDataZoom);
-  }
-
-  private createInstance(): EChartsInstancePort {
-    if (!this.container || !this.options) {
-      throw new Error("Chart renderer host must be initialized before creating an instance");
-    }
-    const instance = this.runtime.init(this.container, this.options.renderer);
-    this.bindInstance(instance);
-    return instance;
-  }
-
-  private replaceInstance(): void {
-    const current = this.instance;
-    if (current && !current.isDisposed()) {
-      this.unbindInstance(current);
-      current.dispose();
-    }
-    this.instance = this.createInstance();
-  }
 
   private readonly handleContainerPointer = (event: MouseEvent) => {
     if (!this.scene || !this.instance || !this.container) return;
@@ -380,31 +353,21 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.options = options;
     this.maximumLivePoints = options.maximumLivePoints ?? 240;
     this.container = options.container;
-    this.instance = this.createInstance();
+    this.instance = this.runtime.init(options.container, options.renderer);
+    this.instance.on("updateAxisPointer", this.handleAxisPointer);
+    this.instance.on("dataZoom", this.handleDataZoom);
     this.container.addEventListener("mousemove", this.handleContainerPointer);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
   }
 
   setScene(scene: ChartRendererScene): void {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
-    const nextStructureKey = rendererStructureKey(scene);
-    const structureChanged = this.structureKey !== null && this.structureKey !== nextStructureKey;
     this.scene = scene;
-    if (structureChanged) this.replaceInstance();
-    this.instance.setOption(
-      rendererOption(scene, this.options?.reducedMotion ?? false),
-      structureChanged
-        ? { notMerge: true, lazyUpdate: false }
-        : { notMerge: false, lazyUpdate: false, replaceMerge: ["series", "yAxis"] },
-    );
-    this.structureKey = nextStructureKey;
-    if (this.sharedCursorMs !== null) {
-      this.instance.dispatchAction({
-        type: "updateAxisPointer",
-        xAxisIndex: 0,
-        value: this.sharedCursorMs,
-      });
-    }
+    this.instance.setOption(rendererOption(scene, this.options?.reducedMotion ?? false), {
+      notMerge: false,
+      lazyUpdate: false,
+      replaceMerge: ["series", "yAxis"],
+    });
   }
 
   appendLiveTail(seriesKey: string, additions: readonly { segmentId: string; point: ChartPoint }[]): void {
@@ -449,7 +412,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   }
 
   setSharedCursor(timestampMs: number | null): void {
-    this.sharedCursorMs = timestampMs;
     if (!this.instance) return;
     if (timestampMs === null) {
       this.instance.dispatchAction({ type: "hideTip" });
@@ -477,7 +439,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   dispose(): void {
     if (!this.instance) return;
-    this.unbindInstance(this.instance);
+    this.instance.off("updateAxisPointer", this.handleAxisPointer);
+    this.instance.off("dataZoom", this.handleDataZoom);
     this.container?.removeEventListener("mousemove", this.handleContainerPointer);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
     this.instance.dispose();
@@ -485,8 +448,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container = null;
     this.scene = null;
     this.options = null;
-    this.structureKey = null;
-    this.sharedCursorMs = null;
   }
 
   isDisposed(): boolean {
