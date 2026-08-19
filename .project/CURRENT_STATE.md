@@ -4,7 +4,7 @@ Updated: 2026-08-19
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline on `main` is `84584640246f8985c0c303654def99365c8458c4`, the squash merge of PR #593 — **feat: add read-only NEXOLAB MCP gateway**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
+Accepted product-code baseline on `main` is `62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7`, the squash merge of PR #602 — **feat: migrate Energy history to canonical chart system**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
@@ -126,11 +126,24 @@ Exact-head #612 gates on `60bc5ac749abe52107d358b85e4302f29f6d46be`:
 
 No product runtime, acquisition, database, dependency, Modbus or hardware behavior changed.
 
+## Issue #588 — complete
+
+Issue #588 is closed. PR #602 merged GREEN as `62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7` after the Energy history surface was migrated to the canonical NEXOLAB Chart System. The final implementation preserves persisted history and real gaps, adds adaptive date/time axes, unit-aware Y axes, exact pointer/keyboard inspection and deterministic visible-series handling without changing acquisition behavior.
+
+Exact-head `0da49e2ac1037efab78367cf76e201ce5a5133a4` gates:
+
+- Core CI `32246136302`: PASS;
+- Refrigeration Browser Acceptance `32246136115`: PASS;
+- Authenticated Dashboard Acceptance `32246136164`: PASS after rerun of an unrelated Equipment URL-filter timing failure;
+- Offline Bundle `32246136097`: PASS.
+
+Local Raspberry Pi worktree checks on the exact branch content also passed `format:check`, lint, typecheck and 18 focused chart/energy tests. The diff contains no package/lockfile, service, infrastructure, script or workflow changes. No acquisition mutation, Modbus write, hardware write, dependency upgrade or mandatory cloud runtime dependency was introduced.
+
 ## Current execution boundary
 
-Active Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**, PR #602. CI bootstrap #608 and stale Live retry evidence #611 are both resolved on `main`; #602 remains responsible only for its Energy/chart product surface and must rerun exact-head gates against current `main` before merge.
+Next Ready Work Package: **Issue #604 — Evolve Equipment Registry into a scalable operator workspace**.
 
-Product Owner reprioritization after #588 is recorded as **#604 → #605 → #606** for the Equipment workspace. The planned dual-RS-485 architecture is **#607** and must be coordinated before #589 finalizes cadence/capacity assumptions. The resulting planned sequence is **#588 → #604 → #605 → #606 → #607 → #589 → #590**.
+Product Owner priority remains **#604 → #605 → #606**, followed by dual-RS-485 architecture **#607** before cadence/capacity #589 and Settings controls #590. The resulting planned sequence is **#604 → #605 → #606 → #607 → #589 → #590**.
 
 Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized by this planning state.
 

@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "84584640246f8985c0c303654def99365c8458c4",
-  "accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
-  "last_reconciled_repository_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+  "repository_product_baseline_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+  "accepted_product_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+  "last_reconciled_repository_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 588,
-    "selection_status": "in_progress",
-    "ready_issue_count": 0,
-    "reason": "Issue #588 / PR #602 remains the active single-WIP package. CI bootstrap #608 and stale Live retry evidence #611 are merged GREEN. Product Owner reprioritized the post-#588 queue to Equipment #604 -> #605 -> #606, then dual-RS-485 architecture #607 before cadence #589/#590."
+    "selected_issue": 604,
+    "selection_status": "ready",
+    "ready_issue_count": 1,
+    "reason": "Issue #588 / PR #602 merged GREEN with canonical Energy chart rendering, exact cursor inspection, acquisition-invariant browser acceptance and disconnected Offline Bundle all PASS. Product Owner explicitly prioritized #604 next; #605/#606 follow, then #607 before #589/#590. Issue #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -81,9 +81,15 @@
       "id": "NEXOLAB-588",
       "issue": 588,
       "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-      "status": "in_progress",
+      "status": "completed_software_ci_browser_and_offline_acceptance",
       "priority": "high",
-      "pull_request": 602
+      "pull_request": 602,
+      "merge_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+      "exact_head_sha": "0da49e2ac1037efab78367cf76e201ce5a5133a4",
+      "core_ci": "PASS_32246136302",
+      "refrigeration_browser_acceptance": "PASS_32246136115",
+      "authenticated_dashboard_acceptance": "PASS_32246136164",
+      "offline_bundle": "PASS_32246136097"
     },
     {
       "id": "NEXOLAB-589",
@@ -162,7 +168,7 @@
       "id": "NEXOLAB-604",
       "issue": 604,
       "title": "Evolve Equipment Registry into a scalable operator workspace",
-      "status": "queued_after_588_user_prioritized",
+      "status": "ready",
       "priority": "high"
     },
     {
@@ -201,19 +207,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 588,
-    "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-    "type": "energy_canonical_chart_migration",
-    "status": "in_progress",
-    "pull_request": 602
+    "issue": 604,
+    "title": "Evolve Equipment Registry into a scalable operator workspace",
+    "type": "equipment_registry_operator_workspace",
+    "status": "ready"
   },
   "next_work_package": {
     "issue": 604,
     "title": "Evolve Equipment Registry into a scalable operator workspace",
-    "status": "queued_after_588_user_prioritized"
+    "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
+    "repository_accepted_product_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -231,7 +236,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
+    "repository_state_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -272,7 +277,16 @@
     "issue_611_refrigeration_browser_acceptance": "PASS_32242665724",
     "issue_611_acquisition_scale": "PASS_32242665721",
     "issue_611_live_requires_fresh_sample": true,
-    "issue_611_dashboard_trigger_covers_retry_test": true
+    "issue_611_dashboard_trigger_covers_retry_test": true,
+    "issue_588_merge_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+    "issue_588_exact_head_sha": "0da49e2ac1037efab78367cf76e201ce5a5133a4",
+    "issue_588_core_ci": "PASS_32246136302",
+    "issue_588_refrigeration_browser_acceptance": "PASS_32246136115",
+    "issue_588_authenticated_dashboard_acceptance": "PASS_32246136164",
+    "issue_588_offline_bundle": "PASS_32246136097",
+    "issue_588_acquisition_mutations": 0,
+    "issue_588_modbus_writes": 0,
+    "issue_588_runtime_dependency_changes": 0
   },
   "independent_pending_lanes": [
     {
@@ -301,11 +315,11 @@
     },
     {
       "issue": 588,
-      "status": "in_progress"
+      "status": "completed"
     },
     {
       "issue": 604,
-      "status": "queued_after_588_user_prioritized"
+      "status": "ready"
     },
     {
       "issue": 605,
