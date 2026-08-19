@@ -113,9 +113,22 @@ Exact-head #609 gates on `6ee2919d784048bf737e6d6f67427a08be0a228d`:
 
 No application runtime, dependency version, database, acquisition, Modbus or hardware behavior changed.
 
+## Issue #611 — complete browser-readiness reliability interrupt
+
+Issue #611 is closed `status:done`. PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. The terminal Live Data retry acceptance no longer treats an aged seed sample as proof of a live stream: it first proves exactly one routed WebSocket transport, publishes a fresh local telemetry sample, and only then asserts the truthful Live UI state. The Authenticated Dashboard workflow now also triggers whenever this acceptance file changes.
+
+Exact-head #612 gates on `60bc5ac749abe52107d358b85e4302f29f6d46be`:
+
+- Core CI `32242665739`: PASS;
+- Authenticated Dashboard Acceptance `32242665728`: PASS;
+- Refrigeration Browser Acceptance `32242665724`: PASS;
+- Acquisition Scale Acceptance `32242665721`: PASS.
+
+No product runtime, acquisition, database, dependency, Modbus or hardware behavior changed.
+
 ## Current execution boundary
 
-Active Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**, PR #602. The CI reliability blocker from #608 is removed; #602 must now be updated onto current `main` and rerun exact-head gates before merge.
+Active Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**, PR #602. CI bootstrap #608 and stale Live retry evidence #611 are both resolved on `main`; #602 remains responsible only for its Energy/chart product surface and must rerun exact-head gates against current `main` before merge.
 
 Product Owner reprioritization after #588 is recorded as **#604 → #605 → #606** for the Equipment workspace. The planned dual-RS-485 architecture is **#607** and must be coordinated before #589 finalizes cadence/capacity assumptions. The resulting planned sequence is **#588 → #604 → #605 → #606 → #607 → #589 → #590**.
 
