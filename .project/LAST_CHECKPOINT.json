@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T11:24:32Z",
+  "timestamp": "2026-08-19T14:14:15Z",
   "actor": "ChatGPT",
-  "event": "issue_588_merged_ready_issue_604",
-  "repository_main_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+  "event": "issue_604_implementation_verified_pr_pending",
+  "repository_main_sha": "343efd69d9340c65ed908b20123d017f1e2d4871",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -57,6 +57,28 @@
       "modbus_writes": 0,
       "runtime_changed": false,
       "hardware_changed": false
+    },
+    "issue_604": {
+      "issue": 604,
+      "status": "IMPLEMENTED_LOCAL_GREEN_PR_PENDING",
+      "branch": "feat/604-equipment-workspace",
+      "exact_implementation_sha": "ad06911d",
+      "backend_endpoint_added": false,
+      "final_local_gates": {
+        "format_check": "PASS",
+        "lint": "PASS",
+        "typecheck": "PASS",
+        "unit_tests": "PASS_513_OF_513",
+        "production_build": "PASS",
+        "equipment_registry_browser_acceptance": "PASS",
+        "acquisition_invariant_browser_acceptance": "PASS_3_OF_3"
+      },
+      "equipment_browser_evidence": "runtime/evidence/issue-604-equipment-registry",
+      "acquisition_invariant_evidence": "runtime/evidence/issue-604-acquisition-invariant",
+      "acquisition_mutations": 0,
+      "modbus_writes": 0,
+      "runtime_changed": false,
+      "hardware_changed": false
     }
   },
   "blocked_work": {
@@ -66,7 +88,7 @@
     },
     "issue_605": {
       "issue": 605,
-      "reason": "Depends on #604 Equipment workspace"
+      "reason": "Depends on #604 GREEN merge; #604 implementation is locally verified and PR/CI pending"
     },
     "issue_606": {
       "issue": 606,
@@ -84,9 +106,9 @@
   "current_boundary": {
     "issue": 604,
     "title": "Evolve Equipment Registry into a scalable operator workspace",
-    "status": "READY"
+    "status": "IMPLEMENTATION_COMPLETE_PR_CI_PENDING"
   },
-  "next_action": "Begin Issue #604 from current main as the sole implementation WIP: measure Equipment Registry scale/fan-out first, then implement the evidence-backed operator workspace within permitted directories and preserve zero acquisition mutation/offline-first behavior.",
+  "next_action": "Commit project-state reconciliation for #604, push feat/604-equipment-workspace, open the focused PR, verify all required CI, merge only when GREEN, then re-audit and begin #605 if it becomes Ready.",
   "planned_queue": [604, 605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -95,5 +117,8 @@
     "volume_deletion": "none",
     "mandatory_public_runtime_dependency": "none",
     "dual_rs485_cutover_authorized": false
+  },
+  "known_non_blocking_issues": {
+    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; explicit lowercase override proves #604 gates."
   }
 }
