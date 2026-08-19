@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
-  "accepted_product_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
-  "last_reconciled_repository_sha": "343efd69d9340c65ed908b20123d017f1e2d4871",
+  "repository_product_baseline_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+  "accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+  "last_reconciled_repository_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 604,
-    "selection_status": "implementation_complete_pr_pending",
-    "ready_issue_count": 0,
-    "reason": "Issue #604 implementation is complete and locally GREEN on commit ad06911d, including large-inventory Equipment browser acceptance and acquisition-invariant browser acceptance. PR/CI remain before merge; #605 stays dependency-blocked until #604 merges."
+    "selected_issue": 605,
+    "selection_status": "ready",
+    "ready_issue_count": 1,
+    "reason": "Issue #604 / PR #616 merged GREEN as f1d13bc2 after Core CI, Refrigeration Browser Acceptance and Offline Bundle passed. Repository/GitHub audit confirms #605 is the sole status:ready product Work Package; #606 remains dependent on #605, #585 remains blocked on physical handback."
   },
   "tasks": [
     {
@@ -168,26 +168,32 @@
       "id": "NEXOLAB-604",
       "issue": 604,
       "title": "Evolve Equipment Registry into a scalable operator workspace",
-      "status": "implementation_complete_local_green_pr_pending",
+      "status": "completed_software_ci_browser_and_offline_acceptance",
       "priority": "high",
       "exact_implementation_sha": "ad06911d",
       "focused_equipment_browser_acceptance": "PASS",
       "acquisition_invariant_browser_acceptance": "PASS_3_OF_3",
       "full_unit_tests": "PASS_513_OF_513",
-      "production_build": "PASS"
+      "production_build": "PASS",
+      "pull_request": 616,
+      "merge_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+      "exact_head_sha": "94bfbeb141fe4abb12b393d7c7fdc4fd6aa05237",
+      "core_ci": "PASS_32263137097",
+      "refrigeration_browser_acceptance": "PASS_32263134788",
+      "offline_bundle": "PASS_32263135467"
     },
     {
       "id": "NEXOLAB-605",
       "issue": 605,
       "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-      "status": "blocked_dependency_604",
+      "status": "ready",
       "priority": "high"
     },
     {
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "blocked_dependencies_604_605",
+      "status": "blocked_dependency_605",
       "priority": "high"
     },
     {
@@ -212,18 +218,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 604,
-    "title": "Evolve Equipment Registry into a scalable operator workspace",
-    "type": "equipment_registry_operator_workspace",
-    "status": "implementation_complete_pr_pending"
+    "issue": 605,
+    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
+    "type": "permissioned_equipment_metadata_editing",
+    "status": "ready"
   },
   "next_work_package": {
     "issue": 605,
     "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "status": "blocked_dependency_604_merge"
+    "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+    "repository_accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -241,7 +247,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
+    "repository_state_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -306,7 +312,12 @@
     "issue_604_backend_endpoint_added": false,
     "issue_604_equipment_evidence": "runtime/evidence/issue-604-equipment-registry",
     "issue_604_acquisition_evidence": "runtime/evidence/issue-604-acquisition-invariant",
-    "issue_615_acceptance_runner_bug": "OPEN_NON_BLOCKING"
+    "issue_615_acceptance_runner_bug": "OPEN_NON_BLOCKING",
+    "issue_604_merge_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+    "issue_604_exact_head_sha": "94bfbeb141fe4abb12b393d7c7fdc4fd6aa05237",
+    "issue_604_core_ci": "PASS_32263137097",
+    "issue_604_refrigeration_browser_acceptance": "PASS_32263134788",
+    "issue_604_offline_bundle": "PASS_32263135467"
   },
   "independent_pending_lanes": [
     {
@@ -339,15 +350,15 @@
     },
     {
       "issue": 604,
-      "status": "implementation_complete_pr_pending"
+      "status": "completed"
     },
     {
       "issue": 605,
-      "status": "blocked_dependency_604_merge"
+      "status": "ready"
     },
     {
       "issue": 606,
-      "status": "blocked_dependencies_604_605"
+      "status": "blocked_dependency_605"
     },
     {
       "issue": 607,
