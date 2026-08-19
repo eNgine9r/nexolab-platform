@@ -83,7 +83,6 @@ export function ChartRendererHost({
 
   return (
     <div
-      ref={containerRef}
       className="h-[320px] min-h-64 w-full min-w-0"
       data-testid="chart-renderer-host"
       role="application"
@@ -91,6 +90,8 @@ export function ChartRendererHost({
       aria-keyshortcuts="ArrowLeft ArrowRight Home End Escape"
       onKeyDown={inspectWithKeyboard}
       tabIndex={0}
-    />
+    >
+      <div ref={containerRef} className="h-full w-full min-w-0" data-testid="chart-renderer-surface" />
+    </div>
   );
 }
