@@ -144,7 +144,13 @@ done
 
 cd "$ROOT_DIR"
 npm install --no-audit --no-fund
-if [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
+if [[ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]]; then
+  if [[ ! -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" ]]; then
+    printf 'Configured Playwright browser is not executable: %s\n' "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" >&2
+    exit 1
+  fi
+  printf 'Using preinstalled Playwright browser: %s\n' "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
+elif [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
   npx playwright install --with-deps chromium
 else
   npx playwright install chromium
