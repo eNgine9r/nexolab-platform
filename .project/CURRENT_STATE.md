@@ -157,13 +157,43 @@ Final verification included:
 
 No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime deployment or mandatory cloud dependency changed. Issue #615 separately tracks the non-blocking default Compose project-name defect in the authenticated-dashboard runner.
 
+## Issue #605 — implementation complete, CI-blocked
+
+Issue #605 implementation is published as draft PR #621 from `feat/605-equipment-metadata-editing`, exact head `71ce5cf4c1a25f77f841dbf6162fdc3605643923`. Local backend/frontend/browser verification for the scoped metadata workflow is complete, including zero acquisition-registry mutations and protected transport identity checks.
+
+PR #621 cannot merge while required checks are red. The two blocking failures reproduce on exact `main` and are tracked separately:
+
+- #620 breaks Core CI `Quality and build` through date-drifting persisted Live Dashboard unit fixtures;
+- #619 breaks Authenticated Dashboard Acceptance through the repeated-navigation bounded read-model assertion.
+
+Issue #605 is therefore `status:blocked` only on repository-baseline CI reliability prerequisites; its focused product diff remains isolated.
+
+## Issue #620 — active CI reliability interrupt
+
+Exact-main reproduction proved the persisted Live Dashboard tests were tied to fixed `2026-08-18` telemetry while the `24h` preset correctly anchors to real current time. Once wall-clock time moved beyond that fixture window, persisted samples were truthfully filtered and the live-tail event appeared stale/out-of-window.
+
+The scoped repair freezes only `Date` inside `use-live-dashboard-telemetry.test.ts` at the fixture anchor. Production range, history and reconciliation logic are unchanged. Local verification on the #620 branch currently passes:
+
+- focused hook test twice: 2/2 PASS each run;
+- `npm run typecheck`: PASS;
+- touched ESLint: PASS;
+- `npm run format:check`: PASS;
+- `npm test`: 113 files / 513 tests PASS, including lint-staged regression;
+- `npm run build`: PASS with a normal local dependency tree.
+
+## Reliability findings #618 and #619
+
+Issue #618 tracks a Saved Dashboard CSV browser-download acceptance defect that reproduces on exact `main` locally. It did not fail PR #621 GitHub Authenticated Dashboard run and is not the immediate dependency for #605.
+
+Issue #619 is `status:ready` and is the next CI reliability prerequisite after #620. PR #621 Authenticated Dashboard Acceptance completed 15/16 tests and failed only the repeated-navigation active-alert read bound (`expected 1, received 2`). Exact-main focused navigation acceptance is also unstable, so #619 remains isolated from #605.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
+Active Work Package: **Issue #620 — Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests**. This is a CI reliability interrupt required to restore Core CI on exact `main`.
 
-Repository/GitHub audit after #604 confirms #605 as the sole Ready product Work Package. #606 remains blocked on #605; dual-RS-485 architecture #607 follows the Equipment lane before cadence/capacity #589 and Settings controls #590. Planned sequence is now **#605 → #606 → #607 → #589 → #590**.
+Dependency sequence is **#620 → #619 → resume #605 / PR #621 → #606 → #607 → #589 → #590**. Issue #618 remains a separate high-priority Saved Dashboard export reliability lane and must not be mixed into the #620/#619 fixes.
 
-Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized by this planning state.
+Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized.
 
 ## Safety boundaries
 
