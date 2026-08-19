@@ -56,14 +56,7 @@
     "status": "IN_PROGRESS"
   },
   "next_action": "Update PR #602 onto current main containing #609 CI bootstrap repair, rerun exact-head Core CI/browser/offline gates, merge only if GREEN, reconcile #588 state, then begin user-prioritized Issue #604.",
-  "planned_queue": [
-    604,
-    605,
-    606,
-    607,
-    589,
-    590
-  ],
+  "planned_queue": [604, 605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

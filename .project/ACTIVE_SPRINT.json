@@ -108,10 +108,7 @@
       "priority": "user_prioritized",
       "raspberry_pi_runtime_acceptance": "PASS",
       "backend_identity_role": "laboratory_technician",
-      "backend_identity_permissions": [
-        "nodes.read",
-        "telemetry.read"
-      ],
+      "backend_identity_permissions": ["nodes.read", "telemetry.read"],
       "merge_sha": "b46e518f8769f83ba22c608bacd5a368776e1701"
     },
     {
@@ -227,10 +224,7 @@
     "issue_594_tool_count": 6,
     "issue_594_all_tools_read_only": true,
     "issue_594_backend_identity_role": "laboratory_technician",
-    "issue_594_backend_identity_permissions": [
-      "nodes.read",
-      "telemetry.read"
-    ],
+    "issue_594_backend_identity_permissions": ["nodes.read", "telemetry.read"],
     "issue_594_protected_nodes": "PASS",
     "issue_594_protected_node_status": "PASS",
     "issue_594_protected_latest": "PASS",
