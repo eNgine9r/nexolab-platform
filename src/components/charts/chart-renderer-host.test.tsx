@@ -96,5 +96,4 @@ describe("ChartRendererHost", () => {
     expect(adapter.setSharedCursor).toHaveBeenLastCalledWith(null);
     expect(onCursor).toHaveBeenLastCalledWith(null);
   });
-
 });
