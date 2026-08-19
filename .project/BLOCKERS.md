@@ -36,10 +36,27 @@ PR #593 merged GREEN as `b46e518f8769f83ba22c608bacd5a368776e1701`. Dedicated MC
 
 Persistent MCP service enablement, production credential relocation, and any external tunnel/reverse-proxy exposure remain separate production/site cutover actions requiring their own approval; they are not part of the merged implementation.
 
+## Issue #608 — complete CI reliability interrupt
+
+PR #609 merged GREEN as `3e13800f413eb2255b992b6ff9f3aec935acf602`. The blocking Playwright `--with-deps` / Ubuntu APT bootstrap dependency is removed from Authenticated Dashboard and Refrigeration Browser acceptance. There is no remaining #608 blocker.
+
+## Planned post-#588 product queue
+
+- #604 scalable Equipment workspace — Product Owner prioritized immediately after #588;
+- #605 permissioned equipment metadata editing — depends on #604;
+- #606 read-only LOCAL_LAN discovery/adoption inbox — depends on stable Equipment workspace and editing/adoption boundaries;
+- #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589 cadence/capacity is finalized; hardware installation/cutover remains unapproved;
+- #589 persisted cadence/capacity — held behind current WIP, user-prioritized Equipment lane and #607 bus-aware architecture;
+- #590 Settings cadence controls — blocked on #589.
+
 ## Deferred software lanes
 
-- #588 Energy Monitoring chart parity — Ready and selected next;
-- #589 persisted acquisition cadence/capacity validation — held behind the active single-WIP sequence;
+- #588 Energy Monitoring chart parity — active in PR #602;
+- #604 Equipment workspace — queued immediately after #588 by Product Owner priority;
+- #605 Equipment metadata editing — blocked on #604;
+- #606 LOCAL_LAN discovery inbox — blocked on #604/#605 boundaries;
+- #607 dual RS-485 KK1/KK2 architecture — queued before #589;
+- #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;
 
 ## Remaining evidence lanes
