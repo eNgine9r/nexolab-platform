@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 ## Repository and runtime baseline
 
@@ -64,13 +64,29 @@ Real Raspberry Pi acceptance on `nexolab-edge-01` proved:
 
 PR #593 merged GREEN as `b46e518f8769f83ba22c608bacd5a368776e1701` and Issue #594 is closed `status:done`. Persistent systemd enablement, external tunnel/reverse-proxy exposure and production credential relocation remain a separate cutover decision.
 
+## Issue #598 — container supply-chain baseline restored
+
+Issue #598 is closed `status:done`. PR #599 merged GREEN as `b25ae18e196eb84fc56ae951003d0820a22dc579`.
+
+A fresh Container Supply Chain scan surfaced HIGH `CVE-2026-14456` in Debian 13 OpenSSL packages used by Device Agent and telemetry-service. Debian describes the affected path as an OpenSSL QUIC server listener pending-connection exhaustion path. Repository/runtime audit proved neither NEXOLAB image creates a QUIC/HTTP3 listener or accepts QUIC Initial packets.
+
+The repository's existing HIGH/no-fix policy was used without weakening global gates: four exact image/package/CVE decisions were added, owned by `platform-security`, expiring **2026-08-26**. Wildcards, Critical exceptions, `ignore-unfixed`, dependency changes and runtime changes remain forbidden.
+
+Exact PR #599 gates:
+
+- Core CI `32219771902`: PASS;
+- Telemetry Service `32219771893`: PASS;
+- Container Supply Chain `32219772068`: PASS.
+
+No application runtime, dependency version, database, deployment, Modbus or hardware behavior changed.
+
 ## Current execution boundary
 
-GitHub currently has **zero** open `status:ready` Issues. **Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards** is already `status:in-progress`; its architecture-decision checkpoint is recorded and no PR is open yet.
+**Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards** is again `status:in-progress`. PR #597 is open and must now be rebased onto repository `main` `b25ae18e196eb84fc56ae951003d0820a22dc579` so the repaired supply-chain policy is part of its exact head.
 
-Issue #587 remains the active Work Package to continue. It must consume the canonical complete-history/reconciliation foundation merged by #586, keep range/export state presentation-only, generate CSV from persisted telemetry rather than rendered/browser memory, and preserve the acquisition invariant.
+Before the security prerequisite appeared, PR #597 had already passed Core CI, Telemetry Service, Authenticated Dashboard Acceptance, Offline Bundle, Acquisition Scale, Device Agent Fleet and the other completed runtime gates; the only failed release gate was the newly surfaced CVE baseline. No merge is authorized until the rebased PR head reruns and all required checks are GREEN.
 
-Issue #594 / PR #593 is complete and merged.
+Issue #588 remains next in sequence only after #587 is GREEN merged and reconciled. Issue #585 remains independently blocked on physical handback.
 
 ## Safety boundaries
 

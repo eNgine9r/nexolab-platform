@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 ## Issue #584 — complete
 
@@ -16,11 +16,17 @@ The 2026-08-21 through 2026-08-23 review window is a review window only; it is n
 
 PR #592 merged GREEN as `75c6f5471d77d781b124fbd40c33ba924aec26f8`. Browser-closed Raspberry Pi evidence, Core CI, Authenticated Dashboard Acceptance and Offline Bundle are all PASS. There is no remaining #586 blocker.
 
-## Issue #587 — in progress
+## Issue #598 — complete security prerequisite
 
-Saved Live Dashboard complete persisted ranges and CSV export is the current `status:in-progress` Work Package. Its dependency on #586 is satisfied; GitHub currently has zero open `status:ready` Issues.
+PR #599 merged GREEN as `b25ae18e196eb84fc56ae951003d0820a22dc579`. Container Supply Chain `32219772068`, Core CI `32219771902` and Telemetry Service `32219771893` all PASS. The exact CVE-2026-14456 decisions expire 2026-08-26 and must be removed earlier if Debian publishes a fixed package or QUIC runtime reachability changes.
 
-It must reuse the canonical complete-history/reconciliation path, keep range/export actions read-only with respect to acquisition, and generate CSV from persisted telemetry rather than reduced chart/browser memory.
+There is no remaining #598 blocker.
+
+## Issue #587 — in progress, unblocked
+
+Saved Live Dashboard complete persisted ranges and CSV export is again the current `status:in-progress` Work Package. PR #597 must be rebased onto the #598 merge and rerun. The dependency/security blocker is removed, but merge remains forbidden until the rebased exact head is fully GREEN.
+
+It must continue to reuse the canonical complete-history/reconciliation path, keep range/export actions read-only with respect to acquisition, and generate CSV from persisted telemetry rather than reduced chart/browser memory.
 
 ## Issue #594 — complete
 
