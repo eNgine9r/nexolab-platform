@@ -60,7 +60,9 @@ export default defineConfig({
       testMatch: "equipment-registry.production.e2e.ts",
       use: {
         ...devices["Desktop Chrome"],
-        ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
+        ...(browserExecutablePath
+          ? { launchOptions: { executablePath: browserExecutablePath } }
+          : {}),
       },
     },
     {
@@ -69,7 +71,9 @@ export default defineConfig({
       dependencies: ["equipment-registry-production"],
       use: {
         ...devices["Desktop Chrome"],
-        ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
+        ...(browserExecutablePath
+          ? { launchOptions: { executablePath: browserExecutablePath } }
+          : {}),
       },
     },
   ],
