@@ -65,7 +65,6 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: nexolab-dashboard-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
       NEXOLAB_DASHBOARD_EVIDENCE_DIR: dashboard-acceptance-evidence
-      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
       HUSKY: "0"
 
     steps:
@@ -79,6 +78,13 @@ jobs:
         with:
           package-manager-cache: false
           node-version-file: .nvmrc
+
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Run authenticated dashboard and acquisition invariant acceptance
         run: bash scripts/run-acquisition-invariant-browser-acceptance.sh
