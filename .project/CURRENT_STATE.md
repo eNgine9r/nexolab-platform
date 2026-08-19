@@ -4,7 +4,7 @@ Updated: 2026-08-19
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline on `main` is `b46e518f8769f83ba22c608bacd5a368776e1701`, the squash merge of PR #593 — **feat: add read-only NEXOLAB MCP gateway**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
+Accepted product-code baseline on `main` is `84584640246f8985c0c303654def99365c8458c4`, the squash merge of PR #593 — **feat: add read-only NEXOLAB MCP gateway**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
@@ -80,13 +80,33 @@ Exact PR #599 gates:
 
 No application runtime, dependency version, database, deployment, Modbus or hardware behavior changed.
 
+## Issue #587 — complete
+
+Issue #587 is closed `status:done`. PR #597 merged GREEN as `84584640246f8985c0c303654def99365c8458c4`.
+
+Saved Live Dashboards now provide view-only `1h`, `6h`, `24h`, `7d`, `30d` and timezone-aware Custom ranges using the canonical complete persisted-history loader from #586. One stable snapshot boundary is shared across selected series, live overlap is reconciled without duplicate replay, and chart reduction occurs only after the complete logical persisted set is established.
+
+CSV export is read-only and generated from persisted telemetry rather than chart/browser memory. It is organization-scoped through canonical node/equipment/channel/metric identity, deterministic, UTF-8, preserves null/invalid quality truthfully, respects the 31-day history bound and fails closed above 100,000 rows instead of truncating.
+
+Final exact-head gates:
+
+- Core CI `32220599757`: PASS;
+- Telemetry Service `32220599759`: PASS;
+- Authenticated Dashboard Acceptance `32220599864`: PASS;
+- Offline Bundle `32220599751`: PASS;
+- Acquisition Scale Acceptance `32220599830`: PASS;
+- Container Supply Chain `32220599753`: PASS;
+- all other triggered browser/fleet/capacity/DR gates: PASS.
+
+No acquisition-registry mutation, physical polling cadence change, Modbus write, hardware write, migration, dependency upgrade or mandatory cloud runtime dependency was introduced.
+
 ## Current execution boundary
 
-**Issue #587 — Add complete persisted ranges and CSV export to Saved Live Dashboards** is again `status:in-progress`. PR #597 is open and must now be rebased onto repository `main` `b25ae18e196eb84fc56ae951003d0820a22dc579` so the repaired supply-chain policy is part of its exact head.
+Next Ready Work Package: **Issue #588 — Migrate Energy Monitoring history to canonical axes and exact cursor inspection**.
 
-Before the security prerequisite appeared, PR #597 had already passed Core CI, Telemetry Service, Authenticated Dashboard Acceptance, Offline Bundle, Acquisition Scale, Device Agent Fleet and the other completed runtime gates; the only failed release gate was the newly surfaced CVE baseline. No merge is authorized until the rebased PR head reruns and all required checks are GREEN.
+Repository audit already established that Energy history acquisition/persistence is sound, while the visible chart still uses route-specific SVG geometry and proportional-index pointer selection. #588 must keep the existing persisted Energy read model and migrate only the presentation/inspection layer to the canonical Chart System (`ChartShell` + local ECharts renderer), preserving real gaps and zero acquisition side effects.
 
-Issue #588 remains next in sequence only after #587 is GREEN merged and reconciled. Issue #585 remains independently blocked on physical handback.
+Issue #589 follows #588; Issue #590 remains blocked on #589. Issue #585 remains independently blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

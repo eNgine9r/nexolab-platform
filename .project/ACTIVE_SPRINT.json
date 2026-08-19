@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
-  "accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
-  "last_reconciled_repository_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
+  "repository_product_baseline_sha": "84584640246f8985c0c303654def99365c8458c4",
+  "accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
+  "last_reconciled_repository_sha": "84584640246f8985c0c303654def99365c8458c4",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 587,
-    "selection_status": "in_progress",
-    "ready_issue_count": 0,
-    "reason": "Issue #598 restored the Container Supply Chain gate GREEN with four exact, time-bounded CVE-2026-14456 decisions expiring 2026-08-26. Issue #587 is unblocked again and PR #597 remains the active single-WIP package; it must be rebased onto current main and rerun before merge. Issue #585 remains blocked on physical handback."
+    "selected_issue": 588,
+    "selection_status": "ready",
+    "ready_issue_count": 1,
+    "reason": "Issue #587 / PR #597 merged GREEN with complete Saved Dashboard persisted ranges, canonical complete-history reconciliation, persisted CSV export, acquisition invariants, Container Supply Chain and disconnected Offline Bundle all PASS. Issue #588 is the next independent chart-focused Work Package. Issue #585 remains blocked on physical handback; #589/#590 remain sequenced after #588."
   },
   "tasks": [
     {
@@ -66,14 +66,22 @@
       "id": "NEXOLAB-587",
       "issue": 587,
       "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-      "status": "in_progress_pr_597_rebase_after_security_598",
-      "priority": "high"
+      "status": "completed_software_ci_and_offline_acceptance",
+      "priority": "high",
+      "pull_request": 597,
+      "merge_sha": "84584640246f8985c0c303654def99365c8458c4",
+      "core_ci": "PASS_32220599757",
+      "telemetry_service": "PASS_32220599759",
+      "authenticated_dashboard_acceptance": "PASS_32220599864",
+      "offline_bundle": "PASS_32220599751",
+      "acquisition_scale": "PASS_32220599830",
+      "container_supply_chain": "PASS_32220599753"
     },
     {
       "id": "NEXOLAB-588",
       "issue": 588,
       "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
-      "status": "blocked_current_wip_sequence",
+      "status": "ready",
       "priority": "high"
     },
     {
@@ -138,18 +146,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 587,
-    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "type": "saved_dashboard_persisted_history_export",
-    "status": "in_progress_pr_597"
+    "issue": 588,
+    "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
+    "type": "energy_canonical_chart_migration",
+    "status": "ready"
   },
   "next_work_package": {
-    "issue": 587,
-    "title": "Add complete persisted ranges and CSV export to Saved Live Dashboards",
-    "status": "continue_in_progress_rebase_after_security_598"
+    "issue": 588,
+    "title": "Migrate Energy Monitoring history to canonical axes and exact cursor inspection",
+    "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "b46e518f8769f83ba22c608bacd5a368776e1701",
+    "repository_accepted_product_sha": "84584640246f8985c0c303654def99365c8458c4",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -167,7 +175,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "b25ae18e196eb84fc56ae951003d0820a22dc579",
+    "repository_state_sha": "84584640246f8985c0c303654def99365c8458c4",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -186,7 +194,16 @@
     "issue_598_container_supply_chain": "PASS_32219772068",
     "issue_598_core_ci": "PASS_32219771902",
     "issue_598_telemetry_service": "PASS_32219771893",
-    "issue_598_exception_expires_on": "2026-08-26"
+    "issue_598_exception_expires_on": "2026-08-26",
+    "issue_587_merge_sha": "84584640246f8985c0c303654def99365c8458c4",
+    "issue_587_core_ci": "PASS_32220599757",
+    "issue_587_telemetry_service": "PASS_32220599759",
+    "issue_587_authenticated_dashboard_acceptance": "PASS_32220599864",
+    "issue_587_offline_bundle": "PASS_32220599751",
+    "issue_587_acquisition_scale": "PASS_32220599830",
+    "issue_587_container_supply_chain": "PASS_32220599753",
+    "issue_587_acquisition_mutations": 0,
+    "issue_587_modbus_writes": 0
   },
   "independent_pending_lanes": [
     {
@@ -195,11 +212,11 @@
     },
     {
       "issue": 587,
-      "status": "in_progress_pr_597"
+      "status": "completed"
     },
     {
       "issue": 588,
-      "status": "blocked_current_wip_sequence"
+      "status": "ready"
     },
     {
       "issue": 589,
