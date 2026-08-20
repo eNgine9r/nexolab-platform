@@ -159,35 +159,31 @@ No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime de
 
 ## Issue #620 — complete controlled reliability exception
 
-PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` after explicit Product Owner approval for a one-time reliability merge exception. The exception was narrow and evidence-backed: Core CI `32296176882` and Offline Bundle `32296176711` were GREEN; the only RED check was Authenticated Dashboard `32296176725`, which reproduced exact-main Issue #619 and was independently repaired in PR #623.
+PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` after the explicitly approved one-time Product Owner exception. Core CI `32296176882` and Offline Bundle `32296176711` were GREEN; the only RED check was Authenticated Dashboard `32296176725`, independently proven to be Issue #619. Before approval, a synthetic `main + #620 + #619` head passed format, lint, typecheck, 514/514 tests, lint-staged and production build. #620 changed no production runtime behavior and is complete.
 
-Before approval, a synthetic integration head containing `main + #620 + #619` passed format, lint, typecheck, **113/113 test files / 514/514 tests**, lint-staged regression and production build. PR #622 changed only deterministic test clock/state files; production runtime, acquisition, Modbus, hardware, schema and dependencies were unchanged. Issue #620 is closed.
+## Issue #619 — complete GREEN
 
-## Issue #619 — rebased and locally verified after #620
+PR #623 merged fully GREEN as `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1` from exact head `dea599312172cab8132782f7db2fef2239db2e02`. The repair makes telemetry-navigation acceptance deterministic without relaxing the <=1,000 ms warm-route budget, isolates dashboard acceptance from the real Raspberry Pi Device Agent, retains the shared equipment catalog under bounded structural-cache pressure, and cleans #604 scale-only Equipment fixtures after their own proof.
 
-Issue #619 remains the single active implementation Work Package on `fix/619-telemetry-navigation-read-model`, published as PR #623. Its pre-rebase exact head was `d31d67453d7a5067f9fee2077434cb748b50d869`.
+Final exact-head GitHub gates:
 
-The proven repair remains unchanged:
+- Core CI `32329087115`: PASS;
+- Authenticated Dashboard Acceptance `32329087128`: PASS;
+- Refrigeration Browser Acceptance `32329087103`: PASS;
+- Disaster Recovery Browser `32329087134`: PASS;
+- Offline Bundle `32329087175`: PASS.
 
-- Overview alert acceptance follows the documented five-second polling/SWR contract instead of requiring a permanent one-read total;
-- direct authenticated-dashboard acceptance owns a loopback acquisition fixture only when the caller has not supplied one, preventing accidental reads from the real Raspberry Pi Device Agent;
-- the shared refrigeration structural cache retains the organization-level equipment catalog while per-equipment layout entries remain bounded to 32 LRU entries;
-- the #604 Equipment Registry browser dependency removes only its 180 scale-acceptance rows after its own scale proof, preventing cross-test catalog pollution;
-- Overview session reads are bounded by their ten-second retained read-model contract while the route-local Sessions list remains one read per visit.
+Rebased local verification also passed 113/113 test files / 514/514 tests, format, lint, typecheck, lint-staged, production build and focused navigation 3/3. Acquisition evidence kept physical request rate around 20 requests/s with discovery delta 0, configuration mutation delta 0, GET-only Device Agent control calls and WebSocket maximum 1 per document. No Modbus write, hardware write or runtime deployment occurred.
 
-After rebasing onto #620, exact local verification is GREEN for format, repository-wide lint, typecheck, **113/113 test files / 514/514 tests**, lint-staged regression and production build. Focused navigation acceptance is again **3/3 PASS**. Warm medians remain below the unchanged 1,000 ms budget: Overview 605 ms, Refrigeration 408 ms, Energy 624 ms, Live 460 ms, Nodes 447 ms and Sessions 379 ms. Equipment catalog reads remain 1 and document loads remain 1.
-
-The stronger 16-test authenticated-dashboard/acquisition matrix completed **15/16 PASS**. Its only failure is the already independent Issue #618 Saved Dashboard CSV `page.waitForEvent("download")` timeout. Both #619 navigation tests and both acquisition-invariant tests passed in that same run. Acquisition evidence holds approximately 20 requests/s across no-browser, navigation, concurrent contexts, WebSocket reconnect and telemetry-service restart; `discoveryDelta = 0`, `mutationDelta = 0`, all Device Agent control calls are GET-only and WebSocket maximum per document is 1.
-
-PR #623 exact-head CI before #620 merged proved Authenticated Dashboard, Refrigeration Browser, Offline Bundle and both Disaster Recovery jobs GREEN; its only Core failure was exactly the two #620 tests. #623 is now rebased and locally reverified on `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f`. The branch must now be pushed and receive a **new fully GREEN exact-head CI** before merge; the independent #618 browser-download defect is not absorbed into #619.
+Issue #618 remains an independent Saved Dashboard CSV browser-download reliability lane. It reproduced in one local full matrix, while the final #623 GitHub Authenticated Dashboard Acceptance passed, so it does not block the current Equipment product lane.
 
 ## Current execution boundary
 
-Active Work Package: **Issue #619 — Stabilize telemetry navigation production acceptance and bounded read-model reuse**.
+Next Ready Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
 
-Dependency chain is now **#619 / PR #623 → fully GREEN merge → update #605 / PR #621 from repaired `main` → fully GREEN #605 merge**. Issue #620 is complete. Issue #618 remains an independent Saved Dashboard CSV export reliability lane and must not be mixed into #619 or #605.
+Issue #605 / draft PR #621 already contains the focused implementation and is restored to `status:ready`. The next action is to rebase it onto current `main` `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1`, preserve the #619 Equipment scale-fixture cleanup alongside #605 metadata-edit fixtures, reconcile the state files, and rerun all backend/frontend/browser/offline gates before a GREEN-only merge.
 
-Issue #585 remains independently blocked on physical W2/Unit 201 handback. Issue #615 remains a separate non-blocking acceptance-runner project-name defect.
+The planned product dependency sequence remains **#605 → #606 → #607 → #589 → #590**. #618 stays independent; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 
