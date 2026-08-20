@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline is `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`, the post-#605 state reconciliation commit #625; no later product PR has merged.
+Accepted product-code baseline remains `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` after the GREEN #626 merge is `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Issue #626 changes deployment/update safety infrastructure rather than operator product behavior.
 
-The Raspberry Pi repository checkout and `origin/main` are both `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`. The active Dashboard was recovered after the #626 freeze from the previously verified #605 artifact, which was proven product-identical to `d773bbb` outside `.project/**`. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
+The reconciled repository baseline and `origin/main` are `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 

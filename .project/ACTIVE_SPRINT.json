@@ -389,7 +389,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+    "repository_state_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,

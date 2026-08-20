@@ -86,8 +86,8 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
 - #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
-- #626 atomic/resource-safe Raspberry Pi frontend deployment — active prerequisite;
-- #627 monitoring/display boundary — software/CI GREEN, waiting on #626 Pi artifact acceptance;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
+- #627 monitoring/display boundary — active critical Pi acceptance;
 - #606 discovery/adoption inbox — paused with recoverable checkpoint; resume after #627;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
@@ -98,9 +98,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — paused by critical #626/#627 sequence with published checkpoint;
-- #626 atomic/resource-safe Raspberry Pi frontend deployment — active prerequisite;
-- #627 monitoring/display boundary — software/CI GREEN, Pi acceptance pending;
+- #606 LOCAL_LAN discovery inbox — paused by active critical #627 with published checkpoint;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
+- #627 monitoring/display boundary — active critical Pi acceptance;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;
