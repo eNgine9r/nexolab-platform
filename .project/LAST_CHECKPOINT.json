@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T03:38:37Z",
+  "timestamp": "2026-08-20T03:56:38Z",
   "actor": "ChatGPT",
-  "event": "issue_619_rebased_local_verification_complete_pending_exact_head_ci",
-  "repository_main_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+  "event": "issue_619_620_complete_ready_resume_issue_605",
+  "repository_main_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -99,7 +99,24 @@
       "result": "COMPLETED_CONTROLLED_MERGE_EXCEPTION",
       "core_ci": "PASS_32296176882",
       "offline_bundle": "PASS_32296176711",
-      "product_owner_exception_approved": true
+      "product_owner_exception_approved": true,
+      "runtime_changed": false
+    },
+    "issue_619": {
+      "issue": 619,
+      "pull_request": 623,
+      "exact_head_sha": "dea599312172cab8132782f7db2fef2239db2e02",
+      "merge_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
+      "result": "COMPLETED_GREEN",
+      "core_ci": "PASS_32329087115",
+      "authenticated_dashboard_acceptance": "PASS_32329087128",
+      "refrigeration_browser_acceptance": "PASS_32329087103",
+      "disaster_recovery_browser": "PASS_32329087134",
+      "offline_bundle": "PASS_32329087175",
+      "local_unit_tests": "PASS_514_OF_514",
+      "navigation_browser": "PASS_3_OF_3",
+      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
+      "runtime_deployed": false
     }
   },
   "blocked_work": {
@@ -118,20 +135,15 @@
     "issue_590": {
       "issue": 590,
       "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
-    },
-    "issue_605": {
-      "issue": 605,
-      "pull_request": 621,
-      "reason": "Draft PR #621 is blocked only until #619 / PR #623 merges fully GREEN."
     }
   },
   "current_boundary": {
-    "issue": 619,
-    "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
-    "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI"
+    "issue": 605,
+    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
+    "status": "READY_RESUME_AFTER_RELIABILITY_REPAIRS"
   },
-  "next_action": "Amend and push the rebased #619 checkpoint, update PR #623, require every exact-head CI check GREEN, merge #623, reconcile main, then update #605 / PR #621 from repaired main and rerun all required gates.",
-  "planned_queue": [619, 605, 618, 606, 607, 589, 590],
+  "next_action": "Rebase PR #621 / Issue #605 onto current main, preserve both #619 Equipment scale-fixture cleanup and #605 metadata-edit browser evidence, reconcile state conflicts, rerun backend/frontend/browser/offline gates, and merge only after fully GREEN exact-head CI.",
+  "planned_queue": [605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -141,95 +153,19 @@
     "dual_rs485_cutover_authorized": false
   },
   "known_non_blocking_issues": {
-    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; use explicit lowercase override until its separate repair.",
-    "issue_618": "Saved Dashboard CSV browser download acceptance fails on exact main; separate reliability lane."
+    "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
+    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
-  "in_progress_work": {
-    "issue_619": {
-      "issue": 619,
-      "pull_request": 623,
-      "branch": "fix/619-telemetry-navigation-read-model",
-      "base_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
-      "local_unit_tests": "PASS_514_OF_514",
-      "format": "PASS",
-      "lint": "PASS",
-      "typecheck": "PASS",
-      "build": "PASS",
-      "navigation_browser": "PASS_3_OF_3",
-      "full_browser_matrix": "PASS_15_OF_16_ONLY_ISSUE_618_CSV_DOWNLOAD_FAILED",
-      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
-      "discovery_delta": 0,
-      "configuration_mutation_delta": 0,
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI",
-      "root_causes": [
-        "polling_aware_alert_and_session_bounds",
-        "device_agent_fixture_isolation",
-        "retained_equipment_catalog_under_bounded_layout_lru",
-        "equipment_registry_scale_fixture_cleanup"
-      ],
-      "structural_cache_tests": "PASS_4_OF_4",
-      "warm_medians_ms": {
-        "overview": 605,
-        "refrigeration": 408,
-        "energy": 624,
-        "live": 460,
-        "nodes": 447,
-        "sessions": 379
-      },
-      "equipment_catalog_reads": 1,
-      "document_loads": 1,
-      "acquisition_expected_requests_per_second": 20,
-      "acquisition_websocket_max_per_document": 1,
-      "navigation_evidence": "runtime/evidence/issue-619-acquisition-rebased/telemetry-navigation-summary.json",
-      "acquisition_evidence": "runtime/evidence/issue-619-acquisition-rebased/acquisition-ui-invariant.json",
-      "runtime_changed": false,
-      "hardware_changed": false
-    }
-  },
+  "in_progress_work": {},
   "active_work": {
-    "issue_619": {
-      "issue": 619,
-      "pull_request": 623,
-      "branch": "fix/619-telemetry-navigation-read-model",
-      "base_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
-      "local_unit_tests": "PASS_514_OF_514",
-      "format": "PASS",
-      "lint": "PASS",
-      "typecheck": "PASS",
-      "build": "PASS",
-      "navigation_browser": "PASS_3_OF_3",
-      "full_browser_matrix": "PASS_15_OF_16_ONLY_ISSUE_618_CSV_DOWNLOAD_FAILED",
-      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
-      "discovery_delta": 0,
-      "configuration_mutation_delta": 0,
+    "issue_605": {
+      "issue": 605,
+      "pull_request": 621,
+      "status": "READY_RESUME_AFTER_RELIABILITY_REPAIRS",
+      "existing_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923",
+      "required_action": "rebase_on_current_main_and_reverify",
       "modbus_write": "none",
-      "hardware_write": "none",
-      "status": "REBASED_LOCAL_VERIFICATION_COMPLETE_PENDING_EXACT_HEAD_CI",
-      "root_causes": [
-        "polling_aware_alert_and_session_bounds",
-        "device_agent_fixture_isolation",
-        "retained_equipment_catalog_under_bounded_layout_lru",
-        "equipment_registry_scale_fixture_cleanup"
-      ],
-      "structural_cache_tests": "PASS_4_OF_4",
-      "warm_medians_ms": {
-        "overview": 605,
-        "refrigeration": 408,
-        "energy": 624,
-        "live": 460,
-        "nodes": 447,
-        "sessions": 379
-      },
-      "equipment_catalog_reads": 1,
-      "document_loads": 1,
-      "acquisition_expected_requests_per_second": 20,
-      "acquisition_websocket_max_per_document": 1,
-      "navigation_evidence": "runtime/evidence/issue-619-acquisition-rebased/telemetry-navigation-summary.json",
-      "acquisition_evidence": "runtime/evidence/issue-619-acquisition-rebased/acquisition-ui-invariant.json",
-      "runtime_changed": false,
-      "hardware_changed": false
+      "hardware_write": "none"
     }
   }
 }

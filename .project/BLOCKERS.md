@@ -48,21 +48,21 @@ PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry b
 
 PR #616 merged GREEN as `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`. Core CI `32263137097`, Refrigeration Browser Acceptance `32263134788`, Offline Bundle `32263135467`, focused large-inventory Equipment browser acceptance and acquisition-invariant acceptance all PASS. There is no remaining #604 blocker.
 
-## Issue #619 — rebased/local GREEN, pending fully GREEN exact-head CI
+## Issue #619 — complete
 
-PR #623 is the sole active reliability repair. It is rebased onto `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` and locally passes format, lint, typecheck, 514/514 unit tests, build, navigation 3/3 and both acquisition-invariant browser tests. The stronger 16-test browser matrix is 15/16 PASS; the sole failure is separately tracked Issue #618 CSV download. Push the rebased head and merge #623 only after **all exact-head #623 required checks are GREEN**.
+PR #623 merged fully GREEN as `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1`. Core CI `32329087115`, Authenticated Dashboard `32329087128`, Refrigeration Browser `32329087103`, Disaster Recovery `32329087134` and Offline Bundle `32329087175` all passed. There is no remaining #619 blocker.
 
 ## Issue #620 / PR #622 — complete controlled exception
 
-PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` after explicit Product Owner approval for one narrowly scoped exception. Core CI `32296176882` and Offline Bundle `32296176711` were GREEN; Authenticated Dashboard `32296176725` was RED only because exact-main lacked #619. Synthetic `main + #620 + #619` verification passed 514/514 tests and production build before approval. No production runtime or hardware behavior changed.
+PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Product Owner-approved controlled exception. The known #619 Auth failure was subsequently repaired and PR #623 merged fully GREEN. There is no remaining #620 blocker.
 
-## Issue #605 / PR #621 — blocked only on #619
+## Issue #605 / PR #621 — Ready to resume
 
-The permissioned equipment metadata implementation remains isolated in PR #621. #620 is repaired on `main`; #605 must now wait only for #619 / PR #623 to merge fully GREEN, then update from repaired `main` and rerun all required checks.
+The permissioned Equipment metadata implementation is restored to `status:ready`. Rebase PR #621 onto repaired current main, preserve both #619 scale-fixture cleanup and #605 metadata-edit evidence, then require fully GREEN exact-head CI before merge.
 
 ## Issue #618 — independent reliability lane
 
-Saved Dashboard CSV browser download acceptance remains separately open. It is not part of #619, #620 or #605.
+Saved Dashboard CSV browser download can time out in the local Raspberry Pi full dashboard matrix. Final #623 GitHub Authenticated Dashboard Acceptance passed, so #618 does not currently block #605. Keep it isolated unless a required #605 check makes it a direct dependency.
 
 ## Issue #615 — non-blocking acceptance tooling defect
 
@@ -70,8 +70,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 
 ## Planned product queue
 
-- #619 telemetry-navigation/read-model reliability — rebased/local GREEN; push and require fully GREEN PR #623;
-- #605 / PR #621 permissioned equipment metadata editing — blocked only on #619;
+- #619 telemetry-navigation/read-model reliability — complete in PR #623;
+- #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
+- #605 / PR #621 permissioned equipment metadata editing — Ready to resume and sole product WIP;
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #606 discovery/adoption inbox — blocked on #605;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
@@ -82,7 +83,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
-- #605 Equipment metadata editing — blocked only on #619;
+- #605 Equipment metadata editing — Ready to resume in PR #621;
 - #606 LOCAL_LAN discovery inbox — blocked on #605 boundaries;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
