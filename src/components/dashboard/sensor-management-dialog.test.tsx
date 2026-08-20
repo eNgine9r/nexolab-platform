@@ -5,7 +5,7 @@ import type { Xjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-managemen
 
 import { SensorManagementDialog } from "./sensor-management-dialog";
 
-describe("SensorManagementDialog acquisition state", () => {
+describe("SensorManagementDialog monitoring enrollment", () => {
   it("distinguishes an active target awaiting its first scheduler attempt", () => {
     const management: Xjp60dSensorManagement = {
       configuration: {
@@ -34,7 +34,7 @@ describe("SensorManagementDialog acquisition state", () => {
           },
         ],
       },
-      activeChannelIds: ["126-04"],
+      monitoredChannelIds: ["126-04"],
       isLoading: false,
       isDiscovering: false,
       isSaving: false,
@@ -81,7 +81,7 @@ describe("SensorManagementDialog acquisition state", () => {
         },
         target_diagnostics: [],
       },
-      activeChannelIds: [],
+      monitoredChannelIds: [],
       isLoading: false,
       isDiscovering: false,
       isSaving: false,

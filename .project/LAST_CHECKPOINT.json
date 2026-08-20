@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T05:24:20.585944Z",
+  "timestamp": "2026-08-20T10:59:57.874359Z",
   "actor": "ChatGPT",
-  "event": "issue_605_completed_green_and_issue_606_ready",
-  "repository_main_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "event": "issue_627_local_implementation_verified_pending_pr_ci",
+  "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -153,12 +153,12 @@
     }
   },
   "current_boundary": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "READY_DEPENDENCY_605_COMPLETE"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI"
   },
-  "next_action": "Start Issue #606 with repository/architecture audit, confirm safe LOCAL_LAN discovery service boundary and persisted candidate model, then create a focused feature branch; do not perform public scanning, credential probing, Modbus writes or hardware writes.",
-  "planned_queue": [606, 607, 589, 590],
+  "next_action": "Commit and push Issue #627, open the focused PR, require exact-head GitHub CI including production build/Authenticated Dashboard/Offline Bundle/acquisition invariant, then perform bounded Raspberry Pi runtime evidence without an in-place frontend build; after GREEN merge reconcile state and resume Issue #606.",
+  "planned_queue": [627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -169,14 +169,36 @@
   },
   "known_non_blocking_issues": {
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
-    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
+    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check.",
+    "issue_626": "Critical deployment-resource defect: do not run heavy in-place Next production builds on the 4 GiB Raspberry Pi. Use GitHub CI/off-device artifacts until #626 is resolved."
   },
-  "in_progress_work": {},
-  "active_work": {
+  "in_progress_work": {
+    "issue_627": {
+      "issue": 627,
+      "branch": "fix/627-monitoring-display-decoupling",
+      "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+      "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI",
+      "frontend_targeted_tests": "PASS_11_OF_11",
+      "device_agent_boundary_tests": "PASS_24_OF_24",
+      "full_unit_tests": "PASS_525_OF_525",
+      "touched_lint": "PASS",
+      "typecheck": "PASS",
+      "git_diff_check": "PASS",
+      "production_e2e": "WIRED_NOT_RUN_LOCALLY_RESOURCE_SAFETY_ISSUE_626",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
     "issue_606": {
       "issue": 606,
-      "status": "READY_DEPENDENCY_605_COMPLETE",
-      "required_action": "repository_and_architecture_audit_before_implementation",
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
+      "status": "PAUSED_BY_CRITICAL_627"
+    }
+  },
+  "active_work": {
+    "issue_627": {
+      "issue": 627,
+      "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI",
       "modbus_write": "none",
       "hardware_write": "none"
     }

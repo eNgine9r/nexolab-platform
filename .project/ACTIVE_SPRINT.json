@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
   "accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-  "last_reconciled_repository_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "last_reconciled_repository_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 606,
-    "selection_status": "ready_after_605_green_merge",
+    "selected_issue": 627,
+    "selection_status": "critical_interrupt_in_progress",
     "ready_issue_count": 1,
-    "reason": "Issue #605 / PR #621 merged fully GREEN as ad2a4947. Its dependency on #606 is satisfied; GitHub now marks #606 status:ready and it is the next product Work Package."
+    "reason": "Issue #627 is a Product Owner-prioritized critical acquisition/UI ownership defect and temporarily interrupts Issue #606. #606 retains a recoverable checkpoint and resumes after #627."
   },
   "tasks": [
     {
@@ -218,8 +218,10 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "ready_dependency_605_complete",
-      "priority": "high"
+      "status": "paused_by_critical_627_checkpoint_published",
+      "priority": "high",
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
     },
     {
       "id": "NEXOLAB-607",
@@ -293,18 +295,41 @@
       "product_owner_exception_approved": true,
       "synthetic_integration_tests": "PASS_514_OF_514",
       "synthetic_integration_build": "PASS"
+    },
+    {
+      "id": "NEXOLAB-626",
+      "issue": 626,
+      "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
+      "status": "critical_in_progress_blocks_heavy_pi_builds",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-627",
+      "issue": 627,
+      "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+      "status": "implementation_complete_local_verification_pending_ci",
+      "priority": "critical",
+      "branch": "fix/627-monitoring-display-decoupling",
+      "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+      "frontend_targeted_tests": "PASS_11_OF_11",
+      "device_agent_boundary_tests": "PASS_24_OF_24",
+      "full_unit_tests": "PASS_525_OF_525",
+      "touched_lint": "PASS",
+      "typecheck": "PASS",
+      "git_diff_check": "PASS",
+      "local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626"
     }
   ],
   "active_work_package": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "type": "local_lan_equipment_discovery",
-    "status": "ready_after_605_green_merge"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "type": "critical_monitoring_visibility_boundary_bugfix",
+    "status": "implementation_complete_local_verification_pending_ci"
   },
   "next_work_package": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "ready"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "status": "in_progress_pending_pr_ci_runtime_acceptance"
   },
   "verification": {
     "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
@@ -325,7 +350,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+    "repository_state_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -468,7 +493,16 @@
     "issue_605_offline_auth_acceptance": "PASS_32334583017",
     "issue_605_security_browser_acceptance": "PASS_32334582871",
     "issue_605_modbus_writes": 0,
-    "issue_605_hardware_writes": 0
+    "issue_605_hardware_writes": 0,
+    "issue_627_frontend_targeted_tests": "PASS_11_OF_11",
+    "issue_627_device_agent_boundary_tests": "PASS_24_OF_24",
+    "issue_627_full_unit_tests": "PASS_525_OF_525",
+    "issue_627_touched_lint": "PASS",
+    "issue_627_typecheck": "PASS",
+    "issue_627_git_diff_check": "PASS",
+    "issue_627_local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626",
+    "issue_627_modbus_writes": 0,
+    "issue_627_hardware_writes": 0
   },
   "independent_pending_lanes": [
     {
@@ -509,7 +543,7 @@
     },
     {
       "issue": 606,
-      "status": "blocked_dependency_605"
+      "status": "paused_by_critical_627_checkpoint_published"
     },
     {
       "issue": 607,
@@ -546,6 +580,14 @@
     {
       "issue": 620,
       "status": "completed_controlled_merge_exception"
+    },
+    {
+      "issue": 626,
+      "status": "critical_in_progress_resource_safety"
+    },
+    {
+      "issue": 627,
+      "status": "critical_in_progress_pending_pr_ci_runtime_acceptance"
     }
   ],
   "safety": {

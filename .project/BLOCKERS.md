@@ -60,9 +60,17 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — Ready
+## Issue #606 — paused by critical #627
 
-The #605 dependency is complete. Issue #606 is `status:ready` for repository/architecture audit and a focused read-only LOCAL_LAN discovery implementation. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+Issue #606 has a published recoverable implementation checkpoint on `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. It is temporarily paused by the Product Owner-prioritized critical #627 defect and resumes after #627 is GREEN. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+
+## Issue #626 — critical verification-host resource blocker
+
+Do not run another heavy in-place Next.js production build on the 4 GiB Raspberry Pi. Two attempts hard-froze the host and one interrupted build removed the active `.next/BUILD_ID`. Until #626 is resolved, production build and heavy browser gates must run on GitHub/off-device. This is a hard blocker only for unsafe Pi-side build execution, not for #627 software implementation or GitHub CI.
+
+## Issue #627 — active critical interrupt
+
+No product hard blocker is currently open for implementation. Local focused tests, Device Agent boundary tests, full Vitest, touched lint, typecheck and diff checks are GREEN. The remaining required production build/browser/offline gates must run through GitHub because of #626. Real Pi runtime evidence may be performed only with bounded read-only inspection and an already verified artifact; no in-place build, Modbus write, hardware write or site cutover is authorized.
 
 ## Issue #618 — independent reliability lane
 
@@ -78,7 +86,8 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
 - #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
-- #606 discovery/adoption inbox — Ready;
+- #627 monitoring/display boundary — active critical interrupt, pending PR/CI/runtime evidence;
+- #606 discovery/adoption inbox — paused with recoverable checkpoint; resume after #627;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
 - #590 Settings cadence controls — blocked on #589.
@@ -88,7 +97,8 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — Ready after #605;
+- #606 LOCAL_LAN discovery inbox — paused by critical #627 with published checkpoint;
+- #627 monitoring/display boundary — active critical repair;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;

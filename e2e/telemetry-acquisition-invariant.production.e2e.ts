@@ -32,6 +32,7 @@ const apiBaseUrl = requiredEnvironment("NEXT_PUBLIC_NEXOLAB_API_BASE_URL");
 
 type MetricsPayload = {
   acquisition: {
+    configured_logical_targets: number;
     normal: { physical_requests_total: number };
     service_operations: {
       discovery?: { physical_requests_total?: number };
@@ -343,6 +344,29 @@ test("page navigation and browser count do not amplify physical acquisition", as
     "server active WebSocket clients after overview reload settles",
   ).toBe(1);
 
+  const targetsBeforeVisibilityChange = (await readMetrics()).acquisition.configured_logical_targets;
+  phases.push(
+    await measurePhase("overview-display-only-selection", async () => {
+      const visibilityButton = overview.getByRole("button", {
+        name: "Налаштувати датчики на графіку Огляду",
+      });
+      await expect(visibilityButton).toBeEnabled();
+      await visibilityButton.click();
+      const dialog = overview.getByRole("dialog", { name: "Датчики на графіку Огляду" });
+      await expect(dialog).toBeVisible();
+      const channel = dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді" });
+      await expect(channel).toBeChecked();
+      await channel.click();
+      await dialog.getByRole("button", { name: "Застосувати відображення" }).click();
+      await expect(dialog).toBeHidden();
+    }),
+  );
+  const visibilityPreference = await overview.evaluate((organization) => {
+    const raw = window.localStorage.getItem(`nexolab.overview.temperature-visible.${organization}`);
+    return raw ? JSON.parse(raw) : null;
+  }, organizationId);
+  expect(visibilityPreference).toEqual({ schemaVersion: 1, channelIds: ["106-04"] });
+
   const live = await primary.newPage();
   observePage(live, observed, "live-primary");
   phases.push(
@@ -412,6 +436,7 @@ test("page navigation and browser count do not amplify physical acquisition", as
   );
 
   const finalMetrics = await readMetrics();
+  expect(finalMetrics.acquisition.configured_logical_targets).toBe(targetsBeforeVisibilityChange);
   const discoveryDelta =
     (finalMetrics.acquisition.service_operations.discovery?.physical_requests_total ?? 0) -
     (baseline.acquisition.service_operations.discovery?.physical_requests_total ?? 0);
@@ -447,6 +472,9 @@ test("page navigation and browser count do not amplify physical acquisition", as
         telemetryRequests: observed.telemetryRequests,
         websocketByPage: observed.sockets,
         overviewRuntimeAfterRefresh,
+        targetsBeforeVisibilityChange,
+        targetsAfterVisibilityChange: finalMetrics.acquisition.configured_logical_targets,
+        visibilityPreference,
         discoveryDelta,
         mutationDelta,
       },
