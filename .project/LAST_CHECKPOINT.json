@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T19:12:57.313424Z",
+  "timestamp": "2026-08-20T20:51:07.512199Z",
   "actor": "ChatGPT",
-  "event": "issue_627_final_acceptance_green_pending_state_ci_merge",
-  "repository_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+  "event": "issue_627_merged_green_issue_606_ready_to_resume",
+  "repository_main_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -155,47 +155,12 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "production_cutover": false
-    }
-  },
-  "blocked_work": {
-    "issue_585": {
-      "issue": 585,
-      "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
     },
-    "issue_589": {
-      "issue": 589,
-      "reason": "Held behind Product Owner Equipment priority and bus-aware #607 architecture"
-    },
-    "issue_590": {
-      "issue": 590,
-      "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
-    }
-  },
-  "current_boundary": {
-    "issue": 627,
-    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE"
-  },
-  "next_action": "Commit and push the final Issue #627 state-only checkpoint, require exact state-head CI and clean review, merge PR #628, reconcile post-merge state, then resume Issue #606 from af52c19ff67538f21399e258fbcc6aeef7ba96ab.",
-  "planned_queue": [627, 606, 607, 589, 590],
-  "safety": {
-    "modbus_write": "none",
-    "hardware_write": "none",
-    "persistent_data_deletion": "none",
-    "volume_deletion": "none",
-    "mandatory_public_runtime_dependency": "none",
-    "dual_rs485_cutover_authorized": false
-  },
-  "known_non_blocking_issues": {
-    "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
-    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
-  },
-  "in_progress_work": {
     "issue_627": {
       "issue": 627,
       "pull_request": 628,
       "verified_product_head_sha": "5a4da3974d44efd3fd5fa9d5523c4d28e077e94b",
-      "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE",
+      "status": "COMPLETED_GREEN_MERGED",
       "core_ci": "PASS_32411093778",
       "authenticated_dashboard_acceptance": "PASS_32411094072_RERUN",
       "offline_bundle": "PASS_32411094258",
@@ -224,19 +189,64 @@
       "hardware_write": "none",
       "production_cutover": false,
       "arm64_build_id": "lEMKAWa6inRxQdcp095oY",
-      "review_threads": "PASS_ALL_RESOLVED"
+      "review_threads": "PASS_ALL_RESOLVED",
+      "result": "COMPLETED_GREEN_MONITORING_DISPLAY_DECOUPLING",
+      "final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
+      "merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+      "final_state_core_ci": "PASS_32415131893",
+      "final_state_authenticated_dashboard": "PASS_32415131935",
+      "final_state_offline_bundle": "PASS_32415132995",
+      "final_state_required_checks": "PASS_ALL_GREEN"
+    }
+  },
+  "blocked_work": {
+    "issue_585": {
+      "issue": 585,
+      "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
     },
+    "issue_589": {
+      "issue": 589,
+      "reason": "Held behind Product Owner Equipment priority and bus-aware #607 architecture"
+    },
+    "issue_590": {
+      "issue": 590,
+      "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
+    }
+  },
+  "current_boundary": {
+    "issue": 606,
+    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "status": "READY_TO_RESUME_FROM_CHECKPOINT",
+    "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
+  },
+  "next_action": "Sync Issue #606 branch feat/606-local-lan-discovery from checkpoint af52c19ff67538f21399e258fbcc6aeef7ba96ab with current main 0533e01e6f345100ee37521ea6810c95e1ed2202, rerun the exact discovery repository invalid_response failure, diagnose it from the real response contract, then continue the focused #606 implementation and verification.",
+  "planned_queue": [606, 607, 589, 590],
+  "safety": {
+    "modbus_write": "none",
+    "hardware_write": "none",
+    "persistent_data_deletion": "none",
+    "volume_deletion": "none",
+    "mandatory_public_runtime_dependency": "none",
+    "dual_rs485_cutover_authorized": false
+  },
+  "known_non_blocking_issues": {
+    "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
+    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
+  },
+  "in_progress_work": {
     "issue_606": {
       "issue": 606,
       "branch": "feat/606-local-lan-discovery",
       "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
-      "status": "PAUSED_BY_CRITICAL_626_627_SEQUENCE"
+      "status": "READY_TO_RESUME_FROM_CHECKPOINT_POST_627_MERGE"
     }
   },
   "active_work": {
-    "issue_627": {
-      "issue": 627,
-      "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE",
+    "issue_606": {
+      "issue": 606,
+      "status": "READY_TO_RESUME_FROM_CHECKPOINT",
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
       "modbus_write": "none",
       "hardware_write": "none"
     }

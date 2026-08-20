@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-  "accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-  "last_reconciled_repository_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+  "repository_product_baseline_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+  "accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+  "last_reconciled_repository_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 627,
-    "selection_status": "critical_final_acceptance_green_pending_state_ci_merge",
+    "selected_issue": 606,
+    "selection_status": "ready_to_resume_from_checkpoint_post_627_merge",
     "ready_issue_count": 1,
-    "reason": "Issue #627 final product head 5a4da397 is GREEN in all 10 required workflows and exact ARM64 Raspberry Pi acceptance is PASS. Only final state-only checkpoint CI/merge remains before resuming #606."
+    "reason": "Issue #627 merged GREEN as 0533e01e6f345100ee37521ea6810c95e1ed2202. Issue #606 is the single next Ready Work Package and resumes from recoverable checkpoint af52c19ff67538f21399e258fbcc6aeef7ba96ab."
   },
   "tasks": [
     {
@@ -218,7 +218,7 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "paused_by_critical_627_checkpoint_published",
+      "status": "ready_to_resume_from_checkpoint_post_627_merge",
       "priority": "high",
       "branch": "feat/606-local-lan-discovery",
       "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
@@ -339,7 +339,7 @@
       "id": "NEXOLAB-627",
       "issue": 627,
       "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-      "status": "final_acceptance_green_pending_state_ci_merge",
+      "status": "done_merged_green",
       "priority": "critical",
       "branch": "fix/627-monitoring-display-decoupling",
       "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
@@ -395,23 +395,28 @@
       "final_review_touched_lint": "PASS",
       "final_review_typecheck": "PASS",
       "final_review_git_diff_check": "PASS",
-      "review_threads": "PASS_ALL_RESOLVED"
+      "review_threads": "PASS_ALL_RESOLVED",
+      "merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+      "final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
+      "final_state_ci": "PASS_ALL_REQUIRED_32415131893_32415131935_32415132995_AND_REMAINING_GREEN"
     }
   ],
   "active_work_package": {
-    "issue": 627,
-    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "type": "critical_monitoring_display_boundary",
-    "status": "final_acceptance_green_pending_state_ci_merge"
-  },
-  "next_work_package": {
     "issue": 606,
-    "title": "Add LOCAL_LAN discovery and adoption inbox",
-    "status": "ready_to_resume_from_checkpoint_after_627_merge",
+    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "type": "local_lan_discovery_adoption_inbox",
+    "status": "ready_to_resume_from_checkpoint",
+    "branch": "feat/606-local-lan-discovery",
     "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
   },
+  "next_work_package": {
+    "issue": 607,
+    "title": "Add dual RS-485 bus isolation for KK1 and KK2",
+    "status": "queued_after_issue_606",
+    "hardware_cutover_authorized": false
+  },
   "verification": {
-    "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+    "repository_accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -429,7 +434,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+    "repository_state_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -628,7 +633,13 @@
     "issue_627_mqtt_tls_fleet": "PASS_32411093449",
     "issue_627_disaster_recovery_tls": "PASS_32411094005",
     "issue_627_edge_image": "PASS_32411093799",
-    "issue_627_final_review_regression_tests": "PASS_14_OF_14"
+    "issue_627_final_review_regression_tests": "PASS_14_OF_14",
+    "issue_627_merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+    "issue_627_final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
+    "issue_627_final_state_core_ci": "PASS_32415131893",
+    "issue_627_final_state_authenticated_dashboard": "PASS_32415131935",
+    "issue_627_final_state_offline_bundle": "PASS_32415132995",
+    "issue_627_final_state_all_required_checks": "PASS"
   },
   "independent_pending_lanes": [
     {
