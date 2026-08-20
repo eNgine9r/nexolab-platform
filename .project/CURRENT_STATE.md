@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline is `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`, the post-#605 state reconciliation commit #625; no later product PR has merged.
+Accepted product-code baseline remains `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `bd28ab87b8a845a634c83fdbe2965f5bc6424996`, the GREEN post-#626 state reconciliation merge from PR #630; the underlying #626 implementation merge is `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Issue #626 changes deployment/update safety infrastructure rather than operator product behavior.
 
-The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
+The reconciled repository baseline and `origin/main` are `bd28ab87b8a845a634c83fdbe2965f5bc6424996`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -189,25 +189,25 @@ The Raspberry Pi verification host was hard-reset after repository-wide ESLint e
 
 Issue #606 remains open `status:in-progress` with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. It is paused, not abandoned, while the Product Owner-prioritized critical monitoring defect #627 is repaired.
 
-## Issue #626 — critical Raspberry Pi deployment resource safety
+## Issue #626 — completed GREEN and merged
 
-Issue #626 is open `priority:critical`. Two in-place Next.js production builds on the 4 GiB Raspberry Pi hard-froze the host. Heavy repository-wide lint/build and production browser acceptance must therefore run on GitHub/off-device until #626 provides atomic resource-safe deployment. This constrains the verification host only; it does not authorize weaker merge gates.
+Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb833f917346525` after final exact-head Core CI `32377664739`, Telemetry Service `32377664704`, and self-contained ARM64 artifact `9410009481` were GREEN. The real Raspberry Pi runtime proof used product-identical source `9a443e1001e2fc7e375d235be41a933d66781c75` and evidence `runtime/deployments/issue-626-arm64-20260820T133849Z`: artifact import PASS, 18,468 archive members safety-verified, 5/5 candidate routes HTTP 200 on isolated `127.0.0.1:3100`, ~116 MiB RSS, production MainPID/port PID unchanged, and bounded cleanup PASS. No production activation occurred.
 
-## Issue #627 — critical monitoring/display boundary repair in progress
+The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
 
-Issue #627 is the current critical interrupt on branch `fix/627-monitoring-display-decoupling`, based on exact `main` `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`. The implementation now separates persisted Device Agent monitoring enrollment from Overview presentation visibility and moves explicit XJP60D commissioning into Settings. Discovery remains read-only inventory evidence and does not enable polling. Live Dashboards and equipment layouts remain telemetry consumers only.
+## Issue #627 — active critical Raspberry Pi acceptance
 
-Local verification on the current worktree is GREEN: focused frontend 11/11, Device Agent registry/UI boundary 24/24 in an isolated networkless container, bounded full Vitest 117 files / 525 tests, touched-file ESLint, TypeScript `tsc --noEmit`, and `git diff --check`. Production acquisition-invariant E2E is wired to change Overview visibility and assert unchanged configured logical targets and zero configuration mutations, but it is intentionally not run on the Pi because its runner performs `npm run build` and #626 prohibits another heavy in-place build.
+PR #628 remains open; previous published checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1` and its original software/CI gates are GREEN. The feature branch is now synchronized without force-push with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996`; only `.project/**` required conflict reconciliation. Focused checks are the next gate before publishing the new exact head and producing an updated ARM64 runtime artifact.
 
-No Device Agent production implementation, scheduler cadence, dependency graph, database schema, Modbus write path, hardware write, or site cutover is changed by #627.
+Real acceptance will hide monitored channel `108-01` only from Overview and prove Acquisition Registry revision/active set/configured target count stay unchanged while physical request counters and PostgreSQL `telemetry_latest.sample_id/captured_at` continue advancing after the browser is closed. Opera Browser Connector is currently disconnected; this does not block branch sync, tests, CI or artifact production, but may require reconnection when the UI interaction step is reached if no equivalent authenticated browser session is available. No monitoring-enrollment mutation, Modbus write, hardware write or site cutover is authorized.
 
 ## Current execution boundary
 
 Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
 
-Next action: publish the recoverable #627 checkpoint, open the focused PR, require exact-head GitHub CI including production build, Authenticated Dashboard/Offline Bundle/acquisition-invariant gates, then perform bounded Raspberry Pi runtime evidence without building on the Pi. After GREEN merge and state reconciliation, resume Issue #606 from its published checkpoint.
+Next action: run focused #627 checks on the branch synchronized with `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996`, commit the merge checkpoint, push PR #628, require fresh exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
-Planned sequence: **#627 → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

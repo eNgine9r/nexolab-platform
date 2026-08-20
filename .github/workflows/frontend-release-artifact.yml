@@ -1,0 +1,70 @@
+name: Frontend Release Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Git ref to build
+        required: true
+        default: main
+      api_base_url:
+        description: Public LOCAL_LAN API base URL
+        required: true
+      websocket_url:
+        description: Public LOCAL_LAN telemetry WebSocket URL
+        required: true
+      auth_provider:
+        description: Frontend authentication provider
+        required: true
+        default: local
+      organization_id:
+        description: Default organization UUID
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build verified ARM64 frontend release
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout requested source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Record exact requested source
+        id: provenance
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build self-contained ARM64 frontend runtime artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/build-frontend-release-artifact.sh \
+            --platform linux/arm64 \
+            --api-base-url "${{ inputs.api_base_url }}" \
+            --websocket-url "${{ inputs.websocket_url }}" \
+            --auth-provider "${{ inputs.auth_provider }}" \
+            --organization-id "${{ inputs.organization_id }}" \
+            --output "${{ runner.temp }}/nexolab-frontend-release"
+
+      - name: Upload verified frontend release
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexolab-frontend-release-${{ steps.provenance.outputs.sha }}-arm64
+          path: ${{ runner.temp }}/nexolab-frontend-release
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

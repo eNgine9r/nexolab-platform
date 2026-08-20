@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
   "accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-  "last_reconciled_repository_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+  "last_reconciled_repository_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 627,
-    "selection_status": "critical_interrupt_in_progress",
+    "selection_status": "critical_active_main_synced_focused_verification",
     "ready_issue_count": 1,
-    "reason": "Issue #627 is a Product Owner-prioritized critical acquisition/UI ownership defect and temporarily interrupts Issue #606. #606 retains a recoverable checkpoint and resumes after #627."
+    "reason": "Issue #626 and its state reconciliation are merged GREEN. Issue #627 is synchronized with current main and is the active critical Work Package; focused verification precedes a new exact-head CI/ARM64 artifact and real Pi acceptance."
   },
   "tasks": [
     {
@@ -300,14 +300,46 @@
       "id": "NEXOLAB-626",
       "issue": 626,
       "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-      "status": "critical_in_progress_blocks_heavy_pi_builds",
-      "priority": "critical"
+      "status": "done_merged_green",
+      "priority": "critical",
+      "branch": "fix/626-atomic-pi-deploy",
+      "checkpoint_sha": "49b827dfead6f09e8a4b812042de75a181226a61",
+      "frontend_release_tests": "PASS_12_OF_12",
+      "version_management_pytest": "PASS_42_OF_42",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "deployment_auth_capacity_tests": "PASS_27_OF_27",
+      "initial_host_dependency_artifact_import": "FAIL_CLOSED_DESIGN_REJECTED",
+      "initial_pi_evidence": "runtime/deployments/issue-626-isolated-20260820T130527Z",
+      "production_dashboard_preserved": "PASS",
+      "pr": 629,
+      "exact_head_sha": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "ci_run": "PASS_32373871646",
+      "telemetry_ci_run": "PASS_32373871520",
+      "arm64_artifact_id": 9408510671,
+      "arm64_artifact_digest": "sha256:3005a8c2788e3ce683a61857feabff5c2270d694e708cc4bccc8846142d11fed",
+      "pi_artifact_import": "PASS_SELF_CONTAINED_ARM64",
+      "pi_archive_members": 18468,
+      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "pi_candidate_rss_kib": 116272,
+      "pi_production_dashboard_preserved": "PASS_MAINPID_3696_PORT_PID_3947",
+      "pi_candidate_cleanup": "PASS_PORT_3100_FREE",
+      "pi_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
+      "post_activation_rollback_contract": "PASS_TELEMETRY_DEVICE_AGENT_DASHBOARD",
+      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "runtime_content_unchanged_after_proof": "PASS_DEPLOY_SCRIPT_TEST_STATE_ONLY",
+      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+      "final_exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
+      "final_ci": "PASS_32377664739",
+      "final_telemetry_ci": "PASS_32377664704",
+      "final_arm64_artifact_id": 9410009481,
+      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366"
     },
     {
       "id": "NEXOLAB-627",
       "issue": 627,
       "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-      "status": "implementation_complete_local_verification_pending_ci",
+      "status": "main_synced_focused_verification_pending",
       "priority": "critical",
       "branch": "fix/627-monitoring-display-decoupling",
       "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
@@ -317,19 +349,28 @@
       "touched_lint": "PASS",
       "typecheck": "PASS",
       "git_diff_check": "PASS",
-      "local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626"
+      "local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626",
+      "pull_request": 628,
+      "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
+      "core_ci": "PASS_32363682430",
+      "authenticated_dashboard_acceptance": "PASS_32363682812",
+      "offline_bundle": "PASS_32363682463",
+      "acquisition_scale": "PASS_32363682454",
+      "required_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+      "synchronized_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+      "previous_exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1"
     }
   ],
   "active_work_package": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "type": "critical_monitoring_visibility_boundary_bugfix",
-    "status": "implementation_complete_local_verification_pending_ci"
+    "type": "critical_monitoring_display_boundary",
+    "status": "main_synced_focused_verification_pending"
   },
   "next_work_package": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "in_progress_pending_pr_ci_runtime_acceptance"
+    "status": "in_progress_focused_verification_then_exact_ci_arm64_pi_acceptance"
   },
   "verification": {
     "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
@@ -350,7 +391,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+    "repository_state_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -502,7 +543,33 @@
     "issue_627_git_diff_check": "PASS",
     "issue_627_local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626",
     "issue_627_modbus_writes": 0,
-    "issue_627_hardware_writes": 0
+    "issue_627_hardware_writes": 0,
+    "issue_626_frontend_release_tests": "PASS_12_OF_12",
+    "issue_626_version_management_pytest": "PASS_42_OF_42",
+    "issue_626_real_pi_runtime_dependency_snapshot": "PASS",
+    "issue_626_yaml_parse": "PASS",
+    "issue_626_git_diff_check": "PASS",
+    "issue_627_core_ci": "PASS_32363682430",
+    "issue_627_authenticated_dashboard_acceptance": "PASS_32363682812",
+    "issue_627_offline_bundle": "PASS_32363682463",
+    "issue_627_acquisition_scale": "PASS_32363682454",
+    "runtime_registry_revision_observed": 9,
+    "runtime_poll_eligible_targets_observed": 33,
+    "issue_626_deployment_auth_capacity_tests": "PASS_27_OF_27",
+    "issue_626_exact_head_ci": "PASS_32373871646",
+    "issue_626_telemetry_ci": "PASS_32373871520",
+    "issue_626_arm64_artifact": "PASS_9408510671",
+    "issue_626_pi_artifact_import": "PASS",
+    "issue_626_pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
+    "issue_626_pi_production_preservation": "PASS",
+    "issue_626_pi_candidate_cleanup": "PASS",
+    "issue_626_post_activation_rollback_contract": "PASS",
+    "issue_626_final_exact_head_ci": "PASS_32377664739",
+    "issue_626_final_telemetry_ci": "PASS_32377664704",
+    "issue_626_final_arm64_artifact": "PASS_9410009481",
+    "issue_626_merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+    "issue_626_hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+    "issue_626_final_runtime_content_vs_hardware_proof": "UNCHANGED_PRODUCT_FRONTEND"
   },
   "independent_pending_lanes": [
     {
@@ -583,11 +650,11 @@
     },
     {
       "issue": 626,
-      "status": "critical_in_progress_resource_safety"
+      "status": "done_merged_green"
     },
     {
       "issue": 627,
-      "status": "critical_in_progress_pending_pr_ci_runtime_acceptance"
+      "status": "critical_active_pi_acceptance"
     }
   ],
   "safety": {

@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T10:59:57.874359Z",
+  "timestamp": "2026-08-20T17:15:28+03:00",
   "actor": "ChatGPT",
-  "event": "issue_627_local_implementation_verified_pending_pr_ci",
-  "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+  "event": "issue_627_main_synced_focused_verification_pending",
+  "repository_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -136,6 +136,25 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "runtime_deployed": false
+    },
+    "issue_626": {
+      "issue": 626,
+      "pull_request": 629,
+      "result": "COMPLETED_GREEN_ATOMIC_PI_FRONTEND_DEPLOYMENT",
+      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+      "exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
+      "core_ci": "PASS_32377664739",
+      "telemetry_service": "PASS_32377664704",
+      "final_arm64_artifact_id": 9410009481,
+      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366",
+      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "hardware_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
+      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "pi_production_preserved": true,
+      "post_activation_rollback_contract": "PASS",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false
     }
   },
   "blocked_work": {
@@ -155,10 +174,10 @@
   "current_boundary": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI"
+    "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING"
   },
-  "next_action": "Commit and push Issue #627, open the focused PR, require exact-head GitHub CI including production build/Authenticated Dashboard/Offline Bundle/acquisition invariant, then perform bounded Raspberry Pi runtime evidence without an in-place frontend build; after GREEN merge reconcile state and resume Issue #606.",
-  "planned_queue": [627, 606, 607, 589, 590],
+  "next_action": "Run focused #627 frontend and Device Agent boundary checks against the branch synchronized with main@bd28ab87b8a845a634c83fdbe2965f5bc6424996, update the exact checkpoint, push PR #628, require fresh exact-head CI and ARM64 artifact, then complete the real Raspberry Pi Overview-only visibility and browser-closed telemetry invariant.",
+  "planned_queue": [626, 627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -169,36 +188,32 @@
   },
   "known_non_blocking_issues": {
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
-    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check.",
-    "issue_626": "Critical deployment-resource defect: do not run heavy in-place Next production builds on the 4 GiB Raspberry Pi. Use GitHub CI/off-device artifacts until #626 is resolved."
+    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
   "in_progress_work": {
     "issue_627": {
       "issue": 627,
-      "branch": "fix/627-monitoring-display-decoupling",
-      "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
-      "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI",
-      "frontend_targeted_tests": "PASS_11_OF_11",
-      "device_agent_boundary_tests": "PASS_24_OF_24",
-      "full_unit_tests": "PASS_525_OF_525",
-      "touched_lint": "PASS",
-      "typecheck": "PASS",
-      "git_diff_check": "PASS",
-      "production_e2e": "WIRED_NOT_RUN_LOCALLY_RESOURCE_SAFETY_ISSUE_626",
-      "modbus_write": "none",
-      "hardware_write": "none"
+      "pull_request": 628,
+      "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
+      "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING",
+      "core_ci": "PASS_32363682430",
+      "authenticated_dashboard_acceptance": "PASS_32363682812",
+      "offline_bundle": "PASS_32363682463",
+      "acquisition_scale": "PASS_32363682454",
+      "previous_exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
+      "synchronized_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996"
     },
     "issue_606": {
       "issue": 606,
       "branch": "feat/606-local-lan-discovery",
       "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
-      "status": "PAUSED_BY_CRITICAL_627"
+      "status": "PAUSED_BY_CRITICAL_626_627_SEQUENCE"
     }
   },
   "active_work": {
     "issue_627": {
       "issue": 627,
-      "status": "IMPLEMENTATION_COMPLETE_LOCAL_VERIFICATION_PENDING_PR_CI",
+      "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING",
       "modbus_write": "none",
       "hardware_write": "none"
     }
