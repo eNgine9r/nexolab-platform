@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Production deployment was not cut over by #627.
+Accepted product-code baseline is `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` is the same SHA. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Production deployment was not cut over by #627.
 
-The reconciled repository baseline and `origin/main` are `bd28ab87b8a845a634c83fdbe2965f5bc6424996`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
+The reconciled repository baseline and `origin/main` are `0533e01e6f345100ee37521ea6810c95e1ed2202`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -197,7 +197,7 @@ The final deployment-only rollback correction is also merged: post-activation Te
 
 ## Issue #627 — completed GREEN and merged
 
-PR #628 is open and mergeable. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows: Core CI `32411093778`, Authenticated Dashboard `32411094072` (GREEN rerun after the known unrelated equipment WebSocket timing flake), Offline Bundle `32411094258`, Acquisition Scale `32411093918`, Device Agent Fleet `32411095164`, Refrigeration Browser `32411094752`, Container Supply Chain `32411093905`, MQTT TLS Fleet `32411093449`, Disaster Recovery TLS `32411094005`, and Edge image `32411093799`.
+Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows: Core CI `32411093778`, Authenticated Dashboard `32411094072` (GREEN rerun after the known unrelated equipment WebSocket timing flake), Offline Bundle `32411094258`, Acquisition Scale `32411093918`, Device Agent Fleet `32411095164`, Refrigeration Browser `32411094752`, Container Supply Chain `32411093905`, MQTT TLS Fleet `32411093449`, Disaster Recovery TLS `32411094005`, and Edge image `32411093799`.
 
 PR #628 merged GREEN as `0533e01e6f345100ee37521ea6810c95e1ed2202` from final state head `d848848994d1c346c2ed614da24597ad78683111`. All final state-head required checks were GREEN, including Core CI `32415131893`, Authenticated Dashboard `32415131935`, and Offline Bundle `32415132995`. Issue #627 is closed with `status:done`.
 
