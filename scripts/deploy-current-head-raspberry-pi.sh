@@ -695,16 +695,26 @@ wait_http() {
     fi
     sleep 2
   done
-  fail "timed out waiting for $label: $url"
+  log "Not ready after activation: $label ($url)"
+  return 1
 }
 
-wait_http telemetry "$NEXOLAB_API_BASE_URL/health/ready" 90
-wait_http device-agent "http://127.0.0.1:8081/health" 90
-wait_http dashboard "$NEXOLAB_DASHBOARD_ORIGIN" 90
-wait_http prometheus "http://127.0.0.1:9090/-/ready" 90
-wait_http alertmanager "http://127.0.0.1:9093/-/ready" 90
-wait_http grafana "http://127.0.0.1:3001/api/health" 120
-wait_http minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/minio/health/live" 90
+wait_http_or_rollback() {
+  local label=$1
+  if wait_http "$@"; then
+    return 0
+  fi
+  rollback_dashboard_release
+  fail "post-activation readiness failed for $label; last-known-good dashboard restored"
+}
+
+wait_http_or_rollback telemetry "$NEXOLAB_API_BASE_URL/health/ready" 90
+wait_http_or_rollback device-agent "http://127.0.0.1:8081/health" 90
+wait_http_or_rollback dashboard "$NEXOLAB_DASHBOARD_ORIGIN" 90
+wait_http_or_rollback prometheus "http://127.0.0.1:9090/-/ready" 90
+wait_http_or_rollback alertmanager "http://127.0.0.1:9093/-/ready" 90
+wait_http_or_rollback grafana "http://127.0.0.1:3001/api/health" 120
+wait_http_or_rollback minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/minio/health/live" 90
 
 log "Running central smoke gate"
 (

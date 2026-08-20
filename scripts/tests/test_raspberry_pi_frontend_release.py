@@ -135,6 +135,18 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn('rollback_dashboard_release', text)
         self.assertIn('nexolab_frontend_verify_public_contract', text)
 
+    def test_post_activation_readiness_failure_rolls_back_last_known_good(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        wrapper = text.index("wait_http_or_rollback()")
+        rollback = text.index("rollback_dashboard_release", wrapper)
+        failure = text.index("post-activation readiness failed for $label; last-known-good dashboard restored", wrapper)
+        self.assertLess(wrapper, rollback)
+        self.assertLess(rollback, failure)
+        for label in ("telemetry", "device-agent", "dashboard"):
+            self.assertIn(f"wait_http_or_rollback {label}", text)
+        self.assertNotIn('wait_http telemetry "$NEXOLAB_API_BASE_URL/health/ready"', text)
+        self.assertNotIn('wait_http device-agent "http://127.0.0.1:8081/health"', text)
+
     def test_verified_off_device_artifact_imports_without_frontend_build(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
