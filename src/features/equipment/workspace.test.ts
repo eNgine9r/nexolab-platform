@@ -171,6 +171,7 @@ function device(overrides: Partial<MeasurementDevice> = {}): MeasurementDevice {
     status: "active",
     measuredParameters: [{ metric: "temperature", unit: "degC" }],
     ...overrides,
+    version: overrides.version ?? 1,
   };
 }
 
@@ -183,6 +184,7 @@ function sensor(overrides: Partial<PhysicalSensor> = {}): PhysicalSensor {
     calibrationStatus: "current",
     status: "active",
     ...overrides,
+    version: overrides.version ?? 1,
   };
 }
 

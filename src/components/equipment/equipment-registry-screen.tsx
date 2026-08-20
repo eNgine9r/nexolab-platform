@@ -133,6 +133,9 @@ export function EquipmentRegistryScreen() {
               failures={registry.failures}
               error={registry.error}
               progress={registry.progress}
+              canManage={security.membership.permissions.includes("equipment.manage")}
+              equipmentRepository={registry.equipmentRepository}
+              climateCatalogRepository={registry.climateCatalogRepository}
               onRetry={registry.retry}
             />
           </div>

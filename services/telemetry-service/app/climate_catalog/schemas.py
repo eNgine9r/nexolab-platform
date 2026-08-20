@@ -59,6 +59,7 @@ class MeasurementDeviceResponse(BaseModel):
     connection_status: str
     status: str
     measured_parameters: list[MeasuredParameterResponse]
+    version: int
     created_at: datetime
     updated_at: datetime
 
@@ -72,8 +73,58 @@ class PhysicalSensorResponse(BaseModel):
     serial_number: str | None
     calibration_status: str
     status: str
+    version: int
     created_at: datetime
     updated_at: datetime
+
+
+class MeasurementDeviceMetadataUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Annotated[str, Field(min_length=1, max_length=255)]
+    designation: Annotated[str | None, Field(max_length=32)] = None
+    manufacturer: Annotated[str, Field(min_length=1, max_length=128)]
+    model: Annotated[str, Field(min_length=1, max_length=128)]
+
+    @field_validator("display_name", "manufacturer", "model")
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @field_validator("designation")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = " ".join(value.split())
+        return normalized or None
+
+
+class PhysicalSensorMetadataUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    inventory_number: Annotated[str, Field(min_length=1, max_length=32)]
+    serial_number: Annotated[str | None, Field(max_length=128)] = None
+    calibration_status: Literal["untracked", "current", "due", "expired"]
+
+    @field_validator("inventory_number")
+    @classmethod
+    def normalize_inventory_number(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("inventory number must not be blank")
+        return normalized
+
+    @field_validator("serial_number")
+    @classmethod
+    def normalize_serial_number(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = " ".join(value.split())
+        return normalized or None
 
 
 class MeasurementChannelResponse(BaseModel):

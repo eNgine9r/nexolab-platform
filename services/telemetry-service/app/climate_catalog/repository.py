@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.climate_catalog.domain import (
@@ -45,6 +46,29 @@ class ClimateChamberVersionConflictError(ClimateCatalogRepositoryError):
         )
         self.expected_version = expected_version
         self.actual_version = actual_version
+
+
+class MeasurementDeviceNotFoundError(ClimateCatalogRepositoryError):
+    code = "measurement_device_not_found"
+
+
+class PhysicalSensorNotFoundError(ClimateCatalogRepositoryError):
+    code = "physical_sensor_not_found"
+
+
+class ClimateAssetVersionConflictError(ClimateCatalogRepositoryError):
+    code = "climate_asset_version_conflict"
+
+    def __init__(self, *, expected_version: int, actual_version: int) -> None:
+        super().__init__(
+            f"climate asset version conflict: expected {expected_version}, actual {actual_version}"
+        )
+        self.expected_version = expected_version
+        self.actual_version = actual_version
+
+
+class PhysicalSensorInventoryConflictError(ClimateCatalogRepositoryError):
+    code = "physical_sensor_inventory_conflict"
 
 
 @dataclass(frozen=True, slots=True)
@@ -690,6 +714,139 @@ class PostgresClimateCatalogRepository:
             session.expunge(chamber)
             return chamber
 
+    def update_measurement_device_metadata(
+        self,
+        chamber_id: str,
+        device_id: str,
+        *,
+        display_name: str,
+        designation: str | None,
+        manufacturer: str,
+        model: str,
+        expected_version: int,
+        organization_id: str,
+        audit_event: AuditEventInput,
+    ) -> MeasurementDevice:
+        now = datetime.now(UTC)
+        with Session(self._engine, expire_on_commit=False) as session:
+            with session.begin():
+                chamber = self._chamber_in_session(
+                    session, chamber_id, organization_id=organization_id
+                )
+                device = session.scalar(
+                    select(MeasurementDevice)
+                    .where(
+                        MeasurementDevice.organization_id == organization_id,
+                        MeasurementDevice.climate_chamber_id == chamber.id,
+                        MeasurementDevice.id == device_id.strip(),
+                    )
+                    .with_for_update()
+                )
+                if device is None:
+                    raise MeasurementDeviceNotFoundError(
+                        f"measurement device {device_id!r} was not found in chamber {chamber_id!r}"
+                    )
+                if device.version != expected_version:
+                    raise ClimateAssetVersionConflictError(
+                        expected_version=expected_version,
+                        actual_version=device.version,
+                    )
+                before = _measurement_device_snapshot(device)
+                device.display_name = _required_metadata_text(display_name, "display name")
+                device.designation = _optional_metadata_text(designation)
+                device.manufacturer = _required_metadata_text(manufacturer, "manufacturer")
+                device.model = _required_metadata_text(model, "model")
+                device.version += 1
+                device.updated_at = now
+                self._security_repository.append_audit_event(
+                    replace(
+                        audit_event,
+                        entity_id=device.id,
+                        before_snapshot=before,
+                        after_snapshot=_measurement_device_snapshot(device),
+                    ),
+                    session=session,
+                )
+            session.expunge(device)
+            return device
+
+    def update_physical_sensor_metadata(
+        self,
+        chamber_id: str,
+        sensor_id: str,
+        *,
+        inventory_number: str,
+        serial_number: str | None,
+        calibration_status: str,
+        expected_version: int,
+        organization_id: str,
+        audit_event: AuditEventInput,
+    ) -> PhysicalSensor:
+        now = datetime.now(UTC)
+        try:
+            with Session(self._engine, expire_on_commit=False) as session:
+                with session.begin():
+                    chamber = self._chamber_in_session(
+                        session, chamber_id, organization_id=organization_id
+                    )
+                    sensor = session.scalar(
+                        select(PhysicalSensor)
+                        .where(
+                            PhysicalSensor.organization_id == organization_id,
+                            PhysicalSensor.climate_chamber_id == chamber.id,
+                            PhysicalSensor.id == sensor_id.strip(),
+                        )
+                        .with_for_update()
+                    )
+                    if sensor is None:
+                        raise PhysicalSensorNotFoundError(
+                            f"physical sensor {sensor_id!r} was not found in chamber {chamber_id!r}"
+                        )
+                    if sensor.version != expected_version:
+                        raise ClimateAssetVersionConflictError(
+                            expected_version=expected_version,
+                            actual_version=sensor.version,
+                        )
+                    normalized_inventory = _required_metadata_text(
+                        inventory_number, "inventory number"
+                    )
+                    duplicate = session.scalar(
+                        select(PhysicalSensor.id).where(
+                            PhysicalSensor.organization_id == organization_id,
+                            PhysicalSensor.inventory_number == normalized_inventory,
+                            PhysicalSensor.id != sensor.id,
+                        )
+                    )
+                    if duplicate is not None:
+                        raise PhysicalSensorInventoryConflictError(
+                            f"physical sensor inventory number {normalized_inventory!r} already exists"
+                        )
+                    if calibration_status not in {"untracked", "current", "due", "expired"}:
+                        raise ClimateCatalogRepositoryError(
+                            "unsupported physical sensor calibration status"
+                        )
+                    before = _physical_sensor_snapshot(sensor)
+                    sensor.inventory_number = normalized_inventory
+                    sensor.serial_number = _optional_metadata_text(serial_number)
+                    sensor.calibration_status = calibration_status
+                    sensor.version += 1
+                    sensor.updated_at = now
+                    self._security_repository.append_audit_event(
+                        replace(
+                            audit_event,
+                            entity_id=sensor.id,
+                            before_snapshot=before,
+                            after_snapshot=_physical_sensor_snapshot(sensor),
+                        ),
+                        session=session,
+                    )
+                session.expunge(sensor)
+                return sensor
+        except IntegrityError as error:
+            raise PhysicalSensorInventoryConflictError(
+                "physical sensor inventory number already exists"
+            ) from error
+
     @staticmethod
     def _chamber_in_session(
         session: Session,
@@ -792,3 +949,47 @@ def _chamber_snapshot(chamber: ClimateChamber) -> dict[str, object]:
         "display_order": chamber.display_order,
         "version": chamber.version,
     }
+
+def _measurement_device_snapshot(device: MeasurementDevice) -> dict[str, object]:
+    return {
+        "id": device.id,
+        "climate_chamber_id": device.climate_chamber_id,
+        "business_key": device.business_key,
+        "device_type": device.device_type,
+        "manufacturer": device.manufacturer,
+        "model": device.model,
+        "unit_id": device.unit_id,
+        "display_name": device.display_name,
+        "designation": device.designation,
+        "connection_status": device.connection_status,
+        "status": device.status,
+        "version": device.version,
+    }
+
+
+def _physical_sensor_snapshot(sensor: PhysicalSensor) -> dict[str, object]:
+    return {
+        "id": sensor.id,
+        "climate_chamber_id": sensor.climate_chamber_id,
+        "channel_id": sensor.channel_id,
+        "sensor_position": sensor.sensor_position,
+        "inventory_number": sensor.inventory_number,
+        "serial_number": sensor.serial_number,
+        "calibration_status": sensor.calibration_status,
+        "status": sensor.status,
+        "version": sensor.version,
+    }
+
+
+def _required_metadata_text(value: str, field: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ClimateCatalogRepositoryError(f"{field} is required")
+    return normalized
+
+
+def _optional_metadata_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = " ".join(value.split())
+    return normalized or None

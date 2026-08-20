@@ -192,7 +192,9 @@ describe("equipment asset registry", () => {
       climateCatalogRepository: {
         listChambers: vi.fn(async () => chambers),
         getEquipment,
-      } as ClimateCatalogRepository,
+        updateMeasurementDevice: vi.fn(),
+        updatePhysicalSensor: vi.fn(),
+      } as unknown as ClimateCatalogRepository,
       concurrency: 2,
     });
 
@@ -226,6 +228,8 @@ describe("equipment asset registry", () => {
       climateCatalogRepository: {
         listChambers: vi.fn(async () => [chamberOne, chamberTwo]),
         getEquipment: vi.fn((chamberId: string) => (chamberId === chamberOne.id ? first : second)),
+        updateMeasurementDevice: vi.fn(),
+        updatePhysicalSensor: vi.fn(),
       },
       concurrency: 2,
       onProgress: progress,
@@ -265,6 +269,8 @@ describe("equipment asset registry", () => {
       climateCatalogRepository: {
         listChambers: vi.fn(async () => [chamberTwo]),
         getEquipment: vi.fn(() => pendingCatalog),
+        updateMeasurementDevice: vi.fn(),
+        updatePhysicalSensor: vi.fn(),
       },
       signal: controllerAbort.signal,
     });
@@ -309,6 +315,7 @@ function device(overrides: Partial<MeasurementDevice> = {}): MeasurementDevice {
     status: "active",
     measuredParameters: [{ metric: "temperature", unit: "degC" }],
     ...overrides,
+    version: overrides.version ?? 1,
   };
 }
 
@@ -321,6 +328,7 @@ function physicalSensor(overrides: Partial<PhysicalSensor> = {}): PhysicalSensor
     calibrationStatus: "untracked",
     status: "active",
     ...overrides,
+    version: overrides.version ?? 1,
   };
 }
 

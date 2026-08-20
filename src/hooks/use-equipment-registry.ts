@@ -10,7 +10,11 @@ import {
   type EquipmentRegistryLoadProgress,
 } from "@/features/equipment/asset-registry";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
-import { RefrigerationEquipmentRepositoryError } from "@/features/refrigeration/equipment-repository";
+import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
+import {
+  RefrigerationEquipmentRepositoryError,
+  type RefrigerationEquipmentRepository,
+} from "@/features/refrigeration/equipment-repository";
 
 export type EquipmentRegistryState = "idle" | "loading" | "refreshing" | "ready" | "error";
 
@@ -21,6 +25,8 @@ export type UseEquipmentRegistryResult = {
   failures: EquipmentRegistryFailure[];
   error: string | null;
   progress: Pick<EquipmentRegistryLoadProgress, "completedChambers" | "totalChambers"> | null;
+  equipmentRepository: RefrigerationEquipmentRepository | null;
+  climateCatalogRepository: ClimateCatalogRepository | null;
   retry: () => void;
 };
 
@@ -103,6 +109,8 @@ export function useEquipmentRegistry({
     failures,
     error: effectiveError,
     progress,
+    equipmentRepository,
+    climateCatalogRepository,
     retry: () => setEpoch((current) => current + 1),
   };
 }

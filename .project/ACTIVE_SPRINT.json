@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
   "accepted_product_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
-  "last_reconciled_repository_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
+  "last_reconciled_repository_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 605,
-    "selection_status": "ready_resume_after_reliability_repairs",
-    "ready_issue_count": 1,
-    "reason": "Issues #620 and #619 are complete. PR #623 merged fully GREEN as 4ab72f1c after Core CI, Authenticated Dashboard, Refrigeration Browser, Disaster Recovery and Offline Bundle passed. GitHub audit restores #605 as the sole status:ready product Work Package; PR #621 remains the focused implementation to rebase and reverify on repaired main."
+    "selection_status": "in_progress_rebased_verification",
+    "ready_issue_count": 0,
+    "reason": "PR #624 reconciled #619/#620 state and merged GREEN as 5d81c2c0. Issue #605 / PR #621 is rebased onto that main. Backend metadata tests/migrations and frontend targeted/full unit gates are GREEN. Raspberry Pi hard-reset during repository-wide ESLint under memory pressure; local full lint will not be repeated on the 4 GiB host and exact-head GitHub CI is the repository-wide lint/build source of truth."
   },
   "tasks": [
     {
@@ -186,9 +186,22 @@
       "id": "NEXOLAB-605",
       "issue": 605,
       "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-      "status": "ready_resume_after_reliability_repairs",
+      "status": "in_progress_rebased_verification",
       "priority": "high",
-      "pull_request": 621
+      "pull_request": 621,
+      "branch": "feat/605-equipment-metadata-editing",
+      "base_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
+      "rebased_head_sha": "74f5a847a3d34af98afc8877ec66866cf5b35c9e",
+      "backend_metadata_tests": "PASS_5_OF_5",
+      "alembic_head": "PASS_20260819_0025",
+      "alembic_offline_sql": "PASS",
+      "frontend_targeted_tests": "PASS_18_OF_18",
+      "full_unit_tests": "PASS_519_OF_519",
+      "format_check": "PASS",
+      "typecheck": "PASS",
+      "lint_staged_contract": "PASS",
+      "touched_file_lint": "PASS",
+      "local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE"
     },
     {
       "id": "NEXOLAB-606",
@@ -275,12 +288,12 @@
     "issue": 605,
     "title": "Add permissioned equipment metadata editing from the Equipment workspace",
     "type": "permissioned_equipment_metadata_editing",
-    "status": "ready_resume_after_reliability_repairs"
+    "status": "in_progress_rebased_verification"
   },
   "next_work_package": {
-    "issue": 605,
-    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "status": "ready"
+    "issue": 606,
+    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "status": "blocked_dependency_605"
   },
   "verification": {
     "repository_accepted_product_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
@@ -301,7 +314,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
+    "repository_state_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -422,7 +435,18 @@
     "issue_619_authenticated_dashboard_acceptance": "PASS_32329087128",
     "issue_619_refrigeration_browser_acceptance": "PASS_32329087103",
     "issue_619_disaster_recovery_browser": "PASS_32329087134",
-    "issue_619_offline_bundle": "PASS_32329087175"
+    "issue_619_offline_bundle": "PASS_32329087175",
+    "issue_605_rebased_head_sha": "74f5a847a3d34af98afc8877ec66866cf5b35c9e",
+    "issue_605_backend_metadata_tests": "PASS_5_OF_5",
+    "issue_605_alembic_head": "PASS_20260819_0025",
+    "issue_605_alembic_offline_sql": "PASS",
+    "issue_605_frontend_targeted_tests": "PASS_18_OF_18",
+    "issue_605_full_unit_tests": "PASS_519_OF_519",
+    "issue_605_format_check": "PASS",
+    "issue_605_typecheck": "PASS",
+    "issue_605_lint_staged_contract": "PASS",
+    "issue_605_touched_file_lint": "PASS",
+    "issue_605_local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE"
   },
   "independent_pending_lanes": [
     {
