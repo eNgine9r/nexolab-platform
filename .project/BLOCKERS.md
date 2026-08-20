@@ -68,9 +68,9 @@ Issue #606 has a published recoverable implementation checkpoint on `feat/606-lo
 
 PR #629 merged GREEN as `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The safe self-contained ARM64 artifact path is hardware-proven and the final post-activation readiness rollback contract is merged. Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi.
 
-## Issue #627 — active critical acceptance
+## Issue #627 — hardware acceptance GREEN
 
-#626 is no longer a blocker. The #627 branch is synchronized with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996` and post-sync focused checks are GREEN. Remaining work is exact-head CI/artifact production and real Pi Overview-only visibility proof for monitored `108-01`. Opera Browser Connector is currently disconnected; this is a soft access blocker only for the eventual authenticated UI interaction and does not block repository/CI/artifact work. No Modbus write, hardware write or acquisition enrollment mutation is authorized.
+No implementation or hardware blocker remains. Product head `18c067142baaf59b4f674aea1b2bd6eba839124c` is GREEN in all required workflows and real Pi acceptance is PASS: registry `9 -> 9`, configured targets `33 -> 33`, no service/acquisition mutations, `108-01` physical requests +156 in a browser-closed same-process window, PostgreSQL latest samples +802, production Dashboard preserved, candidate `:3100` stopped. Remaining work is final state-only checkpoint CI/review/merge for PR #628, then post-merge reconciliation and resume #606.
 
 ## Issue #618 — independent reliability lane
 
@@ -87,7 +87,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
-- #627 monitoring/display boundary — active critical Pi acceptance;
+- #627 monitoring/display boundary — hardware acceptance GREEN, final state CI/merge pending;
 - #606 discovery/adoption inbox — paused with recoverable checkpoint; resume after #627;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
@@ -100,7 +100,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #605 Equipment metadata editing — complete GREEN in PR #621;
 - #606 LOCAL_LAN discovery inbox — paused by active critical #627 with published checkpoint;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
-- #627 monitoring/display boundary — active critical Pi acceptance;
+- #627 monitoring/display boundary — hardware acceptance GREEN, final state CI/merge pending;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;

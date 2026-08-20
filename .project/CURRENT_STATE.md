@@ -195,19 +195,23 @@ Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb
 
 The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
 
-## Issue #627 — active critical Raspberry Pi acceptance
+## Issue #627 — hardware acceptance GREEN, pending final state CI/merge
 
-PR #628 remains open; previous published checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1` and its original software/CI gates are GREEN. The feature branch is synchronized without force-push with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996` at merge checkpoint `adf0d0e526c2bfd8f4be924c9fedfa5cbadaefa3`; only `.project/**` required conflict reconciliation. Post-sync focused checks are GREEN: frontend 11/11, networkless Device Agent boundary 24/24, touched ESLint PASS, TypeScript PASS and diff checks PASS. Fresh exact-head CI and an updated ARM64 runtime artifact are the next gates.
+PR #628 is open and mergeable. Product head `18c067142baaf59b4f674aea1b2bd6eba839124c` is GREEN in all 10 required exact-head workflows: Core CI `32386348045`, Authenticated Dashboard `32386347974`, Offline Bundle `32386348440`, Acquisition Scale `32386348135`, Device Agent Fleet `32386348188`, Refrigeration Browser `32386347903`, Container Supply Chain `32386347826`, MQTT TLS Fleet `32386348339`, Disaster Recovery TLS `32386347889`, and Edge image `32386347959`.
 
-Real acceptance will hide monitored channel `108-01` only from Overview and prove Acquisition Registry revision/active set/configured target count stay unchanged while physical request counters and PostgreSQL `telemetry_latest.sample_id/captured_at` continue advancing after the browser is closed. Opera Browser Connector is currently disconnected; this does not block branch sync, tests, CI or artifact production, but may require reconnection when the UI interaction step is reached if no equivalent authenticated browser session is available. No monitoring-enrollment mutation, Modbus write, hardware write or site cutover is authorized.
+Off-device ARM64 workflow `32387330527` is GREEN. Artifact `9413691393`, digest `sha256:ebd99ded3410d599321dbd249014d6ee75b754a532c20e4bd6184fd13274cf65`, is exact source `18c06714`, `linux/arm64`, Node `22.23.1`, build ID `JNpIAakypSqZAB4Y9SxtZ`. Pi evidence: `runtime/deployments/issue-627-pi-20260820T161256Z`; import PASS, isolated `127.0.0.1:3100` 5/5 routes HTTP 200 at ~111 MiB RSS, production Dashboard MainPID `3696` / port PID `3947` / HTTP 200 unchanged.
+
+The real Overview invariant is PASS for monitored `108-01`: display preference changed without Device Agent mutation requests; registry `9 -> 9`; active set unchanged; configured/scheduler targets `33 -> 33`; service operations `{}`. Device Agent restart at `2026-08-20T16:17:57Z` occurred well before UI proof. In the same post-restart browser-closed window physical requests advanced `1342 -> 1498` (+156) and PostgreSQL latest sample ID `5081241 -> 5082043` (+802), final quality `valid`. Candidate `:3100` was stopped and production remained unchanged.
+
+The isolated loopback origin is not in production Telemetry CORS allowlists, so unrelated read-only API calls logged expected CORS errors during the bounded synthetic-auth display proof. Production Authenticated Dashboard Acceptance on the same product head is GREEN. No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
 
 ## Current execution boundary
 
 Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
 
-Next action: push the synchronized #627 checkpoint, require fresh exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant for monitored `108-01`. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: commit and push the #627 hardware-acceptance state checkpoint, require final exact-head CI and review, merge PR #628 only when GREEN, reconcile post-merge state, then resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
-Planned sequence: **#627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#627 final state CI/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 
