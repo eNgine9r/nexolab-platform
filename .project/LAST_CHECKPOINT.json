@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T20:51:07.512199Z",
+  "timestamp": "2026-08-20T22:00:30Z",
   "actor": "ChatGPT",
-  "event": "issue_627_merged_green_issue_606_ready_to_resume",
-  "repository_main_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-  "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+  "event": "production_cutover_green_issue_606_pr_632_ci_green",
+  "repository_main_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+  "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "completed_work": {
     "issue_608": {
       "issue": 608,
@@ -216,11 +216,12 @@
   "current_boundary": {
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "READY_TO_RESUME_FROM_CHECKPOINT",
-    "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
+    "status": "PR_632_ALL_CI_GREEN_RUNTIME_ACCEPTANCE_PENDING",
+    "pull_request": 632,
+    "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37"
   },
-  "next_action": "Sync Issue #606 branch feat/606-local-lan-discovery from checkpoint af52c19ff67538f21399e258fbcc6aeef7ba96ab with current main 0533e01e6f345100ee37521ea6810c95e1ed2202, rerun the exact discovery repository invalid_response failure, diagnose it from the real response contract, then continue the focused #606 implementation and verification.",
-  "planned_queue": [606, 607, 589, 590],
+  "next_action": "Finish exact-head PR #632 CI, then run bounded real Raspberry Pi/approved-LAN discovery acceptance for Issue #606, prove acquisition invariance and offline behavior, reconcile state, and merge only when required checks and runtime evidence are GREEN.",
+  "planned_queue": [606, 633, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -231,24 +232,57 @@
   },
   "known_non_blocking_issues": {
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
-    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
+    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check.",
+    "issue_633": "Successful production cutover left an orphan frontend candidate on 127.0.0.1:3100. It was manually stopped with production remaining healthy; Issue #633 tracks deterministic cleanup before the next deployment."
   },
   "in_progress_work": {
     "issue_606": {
       "issue": 606,
       "branch": "feat/606-local-lan-discovery",
-      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
-      "status": "READY_TO_RESUME_FROM_CHECKPOINT_POST_627_MERGE"
+      "pull_request": 632,
+      "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
+      "status": "PR_ALL_CI_GREEN_RUNTIME_ACCEPTANCE_PENDING"
     }
   },
   "active_work": {
     "issue_606": {
       "issue": 606,
-      "status": "READY_TO_RESUME_FROM_CHECKPOINT",
+      "status": "PR_ALL_CI_GREEN_RUNTIME_ACCEPTANCE_PENDING",
       "branch": "feat/606-local-lan-discovery",
-      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
+      "pull_request": 632,
+      "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
       "modbus_write": "none",
       "hardware_write": "none"
     }
+  },
+  "production_cutover": {
+    "source_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+    "runtime_mode": "lan",
+    "result": "PASS",
+    "evidence": "runtime/deployments/20260820T214127Z",
+    "frontend_release": "runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z",
+    "frontend_build_id": "wb6SYt8RD2_XAcyPcyZP2",
+    "dashboard_routes": "PASS_6_OF_6_HTTP_200",
+    "telemetry_database_mqtt": "PASS_READY",
+    "telemetry_persistence": "PASS_ADVANCING",
+    "registry_revision": 9,
+    "poll_eligible_targets": 33,
+    "service_operations": "EMPTY",
+    "candidate_cleanup": "MANUAL_PASS_TRACKED_ISSUE_633",
+    "settings_xjp60d_bundle_marker": "PASS",
+    "browser_visual_acceptance": "NOT_RUN_OPERA_CONNECTOR_DISCONNECTED",
+    "modbus_write": "none",
+    "hardware_write": "none"
+  },
+  "issue_606_ci": {
+    "core_ci": "PASS_32421147273",
+    "authenticated_dashboard_acceptance": "PASS_32421147345",
+    "offline_bundle": "PASS_32421147237",
+    "telemetry_service": "PASS_32421147379",
+    "acquisition_scale": "PASS_32421147349",
+    "device_agent_fleet": "PASS_32421147234",
+    "container_supply_chain": "PASS_32421147290",
+    "offline_auth": "PASS_32421147289",
+    "all_exact_head_workflows": "PASS"
   }
 }
