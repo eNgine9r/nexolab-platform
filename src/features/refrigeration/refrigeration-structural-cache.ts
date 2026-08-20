@@ -16,6 +16,7 @@ type CacheEntry<T> = {
   value: T;
   storedAt: number;
   touchedAt: number;
+  retained: boolean;
 };
 
 type CacheBucket = {
@@ -34,26 +35,38 @@ function bucket(scope: string): CacheBucket {
   return current;
 }
 
-async function cached<T>(scope: string, key: string, loader: () => Promise<T>): Promise<T> {
+async function cached<T>(
+  scope: string,
+  key: string,
+  loader: () => Promise<T>,
+  options: { retained?: boolean } = {},
+): Promise<T> {
   const now = Date.now();
   const current = bucket(scope);
   const stored = current.values.get(key) as CacheEntry<T> | undefined;
 
   if (stored && now - stored.storedAt <= FRESH_TTL_MS) {
     stored.touchedAt = now;
+    stored.retained ||= options.retained === true;
     return stored.value;
   }
 
   if (stored && now - stored.storedAt <= STALE_TTL_MS) {
     stored.touchedAt = now;
-    void revalidate(scope, key, loader);
+    stored.retained ||= options.retained === true;
+    void revalidate(scope, key, loader, options);
     return stored.value;
   }
 
-  return revalidate(scope, key, loader);
+  return revalidate(scope, key, loader, options);
 }
 
-async function revalidate<T>(scope: string, key: string, loader: () => Promise<T>): Promise<T> {
+async function revalidate<T>(
+  scope: string,
+  key: string,
+  loader: () => Promise<T>,
+  options: { retained?: boolean } = {},
+): Promise<T> {
   const current = bucket(scope);
   const existing = current.inflight.get(key) as Promise<T> | undefined;
   if (existing) return existing;
@@ -61,7 +74,12 @@ async function revalidate<T>(scope: string, key: string, loader: () => Promise<T
   const request = loader()
     .then((value) => {
       const now = Date.now();
-      current.values.set(key, { value, storedAt: now, touchedAt: now });
+      current.values.set(key, {
+        value,
+        storedAt: now,
+        touchedAt: now,
+        retained: options.retained === true,
+      });
       trim(current);
       return value;
     })
@@ -76,6 +94,7 @@ async function revalidate<T>(scope: string, key: string, loader: () => Promise<T
 function trim(current: CacheBucket): void {
   if (current.values.size <= MAX_ENTRIES) return;
   const oldest = [...current.values.entries()]
+    .filter(([, entry]) => !entry.retained)
     .sort((left, right) => left[1].touchedAt - right[1].touchedAt)
     .slice(0, current.values.size - MAX_ENTRIES);
   for (const [key] of oldest) current.values.delete(key);
@@ -114,7 +133,7 @@ export function createCachedRefrigerationEquipmentRepository(
   };
 
   return {
-    list: () => cached(scope, catalogKey, () => repository.list()),
+    list: () => cached(scope, catalogKey, () => repository.list(), { retained: true }),
     get: (equipmentId) => cached(scope, recordKey(equipmentId), () => repository.get(equipmentId)),
     create: async (input) => {
       const result = await repository.create(input);

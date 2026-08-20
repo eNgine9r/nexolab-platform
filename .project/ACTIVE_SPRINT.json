@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
   "accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
-  "last_reconciled_repository_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
+  "last_reconciled_repository_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 620,
-    "selection_status": "in_progress",
-    "ready_issue_count": 1,
-    "reason": "Issue #605 is implemented in draft PR #621 but exact-main CI defects block required checks. #620 is the active Core CI reliability interrupt; #619 is the sole next Ready blocker for Authenticated Dashboard Acceptance."
+    "selected_issue": 619,
+    "selection_status": "rebased_local_verification_complete_pending_exact_head_ci",
+    "ready_issue_count": 0,
+    "reason": "PR #622 / Issue #620 merged as 9f54faa2 under the single Product Owner-approved controlled exception. PR #623 / Issue #619 is rebased on repaired main and locally passes format, lint, typecheck, 514/514 unit tests, production build, navigation 3/3 and both acquisition-invariant browser tests. The only full 16-test browser-matrix failure is independent Issue #618 CSV download. #605 / PR #621 is blocked only until #619 merges fully GREEN."
   },
   "tasks": [
     {
@@ -186,10 +186,9 @@
       "id": "NEXOLAB-605",
       "issue": 605,
       "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-      "status": "blocked_ci_dependencies_620_619",
+      "status": "blocked_ci_dependency_619",
       "priority": "high",
-      "pull_request": 621,
-      "exact_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923"
+      "pull_request": 621
     },
     {
       "id": "NEXOLAB-606",
@@ -222,34 +221,59 @@
       "id": "NEXOLAB-618",
       "issue": 618,
       "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
-      "status": "open_baseline_reliability_non_blocking_605",
+      "status": "open_independent_reliability_lane",
       "priority": "high"
     },
     {
       "id": "NEXOLAB-619",
       "issue": 619,
       "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
-      "status": "ready_ci_blocker_after_620",
-      "priority": "high"
+      "status": "rebased_local_verification_complete_pending_exact_head_ci",
+      "priority": "high",
+      "branch": "fix/619-telemetry-navigation-read-model",
+      "navigation_browser_acceptance": "PASS_3_OF_3",
+      "acquisition_invariant_browser_acceptance": "PASS_2_OF_2_IN_FULL_MATRIX",
+      "warm_navigation_budget": "PASS_ALL_MEDIANS_LE_1000_MS",
+      "equipment_catalog_reads": 1,
+      "acquisition_discovery_delta": 0,
+      "acquisition_configuration_mutation_delta": 0,
+      "format_check": "PASS",
+      "lint": "PASS",
+      "typecheck": "PASS",
+      "lint_staged_contract": "PASS",
+      "production_build": "PASS",
+      "full_unit_tests": "PASS_514_OF_514_SYNTHETIC_MAIN_620_619",
+      "pull_request": 623,
+      "pre_rebase_head_sha": "d31d67453d7a5067f9fee2077434cb748b50d869",
+      "local_unit_tests": "PASS_514_OF_514",
+      "full_browser_matrix": "PASS_15_OF_16_ONLY_ISSUE_618_CSV_DOWNLOAD_FAILED"
     },
     {
       "id": "NEXOLAB-620",
       "issue": 620,
       "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
-      "status": "in_progress_ci_reliability_interrupt",
-      "priority": "high"
+      "status": "completed_controlled_merge_exception",
+      "priority": "high",
+      "pull_request": 622,
+      "core_ci": "PASS_32296176882",
+      "offline_bundle": "PASS_32296176711",
+      "authenticated_dashboard_acceptance": "FAIL_BASELINE_619_32296176725",
+      "merge_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+      "product_owner_exception_approved": true,
+      "synthetic_integration_tests": "PASS_514_OF_514",
+      "synthetic_integration_build": "PASS"
     }
   ],
   "active_work_package": {
-    "issue": 620,
-    "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
-    "type": "ci_reliability_time_determinism",
-    "status": "in_progress"
-  },
-  "next_work_package": {
     "issue": 619,
     "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
-    "status": "ready_after_620"
+    "type": "acceptance_read_model_reliability",
+    "status": "rebased_local_verification_complete_pending_exact_head_ci"
+  },
+  "next_work_package": {
+    "issue": 605,
+    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
+    "status": "blocked_until_619_green_merge"
   },
   "verification": {
     "repository_accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
@@ -270,7 +294,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
+    "repository_state_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -341,18 +365,50 @@
     "issue_604_core_ci": "PASS_32263137097",
     "issue_604_refrigeration_browser_acceptance": "PASS_32263134788",
     "issue_604_offline_bundle": "PASS_32263135467",
+    "issue_619_navigation_browser_acceptance": "PASS_3_OF_3",
+    "issue_619_acquisition_invariant": "PASS_3_OF_3",
+    "issue_619_format_check": "PASS",
+    "issue_619_lint": "PASS",
+    "issue_619_typecheck": "PASS",
+    "issue_619_lint_staged_contract": "PASS",
+    "issue_619_production_build": "PASS",
+    "issue_619_unit_tests": "PASS_514_OF_514_REBASED_AFTER_620",
+    "issue_619_equipment_catalog_reads": 1,
+    "issue_619_document_loads": 1,
+    "issue_619_acquisition_discovery_delta": 0,
+    "issue_619_acquisition_configuration_mutation_delta": 0,
+    "issue_619_modbus_writes": 0,
+    "issue_619_hardware_writes": 0,
+    "issue_619_navigation_evidence": "runtime/evidence/issue-619-navigation-final",
+    "issue_619_acquisition_evidence": "runtime/evidence/issue-619-acquisition-final",
+    "issue_620_pull_request": 622,
+    "issue_620_core_ci": "PASS_32296176882",
+    "issue_620_offline_bundle": "PASS_32296176711",
+    "issue_620_authenticated_dashboard_acceptance": "FAIL_BASELINE_619_32296176725",
     "issue_605_pull_request": 621,
-    "issue_605_exact_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923",
-    "issue_605_core_ci": "BLOCKED_BASELINE_620",
-    "issue_605_authenticated_dashboard": "BLOCKED_BASELINE_619_15_OF_16_PASS",
-    "issue_620_exact_main_reproduced": true,
-    "issue_620_focused_tests": "PASS_2_OF_2_TWICE",
-    "issue_620_full_unit_tests": "PASS_513_OF_513",
-    "issue_620_typecheck": "PASS",
-    "issue_620_format_check": "PASS",
-    "issue_620_production_build": "PASS",
-    "issue_618_exact_main_reproduced": true,
-    "issue_619_exact_main_reproduced": true
+    "issue_605_status": "BLOCKED_ONLY_ON_619_GREEN_MERGE",
+    "issue_620_merge_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
+    "issue_620_controlled_merge_exception": true,
+    "issue_620_synthetic_integration_tests": "PASS_514_OF_514",
+    "issue_620_synthetic_integration_build": "PASS",
+    "issue_619_pull_request": 623,
+    "issue_619_pre_rebase_head_sha": "d31d67453d7a5067f9fee2077434cb748b50d869",
+    "issue_619_full_browser_matrix": "PASS_15_OF_16_ONLY_BASELINE_ISSUE_618_CSV_DOWNLOAD_FAILED",
+    "issue_619_navigation_browser_acceptance_rebased": "PASS_3_OF_3",
+    "issue_619_acquisition_invariant_rebased": "PASS_2_OF_2_IN_FULL_MATRIX",
+    "issue_619_navigation_warm_medians_ms": {
+      "overview": 605,
+      "refrigeration": 408,
+      "energy": 624,
+      "live": 460,
+      "nodes": 447,
+      "sessions": 379
+    },
+    "issue_619_acquisition_expected_requests_per_second": 20,
+    "issue_619_acquisition_websocket_max_per_document": 1,
+    "issue_619_rebased_navigation_evidence": "runtime/evidence/issue-619-acquisition-rebased/telemetry-navigation-summary.json",
+    "issue_619_rebased_acquisition_evidence": "runtime/evidence/issue-619-acquisition-rebased/acquisition-ui-invariant.json",
+    "issue_618_full_matrix_failure": "CONFIRMED_PAGE_WAITFOREVENT_DOWNLOAD_TIMEOUT"
   },
   "independent_pending_lanes": [
     {
@@ -389,7 +445,7 @@
     },
     {
       "issue": 605,
-      "status": "blocked_ci_dependencies_620_619"
+      "status": "blocked_until_619_green_merge"
     },
     {
       "issue": 606,
@@ -421,15 +477,15 @@
     },
     {
       "issue": 618,
-      "status": "open_reliability"
+      "status": "open_independent_reliability_lane"
     },
     {
       "issue": 619,
-      "status": "ready_after_620"
+      "status": "rebased_local_verification_complete_pending_exact_head_ci"
     },
     {
       "issue": 620,
-      "status": "in_progress"
+      "status": "completed_controlled_merge_exception"
     }
   ],
   "safety": {

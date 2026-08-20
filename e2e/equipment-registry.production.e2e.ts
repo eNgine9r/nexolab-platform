@@ -306,6 +306,24 @@ ON CONFLICT (organization_id, code) DO NOTHING;
   );
 }
 
+function cleanupEquipmentRegistryScaleFixtures(): void {
+  composeExec(
+    "postgres",
+    [
+      "psql",
+      "-U",
+      postgresUser,
+      "-d",
+      postgresDatabase,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-v",
+      `organization_id=${organizationId}`,
+    ],
+    "DELETE FROM refrigeration_equipment WHERE organization_id = :'organization_id' AND created_by = 'equipment-registry-scale-acceptance';\n",
+  );
+}
+
 function writeDatabaseEvidence(): void {
   const output = composeExec("postgres", [
     "psql",
@@ -660,6 +678,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
   } finally {
     releaseChamberA();
     await context.close();
+    cleanupEquipmentRegistryScaleFixtures();
   }
 });
 

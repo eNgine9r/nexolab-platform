@@ -1,10 +1,10 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-19
+Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline on `main` is `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. State-only reconciliation commits may advance repository HEAD without changing this accepted product baseline; use GitHub `main` for the exact repository HEAD.
+Accepted product-code baseline remains `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. Exact repository `main` is `3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f`, the post-#604 state reconciliation commit; no later product PR has merged.
 
 The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
 
@@ -157,43 +157,37 @@ Final verification included:
 
 No dependency, backend schema, acquisition cadence, Modbus, hardware, runtime deployment or mandatory cloud dependency changed. Issue #615 separately tracks the non-blocking default Compose project-name defect in the authenticated-dashboard runner.
 
-## Issue #605 — implementation complete, CI-blocked
+## Issue #620 — complete controlled reliability exception
 
-Issue #605 implementation is published as draft PR #621 from `feat/605-equipment-metadata-editing`, exact head `71ce5cf4c1a25f77f841dbf6162fdc3605643923`. Local backend/frontend/browser verification for the scoped metadata workflow is complete, including zero acquisition-registry mutations and protected transport identity checks.
+PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` after explicit Product Owner approval for a one-time reliability merge exception. The exception was narrow and evidence-backed: Core CI `32296176882` and Offline Bundle `32296176711` were GREEN; the only RED check was Authenticated Dashboard `32296176725`, which reproduced exact-main Issue #619 and was independently repaired in PR #623.
 
-PR #621 cannot merge while required checks are red. The two blocking failures reproduce on exact `main` and are tracked separately:
+Before approval, a synthetic integration head containing `main + #620 + #619` passed format, lint, typecheck, **113/113 test files / 514/514 tests**, lint-staged regression and production build. PR #622 changed only deterministic test clock/state files; production runtime, acquisition, Modbus, hardware, schema and dependencies were unchanged. Issue #620 is closed.
 
-- #620 breaks Core CI `Quality and build` through date-drifting persisted Live Dashboard unit fixtures;
-- #619 breaks Authenticated Dashboard Acceptance through the repeated-navigation bounded read-model assertion.
+## Issue #619 — rebased and locally verified after #620
 
-Issue #605 is therefore `status:blocked` only on repository-baseline CI reliability prerequisites; its focused product diff remains isolated.
+Issue #619 remains the single active implementation Work Package on `fix/619-telemetry-navigation-read-model`, published as PR #623. Its pre-rebase exact head was `d31d67453d7a5067f9fee2077434cb748b50d869`.
 
-## Issue #620 — active CI reliability interrupt
+The proven repair remains unchanged:
 
-Exact-main reproduction proved the persisted Live Dashboard tests were tied to fixed `2026-08-18` telemetry while the `24h` preset correctly anchors to real current time. Once wall-clock time moved beyond that fixture window, persisted samples were truthfully filtered and the live-tail event appeared stale/out-of-window.
+- Overview alert acceptance follows the documented five-second polling/SWR contract instead of requiring a permanent one-read total;
+- direct authenticated-dashboard acceptance owns a loopback acquisition fixture only when the caller has not supplied one, preventing accidental reads from the real Raspberry Pi Device Agent;
+- the shared refrigeration structural cache retains the organization-level equipment catalog while per-equipment layout entries remain bounded to 32 LRU entries;
+- the #604 Equipment Registry browser dependency removes only its 180 scale-acceptance rows after its own scale proof, preventing cross-test catalog pollution;
+- Overview session reads are bounded by their ten-second retained read-model contract while the route-local Sessions list remains one read per visit.
 
-The scoped repair freezes only `Date` inside `use-live-dashboard-telemetry.test.ts` at the fixture anchor. Production range, history and reconciliation logic are unchanged. Local verification on the #620 branch currently passes:
+After rebasing onto #620, exact local verification is GREEN for format, repository-wide lint, typecheck, **113/113 test files / 514/514 tests**, lint-staged regression and production build. Focused navigation acceptance is again **3/3 PASS**. Warm medians remain below the unchanged 1,000 ms budget: Overview 605 ms, Refrigeration 408 ms, Energy 624 ms, Live 460 ms, Nodes 447 ms and Sessions 379 ms. Equipment catalog reads remain 1 and document loads remain 1.
 
-- focused hook test twice: 2/2 PASS each run;
-- `npm run typecheck`: PASS;
-- touched ESLint: PASS;
-- `npm run format:check`: PASS;
-- `npm test`: 113 files / 513 tests PASS, including lint-staged regression;
-- `npm run build`: PASS with a normal local dependency tree.
+The stronger 16-test authenticated-dashboard/acquisition matrix completed **15/16 PASS**. Its only failure is the already independent Issue #618 Saved Dashboard CSV `page.waitForEvent("download")` timeout. Both #619 navigation tests and both acquisition-invariant tests passed in that same run. Acquisition evidence holds approximately 20 requests/s across no-browser, navigation, concurrent contexts, WebSocket reconnect and telemetry-service restart; `discoveryDelta = 0`, `mutationDelta = 0`, all Device Agent control calls are GET-only and WebSocket maximum per document is 1.
 
-## Reliability findings #618 and #619
-
-Issue #618 tracks a Saved Dashboard CSV browser-download acceptance defect that reproduces on exact `main` locally. It did not fail PR #621 GitHub Authenticated Dashboard run and is not the immediate dependency for #605.
-
-Issue #619 is `status:ready` and is the next CI reliability prerequisite after #620. PR #621 Authenticated Dashboard Acceptance completed 15/16 tests and failed only the repeated-navigation active-alert read bound (`expected 1, received 2`). Exact-main focused navigation acceptance is also unstable, so #619 remains isolated from #605.
+PR #623 exact-head CI before #620 merged proved Authenticated Dashboard, Refrigeration Browser, Offline Bundle and both Disaster Recovery jobs GREEN; its only Core failure was exactly the two #620 tests. #623 is now rebased and locally reverified on `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f`. The branch must now be pushed and receive a **new fully GREEN exact-head CI** before merge; the independent #618 browser-download defect is not absorbed into #619.
 
 ## Current execution boundary
 
-Active Work Package: **Issue #620 — Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests**. This is a CI reliability interrupt required to restore Core CI on exact `main`.
+Active Work Package: **Issue #619 — Stabilize telemetry navigation production acceptance and bounded read-model reuse**.
 
-Dependency sequence is **#620 → #619 → resume #605 / PR #621 → #606 → #607 → #589 → #590**. Issue #618 remains a separate high-priority Saved Dashboard export reliability lane and must not be mixed into the #620/#619 fixes.
+Dependency chain is now **#619 / PR #623 → fully GREEN merge → update #605 / PR #621 from repaired `main` → fully GREEN #605 merge**. Issue #620 is complete. Issue #618 remains an independent Saved Dashboard CSV export reliability lane and must not be mixed into #619 or #605.
 
-Issue #585 remains independently blocked on physical W2/Unit 201 handback. No second RS-485 adapter installation, wiring move or hardware cutover is authorized.
+Issue #585 remains independently blocked on physical W2/Unit 201 handback. Issue #615 remains a separate non-blocking acceptance-runner project-name defect.
 
 ## Safety boundaries
 

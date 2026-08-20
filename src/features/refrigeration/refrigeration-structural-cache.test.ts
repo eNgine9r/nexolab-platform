@@ -12,6 +12,7 @@ import {
   clearAllRefrigerationStructuralCaches,
   createCachedLayoutRepository,
   createCachedRefrigerationEquipmentRepository,
+  inspectRefrigerationStructuralCache,
 } from "./refrigeration-structural-cache";
 
 const scope = "http://nexolab.local|org-a";
@@ -34,6 +35,30 @@ describe("refrigeration structural cache sharing", () => {
     expect(secondResult).toEqual([equipment]);
     expect(firstRaw.list).toHaveBeenCalledTimes(1);
     expect(secondRaw.list).not.toHaveBeenCalled();
+  });
+
+  it("retains the shared equipment catalog while per-equipment layout entries stay bounded", async () => {
+    const catalog = Array.from({ length: 40 }, (_, index) => ({
+      ...equipment,
+      id: `equipment-${index + 1}`,
+      code: `CACHE-${String(index + 1).padStart(3, "0")}`,
+    }));
+    const firstRaw = equipmentRepository(catalog);
+    const secondRaw = equipmentRepository(catalog);
+    const first = createCachedRefrigerationEquipmentRepository(firstRaw, scope);
+    const second = createCachedRefrigerationEquipmentRepository(secondRaw, scope);
+    const layouts = createCachedLayoutRepository(layoutRepository(layoutDraft(catalog[0].id)), scope);
+
+    await first.list();
+    for (const item of catalog) {
+      await layouts.getDraft(item.id);
+      await layouts.getPublished(item.id);
+    }
+    await second.list();
+
+    expect(firstRaw.list).toHaveBeenCalledTimes(1);
+    expect(secondRaw.list).not.toHaveBeenCalled();
+    expect(inspectRefrigerationStructuralCache()).toMatchObject({ scopes: 1, entries: 32 });
   });
 
   it("invalidates the shared equipment catalog after a mutation", async () => {

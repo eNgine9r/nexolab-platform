@@ -67,6 +67,45 @@ export NEXOLAB_DASHBOARD_EVIDENCE_DIR="$EVIDENCE_DIR"
 mkdir -p "$EVIDENCE_DIR"
 
 STACK_STARTED=0
+DEVICE_AGENT_FIXTURE_PID=""
+DEVICE_AGENT_FIXTURE_OWNED=0
+
+start_device_agent_fixture() {
+  if [[ -n "${NEXOLAB_DEVICE_AGENT_BASE_URL:-}" ]]; then
+    return 0
+  fi
+
+  local fixture_port="${DASHBOARD_DEVICE_AGENT_FIXTURE_PORT:-18081}"
+  export NEXOLAB_DEVICE_AGENT_BASE_URL="http://127.0.0.1:$fixture_port"
+  export NEXOLAB_ACQUISITION_METRICS_URL="${NEXOLAB_ACQUISITION_METRICS_URL:-http://127.0.0.1:$fixture_port/metrics}"
+  export ACQUISITION_FIXTURE_REQUESTS_PER_SECOND="${ACQUISITION_FIXTURE_REQUESTS_PER_SECOND:-20}"
+
+  ACQUISITION_FIXTURE_PORT="$fixture_port" \
+    ACQUISITION_FIXTURE_REQUESTS_PER_SECOND="$ACQUISITION_FIXTURE_REQUESTS_PER_SECOND" \
+    python3 "$ROOT_DIR/scripts/acquisition-invariant-fixture.py" \
+    >"$EVIDENCE_DIR/device-agent-fixture.log" 2>&1 &
+  DEVICE_AGENT_FIXTURE_PID=$!
+  DEVICE_AGENT_FIXTURE_OWNED=1
+
+  local ready=0
+  for _ in $(seq 1 50); do
+    if ! kill -0 "$DEVICE_AGENT_FIXTURE_PID" >/dev/null 2>&1; then
+      printf 'Dashboard Device Agent fixture exited before becoming ready.\n' >&2
+      cat "$EVIDENCE_DIR/device-agent-fixture.log" >&2 || true
+      return 1
+    fi
+    if curl --fail --silent --show-error \
+      "http://127.0.0.1:$fixture_port/health" >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 0.1
+  done
+  if [[ "$ready" != "1" ]]; then
+    printf 'Dashboard Device Agent fixture did not become ready.\n' >&2
+    return 1
+  fi
+}
 
 compose() {
   docker compose \
@@ -115,6 +154,7 @@ print(json.dumps({
     "organizationId": os.environ["NEXOLAB_DASHBOARD_ORGANIZATION_ID"],
     "authMode": os.environ["AUTH_MODE"],
     "authProvider": os.environ["AUTH_JWT_PROVIDER"],
+    "deviceAgentBaseUrl": os.environ.get("NEXOLAB_DEVICE_AGENT_BASE_URL"),
 }, indent=2))
 PY
 }
@@ -122,6 +162,10 @@ PY
 cleanup() {
   if [[ "$STACK_STARTED" == "1" && "${KEEP_DASHBOARD_STACK:-0}" != "1" ]]; then
     compose down --volumes --remove-orphans >/dev/null 2>&1 || true
+  fi
+  if [[ "$DEVICE_AGENT_FIXTURE_OWNED" == "1" && -n "$DEVICE_AGENT_FIXTURE_PID" ]]; then
+    kill "$DEVICE_AGENT_FIXTURE_PID" >/dev/null 2>&1 || true
+    wait "$DEVICE_AGENT_FIXTURE_PID" >/dev/null 2>&1 || true
   fi
 }
 
@@ -141,6 +185,8 @@ for command in docker npm curl python3; do
     exit 1
   fi
 done
+
+start_device_agent_fixture
 
 cd "$ROOT_DIR"
 npm install --no-audit --no-fund

@@ -106,6 +106,56 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
+function expectOverviewAlertReadDelta(
+  previous: { active: number; acknowledged: number },
+  current: { active: number; acknowledged: number },
+  phase: string,
+): { active: number; acknowledged: number } {
+  const active = current.active - previous.active;
+  const acknowledged = current.acknowledged - previous.acknowledged;
+  expect(active, `${phase} active-alert refresh delta`).toBeGreaterThanOrEqual(0);
+  expect(active, `${phase} active-alert refresh delta`).toBeLessThanOrEqual(1);
+  expect(acknowledged, `${phase} acknowledged-alert refresh delta`).toBe(active);
+  return { active, acknowledged };
+}
+
+function overviewSessionReadCount(requests: ApiReadEvidence[]): number {
+  return apiReadCount(requests, (request) => {
+    const parsed = new URL(request.url);
+    return (
+      parsed.pathname === "/api/v1/sessions" &&
+      parsed.searchParams.get("node_id") === "edge-01" &&
+      parsed.searchParams.get("limit") === "50" &&
+      parsed.searchParams.get("offset") === "0"
+    );
+  });
+}
+
+function sessionsRouteReadCount(requests: ApiReadEvidence[]): number {
+  return apiReadCount(requests, (request) => {
+    const parsed = new URL(request.url);
+    return (
+      parsed.pathname === "/api/v1/sessions" &&
+      parsed.searchParams.get("node_id") === "edge-01" &&
+      parsed.searchParams.get("limit") === "200" &&
+      parsed.searchParams.get("offset") === "0"
+    );
+  });
+}
+
+function expectBoundedOverviewSessionDelta(previous: number, current: number, phase: string): number {
+  const delta = current - previous;
+  expect(delta, `${phase} Overview session refresh delta`).toBeGreaterThanOrEqual(0);
+  expect(delta, `${phase} Overview session refresh delta`).toBeLessThanOrEqual(1);
+  return delta;
+}
+
+async function waitForOverviewBackgroundReadModelsSettled(page: Page): Promise<void> {
+  await expect(page.getByLabel("Стан схем обладнання")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("Завантаження схем", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Оновлення локального каталогу…", { exact: true })).toHaveCount(0);
+}
+
 async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
   if (route === "overview") {
     await expect(page.getByRole("heading", { name: "XJP60D температури", exact: true })).toBeVisible();
@@ -422,23 +472,69 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     };
     expect(firstCycleCounts.latest).toBe(initialLatestRequests);
     expect(firstCycleCounts.history).toBeLessThanOrEqual(initialHistoryRequests + 2);
-    expect(firstCycleCounts.activeAlerts).toBe(initialActiveAlertReads);
-    expect(firstCycleCounts.acknowledgedAlerts).toBe(initialAcknowledgedAlertReads);
+    const overviewAlertRefreshDeltas = [
+      expectOverviewAlertReadDelta(
+        { active: initialActiveAlertReads, acknowledged: initialAcknowledgedAlertReads },
+        { active: firstCycleCounts.activeAlerts, acknowledged: firstCycleCounts.acknowledgedAlerts },
+        "first route cycle",
+      ),
+    ];
     expect(firstCycleCounts.equipmentCatalog).toBe(1);
     expect(firstCycleCounts.layoutDrafts).toBeGreaterThanOrEqual(3);
     expect(firstCycleCounts.layoutPublished).toBeGreaterThanOrEqual(3);
     expect(firstCycleCounts.nodeList).toBe(1);
-    expect(firstCycleCounts.sessions).toBe(2);
+    expect(firstCycleCounts.sessions).toBeGreaterThanOrEqual(2);
+
+    await waitForOverviewBackgroundReadModelsSettled(page);
+    const warmBaselineCounts = {
+      equipmentCatalog: apiReadCount(
+        requests.apiReads,
+        (request) => apiPath(request) === "/api/v1/equipment",
+      ),
+      layoutDrafts: apiReadCount(requests.apiReads, (request) => apiPath(request).endsWith("/layout/draft")),
+      layoutPublished: apiReadCount(requests.apiReads, (request) =>
+        apiPath(request).endsWith("/layout/published"),
+      ),
+      overviewSessions: overviewSessionReadCount(requests.apiReads),
+      sessionsRoute: sessionsRouteReadCount(requests.apiReads),
+    };
+    expect(warmBaselineCounts.equipmentCatalog).toBe(1);
+    expect(warmBaselineCounts.layoutDrafts).toBeGreaterThanOrEqual(firstCycleCounts.layoutDrafts);
+    expect(warmBaselineCounts.layoutPublished).toBeGreaterThanOrEqual(firstCycleCounts.layoutPublished);
+    expect(warmBaselineCounts.sessionsRoute).toBe(1);
     await clearLoadingTransitions(page);
 
     const warmReturnSamplesMs = Object.fromEntries(
       canonicalRoutes.map((route) => [route.key, [] as number[]]),
     ) as Record<RouteKey, number[]>;
+    const overviewSessionRefreshDeltas: number[] = [];
     for (let sample = 0; sample < 3; sample += 1) {
+      const beforeOverviewAlerts = {
+        active: overviewAlertReadCount(requests.apiReads, "active"),
+        acknowledged: overviewAlertReadCount(requests.apiReads, "acknowledged"),
+      };
+      const beforeOverviewSessions = overviewSessionReadCount(requests.apiReads);
       for (const route of canonicalRoutes.slice(1)) {
         warmReturnSamplesMs[route.key].push(await navigateAndMeasure(page, route));
       }
       warmReturnSamplesMs.overview.push(await navigateAndMeasure(page, canonicalRoutes[0]));
+      overviewAlertRefreshDeltas.push(
+        expectOverviewAlertReadDelta(
+          beforeOverviewAlerts,
+          {
+            active: overviewAlertReadCount(requests.apiReads, "active"),
+            acknowledged: overviewAlertReadCount(requests.apiReads, "acknowledged"),
+          },
+          `warm route cycle ${sample + 1}`,
+        ),
+      );
+      overviewSessionRefreshDeltas.push(
+        expectBoundedOverviewSessionDelta(
+          beforeOverviewSessions,
+          overviewSessionReadCount(requests.apiReads),
+          `warm route cycle ${sample + 1}`,
+        ),
+      );
     }
     await waitForRouteUsable(page, "overview");
     const warmReturnMedianMs = Object.fromEntries(
@@ -468,6 +564,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/sessions",
     );
+    const overviewSessionReads = overviewSessionReadCount(requests.apiReads);
+    const sessionsRouteReads = sessionsRouteReadCount(requests.apiReads);
     const liveDashboardInventoryReads = apiReadCount(
       requests.apiReads,
       (request) => apiPath(request) === "/api/v1/live-dashboards/channel-inventory",
@@ -488,6 +586,9 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
       loadingTransitions: warmLoadingTransitions,
       documentLoads: await documentLoadCount(page),
       firstCycleCounts,
+      warmBaselineCounts,
+      overviewAlertRefreshDeltas,
+      overviewSessionRefreshDeltas,
       latestRequests: countRequests(requests.telemetry, "/latest"),
       historyRequests: countRequests(requests.telemetry, "/history"),
       readModelCounts: {
@@ -498,6 +599,8 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
         nodeListReads,
         nodeOperationalReads,
         sessionListReads,
+        overviewSessionReads,
+        sessionsRouteReads,
         liveDashboardInventoryReads,
         activeAlertReads,
         acknowledgedAlertReads,
@@ -518,13 +621,19 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     expect(await documentLoadCount(page)).toBe(1);
     expect(countRequests(requests.telemetry, "/latest")).toBe(initialLatestRequests);
     expect(countRequests(requests.telemetry, "/history")).toBeLessThanOrEqual(initialHistoryRequests + 8);
-    expect(equipmentCatalogReads).toBe(firstCycleCounts.equipmentCatalog);
-    expect(layoutDraftReads).toBe(firstCycleCounts.layoutDrafts);
-    expect(layoutPublishedReads).toBe(firstCycleCounts.layoutPublished);
+    expect(equipmentCatalogReads).toBe(warmBaselineCounts.equipmentCatalog);
+    expect(layoutDraftReads).toBe(warmBaselineCounts.layoutDrafts);
+    expect(layoutPublishedReads).toBe(warmBaselineCounts.layoutPublished);
     expect(nodeListReads).toBe(4);
     expect(nodeOperationalReads).toBe(8);
-    expect(sessionListReads).toBe(5);
+    expect(sessionsRouteReads).toBe(4);
+    expect(overviewSessionReads).toBeLessThanOrEqual(
+      warmBaselineCounts.overviewSessions + overviewSessionRefreshDeltas.length,
+    );
+    expect(sessionListReads).toBe(overviewSessionReads + sessionsRouteReads);
     expect(liveDashboardInventoryReads).toBe(0);
+    expect(activeAlertReads).toBe(acknowledgedAlertReads);
+    expect(activeAlertReads).toBeLessThanOrEqual(initialActiveAlertReads + overviewAlertRefreshDeltas.length);
     expect(warmLoadingTransitions).toEqual([]);
     expect(sockets.opened).toBe(1);
     expect(sockets.closed).toBe(0);
