@@ -102,3 +102,51 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  recovery_frontend_artifact:
+    name: Raspberry Pi live frontend recovery artifact
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/626-atomic-pi-deploy' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout exact PR head with base history
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove frontend product source matches PR base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "${{ github.event.pull_request.base.sha }}" -- \
+            package.json package-lock.json next.config.ts src
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build self-contained ARM64 frontend runtime artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/build-frontend-release-artifact.sh \
+            --platform linux/arm64 \
+            --api-base-url http://172.18.48.34:8082 \
+            --websocket-url ws://172.18.48.34:8082/api/v1/telemetry/live \
+            --auth-provider local \
+            --organization-id 00000000-0000-0000-0000-000000000001 \
+            --output "${{ runner.temp }}/nexolab-frontend-recovery"
+
+      - name: Upload Raspberry Pi recovery frontend artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexolab-frontend-recovery-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/nexolab-frontend-recovery
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

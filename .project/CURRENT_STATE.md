@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. Exact repository `main` is `3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f`, the post-#604 state reconciliation commit; no later product PR has merged.
+Accepted product-code baseline is `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`, the post-#605 state reconciliation commit #625; no later product PR has merged.
 
-The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
+The Raspberry Pi repository checkout and `origin/main` are both `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`. The active Dashboard was recovered after the #626 freeze from the previously verified #605 artifact, which was proven product-identical to `d773bbb` outside `.project/**`. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -185,13 +185,37 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
+## Issue #606 — implementation checkpoint paused by critical #627
+
+Issue #606 remains open `status:in-progress` with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. It is paused, not abandoned, while the Product Owner-prioritized critical monitoring defect #627 is repaired.
+
+## Issue #626 — active critical Raspberry Pi deployment safety prerequisite
+
+Issue #626 is the current Work Package on `fix/626-atomic-pi-deploy`. Two previous in-place frontend builds hard-froze the 4 GiB Raspberry Pi, so the active dashboard must never be used as a build workspace again. The implementation now keeps each candidate in an immutable release directory, bounds the fallback container build with memory/CPU/PID limits, verifies a candidate on an isolated loopback port before activation, and restores the previous systemd unit if activation or health checks fail.
+
+The off-device artifact consumer is implemented as a self-contained target-platform runtime. The first exact-head PR artifact correctly failed closed on the real Pi because it depended on the host working tree's incomplete production dependency tree; candidate port `3100` never started and production `3000` remained unchanged. That evidence rejected the host-dependency reuse design.
+
+The revised path cross-builds the existing offline Dashboard image for `linux/arm64` with Node `22.23.1`, then packages `.next` plus pruned production `node_modules` into a mode/symlink-preserving runtime tar. Pi import verifies exact source SHA, package and artifact checksums, LOCAL_LAN public runtime values, ARM64 platform identity, Node identity, archive path/link safety, and every extracted runtime file checksum. It performs no `npm ci` or `next build` on the Pi and does not silently fall back when an explicit artifact fails validation.
+
+Local verification after the redesign is GREEN: frontend release tests **12/12**, combined deployment/auth/capacity tests **27/27**, version-management/update pytest regression **42/42**, YAML parse, shell parse and `git diff --check`. Exact-head PR #629 CI is also GREEN: Core CI `32373871646` and Telemetry Service `32373871520`. GitHub artifact `9408510671` was built from exact head `9a443e1001e2fc7e375d235be41a933d66781c75` for `linux/arm64` with digest `sha256:3005a8c2788e3ce683a61857feabff5c2270d694e708cc4bccc8846142d11fed`.
+
+Real Raspberry Pi isolated acceptance is GREEN. The self-contained artifact imported with source/platform/Node/public-contract verification PASS; the archive safety scan accepted 18,468 members; candidate build ID `_sV956tuD2HYk3kfrnKvu` started on `127.0.0.1:3100` in 219 ms; `/`, `/login`, `/settings`, `/energy` and `/live` all returned HTTP 200; candidate RSS was about 116 MiB; production Dashboard remained MainPID `3696` / port-3000 PID `3947` and HTTP 200 throughout. The candidate was then terminated and removed with the bounded cleanup helper, leaving port `3100` free. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation occurred.
+
+## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626 merge
+
+PR #628 for Issue #627 is open on exact head `6596bc25292a5badea13b0e4dea84804f3301ba1`. The monitoring/display ownership repair is implemented and all triggered exact-head GitHub gates are GREEN, including Core CI/production build `32363682430`, Authenticated Dashboard acquisition invariant `32363682812`, Offline Bundle `32363682463`, Acquisition Scale `32363682454`, Refrigeration Browser, Device Agent Fleet, Container Supply Chain, MQTT/DR TLS and Edge image.
+
+The remaining #627 acceptance is deliberately blocked on #626: a real Raspberry Pi Overview-only visibility change must run the exact #627 production artifact without compiling Next.js on the Pi, then prove registry revision/configured targets remain unchanged and monitored PostgreSQL telemetry continues with the browser closed. No Modbus write, hardware write or site cutover is authorized.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #606 — Add read-only LOCAL_LAN equipment discovery and adoption inbox**.
+Current Work Package: **Issue #626 — Make Raspberry Pi frontend deployment atomic and resource-safe**.
 
-#606 is now `status:ready`: #604 Equipment workspace and #605 metadata/adoption boundaries are complete. The next action is repository and architecture audit before implementation, with strict LOCAL_LAN CIDR allowlists, bounded read-only discovery, persisted candidate evidence and explicit operator adoption only. No public scanning, credential guessing, acquisition enablement, Modbus write, hardware write or site cutover is authorized.
+A final acceptance-contract audit found and fixed one deployment-only gap: after Dashboard activation, Telemetry, Device Agent or Dashboard readiness failure now invokes `rollback_dashboard_release` before failing. The focused deployment/auth/capacity regression is **27/27 PASS** and the version-management/update regression remains **42/42 PASS**. Implementation checkpoint: `49b827dfead6f09e8a4b812042de75a181226a61`. This change does not alter `package.json`, `package-lock.json`, `src/**`, `next.config.ts` or the already hardware-proven ARM64 runtime content.
 
-The planned product dependency sequence is now **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Next action: push the final #626 rollback/state checkpoint, require exact-head CI on that head, mark PR #629 ready and merge only after GREEN. Then update #627 onto the new main, build its exact ARM64 artifact through the merged workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+
+Planned sequence: **#626 → #627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

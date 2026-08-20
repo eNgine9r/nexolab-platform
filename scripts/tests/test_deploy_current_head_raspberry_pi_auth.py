@@ -54,24 +54,20 @@ class ControlledDeploymentAuthContractTests(unittest.TestCase):
         contract_guard = text.index(
             "local-auth overlay requires NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local before dashboard build"
         )
-        frontend_build = text.index('log "Installing and building current frontend"')
+        frontend_build = text.index('log "Building frontend candidate inside a bounded container"')
         self.assertLess(contract_guard, frontend_build)
 
     def test_frontend_build_receives_explicit_auth_contract(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
-        start = text.index('log "Installing and building current frontend"')
+        start = text.index('log "Building frontend candidate inside a bounded container"')
         end = text.index('log "Starting central backend, MinIO and observability"')
         build_section = text[start:end]
 
-        self.assertIn(
-            'NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER"',
-            build_section,
-        )
-        self.assertIn(
-            'NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID"',
-            build_section,
-        )
-        self.assertIn("NEXT_TELEMETRY_DISABLED=1 npm run build", build_section)
+        self.assertIn('nexolab_frontend_build_release', build_section)
+        self.assertIn('nexolab_frontend_verify_public_contract', build_section)
+        self.assertIn('"$FRONTEND_AUTH_PROVIDER"', build_section)
+        self.assertIn('"$FRONTEND_ORGANIZATION_ID"', build_section)
+        self.assertIn('\n  live ', build_section)
 
     def test_deployment_evidence_records_dashboard_auth_contract(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")

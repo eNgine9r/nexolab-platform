@@ -60,9 +60,17 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — Ready
+## Issue #606 — paused by critical #627
 
-The #605 dependency is complete. Issue #606 is `status:ready` for repository/architecture audit and a focused read-only LOCAL_LAN discovery implementation. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+Issue #606 has a published recoverable implementation checkpoint on `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. It is temporarily paused by the Product Owner-prioritized critical #627 defect and resumes after #627 is GREEN. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+
+## Issue #626 — hardware acceptance GREEN, final rollback fix pending exact-head CI and merge
+
+Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The self-contained ARM64 artifact path is now proven on the real Pi: exact-head CI and artifact build GREEN, artifact import PASS, isolated `127.0.0.1:3100` routes 5/5 HTTP 200, ~116 MiB candidate RSS, production MainPID/port PID unchanged, and bounded candidate cleanup PASS. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation/site cutover occurred. A final contract audit added automatic last-known-good Dashboard rollback when post-activation Telemetry, Device Agent or Dashboard readiness fails; focused regression is 27/27 PASS and updater/version-manager remains 42/42 PASS. The only remaining #626 gate is exact-head CI for the final rollback/state head and merge.
+
+## Issue #627 — software GREEN, waiting on #626 merge
+
+PR #628 exact-head software/CI gates are GREEN. #626 has now proven the safe ARM64 artifact path on the real Raspberry Pi; #627 waits only for #626 to merge so its branch can be updated onto the new main. Then build exact #627 ARM64 runtime and prove an Overview-only visibility change leaves Acquisition Registry revision/configured targets unchanged and browser-closed telemetry continues. No Modbus write, hardware write or acquisition enrollment mutation is authorized during this acceptance.
 
 ## Issue #618 — independent reliability lane
 
@@ -78,7 +86,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
 - #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
-- #606 discovery/adoption inbox — Ready;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — active prerequisite;
+- #627 monitoring/display boundary — software/CI GREEN, waiting on #626 Pi artifact acceptance;
+- #606 discovery/adoption inbox — paused with recoverable checkpoint; resume after #627;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
 - #590 Settings cadence controls — blocked on #589.
@@ -88,7 +98,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — Ready after #605;
+- #606 LOCAL_LAN discovery inbox — paused by critical #626/#627 sequence with published checkpoint;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — active prerequisite;
+- #627 monitoring/display boundary — software/CI GREEN, Pi acceptance pending;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;
