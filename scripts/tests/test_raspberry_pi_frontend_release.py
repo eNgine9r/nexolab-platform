@@ -282,6 +282,9 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
             self.assertIn("find .next -type f -print0 | sort -z | xargs -0 sha256sum", text)
             self.assertIn("include-hidden-files: true", text)
         self.assertIn("nexolab-frontend-recovery-${{ github.event.pull_request.head.sha }}", ci)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha }}", ci)
+        self.assertIn("fetch-depth: 0", ci)
+        self.assertIn('git diff --quiet "${{ github.event.pull_request.base.sha }}"', ci)
         self.assertIn("Reject native binaries in portable recovery .next artifact", ci)
         self.assertIn("Reject native binaries in portable .next artifact", release)
 
