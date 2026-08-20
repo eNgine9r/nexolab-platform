@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-19T15:47:00Z",
+  "timestamp": "2026-08-19T19:58:04Z",
   "actor": "ChatGPT",
-  "event": "issue_604_merged_ready_issue_605",
-  "repository_main_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+  "event": "issue_620_ci_reliability_interrupt_in_progress",
+  "repository_main_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -109,15 +109,24 @@
     "issue_590": {
       "issue": 590,
       "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
+    },
+    "issue_605": {
+      "issue": 605,
+      "pull_request": 621,
+      "reason": "Required Core CI is blocked by exact-main Issue #620 and Authenticated Dashboard Acceptance is blocked by exact-main Issue #619."
+    },
+    "issue_618": {
+      "issue": 618,
+      "reason": "Open Saved Dashboard CSV browser reliability defect; independent and not an immediate PR #621 dependency."
     }
   },
   "current_boundary": {
-    "issue": 605,
-    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "status": "READY"
+    "issue": 620,
+    "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
+    "status": "IN_PROGRESS_CI_RELIABILITY_INTERRUPT"
   },
-  "next_action": "Begin Issue #605 from current main as the sole implementation WIP: inventory canonical mutation/permission/audit contracts first, then implement only source-backed administrative metadata editing while preserving zero Modbus/acquisition/hardware side effects.",
-  "planned_queue": [604, 605, 606, 607, 589, 590],
+  "next_action": "Complete #620 as an isolated deterministic-clock test repair, merge GREEN, then execute Ready Issue #619 before resuming blocked Issue #605 / PR #621.",
+  "planned_queue": [620, 619, 605, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -127,6 +136,22 @@
     "dual_rs485_cutover_authorized": false
   },
   "known_non_blocking_issues": {
-    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; explicit lowercase override proves #604 gates."
+    "issue_615": "Authenticated dashboard acceptance default Compose project-name generation is invalid with current Docker Compose; use an explicit lowercase project-name override pending repair.",
+    "issue_618": "Saved Dashboard CSV download browser acceptance reproduces on exact main locally but did not fail the current PR #621 GitHub browser matrix."
+  },
+  "active_work": {
+    "issue_620": {
+      "issue": 620,
+      "branch": "fix/620-live-dashboard-history",
+      "root_cause": "Fixed 2026-08-18 telemetry fixtures drifted outside a real-time preset range; production logic is correct.",
+      "change": "Freeze only Date in the hook test at the fixture anchor.",
+      "focused_tests": "PASS_2_OF_2_TWICE",
+      "full_unit_tests": "PASS_513_OF_513",
+      "typecheck": "PASS",
+      "format_check": "PASS",
+      "production_build": "PASS",
+      "runtime_changed": false,
+      "hardware_changed": false
+    }
   }
 }

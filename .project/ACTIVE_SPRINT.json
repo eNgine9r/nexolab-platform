@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
   "accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
-  "last_reconciled_repository_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+  "last_reconciled_repository_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 605,
-    "selection_status": "ready",
+    "selected_issue": 620,
+    "selection_status": "in_progress",
     "ready_issue_count": 1,
-    "reason": "Issue #604 / PR #616 merged GREEN as f1d13bc2 after Core CI, Refrigeration Browser Acceptance and Offline Bundle passed. Repository/GitHub audit confirms #605 is the sole status:ready product Work Package; #606 remains dependent on #605, #585 remains blocked on physical handback."
+    "reason": "Issue #605 is implemented in draft PR #621 but exact-main CI defects block required checks. #620 is the active Core CI reliability interrupt; #619 is the sole next Ready blocker for Authenticated Dashboard Acceptance."
   },
   "tasks": [
     {
@@ -186,8 +186,10 @@
       "id": "NEXOLAB-605",
       "issue": 605,
       "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-      "status": "ready",
-      "priority": "high"
+      "status": "blocked_ci_dependencies_620_619",
+      "priority": "high",
+      "pull_request": 621,
+      "exact_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923"
     },
     {
       "id": "NEXOLAB-606",
@@ -215,18 +217,39 @@
       "authenticated_dashboard_acceptance": "PASS_32237282110",
       "refrigeration_browser_acceptance": "PASS_32237282106",
       "acquisition_scale": "PASS_32237282105"
+    },
+    {
+      "id": "NEXOLAB-618",
+      "issue": 618,
+      "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
+      "status": "open_baseline_reliability_non_blocking_605",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-619",
+      "issue": 619,
+      "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
+      "status": "ready_ci_blocker_after_620",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-620",
+      "issue": 620,
+      "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
+      "status": "in_progress_ci_reliability_interrupt",
+      "priority": "high"
     }
   ],
   "active_work_package": {
-    "issue": 605,
-    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "type": "permissioned_equipment_metadata_editing",
-    "status": "ready"
+    "issue": 620,
+    "title": "Restore persisted Live Dashboard history bootstrap and live-tail reconciliation tests",
+    "type": "ci_reliability_time_determinism",
+    "status": "in_progress"
   },
   "next_work_package": {
-    "issue": 605,
-    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "status": "ready"
+    "issue": 619,
+    "title": "Stabilize telemetry navigation production acceptance and bounded read-model reuse",
+    "status": "ready_after_620"
   },
   "verification": {
     "repository_accepted_product_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
@@ -247,7 +270,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
+    "repository_state_sha": "3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -317,7 +340,19 @@
     "issue_604_exact_head_sha": "94bfbeb141fe4abb12b393d7c7fdc4fd6aa05237",
     "issue_604_core_ci": "PASS_32263137097",
     "issue_604_refrigeration_browser_acceptance": "PASS_32263134788",
-    "issue_604_offline_bundle": "PASS_32263135467"
+    "issue_604_offline_bundle": "PASS_32263135467",
+    "issue_605_pull_request": 621,
+    "issue_605_exact_head_sha": "71ce5cf4c1a25f77f841dbf6162fdc3605643923",
+    "issue_605_core_ci": "BLOCKED_BASELINE_620",
+    "issue_605_authenticated_dashboard": "BLOCKED_BASELINE_619_15_OF_16_PASS",
+    "issue_620_exact_main_reproduced": true,
+    "issue_620_focused_tests": "PASS_2_OF_2_TWICE",
+    "issue_620_full_unit_tests": "PASS_513_OF_513",
+    "issue_620_typecheck": "PASS",
+    "issue_620_format_check": "PASS",
+    "issue_620_production_build": "PASS",
+    "issue_618_exact_main_reproduced": true,
+    "issue_619_exact_main_reproduced": true
   },
   "independent_pending_lanes": [
     {
@@ -354,7 +389,7 @@
     },
     {
       "issue": 605,
-      "status": "ready"
+      "status": "blocked_ci_dependencies_620_619"
     },
     {
       "issue": 606,
@@ -383,6 +418,18 @@
     {
       "issue": 615,
       "status": "open_non_blocking_tooling_bug"
+    },
+    {
+      "issue": 618,
+      "status": "open_reliability"
+    },
+    {
+      "issue": 619,
+      "status": "ready_after_620"
+    },
+    {
+      "issue": 620,
+      "status": "in_progress"
     }
   ],
   "safety": {

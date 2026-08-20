@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LiveDashboard } from "@/features/live-dashboards/types";
 import type {
@@ -114,6 +114,8 @@ function historyResponse(
 
 describe("useLiveDashboardTelemetry persisted history", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-18T20:00:00.000Z"));
     vi.clearAllMocks();
     state.handlers = null;
     state.latest.mockResolvedValue({
@@ -132,6 +134,10 @@ describe("useLiveDashboardTelemetry persisted history", () => {
         ? historyResponse([sample("older", "2026-08-18T18:00:00.000Z", 3)], null)
         : historyResponse([sample("newer", "2026-08-18T19:00:00.000Z", 4)], 1000);
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("loads every persisted page under one snapshot and keeps range changes UI-only", async () => {
