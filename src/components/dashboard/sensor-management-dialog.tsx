@@ -59,6 +59,7 @@ function SensorManagementDialogContent({
   onSaved,
 }: SensorManagementDialogProps) {
   const [selected, setSelected] = useState<string[]>(() => [...management.monitoredChannelIds]);
+  const configurationReady = management.configuration !== null && !management.isLoading;
 
   const points = useMemo(() => {
     const map = new Map<string, DisplayPoint>();
@@ -98,6 +99,7 @@ function SensorManagementDialogContent({
   };
 
   const save = async () => {
+    if (!canManage || !configurationReady || management.isSaving || management.isDiscovering) return;
     if (await management.save(selected)) {
       onSaved();
       onClose();
@@ -192,7 +194,7 @@ function SensorManagementDialogContent({
                 const active = management.monitoredChannelIds.includes(point.channel_id);
                 const diagnostic = active ? diagnostics.get(point.channel_id) : undefined;
                 const unavailable = point.quality !== "valid";
-                const disabled = !canManage || (unavailable && !checked);
+                const disabled = !canManage || !configurationReady || (unavailable && !checked);
                 return (
                   <label
                     key={point.channel_id}
@@ -250,7 +252,7 @@ function SensorManagementDialogContent({
           <button
             type="button"
             onClick={() => void save()}
-            disabled={!canManage || management.isSaving || management.isDiscovering}
+            disabled={!canManage || !configurationReady || management.isSaving || management.isDiscovering}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {management.isSaving ? (

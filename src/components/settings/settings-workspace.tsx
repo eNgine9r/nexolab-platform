@@ -51,6 +51,7 @@ type SettingsWorkspaceProps = {
   onPreferenceChange: (key: EditablePreference, value: SettingsPreferences[EditablePreference]) => void;
   onPreferencesReset: () => void;
   canManageSensorMonitoring?: boolean;
+  sensorMonitoringReady?: boolean;
   onOpenSensorMonitoring?: () => void;
 };
 
@@ -192,6 +193,7 @@ export function SettingsWorkspace({
   onPreferenceChange,
   onPreferencesReset,
   canManageSensorMonitoring = false,
+  sensorMonitoringReady = false,
   onOpenSensorMonitoring = () => undefined,
 }: SettingsWorkspaceProps) {
   const status = statusCopy[diagnostics.status];
@@ -527,7 +529,8 @@ export function SettingsWorkspace({
               <button
                 type="button"
                 onClick={onOpenSensorMonitoring}
-                className="group rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-4 text-left transition hover:border-cyan-300/30"
+                disabled={!sensorMonitoringReady}
+                className="group rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-4 text-left transition hover:border-cyan-300/30 disabled:cursor-wait disabled:opacity-50"
               >
                 <div className="flex items-start gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05]">

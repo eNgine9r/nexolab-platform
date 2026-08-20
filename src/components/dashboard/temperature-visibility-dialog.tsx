@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, RotateCcw, X } from "lucide-react";
 
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
 
@@ -10,6 +10,7 @@ type Props = {
   monitoredChannelIds: readonly string[];
   visibleChannelIds: readonly string[];
   targetDiagnostics: readonly Xjp60dTargetDiagnostic[];
+  monitoringError: string | null;
   onApply: (channelIds: readonly string[]) => void;
   onClose: () => void;
 };
@@ -39,6 +40,7 @@ function TemperatureVisibilityDialogContent({
   monitoredChannelIds,
   visibleChannelIds,
   targetDiagnostics,
+  monitoringError,
   onApply,
   onClose,
 }: Props) {
@@ -91,6 +93,16 @@ function TemperatureVisibilityDialogContent({
           </button>
         </header>
 
+        {monitoringError ? (
+          <div
+            className="mx-5 mt-4 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-400/[0.05] p-3 text-[10px] text-amber-100"
+            role="alert"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Не вдалося підтвердити актуальний monitoring set: {monitoringError}</span>
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between gap-3 border-b border-white/[0.05] px-5 py-3">
           <span className="text-[10px] text-slate-400">
             {selected.length} показано · {monitored.length} у безперервному моніторингу
@@ -110,7 +122,11 @@ function TemperatureVisibilityDialogContent({
             <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-white/[0.08] text-center">
               <div>
                 <EyeOff className="mx-auto h-6 w-6 text-slate-600" />
-                <p className="mt-3 text-[11px] text-slate-300">Немає каналів у безперервному моніторингу</p>
+                <p className="mt-3 text-[11px] text-slate-300">
+                  {monitoringError
+                    ? "Monitoring set недоступний через помилку Device Agent"
+                    : "Немає каналів у безперервному моніторингу"}
+                </p>
                 <p className="mt-1 text-[9px] text-slate-500">
                   Monitoring enrollment виконується окремо в Налаштуваннях.
                 </p>

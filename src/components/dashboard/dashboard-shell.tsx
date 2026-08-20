@@ -234,6 +234,7 @@ export function DashboardShell() {
         monitoredChannelIds={monitoring.monitoredChannelIds}
         visibleChannelIds={temperatureVisibility.visibleChannelIds}
         targetDiagnostics={monitoring.configuration?.target_diagnostics ?? []}
+        monitoringError={monitoring.error}
         onApply={temperatureVisibility.setVisibleChannelIds}
         onClose={() => setTemperatureVisibilityOpen(false)}
       />

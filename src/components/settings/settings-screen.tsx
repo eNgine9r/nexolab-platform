@@ -161,7 +161,12 @@ export function SettingsScreen() {
               onPreferenceChange={localPreferences.updatePreference}
               onPreferencesReset={localPreferences.reset}
               canManageSensorMonitoring={security.membership.permissions.includes("equipment.manage")}
-              onOpenSensorMonitoring={() => setSensorMonitoringOpen(true)}
+              sensorMonitoringReady={sensorMonitoring.configuration !== null && !sensorMonitoring.isLoading}
+              onOpenSensorMonitoring={() => {
+                if (sensorMonitoring.configuration !== null && !sensorMonitoring.isLoading) {
+                  setSensorMonitoringOpen(true);
+                }
+              }}
             />
           </div>
         </main>

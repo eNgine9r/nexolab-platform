@@ -14,6 +14,7 @@ describe("TemperatureVisibilityDialog", () => {
         monitoredChannelIds={["106-01", "108-01"]}
         visibleChannelIds={["106-01", "108-01"]}
         targetDiagnostics={[]}
+        monitoringError={null}
         onApply={onApply}
         onClose={onClose}
       />,
@@ -29,6 +30,26 @@ describe("TemperatureVisibilityDialog", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("surfaces Device Agent configuration read failures instead of a truthful-empty state", () => {
+    render(
+      <TemperatureVisibilityDialog
+        open
+        monitoredChannelIds={[]}
+        visibleChannelIds={[]}
+        targetDiagnostics={[]}
+        monitoringError="Device Agent unavailable"
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Не вдалося підтвердити актуальний monitoring set: Device Agent unavailable",
+    );
+    expect(screen.getByText("Monitoring set недоступний через помилку Device Agent")).toBeVisible();
+    expect(screen.queryByText("Немає каналів у безперервному моніторингу")).not.toBeInTheDocument();
+  });
+
   it("allows hiding every monitored channel without disabling monitoring", () => {
     const onApply = vi.fn();
     render(
@@ -37,6 +58,7 @@ describe("TemperatureVisibilityDialog", () => {
         monitoredChannelIds={["104-03"]}
         visibleChannelIds={["104-03"]}
         targetDiagnostics={[]}
+        monitoringError={null}
         onApply={onApply}
         onClose={() => undefined}
       />,

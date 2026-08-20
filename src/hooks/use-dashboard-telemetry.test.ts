@@ -240,6 +240,25 @@ describe("useDashboardTelemetry", () => {
     });
   });
 
+  it("filters only chart temperature series while keeping the full dashboard view", async () => {
+    adapterState.latest.mockResolvedValue({
+      items: [sample],
+      count: 1,
+      limit: 1000,
+      offset: 0,
+      next_offset: null,
+    });
+
+    const { result } = renderHook(() => useDashboardTelemetry({ temperatureChannelIds: ["108-01"] }));
+
+    await waitFor(() => {
+      expect(result.current.view?.samples.map((item) => item.event_id)).toEqual(["recovered-event"]);
+    });
+    expect(result.current.temperatures).toEqual([]);
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    expect(result.current.historySamples).toEqual([]);
+  });
+
   it("hides history immediately when the organization scope changes", async () => {
     const { result, rerender } = renderHook(
       ({ organizationId }) => useDashboardTelemetry({ enabled: true, organizationId }),

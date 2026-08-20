@@ -51,6 +51,7 @@ describe("Settings monitoring commissioning", () => {
         onPreferenceChange={() => undefined}
         onPreferencesReset={() => undefined}
         canManageSensorMonitoring
+        sensorMonitoringReady
         onOpenSensorMonitoring={onOpenSensorMonitoring}
       />,
     );
@@ -61,5 +62,30 @@ describe("Settings monitoring commissioning", () => {
 
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).toHaveBeenCalledOnce();
+  });
+
+  it("keeps commissioning disabled until the authoritative monitoring configuration is loaded", () => {
+    const onOpenSensorMonitoring = vi.fn();
+    render(
+      <SettingsWorkspace
+        session={session}
+        membership={membership}
+        diagnostics={diagnostics}
+        preferences={createDefaultSettingsPreferences()}
+        preferencesLoaded
+        preferencesRecovered={false}
+        preferenceRecoveryReason={null}
+        onPreferenceChange={() => undefined}
+        onPreferencesReset={() => undefined}
+        canManageSensorMonitoring
+        sensorMonitoringReady={false}
+        onOpenSensorMonitoring={onOpenSensorMonitoring}
+      />,
+    );
+
+    const action = screen.getByRole("button", { name: /Моніторинг XJP60D/ });
+    expect(action).toBeDisabled();
+    fireEvent.click(action);
+    expect(onOpenSensorMonitoring).not.toHaveBeenCalled();
   });
 });
