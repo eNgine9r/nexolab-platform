@@ -56,9 +56,13 @@ PR #623 merged fully GREEN as `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1`. Core C
 
 PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Product Owner-approved controlled exception. The known #619 Auth failure was subsequently repaired and PR #623 merged fully GREEN. There is no remaining #620 blocker.
 
-## Issue #605 / PR #621 — active verification, no product blocker
+## Issue #605 / PR #621 — complete GREEN
 
-The permissioned Equipment metadata implementation is rebased on current main and targeted/full unit verification is GREEN. A repository-wide ESLint run on the 4 GiB Raspberry Pi exhausted host resources and the Product Owner had to hard-reset the Pi. Post-reboot repository/worktree integrity is clean. This is a verification-host resource constraint, not a #605 product blocker: do not repeat full ESLint locally; use touched-file lint plus exact-head GitHub Core CI for repository-wide lint/build. Focused browser acceptance remains the only bounded local runtime gate before publishing the rebased PR head.
+PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
+
+## Issue #606 — Ready
+
+The #605 dependency is complete. Issue #606 is `status:ready` for repository/architecture audit and a focused read-only LOCAL_LAN discovery implementation. Hardware/public-network scanning and Modbus/device writes remain prohibited.
 
 ## Issue #618 — independent reliability lane
 
@@ -72,9 +76,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 
 - #619 telemetry-navigation/read-model reliability — complete in PR #623;
 - #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
-- #605 / PR #621 permissioned equipment metadata editing — active rebased verification and sole product WIP;
+- #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
-- #606 discovery/adoption inbox — blocked on #605;
+- #606 discovery/adoption inbox — Ready;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
 - #590 Settings cadence controls — blocked on #589.
@@ -83,8 +87,8 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
-- #605 Equipment metadata editing — active rebased verification in PR #621;
-- #606 LOCAL_LAN discovery inbox — blocked on #605 boundaries;
+- #605 Equipment metadata editing — complete GREEN in PR #621;
+- #606 LOCAL_LAN discovery inbox — Ready after #605;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;
