@@ -11,6 +11,7 @@ def register_models() -> None:
     from app.alerts import models as _alert_models
     from app.alerts.immutability import register_alert_immutability
     from app.climate_catalog import models as _climate_catalog_models
+    from app.equipment_discovery import models as _equipment_discovery_models
     from app.live_dashboard import models as _live_dashboard_models
     from app.nodes import broker_models as _broker_models
     from app.nodes import models as _node_models
@@ -62,6 +63,18 @@ def register_models() -> None:
     )
     assert _climate_catalog_models.PhysicalSensor.__tablename__ == (
         "physical_sensors"
+    )
+    assert _equipment_discovery_models.EquipmentDiscoveryScan.__tablename__ == (
+        "equipment_discovery_scans"
+    )
+    assert _equipment_discovery_models.EquipmentDiscoveryCandidate.__tablename__ == (
+        "equipment_discovery_candidates"
+    )
+    assert _equipment_discovery_models.EquipmentDiscoveryObservation.__tablename__ == (
+        "equipment_discovery_observations"
+    )
+    assert _equipment_discovery_models.EquipmentNetworkAsset.__tablename__ == (
+        "equipment_network_assets"
     )
     assert _live_dashboard_models.LiveDashboard.__tablename__ == (
         "live_dashboards"

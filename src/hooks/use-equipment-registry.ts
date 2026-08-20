@@ -9,6 +9,7 @@ import {
   type EquipmentRegistryFailure,
   type EquipmentRegistryLoadProgress,
 } from "@/features/equipment/asset-registry";
+import type { EquipmentDiscoveryRepository } from "@/features/equipment/discovery-repository";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import {
@@ -27,6 +28,7 @@ export type UseEquipmentRegistryResult = {
   progress: Pick<EquipmentRegistryLoadProgress, "completedChambers" | "totalChambers"> | null;
   equipmentRepository: RefrigerationEquipmentRepository | null;
   climateCatalogRepository: ClimateCatalogRepository | null;
+  discoveryRepository: EquipmentDiscoveryRepository | null;
   retry: () => void;
 };
 
@@ -111,6 +113,7 @@ export function useEquipmentRegistry({
     progress,
     equipmentRepository,
     climateCatalogRepository,
+    discoveryRepository: runtime.discoveryRepository,
     retry: () => setEpoch((current) => current + 1),
   };
 }

@@ -8,6 +8,7 @@ import { Boxes, RotateCcw } from "lucide-react";
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { EquipmentDiscoveryInbox } from "@/components/equipment/equipment-discovery-inbox";
 import { EquipmentRegistryCatalog } from "@/components/equipment/equipment-registry-catalog";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useEquipmentRegistry } from "@/hooks/use-equipment-registry";
@@ -126,7 +127,12 @@ export function EquipmentRegistryScreen() {
         <main className="relative overflow-hidden p-3 sm:p-4 xl:p-5 2xl:p-6">
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
-          <div className="relative mx-auto max-w-[1900px]">
+          <div className="relative mx-auto max-w-[1900px] space-y-4">
+            <EquipmentDiscoveryInbox
+              repository={registry.discoveryRepository}
+              canManage={security.membership.permissions.includes("equipment.manage")}
+              assets={registry.assets}
+            />
             <EquipmentRegistryCatalog
               state={registry.state}
               assets={registry.assets}

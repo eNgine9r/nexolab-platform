@@ -24,6 +24,7 @@ export default defineConfig({
         "equipment-multi-axis-chart.production.e2e.ts",
         "equipment-layouts.production.e2e.ts",
         "equipment-registry.production.e2e.ts",
+        "equipment-discovery.production.e2e.ts",
         "settings.production.e2e.ts",
         "cameras.production.e2e.ts",
         "telemetry-acquisition-invariant.production.e2e.ts",
