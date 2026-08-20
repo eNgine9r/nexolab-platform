@@ -197,9 +197,11 @@ The off-device artifact consumer is implemented as a self-contained target-platf
 
 The revised path cross-builds the existing offline Dashboard image for `linux/arm64` with Node `22.23.1`, then packages `.next` plus pruned production `node_modules` into a mode/symlink-preserving runtime tar. Pi import verifies exact source SHA, package and artifact checksums, LOCAL_LAN public runtime values, ARM64 platform identity, Node identity, archive path/link safety, and every extracted runtime file checksum. It performs no `npm ci` or `next build` on the Pi and does not silently fall back when an explicit artifact fails validation.
 
-Local verification after the redesign is GREEN: frontend release tests **12/12**, combined deployment/auth/capacity tests **26/26**, version-management/update pytest regression **42/42**, YAML parse, shell parse and `git diff --check`. A fresh exact-head ARM64 artifact CI build and isolated Pi candidate acceptance are still required before #626 can merge.
+Local verification after the redesign is GREEN: frontend release tests **12/12**, combined deployment/auth/capacity tests **26/26**, version-management/update pytest regression **42/42**, YAML parse, shell parse and `git diff --check`. Exact-head PR #629 CI is also GREEN: Core CI `32373871646` and Telemetry Service `32373871520`. GitHub artifact `9408510671` was built from exact head `9a443e1001e2fc7e375d235be41a933d66781c75` for `linux/arm64` with digest `sha256:3005a8c2788e3ce683a61857feabff5c2270d694e708cc4bccc8846142d11fed`.
 
-## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626
+Real Raspberry Pi isolated acceptance is GREEN. The self-contained artifact imported with source/platform/Node/public-contract verification PASS; the archive safety scan accepted 18,468 members; candidate build ID `_sV956tuD2HYk3kfrnKvu` started on `127.0.0.1:3100` in 219 ms; `/`, `/login`, `/settings`, `/energy` and `/live` all returned HTTP 200; candidate RSS was about 116 MiB; production Dashboard remained MainPID `3696` / port-3000 PID `3947` and HTTP 200 throughout. The candidate was then terminated and removed with the bounded cleanup helper, leaving port `3100` free. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation occurred.
+
+## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626 merge
 
 PR #628 for Issue #627 is open on exact head `6596bc25292a5badea13b0e4dea84804f3301ba1`. The monitoring/display ownership repair is implemented and all triggered exact-head GitHub gates are GREEN, including Core CI/production build `32363682430`, Authenticated Dashboard acquisition invariant `32363682812`, Offline Bundle `32363682463`, Acquisition Scale `32363682454`, Refrigeration Browser, Device Agent Fleet, Container Supply Chain, MQTT/DR TLS and Edge image.
 
@@ -209,7 +211,7 @@ The remaining #627 acceptance is deliberately blocked on #626: a real Raspberry 
 
 Current Work Package: **Issue #626 — Make Raspberry Pi frontend deployment atomic and resource-safe**.
 
-Next action: push implementation checkpoint `e57593f6715793999d273df0b6dafaa125316d3b`, require fresh exact-head PR #629 CI to produce the self-contained ARM64 artifact, download and import that exact artifact on the Raspberry Pi, and start it only on isolated loopback port `3100`. Production `3000` must remain unchanged. After GREEN #626 merge, update #627 on the new main, build its exact ARM64 artifact through the merged workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: commit and push this #626 hardware-evidence state update, require exact-head CI on the resulting state-only head, mark PR #629 ready and merge only after GREEN. Then update #627 onto the new main, build its exact ARM64 artifact through the merged workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
 Planned sequence: **#626 → #627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 

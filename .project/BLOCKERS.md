@@ -64,13 +64,13 @@ PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN e
 
 Issue #606 has a published recoverable implementation checkpoint on `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. It is temporarily paused by the Product Owner-prioritized critical #627 defect and resumes after #627 is GREEN. Hardware/public-network scanning and Modbus/device writes remain prohibited.
 
-## Issue #626 — active critical prerequisite, local implementation GREEN
+## Issue #626 — hardware acceptance GREEN, pending state-only CI and merge
 
-Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The first PR artifact import correctly failed closed because host `node_modules` was not a complete production runtime, so that design was rejected without starting candidate `3100` or touching production `3000`. The revised consumer uses a self-contained ARM64 `.next + production node_modules` runtime built off-device. Remaining gates are fresh exact-head CI artifact creation, isolated Pi candidate startup, resource/last-known-good preservation evidence, then merge. No production/site cutover is authorized for acceptance.
+Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The self-contained ARM64 artifact path is now proven on the real Pi: exact-head CI and artifact build GREEN, artifact import PASS, isolated `127.0.0.1:3100` routes 5/5 HTTP 200, ~116 MiB candidate RSS, production MainPID/port PID unchanged, and bounded candidate cleanup PASS. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation/site cutover occurred. The only remaining #626 gate is exact-head CI for the hardware-evidence state commit and merge.
 
-## Issue #627 — software GREEN, blocked only on safe Pi artifact acceptance
+## Issue #627 — software GREEN, waiting on #626 merge
 
-PR #628 exact-head software/CI gates are GREEN. The only remaining blocker is real Raspberry Pi evidence using an exact production artifact without compiling on the Pi. After #626 is GREEN, prove an Overview-only visibility change leaves Acquisition Registry revision/configured targets unchanged and browser-closed telemetry continues. No Modbus write, hardware write or acquisition enrollment mutation is authorized during this acceptance.
+PR #628 exact-head software/CI gates are GREEN. #626 has now proven the safe ARM64 artifact path on the real Raspberry Pi; #627 waits only for #626 to merge so its branch can be updated onto the new main. Then build exact #627 ARM64 runtime and prove an Overview-only visibility change leaves Acquisition Registry revision/configured targets unchanged and browser-closed telemetry continues. No Modbus write, hardware write or acquisition enrollment mutation is authorized during this acceptance.
 
 ## Issue #618 — independent reliability lane
 
