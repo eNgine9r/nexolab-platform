@@ -76,7 +76,9 @@ def create_equipment_discovery_router(
         active_scan = next((item for item in scans if item.status == "running"), None)
         last_scan = next((item for item in scans if item.status != "running"), None)
         return DiscoveryOverviewResponse(
-            policy=_policy_response(policy),
+            policy=_policy_response(
+                policy, schedule_interval_seconds=service.schedule_interval_seconds
+            ),
             active_scan=_scan_response(active_scan) if active_scan else None,
             last_scan=_scan_response(last_scan) if last_scan else None,
             candidates=[
@@ -239,7 +241,9 @@ def parse_candidate_if_match(value: str) -> int:
     return int(match.group("version"))
 
 
-def _policy_response(policy: DiscoveryPolicy) -> DiscoveryPolicyResponse:
+def _policy_response(
+    policy: DiscoveryPolicy, *, schedule_interval_seconds: int
+) -> DiscoveryPolicyResponse:
     return DiscoveryPolicyResponse(
         enabled=policy.enabled,
         allowed_cidrs=[str(item) for item in policy.allowed_networks],
@@ -248,7 +252,7 @@ def _policy_response(policy: DiscoveryPolicy) -> DiscoveryPolicyResponse:
         max_ports=policy.max_ports,
         connect_timeout_seconds=policy.connect_timeout_seconds,
         concurrency=policy.concurrency,
-        schedule_interval_seconds=service.schedule_interval_seconds,
+        schedule_interval_seconds=schedule_interval_seconds,
     )
 
 

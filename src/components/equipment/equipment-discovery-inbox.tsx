@@ -295,6 +295,7 @@ function CandidateCard({
   onAction: (action: EquipmentDiscoveryCandidateAction) => void;
 }) {
   const closed = candidate.lifecycle === "adopted" || candidate.lifecycle === "ignored";
+  const suggestions = suggestEquipmentMatches(candidate, assets);
   return (
     <article className="rounded-2xl border border-white/8 bg-[#071326]/80 p-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -364,6 +365,24 @@ function CandidateCard({
           </div>
           <label className="text-xs text-slate-400">
             Зв’язати з існуючим активом
+            {suggestions.length > 0 ? (
+              <span
+                className="mt-1 mb-2 flex flex-wrap gap-1"
+                aria-label={`Suggested matches for ${candidate.ipAddress}`}
+              >
+                {suggestions.map((asset) => (
+                  <button
+                    key={asset.key}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onLinkTargetChange(asset.key)}
+                    className="rounded-lg border border-cyan-300/10 bg-cyan-400/[0.05] px-2 py-1 text-[10px] text-cyan-100 hover:bg-cyan-400/[0.09]"
+                  >
+                    Підказка: {asset.primaryIdentifier}
+                  </button>
+                ))}
+              </span>
+            ) : null}
             <select
               value={linkTarget}
               onChange={(event) => onLinkTargetChange(event.target.value)}
@@ -456,6 +475,42 @@ function DiscoveryMetric({ label, value }: { label: string; value: number }) {
       <div className="mt-1 text-xl font-semibold text-white">{value}</div>
     </div>
   );
+}
+
+export function suggestEquipmentMatches(
+  candidate: EquipmentDiscoveryCandidate,
+  assets: EquipmentRegistryAsset[],
+): EquipmentRegistryAsset[] {
+  const tokens = discoveryMatchTokens(candidate);
+  if (tokens.length === 0) return [];
+  return assets
+    .map((asset) => ({
+      asset,
+      score: tokens.reduce((total, token) => total + (asset.searchText.includes(token) ? 1 : 0), 0),
+    }))
+    .filter((item) => item.score > 0)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        left.asset.primaryIdentifier.localeCompare(right.asset.primaryIdentifier, "uk-UA", { numeric: true }),
+    )
+    .slice(0, 3)
+    .map((item) => item.asset);
+}
+
+function discoveryMatchTokens(candidate: EquipmentDiscoveryCandidate): string[] {
+  const raw = [candidate.hostname, candidate.ipAddress, candidate.macAddress].filter(
+    (value): value is string => Boolean(value),
+  );
+  const tokens = new Set<string>();
+  for (const value of raw) {
+    const normalized = value.toLocaleLowerCase("en-US");
+    if (normalized.length >= 4) tokens.add(normalized);
+    for (const part of normalized.split(/[^a-z0-9]+/)) {
+      if (part.length >= 4) tokens.add(part);
+    }
+  }
+  return [...tokens];
 }
 
 function parseCsv(value: string): string[] {

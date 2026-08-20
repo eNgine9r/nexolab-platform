@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 import type {
   EquipmentDiscoveryOverview,
   EquipmentDiscoveryRepository,
 } from "@/features/equipment/discovery-repository";
 
-import { EquipmentDiscoveryInbox } from "./equipment-discovery-inbox";
+import { EquipmentDiscoveryInbox, suggestEquipmentMatches } from "./equipment-discovery-inbox";
 
 function overview(): EquipmentDiscoveryOverview {
   return {
@@ -113,5 +114,28 @@ describe("EquipmentDiscoveryInbox", () => {
     expect(screen.getByText("Доступ лише для перегляду discovery evidence.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Adopt" })).not.toBeInTheDocument();
     expect(repo.actOnCandidate).not.toHaveBeenCalled();
+  });
+
+  it("suggests canonical matches from local registry tokens without auto-linking", () => {
+    const candidate = { ...overview().candidates[0]!, hostname: "eliwell-xjp60d-kk1" };
+    const assets = [
+      {
+        key: "device:controller-1",
+        primaryIdentifier: "KK1-T1",
+        displayName: "Eliwell XJP60D controller",
+        searchText: "kk1 t1 eliwell xjp60d controller",
+      },
+      {
+        key: "device:meter-1",
+        primaryIdentifier: "KK1-W1",
+        displayName: "Energy meter",
+        searchText: "kk1 w1 tomzn dds238 energy meter",
+      },
+    ] as EquipmentRegistryAsset[];
+
+    expect(suggestEquipmentMatches(candidate, assets).map((asset) => asset.key)).toEqual([
+      "device:controller-1",
+    ]);
+    expect(candidate.linkedEquipmentKey).toBeNull();
   });
 });

@@ -100,6 +100,12 @@ class EquipmentDiscoveryCandidate(Base):
             "candidate_key",
             name="uq_equipment_discovery_candidates_organization_key",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "last_scan_id"],
+            ["equipment_discovery_scans.organization_id", "equipment_discovery_scans.id"],
+            name="fk_equipment_discovery_candidates_last_scan",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             f"lifecycle IN ({_CANDIDATE_LIFECYCLES})",
             name="ck_equipment_discovery_candidates_lifecycle",
@@ -134,15 +140,7 @@ class EquipmentDiscoveryCandidate(Base):
     present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    last_scan_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey(
-            "equipment_discovery_scans.id",
-            name="fk_equipment_discovery_candidates_last_scan",
-            ondelete="RESTRICT",
-        ),
-        nullable=False,
-    )
+    last_scan_id: Mapped[str] = mapped_column(String(36), nullable=False)
     linked_equipment_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
 
@@ -203,6 +201,12 @@ class EquipmentNetworkAsset(Base):
             "source_candidate_id",
             name="uq_equipment_network_assets_source_candidate",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "source_candidate_id"],
+            ["equipment_discovery_candidates.organization_id", "equipment_discovery_candidates.id"],
+            name="fk_equipment_network_assets_candidate",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(f"status IN ({_ASSET_STATUSES})", name="ck_equipment_network_assets_status"),
         CheckConstraint("version >= 1", name="ck_equipment_network_assets_version"),
         Index(
@@ -229,15 +233,7 @@ class EquipmentNetworkAsset(Base):
     mac_address: Mapped[str | None] = mapped_column(String(32), nullable=True)
     manufacturer: Mapped[str | None] = mapped_column(String(128), nullable=True)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    source_candidate_id: Mapped[str] = mapped_column(
-        String(36),
-        ForeignKey(
-            "equipment_discovery_candidates.id",
-            name="fk_equipment_network_assets_candidate",
-            ondelete="RESTRICT",
-        ),
-        nullable=False,
-    )
+    source_candidate_id: Mapped[str] = mapped_column(String(36), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
