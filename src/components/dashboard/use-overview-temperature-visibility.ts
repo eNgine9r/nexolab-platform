@@ -33,6 +33,14 @@ function normalizeChannelIds(channelIds: readonly string[], allowed: ReadonlySet
     .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
 
+export function filterOverviewTemperatureDiagnostics<T extends { channel_id: string }>(
+  diagnostics: readonly T[],
+  visibleChannelIds: readonly string[],
+): T[] {
+  const visible = new Set(visibleChannelIds);
+  return diagnostics.filter((diagnostic) => visible.has(diagnostic.channel_id));
+}
+
 function readPreference(organizationId: string | null): string[] | null {
   try {
     const raw = window.localStorage.getItem(storageKey(organizationId));

@@ -25,7 +25,10 @@ import { Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
-import { useOverviewTemperatureVisibility } from "./use-overview-temperature-visibility";
+import {
+  filterOverviewTemperatureDiagnostics,
+  useOverviewTemperatureVisibility,
+} from "./use-overview-temperature-visibility";
 
 function PanelAction({ label, href }: { label: string; href: string }) {
   return (
@@ -174,7 +177,10 @@ export function DashboardShell() {
                     historyError={telemetry.historyError}
                     onHistoryRangeChange={telemetry.setHistoryRange}
                     onHistoryRetry={telemetry.retryHistory}
-                    targetDiagnostics={monitoring.configuration?.target_diagnostics ?? []}
+                    targetDiagnostics={filterOverviewTemperatureDiagnostics(
+                      monitoring.configuration?.target_diagnostics ?? [],
+                      temperatureVisibility.visibleChannelIds,
+                    )}
                   />
                 </Panel>
               }

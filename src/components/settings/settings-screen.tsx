@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { AlertTriangle, RotateCcw, Settings2 } from "lucide-react";
+import { RotateCcw, Settings2 } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { SensorManagementDialog } from "@/components/dashboard/sensor-management-dialog";
@@ -153,29 +153,6 @@ export function SettingsScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1900px]">
-            {canManageSensorMonitoring && sensorMonitoring.error ? (
-              <div
-                className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-300/15 bg-amber-400/[0.05] p-4 text-amber-100 sm:flex-row sm:items-center sm:justify-between"
-                role="alert"
-              >
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium">Не вдалося завантажити конфігурацію моніторингу</p>
-                    <p className="mt-1 text-xs leading-5 text-amber-100/70">{sensorMonitoring.error}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void sensorMonitoring.refresh()}
-                  disabled={sensorMonitoring.isLoading}
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-200/20 px-3.5 py-2.5 text-xs font-medium text-amber-50 transition hover:border-amber-200/35 disabled:cursor-wait disabled:opacity-50"
-                >
-                  <RotateCcw className={`h-4 w-4 ${sensorMonitoring.isLoading ? "animate-spin" : ""}`} />
-                  Повторити завантаження
-                </button>
-              </div>
-            ) : null}
             <SettingsWorkspace
               session={security.session}
               membership={security.membership}
@@ -188,6 +165,9 @@ export function SettingsScreen() {
               onPreferencesReset={localPreferences.reset}
               canManageSensorMonitoring={canManageSensorMonitoring}
               sensorMonitoringReady={sensorMonitoringReady}
+              sensorMonitoringError={sensorMonitoring.error}
+              sensorMonitoringLoading={sensorMonitoring.isLoading}
+              onRetrySensorMonitoring={() => void sensorMonitoring.refresh()}
               onOpenSensorMonitoring={() => {
                 if (sensorMonitoringReady) {
                   setSensorMonitoringOpen(true);

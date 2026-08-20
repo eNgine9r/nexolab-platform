@@ -1,10 +1,24 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useOverviewTemperatureVisibility } from "./use-overview-temperature-visibility";
+import {
+  filterOverviewTemperatureDiagnostics,
+  useOverviewTemperatureVisibility,
+} from "./use-overview-temperature-visibility";
 
 const ORGANIZATION_ID = "33333333-3333-3333-3333-333333333333";
 const STORAGE_KEY = `nexolab.overview.temperature-visible.${ORGANIZATION_ID}`;
+
+describe("filterOverviewTemperatureDiagnostics", () => {
+  it("omits initialization diagnostics for channels hidden from the Overview chart", () => {
+    const diagnostics = [
+      { channel_id: "104-03", poll_attempted: true },
+      { channel_id: "108-01", poll_attempted: false },
+    ];
+
+    expect(filterOverviewTemperatureDiagnostics(diagnostics, ["104-03"])).toEqual([diagnostics[0]]);
+  });
+});
 
 describe("useOverviewTemperatureVisibility", () => {
   beforeEach(() => {

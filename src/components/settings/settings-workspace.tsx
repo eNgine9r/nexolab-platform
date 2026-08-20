@@ -52,6 +52,9 @@ type SettingsWorkspaceProps = {
   onPreferencesReset: () => void;
   canManageSensorMonitoring?: boolean;
   sensorMonitoringReady?: boolean;
+  sensorMonitoringError?: string | null;
+  sensorMonitoringLoading?: boolean;
+  onRetrySensorMonitoring?: () => void;
   onOpenSensorMonitoring?: () => void;
 };
 
@@ -194,6 +197,9 @@ export function SettingsWorkspace({
   onPreferencesReset,
   canManageSensorMonitoring = false,
   sensorMonitoringReady = false,
+  sensorMonitoringError = null,
+  sensorMonitoringLoading = false,
+  onRetrySensorMonitoring = () => undefined,
   onOpenSensorMonitoring = () => undefined,
 }: SettingsWorkspaceProps) {
   const status = statusCopy[diagnostics.status];
@@ -525,6 +531,26 @@ export function SettingsWorkspace({
             description="Settings не дублює вже реалізовані редактори та operations."
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {canManageSensorMonitoring && sensorMonitoringError ? (
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-2xl border border-amber-300/15 bg-amber-400/[0.05] p-4 text-amber-100 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium">Не вдалося завантажити конфігурацію моніторингу</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/70">{sensorMonitoringError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onRetrySensorMonitoring}
+                  disabled={sensorMonitoringLoading}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-200/20 px-3.5 py-2.5 text-xs font-medium text-amber-50 transition hover:border-amber-200/35 disabled:cursor-wait disabled:opacity-50"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${sensorMonitoringLoading ? "animate-spin" : ""}`} />
+                  Повторити завантаження
+                </button>
+              </div>
+            ) : null}
             {canManageSensorMonitoring ? (
               <button
                 type="button"

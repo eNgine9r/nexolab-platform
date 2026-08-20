@@ -88,4 +88,30 @@ describe("Settings monitoring commissioning", () => {
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).not.toHaveBeenCalled();
   });
+  it("surfaces monitoring configuration failures with an explicit retry action", () => {
+    const retry = vi.fn();
+    render(
+      <SettingsWorkspace
+        session={session}
+        membership={membership}
+        diagnostics={diagnostics}
+        preferences={createDefaultSettingsPreferences()}
+        preferencesLoaded
+        preferencesRecovered={false}
+        preferenceRecoveryReason={null}
+        onPreferenceChange={() => undefined}
+        onPreferencesReset={() => undefined}
+        canManageSensorMonitoring
+        sensorMonitoringReady={false}
+        sensorMonitoringError="Device Agent unavailable"
+        onRetrySensorMonitoring={retry}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Device Agent unavailable");
+    const retryButton = screen.getByRole("button", { name: "Повторити завантаження" });
+    expect(retryButton).toBeEnabled();
+    fireEvent.click(retryButton);
+    expect(retry).toHaveBeenCalledOnce();
+  });
 });
