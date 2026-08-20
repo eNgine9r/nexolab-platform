@@ -44,7 +44,10 @@ function forwardedHeaders(request: NextRequest): Headers {
   return headers;
 }
 
-async function authorize(request: NextRequest, requiredPermissions: readonly string[]): Promise<NextResponse | null> {
+async function authorize(
+  request: NextRequest,
+  requiredPermissions: readonly string[],
+): Promise<NextResponse | null> {
   let response: Response;
   try {
     response = await fetch(new URL("/api/v1/auth/session", apiBaseUrl()), {
@@ -81,7 +84,8 @@ async function authorize(request: NextRequest, requiredPermissions: readonly str
   const membership = requestedOrganization
     ? memberships.find((item) => item.organization_id === requestedOrganization)
     : memberships[0];
-  const grantedPermissions = membership && Array.isArray(membership.permissions) ? membership.permissions : [];
+  const grantedPermissions =
+    membership && Array.isArray(membership.permissions) ? membership.permissions : [];
   if (!membership || !requiredPermissions.some((permission) => grantedPermissions.includes(permission))) {
     return NextResponse.json(
       { detail: { code: "access_denied", message: "Недостатньо прав для керування датчиками." } },
