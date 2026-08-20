@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
+
+from sqlalchemy.exc import DBAPIError
 
 from app.equipment_discovery.policy import DiscoveryPolicy, ResolvedDiscoveryScope
 from app.equipment_discovery.repository import (
@@ -26,6 +29,7 @@ class EquipmentDiscoveryService:
         scanner: LocalLanDiscoveryScanner | None = None,
         schedule_interval_seconds: int = 0,
         scheduled_organization_id: str | None = None,
+        database_retry_seconds: float = 1.0,
     ) -> None:
         self._repository = repository
         self._policy = policy
@@ -35,6 +39,7 @@ class EquipmentDiscoveryService:
         )
         self._schedule_interval_seconds = schedule_interval_seconds
         self._scheduled_organization_id = scheduled_organization_id
+        self._database_retry_seconds = max(0.0, database_retry_seconds)
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._scheduler_task: asyncio.Task[None] | None = None
 
@@ -150,32 +155,60 @@ class EquipmentDiscoveryService:
 
         try:
             result = await self._scanner.scan(scope, cancel_check=cancel_check)
-            await asyncio.to_thread(
-                self._repository.apply_scan_result,
-                scan_id,
-                organization_id=organization_id,
-                result=result,
+            await self._persist_with_database_retry(
+                "apply discovery scan result",
+                lambda: self._repository.apply_scan_result(
+                    scan_id,
+                    organization_id=organization_id,
+                    result=result,
+                ),
             )
         except ScanCancelledError:
-            await asyncio.to_thread(
-                self._repository.finish_cancelled,
-                scan_id,
-                organization_id=organization_id,
+            await self._persist_with_database_retry(
+                "finalize cancelled discovery scan",
+                lambda: self._repository.finish_cancelled(
+                    scan_id,
+                    organization_id=organization_id,
+                ),
             )
         except asyncio.CancelledError:
-            await asyncio.to_thread(
-                self._repository.finish_failed,
-                scan_id,
-                organization_id=organization_id,
-                error_code="equipment_discovery_service_stopped",
-                error_message="Discovery service stopped before the scan completed",
-            )
+            try:
+                await asyncio.to_thread(
+                    self._repository.finish_failed,
+                    scan_id,
+                    organization_id=organization_id,
+                    error_code="equipment_discovery_service_stopped",
+                    error_message="Discovery service stopped before the scan completed",
+                )
+            except Exception:
+                _LOGGER.exception(
+                    "discovery scan %s could not persist shutdown failure state",
+                    scan_id,
+                )
             raise
         except Exception as error:
-            await asyncio.to_thread(
-                self._repository.finish_failed,
-                scan_id,
-                organization_id=organization_id,
-                error_code="equipment_discovery_scan_failed",
-                error_message=str(error) or error.__class__.__name__,
+            await self._persist_with_database_retry(
+                "finalize failed discovery scan",
+                lambda: self._repository.finish_failed(
+                    scan_id,
+                    organization_id=organization_id,
+                    error_code="equipment_discovery_scan_failed",
+                    error_message=str(error) or error.__class__.__name__,
+                ),
             )
+
+    async def _persist_with_database_retry(
+        self,
+        operation_name: str,
+        operation: Callable[[], object],
+    ) -> None:
+        while True:
+            try:
+                await asyncio.to_thread(operation)
+                return
+            except DBAPIError:
+                _LOGGER.warning(
+                    "%s deferred because the discovery database is unavailable",
+                    operation_name,
+                )
+                await asyncio.sleep(self._database_retry_seconds)

@@ -154,11 +154,12 @@ def observation(
     *,
     fingerprint: str,
     port: int = 443,
+    mac_address: str | None = None,
     when: datetime | None = None,
 ) -> DiscoveryObservationInput:
     return DiscoveryObservationInput(
         ip_address=ip,
-        mac_address=None,
+        mac_address=mac_address,
         hostname=None,
         source_interface=None,
         source_subnet="192.168.50.0/29",
@@ -313,6 +314,46 @@ def test_repository_persists_scan_diff_and_disappeared_lifecycle(tmp_path: Path)
             session.scalar(select(func.count()).select_from(EquipmentDiscoveryObservation)) or 0
         )
     assert observation_count == 3
+
+
+def test_mac_evidence_enriches_ip_candidate_without_duplicate_identity(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="4" * 64),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    original = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert original.candidate_key == "ip:192.168.50.2"
+
+    second_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        second_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation(
+                    "192.168.50.2",
+                    fingerprint="5" * 64,
+                    mac_address="aa:bb:cc:dd:ee:02",
+                ),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    assert len(candidates) == 1
+    enriched = candidates[0]
+    assert enriched.id == original.id
+    assert enriched.candidate_key == "mac:aa:bb:cc:dd:ee:02"
+    assert enriched.mac_address == "aa:bb:cc:dd:ee:02"
+    assert enriched.present is True
 
 
 def test_partial_port_scan_does_not_mark_unobserved_candidate_disappeared(tmp_path: Path) -> None:

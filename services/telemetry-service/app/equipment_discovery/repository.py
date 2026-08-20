@@ -342,6 +342,18 @@ class EquipmentDiscoveryRepository:
                         )
                         .with_for_update()
                     )
+                    if candidate is None and observation.mac_address is not None:
+                        candidate = session.scalar(
+                            select(EquipmentDiscoveryCandidate)
+                            .where(
+                                EquipmentDiscoveryCandidate.organization_id == organization_id,
+                                EquipmentDiscoveryCandidate.candidate_key
+                                == f"ip:{observation.ip_address}",
+                            )
+                            .with_for_update()
+                        )
+                        if candidate is not None:
+                            candidate.candidate_key = observation.candidate_key
                     previous_fingerprint: str | None = None
                     if candidate is None:
                         candidate = EquipmentDiscoveryCandidate(
