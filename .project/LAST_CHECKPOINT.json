@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T12:53:04Z",
+  "timestamp": "2026-08-20T13:12:00Z",
   "actor": "ChatGPT",
-  "event": "issue_626_artifact_consumer_local_green_pending_pr_ci_pi_acceptance",
+  "event": "issue_626_self_contained_arm64_runtime_local_green_pending_ci_pi_acceptance",
   "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
@@ -155,9 +155,9 @@
   "current_boundary": {
     "issue": 626,
     "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-    "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE"
+    "status": "SELF_CONTAINED_ARM64_RUNTIME_LOCAL_GREEN_PENDING_EXACT_CI_PI_ACCEPTANCE"
   },
-  "next_action": "Commit and push Issue #626 artifact-consumer checkpoint, open focused PR, require exact-head CI including portable recovery artifact, download that artifact to Raspberry Pi, prove isolated candidate startup/active-runtime preservation, then merge #626 and use the merged Frontend Release Artifact workflow to build exact #627 head for real Overview acquisition-invariant acceptance.",
+  "next_action": "Push the self-contained ARM64 runtime checkpoint, require fresh exact-head PR #629 CI to build the ARM64 artifact, download that artifact to the Raspberry Pi, verify import and isolated port 3100 without activating production, then merge #626 only after GREEN and preserved production evidence.",
   "planned_queue": [626, 627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -175,16 +175,18 @@
     "issue_626": {
       "issue": 626,
       "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "01963abec1b389ac466a8fc65625402ab0bca305",
-      "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE",
-      "frontend_release_tests": "PASS_11_OF_11",
+      "checkpoint_sha": "e57593f6715793999d273df0b6dafaa125316d3b",
+      "status": "SELF_CONTAINED_ARM64_RUNTIME_LOCAL_GREEN_PENDING_EXACT_CI_PI_ACCEPTANCE",
+      "frontend_release_tests": "PASS_12_OF_12",
       "version_management_pytest": "PASS_42_OF_42",
-      "real_pi_runtime_dependency_snapshot": "PASS",
       "yaml_parse": "PASS",
       "git_diff_check": "PASS",
       "modbus_write": "none",
       "hardware_write": "none",
-      "deployment_auth_capacity_tests": "PASS_25_OF_25"
+      "deployment_auth_capacity_tests": "PASS_26_OF_26",
+      "initial_host_dependency_artifact_import": "FAIL_CLOSED_DESIGN_REJECTED",
+      "initial_pi_evidence": "runtime/deployments/issue-626-isolated-20260820T130527Z",
+      "production_dashboard_preserved": "PASS"
     },
     "issue_627": {
       "issue": 627,
@@ -206,7 +208,7 @@
   "active_work": {
     "issue_626": {
       "issue": 626,
-      "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE",
+      "status": "SELF_CONTAINED_ARM64_RUNTIME_LOCAL_GREEN_PENDING_EXACT_CI_PI_ACCEPTANCE",
       "modbus_write": "none",
       "hardware_write": "none"
     }

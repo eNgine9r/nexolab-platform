@@ -66,7 +66,7 @@ Issue #606 has a published recoverable implementation checkpoint on `feat/606-lo
 
 ## Issue #626 — active critical prerequisite, local implementation GREEN
 
-Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The artifact-consumer/atomic-release implementation is locally GREEN and is now the active prerequisite for #627 Pi acceptance. Remaining gates are focused PR/CI, portable recovery artifact creation, isolated Pi candidate startup and last-known-good preservation evidence. No production/site cutover is authorized for acceptance.
+Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The first PR artifact import correctly failed closed because host `node_modules` was not a complete production runtime, so that design was rejected without starting candidate `3100` or touching production `3000`. The revised consumer uses a self-contained ARM64 `.next + production node_modules` runtime built off-device. Remaining gates are fresh exact-head CI artifact creation, isolated Pi candidate startup, resource/last-known-good preservation evidence, then merge. No production/site cutover is authorized for acceptance.
 
 ## Issue #627 — software GREEN, blocked only on safe Pi artifact acceptance
 

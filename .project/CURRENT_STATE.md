@@ -193,9 +193,11 @@ Issue #606 remains open `status:in-progress` with recoverable branch `feat/606-l
 
 Issue #626 is the current Work Package on `fix/626-atomic-pi-deploy`. Two previous in-place frontend builds hard-froze the 4 GiB Raspberry Pi, so the active dashboard must never be used as a build workspace again. The implementation now keeps each candidate in an immutable release directory, bounds the fallback container build with memory/CPU/PID limits, verifies a candidate on an isolated loopback port before activation, and restores the previous systemd unit if activation or health checks fail.
 
-The missing off-device artifact consumer is now implemented locally. `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH` verifies exact source SHA, SHA-256 artifact/package evidence, package/lock identity, baked LOCAL_LAN public runtime values, repository Node baseline, and the real installed runtime dependency snapshot. With an artifact supplied it skips `npm ci` and `next build` on the Pi and snapshots the verified `.next` plus matching existing `node_modules` into the candidate release. Artifact verification failure is fail-closed and does not silently fall back to a local build.
+The off-device artifact consumer is implemented as a self-contained target-platform runtime. The first exact-head PR artifact correctly failed closed on the real Pi because it depended on the host working tree's incomplete production dependency tree; candidate port `3100` never started and production `3000` remained unchanged. That evidence rejected the host-dependency reuse design.
 
-Local verification is GREEN: frontend release tests **11/11**, combined deployment/auth/capacity tests **25/25**, version-management/update pytest regression **42/42**, YAML parse, shell parse, `git diff --check`, and a real-Pi runtime dependency snapshot (`543` installed lock entries matched the target lock and `npm ls --omit=dev --all` passed). Exact-head PR/CI and isolated portable-artifact Pi acceptance are still required before #626 can merge.
+The revised path cross-builds the existing offline Dashboard image for `linux/arm64` with Node `22.23.1`, then packages `.next` plus pruned production `node_modules` into a mode/symlink-preserving runtime tar. Pi import verifies exact source SHA, package and artifact checksums, LOCAL_LAN public runtime values, ARM64 platform identity, Node identity, archive path/link safety, and every extracted runtime file checksum. It performs no `npm ci` or `next build` on the Pi and does not silently fall back when an explicit artifact fails validation.
+
+Local verification after the redesign is GREEN: frontend release tests **12/12**, combined deployment/auth/capacity tests **26/26**, version-management/update pytest regression **42/42**, YAML parse, shell parse and `git diff --check`. A fresh exact-head ARM64 artifact CI build and isolated Pi candidate acceptance are still required before #626 can merge.
 
 ## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626
 
@@ -207,7 +209,7 @@ The remaining #627 acceptance is deliberately blocked on #626: a real Raspberry 
 
 Current Work Package: **Issue #626 — Make Raspberry Pi frontend deployment atomic and resource-safe**.
 
-Next action: publish the artifact-consumer checkpoint, open the focused #626 PR, require exact-head CI and its portable recovery artifact, then perform isolated Raspberry Pi candidate acceptance without touching the active Dashboard. After GREEN #626 merge, build the exact #627 artifact through the merged reusable workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: push implementation checkpoint `e57593f6715793999d273df0b6dafaa125316d3b`, require fresh exact-head PR #629 CI to produce the self-contained ARM64 artifact, download and import that exact artifact on the Raspberry Pi, and start it only on isolated loopback port `3100`. Production `3000` must remain unchanged. After GREEN #626 merge, update #627 on the new main, build its exact ARM64 artifact through the merged workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
 Planned sequence: **#626 → #627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 

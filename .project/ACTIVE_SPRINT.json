@@ -300,16 +300,18 @@
       "id": "NEXOLAB-626",
       "issue": 626,
       "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-      "status": "artifact_consumer_implemented_local_verification_green_pending_pr_ci_pi_acceptance",
+      "status": "self_contained_arm64_runtime_local_green_pending_exact_ci_pi_acceptance",
       "priority": "critical",
       "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "01963abec1b389ac466a8fc65625402ab0bca305",
-      "frontend_release_tests": "PASS_11_OF_11",
+      "checkpoint_sha": "e57593f6715793999d273df0b6dafaa125316d3b",
+      "frontend_release_tests": "PASS_12_OF_12",
       "version_management_pytest": "PASS_42_OF_42",
-      "runtime_dependency_snapshot": "PASS_REAL_PI",
       "modbus_write": "none",
       "hardware_write": "none",
-      "deployment_auth_capacity_tests": "PASS_25_OF_25"
+      "deployment_auth_capacity_tests": "PASS_26_OF_26",
+      "initial_host_dependency_artifact_import": "FAIL_CLOSED_DESIGN_REJECTED",
+      "initial_pi_evidence": "runtime/deployments/issue-626-isolated-20260820T130527Z",
+      "production_dashboard_preserved": "PASS"
     },
     {
       "id": "NEXOLAB-627",
@@ -338,12 +340,12 @@
     "issue": 626,
     "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
     "type": "critical_pi_deployment_safety_prerequisite",
-    "status": "artifact_consumer_local_green_pending_pr_ci_pi_acceptance"
+    "status": "self_contained_arm64_runtime_local_green_pending_exact_ci_pi_acceptance"
   },
   "next_work_package": {
     "issue": 626,
     "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-    "status": "in_progress_pending_pr_ci_artifact_acceptance"
+    "status": "in_progress_pending_fresh_exact_ci_arm64_artifact_acceptance"
   },
   "verification": {
     "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
