@@ -94,11 +94,7 @@ class DiscoveryPolicy:
                 f"requested {len(ports)} ports exceeds max {self.max_ports}"
             )
 
-        addresses = _deduplicated_hosts(networks)
-        if len(addresses) > self.max_hosts:
-            raise DiscoveryBudgetExceededError(
-                f"requested {len(addresses)} hosts exceeds max {self.max_hosts}"
-            )
+        addresses = _bounded_deduplicated_hosts(networks, max_hosts=self.max_hosts)
         probe_budget = len(addresses) * len(ports)
         if probe_budget <= 0:
             raise DiscoveryScopeDeniedError("discovery scope contains no host probes")
@@ -150,10 +146,17 @@ def parse_ports(value: str) -> tuple[int, ...]:
     return tuple(sorted(ports))
 
 
-def _deduplicated_hosts(networks: tuple[IPv4Network, ...]) -> tuple[IPv4Address, ...]:
+def _bounded_deduplicated_hosts(
+    networks: tuple[IPv4Network, ...], *, max_hosts: int
+) -> tuple[IPv4Address, ...]:
     hosts: set[IPv4Address] = set()
     for network in networks:
-        hosts.update(network.hosts())
+        for address in network.hosts():
+            hosts.add(address)
+            if len(hosts) > max_hosts:
+                raise DiscoveryBudgetExceededError(
+                    f"requested discovery scope exceeds max {max_hosts} hosts"
+                )
     return tuple(sorted(hosts, key=int))
 
 

@@ -53,6 +53,11 @@ def test_discovery_policy_enforces_host_and_port_budgets() -> None:
             requested_cidrs=["192.168.50.0/29"], requested_ports=[80]
         )
     with pytest.raises(DiscoveryBudgetExceededError):
+        policy(
+            equipment_discovery_allowed_cidrs="10.0.0.0/8",
+            equipment_discovery_max_hosts=16,
+        ).resolve(requested_cidrs=["10.0.0.0/8"], requested_ports=[80])
+    with pytest.raises(DiscoveryBudgetExceededError):
         policy(equipment_discovery_max_ports=1).resolve(
             requested_cidrs=["10.20.0.0/30"], requested_ports=[80, 443]
         )
