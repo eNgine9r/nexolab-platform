@@ -123,7 +123,7 @@ Success is shown only after host verification completes. Failures retain the fai
 
 ## Frontend release artifacts
 
-`Frontend Release Artifact` is a development/update-plane workflow, not a runtime dependency. An operator can request a build for an exact source ref and explicit LOCAL_LAN API/WebSocket/auth/organization contract. The workflow records source SHA and package hashes, verifies the compiled public contract, rejects native binaries inside `.next`, and publishes an integrity manifest with the short-lived artifact.
+`Frontend Release Artifact` is a development/update-plane workflow, not a runtime dependency. An operator can request a build for an exact source ref and explicit LOCAL_LAN API/WebSocket/auth/organization contract. The workflow uses QEMU/Buildx to produce a self-contained Linux ARM64 production runtime with the exact repository Node baseline, verifies the compiled public contract and native binary architecture, and publishes source/package/runtime/platform/Node provenance plus SHA-256 manifests. Pi-side import is offline and does not run `npm ci` or `next build`.
 
 The Raspberry Pi consumes only an already downloaded/extracted artifact through `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH`. GitHub credentials are not passed to the dashboard and the deployment script does not require GitHub access to consume the local artifact. If GitHub is unavailable, the current monitoring runtime continues and a previously transferred verified artifact/offline package can still be used.
 

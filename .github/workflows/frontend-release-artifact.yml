@@ -26,17 +26,9 @@ permissions:
 
 jobs:
   build:
-    name: Build verified frontend release
+    name: Build verified ARM64 frontend release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_PUBLIC_NEXOLAB_DATA_MODE: live
-      NEXT_PUBLIC_NEXOLAB_API_BASE_URL: ${{ inputs.api_base_url }}
-      NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL: ${{ inputs.websocket_url }}
-      NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER: ${{ inputs.auth_provider }}
-      NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID: ${{ inputs.organization_id }}
-      NEXT_TELEMETRY_DISABLED: "1"
-      HUSKY: "0"
+    timeout-minutes: 35
 
     steps:
       - name: Checkout requested source
@@ -45,116 +37,34 @@ jobs:
           ref: ${{ inputs.source_ref }}
           persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version-file: .nvmrc
+      - name: Record exact requested source
+        id: provenance
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Record source provenance
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build self-contained ARM64 frontend runtime artifact
         shell: bash
         run: |
           set -euo pipefail
-          git rev-parse HEAD | tee frontend-source-sha.txt
-          sha256sum package.json package-lock.json | tee frontend-package-sha256.txt
-          printf 'runtime_mode=live\n' > frontend-runtime-contract.txt
-          printf 'api_base_url=%s\n' "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" >> frontend-runtime-contract.txt
-          printf 'websocket_url=%s\n' "$NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL" >> frontend-runtime-contract.txt
-          printf 'auth_provider=%s\n' "$NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER" >> frontend-runtime-contract.txt
-          printf 'organization_id=%s\n' "$NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID" >> frontend-runtime-contract.txt
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Build production frontend
-        run: npm run build
-
-      - name: Verify compiled runtime contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import os
-          import re
-
-          root = Path('.next')
-          if not (root / 'BUILD_ID').is_file():
-              raise SystemExit('missing .next/BUILD_ID')
-
-          expected = {
-              'NEXT_PUBLIC_NEXOLAB_DATA_MODE': os.environ['NEXT_PUBLIC_NEXOLAB_DATA_MODE'],
-              'NEXT_PUBLIC_NEXOLAB_API_BASE_URL': os.environ['NEXT_PUBLIC_NEXOLAB_API_BASE_URL'],
-              'NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL': os.environ['NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL'],
-              'NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER': os.environ['NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER'],
-              'NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID': os.environ['NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID'],
-          }
-
-          files = []
-          for base in (root / 'static', root / 'server'):
-              for path in base.rglob('*') if base.exists() else ():
-                  if path.is_file() and path.suffix in {'.js', '.html', '.json', '.rsc'} and not path.name.endswith('.map'):
-                      files.append((path, path.read_text(encoding='utf-8', errors='ignore')))
-
-          for key, value in expected.items():
-              if not any(value in text for _, text in files):
-                  raise SystemExit(f'missing compiled value for {key}')
-              pattern = re.compile(r'(?:env\.|process\.env\.)' + re.escape(key))
-              if any(pattern.search(text) for _, text in files):
-                  raise SystemExit(f'dynamic public env reference remains for {key}')
-
-          forbidden = {
-              root / 'server/app/index.html': ('Demo mode', 'demo preview'),
-              root / 'server/app/nodes.html': ('Node registry доступний лише в live mode',),
-              root / 'server/app/energy.html': ('Енергомоніторинг доступний лише в live mode',),
-          }
-          for path, markers in forbidden.items():
-              if not path.is_file():
-                  raise SystemExit(f'missing prerendered page: {path}')
-              text = path.read_text(encoding='utf-8', errors='ignore')
-              for marker in markers:
-                  if marker in text:
-                      raise SystemExit(f'forbidden prerender marker {marker!r} in {path}')
-
-          print(f"verified_build_id={(root / 'BUILD_ID').read_text().strip()}")
-          print(f"verified_files={len(files)}")
-          PY
-
-      - name: Reject native binaries in portable .next artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          if find .next -type f -print0 | xargs -0 file | grep -Eq 'ELF|Mach-O|PE32'; then
-            echo 'Native binary found in .next; artifact is not architecture-portable.' >&2
-            exit 1
-          fi
-
-      - name: Generate artifact integrity manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-          {
-            find .next -type f -print0 | sort -z | xargs -0 sha256sum
-            sha256sum \
-              package.json \
-              package-lock.json \
-              frontend-source-sha.txt \
-              frontend-package-sha256.txt \
-              frontend-runtime-contract.txt
-          } > frontend-artifact-sha256.txt
+          scripts/build-frontend-release-artifact.sh \
+            --platform linux/arm64 \
+            --api-base-url "${{ inputs.api_base_url }}" \
+            --websocket-url "${{ inputs.websocket_url }}" \
+            --auth-provider "${{ inputs.auth_provider }}" \
+            --organization-id "${{ inputs.organization_id }}" \
+            --output "${{ runner.temp }}/nexolab-frontend-release"
 
       - name: Upload verified frontend release
         uses: actions/upload-artifact@v7
         with:
-          name: nexolab-frontend-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .next
-            package.json
-            package-lock.json
-            frontend-source-sha.txt
-            frontend-package-sha256.txt
-            frontend-runtime-contract.txt
-            frontend-artifact-sha256.txt
+          name: nexolab-frontend-release-${{ steps.provenance.outputs.sha }}-arm64
+          path: ${{ runner.temp }}/nexolab-frontend-release
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

@@ -211,74 +211,86 @@ nexolab_frontend_write_provenance() {
   chmod 0600 "$release_dir/nexolab-frontend-provenance.txt"
 }
 
-nexolab_frontend_verify_artifact_runtime_dependencies() {
-  local repo=$1 artifact_root=$2 report=$3
-  local hidden_lock="$repo/node_modules/.package-lock.json"
-  local artifact_lock="$artifact_root/package-lock.json"
-  : > "$report"
-  if [[ ! -d "$repo/node_modules" || -L "$repo/node_modules" || ! -f "$hidden_lock" ]]; then
-    printf 'status=FAIL\nerror=runtime-node-modules-unavailable\n' > "$report"
-    return 70
-  fi
-  python3 - "$artifact_lock" "$hidden_lock" "$report" <<'PY_DEP'
-import json
-import sys
-from pathlib import Path
+nexolab_frontend_host_platform() {
+  case "$(uname -m)" in
+    aarch64) printf 'linux/arm64\n' ;;
+    x86_64) printf 'linux/amd64\n' ;;
+    *) return 69 ;;
+  esac
+}
 
-artifact_lock = Path(sys.argv[1])
-hidden_lock = Path(sys.argv[2])
-report = Path(sys.argv[3])
+nexolab_frontend_verify_runtime_archive() {
+  local archive=$1 report=$2
+  python3 - "$archive" "$report" <<'PY_ARCHIVE'
+import posixpath
+import sys
+import tarfile
+from pathlib import Path, PurePosixPath
+
+archive = Path(sys.argv[1])
+report = Path(sys.argv[2])
+allowed = {".next", "node_modules"}
+errors: list[str] = []
+member_count = 0
+
 try:
-    target = json.loads(artifact_lock.read_text(encoding="utf-8"))["packages"]
-    installed = json.loads(hidden_lock.read_text(encoding="utf-8"))["packages"]
-except (OSError, KeyError, json.JSONDecodeError) as exc:
-    report.write_text(f"status=FAIL\nerror=invalid-lock-snapshot:{type(exc).__name__}\n", encoding="utf-8")
+    tf = tarfile.open(archive, "r:gz")
+except (OSError, tarfile.TarError) as exc:
+    report.write_text(f"status=FAIL\nerror=invalid-runtime-archive:{type(exc).__name__}\n", encoding="utf-8")
     raise SystemExit(70)
 
-mismatches = []
-for package_path, installed_meta in installed.items():
-    target_meta = target.get(package_path)
-    if target_meta is None:
-        mismatches.append(f"unexpected:{package_path}")
-        continue
-    for field in ("version", "resolved", "integrity"):
-        if installed_meta.get(field) != target_meta.get(field):
-            mismatches.append(f"{field}:{package_path}")
-            break
+with tf:
+    for member in tf.getmembers():
+        member_count += 1
+        name = member.name
+        path = PurePosixPath(name)
+        parts = tuple(part for part in path.parts if part not in ("", "."))
+        if path.is_absolute() or not parts or ".." in parts or parts[0] not in allowed:
+            errors.append(f"path:{name}")
+            continue
+        if member.ischr() or member.isblk() or member.isfifo() or member.mode & 0o6000:
+            errors.append(f"unsafe-type-or-mode:{name}")
+            continue
+        if member.issym() or member.islnk():
+            target = member.linkname
+            if PurePosixPath(target).is_absolute():
+                errors.append(f"absolute-link:{name}")
+                continue
+            if member.islnk():
+                resolved = posixpath.normpath(target)
+            else:
+                resolved = posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
+            resolved_parts = tuple(part for part in PurePosixPath(resolved).parts if part not in ("", "."))
+            if not resolved_parts or resolved_parts[0] not in allowed or ".." in resolved_parts or resolved.startswith("../"):
+                errors.append(f"escaping-link:{name}")
 
-lines = [f"installed_packages={len(installed)}", f"target_packages={len(target)}"]
-if mismatches:
+lines = [f"members={member_count}"]
+if errors:
     lines.insert(0, "status=FAIL")
-    lines.extend(f"mismatch={item}" for item in mismatches[:20])
+    lines.extend(f"error={item}" for item in errors[:20])
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
     raise SystemExit(70)
-lines.insert(0, "status=LOCK_MATCH")
+lines.insert(0, "status=PASS")
 report.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY_DEP
-  local lock_rc=$?
-  (( lock_rc == 0 )) || return "$lock_rc"
-  if ! npm --prefix "$repo" ls --omit=dev --all --json > "${report}.npm-ls.json" 2> "${report}.npm-ls.stderr"; then
-    printf 'status=FAIL\nerror=npm-runtime-tree-invalid\n' >> "$report"
-    return 70
-  fi
-  printf 'status=PASS\n' >> "$report"
+PY_ARCHIVE
 }
 
 nexolab_frontend_import_artifact() {
   local artifact_root=$1 repo=$2 release_dir=$3 target_commit=$4
   local mode=$5 api_url=$6 websocket_url=$7 auth_provider=$8 organization_id=$9 report=${10}
-  local required source_sha
+  local required source_sha artifact_platform host_platform artifact_node expected_node actual_node
   : > "$report"
-  for required in .next/BUILD_ID package.json package-lock.json frontend-source-sha.txt frontend-package-sha256.txt frontend-runtime-contract.txt frontend-artifact-sha256.txt; do
+  for required in \
+    frontend-runtime.tar.gz package.json package-lock.json \
+    frontend-source-sha.txt frontend-package-sha256.txt frontend-runtime-contract.txt \
+    frontend-platform.txt frontend-node-version.txt frontend-build-id.txt \
+    frontend-runtime-files-sha256.txt frontend-public-contract.txt \
+    frontend-native-files.txt frontend-artifact-sha256.txt; do
     if [[ ! -f "$artifact_root/$required" ]]; then
       printf 'status=FAIL\nerror=missing-artifact-file:%s\n' "$required" > "$report"
       return 70
     fi
   done
-  if find "$artifact_root/.next" -type l -print -quit | grep -q .; then
-    printf 'status=FAIL\nerror=artifact-next-symlink-rejected\n' > "$report"
-    return 70
-  fi
   source_sha="$(tr -d '[:space:]' < "$artifact_root/frontend-source-sha.txt")"
   if [[ "$source_sha" != "$target_commit" ]]; then
     printf 'status=FAIL\nerror=source-sha-mismatch\nexpected=%s\nactual=%s\n' "$target_commit" "$source_sha" > "$report"
@@ -316,24 +328,48 @@ PY_CONTRACT
     printf 'status=FAIL\nerror=runtime-contract-mismatch\n' > "$report"
     return 70
   fi
-  if ! nexolab_frontend_verify_artifact_runtime_dependencies "$repo" "$artifact_root" "${report}.dependencies"; then
-    printf 'status=FAIL\nerror=runtime-dependency-snapshot-mismatch\n' > "$report"
+  artifact_platform="$(tr -d '[:space:]' < "$artifact_root/frontend-platform.txt")"
+  host_platform="$(nexolab_frontend_host_platform)" || {
+    printf 'status=FAIL\nerror=unsupported-host-platform\n' > "$report"
+    return 70
+  }
+  if [[ "$artifact_platform" != "$host_platform" ]]; then
+    printf 'status=FAIL\nerror=artifact-platform-mismatch\nexpected=%s\nactual=%s\n' "$host_platform" "$artifact_platform" > "$report"
+    return 70
+  fi
+  artifact_node="$(tr -d '[:space:]' < "$artifact_root/frontend-node-version.txt")"
+  expected_node="$(tr -d '[:space:]' < "$release_dir/.nvmrc")"
+  actual_node="$(node --version | sed 's/^v//')"
+  if [[ "$artifact_node" != "$expected_node" || "$actual_node" != "$expected_node" ]]; then
+    printf 'status=FAIL\nerror=node-version-mismatch\nartifact=%s\nsource=%s\nhost=%s\n' "$artifact_node" "$expected_node" "$actual_node" > "$report"
+    return 70
+  fi
+  if ! nexolab_frontend_verify_runtime_archive "$artifact_root/frontend-runtime.tar.gz" "${report}.archive"; then
+    printf 'status=FAIL\nerror=unsafe-runtime-archive\n' > "$report"
     return 70
   fi
   [[ ! -e "$release_dir/.next" && ! -e "$release_dir/node_modules" ]] || {
     printf 'status=FAIL\nerror=release-runtime-already-present\n' > "$report"
     return 70
   }
-  cp -a "$artifact_root/.next" "$release_dir/.next" || return 70
-  cp -al "$repo/node_modules" "$release_dir/node_modules" || return 70
+  if ! tar --extract --gzip --file "$artifact_root/frontend-runtime.tar.gz" --directory "$release_dir" --no-same-owner; then
+    printf 'status=FAIL\nerror=runtime-archive-extract-failed\n' > "$report"
+    return 70
+  fi
+  if ! (cd "$release_dir" && sha256sum --check "$artifact_root/frontend-runtime-files-sha256.txt" >/dev/null); then
+    printf 'status=FAIL\nerror=runtime-files-checksum-mismatch\n' > "$report"
+    return 70
+  fi
   if [[ ! -x "$release_dir/node_modules/.bin/next" ]]; then
     printf 'status=FAIL\nerror=next-runtime-executable-missing\n' > "$report"
     return 70
   fi
-  install -m 0600 "$artifact_root/frontend-source-sha.txt" "$release_dir/frontend-source-sha.txt"
-  install -m 0600 "$artifact_root/frontend-package-sha256.txt" "$release_dir/frontend-package-sha256.txt"
-  install -m 0600 "$artifact_root/frontend-runtime-contract.txt" "$release_dir/frontend-runtime-contract.txt"
-  install -m 0600 "$artifact_root/frontend-artifact-sha256.txt" "$release_dir/frontend-artifact-sha256.txt"
+  for required in \
+    frontend-source-sha.txt frontend-package-sha256.txt frontend-runtime-contract.txt \
+    frontend-platform.txt frontend-node-version.txt frontend-build-id.txt \
+    frontend-runtime-files-sha256.txt frontend-native-files.txt frontend-artifact-sha256.txt; do
+    install -m 0600 "$artifact_root/$required" "$release_dir/$required"
+  done
   if ! nexolab_frontend_verify_public_contract \
     "$release_dir" "$mode" "$api_url" "$websocket_url" "$auth_provider" "$organization_id" "${report}.public-contract"; then
     printf 'status=FAIL\nerror=compiled-public-contract-mismatch\n' > "$report"
@@ -341,8 +377,10 @@ PY_CONTRACT
   fi
   {
     printf 'status=PASS\n'
-    printf 'preparation=off-device-artifact\n'
+    printf 'preparation=off-device-self-contained-runtime\n'
     printf 'source_sha=%s\n' "$source_sha"
+    printf 'platform=%s\n' "$artifact_platform"
+    printf 'node_version=%s\n' "$artifact_node"
     printf 'build_id=%s\n' "$(cat "$release_dir/.next/BUILD_ID")"
   } > "$report"
 }

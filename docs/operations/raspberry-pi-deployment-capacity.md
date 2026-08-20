@@ -46,7 +46,7 @@ The report includes free, required, reserve, build, runtime-evidence, PostgreSQL
 
 ## Off-device frontend artifact path
 
-The preferred frontend preparation path is a verified off-device artifact. The reusable `Frontend Release Artifact` workflow builds the exact requested source SHA with the target LOCAL_LAN public runtime contract and uploads `.next` together with source, package-lock, runtime-contract, and per-file SHA-256 evidence.
+The preferred frontend preparation path is a verified off-device artifact. The reusable `Frontend Release Artifact` workflow cross-builds the exact requested source SHA as a self-contained `linux/arm64` production runtime using the existing offline Dashboard Dockerfile and the repository Node baseline. The artifact contains a tarred `.next` plus pruned production `node_modules`, package/source/runtime/platform/Node provenance, native-architecture evidence, and SHA-256 manifests.
 
 After the artifact is downloaded and extracted to a local directory, the controlled deployment accepts it explicitly:
 
@@ -56,7 +56,7 @@ bash scripts/deploy-current-head-raspberry-pi.sh \
   --frontend-artifact /absolute/path/to/extracted-artifact
 ```
 
-The artifact path is fail-closed. Before candidate startup the host verifies exact source SHA, artifact checksums, package/lockfile identity, baked public runtime values, the existing installed runtime dependency tree, and the repository Node baseline. The accepted `.next` and current verified `node_modules` are snapshotted into a new immutable release directory; the active dashboard working directory is not modified.
+The artifact path is fail-closed. Before candidate startup the host verifies exact source SHA, artifact checksums, package/lockfile identity, baked public runtime values, target platform, archive path/link safety, repository/host Node identity, and every extracted runtime file checksum. Runtime dependencies come from the ARM64 artifact itself rather than the host working tree. The active dashboard working directory is never modified during import or isolated candidate verification.
 
 When an artifact is supplied, the Raspberry Pi does **not** run `npm ci` or `next build`. The high-memory frontend build-headroom gate is therefore recorded as `SKIPPED_OFF_DEVICE_ARTIFACT`; the normal deployment capacity gate and concurrent-heavy-work guard still apply. If artifact verification fails, deployment stops before dashboard activation and does not fall back silently to a local build.
 
