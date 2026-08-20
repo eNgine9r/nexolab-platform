@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
   "accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-  "last_reconciled_repository_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+  "last_reconciled_repository_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 626,
-    "selection_status": "critical_prerequisite_in_progress",
+    "selected_issue": 627,
+    "selection_status": "critical_active_pi_acceptance",
     "ready_issue_count": 1,
-    "reason": "Issue #626 is the direct runtime-safety prerequisite for completing Issue #627 Raspberry Pi acceptance. #627 software/CI is GREEN on PR #628; #606 remains paused at its recoverable checkpoint."
+    "reason": "Issue #626 is merged GREEN and the safe off-device ARM64 runtime path is hardware-proven. Issue #627 is now the active critical Work Package; #606 remains paused at its recoverable checkpoint."
   },
   "tasks": [
     {
@@ -300,7 +300,7 @@
       "id": "NEXOLAB-626",
       "issue": 626,
       "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-      "status": "final_rollback_fix_local_green_pending_exact_ci_merge",
+      "status": "done_merged_green",
       "priority": "critical",
       "branch": "fix/626-atomic-pi-deploy",
       "checkpoint_sha": "49b827dfead6f09e8a4b812042de75a181226a61",
@@ -327,13 +327,19 @@
       "pi_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
       "post_activation_rollback_contract": "PASS_TELEMETRY_DEVICE_AGENT_DASHBOARD",
       "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
-      "runtime_content_unchanged_after_proof": "PASS_DEPLOY_SCRIPT_TEST_STATE_ONLY"
+      "runtime_content_unchanged_after_proof": "PASS_DEPLOY_SCRIPT_TEST_STATE_ONLY",
+      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+      "final_exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
+      "final_ci": "PASS_32377664739",
+      "final_telemetry_ci": "PASS_32377664704",
+      "final_arm64_artifact_id": 9410009481,
+      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366"
     },
     {
       "id": "NEXOLAB-627",
       "issue": 627,
       "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-      "status": "software_ci_green_blocked_pi_acceptance_on_626",
+      "status": "active_pending_main_sync_arm64_artifact_pi_acceptance",
       "priority": "critical",
       "branch": "fix/627-monitoring-display-decoupling",
       "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
@@ -349,19 +355,20 @@
       "core_ci": "PASS_32363682430",
       "authenticated_dashboard_acceptance": "PASS_32363682812",
       "offline_bundle": "PASS_32363682463",
-      "acquisition_scale": "PASS_32363682454"
+      "acquisition_scale": "PASS_32363682454",
+      "required_main_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525"
     }
   ],
   "active_work_package": {
-    "issue": 626,
-    "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-    "type": "critical_pi_deployment_safety_prerequisite",
-    "status": "final_rollback_fix_local_green_pending_exact_ci_merge"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "type": "critical_monitoring_display_boundary",
+    "status": "active_pending_main_sync_arm64_artifact_pi_acceptance"
   },
   "next_work_package": {
-    "issue": 626,
-    "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-    "status": "pending_state_only_exact_head_ci_and_merge"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "status": "in_progress_main_sync_then_arm64_pi_acceptance"
   },
   "verification": {
     "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
@@ -382,7 +389,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+    "repository_state_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -554,7 +561,13 @@
     "issue_626_pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
     "issue_626_pi_production_preservation": "PASS",
     "issue_626_pi_candidate_cleanup": "PASS",
-    "issue_626_post_activation_rollback_contract": "PASS"
+    "issue_626_post_activation_rollback_contract": "PASS",
+    "issue_626_final_exact_head_ci": "PASS_32377664739",
+    "issue_626_final_telemetry_ci": "PASS_32377664704",
+    "issue_626_final_arm64_artifact": "PASS_9410009481",
+    "issue_626_merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+    "issue_626_hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+    "issue_626_final_runtime_content_vs_hardware_proof": "UNCHANGED_PRODUCT_FRONTEND"
   },
   "independent_pending_lanes": [
     {
@@ -635,11 +648,11 @@
     },
     {
       "issue": 626,
-      "status": "critical_active_prerequisite_for_627_pi_acceptance"
+      "status": "done_merged_green"
     },
     {
       "issue": 627,
-      "status": "software_ci_green_waiting_on_626_pi_artifact_path"
+      "status": "critical_active_pi_acceptance"
     }
   ],
   "safety": {
