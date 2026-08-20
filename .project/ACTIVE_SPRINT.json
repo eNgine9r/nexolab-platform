@@ -19,15 +19,15 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
-  "accepted_product_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
-  "last_reconciled_repository_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
+  "repository_product_baseline_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "last_reconciled_repository_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
-    "selected_issue": 605,
-    "selection_status": "in_progress_rebased_verification",
-    "ready_issue_count": 0,
-    "reason": "PR #624 reconciled #619/#620 state and merged GREEN as 5d81c2c0. Issue #605 / PR #621 is rebased onto that main. Backend metadata tests/migrations and frontend targeted/full unit gates are GREEN. Raspberry Pi hard-reset during repository-wide ESLint under memory pressure; local full lint will not be repeated on the 4 GiB host and exact-head GitHub CI is the repository-wide lint/build source of truth."
+    "selected_issue": 606,
+    "selection_status": "ready_after_605_green_merge",
+    "ready_issue_count": 1,
+    "reason": "Issue #605 / PR #621 merged fully GREEN as ad2a4947. Its dependency on #606 is satisfied; GitHub now marks #606 status:ready and it is the next product Work Package."
   },
   "tasks": [
     {
@@ -186,7 +186,7 @@
       "id": "NEXOLAB-605",
       "issue": 605,
       "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-      "status": "in_progress_rebased_verification",
+      "status": "completed_green_permissioned_metadata_editing",
       "priority": "high",
       "pull_request": 621,
       "branch": "feat/605-equipment-metadata-editing",
@@ -201,13 +201,24 @@
       "typecheck": "PASS",
       "lint_staged_contract": "PASS",
       "touched_file_lint": "PASS",
-      "local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE"
+      "local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE",
+      "exact_head_sha": "5e7ff9bdc34cf3fa2c495ada51608116b3b52e3b",
+      "merge_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+      "core_ci": "PASS_32334582905",
+      "telemetry_service": "PASS_32334582949",
+      "authenticated_dashboard_acceptance": "PASS_32334582859",
+      "refrigeration_browser_acceptance": "PASS_32334582959",
+      "offline_bundle": "PASS_32334582980",
+      "offline_auth_acceptance": "PASS_32334583017",
+      "security_browser_acceptance": "PASS_32334582871",
+      "modbus_writes": 0,
+      "hardware_writes": 0
     },
     {
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "blocked_dependency_605",
+      "status": "ready_dependency_605_complete",
       "priority": "high"
     },
     {
@@ -285,18 +296,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 605,
-    "title": "Add permissioned equipment metadata editing from the Equipment workspace",
-    "type": "permissioned_equipment_metadata_editing",
-    "status": "in_progress_rebased_verification"
+    "issue": 606,
+    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "type": "local_lan_equipment_discovery",
+    "status": "ready_after_605_green_merge"
   },
   "next_work_package": {
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "blocked_dependency_605"
+    "status": "ready"
   },
   "verification": {
-    "repository_accepted_product_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
+    "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
     "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
@@ -314,7 +325,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "5d81c2c05b41dc9f56010e31133e0aea164ecff6",
+    "repository_state_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -446,7 +457,18 @@
     "issue_605_typecheck": "PASS",
     "issue_605_lint_staged_contract": "PASS",
     "issue_605_touched_file_lint": "PASS",
-    "issue_605_local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE"
+    "issue_605_local_full_lint": "NOT_RERUN_AFTER_PI_HARD_RESET_RESOURCE_PRESSURE",
+    "issue_605_exact_head_sha": "5e7ff9bdc34cf3fa2c495ada51608116b3b52e3b",
+    "issue_605_merge_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+    "issue_605_core_ci": "PASS_32334582905",
+    "issue_605_telemetry_service": "PASS_32334582949",
+    "issue_605_authenticated_dashboard_acceptance": "PASS_32334582859",
+    "issue_605_refrigeration_browser_acceptance": "PASS_32334582959",
+    "issue_605_offline_bundle": "PASS_32334582980",
+    "issue_605_offline_auth_acceptance": "PASS_32334583017",
+    "issue_605_security_browser_acceptance": "PASS_32334582871",
+    "issue_605_modbus_writes": 0,
+    "issue_605_hardware_writes": 0
   },
   "independent_pending_lanes": [
     {

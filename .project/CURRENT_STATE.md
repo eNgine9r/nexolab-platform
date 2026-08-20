@@ -177,17 +177,21 @@ Rebased local verification also passed 113/113 test files / 514/514 tests, forma
 
 Issue #618 remains an independent Saved Dashboard CSV browser-download reliability lane. It reproduced in one local full matrix, while the final #623 GitHub Authenticated Dashboard Acceptance passed, so it does not block the current Equipment product lane.
 
+## Issue #605 — complete GREEN
+
+PR #621 merged fully GREEN as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` from exact head `5e7ff9bdc34cf3fa2c495ada51608116b3b52e3b`. The Equipment workspace now supports permission-gated administrative metadata editing while keeping Modbus/acquisition identity read-only. Measurement-device and physical-sensor mutations are narrow, organization-scoped, audited and optimistic-concurrency protected; refrigeration editing reuses its canonical repository contract.
+
+Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry service `32334582949`, Authenticated Dashboard `32334582859`, Refrigeration Browser `32334582959`, Security Browser `32334582871`, Offline Bundle `32334582980`, and Offline Auth `32334583017` after one transient first-attempt runner failure. Local rebased verification passed backend metadata tests 5/5, focused frontend tests 18/18, full Vitest 114/114 files / 519/519 tests, format, typecheck and lint-staged. No package/lock changes, Modbus writes, hardware writes or runtime deployment occurred.
+
+The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
+
 ## Current execution boundary
 
-Active Work Package: **Issue #605 — Add permissioned equipment metadata editing from the Equipment workspace**.
+Next Ready Work Package: **Issue #606 — Add read-only LOCAL_LAN equipment discovery and adoption inbox**.
 
-PR #621 has been rebased onto reconciled `main` `5d81c2c05b41dc9f56010e31133e0aea164ecff6`; the rebased local feature head is `74f5a847a3d34af98afc8877ec66866cf5b35c9e`. The single Equipment E2E conflict was resolved by preserving both #619 scale-fixture cleanup and #605 metadata-edit database/evidence helpers.
+#606 is now `status:ready`: #604 Equipment workspace and #605 metadata/adoption boundaries are complete. The next action is repository and architecture audit before implementation, with strict LOCAL_LAN CIDR allowlists, bounded read-only discovery, persisted candidate evidence and explicit operator adoption only. No public scanning, credential guessing, acquisition enablement, Modbus write, hardware write or site cutover is authorized.
 
-Rebased verification is GREEN for backend metadata tests 5/5, compile/migration checks with a single Alembic head `20260819_0025`, offline migration SQL, touched-file formatting/lint, focused Equipment/climate tests 18/18, repository formatting, typecheck, full Vitest 114/114 files / 519/519 tests, and lint-staged v17. Repository-wide ESLint on the 4 GiB Raspberry Pi caused a host hang requiring a Product Owner hard reset; post-reboot `main` and the #605 worktree are clean and Git integrity checks show no corruption. Full local ESLint will not be repeated on this constrained host; exact-head GitHub CI is the repository-wide lint/build source of truth.
-
-Next: run only bounded focused Equipment production-browser evidence locally if host resources remain stable, publish the rebased exact head to PR #621, then require fully GREEN exact-head GitHub CI before merge.
-
-The planned product dependency sequence remains **#605 → #606 → #607 → #589 → #590**. #618 stays independent; #585 remains blocked on physical W2/Unit 201 handback.
+The planned product dependency sequence is now **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 
