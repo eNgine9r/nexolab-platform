@@ -197,7 +197,7 @@ The final deployment-only rollback correction is also merged: post-activation Te
 
 ## Issue #627 — active critical Raspberry Pi acceptance
 
-PR #628 remains open; previous published checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1` and its original software/CI gates are GREEN. The feature branch is now synchronized without force-push with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996`; only `.project/**` required conflict reconciliation. Focused checks are the next gate before publishing the new exact head and producing an updated ARM64 runtime artifact.
+PR #628 remains open; previous published checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1` and its original software/CI gates are GREEN. The feature branch is synchronized without force-push with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996` at merge checkpoint `adf0d0e526c2bfd8f4be924c9fedfa5cbadaefa3`; only `.project/**` required conflict reconciliation. Post-sync focused checks are GREEN: frontend 11/11, networkless Device Agent boundary 24/24, touched ESLint PASS, TypeScript PASS and diff checks PASS. Fresh exact-head CI and an updated ARM64 runtime artifact are the next gates.
 
 Real acceptance will hide monitored channel `108-01` only from Overview and prove Acquisition Registry revision/active set/configured target count stay unchanged while physical request counters and PostgreSQL `telemetry_latest.sample_id/captured_at` continue advancing after the browser is closed. Opera Browser Connector is currently disconnected; this does not block branch sync, tests, CI or artifact production, but may require reconnection when the UI interaction step is reached if no equivalent authenticated browser session is available. No monitoring-enrollment mutation, Modbus write, hardware write or site cutover is authorized.
 
@@ -205,7 +205,7 @@ Real acceptance will hide monitored channel `108-01` only from Overview and prov
 
 Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
 
-Next action: run focused #627 checks on the branch synchronized with `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996`, commit the merge checkpoint, push PR #628, require fresh exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: push the synchronized #627 checkpoint, require fresh exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant for monitored `108-01`. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
 Planned sequence: **#627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 

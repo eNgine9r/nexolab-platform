@@ -70,7 +70,7 @@ PR #629 merged GREEN as `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The safe sel
 
 ## Issue #627 — active critical acceptance
 
-#626 is no longer a blocker. The #627 branch is synchronized with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996`; remaining work is focused re-verification, exact-head CI/artifact production, and real Pi Overview-only visibility proof for monitored `108-01`. Opera Browser Connector is currently disconnected; this is a soft access blocker only for the eventual authenticated UI interaction and does not block repository/CI/artifact work. No Modbus write, hardware write or acquisition enrollment mutation is authorized.
+#626 is no longer a blocker. The #627 branch is synchronized with current `main@bd28ab87b8a845a634c83fdbe2965f5bc6424996` and post-sync focused checks are GREEN. Remaining work is exact-head CI/artifact production and real Pi Overview-only visibility proof for monitored `108-01`. Opera Browser Connector is currently disconnected; this is a soft access blocker only for the eventual authenticated UI interaction and does not block repository/CI/artifact work. No Modbus write, hardware write or acquisition enrollment mutation is authorized.
 
 ## Issue #618 — independent reliability lane
 

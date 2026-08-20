@@ -25,9 +25,9 @@
   "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "selection_state": {
     "selected_issue": 627,
-    "selection_status": "critical_active_main_synced_focused_verification",
+    "selection_status": "critical_active_main_synced_focused_green",
     "ready_issue_count": 1,
-    "reason": "Issue #626 and its state reconciliation are merged GREEN. Issue #627 is synchronized with current main and is the active critical Work Package; focused verification precedes a new exact-head CI/ARM64 artifact and real Pi acceptance."
+    "reason": "Issue #627 is synchronized with current main after #626/#630 and focused frontend/Device Agent/lint/typecheck checks are GREEN. Fresh exact-head GitHub CI, ARM64 artifact production, and real Pi acceptance remain."
   },
   "tasks": [
     {
@@ -339,7 +339,7 @@
       "id": "NEXOLAB-627",
       "issue": 627,
       "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-      "status": "main_synced_focused_verification_pending",
+      "status": "main_synced_focused_green_pending_exact_ci_arm64_pi_acceptance",
       "priority": "critical",
       "branch": "fix/627-monitoring-display-decoupling",
       "base_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
@@ -358,19 +358,25 @@
       "acquisition_scale": "PASS_32363682454",
       "required_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
       "synchronized_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
-      "previous_exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1"
+      "previous_exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
+      "sync_checkpoint_sha": "adf0d0e526c2bfd8f4be924c9fedfa5cbadaefa3",
+      "resync_frontend_targeted_tests": "PASS_11_OF_11",
+      "resync_device_agent_boundary_tests": "PASS_24_OF_24",
+      "resync_touched_lint": "PASS",
+      "resync_typecheck": "PASS",
+      "resync_git_diff_check": "PASS"
     }
   ],
   "active_work_package": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
     "type": "critical_monitoring_display_boundary",
-    "status": "main_synced_focused_verification_pending"
+    "status": "main_synced_focused_green_pending_exact_ci_arm64_pi_acceptance"
   },
   "next_work_package": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "in_progress_focused_verification_then_exact_ci_arm64_pi_acceptance"
+    "status": "in_progress_exact_ci_arm64_pi_acceptance"
   },
   "verification": {
     "repository_accepted_product_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
@@ -569,7 +575,12 @@
     "issue_626_final_arm64_artifact": "PASS_9410009481",
     "issue_626_merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
     "issue_626_hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
-    "issue_626_final_runtime_content_vs_hardware_proof": "UNCHANGED_PRODUCT_FRONTEND"
+    "issue_626_final_runtime_content_vs_hardware_proof": "UNCHANGED_PRODUCT_FRONTEND",
+    "issue_627_resync_frontend_targeted_tests": "PASS_11_OF_11",
+    "issue_627_resync_device_agent_boundary_tests": "PASS_24_OF_24",
+    "issue_627_resync_touched_lint": "PASS",
+    "issue_627_resync_typecheck": "PASS",
+    "issue_627_resync_git_diff_check": "PASS"
   },
   "independent_pending_lanes": [
     {

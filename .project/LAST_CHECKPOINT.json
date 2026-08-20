@@ -5,7 +5,7 @@
   "sprint": "ENGINEERING-HARDENING-1",
   "timestamp": "2026-08-20T17:15:28+03:00",
   "actor": "ChatGPT",
-  "event": "issue_627_main_synced_focused_verification_pending",
+  "event": "issue_627_main_synced_focused_green_pending_exact_ci_arm64_pi_acceptance",
   "repository_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
@@ -174,9 +174,9 @@
   "current_boundary": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING"
+    "status": "MAIN_SYNCED_FOCUSED_GREEN_PENDING_EXACT_CI_ARM64_PI_ACCEPTANCE"
   },
-  "next_action": "Run focused #627 frontend and Device Agent boundary checks against the branch synchronized with main@bd28ab87b8a845a634c83fdbe2965f5bc6424996, update the exact checkpoint, push PR #628, require fresh exact-head CI and ARM64 artifact, then complete the real Raspberry Pi Overview-only visibility and browser-closed telemetry invariant.",
+  "next_action": "Push the synchronized #627 checkpoint, require fresh exact-head GitHub CI including production build/Authenticated Dashboard/Offline Bundle/acquisition invariant and ARM64 recovery artifact, then import/start the exact artifact on the real Raspberry Pi and prove Overview-only hiding of monitored 108-01 leaves registry/targets unchanged while browser-closed telemetry continues.",
   "planned_queue": [626, 627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -195,13 +195,19 @@
       "issue": 627,
       "pull_request": 628,
       "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
-      "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING",
+      "status": "MAIN_SYNCED_FOCUSED_GREEN_PENDING_EXACT_CI_ARM64_PI_ACCEPTANCE",
       "core_ci": "PASS_32363682430",
       "authenticated_dashboard_acceptance": "PASS_32363682812",
       "offline_bundle": "PASS_32363682463",
       "acquisition_scale": "PASS_32363682454",
       "previous_exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
-      "synchronized_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996"
+      "synchronized_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
+      "sync_checkpoint_sha": "adf0d0e526c2bfd8f4be924c9fedfa5cbadaefa3",
+      "resync_frontend_targeted_tests": "PASS_11_OF_11",
+      "resync_device_agent_boundary_tests": "PASS_24_OF_24",
+      "resync_touched_lint": "PASS",
+      "resync_typecheck": "PASS",
+      "resync_git_diff_check": "PASS"
     },
     "issue_606": {
       "issue": 606,
@@ -213,7 +219,7 @@
   "active_work": {
     "issue_627": {
       "issue": 627,
-      "status": "MAIN_SYNCED_FOCUSED_VERIFICATION_PENDING",
+      "status": "MAIN_SYNCED_FOCUSED_GREEN_PENDING_EXACT_CI_ARM64_PI_ACCEPTANCE",
       "modbus_write": "none",
       "hardware_write": "none"
     }
