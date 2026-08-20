@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T05:24:20.585944Z",
+  "timestamp": "2026-08-20T20:51:07.512199Z",
   "actor": "ChatGPT",
-  "event": "issue_605_completed_green_and_issue_606_ready",
-  "repository_main_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "event": "issue_627_merged_green_issue_606_ready_to_resume",
+  "repository_main_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -136,6 +136,67 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "runtime_deployed": false
+    },
+    "issue_626": {
+      "issue": 626,
+      "pull_request": 629,
+      "result": "COMPLETED_GREEN_ATOMIC_PI_FRONTEND_DEPLOYMENT",
+      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+      "exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
+      "core_ci": "PASS_32377664739",
+      "telemetry_service": "PASS_32377664704",
+      "final_arm64_artifact_id": 9410009481,
+      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366",
+      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "hardware_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
+      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "pi_production_preserved": true,
+      "post_activation_rollback_contract": "PASS",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false
+    },
+    "issue_627": {
+      "issue": 627,
+      "pull_request": 628,
+      "verified_product_head_sha": "5a4da3974d44efd3fd5fa9d5523c4d28e077e94b",
+      "status": "COMPLETED_GREEN_MERGED",
+      "core_ci": "PASS_32411093778",
+      "authenticated_dashboard_acceptance": "PASS_32411094072_RERUN",
+      "offline_bundle": "PASS_32411094258",
+      "acquisition_scale": "PASS_32411093918",
+      "device_agent_fleet": "PASS_32411095164",
+      "refrigeration_browser": "PASS_32411094752",
+      "container_supply_chain": "PASS_32411093905",
+      "mqtt_tls_fleet": "PASS_32411093449",
+      "disaster_recovery_tls": "PASS_32411094005",
+      "edge_image": "PASS_32411093799",
+      "arm64_workflow": "PASS_32411213218",
+      "arm64_artifact_id": 9422408464,
+      "arm64_artifact_digest": "sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766",
+      "hardware_evidence": "runtime/acceptance/issue-627-final-5a4da397",
+      "artifact_import": "PASS",
+      "candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "overview_hide_108_01": "PASS_DISPLAY_ONLY_NO_MUTATIONS",
+      "registry_revision": "PASS_9_TO_9",
+      "configured_targets": "PASS_33_TO_33",
+      "physical_requests_browser_closed": "PASS_91_TO_157_DELTA_66",
+      "postgres_browser_closed": "PASS_5116749_TO_5117087_DELTA_338",
+      "production_preserved": true,
+      "candidate_port_3100_cleaned": true,
+      "device_agent_restart_context": "STARTED_2026-08-20T16:17:57Z_BEFORE_UI_PROOF",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false,
+      "arm64_build_id": "lEMKAWa6inRxQdcp095oY",
+      "review_threads": "PASS_ALL_RESOLVED",
+      "result": "COMPLETED_GREEN_MONITORING_DISPLAY_DECOUPLING",
+      "final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
+      "merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+      "final_state_core_ci": "PASS_32415131893",
+      "final_state_authenticated_dashboard": "PASS_32415131935",
+      "final_state_offline_bundle": "PASS_32415132995",
+      "final_state_required_checks": "PASS_ALL_GREEN"
     }
   },
   "blocked_work": {
@@ -155,9 +216,10 @@
   "current_boundary": {
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "READY_DEPENDENCY_605_COMPLETE"
+    "status": "READY_TO_RESUME_FROM_CHECKPOINT",
+    "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
   },
-  "next_action": "Start Issue #606 with repository/architecture audit, confirm safe LOCAL_LAN discovery service boundary and persisted candidate model, then create a focused feature branch; do not perform public scanning, credential probing, Modbus writes or hardware writes.",
+  "next_action": "Sync Issue #606 branch feat/606-local-lan-discovery from checkpoint af52c19ff67538f21399e258fbcc6aeef7ba96ab with current main 0533e01e6f345100ee37521ea6810c95e1ed2202, rerun the exact discovery repository invalid_response failure, diagnose it from the real response contract, then continue the focused #606 implementation and verification.",
   "planned_queue": [606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -171,12 +233,20 @@
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
     "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
-  "in_progress_work": {},
+  "in_progress_work": {
+    "issue_606": {
+      "issue": 606,
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
+      "status": "READY_TO_RESUME_FROM_CHECKPOINT_POST_627_MERGE"
+    }
+  },
   "active_work": {
     "issue_606": {
       "issue": 606,
-      "status": "READY_DEPENDENCY_605_COMPLETE",
-      "required_action": "repository_and_architecture_audit_before_implementation",
+      "status": "READY_TO_RESUME_FROM_CHECKPOINT",
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
       "modbus_write": "none",
       "hardware_write": "none"
     }

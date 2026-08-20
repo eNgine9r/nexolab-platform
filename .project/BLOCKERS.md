@@ -60,9 +60,17 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — Ready
+## Issue #606 — Ready; no longer blocked by #627
 
-The #605 dependency is complete. Issue #606 is `status:ready` for repository/architecture audit and a focused read-only LOCAL_LAN discovery implementation. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+Issue #606 has a published recoverable implementation checkpoint on `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Issue #627 is merged GREEN, so #606 is Ready to resume. Hardware/public-network scanning and Modbus/device writes remain prohibited.
+
+## Issue #626 — completed, no longer blocking
+
+PR #629 merged GREEN as `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The safe self-contained ARM64 artifact path is hardware-proven and the final post-activation readiness rollback contract is merged. Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi.
+
+## Issue #627 — completed GREEN
+
+No implementation, CI, ARM64 or hardware blocker remains. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows and exact Pi acceptance is PASS: registry `9 -> 9`, targets `33 -> 33`, no service/acquisition mutations, `108-01` physical requests +66 after browser close, PostgreSQL latest samples +338 with final quality `valid`, production Dashboard preserved, candidate `:3100` stopped. PR #628 merged GREEN as `0533e01e6f345100ee37521ea6810c95e1ed2202` from final state head `d848848994d1c346c2ed614da24597ad78683111`; Issue #627 is closed `status:done`. There is no remaining #627 blocker.
 
 ## Issue #618 — independent reliability lane
 
@@ -78,7 +86,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
 - #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
 - #618 Saved Dashboard CSV export — independent reliability lane;
-- #606 discovery/adoption inbox — Ready;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
+- #627 monitoring/display boundary — complete GREEN in PR #628;
+- #606 discovery/adoption inbox — Ready to resume from recoverable checkpoint `af52c19f`;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
 - #590 Settings cadence controls — blocked on #589.
@@ -88,7 +98,9 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — Ready after #605;
+- #606 LOCAL_LAN discovery inbox — active Ready Work Package from published checkpoint;
+- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
+- #627 monitoring/display boundary — complete GREEN in PR #628;
 - #607 dual RS-485 KK1/KK2 architecture — queued before #589;
 - #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
 - #590 Settings acquisition cadence controls — blocked on #589;

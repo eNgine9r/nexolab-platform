@@ -66,6 +66,24 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.queryByText("Немає активних температурних каналів.")).not.toBeInTheDocument();
   });
 
+  it("describes a hide-all Overview selection without implying acquisition stopped", () => {
+    render(
+      <TemperatureChart
+        mode="live"
+        status="live"
+        samples={[]}
+        historySamples={[]}
+        historyStatus="ready"
+        allMonitoredChannelsHidden
+      />,
+    );
+
+    expect(screen.getByText("Усі температурні канали приховані на Огляді.")).toBeInTheDocument();
+    expect(screen.getByText(/Безперервний збір даних продовжується/)).toBeInTheDocument();
+    expect(screen.queryByText("Немає активних температурних каналів.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Немає валідної температурної історії.")).not.toBeInTheDocument();
+  });
+
   it("renders a proven sensor error instead of hiding the channel", () => {
     render(<TemperatureChart mode="live" status="live" samples={[sample("126-01", null, "sensor_error")]} />);
 

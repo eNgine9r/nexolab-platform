@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. Exact repository `main` is `3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f`, the post-#604 state reconciliation commit; no later product PR has merged.
+Accepted product-code baseline is `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` is the same SHA. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Production deployment was not cut over by #627.
 
-The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
+The reconciled repository baseline and `origin/main` are `0533e01e6f345100ee37521ea6810c95e1ed2202`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -185,13 +185,35 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
+## Issue #606 — Ready to resume from published checkpoint
+
+Issue #606 remains open with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. Issue #627 is now merged GREEN, so #606 is the active Ready Work Package and resumes by syncing this checkpoint with current main and reproducing the exact repository failure.
+
+## Issue #626 — completed GREEN and merged
+
+Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb833f917346525` after final exact-head Core CI `32377664739`, Telemetry Service `32377664704`, and self-contained ARM64 artifact `9410009481` were GREEN. The real Raspberry Pi runtime proof used product-identical source `9a443e1001e2fc7e375d235be41a933d66781c75` and evidence `runtime/deployments/issue-626-arm64-20260820T133849Z`: artifact import PASS, 18,468 archive members safety-verified, 5/5 candidate routes HTTP 200 on isolated `127.0.0.1:3100`, ~116 MiB RSS, production MainPID/port PID unchanged, and bounded cleanup PASS. No production activation occurred.
+
+The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
+
+## Issue #627 — completed GREEN and merged
+
+Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows: Core CI `32411093778`, Authenticated Dashboard `32411094072` (GREEN rerun after the known unrelated equipment WebSocket timing flake), Offline Bundle `32411094258`, Acquisition Scale `32411093918`, Device Agent Fleet `32411095164`, Refrigeration Browser `32411094752`, Container Supply Chain `32411093905`, MQTT TLS Fleet `32411093449`, Disaster Recovery TLS `32411094005`, and Edge image `32411093799`.
+
+PR #628 merged GREEN as `0533e01e6f345100ee37521ea6810c95e1ed2202` from final state head `d848848994d1c346c2ed614da24597ad78683111`. All final state-head required checks were GREEN, including Core CI `32415131893`, Authenticated Dashboard `32415131935`, and Offline Bundle `32415132995`. Issue #627 is closed with `status:done`.
+
+Off-device ARM64 workflow `32411213218` is GREEN. Artifact `9422408464`, digest `sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766`, is exact source `5a4da397`, `linux/arm64`, Node `22.23.1`, build ID `lEMKAWa6inRxQdcp095oY`. Pi evidence: `runtime/acceptance/issue-627-final-5a4da397`; import PASS and isolated `127.0.0.1:3100` 5/5 routes HTTP 200; production Dashboard MainPID `3696` / HTTP 200 unchanged.
+
+The exact final Overview invariant is PASS for monitored `108-01`: display preference changed without Device Agent mutation requests; registry `9 -> 9`; active set unchanged; configured/scheduler targets `33 -> 33`; service operations `{}`. After browser close, physical requests advanced `91 -> 157` (+66) and PostgreSQL latest sample ID `5116749 -> 5117087` (+338), final quality `valid`. Candidate `:3100` was stopped and production remained unchanged. The hide-all truthful empty-state regression is covered by focused TemperatureChart/visibility tests 8/8 PASS.
+
+No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #606 — Add read-only LOCAL_LAN equipment discovery and adoption inbox**.
+Current Work Package: **Issue #606 — resume LOCAL_LAN discovery/adoption inbox from the published checkpoint**.
 
-#606 is now `status:ready`: #604 Equipment workspace and #605 metadata/adoption boundaries are complete. The next action is repository and architecture audit before implementation, with strict LOCAL_LAN CIDR allowlists, bounded read-only discovery, persisted candidate evidence and explicit operator adoption only. No public scanning, credential guessing, acquisition enablement, Modbus write, hardware write or site cutover is authorized.
+Next action: sync `feat/606-local-lan-discovery` from checkpoint `af52c19ff67538f21399e258fbcc6aeef7ba96ab` with current main `0533e01e6f345100ee37521ea6810c95e1ed2202`, rerun the exact discovery repository `invalid_response` failure, diagnose the real response-contract mismatch, and continue #606.
 
-The planned product dependency sequence is now **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

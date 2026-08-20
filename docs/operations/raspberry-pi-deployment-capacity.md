@@ -44,6 +44,26 @@ The gate is repeated immediately before the large evidence writes. If `free_byte
 
 The report includes free, required, reserve, build, runtime-evidence, PostgreSQL, deployment-evidence and npm-cache byte counts. Docker build cache and npm cache are diagnostic/manual-review categories only; they are not automatically deleted.
 
+## Off-device frontend artifact path
+
+The preferred frontend preparation path is a verified off-device artifact. The reusable `Frontend Release Artifact` workflow cross-builds the exact requested source SHA as a self-contained `linux/arm64` production runtime using the existing offline Dashboard Dockerfile and the repository Node baseline. The artifact contains a tarred `.next` plus pruned production `node_modules`, package/source/runtime/platform/Node provenance, native-architecture evidence, and SHA-256 manifests.
+
+After the artifact is downloaded and extracted to a local directory, the controlled deployment accepts it explicitly:
+
+```bash
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --runtime-mode lan \
+  --frontend-artifact /absolute/path/to/extracted-artifact
+```
+
+The artifact path is fail-closed. Before candidate startup the host verifies exact source SHA, artifact checksums, package/lockfile identity, baked public runtime values, target platform, archive path/link safety, repository/host Node identity, and every extracted runtime file checksum. Runtime dependencies come from the ARM64 artifact itself rather than the host working tree. The active dashboard working directory is never modified during import or isolated candidate verification.
+
+When an artifact is supplied, the Raspberry Pi does **not** run `npm ci` or `next build`. The high-memory frontend build-headroom gate is therefore recorded as `SKIPPED_OFF_DEVICE_ARTIFACT`; the normal deployment capacity gate and concurrent-heavy-work guard still apply. If artifact verification fails, deployment stops before dashboard activation and does not fall back silently to a local build.
+
+If no artifact is supplied, the bounded-container build path remains an explicit fallback with memory, CPU, PID and preflight limits. It must never build in the active dashboard directory.
+
+The candidate is started first on the isolated verification port (default `127.0.0.1:3100`). Only after candidate routes pass does the deployment install the candidate systemd unit. Failed activation or post-activation health automatically restores the previous last-known-good unit.
+
 ## Atomic evidence writes
 
 `runtime-evidence.tar.gz` and `postgresql-pre-upgrade.dump` are first written to hidden `.partial` files. A failed archive/dump removes its partial file. The final evidence filename appears only after a successful write and atomic rename within the same deployment directory.

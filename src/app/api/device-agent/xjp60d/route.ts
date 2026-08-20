@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const READ_PERMISSION = "dashboard.read";
+const READ_PERMISSIONS = ["dashboard.read", "equipment.manage"] as const;
 const MANAGE_PERMISSION = "equipment.manage";
 const AGENT_CONFIGURATION_PATH = "/api/v1/xjp60d/configuration";
 const AGENT_DISCOVERY_PATH = "/api/v1/xjp60d/discovery";
@@ -44,7 +44,10 @@ function forwardedHeaders(request: NextRequest): Headers {
   return headers;
 }
 
-async function authorize(request: NextRequest, permission: string): Promise<NextResponse | null> {
+async function authorize(
+  request: NextRequest,
+  requiredPermissions: readonly string[],
+): Promise<NextResponse | null> {
   let response: Response;
   try {
     response = await fetch(new URL("/api/v1/auth/session", apiBaseUrl()), {
@@ -81,8 +84,9 @@ async function authorize(request: NextRequest, permission: string): Promise<Next
   const membership = requestedOrganization
     ? memberships.find((item) => item.organization_id === requestedOrganization)
     : memberships[0];
-  const permissions = membership && Array.isArray(membership.permissions) ? membership.permissions : [];
-  if (!membership || !permissions.includes(permission)) {
+  const grantedPermissions =
+    membership && Array.isArray(membership.permissions) ? membership.permissions : [];
+  if (!membership || !requiredPermissions.some((permission) => grantedPermissions.includes(permission))) {
     return NextResponse.json(
       { detail: { code: "access_denied", message: "Недостатньо прав для керування датчиками." } },
       { status: 403 },
@@ -127,19 +131,19 @@ async function relayAgent(
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const denied = await authorize(request, READ_PERMISSION);
+  const denied = await authorize(request, READ_PERMISSIONS);
   if (denied) return denied;
   return relayAgent(request, AGENT_CONFIGURATION_PATH, { method: "GET", timeoutMs: 10_000 });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const denied = await authorize(request, MANAGE_PERMISSION);
+  const denied = await authorize(request, [MANAGE_PERMISSION]);
   if (denied) return denied;
   return relayAgent(request, AGENT_DISCOVERY_PATH, { method: "POST", timeoutMs: 180_000 });
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  const denied = await authorize(request, MANAGE_PERMISSION);
+  const denied = await authorize(request, [MANAGE_PERMISSION]);
   if (denied) return denied;
   const body = await request.text();
   if (!body || body.length > 32 * 1024) {

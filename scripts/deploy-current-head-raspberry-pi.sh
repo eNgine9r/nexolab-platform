@@ -7,10 +7,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/raspberry-pi-runtime-mode.sh"
 # shellcheck source=deploy-capacity-guard.sh
 source "$SCRIPT_DIR/deploy-capacity-guard.sh"
+# shellcheck source=lib/raspberry-pi-frontend-release.sh
+source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
 
 usage() {
   cat <<'USAGE'
-Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone]
+Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
+
+Options:
+  --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
 
 Modes:
   lan         Trusted-LAN dashboard and API exposure. This is the default.
@@ -19,6 +24,7 @@ USAGE
 }
 
 RUNTIME_MODE="lan"
+FRONTEND_ARTIFACT_INPUT=""
 while (($# > 0)); do
   case "$1" in
     --runtime-mode)
@@ -27,6 +33,14 @@ while (($# > 0)); do
         exit 64
       }
       RUNTIME_MODE="$2"
+      shift 2
+      ;;
+    --frontend-artifact)
+      (($# >= 2)) || {
+        echo "ERROR: --frontend-artifact requires an extracted artifact directory" >&2
+        exit 64
+      }
+      FRONTEND_ARTIFACT_INPUT="$2"
       shift 2
       ;;
     --help|-h)
@@ -43,6 +57,14 @@ done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
+FRONTEND_ARTIFACT_DIR=""
+if [[ -n "$FRONTEND_ARTIFACT_INPUT" ]]; then
+  [[ -d "$FRONTEND_ARTIFACT_INPUT" ]] || {
+    echo "ERROR: frontend artifact directory not found: $FRONTEND_ARTIFACT_INPUT" >&2
+    exit 66
+  }
+  FRONTEND_ARTIFACT_DIR="$(cd "$FRONTEND_ARTIFACT_INPUT" && pwd -P)"
+fi
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 AUDIT_DIR="$REPO/runtime/deployments/$STAMP"
 LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock"
@@ -52,6 +74,8 @@ EDGE_ENV="$CENTRAL_DIR/.env.edge-central"
 ROOT_ENV="$REPO/.env.local"
 SUMMARY="$AUDIT_DIR/summary.txt"
 RUNTIME_MODE_FILE="$REPO/runtime/runtime-mode"
+FRONTEND_RELEASES_DIR="$REPO/runtime/frontend-releases"
+FRONTEND_RELEASE_DIR=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -81,6 +105,9 @@ fail() {
 
 on_error() {
   local rc=$?
+  if [[ "${NEXOLAB_FRONTEND_ACTIVATED:-0}" != "1" && -n "${FRONTEND_RELEASE_DIR:-}" ]]; then
+    nexolab_frontend_discard_unactivated_release "$FRONTEND_RELEASES_DIR" "$FRONTEND_RELEASE_DIR" || true
+  fi
   log "Deployment failed with exit code $rc. Evidence: $AUDIT_DIR"
   {
     echo
@@ -112,7 +139,7 @@ require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm; do
+for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install; do
   require "$command"
 done
 
@@ -123,6 +150,7 @@ cd "$REPO"
 log "Starting controlled current-head deployment"
 log "Repository: $REPO"
 log "Runtime mode: $RUNTIME_MODE"
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then log "Frontend candidate source: verified off-device artifact ($FRONTEND_ARTIFACT_DIR)"; else log "Frontend candidate source: bounded local build fallback"; fi
 log "Evidence: $AUDIT_DIR"
 
 PG_CONTAINER="$(docker ps -q \
@@ -439,20 +467,130 @@ log "Validating Compose models"
 docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" config --quiet
 docker compose --env-file "$EDGE_ENV" "${EDGE_COMPOSE_ARGS[@]}" config --quiet
 
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then
+  log "Skipping frontend build headroom gate because a verified off-device artifact was supplied"
+  {
+    echo 'status=SKIPPED_OFF_DEVICE_ARTIFACT'
+    echo "mem_available_kib=$(nexolab_frontend_mem_available_kib)"
+    echo "swap_free_kib=$(nexolab_frontend_swap_free_kib)"
+  } > "$AUDIT_DIR/frontend-resource-preflight.txt"
+else
+  log "Checking frontend deployment resource headroom for bounded local build fallback"
+  if ! nexolab_frontend_resource_preflight "$AUDIT_DIR/frontend-resource-preflight.txt"; then
+    fail "frontend resource preflight failed before candidate build; active dashboard was not touched"
+  fi
+fi
+if ! nexolab_frontend_assert_no_competing_builds "$AUDIT_DIR/frontend-competing-processes.txt"; then
+  fail "another heavy build/acceptance workload is active; refusing concurrent production deployment"
+fi
+
 log "Building current Device Agent image"
 docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
 
-log "Installing and building current frontend"
-NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
-(( NODE_MAJOR >= 22 )) || fail "Node.js 22+ is required; found $(node --version)"
-if [[ -f package-lock.json ]]; then
-  npm ci
-else
-  npm install
+EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
+[[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
+ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
+[[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
+  || fail "host Node version $ACTUAL_NODE_VERSION does not match repository baseline $EXPECTED_NODE_VERSION"
+FRONTEND_RELEASE_DIR="$FRONTEND_RELEASES_DIR/${CURRENT_HEAD}-${STAMP}"
+mkdir -p "$FRONTEND_RELEASES_DIR"
+log "Preparing immutable frontend candidate: $FRONTEND_RELEASE_DIR"
+if ! nexolab_frontend_prepare_release_source "$REPO" "$CURRENT_HEAD" "$FRONTEND_RELEASE_DIR" "$ROOT_ENV"; then
+  fail "failed to prepare immutable frontend candidate source"
 fi
-NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER" \
-NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID" \
-NEXT_TELEMETRY_DISABLED=1 npm run build
+
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then
+  log "Importing verified off-device frontend artifact"
+  if ! nexolab_frontend_import_artifact \
+    "$FRONTEND_ARTIFACT_DIR" \
+    "$REPO" \
+    "$FRONTEND_RELEASE_DIR" \
+    "$CURRENT_HEAD" \
+    live \
+    "$NEXOLAB_API_BASE_URL" \
+    "$NEXOLAB_WEBSOCKET_URL" \
+    "$FRONTEND_AUTH_PROVIDER" \
+    "$FRONTEND_ORGANIZATION_ID" \
+    "$AUDIT_DIR/frontend-artifact-import.txt"; then
+    fail "off-device frontend artifact verification/import failed; active dashboard was not touched"
+  fi
+  printf '%s\n' 'status=SKIPPED_OFF_DEVICE_ARTIFACT' > "$AUDIT_DIR/frontend-build.txt"
+else
+  log "Building frontend candidate inside a bounded container"
+  export NEXOLAB_FRONTEND_BUILD_IMAGE="${NEXOLAB_FRONTEND_BUILD_IMAGE:-node:${EXPECTED_NODE_VERSION}-bookworm-slim}"
+  if ! nexolab_frontend_build_release \
+    "$FRONTEND_RELEASE_DIR" \
+    live \
+    "$NEXOLAB_API_BASE_URL" \
+    "$NEXOLAB_WEBSOCKET_URL" \
+    "$FRONTEND_AUTH_PROVIDER" \
+    "$FRONTEND_ORGANIZATION_ID" \
+    > "$AUDIT_DIR/frontend-build.txt" 2>&1; then
+    fail "bounded frontend candidate build failed; active dashboard was not touched"
+  fi
+fi
+
+log "Verifying compiled frontend public runtime contract"
+if ! nexolab_frontend_verify_public_contract \
+  "$FRONTEND_RELEASE_DIR" \
+  live \
+  "$NEXOLAB_API_BASE_URL" \
+  "$NEXOLAB_WEBSOCKET_URL" \
+  "$FRONTEND_AUTH_PROVIDER" \
+  "$FRONTEND_ORGANIZATION_ID" \
+  "$AUDIT_DIR/frontend-public-contract.txt"; then
+  fail "frontend candidate public runtime contract does not match this deployment"
+fi
+nexolab_frontend_write_provenance \
+  "$FRONTEND_RELEASE_DIR" \
+  "$CURRENT_HEAD" \
+  "$RUNTIME_MODE" \
+  "$NEXOLAB_API_BASE_URL" \
+  "$NEXOLAB_WEBSOCKET_URL" \
+  "$FRONTEND_AUTH_PROVIDER" \
+  "$FRONTEND_ORGANIZATION_ID"
+
+FRONTEND_CANDIDATE_PORT="${NEXOLAB_FRONTEND_CANDIDATE_PORT:-3100}"
+if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
+  fail "frontend candidate verification port is already in use: $FRONTEND_CANDIDATE_PORT"
+fi
+log "Starting frontend candidate on isolated port $FRONTEND_CANDIDATE_PORT"
+(
+  cd "$FRONTEND_RELEASE_DIR"
+  NEXT_PUBLIC_NEXOLAB_DATA_MODE=live \
+  NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$NEXOLAB_API_BASE_URL" \
+  NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="$NEXOLAB_WEBSOCKET_URL" \
+  NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER" \
+  NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID" \
+  NEXT_TELEMETRY_DISABLED=1 \
+  "$FRONTEND_RELEASE_DIR/node_modules/.bin/next" start \
+    --hostname 127.0.0.1 --port "$FRONTEND_CANDIDATE_PORT"
+) > "$AUDIT_DIR/frontend-candidate.txt" 2>&1 &
+FRONTEND_CANDIDATE_PID=$!
+FRONTEND_CANDIDATE_READY=false
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 2 "http://127.0.0.1:$FRONTEND_CANDIDATE_PORT/" >/dev/null; then
+    FRONTEND_CANDIDATE_READY=true
+    break
+  fi
+  if ! kill -0 "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+if [[ "$FRONTEND_CANDIDATE_READY" != true ]]; then
+  kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
+  wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
+  fail "frontend candidate did not become ready; active dashboard was not touched"
+fi
+for route in / /nodes /live /energy /sessions; do
+  curl -fsS --max-time 5 "http://127.0.0.1:$FRONTEND_CANDIDATE_PORT$route" >/dev/null \
+    || { kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true; wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true; fail "frontend candidate route failed: $route"; }
+done
+kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
+wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
+FRONTEND_CANDIDATE_PID=""
+log "Frontend candidate verified without mutating the active dashboard"
 
 log "Starting central backend, MinIO and observability"
 docker compose --env-file "$CENTRAL_ENV" \
@@ -464,11 +602,60 @@ docker compose --env-file "$EDGE_ENV" \
   "${EDGE_COMPOSE_ARGS[@]}" \
   up -d --force-recreate mqtt device-agent
 
-NPM_BIN="$(command -v npm)"
 NODE_BIN_DIR="$(dirname "$(command -v node)")"
 DASHBOARD_USER="$(id -un)"
 DASHBOARD_GROUP="$(id -gn)"
+DASHBOARD_UNIT="/etc/systemd/system/nexolab-dashboard.service"
+DASHBOARD_UNIT_BACKUP="$AUDIT_DIR/dashboard-unit-before.service"
+DASHBOARD_UNIT_CANDIDATE="$AUDIT_DIR/dashboard-unit-candidate.service"
 
+if sudo test -f "$DASHBOARD_UNIT"; then
+  sudo cp -a "$DASHBOARD_UNIT" "$DASHBOARD_UNIT_BACKUP"
+  sudo chown "$DASHBOARD_USER:$DASHBOARD_GROUP" "$DASHBOARD_UNIT_BACKUP" || true
+fi
+
+cat > "$DASHBOARD_UNIT_CANDIDATE" <<EOF_UNIT
+[Unit]
+Description=NEXOLAB production dashboard
+After=$NEXOLAB_SYSTEMD_AFTER
+$(if [[ -n "$NEXOLAB_SYSTEMD_WANTS" ]]; then printf 'Wants=%s\n' "$NEXOLAB_SYSTEMD_WANTS"; fi)
+
+[Service]
+Type=simple
+User=$DASHBOARD_USER
+Group=$DASHBOARD_GROUP
+WorkingDirectory=$FRONTEND_RELEASE_DIR
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+Environment=NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
+Environment=NEXT_PUBLIC_NEXOLAB_API_BASE_URL=$NEXOLAB_API_BASE_URL
+Environment=NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=$NEXOLAB_WEBSOCKET_URL
+Environment=NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$FRONTEND_AUTH_PROVIDER
+Environment=NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$FRONTEND_ORGANIZATION_ID
+Environment=PATH=$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=$FRONTEND_RELEASE_DIR/node_modules/.bin/next start --hostname $NEXOLAB_DASHBOARD_BIND_ADDRESS --port 3000
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF_UNIT
+
+rollback_dashboard_release() {
+  log "Rolling back dashboard service to the last-known-good unit"
+  sudo systemctl stop nexolab-dashboard.service >/dev/null 2>&1 || true
+  if [[ -f "$DASHBOARD_UNIT_BACKUP" ]]; then
+    sudo install -m 0644 "$DASHBOARD_UNIT_BACKUP" "$DASHBOARD_UNIT"
+    sudo systemctl daemon-reload
+    sudo systemctl start nexolab-dashboard.service >/dev/null 2>&1 || true
+  else
+    sudo rm -f "$DASHBOARD_UNIT"
+    sudo systemctl daemon-reload
+  fi
+}
+
+log "Activating verified frontend release"
 sudo systemctl stop nexolab-dashboard.service >/dev/null 2>&1 || true
 if [[ -f "$REPO/runtime/dashboard.pid" ]]; then
   OLD_PID="$(cat "$REPO/runtime/dashboard.pid" 2>/dev/null || true)"
@@ -476,35 +663,27 @@ if [[ -f "$REPO/runtime/dashboard.pid" ]]; then
     kill "$OLD_PID" >/dev/null 2>&1 || true
   fi
 fi
-pkill -u "$DASHBOARD_USER" -f "$REPO/node_modules/.bin/next" >/dev/null 2>&1 || true
-sleep 2
-
-{
-  echo '[Unit]'
-  echo 'Description=NEXOLAB production dashboard'
-  echo "After=$NEXOLAB_SYSTEMD_AFTER"
-  if [[ -n "$NEXOLAB_SYSTEMD_WANTS" ]]; then
-    echo "Wants=$NEXOLAB_SYSTEMD_WANTS"
-  fi
-  echo
-  echo '[Service]'
-  echo 'Type=simple'
-  echo "User=$DASHBOARD_USER"
-  echo "Group=$DASHBOARD_GROUP"
-  echo "WorkingDirectory=$REPO"
-  echo 'Environment=NODE_ENV=production'
-  echo 'Environment=NEXT_TELEMETRY_DISABLED=1'
-  echo "Environment=PATH=$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  echo "ExecStart=$NPM_BIN run start -- --hostname $NEXOLAB_DASHBOARD_BIND_ADDRESS --port 3000"
-  echo 'Restart=always'
-  echo 'RestartSec=5'
-  echo 'TimeoutStopSec=30'
-  echo
-  echo '[Install]'
-  echo 'WantedBy=multi-user.target'
-} | sudo tee /etc/systemd/system/nexolab-dashboard.service >/dev/null
+sudo install -m 0644 "$DASHBOARD_UNIT_CANDIDATE" "$DASHBOARD_UNIT"
 sudo systemctl daemon-reload
-sudo systemctl enable --now nexolab-dashboard.service
+sudo systemctl enable nexolab-dashboard.service >/dev/null
+if ! sudo systemctl start nexolab-dashboard.service; then
+  rollback_dashboard_release
+  fail "verified frontend release failed to start; last-known-good dashboard unit restored"
+fi
+DASHBOARD_ACTIVATED=false
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 2 "$NEXOLAB_DASHBOARD_ORIGIN" >/dev/null; then
+    DASHBOARD_ACTIVATED=true
+    break
+  fi
+  sleep 1
+done
+if [[ "$DASHBOARD_ACTIVATED" != true ]]; then
+  rollback_dashboard_release
+  fail "verified frontend release failed post-activation health check; last-known-good dashboard restored"
+fi
+NEXOLAB_FRONTEND_ACTIVATED=1
+log "Activated frontend release: $FRONTEND_RELEASE_DIR"
 
 wait_http() {
   local label=$1 url=$2 attempts=${3:-60}
@@ -516,16 +695,26 @@ wait_http() {
     fi
     sleep 2
   done
-  fail "timed out waiting for $label: $url"
+  log "Not ready after activation: $label ($url)"
+  return 1
 }
 
-wait_http telemetry "$NEXOLAB_API_BASE_URL/health/ready" 90
-wait_http device-agent "http://127.0.0.1:8081/health" 90
-wait_http dashboard "$NEXOLAB_DASHBOARD_ORIGIN" 90
-wait_http prometheus "http://127.0.0.1:9090/-/ready" 90
-wait_http alertmanager "http://127.0.0.1:9093/-/ready" 90
-wait_http grafana "http://127.0.0.1:3001/api/health" 120
-wait_http minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/minio/health/live" 90
+wait_http_or_rollback() {
+  local label=$1
+  if wait_http "$@"; then
+    return 0
+  fi
+  rollback_dashboard_release
+  fail "post-activation readiness failed for $label; last-known-good dashboard restored"
+}
+
+wait_http_or_rollback telemetry "$NEXOLAB_API_BASE_URL/health/ready" 90
+wait_http_or_rollback device-agent "http://127.0.0.1:8081/health" 90
+wait_http_or_rollback dashboard "$NEXOLAB_DASHBOARD_ORIGIN" 90
+wait_http_or_rollback prometheus "http://127.0.0.1:9090/-/ready" 90
+wait_http_or_rollback alertmanager "http://127.0.0.1:9093/-/ready" 90
+wait_http_or_rollback grafana "http://127.0.0.1:3001/api/health" 120
+wait_http_or_rollback minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/minio/health/live" 90
 
 log "Running central smoke gate"
 (
@@ -583,6 +772,8 @@ install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
   echo "local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED"
   echo "dashboard_auth_provider=$FRONTEND_AUTH_PROVIDER"
   echo "dashboard_organization_id=$FRONTEND_ORGANIZATION_ID"
+  echo "frontend_release_dir=$FRONTEND_RELEASE_DIR"
+  echo "frontend_build_id=$(cat "$FRONTEND_RELEASE_DIR/.next/BUILD_ID")"
   echo "grafana_local=http://127.0.0.1:3001"
   echo "prometheus_local=http://127.0.0.1:9090"
   echo "alertmanager_local=http://127.0.0.1:9093"

@@ -70,6 +70,7 @@ describe("SettingsWorkspace", () => {
     expect(screen.getByRole("link", { name: /Тривоги/ })).toHaveAttribute("href", "/alerts");
     expect(screen.getByRole("link", { name: /Звіти/ })).toHaveAttribute("href", "/reports");
     expect(screen.queryByRole("link", { name: /Версія NEXOLAB/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Моніторинг XJP60D/ })).not.toBeInTheDocument();
   });
 
   it("exposes version management only with its administrator permission", () => {

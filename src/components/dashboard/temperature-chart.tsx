@@ -188,6 +188,7 @@ function LiveTemperatureGrid({
   onHistoryRangeChange,
   onHistoryRetry,
   targetDiagnostics,
+  allMonitoredChannelsHidden,
 }: {
   status: DashboardTelemetryStatus;
   samples: TelemetrySample[];
@@ -199,6 +200,7 @@ function LiveTemperatureGrid({
   onHistoryRangeChange: (range: DashboardHistoryRange) => void;
   onHistoryRetry: () => void;
   targetDiagnostics: Xjp60dTargetDiagnostic[];
+  allMonitoredChannelsHidden: boolean;
 }) {
   const visible = samples
     .filter(isTemperatureProbeSample)
@@ -229,7 +231,17 @@ function LiveTemperatureGrid({
         </span>
       </div>
 
-      {visible.length === 0 && awaitingFirstSample.length === 0 ? (
+      {allMonitoredChannelsHidden ? (
+        <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
+          <div>
+            <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
+            <p className="mt-2 text-[10px] text-slate-400">Усі температурні канали приховані на Огляді.</p>
+            <p className="mt-1 text-[9px] text-slate-600">
+              Безперервний збір даних продовжується. Змініть налаштування відображення у заголовку панелі.
+            </p>
+          </div>
+        </div>
+      ) : visible.length === 0 && awaitingFirstSample.length === 0 ? (
         <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
           <div>
             <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
@@ -283,16 +295,18 @@ function LiveTemperatureGrid({
         </div>
       )}
 
-      <HistoryChart
-        samples={historySamples}
-        range={historyRange}
-        status={historyStatus}
-        telemetryStatus={status}
-        historyWindow={historyWindow}
-        error={historyError}
-        onRangeChange={onHistoryRangeChange}
-        onRetry={onHistoryRetry}
-      />
+      {!allMonitoredChannelsHidden ? (
+        <HistoryChart
+          samples={historySamples}
+          range={historyRange}
+          status={historyStatus}
+          telemetryStatus={status}
+          historyWindow={historyWindow}
+          error={historyError}
+          onRangeChange={onHistoryRangeChange}
+          onRetry={onHistoryRetry}
+        />
+      ) : null}
     </div>
   );
 }
@@ -309,6 +323,7 @@ export function TemperatureChart({
   onHistoryRangeChange = () => undefined,
   onHistoryRetry = () => undefined,
   targetDiagnostics = [],
+  allMonitoredChannelsHidden = false,
 }: {
   mode?: "demo" | "live";
   status?: DashboardTelemetryStatus;
@@ -321,6 +336,7 @@ export function TemperatureChart({
   onHistoryRangeChange?: (range: DashboardHistoryRange) => void;
   onHistoryRetry?: () => void;
   targetDiagnostics?: Xjp60dTargetDiagnostic[];
+  allMonitoredChannelsHidden?: boolean;
 }) {
   if (mode === "live") {
     return (
@@ -335,6 +351,7 @@ export function TemperatureChart({
         onHistoryRangeChange={onHistoryRangeChange}
         onHistoryRetry={onHistoryRetry}
         targetDiagnostics={targetDiagnostics}
+        allMonitoredChannelsHidden={allMonitoredChannelsHidden}
       />
     );
   }
