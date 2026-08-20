@@ -55,8 +55,8 @@ function repository() {
   const startScan = vi.fn<EquipmentDiscoveryRepository["startScan"]>(async (input) => ({
     id: "scan-2",
     status: "running",
-    requestedCidrs: input?.cidrs ?? [],
-    requestedPorts: input?.ports ?? [],
+    requestedCidrs: input.cidrs,
+    requestedPorts: input.ports,
     hostBudget: 2,
     probeBudget: 4,
     hostsConsidered: 0,
@@ -103,6 +103,19 @@ describe("EquipmentDiscoveryInbox", () => {
 
     await waitFor(() => expect(repo.startScan).toHaveBeenCalledTimes(1));
     expect(repo.startScan).toHaveBeenCalledWith({ cidrs: ["192.168.50.0/30"], ports: [80, 443] });
+  });
+
+  it("fails closed when manual scan scope is cleared", async () => {
+    const repo = repository();
+    render(<EquipmentDiscoveryInbox repository={repo.value} canManage assets={[]} />);
+    await screen.findByText("192.168.50.2");
+
+    fireEvent.change(screen.getByLabelText("CIDR scope discovery"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("TCP ports discovery"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Запустити scan" }));
+
+    await screen.findByText("Вкажіть хоча б один явний CIDR для ручного scan.");
+    expect(repo.startScan).not.toHaveBeenCalled();
   });
 
   it("keeps viewer discovery evidence read-only", async () => {

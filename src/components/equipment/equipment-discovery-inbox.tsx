@@ -88,10 +88,13 @@ export function EquipmentDiscoveryInbox({
     try {
       const parsedCidrs = parseCsv(cidrs);
       const parsedPorts = parsePorts(ports);
-      await repository.startScan({
-        cidrs: parsedCidrs.length > 0 ? parsedCidrs : undefined,
-        ports: parsedPorts.length > 0 ? parsedPorts : undefined,
-      });
+      if (parsedCidrs.length === 0) {
+        throw new Error("Вкажіть хоча б один явний CIDR для ручного scan.");
+      }
+      if (parsedPorts.length === 0) {
+        throw new Error("Вкажіть хоча б один явний TCP port для ручного scan.");
+      }
+      await repository.startScan({ cidrs: parsedCidrs, ports: parsedPorts });
       await refresh();
     } catch (scanError) {
       setError(discoveryErrorMessage(scanError));

@@ -212,6 +212,20 @@ def test_discovery_api_is_readable_but_mutations_require_equipment_manage(tmp_pa
     assert denied.status_code == 403
     assert service.launched == []
 
+    missing_cidrs = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("engineer"),
+        json={"cidrs": [], "ports": [443]},
+    )
+    assert missing_cidrs.status_code == 422
+    missing_ports = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("engineer"),
+        json={"cidrs": ["192.168.50.0/30"], "ports": []},
+    )
+    assert missing_ports.status_code == 422
+    assert service.launched == []
+
     accepted = api.post(
         "/api/v1/equipment-discovery/scans",
         headers=headers("engineer"),

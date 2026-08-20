@@ -99,7 +99,7 @@ export type EquipmentDiscoveryCandidateAction =
 
 export interface EquipmentDiscoveryRepository {
   getOverview(): Promise<EquipmentDiscoveryOverview>;
-  startScan(input?: { cidrs?: string[]; ports?: number[] }): Promise<EquipmentDiscoveryScan>;
+  startScan(input: { cidrs: string[]; ports: number[] }): Promise<EquipmentDiscoveryScan>;
   cancelScan(scanId: string): Promise<EquipmentDiscoveryScan>;
   actOnCandidate(
     candidateId: string,
@@ -132,7 +132,7 @@ export class HttpEquipmentDiscoveryRepository implements EquipmentDiscoveryRepos
     return parseOverview(await this.request("/api/v1/equipment-discovery", { method: "GET" }));
   }
 
-  async startScan(input: { cidrs?: string[]; ports?: number[] } = {}): Promise<EquipmentDiscoveryScan> {
+  async startScan(input: { cidrs: string[]; ports: number[] }): Promise<EquipmentDiscoveryScan> {
     const payload = await this.request("/api/v1/equipment-discovery/scans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

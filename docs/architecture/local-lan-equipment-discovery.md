@@ -12,7 +12,7 @@ The domain lives inside `telemetry-service` so persistence, organization scoping
 
 ## Discovery safety boundary
 
-Discovery is fail-closed. `EQUIPMENT_DISCOVERY_ALLOWED_CIDRS` must contain explicit RFC1918 IPv4 scopes before scanning is enabled. Requested CIDRs must be subnets of that allowlist, requested ports must be contained in the configured port allowlist, and host/port/concurrency/timeout budgets are bounded before a scan row is created.
+Discovery is fail-closed. `EQUIPMENT_DISCOVERY_ALLOWED_CIDRS` must contain explicit RFC1918 IPv4 scopes before scanning is enabled. Requested CIDRs must be subnets of that allowlist, requested ports must be contained in the configured port allowlist, and host/port/concurrency/timeout budgets are bounded before a scan row is created. Manual scan requests must provide non-empty CIDR and port lists explicitly; only the internal scheduled path may resolve the configured defaults.
 
 The scanner performs TCP connection establishment only. It sends zero application payload bytes, performs no authentication attempt and does not issue Modbus, HTTP, MQTT or vendor-protocol commands. Port `502` is only TCP-connect evidence and is not a Modbus identity/read/write adapter.
 

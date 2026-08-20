@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class DiscoveryScanRequest(BaseModel):
-    cidrs: list[str] | None = Field(default=None, max_length=16)
-    ports: list[int] | None = Field(default=None, max_length=32)
+    cidrs: list[str] = Field(min_length=1, max_length=16)
+    ports: list[int] = Field(min_length=1, max_length=32)
 
 
 class DiscoveryScanResponse(BaseModel):
