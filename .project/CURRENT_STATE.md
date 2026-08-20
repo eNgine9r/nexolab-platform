@@ -195,7 +195,7 @@ Issue #626 is the current Work Package on `fix/626-atomic-pi-deploy`. Two previo
 
 The missing off-device artifact consumer is now implemented locally. `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH` verifies exact source SHA, SHA-256 artifact/package evidence, package/lock identity, baked LOCAL_LAN public runtime values, repository Node baseline, and the real installed runtime dependency snapshot. With an artifact supplied it skips `npm ci` and `next build` on the Pi and snapshots the verified `.next` plus matching existing `node_modules` into the candidate release. Artifact verification failure is fail-closed and does not silently fall back to a local build.
 
-Local verification is GREEN: frontend/deployment tests **17/17**, version-management/update pytest regression **42/42**, YAML parse, shell parse, `git diff --check`, and a real-Pi runtime dependency snapshot (`543` installed lock entries matched the target lock and `npm ls --omit=dev --all` passed). Exact-head PR/CI and isolated portable-artifact Pi acceptance are still required before #626 can merge.
+Local verification is GREEN: frontend release tests **11/11**, combined deployment/auth/capacity tests **25/25**, version-management/update pytest regression **42/42**, YAML parse, shell parse, `git diff --check`, and a real-Pi runtime dependency snapshot (`543` installed lock entries matched the target lock and `npm ls --omit=dev --all` passed). Exact-head PR/CI and isolated portable-artifact Pi acceptance are still required before #626 can merge.
 
 ## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626
 

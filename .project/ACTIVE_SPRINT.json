@@ -303,12 +303,13 @@
       "status": "artifact_consumer_implemented_local_verification_green_pending_pr_ci_pi_acceptance",
       "priority": "critical",
       "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "2c5435d8fcf0ad4da50032fa13632cb8c9a0fc9c",
-      "frontend_release_tests": "PASS_17_OF_17",
+      "checkpoint_sha": "01963abec1b389ac466a8fc65625402ab0bca305",
+      "frontend_release_tests": "PASS_11_OF_11",
       "version_management_pytest": "PASS_42_OF_42",
       "runtime_dependency_snapshot": "PASS_REAL_PI",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "deployment_auth_capacity_tests": "PASS_25_OF_25"
     },
     {
       "id": "NEXOLAB-627",
@@ -516,7 +517,7 @@
     "issue_627_local_production_build": "NOT_RUN_RESOURCE_SAFETY_ISSUE_626",
     "issue_627_modbus_writes": 0,
     "issue_627_hardware_writes": 0,
-    "issue_626_frontend_release_tests": "PASS_17_OF_17",
+    "issue_626_frontend_release_tests": "PASS_11_OF_11",
     "issue_626_version_management_pytest": "PASS_42_OF_42",
     "issue_626_real_pi_runtime_dependency_snapshot": "PASS",
     "issue_626_yaml_parse": "PASS",
@@ -526,7 +527,8 @@
     "issue_627_offline_bundle": "PASS_32363682463",
     "issue_627_acquisition_scale": "PASS_32363682454",
     "runtime_registry_revision_observed": 9,
-    "runtime_poll_eligible_targets_observed": 33
+    "runtime_poll_eligible_targets_observed": 33,
+    "issue_626_deployment_auth_capacity_tests": "PASS_25_OF_25"
   },
   "independent_pending_lanes": [
     {

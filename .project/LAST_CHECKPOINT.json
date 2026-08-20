@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T12:45:41Z",
+  "timestamp": "2026-08-20T12:53:04Z",
   "actor": "ChatGPT",
   "event": "issue_626_artifact_consumer_local_green_pending_pr_ci_pi_acceptance",
   "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
@@ -175,15 +175,16 @@
     "issue_626": {
       "issue": 626,
       "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "2c5435d8fcf0ad4da50032fa13632cb8c9a0fc9c",
+      "checkpoint_sha": "01963abec1b389ac466a8fc65625402ab0bca305",
       "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE",
-      "frontend_release_tests": "PASS_17_OF_17",
+      "frontend_release_tests": "PASS_11_OF_11",
       "version_management_pytest": "PASS_42_OF_42",
       "real_pi_runtime_dependency_snapshot": "PASS",
       "yaml_parse": "PASS",
       "git_diff_check": "PASS",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "deployment_auth_capacity_tests": "PASS_25_OF_25"
     },
     "issue_627": {
       "issue": 627,
