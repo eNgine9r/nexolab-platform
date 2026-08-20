@@ -62,7 +62,7 @@ PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN e
 
 ## Issue #606 — active PR #632; runtime acceptance pending
 
-Issue #606 is published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37`. Focused backend/frontend/schema/Compose verification is GREEN and most GitHub checks are GREEN; Offline Bundle remains in progress at this reconciliation point. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
+Issue #606 is published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37`. Focused backend/frontend/schema/Compose verification is GREEN and all exact-head GitHub workflows are GREEN, including Core CI `32421147273`, Authenticated Dashboard `32421147345` and Offline Bundle `32421147237`. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
 
 ## Issue #626 — completed, no longer blocking
 

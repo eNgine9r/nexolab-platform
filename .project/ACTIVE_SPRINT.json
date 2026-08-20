@@ -25,9 +25,9 @@
   "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
     "selected_issue": 606,
-    "selection_status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
+    "selection_status": "pr_632_all_ci_green_runtime_acceptance_pending",
     "ready_issue_count": 2,
-    "reason": "Issue #606 is published as PR #632 at e641262edba98c94b0b11641774fc8cd7c461a37; most required checks are GREEN and Offline Bundle is still in progress. Real Pi/LAN discovery acceptance remains required. Issue #633 is the next independent high-priority deployment-reliability repair."
+    "reason": "Issue #606 is published as PR #632 at e641262edba98c94b0b11641774fc8cd7c461a37 with all exact-head GitHub workflows GREEN. Real Pi/LAN discovery acceptance remains required. Issue #633 is the next independent high-priority deployment-reliability repair."
   },
   "tasks": [
     {
@@ -218,7 +218,7 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
+      "status": "pr_632_all_ci_green_runtime_acceptance_pending",
       "priority": "high",
       "branch": "feat/606-local-lan-discovery",
       "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
@@ -233,7 +233,15 @@
       "alembic_head": "PASS_20260820_0026_SINGLE_HEAD",
       "alembic_offline_sql": "PASS",
       "compose_validation": "PASS",
-      "real_pi_lan_acceptance": "PENDING"
+      "real_pi_lan_acceptance": "PENDING",
+      "core_ci": "PASS_32421147273",
+      "authenticated_dashboard_acceptance": "PASS_32421147345",
+      "offline_bundle": "PASS_32421147237",
+      "telemetry_service_ci": "PASS_32421147379",
+      "acquisition_scale": "PASS_32421147349",
+      "device_agent_fleet": "PASS_32421147234",
+      "container_supply_chain": "PASS_32421147290",
+      "offline_auth": "PASS_32421147289"
     },
     {
       "id": "NEXOLAB-607",
@@ -430,7 +438,7 @@
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
     "type": "local_lan_discovery_adoption_inbox",
-    "status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
+    "status": "pr_632_all_ci_green_runtime_acceptance_pending",
     "branch": "feat/606-local-lan-discovery",
     "pull_request": 632,
     "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37"
@@ -681,7 +689,11 @@
     "issue_606_pull_request": 632,
     "issue_606_exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
     "issue_606_real_pi_lan_acceptance": "PENDING",
-    "issue_633_status": "OPEN_READY_HIGH"
+    "issue_633_status": "OPEN_READY_HIGH",
+    "issue_606_ci": "PASS_32421147273",
+    "issue_606_authenticated_dashboard": "PASS_32421147345",
+    "issue_606_offline_bundle": "PASS_32421147237",
+    "issue_606_all_exact_head_workflows": "PASS"
   },
   "independent_pending_lanes": [
     {
@@ -722,7 +734,7 @@
     },
     {
       "issue": 606,
-      "status": "active_pr_632_ci_in_progress_runtime_acceptance_pending"
+      "status": "active_pr_632_all_ci_green_runtime_acceptance_pending"
     },
     {
       "issue": 607,
