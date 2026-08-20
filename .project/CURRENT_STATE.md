@@ -1,12 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline is `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` is the same SHA. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Production deployment was not cut over by #627.
+Accepted product-code baseline remains `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` and `origin/main` are now `6e387485b68fb862d9f82ae7f6000b1f5b672764`, the state-only reconciliation merge PR #631. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629).
 
-The reconciled repository baseline and `origin/main` are `0533e01e6f345100ee37521ea6810c95e1ed2202`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
+The Product Owner authorized and completed the controlled LOCAL_LAN production cutover on 2026-08-21. Production now runs exact source `6e387485b68fb862d9f82ae7f6000b1f5b672764` from immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z` with BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`; deployment evidence is `runtime/deployments/20260820T214127Z` and records `DEPLOYMENT PASSED`. Post-cutover Dashboard routes `/`, `/nodes`, `/live`, `/energy`, `/sessions`, and `/settings` returned HTTP 200; Telemetry, database and MQTT were ready with queue `0` and advancing persistence; Device Agent remained `ok`/MQTT-connected with AcquisitionRegistry revision **9**, **33 poll-eligible targets**, healthy bus worker and service operations `{}`. The monitored XJP60D set remains `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`; `le01mp-201` remains intentionally disabled while W2 is externally owned. The deployed Settings bundle contains `Моніторинг XJP60D`; browser visual acceptance was not run because Opera Browser Connector was disconnected. An orphan isolated candidate remained on `127.0.0.1:3100` after the successful deployment, was stopped without affecting production, and is tracked independently as Issue #633.
 
 ## Issue #584 — complete
 
@@ -185,9 +185,9 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
-## Issue #606 — Ready to resume from published checkpoint
+## Issue #606 — implementation published in PR #632
 
-Issue #606 remains open with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. Issue #627 is now merged GREEN, so #606 is the active Ready Work Package and resumes by syncing this checkpoint with current main and reproducing the exact repository failure.
+Issue #606 is the active product Work Package. Branch `feat/606-local-lan-discovery` is clean and published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37` against `main`. The old checkpoint `invalid_response` note was superseded by exact-checkpoint reproduction: frontend repository tests were 2/2 PASS, while backend discovery reproduced the real `NameError: service is not defined` defect; the implementation now passes the interval explicitly and strengthens tenant-integrity composite foreign keys. Focused backend discovery tests are 12/12 PASS, focused Equipment frontend tests 12/12 PASS, typecheck/touched lint/Prettier/diff check/Alembic offline SQL/Compose validation are PASS. GitHub CI is predominantly GREEN with Offline Bundle still in progress at this reconciliation point. Real Raspberry Pi/LAN discovery acceptance is not yet claimed and remains the final #606 runtime evidence gate.
 
 ## Issue #626 — completed GREEN and merged
 
@@ -209,11 +209,11 @@ No production credentials/secrets were read, no enrollment mutation occurred, an
 
 ## Current execution boundary
 
-Current Work Package: **Issue #606 — resume LOCAL_LAN discovery/adoption inbox from the published checkpoint**.
+Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 open at `e641262edba98c94b0b11641774fc8cd7c461a37`**.
 
-Next action: sync `feat/606-local-lan-discovery` from checkpoint `af52c19ff67538f21399e258fbcc6aeef7ba96ab` with current main `0533e01e6f345100ee37521ea6810c95e1ed2202`, rerun the exact discovery repository `invalid_response` failure, diagnose the real response-contract mismatch, and continue #606.
+Next action: finish exact-head PR #632 CI, then run the bounded real Raspberry Pi/approved-LAN discovery acceptance required by #606, verify acquisition invariance and offline behavior, reconcile #606 state, and merge only when required checks and runtime evidence are GREEN.
 
-Planned sequence: **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#606 → #633 → #607 → #589 → #590**. #633 is a high-priority deployment-reliability repair for deterministic candidate cleanup, but current production is healthy after manual cleanup. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

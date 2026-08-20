@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-  "last_reconciled_repository_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-  "deployed_product_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+  "last_reconciled_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+  "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
     "selected_issue": 606,
-    "selection_status": "ready_to_resume_from_checkpoint_post_627_merge",
-    "ready_issue_count": 1,
-    "reason": "Issue #627 merged GREEN as 0533e01e6f345100ee37521ea6810c95e1ed2202. Issue #606 is the single next Ready Work Package and resumes from recoverable checkpoint af52c19ff67538f21399e258fbcc6aeef7ba96ab."
+    "selection_status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
+    "ready_issue_count": 2,
+    "reason": "Issue #606 is published as PR #632 at e641262edba98c94b0b11641774fc8cd7c461a37; most required checks are GREEN and Offline Bundle is still in progress. Real Pi/LAN discovery acceptance remains required. Issue #633 is the next independent high-priority deployment-reliability repair."
   },
   "tasks": [
     {
@@ -218,10 +218,22 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "ready_to_resume_from_checkpoint_post_627_merge",
+      "status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
       "priority": "high",
       "branch": "feat/606-local-lan-discovery",
-      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
+      "pull_request": 632,
+      "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
+      "focused_backend_tests": "PASS_12_OF_12",
+      "focused_frontend_tests": "PASS_12_OF_12",
+      "typecheck": "PASS",
+      "touched_lint": "PASS",
+      "prettier": "PASS",
+      "git_diff_check": "PASS",
+      "alembic_head": "PASS_20260820_0026_SINGLE_HEAD",
+      "alembic_offline_sql": "PASS",
+      "compose_validation": "PASS",
+      "real_pi_lan_acceptance": "PENDING"
     },
     {
       "id": "NEXOLAB-607",
@@ -389,7 +401,7 @@
       "pi_candidate_cleanup": "PASS_PORT_3100_FREE",
       "modbus_write": "none",
       "hardware_write": "none",
-      "production_cutover": false,
+      "production_cutover": true,
       "final_review_regression_tests": "PASS_14_OF_14",
       "final_review_prettier": "PASS",
       "final_review_touched_lint": "PASS",
@@ -398,26 +410,40 @@
       "review_threads": "PASS_ALL_RESOLVED",
       "merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
       "final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
-      "final_state_ci": "PASS_ALL_REQUIRED_32415131893_32415131935_32415132995_AND_REMAINING_GREEN"
+      "final_state_ci": "PASS_ALL_REQUIRED_32415131893_32415131935_32415132995_AND_REMAINING_GREEN",
+      "production_cutover_source_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+      "production_cutover_evidence": "runtime/deployments/20260820T214127Z",
+      "production_cutover_result": "PASS_CONTROLLED_LOCAL_LAN_2026_08_21"
+    },
+    {
+      "id": "NEXOLAB-633",
+      "issue": 633,
+      "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
+      "status": "ready_after_issue_606",
+      "priority": "high",
+      "branch": "fix/633-frontend-candidate-cleanup",
+      "runtime_defect_evidence": "runtime/deployments/20260820T214127Z",
+      "production_currently_healthy": true
     }
   ],
   "active_work_package": {
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
     "type": "local_lan_discovery_adoption_inbox",
-    "status": "ready_to_resume_from_checkpoint",
+    "status": "pr_632_open_ci_in_progress_runtime_acceptance_pending",
     "branch": "feat/606-local-lan-discovery",
-    "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab"
+    "pull_request": 632,
+    "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37"
   },
   "next_work_package": {
-    "issue": 607,
-    "title": "Add dual RS-485 bus isolation for KK1 and KK2",
-    "status": "queued_after_issue_606",
+    "issue": 633,
+    "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
+    "status": "ready_after_issue_606",
     "hardware_cutover_authorized": false
   },
   "verification": {
     "repository_accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-    "runtime_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
+    "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
     "automatic_updates_enabled": false,
     "automatic_update_schedule": "02:00",
     "api_database_mqtt_readiness": "PASS",
@@ -434,7 +460,7 @@
     "issue_586_core_ci": "PASS_32179697028",
     "issue_586_authenticated_dashboard_acceptance": "PASS_32179696964",
     "issue_586_offline_bundle": "PASS_32179696933",
-    "repository_state_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
+    "repository_state_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
     "issue_594_mcp_pi_runtime_acceptance": "PASS",
     "issue_594_protocol_version": "2026-07-28",
     "issue_594_tool_count": 6,
@@ -639,7 +665,23 @@
     "issue_627_final_state_core_ci": "PASS_32415131893",
     "issue_627_final_state_authenticated_dashboard": "PASS_32415131935",
     "issue_627_final_state_offline_bundle": "PASS_32415132995",
-    "issue_627_final_state_all_required_checks": "PASS"
+    "issue_627_final_state_all_required_checks": "PASS",
+    "production_cutover": "PASS_CONTROLLED_LOCAL_LAN_2026_08_21",
+    "production_cutover_evidence": "runtime/deployments/20260820T214127Z",
+    "production_frontend_release": "runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z",
+    "production_frontend_build_id": "wb6SYt8RD2_XAcyPcyZP2",
+    "production_dashboard_routes": "PASS_6_OF_6_HTTP_200",
+    "production_telemetry_persistence": "PASS_ADVANCING",
+    "production_registry_revision": 9,
+    "production_poll_eligible_targets": 33,
+    "production_service_operations": "PASS_EMPTY",
+    "production_candidate_cleanup": "MANUAL_PASS_PORT_3100_FREE_TRACKED_ISSUE_633",
+    "production_settings_xjp60d_bundle_marker": "PASS",
+    "production_browser_visual_acceptance": "NOT_RUN_OPERA_CONNECTOR_DISCONNECTED",
+    "issue_606_pull_request": 632,
+    "issue_606_exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
+    "issue_606_real_pi_lan_acceptance": "PENDING",
+    "issue_633_status": "OPEN_READY_HIGH"
   },
   "independent_pending_lanes": [
     {
@@ -676,11 +718,11 @@
     },
     {
       "issue": 605,
-      "status": "ready_resume_after_reliability_repairs"
+      "status": "completed_green"
     },
     {
       "issue": 606,
-      "status": "paused_by_critical_627_checkpoint_published"
+      "status": "active_pr_632_ci_in_progress_runtime_acceptance_pending"
     },
     {
       "issue": 607,
@@ -724,7 +766,11 @@
     },
     {
       "issue": 627,
-      "status": "critical_active_pi_acceptance"
+      "status": "completed_green_production_cutover_pass"
+    },
+    {
+      "issue": 633,
+      "status": "ready_after_issue_606"
     }
   ],
   "safety": {
