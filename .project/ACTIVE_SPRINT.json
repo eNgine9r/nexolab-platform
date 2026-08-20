@@ -300,15 +300,15 @@
       "id": "NEXOLAB-626",
       "issue": 626,
       "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-      "status": "hardware_acceptance_green_pending_state_ci_merge",
+      "status": "final_rollback_fix_local_green_pending_exact_ci_merge",
       "priority": "critical",
       "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "e57593f6715793999d273df0b6dafaa125316d3b",
+      "checkpoint_sha": "49b827dfead6f09e8a4b812042de75a181226a61",
       "frontend_release_tests": "PASS_12_OF_12",
       "version_management_pytest": "PASS_42_OF_42",
       "modbus_write": "none",
       "hardware_write": "none",
-      "deployment_auth_capacity_tests": "PASS_26_OF_26",
+      "deployment_auth_capacity_tests": "PASS_27_OF_27",
       "initial_host_dependency_artifact_import": "FAIL_CLOSED_DESIGN_REJECTED",
       "initial_pi_evidence": "runtime/deployments/issue-626-isolated-20260820T130527Z",
       "production_dashboard_preserved": "PASS",
@@ -324,7 +324,10 @@
       "pi_candidate_rss_kib": 116272,
       "pi_production_dashboard_preserved": "PASS_MAINPID_3696_PORT_PID_3947",
       "pi_candidate_cleanup": "PASS_PORT_3100_FREE",
-      "pi_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z"
+      "pi_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
+      "post_activation_rollback_contract": "PASS_TELEMETRY_DEVICE_AGENT_DASHBOARD",
+      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "runtime_content_unchanged_after_proof": "PASS_DEPLOY_SCRIPT_TEST_STATE_ONLY"
     },
     {
       "id": "NEXOLAB-627",
@@ -353,7 +356,7 @@
     "issue": 626,
     "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
     "type": "critical_pi_deployment_safety_prerequisite",
-    "status": "hardware_acceptance_green_pending_state_ci_merge"
+    "status": "final_rollback_fix_local_green_pending_exact_ci_merge"
   },
   "next_work_package": {
     "issue": 626,
@@ -543,14 +546,15 @@
     "issue_627_acquisition_scale": "PASS_32363682454",
     "runtime_registry_revision_observed": 9,
     "runtime_poll_eligible_targets_observed": 33,
-    "issue_626_deployment_auth_capacity_tests": "PASS_26_OF_26",
+    "issue_626_deployment_auth_capacity_tests": "PASS_27_OF_27",
     "issue_626_exact_head_ci": "PASS_32373871646",
     "issue_626_telemetry_ci": "PASS_32373871520",
     "issue_626_arm64_artifact": "PASS_9408510671",
     "issue_626_pi_artifact_import": "PASS",
     "issue_626_pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
     "issue_626_pi_production_preservation": "PASS",
-    "issue_626_pi_candidate_cleanup": "PASS"
+    "issue_626_pi_candidate_cleanup": "PASS",
+    "issue_626_post_activation_rollback_contract": "PASS"
   },
   "independent_pending_lanes": [
     {

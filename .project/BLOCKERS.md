@@ -64,9 +64,9 @@ PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN e
 
 Issue #606 has a published recoverable implementation checkpoint on `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. It is temporarily paused by the Product Owner-prioritized critical #627 defect and resumes after #627 is GREEN. Hardware/public-network scanning and Modbus/device writes remain prohibited.
 
-## Issue #626 — hardware acceptance GREEN, pending state-only CI and merge
+## Issue #626 — hardware acceptance GREEN, final rollback fix pending exact-head CI and merge
 
-Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The self-contained ARM64 artifact path is now proven on the real Pi: exact-head CI and artifact build GREEN, artifact import PASS, isolated `127.0.0.1:3100` routes 5/5 HTTP 200, ~116 MiB candidate RSS, production MainPID/port PID unchanged, and bounded candidate cleanup PASS. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation/site cutover occurred. The only remaining #626 gate is exact-head CI for the hardware-evidence state commit and merge.
+Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi. The self-contained ARM64 artifact path is now proven on the real Pi: exact-head CI and artifact build GREEN, artifact import PASS, isolated `127.0.0.1:3100` routes 5/5 HTTP 200, ~116 MiB candidate RSS, production MainPID/port PID unchanged, and bounded candidate cleanup PASS. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation/site cutover occurred. A final contract audit added automatic last-known-good Dashboard rollback when post-activation Telemetry, Device Agent or Dashboard readiness fails; focused regression is 27/27 PASS and updater/version-manager remains 42/42 PASS. The only remaining #626 gate is exact-head CI for the final rollback/state head and merge.
 
 ## Issue #627 — software GREEN, waiting on #626 merge
 
