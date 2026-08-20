@@ -181,6 +181,11 @@ export function DashboardShell() {
                       monitoring.configuration?.target_diagnostics ?? [],
                       temperatureVisibility.visibleChannelIds,
                     )}
+                    allMonitoredChannelsHidden={
+                      temperatureVisibility.loaded &&
+                      monitoring.monitoredChannelIds.length > 0 &&
+                      temperatureVisibility.visibleChannelIds.length === 0
+                    }
                   />
                 </Panel>
               }
