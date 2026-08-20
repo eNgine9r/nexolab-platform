@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T13:46:13.020109Z",
+  "timestamp": "2026-08-20T17:15:28+03:00",
   "actor": "ChatGPT",
-  "event": "issue_626_final_rollback_fix_local_green_pending_exact_ci_merge",
-  "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
+  "event": "issue_626_merged_green_issue_627_active",
+  "repository_main_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -136,6 +136,25 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "runtime_deployed": false
+    },
+    "issue_626": {
+      "issue": 626,
+      "pull_request": 629,
+      "result": "COMPLETED_GREEN_ATOMIC_PI_FRONTEND_DEPLOYMENT",
+      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+      "exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
+      "core_ci": "PASS_32377664739",
+      "telemetry_service": "PASS_32377664704",
+      "final_arm64_artifact_id": 9410009481,
+      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366",
+      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
+      "hardware_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
+      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "pi_production_preserved": true,
+      "post_activation_rollback_contract": "PASS",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false
     }
   },
   "blocked_work": {
@@ -153,11 +172,11 @@
     }
   },
   "current_boundary": {
-    "issue": 626,
-    "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
-    "status": "FINAL_ROLLBACK_FIX_LOCAL_GREEN_PENDING_EXACT_CI_MERGE"
+    "issue": 627,
+    "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
+    "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE"
   },
-  "next_action": "Commit and push Issue #626 hardware evidence state, require exact-head CI on the state-only head, mark PR #629 ready and merge only after GREEN; then update Issue #627 onto the new main and build its exact ARM64 artifact for the real Overview acquisition invariant.",
+  "next_action": "Merge current main into fix/627-monitoring-display-decoupling without force-push, reconcile only the four .project conflicts, rerun focused checks, push the updated PR #628 head, require exact-head CI, build the exact ARM64 runtime artifact, then complete the real Raspberry Pi Overview-only visibility invariant and browser-closed telemetry proof.",
   "planned_queue": [626, 627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
@@ -172,42 +191,11 @@
     "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
   "in_progress_work": {
-    "issue_626": {
-      "issue": 626,
-      "branch": "fix/626-atomic-pi-deploy",
-      "checkpoint_sha": "49b827dfead6f09e8a4b812042de75a181226a61",
-      "status": "FINAL_ROLLBACK_FIX_LOCAL_GREEN_PENDING_EXACT_CI_MERGE",
-      "frontend_release_tests": "PASS_12_OF_12",
-      "version_management_pytest": "PASS_42_OF_42",
-      "yaml_parse": "PASS",
-      "git_diff_check": "PASS",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "deployment_auth_capacity_tests": "PASS_27_OF_27",
-      "initial_host_dependency_artifact_import": "FAIL_CLOSED_DESIGN_REJECTED",
-      "initial_pi_evidence": "runtime/deployments/issue-626-isolated-20260820T130527Z",
-      "production_dashboard_preserved": "PASS",
-      "exact_head_sha": "9a443e1001e2fc7e375d235be41a933d66781c75",
-      "exact_head_ci": "PASS_32373871646",
-      "telemetry_ci": "PASS_32373871520",
-      "arm64_artifact_id": 9408510671,
-      "arm64_artifact_digest": "sha256:3005a8c2788e3ce683a61857feabff5c2270d694e708cc4bccc8846142d11fed",
-      "pi_artifact_import": "PASS_SELF_CONTAINED_ARM64",
-      "pi_archive_members": 18468,
-      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
-      "pi_candidate_rss_kib": 116272,
-      "pi_production_dashboard_preserved": "PASS_MAINPID_3696_PORT_PID_3947",
-      "pi_candidate_cleanup": "PASS_PORT_3100_FREE",
-      "pi_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
-      "post_activation_rollback_contract": "PASS_TELEMETRY_DEVICE_AGENT_DASHBOARD",
-      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
-      "runtime_content_unchanged_after_proof": "PASS_DEPLOY_SCRIPT_TEST_STATE_ONLY"
-    },
     "issue_627": {
       "issue": 627,
       "pull_request": 628,
       "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
-      "status": "SOFTWARE_CI_GREEN_BLOCKED_PI_ACCEPTANCE_ON_626",
+      "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE",
       "core_ci": "PASS_32363682430",
       "authenticated_dashboard_acceptance": "PASS_32363682812",
       "offline_bundle": "PASS_32363682463",
@@ -221,9 +209,9 @@
     }
   },
   "active_work": {
-    "issue_626": {
-      "issue": 626,
-      "status": "FINAL_ROLLBACK_FIX_LOCAL_GREEN_PENDING_EXACT_CI_MERGE",
+    "issue_627": {
+      "issue": 627,
+      "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE",
       "modbus_write": "none",
       "hardware_write": "none"
     }

@@ -189,33 +189,25 @@ The Raspberry Pi verification host was hard-reset after repository-wide ESLint e
 
 Issue #606 remains open `status:in-progress` with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. It is paused, not abandoned, while the Product Owner-prioritized critical monitoring defect #627 is repaired.
 
-## Issue #626 — active critical Raspberry Pi deployment safety prerequisite
+## Issue #626 — completed GREEN and merged
 
-Issue #626 is the current Work Package on `fix/626-atomic-pi-deploy`. Two previous in-place frontend builds hard-froze the 4 GiB Raspberry Pi, so the active dashboard must never be used as a build workspace again. The implementation now keeps each candidate in an immutable release directory, bounds the fallback container build with memory/CPU/PID limits, verifies a candidate on an isolated loopback port before activation, and restores the previous systemd unit if activation or health checks fail.
+Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb833f917346525` after final exact-head Core CI `32377664739`, Telemetry Service `32377664704`, and self-contained ARM64 artifact `9410009481` were GREEN. The real Raspberry Pi runtime proof used product-identical source `9a443e1001e2fc7e375d235be41a933d66781c75` and evidence `runtime/deployments/issue-626-arm64-20260820T133849Z`: artifact import PASS, 18,468 archive members safety-verified, 5/5 candidate routes HTTP 200 on isolated `127.0.0.1:3100`, ~116 MiB RSS, production MainPID/port PID unchanged, and bounded cleanup PASS. No production activation occurred.
 
-The off-device artifact consumer is implemented as a self-contained target-platform runtime. The first exact-head PR artifact correctly failed closed on the real Pi because it depended on the host working tree's incomplete production dependency tree; candidate port `3100` never started and production `3000` remained unchanged. That evidence rejected the host-dependency reuse design.
+The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
 
-The revised path cross-builds the existing offline Dashboard image for `linux/arm64` with Node `22.23.1`, then packages `.next` plus pruned production `node_modules` into a mode/symlink-preserving runtime tar. Pi import verifies exact source SHA, package and artifact checksums, LOCAL_LAN public runtime values, ARM64 platform identity, Node identity, archive path/link safety, and every extracted runtime file checksum. It performs no `npm ci` or `next build` on the Pi and does not silently fall back when an explicit artifact fails validation.
+## Issue #627 — active critical Raspberry Pi acceptance
 
-Local verification after the redesign is GREEN: frontend release tests **12/12**, combined deployment/auth/capacity tests **27/27**, version-management/update pytest regression **42/42**, YAML parse, shell parse and `git diff --check`. Exact-head PR #629 CI is also GREEN: Core CI `32373871646` and Telemetry Service `32373871520`. GitHub artifact `9408510671` was built from exact head `9a443e1001e2fc7e375d235be41a933d66781c75` for `linux/arm64` with digest `sha256:3005a8c2788e3ce683a61857feabff5c2270d694e708cc4bccc8846142d11fed`.
+PR #628 remains open from checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1`; its original software/CI gates are GREEN. With #626 merged, the next step is to merge current `main` into the feature branch without force-push, reconcile only `.project/**`, rerun focused checks, and produce an exact updated ARM64 runtime artifact.
 
-Real Raspberry Pi isolated acceptance is GREEN. The self-contained artifact imported with source/platform/Node/public-contract verification PASS; the archive safety scan accepted 18,468 members; candidate build ID `_sV956tuD2HYk3kfrnKvu` started on `127.0.0.1:3100` in 219 ms; `/`, `/login`, `/settings`, `/energy` and `/live` all returned HTTP 200; candidate RSS was about 116 MiB; production Dashboard remained MainPID `3696` / port-3000 PID `3947` and HTTP 200 throughout. The candidate was then terminated and removed with the bounded cleanup helper, leaving port `3100` free. Evidence: `runtime/deployments/issue-626-arm64-20260820T133849Z`. No production activation occurred.
-
-## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626 merge
-
-PR #628 for Issue #627 is open on exact head `6596bc25292a5badea13b0e4dea84804f3301ba1`. The monitoring/display ownership repair is implemented and all triggered exact-head GitHub gates are GREEN, including Core CI/production build `32363682430`, Authenticated Dashboard acquisition invariant `32363682812`, Offline Bundle `32363682463`, Acquisition Scale `32363682454`, Refrigeration Browser, Device Agent Fleet, Container Supply Chain, MQTT/DR TLS and Edge image.
-
-The remaining #627 acceptance is deliberately blocked on #626: a real Raspberry Pi Overview-only visibility change must run the exact #627 production artifact without compiling Next.js on the Pi, then prove registry revision/configured targets remain unchanged and monitored PostgreSQL telemetry continues with the browser closed. No Modbus write, hardware write or site cutover is authorized.
+Real acceptance will hide monitored channel `108-01` only from Overview and prove Acquisition Registry revision/active set/configured target count stay unchanged while physical request counters and PostgreSQL `telemetry_latest.sample_id/captured_at` continue advancing after the browser is closed. Opera Browser Connector is currently disconnected; this does not block branch sync, tests, CI or artifact production, but may require reconnection when the UI interaction step is reached if no equivalent authenticated browser session is available. No monitoring-enrollment mutation, Modbus write, hardware write or site cutover is authorized.
 
 ## Current execution boundary
 
-Current Work Package: **Issue #626 — Make Raspberry Pi frontend deployment atomic and resource-safe**.
+Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
 
-A final acceptance-contract audit found and fixed one deployment-only gap: after Dashboard activation, Telemetry, Device Agent or Dashboard readiness failure now invokes `rollback_dashboard_release` before failing. The focused deployment/auth/capacity regression is **27/27 PASS** and the version-management/update regression remains **42/42 PASS**. Implementation checkpoint: `49b827dfead6f09e8a4b812042de75a181226a61`. This change does not alter `package.json`, `package-lock.json`, `src/**`, `next.config.ts` or the already hardware-proven ARM64 runtime content.
+Next action: merge `main@6bc73390b5fa5e41aa1cebcbfdb833f917346525` into `fix/627-monitoring-display-decoupling`, reconcile state conflicts, rerun focused checks, push PR #628, require exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
-Next action: push the final #626 rollback/state checkpoint, require exact-head CI on that head, mark PR #629 ready and merge only after GREEN. Then update #627 onto the new main, build its exact ARM64 artifact through the merged workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
-
-Planned sequence: **#626 → #627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 
