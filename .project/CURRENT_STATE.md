@@ -195,21 +195,21 @@ Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb
 
 The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
 
-## Issue #627 — final product and Raspberry Pi acceptance GREEN, pending state-only CI/merge
+## Issue #627 — final acceptance GREEN, pending state-only CI/merge
 
-PR #628 is open, ready and mergeable. Final verified product head `a7c9b467732a43031d795e627f0f5d14f6f1277e` is GREEN in all 10 required exact-head workflows: Core CI `32404290753`, Authenticated Dashboard `32404290678`, Offline Bundle `32404290701`, Acquisition Scale `32404290647`, Device Agent Fleet `32404290685`, Refrigeration Browser `32404290760`, Container Supply Chain `32404290749`, MQTT TLS Fleet `32404290683`, Disaster Recovery TLS `32404290674`, and Edge image `32404290626`. Final review regressions are 14/14 PASS with Prettier, touched ESLint, TypeScript and `git diff --check` PASS; all inline review threads are resolved.
+PR #628 is open and mergeable. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows: Core CI `32411093778`, Authenticated Dashboard `32411094072` (GREEN rerun after the known unrelated equipment WebSocket timing flake), Offline Bundle `32411094258`, Acquisition Scale `32411093918`, Device Agent Fleet `32411095164`, Refrigeration Browser `32411094752`, Container Supply Chain `32411093905`, MQTT TLS Fleet `32411093449`, Disaster Recovery TLS `32411094005`, and Edge image `32411093799`.
 
-Off-device ARM64 workflow `32404400902` is GREEN. Artifact `9419988861`, digest `sha256:a65d5643d29eb60d5dd609ef32d2973a60b5683bfb7c3432d98845b25376cbb2`, is exact source `a7c9b467`, `linux/arm64`, Node `22.23.1`, build ID `S2V6mB0zzw54G5CHv-k4Q`. Final Pi evidence is `runtime/acceptance/issue-627-final-a7c9b467`: artifact import PASS, isolated `127.0.0.1:3100` 5/5 routes HTTP 200, production Dashboard MainPID `3696` / HTTP 200 unchanged, and candidate cleanup leaves port `3100` free.
+Off-device ARM64 workflow `32411213218` is GREEN. Artifact `9422408464`, digest `sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766`, is exact source `5a4da397`, `linux/arm64`, Node `22.23.1`, build ID `lEMKAWa6inRxQdcp095oY`. Pi evidence: `runtime/acceptance/issue-627-final-5a4da397`; import PASS and isolated `127.0.0.1:3100` 5/5 routes HTTP 200; production Dashboard MainPID `3696` / HTTP 200 unchanged.
 
-The final real Overview invariant is PASS for monitored `108-01`: display preference changed with zero Device Agent mutation requests; registry revision `9 -> 9`; active monitored set unchanged and still contains `108-01`; configured/scheduler targets `33 -> 33`; service operations remain `{}`. After browser close in the same Device Agent process, physical requests advanced `5827 -> 6017` (+190) and PostgreSQL latest sample ID advanced `5104197 -> 5105173` (+976), final quality `valid`. No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
+The exact final Overview invariant is PASS for monitored `108-01`: display preference changed without Device Agent mutation requests; registry `9 -> 9`; active set unchanged; configured/scheduler targets `33 -> 33`; service operations `{}`. After browser close, physical requests advanced `91 -> 157` (+66) and PostgreSQL latest sample ID `5116749 -> 5117087` (+338), final quality `valid`. Candidate `:3100` was stopped and production remained unchanged. The hide-all truthful empty-state regression is covered by focused TemperatureChart/visibility tests 8/8 PASS.
 
-The isolated loopback origin is intentionally outside production Telemetry CORS allowlists, so unrelated read-only API calls logged expected CORS errors during the bounded synthetic-auth display proof. Production Authenticated Dashboard Acceptance on the same final product head is GREEN.
+No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
 
 ## Current execution boundary
 
-Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
+Current Work Package: **Issue #627 — final state-only checkpoint before merge**.
 
-Next action: commit and push this final state-only checkpoint, require exact state-head CI/review, merge PR #628, reconcile post-merge state, then resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: push the final #627 state-only checkpoint, require GREEN exact state-head CI/review, merge PR #628, reconcile main, then resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
 Planned sequence: **#627 state-only CI/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 

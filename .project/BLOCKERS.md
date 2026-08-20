@@ -70,7 +70,7 @@ PR #629 merged GREEN as `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The safe sel
 
 ## Issue #627 — final acceptance GREEN
 
-No implementation, CI, review or hardware blocker remains on the verified product head `a7c9b467732a43031d795e627f0f5d14f6f1277e`. All 10 required workflows are GREEN, all review threads are resolved, and exact ARM64 Pi acceptance is PASS: registry `9 -> 9`, active set unchanged, configured/scheduler targets `33 -> 33`, no service/acquisition mutations, `108-01` physical requests +190 after browser close, PostgreSQL latest samples +976 with quality `valid`, production Dashboard preserved, candidate `:3100` stopped. Remaining work is only the state-only checkpoint CI/merge for PR #628, then post-merge reconciliation and immediate resume of #606.
+No implementation, CI, ARM64 or hardware blocker remains. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows and exact Pi acceptance is PASS: registry `9 -> 9`, targets `33 -> 33`, no service/acquisition mutations, `108-01` physical requests +66 after browser close, PostgreSQL latest samples +338 with final quality `valid`, production Dashboard preserved, candidate `:3100` stopped. Remaining work is only final state-only checkpoint CI/merge for PR #628, then post-merge reconciliation and resume #606.
 
 ## Issue #618 — independent reliability lane
 
