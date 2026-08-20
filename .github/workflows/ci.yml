@@ -102,3 +102,114 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  recovery_frontend_artifact:
+    name: Raspberry Pi live frontend recovery artifact
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/626-atomic-pi-deploy' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: .nvmrc
+
+      - name: Prove frontend product source matches PR base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "${{ github.event.pull_request.base.sha }}" -- \
+            package.json package-lock.json next.config.ts src
+
+      - name: Record recovery artifact provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee frontend-source-sha.txt
+          sha256sum package.json package-lock.json | tee frontend-package-sha256.txt
+          cat > frontend-runtime-contract.txt <<'EOF'
+          runtime_mode=live
+          api_base_url=http://172.18.48.34:8082
+          websocket_url=ws://172.18.48.34:8082/api/v1/telemetry/live
+          auth_provider=local
+          organization_id=00000000-0000-0000-0000-000000000001
+          EOF
+
+      - name: Install dependencies
+        env:
+          HUSKY: "0"
+        run: npm ci --no-audit --no-fund
+
+      - name: Build LOCAL_LAN live frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_NEXOLAB_DATA_MODE: live
+          NEXT_PUBLIC_NEXOLAB_API_BASE_URL: http://172.18.48.34:8082
+          NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL: ws://172.18.48.34:8082/api/v1/telemetry/live
+          NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER: local
+          NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID: 00000000-0000-0000-0000-000000000001
+        run: npm run build
+
+      - name: Verify recovery artifact contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/lib/raspberry-pi-frontend-release.sh
+          nexolab_frontend_verify_public_contract \
+            . live \
+            http://172.18.48.34:8082 \
+            ws://172.18.48.34:8082/api/v1/telemetry/live \
+            local \
+            00000000-0000-0000-0000-000000000001 \
+            frontend-public-contract.txt
+          ! grep -Fq 'Demo mode' .next/server/app/index.html
+          ! grep -Fq 'demo preview' .next/server/app/index.html
+          ! grep -Fq 'Node registry доступний лише в live mode' .next/server/app/nodes.html
+          ! grep -Fq 'Енергомоніторинг доступний лише в live mode' .next/server/app/energy.html
+
+      - name: Reject native binaries in portable recovery .next artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find .next -type f -print0 | xargs -0 file | grep -Eq 'ELF|Mach-O|PE32'; then
+            echo 'Native binary found in .next; recovery artifact is not architecture-portable.' >&2
+            exit 1
+          fi
+
+      - name: Generate recovery artifact integrity manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            find .next -type f -print0 | sort -z | xargs -0 sha256sum
+            sha256sum \
+              package.json \
+              package-lock.json \
+              frontend-source-sha.txt \
+              frontend-package-sha256.txt \
+              frontend-runtime-contract.txt
+          } > frontend-artifact-sha256.txt
+
+      - name: Upload Raspberry Pi recovery frontend artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexolab-frontend-recovery-${{ github.event.pull_request.head.sha }}
+          path: |
+            .next
+            package.json
+            package-lock.json
+            frontend-source-sha.txt
+            frontend-package-sha256.txt
+            frontend-runtime-contract.txt
+            frontend-public-contract.txt
+            frontend-artifact-sha256.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

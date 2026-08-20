@@ -12,7 +12,10 @@ source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
 
 usage() {
   cat <<'USAGE'
-Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone]
+Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
+
+Options:
+  --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
 
 Modes:
   lan         Trusted-LAN dashboard and API exposure. This is the default.
@@ -21,6 +24,7 @@ USAGE
 }
 
 RUNTIME_MODE="lan"
+FRONTEND_ARTIFACT_INPUT=""
 while (($# > 0)); do
   case "$1" in
     --runtime-mode)
@@ -29,6 +33,14 @@ while (($# > 0)); do
         exit 64
       }
       RUNTIME_MODE="$2"
+      shift 2
+      ;;
+    --frontend-artifact)
+      (($# >= 2)) || {
+        echo "ERROR: --frontend-artifact requires an extracted artifact directory" >&2
+        exit 64
+      }
+      FRONTEND_ARTIFACT_INPUT="$2"
       shift 2
       ;;
     --help|-h)
@@ -45,6 +57,14 @@ done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
+FRONTEND_ARTIFACT_DIR=""
+if [[ -n "$FRONTEND_ARTIFACT_INPUT" ]]; then
+  [[ -d "$FRONTEND_ARTIFACT_INPUT" ]] || {
+    echo "ERROR: frontend artifact directory not found: $FRONTEND_ARTIFACT_INPUT" >&2
+    exit 66
+  }
+  FRONTEND_ARTIFACT_DIR="$(cd "$FRONTEND_ARTIFACT_INPUT" && pwd -P)"
+fi
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 AUDIT_DIR="$REPO/runtime/deployments/$STAMP"
 LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock"
@@ -119,7 +139,7 @@ require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum; do
+for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install; do
   require "$command"
 done
 
@@ -130,6 +150,7 @@ cd "$REPO"
 log "Starting controlled current-head deployment"
 log "Repository: $REPO"
 log "Runtime mode: $RUNTIME_MODE"
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then log "Frontend candidate source: verified off-device artifact ($FRONTEND_ARTIFACT_DIR)"; else log "Frontend candidate source: bounded local build fallback"; fi
 log "Evidence: $AUDIT_DIR"
 
 PG_CONTAINER="$(docker ps -q \
@@ -446,9 +467,18 @@ log "Validating Compose models"
 docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" config --quiet
 docker compose --env-file "$EDGE_ENV" "${EDGE_COMPOSE_ARGS[@]}" config --quiet
 
-log "Checking frontend deployment resource headroom"
-if ! nexolab_frontend_resource_preflight "$AUDIT_DIR/frontend-resource-preflight.txt"; then
-  fail "frontend resource preflight failed before candidate build; active dashboard was not touched"
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then
+  log "Skipping frontend build headroom gate because a verified off-device artifact was supplied"
+  {
+    echo 'status=SKIPPED_OFF_DEVICE_ARTIFACT'
+    echo "mem_available_kib=$(nexolab_frontend_mem_available_kib)"
+    echo "swap_free_kib=$(nexolab_frontend_swap_free_kib)"
+  } > "$AUDIT_DIR/frontend-resource-preflight.txt"
+else
+  log "Checking frontend deployment resource headroom for bounded local build fallback"
+  if ! nexolab_frontend_resource_preflight "$AUDIT_DIR/frontend-resource-preflight.txt"; then
+    fail "frontend resource preflight failed before candidate build; active dashboard was not touched"
+  fi
 fi
 if ! nexolab_frontend_assert_no_competing_builds "$AUDIT_DIR/frontend-competing-processes.txt"; then
   fail "another heavy build/acceptance workload is active; refusing concurrent production deployment"
@@ -459,6 +489,9 @@ docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
 
 EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
 [[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
+ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
+[[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
+  || fail "host Node version $ACTUAL_NODE_VERSION does not match repository baseline $EXPECTED_NODE_VERSION"
 FRONTEND_RELEASE_DIR="$FRONTEND_RELEASES_DIR/${CURRENT_HEAD}-${STAMP}"
 mkdir -p "$FRONTEND_RELEASES_DIR"
 log "Preparing immutable frontend candidate: $FRONTEND_RELEASE_DIR"
@@ -466,17 +499,35 @@ if ! nexolab_frontend_prepare_release_source "$REPO" "$CURRENT_HEAD" "$FRONTEND_
   fail "failed to prepare immutable frontend candidate source"
 fi
 
-log "Building frontend candidate inside a bounded container"
-export NEXOLAB_FRONTEND_BUILD_IMAGE="${NEXOLAB_FRONTEND_BUILD_IMAGE:-node:${EXPECTED_NODE_VERSION}-bookworm-slim}"
-if ! nexolab_frontend_build_release \
-  "$FRONTEND_RELEASE_DIR" \
-  live \
-  "$NEXOLAB_API_BASE_URL" \
-  "$NEXOLAB_WEBSOCKET_URL" \
-  "$FRONTEND_AUTH_PROVIDER" \
-  "$FRONTEND_ORGANIZATION_ID" \
-  > "$AUDIT_DIR/frontend-build.txt" 2>&1; then
-  fail "bounded frontend candidate build failed; active dashboard was not touched"
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then
+  log "Importing verified off-device frontend artifact"
+  if ! nexolab_frontend_import_artifact \
+    "$FRONTEND_ARTIFACT_DIR" \
+    "$REPO" \
+    "$FRONTEND_RELEASE_DIR" \
+    "$CURRENT_HEAD" \
+    live \
+    "$NEXOLAB_API_BASE_URL" \
+    "$NEXOLAB_WEBSOCKET_URL" \
+    "$FRONTEND_AUTH_PROVIDER" \
+    "$FRONTEND_ORGANIZATION_ID" \
+    "$AUDIT_DIR/frontend-artifact-import.txt"; then
+    fail "off-device frontend artifact verification/import failed; active dashboard was not touched"
+  fi
+  printf '%s\n' 'status=SKIPPED_OFF_DEVICE_ARTIFACT' > "$AUDIT_DIR/frontend-build.txt"
+else
+  log "Building frontend candidate inside a bounded container"
+  export NEXOLAB_FRONTEND_BUILD_IMAGE="${NEXOLAB_FRONTEND_BUILD_IMAGE:-node:${EXPECTED_NODE_VERSION}-bookworm-slim}"
+  if ! nexolab_frontend_build_release \
+    "$FRONTEND_RELEASE_DIR" \
+    live \
+    "$NEXOLAB_API_BASE_URL" \
+    "$NEXOLAB_WEBSOCKET_URL" \
+    "$FRONTEND_AUTH_PROVIDER" \
+    "$FRONTEND_ORGANIZATION_ID" \
+    > "$AUDIT_DIR/frontend-build.txt" 2>&1; then
+    fail "bounded frontend candidate build failed; active dashboard was not touched"
+  fi
 fi
 
 log "Verifying compiled frontend public runtime contract"

@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T05:24:20.585944Z",
+  "timestamp": "2026-08-20T12:45:41Z",
   "actor": "ChatGPT",
-  "event": "issue_605_completed_green_and_issue_606_ready",
-  "repository_main_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
+  "event": "issue_626_artifact_consumer_local_green_pending_pr_ci_pi_acceptance",
+  "repository_main_sha": "d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -153,12 +153,12 @@
     }
   },
   "current_boundary": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "READY_DEPENDENCY_605_COMPLETE"
+    "issue": 626,
+    "title": "Make Raspberry Pi frontend deployment atomic and resource-safe",
+    "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE"
   },
-  "next_action": "Start Issue #606 with repository/architecture audit, confirm safe LOCAL_LAN discovery service boundary and persisted candidate model, then create a focused feature branch; do not perform public scanning, credential probing, Modbus writes or hardware writes.",
-  "planned_queue": [606, 607, 589, 590],
+  "next_action": "Commit and push Issue #626 artifact-consumer checkpoint, open focused PR, require exact-head CI including portable recovery artifact, download that artifact to Raspberry Pi, prove isolated candidate startup/active-runtime preservation, then merge #626 and use the merged Frontend Release Artifact workflow to build exact #627 head for real Overview acquisition-invariant acceptance.",
+  "planned_queue": [626, 627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -171,12 +171,41 @@
     "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
     "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check."
   },
-  "in_progress_work": {},
-  "active_work": {
+  "in_progress_work": {
+    "issue_626": {
+      "issue": 626,
+      "branch": "fix/626-atomic-pi-deploy",
+      "checkpoint_sha": "2c5435d8fcf0ad4da50032fa13632cb8c9a0fc9c",
+      "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE",
+      "frontend_release_tests": "PASS_17_OF_17",
+      "version_management_pytest": "PASS_42_OF_42",
+      "real_pi_runtime_dependency_snapshot": "PASS",
+      "yaml_parse": "PASS",
+      "git_diff_check": "PASS",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_627": {
+      "issue": 627,
+      "pull_request": 628,
+      "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
+      "status": "SOFTWARE_CI_GREEN_BLOCKED_PI_ACCEPTANCE_ON_626",
+      "core_ci": "PASS_32363682430",
+      "authenticated_dashboard_acceptance": "PASS_32363682812",
+      "offline_bundle": "PASS_32363682463",
+      "acquisition_scale": "PASS_32363682454"
+    },
     "issue_606": {
       "issue": 606,
-      "status": "READY_DEPENDENCY_605_COMPLETE",
-      "required_action": "repository_and_architecture_audit_before_implementation",
+      "branch": "feat/606-local-lan-discovery",
+      "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
+      "status": "PAUSED_BY_CRITICAL_626_627_SEQUENCE"
+    }
+  },
+  "active_work": {
+    "issue_626": {
+      "issue": 626,
+      "status": "ARTIFACT_CONSUMER_LOCAL_GREEN_PENDING_PR_CI_PI_ACCEPTANCE",
       "modbus_write": "none",
       "hardware_write": "none"
     }

@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`, the squash merge of PR #616 — **feat: scale Equipment Registry operator workspace**. Exact repository `main` is `3fe1ac4d6def9d0f228bffb1ffdac7e5f97fc97f`, the post-#604 state reconciliation commit; no later product PR has merged.
+Accepted product-code baseline is `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`, the post-#605 state reconciliation commit #625; no later product PR has merged.
 
-The Raspberry Pi source runtime remains deployed at `7a19f53950492a40255c53b1d2018bbdff9466e2`. The persisted local AcquisitionRegistry remains revision 8 with `le01mp-201` intentionally `disabled` while W2 is externally owned. No source deployment was performed by Issues #584 or #586.
+The Raspberry Pi repository checkout and `origin/main` are both `d773bbb08fd9924ede9c2c6c0bfbea68ae720dc2`. The active Dashboard was recovered after the #626 freeze from the previously verified #605 artifact, which was proven product-identical to `d773bbb` outside `.project/**`. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -185,13 +185,31 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
+## Issue #606 — implementation checkpoint paused by critical #627
+
+Issue #606 remains open `status:in-progress` with recoverable branch `feat/606-local-lan-discovery` at `af52c19ff67538f21399e258fbcc6aeef7ba96ab`. Its last published checkpoint had clean Git state, Equipment discovery frontend tests 3/3 PASS, and discovery repository tests 2/2 failing with `EquipmentDiscoveryRepositoryError: invalid_response`. It is paused, not abandoned, while the Product Owner-prioritized critical monitoring defect #627 is repaired.
+
+## Issue #626 — active critical Raspberry Pi deployment safety prerequisite
+
+Issue #626 is the current Work Package on `fix/626-atomic-pi-deploy`. Two previous in-place frontend builds hard-froze the 4 GiB Raspberry Pi, so the active dashboard must never be used as a build workspace again. The implementation now keeps each candidate in an immutable release directory, bounds the fallback container build with memory/CPU/PID limits, verifies a candidate on an isolated loopback port before activation, and restores the previous systemd unit if activation or health checks fail.
+
+The missing off-device artifact consumer is now implemented locally. `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH` verifies exact source SHA, SHA-256 artifact/package evidence, package/lock identity, baked LOCAL_LAN public runtime values, repository Node baseline, and the real installed runtime dependency snapshot. With an artifact supplied it skips `npm ci` and `next build` on the Pi and snapshots the verified `.next` plus matching existing `node_modules` into the candidate release. Artifact verification failure is fail-closed and does not silently fall back to a local build.
+
+Local verification is GREEN: frontend/deployment tests **17/17**, version-management/update pytest regression **42/42**, YAML parse, shell parse, `git diff --check`, and a real-Pi runtime dependency snapshot (`543` installed lock entries matched the target lock and `npm ls --omit=dev --all` passed). Exact-head PR/CI and isolated portable-artifact Pi acceptance are still required before #626 can merge.
+
+## Issue #627 — software/CI GREEN, Pi acceptance waiting on #626
+
+PR #628 for Issue #627 is open on exact head `6596bc25292a5badea13b0e4dea84804f3301ba1`. The monitoring/display ownership repair is implemented and all triggered exact-head GitHub gates are GREEN, including Core CI/production build `32363682430`, Authenticated Dashboard acquisition invariant `32363682812`, Offline Bundle `32363682463`, Acquisition Scale `32363682454`, Refrigeration Browser, Device Agent Fleet, Container Supply Chain, MQTT/DR TLS and Edge image.
+
+The remaining #627 acceptance is deliberately blocked on #626: a real Raspberry Pi Overview-only visibility change must run the exact #627 production artifact without compiling Next.js on the Pi, then prove registry revision/configured targets remain unchanged and monitored PostgreSQL telemetry continues with the browser closed. No Modbus write, hardware write or site cutover is authorized.
+
 ## Current execution boundary
 
-Next Ready Work Package: **Issue #606 — Add read-only LOCAL_LAN equipment discovery and adoption inbox**.
+Current Work Package: **Issue #626 — Make Raspberry Pi frontend deployment atomic and resource-safe**.
 
-#606 is now `status:ready`: #604 Equipment workspace and #605 metadata/adoption boundaries are complete. The next action is repository and architecture audit before implementation, with strict LOCAL_LAN CIDR allowlists, bounded read-only discovery, persisted candidate evidence and explicit operator adoption only. No public scanning, credential guessing, acquisition enablement, Modbus write, hardware write or site cutover is authorized.
+Next action: publish the artifact-consumer checkpoint, open the focused #626 PR, require exact-head CI and its portable recovery artifact, then perform isolated Raspberry Pi candidate acceptance without touching the active Dashboard. After GREEN #626 merge, build the exact #627 artifact through the merged reusable workflow, complete the real Overview acquisition invariant, merge #627, reconcile state, and resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
-The planned product dependency sequence is now **#606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#626 → #627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

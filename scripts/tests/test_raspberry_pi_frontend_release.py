@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +13,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "scripts" / "lib" / "raspberry-pi-frontend-release.sh"
 DEPLOY = ROOT / "scripts" / "deploy-current-head-raspberry-pi.sh"
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "frontend-release-artifact.yml"
 
 
 def run_bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -112,7 +117,7 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
 
     def test_deploy_never_builds_frontend_in_active_repository(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
-        resource_gate = text.index('log "Checking frontend deployment resource headroom"')
+        resource_gate = text.index('log "Checking frontend deployment resource headroom for bounded local build fallback"')
         device_build = text.index('log "Building current Device Agent image"')
         candidate_build = text.index('log "Building frontend candidate inside a bounded container"')
         backend_start = text.index('log "Starting central backend, MinIO and observability"')
@@ -126,6 +131,159 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn('WorkingDirectory=$FRONTEND_RELEASE_DIR', text)
         self.assertIn('rollback_dashboard_release', text)
         self.assertIn('nexolab_frontend_verify_public_contract', text)
+
+    def test_verified_off_device_artifact_imports_without_frontend_build(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            artifact = root / "artifact"
+            release = root / "release"
+            fake_bin = root / "bin"
+            for path in (repo, artifact, release, fake_bin):
+                path.mkdir(parents=True)
+
+            package = {"name": "fixture", "version": "1.0.0", "dependencies": {"next": "1.0.0"}}
+            package_lock = {
+                "name": "fixture",
+                "version": "1.0.0",
+                "lockfileVersion": 3,
+                "packages": {
+                    "": {"name": "fixture", "version": "1.0.0", "dependencies": {"next": "1.0.0"}},
+                    "node_modules/next": {
+                        "version": "1.0.0",
+                        "resolved": "https://example.invalid/next.tgz",
+                        "integrity": "sha512-fixture",
+                    },
+                },
+            }
+            hidden_lock = {"lockfileVersion": 3, "packages": {"node_modules/next": package_lock["packages"]["node_modules/next"]}}
+            for base in (repo, artifact, release):
+                (base / "package.json").write_text(json.dumps(package), encoding="utf-8")
+                (base / "package-lock.json").write_text(json.dumps(package_lock), encoding="utf-8")
+
+            (repo / "node_modules" / ".bin").mkdir(parents=True)
+            (repo / "node_modules" / ".package-lock.json").write_text(json.dumps(hidden_lock), encoding="utf-8")
+            next_bin = repo / "node_modules" / ".bin" / "next"
+            next_bin.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            next_bin.chmod(0o755)
+
+            values = {
+                "runtime_mode": "live",
+                "api_base_url": "http://172.18.48.34:8082",
+                "websocket_url": "ws://172.18.48.34:8082/api/v1/telemetry/live",
+                "auth_provider": "local",
+                "organization_id": "00000000-0000-0000-0000-000000000001",
+            }
+            chunk = artifact / ".next" / "static" / "chunks" / "app.js"
+            chunk.parent.mkdir(parents=True)
+            (artifact / ".next" / "BUILD_ID").write_text("fixture-build\n", encoding="utf-8")
+            chunk.write_text("\n".join(repr(value) for value in values.values()), encoding="utf-8")
+            commit = "a" * 40
+            (artifact / "frontend-source-sha.txt").write_text(commit + "\n", encoding="utf-8")
+            package_lines = []
+            for name in ("package.json", "package-lock.json"):
+                digest = hashlib.sha256((artifact / name).read_bytes()).hexdigest()
+                package_lines.append(f"{digest}  {name}")
+            (artifact / "frontend-package-sha256.txt").write_text("\n".join(package_lines) + "\n", encoding="utf-8")
+            (artifact / "frontend-runtime-contract.txt").write_text(
+                "\n".join(f"{key}={value}" for key, value in values.items()) + "\n",
+                encoding="utf-8",
+            )
+            manifest_targets = [
+                *sorted(path for path in (artifact / ".next").rglob("*") if path.is_file()),
+                artifact / "package.json",
+                artifact / "package-lock.json",
+                artifact / "frontend-source-sha.txt",
+                artifact / "frontend-package-sha256.txt",
+                artifact / "frontend-runtime-contract.txt",
+            ]
+            manifest = []
+            for path in manifest_targets:
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                manifest.append(f"{digest}  {path.relative_to(artifact)}")
+            (artifact / "frontend-artifact-sha256.txt").write_text("\n".join(manifest) + "\n", encoding="utf-8")
+
+            npm = fake_bin / "npm"
+            npm.write_text("#!/bin/sh\nprintf '{}\\n'\nexit 0\n", encoding="utf-8")
+            npm.chmod(0o755)
+            report = root / "import.txt"
+            args = [
+                artifact,
+                repo,
+                release,
+                commit,
+                *values.values(),
+                report,
+            ]
+            command = "source {} ; nexolab_frontend_import_artifact {}".format(
+                shlex.quote(str(HELPER)),
+                " ".join(shlex.quote(str(value)) for value in args),
+            )
+            result = run_bash(command, env={"PATH": f"{fake_bin}:{os.environ['PATH']}"})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("status=PASS", report.read_text())
+            self.assertIn("preparation=off-device-artifact", report.read_text())
+            self.assertEqual((release / ".next" / "BUILD_ID").read_text(), "fixture-build\n")
+            self.assertTrue((release / "node_modules" / ".bin" / "next").exists())
+            self.assertTrue((report.parent / f"{report.name}.public-contract").exists())
+
+            tampered_release = root / "release-tampered"
+            tampered_release.mkdir()
+            for name in ("package.json", "package-lock.json"):
+                (tampered_release / name).write_bytes((artifact / name).read_bytes())
+            chunk.write_text(chunk.read_text(encoding="utf-8") + "\ntampered\n", encoding="utf-8")
+            tampered_report = root / "tampered-import.txt"
+            tampered_args = [
+                artifact,
+                repo,
+                tampered_release,
+                commit,
+                *values.values(),
+                tampered_report,
+            ]
+            tampered_command = "source {} ; nexolab_frontend_import_artifact {}".format(
+                shlex.quote(str(HELPER)),
+                " ".join(shlex.quote(str(value)) for value in tampered_args),
+            )
+            tampered = run_bash(
+                tampered_command,
+                env={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+            )
+            self.assertEqual(tampered.returncode, 70)
+            self.assertIn("error=artifact-checksum-mismatch", tampered_report.read_text())
+            self.assertFalse((tampered_release / ".next").exists())
+
+    def test_off_device_artifact_checksum_tamper_fails_closed(self) -> None:
+        text = HELPER.read_text(encoding="utf-8")
+        self.assertIn("sha256sum --check frontend-artifact-sha256.txt", text)
+        self.assertIn("error=artifact-checksum-mismatch", text)
+        self.assertIn("error=source-sha-mismatch", text)
+        self.assertIn("error=runtime-contract-mismatch", text)
+        self.assertIn("error=runtime-dependency-snapshot-mismatch", text)
+
+    def test_deploy_routes_explicit_artifact_around_local_frontend_build(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        artifact_import = text.index('log "Importing verified off-device frontend artifact"')
+        local_build = text.index('log "Building frontend candidate inside a bounded container"')
+        self.assertLess(artifact_import, local_build)
+        self.assertIn("--frontend-artifact", text)
+        self.assertIn("nexolab_frontend_import_artifact", text)
+        self.assertIn("status=SKIPPED_OFF_DEVICE_ARTIFACT", text)
+        self.assertIn('if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then', text)
+
+    def test_ci_and_release_workflows_publish_integrity_bound_frontend_artifacts(self) -> None:
+        ci = CI_WORKFLOW.read_text(encoding="utf-8")
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        for text in (ci, release):
+            self.assertIn("frontend-source-sha.txt", text)
+            self.assertIn("frontend-package-sha256.txt", text)
+            self.assertIn("frontend-runtime-contract.txt", text)
+            self.assertIn("frontend-artifact-sha256.txt", text)
+            self.assertIn("find .next -type f -print0 | sort -z | xargs -0 sha256sum", text)
+            self.assertIn("include-hidden-files: true", text)
+        self.assertIn("nexolab-frontend-recovery-${{ github.event.pull_request.head.sha }}", ci)
+        self.assertIn("Reject native binaries in portable recovery .next artifact", ci)
+        self.assertIn("Reject native binaries in portable .next artifact", release)
 
     def test_unactivated_release_cleanup_is_path_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

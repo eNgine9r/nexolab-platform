@@ -129,6 +129,20 @@ jobs:
             exit 1
           fi
 
+      - name: Generate artifact integrity manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            find .next -type f -print0 | sort -z | xargs -0 sha256sum
+            sha256sum \
+              package.json \
+              package-lock.json \
+              frontend-source-sha.txt \
+              frontend-package-sha256.txt \
+              frontend-runtime-contract.txt
+          } > frontend-artifact-sha256.txt
+
       - name: Upload verified frontend release
         uses: actions/upload-artifact@v7
         with:
@@ -140,6 +154,7 @@ jobs:
             frontend-source-sha.txt
             frontend-package-sha256.txt
             frontend-runtime-contract.txt
+            frontend-artifact-sha256.txt
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

@@ -211,6 +211,142 @@ nexolab_frontend_write_provenance() {
   chmod 0600 "$release_dir/nexolab-frontend-provenance.txt"
 }
 
+nexolab_frontend_verify_artifact_runtime_dependencies() {
+  local repo=$1 artifact_root=$2 report=$3
+  local hidden_lock="$repo/node_modules/.package-lock.json"
+  local artifact_lock="$artifact_root/package-lock.json"
+  : > "$report"
+  if [[ ! -d "$repo/node_modules" || -L "$repo/node_modules" || ! -f "$hidden_lock" ]]; then
+    printf 'status=FAIL\nerror=runtime-node-modules-unavailable\n' > "$report"
+    return 70
+  fi
+  python3 - "$artifact_lock" "$hidden_lock" "$report" <<'PY_DEP'
+import json
+import sys
+from pathlib import Path
+
+artifact_lock = Path(sys.argv[1])
+hidden_lock = Path(sys.argv[2])
+report = Path(sys.argv[3])
+try:
+    target = json.loads(artifact_lock.read_text(encoding="utf-8"))["packages"]
+    installed = json.loads(hidden_lock.read_text(encoding="utf-8"))["packages"]
+except (OSError, KeyError, json.JSONDecodeError) as exc:
+    report.write_text(f"status=FAIL\nerror=invalid-lock-snapshot:{type(exc).__name__}\n", encoding="utf-8")
+    raise SystemExit(70)
+
+mismatches = []
+for package_path, installed_meta in installed.items():
+    target_meta = target.get(package_path)
+    if target_meta is None:
+        mismatches.append(f"unexpected:{package_path}")
+        continue
+    for field in ("version", "resolved", "integrity"):
+        if installed_meta.get(field) != target_meta.get(field):
+            mismatches.append(f"{field}:{package_path}")
+            break
+
+lines = [f"installed_packages={len(installed)}", f"target_packages={len(target)}"]
+if mismatches:
+    lines.insert(0, "status=FAIL")
+    lines.extend(f"mismatch={item}" for item in mismatches[:20])
+    report.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    raise SystemExit(70)
+lines.insert(0, "status=LOCK_MATCH")
+report.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY_DEP
+  local lock_rc=$?
+  (( lock_rc == 0 )) || return "$lock_rc"
+  if ! npm --prefix "$repo" ls --omit=dev --all --json > "${report}.npm-ls.json" 2> "${report}.npm-ls.stderr"; then
+    printf 'status=FAIL\nerror=npm-runtime-tree-invalid\n' >> "$report"
+    return 70
+  fi
+  printf 'status=PASS\n' >> "$report"
+}
+
+nexolab_frontend_import_artifact() {
+  local artifact_root=$1 repo=$2 release_dir=$3 target_commit=$4
+  local mode=$5 api_url=$6 websocket_url=$7 auth_provider=$8 organization_id=$9 report=${10}
+  local required source_sha
+  : > "$report"
+  for required in .next/BUILD_ID package.json package-lock.json frontend-source-sha.txt frontend-package-sha256.txt frontend-runtime-contract.txt frontend-artifact-sha256.txt; do
+    if [[ ! -f "$artifact_root/$required" ]]; then
+      printf 'status=FAIL\nerror=missing-artifact-file:%s\n' "$required" > "$report"
+      return 70
+    fi
+  done
+  if find "$artifact_root/.next" -type l -print -quit | grep -q .; then
+    printf 'status=FAIL\nerror=artifact-next-symlink-rejected\n' > "$report"
+    return 70
+  fi
+  source_sha="$(tr -d '[:space:]' < "$artifact_root/frontend-source-sha.txt")"
+  if [[ "$source_sha" != "$target_commit" ]]; then
+    printf 'status=FAIL\nerror=source-sha-mismatch\nexpected=%s\nactual=%s\n' "$target_commit" "$source_sha" > "$report"
+    return 70
+  fi
+  if ! (cd "$artifact_root" && sha256sum --check frontend-package-sha256.txt >/dev/null); then
+    printf 'status=FAIL\nerror=package-checksum-mismatch\n' > "$report"
+    return 70
+  fi
+  if ! (cd "$artifact_root" && sha256sum --check frontend-artifact-sha256.txt >/dev/null); then
+    printf 'status=FAIL\nerror=artifact-checksum-mismatch\n' > "$report"
+    return 70
+  fi
+  if ! cmp -s "$artifact_root/package.json" "$release_dir/package.json" || ! cmp -s "$artifact_root/package-lock.json" "$release_dir/package-lock.json"; then
+    printf 'status=FAIL\nerror=target-package-identity-mismatch\n' > "$report"
+    return 70
+  fi
+  if ! python3 - "$artifact_root/frontend-runtime-contract.txt" "$mode" "$api_url" "$websocket_url" "$auth_provider" "$organization_id" <<'PY_CONTRACT'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+expected = dict(zip(("runtime_mode", "api_base_url", "websocket_url", "auth_provider", "organization_id"), sys.argv[2:7], strict=True))
+parsed = {}
+for line in path.read_text(encoding="utf-8").splitlines():
+    if not line or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    if key in parsed:
+        raise SystemExit(70)
+    parsed[key] = value
+raise SystemExit(0 if parsed == expected else 70)
+PY_CONTRACT
+  then
+    printf 'status=FAIL\nerror=runtime-contract-mismatch\n' > "$report"
+    return 70
+  fi
+  if ! nexolab_frontend_verify_artifact_runtime_dependencies "$repo" "$artifact_root" "${report}.dependencies"; then
+    printf 'status=FAIL\nerror=runtime-dependency-snapshot-mismatch\n' > "$report"
+    return 70
+  fi
+  [[ ! -e "$release_dir/.next" && ! -e "$release_dir/node_modules" ]] || {
+    printf 'status=FAIL\nerror=release-runtime-already-present\n' > "$report"
+    return 70
+  }
+  cp -a "$artifact_root/.next" "$release_dir/.next" || return 70
+  cp -al "$repo/node_modules" "$release_dir/node_modules" || return 70
+  if [[ ! -x "$release_dir/node_modules/.bin/next" ]]; then
+    printf 'status=FAIL\nerror=next-runtime-executable-missing\n' > "$report"
+    return 70
+  fi
+  install -m 0600 "$artifact_root/frontend-source-sha.txt" "$release_dir/frontend-source-sha.txt"
+  install -m 0600 "$artifact_root/frontend-package-sha256.txt" "$release_dir/frontend-package-sha256.txt"
+  install -m 0600 "$artifact_root/frontend-runtime-contract.txt" "$release_dir/frontend-runtime-contract.txt"
+  install -m 0600 "$artifact_root/frontend-artifact-sha256.txt" "$release_dir/frontend-artifact-sha256.txt"
+  if ! nexolab_frontend_verify_public_contract \
+    "$release_dir" "$mode" "$api_url" "$websocket_url" "$auth_provider" "$organization_id" "${report}.public-contract"; then
+    printf 'status=FAIL\nerror=compiled-public-contract-mismatch\n' > "$report"
+    return 70
+  fi
+  {
+    printf 'status=PASS\n'
+    printf 'preparation=off-device-artifact\n'
+    printf 'source_sha=%s\n' "$source_sha"
+    printf 'build_id=%s\n' "$(cat "$release_dir/.next/BUILD_ID")"
+  } > "$report"
+}
+
 nexolab_frontend_discard_unactivated_release() {
   local releases_root=$1 release_dir=$2
   [[ -n "$release_dir" && -e "$release_dir" ]] || return 0
