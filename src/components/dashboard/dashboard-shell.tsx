@@ -19,12 +19,16 @@ import { NodesPanel } from "./nodes-panel";
 import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
-import { SensorManagementDialog } from "./sensor-management-dialog";
+import { TemperatureVisibilityDialog } from "./temperature-visibility-dialog";
 import { SessionsPanel } from "./sessions-panel";
 import { Sidebar } from "./sidebar";
 import { TelemetryStatusBar } from "./telemetry-status-bar";
 import { TemperatureChart } from "./temperature-chart";
 import { Topbar } from "./topbar";
+import {
+  filterOverviewTemperatureDiagnostics,
+  useOverviewTemperatureVisibility,
+} from "./use-overview-temperature-visibility";
 
 function PanelAction({ label, href }: { label: string; href: string }) {
   return (
@@ -41,18 +45,23 @@ function PanelAction({ label, href }: { label: string; href: string }) {
 export function DashboardShell() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
+  const [temperatureVisibilityOpen, setTemperatureVisibilityOpen] = useState(false);
   const security = useDashboardSecurity();
   const securityReady = security.mode === "demo" || security.state === "ready";
   const organizationId = security.membership?.organizationId ?? null;
-  const sensorManagement = useXjp60dSensorManagement({
+  const monitoring = useXjp60dSensorManagement({
     enabled: security.mode === "live" && securityReady,
     organizationId,
+  });
+  const temperatureVisibility = useOverviewTemperatureVisibility({
+    enabled: security.mode === "live" && securityReady,
+    organizationId,
+    monitoredChannelIds: monitoring.monitoredChannelIds,
   });
   const telemetry = useDashboardTelemetry({
     enabled: securityReady,
     organizationId,
-    temperatureChannelIds: security.mode === "live" ? sensorManagement.activeChannelIds : null,
+    temperatureChannelIds: security.mode === "live" ? temperatureVisibility.visibleChannelIds : null,
   });
 
   if (
@@ -86,13 +95,6 @@ export function DashboardShell() {
       security.session &&
       security.membership &&
       hasPermission(security.session, security.membership.organizationId, "sessions.manage"),
-    );
-  const canManageSensors =
-    security.mode === "demo" ||
-    Boolean(
-      security.session &&
-      security.membership &&
-      hasPermission(security.session, security.membership.organizationId, "equipment.manage"),
     );
 
   return (
@@ -152,10 +154,11 @@ export function DashboardShell() {
                     telemetry.mode === "live" ? (
                       <button
                         type="button"
-                        onClick={() => setSensorDialogOpen(true)}
-                        aria-label="Керувати температурними датчиками"
-                        title="Керувати температурними датчиками"
-                        className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"
+                        onClick={() => setTemperatureVisibilityOpen(true)}
+                        disabled={monitoring.isLoading}
+                        aria-label="Налаштувати датчики на графіку Огляду"
+                        title="Налаштувати відображення на Огляді"
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.065] bg-white/[0.02] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200 disabled:cursor-wait disabled:opacity-45"
                       >
                         <Settings2 className="h-3.5 w-3.5" />
                       </button>
@@ -174,7 +177,15 @@ export function DashboardShell() {
                     historyError={telemetry.historyError}
                     onHistoryRangeChange={telemetry.setHistoryRange}
                     onHistoryRetry={telemetry.retryHistory}
-                    targetDiagnostics={sensorManagement.configuration?.target_diagnostics ?? []}
+                    targetDiagnostics={filterOverviewTemperatureDiagnostics(
+                      monitoring.configuration?.target_diagnostics ?? [],
+                      temperatureVisibility.visibleChannelIds,
+                    )}
+                    allMonitoredChannelsHidden={
+                      temperatureVisibility.loaded &&
+                      monitoring.monitoredChannelIds.length > 0 &&
+                      temperatureVisibility.visibleChannelIds.length === 0
+                    }
                   />
                 </Panel>
               }
@@ -229,15 +240,14 @@ export function DashboardShell() {
         </main>
       </div>
 
-      <SensorManagementDialog
-        open={sensorDialogOpen}
-        canManage={canManageSensors}
-        management={sensorManagement}
-        onClose={() => setSensorDialogOpen(false)}
-        onSaved={() => {
-          telemetry.retry();
-          telemetry.retryHistory();
-        }}
+      <TemperatureVisibilityDialog
+        open={temperatureVisibilityOpen}
+        monitoredChannelIds={monitoring.monitoredChannelIds}
+        visibleChannelIds={temperatureVisibility.visibleChannelIds}
+        targetDiagnostics={monitoring.configuration?.target_diagnostics ?? []}
+        monitoringError={monitoring.error}
+        onApply={temperatureVisibility.setVisibleChannelIds}
+        onClose={() => setTemperatureVisibilityOpen(false)}
       />
     </div>
   );

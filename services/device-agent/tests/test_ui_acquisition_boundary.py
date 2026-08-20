@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 HOOK = ROOT / "src/hooks/use-xjp60d-sensor-management.ts"
 ROUTE = ROOT / "src/app/api/device-agent/xjp60d/route.ts"
+DASHBOARD_SHELL = ROOT / "src/components/dashboard/dashboard-shell.tsx"
+SETTINGS_SCREEN = ROOT / "src/components/settings/settings-screen.tsx"
 
 
 class UIAcquisitionBoundaryTests(unittest.TestCase):
@@ -50,6 +52,16 @@ class UIAcquisitionBoundaryTests(unittest.TestCase):
         self.assertIsNotNone(get_handler)
         self.assertIsNotNone(post_handler)
         self.assertIsNotNone(put_handler)
+
+    def test_overview_is_display_only_and_settings_owns_commissioning(self) -> None:
+        dashboard = DASHBOARD_SHELL.read_text(encoding="utf-8")
+        settings = SETTINGS_SCREEN.read_text(encoding="utf-8")
+
+        self.assertIn("TemperatureVisibilityDialog", dashboard)
+        self.assertNotIn("SensorManagementDialog", dashboard)
+        self.assertNotIn("sensorManagement.save", dashboard)
+        self.assertIn("SensorManagementDialog", settings)
+        self.assertIn("canManageSensorMonitoring", settings)
 
     def test_normal_telemetry_routes_do_not_reference_device_agent_control_path(self) -> None:
         normal_roots = [

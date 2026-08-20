@@ -50,6 +50,12 @@ type SettingsWorkspaceProps = {
   preferenceRecoveryReason: string | null;
   onPreferenceChange: (key: EditablePreference, value: SettingsPreferences[EditablePreference]) => void;
   onPreferencesReset: () => void;
+  canManageSensorMonitoring?: boolean;
+  sensorMonitoringReady?: boolean;
+  sensorMonitoringError?: string | null;
+  sensorMonitoringLoading?: boolean;
+  onRetrySensorMonitoring?: () => void;
+  onOpenSensorMonitoring?: () => void;
 };
 
 type PermissionGroup = {
@@ -189,6 +195,12 @@ export function SettingsWorkspace({
   preferenceRecoveryReason,
   onPreferenceChange,
   onPreferencesReset,
+  canManageSensorMonitoring = false,
+  sensorMonitoringReady = false,
+  sensorMonitoringError = null,
+  sensorMonitoringLoading = false,
+  onRetrySensorMonitoring = () => undefined,
+  onOpenSensorMonitoring = () => undefined,
 }: SettingsWorkspaceProps) {
   const status = statusCopy[diagnostics.status];
   const StatusIcon = status.icon;
@@ -214,8 +226,8 @@ export function SettingsWorkspace({
               </div>
               <p className="mt-5 text-sm leading-6 text-slate-400 sm:text-base">
                 Перевірений контекст організації, очищена runtime-діагностика та локальні presentation
-                preferences. Ця сторінка не є прихованим administration backend і не виконує device або
-                deployment writes.
+                preferences. Вибір відображення не впливає на acquisition; окремий commissioning workflow
+                нижче керує лише persisted read-only monitoring enrollment.
               </p>
             </div>
 
@@ -519,6 +531,49 @@ export function SettingsWorkspace({
             description="Settings не дублює вже реалізовані редактори та operations."
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {canManageSensorMonitoring && sensorMonitoringError ? (
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-2xl border border-amber-300/15 bg-amber-400/[0.05] p-4 text-amber-100 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium">Не вдалося завантажити конфігурацію моніторингу</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/70">{sensorMonitoringError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onRetrySensorMonitoring}
+                  disabled={sensorMonitoringLoading}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-200/20 px-3.5 py-2.5 text-xs font-medium text-amber-50 transition hover:border-amber-200/35 disabled:cursor-wait disabled:opacity-50"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${sensorMonitoringLoading ? "animate-spin" : ""}`} />
+                  Повторити завантаження
+                </button>
+              </div>
+            ) : null}
+            {canManageSensorMonitoring ? (
+              <button
+                type="button"
+                onClick={onOpenSensorMonitoring}
+                disabled={!sensorMonitoringReady}
+                className="group rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.035] p-4 text-left transition hover:border-cyan-300/30 disabled:cursor-wait disabled:opacity-50"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300/10 bg-cyan-400/[0.05]">
+                    <MonitorCog className="h-5 w-5 text-cyan-200" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-medium text-slate-100">Моніторинг XJP60D</h3>
+                      <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Read-only discovery та явне persisted enrollment каналів у безперервний збір.
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ) : null}
             {membership.permissions.includes("project_versions.manage") ? (
               <Link
                 href="/settings/system/version"
@@ -600,7 +655,7 @@ export function SettingsWorkspace({
           <ul className="mt-5 space-y-3 text-sm text-slate-400">
             {[
               "Користувачі, ролі та permissions адмініструються в окремому Users & Access workspace.",
-              "Node credentials, Modbus/RS-485 parameters і device writes відсутні.",
+              "Node credentials, фізичні Modbus/RS-485 parameters і controller writes відсутні; monitoring enrollment змінює лише read-only polling eligibility.",
               "Retention, backup, restore, CORS, TLS, DNS і VPN не змінюються з browser UI.",
               "Secret rotation і production/site cutover потребують окремого контрольованого Work Package.",
             ].map((item) => (

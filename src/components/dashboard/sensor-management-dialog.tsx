@@ -43,7 +43,7 @@ function diagnosticLabel(state: string, recoveryState: string): string {
   if (state === "communication_error") return "Помилка зв’язку";
   if (state === "sensor_error") return "Помилка входу датчика";
   if (recoveryState === "recovered") return "Зв’язок відновлено";
-  if (state === "valid") return "Активний моніторинг";
+  if (state === "valid") return "Моніторинг · дані надходять";
   return state;
 }
 
@@ -58,7 +58,8 @@ function SensorManagementDialogContent({
   onClose,
   onSaved,
 }: SensorManagementDialogProps) {
-  const [selected, setSelected] = useState<string[]>(() => [...management.activeChannelIds]);
+  const [selected, setSelected] = useState<string[]>(() => [...management.monitoredChannelIds]);
+  const configurationReady = management.configuration !== null && !management.isLoading;
 
   const points = useMemo(() => {
     const map = new Map<string, DisplayPoint>();
@@ -66,7 +67,7 @@ function SensorManagementDialogContent({
     for (const point of [...(discovery?.available_points ?? []), ...(discovery?.unavailable_points ?? [])]) {
       map.set(point.channel_id, point);
     }
-    for (const channelId of management.activeChannelIds) {
+    for (const channelId of management.monitoredChannelIds) {
       if (map.has(channelId)) continue;
       const [unitId, channel] = channelId.split("-").map(Number);
       map.set(channelId, {
@@ -81,7 +82,7 @@ function SensorManagementDialogContent({
       });
     }
     return [...map.values()].sort((left, right) => compareChannels(left.channel_id, right.channel_id));
-  }, [management.activeChannelIds, management.configuration?.last_discovery]);
+  }, [management.monitoredChannelIds, management.configuration?.last_discovery]);
 
   const discovery = management.configuration?.last_discovery;
   const diagnostics = useMemo(
@@ -98,6 +99,7 @@ function SensorManagementDialogContent({
   };
 
   const save = async () => {
+    if (!canManage || !configurationReady || management.isSaving || management.isDiscovering) return;
     if (await management.save(selected)) {
       onSaved();
       onClose();
@@ -116,11 +118,11 @@ function SensorManagementDialogContent({
           <div>
             <p className="text-[9px] tracking-[0.18em] text-cyan-300 uppercase">RS-485 commissioning</p>
             <h2 id="sensor-management-title" className="mt-1 text-base font-semibold text-white">
-              Керування температурними датчиками
+              Безперервний моніторинг XJP60D
             </h2>
             <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">
-              Безперервно опитуються і відображаються лише обрані канали. Повний пошук запускається вручну та
-              тимчасово призупиняє звичайний цикл RS-485.
+              Discovery лише виявляє канали. Безперервно опитуються тільки явно увімкнені тут канали;
+              Overview, Live та підкладки не змінюють monitoring enrollment.
             </p>
           </div>
           <button
@@ -136,7 +138,7 @@ function SensorManagementDialogContent({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.05] px-5 py-3">
           <div className="flex flex-wrap gap-2 text-[9px]">
             <span className="rounded-full border border-emerald-300/15 bg-emerald-400/[0.05] px-2.5 py-1 text-emerald-200">
-              {selected.length} активних
+              {selected.length} у моніторингу
             </span>
             <span className="rounded-full border border-white/[0.07] px-2.5 py-1 text-slate-400">
               {discovery?.available_points.length ?? 0} підключених знайдено
@@ -189,10 +191,10 @@ function SensorManagementDialogContent({
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {points.map((point) => {
                 const checked = selected.includes(point.channel_id);
-                const active = management.activeChannelIds.includes(point.channel_id);
+                const active = management.monitoredChannelIds.includes(point.channel_id);
                 const diagnostic = active ? diagnostics.get(point.channel_id) : undefined;
                 const unavailable = point.quality !== "valid";
-                const disabled = !canManage || (unavailable && !checked);
+                const disabled = !canManage || !configurationReady || (unavailable && !checked);
                 return (
                   <label
                     key={point.channel_id}
@@ -245,12 +247,12 @@ function SensorManagementDialogContent({
 
         <footer className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">
           <p className="text-[9px] text-slate-500">
-            Збереження змінює hot polling set без перезапуску Device Agent.
+            Commissioning-операція змінює persisted monitoring set Device Agent; Modbus залишається read-only.
           </p>
           <button
             type="button"
             onClick={() => void save()}
-            disabled={!canManage || management.isSaving || management.isDiscovering || selected.length === 0}
+            disabled={!canManage || !configurationReady || management.isSaving || management.isDiscovering}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {management.isSaving ? (
@@ -258,7 +260,7 @@ function SensorManagementDialogContent({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Зберегти активні канали
+            Зберегти моніторинг
           </button>
         </footer>
       </section>

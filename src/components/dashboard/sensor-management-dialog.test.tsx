@@ -1,11 +1,35 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Xjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
 
 import { SensorManagementDialog } from "./sensor-management-dialog";
 
-describe("SensorManagementDialog acquisition state", () => {
+describe("SensorManagementDialog monitoring enrollment", () => {
+  it("cannot save an empty monitoring set before authoritative configuration loads", () => {
+    const save = vi.fn();
+    const management: Xjp60dSensorManagement = {
+      configuration: null,
+      monitoredChannelIds: [],
+      isLoading: true,
+      isDiscovering: false,
+      isSaving: false,
+      error: null,
+      refresh: vi.fn(),
+      discover: vi.fn(),
+      save,
+    };
+
+    render(
+      <SensorManagementDialog open canManage management={management} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
+
+    const saveButton = screen.getByRole("button", { name: "Зберегти моніторинг" });
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it("distinguishes an active target awaiting its first scheduler attempt", () => {
     const management: Xjp60dSensorManagement = {
       configuration: {
@@ -34,7 +58,7 @@ describe("SensorManagementDialog acquisition state", () => {
           },
         ],
       },
-      activeChannelIds: ["126-04"],
+      monitoredChannelIds: ["126-04"],
       isLoading: false,
       isDiscovering: false,
       isSaving: false,
@@ -81,7 +105,7 @@ describe("SensorManagementDialog acquisition state", () => {
         },
         target_diagnostics: [],
       },
-      activeChannelIds: [],
+      monitoredChannelIds: [],
       isLoading: false,
       isDiscovering: false,
       isSaving: false,

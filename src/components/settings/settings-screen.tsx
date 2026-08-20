@@ -6,6 +6,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { RotateCcw, Settings2 } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
+import { SensorManagementDialog } from "@/components/dashboard/sensor-management-dialog";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
@@ -15,6 +16,7 @@ import {
 } from "@/features/settings/runtime-diagnostics";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useSettingsPreferences } from "@/hooks/use-settings-preferences";
+import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
 
 function subscribeBrowserOrigin(): () => void {
   return () => undefined;
@@ -70,6 +72,13 @@ export function SettingsScreen() {
   const security = useDashboardSecurity();
   const localPreferences = useSettingsPreferences();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sensorMonitoringOpen, setSensorMonitoringOpen] = useState(false);
+  const securityReady = security.mode === "live" && security.state === "ready";
+  const organizationId = security.membership?.organizationId ?? null;
+  const sensorMonitoring = useXjp60dSensorManagement({
+    enabled: securityReady,
+    organizationId,
+  });
   const browserOrigin = useSyncExternalStore(
     subscribeBrowserOrigin,
     readBrowserOrigin,
@@ -117,6 +126,9 @@ export function SettingsScreen() {
     );
   }
 
+  const canManageSensorMonitoring = security.membership.permissions.includes("equipment.manage");
+  const sensorMonitoringReady = sensorMonitoring.configuration !== null && !sensorMonitoring.isLoading;
+
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
       <Sidebar
@@ -151,10 +163,28 @@ export function SettingsScreen() {
               preferenceRecoveryReason={localPreferences.recoveryReason}
               onPreferenceChange={localPreferences.updatePreference}
               onPreferencesReset={localPreferences.reset}
+              canManageSensorMonitoring={canManageSensorMonitoring}
+              sensorMonitoringReady={sensorMonitoringReady}
+              sensorMonitoringError={sensorMonitoring.error}
+              sensorMonitoringLoading={sensorMonitoring.isLoading}
+              onRetrySensorMonitoring={() => void sensorMonitoring.refresh()}
+              onOpenSensorMonitoring={() => {
+                if (sensorMonitoringReady) {
+                  setSensorMonitoringOpen(true);
+                }
+              }}
             />
           </div>
         </main>
       </div>
+
+      <SensorManagementDialog
+        open={sensorMonitoringOpen}
+        canManage={canManageSensorMonitoring}
+        management={sensorMonitoring}
+        onClose={() => setSensorMonitoringOpen(false)}
+        onSaved={() => undefined}
+      />
     </div>
   );
 }

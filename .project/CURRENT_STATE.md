@@ -4,9 +4,9 @@ Updated: 2026-08-20
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` after the GREEN #626 merge is `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Issue #626 changes deployment/update safety infrastructure rather than operator product behavior.
+Accepted product-code baseline remains `ad2a49473c9798dc8e4f374ec031b2144c0606e2`, the GREEN merge of PR #621 — **feat(equipment): add permissioned metadata editing**. Exact repository `main` is `bd28ab87b8a845a634c83fdbe2965f5bc6424996`, the GREEN post-#626 state reconciliation merge from PR #630; the underlying #626 implementation merge is `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629). Issue #626 changes deployment/update safety infrastructure rather than operator product behavior.
 
-The reconciled repository baseline and `origin/main` are `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
+The reconciled repository baseline and `origin/main` are `bd28ab87b8a845a634c83fdbe2965f5bc6424996`. The production-deployed product SHA remains `7a19f53950492a40255c53b1d2018bbdff9466e2` because #626 acceptance used an isolated candidate and performed no production/site cutover. The real Device Agent AcquisitionRegistry is currently revision **9** with **33 poll-eligible targets**; the monitored XJP60D set is `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`. `le01mp-201` remains intentionally disabled while W2 is externally owned.
 
 ## Issue #584 — complete
 
@@ -195,19 +195,23 @@ Issue #626 is complete. PR #629 merged to `main` as `6bc73390b5fa5e41aa1cebcbfdb
 
 The final deployment-only rollback correction is also merged: post-activation Telemetry, Device Agent or Dashboard readiness failure restores the last-known-good Dashboard unit. Deployment/auth/capacity regression is 27/27 PASS and version-management/update regression is 42/42 PASS.
 
-## Issue #627 — active critical Raspberry Pi acceptance
+## Issue #627 — final acceptance GREEN, pending state-only CI/merge
 
-PR #628 remains open from checkpoint `6596bc25292a5badea13b0e4dea84804f3301ba1`; its original software/CI gates are GREEN. With #626 merged, the next step is to merge current `main` into the feature branch without force-push, reconcile only `.project/**`, rerun focused checks, and produce an exact updated ARM64 runtime artifact.
+PR #628 is open and mergeable. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows: Core CI `32411093778`, Authenticated Dashboard `32411094072` (GREEN rerun after the known unrelated equipment WebSocket timing flake), Offline Bundle `32411094258`, Acquisition Scale `32411093918`, Device Agent Fleet `32411095164`, Refrigeration Browser `32411094752`, Container Supply Chain `32411093905`, MQTT TLS Fleet `32411093449`, Disaster Recovery TLS `32411094005`, and Edge image `32411093799`.
 
-Real acceptance will hide monitored channel `108-01` only from Overview and prove Acquisition Registry revision/active set/configured target count stay unchanged while physical request counters and PostgreSQL `telemetry_latest.sample_id/captured_at` continue advancing after the browser is closed. Opera Browser Connector is currently disconnected; this does not block branch sync, tests, CI or artifact production, but may require reconnection when the UI interaction step is reached if no equivalent authenticated browser session is available. No monitoring-enrollment mutation, Modbus write, hardware write or site cutover is authorized.
+Off-device ARM64 workflow `32411213218` is GREEN. Artifact `9422408464`, digest `sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766`, is exact source `5a4da397`, `linux/arm64`, Node `22.23.1`, build ID `lEMKAWa6inRxQdcp095oY`. Pi evidence: `runtime/acceptance/issue-627-final-5a4da397`; import PASS and isolated `127.0.0.1:3100` 5/5 routes HTTP 200; production Dashboard MainPID `3696` / HTTP 200 unchanged.
+
+The exact final Overview invariant is PASS for monitored `108-01`: display preference changed without Device Agent mutation requests; registry `9 -> 9`; active set unchanged; configured/scheduler targets `33 -> 33`; service operations `{}`. After browser close, physical requests advanced `91 -> 157` (+66) and PostgreSQL latest sample ID `5116749 -> 5117087` (+338), final quality `valid`. Candidate `:3100` was stopped and production remained unchanged. The hide-all truthful empty-state regression is covered by focused TemperatureChart/visibility tests 8/8 PASS.
+
+No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
 
 ## Current execution boundary
 
-Current Work Package: **Issue #627 — Decouple continuous sensor monitoring from Overview and Live visibility**.
+Current Work Package: **Issue #627 — final state-only checkpoint before merge**.
 
-Next action: merge `main@6bc73390b5fa5e41aa1cebcbfdb833f917346525` into `fix/627-monitoring-display-decoupling`, reconcile state conflicts, rerun focused checks, push PR #628, require exact-head CI, build the exact ARM64 artifact, and complete the real Raspberry Pi Overview/browser-closed acquisition invariant. After #627 GREEN merge and post-merge reconciliation, resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
+Next action: push the final #627 state-only checkpoint, require GREEN exact state-head CI/review, merge PR #628, reconcile main, then resume #606 from `af52c19ff67538f21399e258fbcc6aeef7ba96ab`.
 
-Planned sequence: **#627 Pi acceptance/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#627 state-only CI/merge → resume #606 → #607 → #589 → #590**. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 

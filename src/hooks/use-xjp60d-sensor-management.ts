@@ -6,8 +6,7 @@ import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 const CONTROL_URL = "/api/device-agent/xjp60d";
-const STORAGE_PREFIX = "nexolab.xjp60d.active-points";
-const DEFAULT_ACTIVE_POINTS = ["106-03", "106-04"] as const;
+const MONITORING_CACHE_PREFIX = "nexolab.xjp60d.active-points";
 
 export type Xjp60dDiscoveryPoint = {
   channel_id: string;
@@ -59,7 +58,7 @@ export type Xjp60dConfiguration = {
 
 export type Xjp60dSensorManagement = {
   configuration: Xjp60dConfiguration | null;
-  activeChannelIds: string[];
+  monitoredChannelIds: string[];
   isLoading: boolean;
   isDiscovering: boolean;
   isSaving: boolean;
@@ -75,25 +74,21 @@ type Options = {
 };
 
 function storageKey(organizationId: string | null): string {
-  return `${STORAGE_PREFIX}.${organizationId ?? "default"}`;
-}
-
-function safeDefaultPoints(): string[] {
-  return [...DEFAULT_ACTIVE_POINTS];
+  return `${MONITORING_CACHE_PREFIX}.${organizationId ?? "default"}`;
 }
 
 function readCachedPoints(organizationId: string | null): string[] {
   try {
     const value = window.localStorage.getItem(storageKey(organizationId));
-    if (!value) return safeDefaultPoints();
+    if (!value) return [];
     const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed)) return safeDefaultPoints();
+    if (!Array.isArray(parsed)) return [];
     const points = parsed.filter(
       (item): item is string => typeof item === "string" && /^\d{1,3}-0[1-6]$/.test(item),
     );
-    return points.length > 0 ? points : safeDefaultPoints();
+    return points;
   } catch {
-    return safeDefaultPoints();
+    return [];
   }
 }
 
@@ -186,9 +181,7 @@ function normalizeConfiguration(value: unknown): Xjp60dConfiguration {
 
 export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagement {
   const [configuration, setConfiguration] = useState<Xjp60dConfiguration | null>(null);
-  const [cachedPoints, setCachedPoints] = useState<string[]>(() =>
-    options.enabled ? safeDefaultPoints() : [],
-  );
+  const [cachedPoints, setCachedPoints] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(options.enabled);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -313,7 +306,7 @@ export function useXjp60dSensorManagement(options: Options): Xjp60dSensorManagem
 
   return {
     configuration,
-    activeChannelIds: configuration?.active_points ?? cachedPoints,
+    monitoredChannelIds: configuration?.active_points ?? cachedPoints,
     isLoading,
     isDiscovering,
     isSaving,

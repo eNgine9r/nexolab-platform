@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-20T17:15:28+03:00",
+  "timestamp": "2026-08-20T19:12:57.313424Z",
   "actor": "ChatGPT",
-  "event": "issue_626_merged_green_issue_627_active",
-  "repository_main_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
+  "event": "issue_627_final_acceptance_green_pending_state_ci_merge",
+  "repository_main_sha": "bd28ab87b8a845a634c83fdbe2965f5bc6424996",
   "deployed_repository_sha": "7a19f53950492a40255c53b1d2018bbdff9466e2",
   "completed_work": {
     "issue_608": {
@@ -174,10 +174,10 @@
   "current_boundary": {
     "issue": 627,
     "title": "Decouple continuous sensor monitoring from Overview and Live visibility",
-    "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE"
+    "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE"
   },
-  "next_action": "Merge current main into fix/627-monitoring-display-decoupling without force-push, reconcile only the four .project conflicts, rerun focused checks, push the updated PR #628 head, require exact-head CI, build the exact ARM64 runtime artifact, then complete the real Raspberry Pi Overview-only visibility invariant and browser-closed telemetry proof.",
-  "planned_queue": [626, 627, 606, 607, 589, 590],
+  "next_action": "Commit and push the final Issue #627 state-only checkpoint, require exact state-head CI and clean review, merge PR #628, reconcile post-merge state, then resume Issue #606 from af52c19ff67538f21399e258fbcc6aeef7ba96ab.",
+  "planned_queue": [627, 606, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -194,12 +194,37 @@
     "issue_627": {
       "issue": 627,
       "pull_request": 628,
-      "exact_head_sha": "6596bc25292a5badea13b0e4dea84804f3301ba1",
-      "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE",
-      "core_ci": "PASS_32363682430",
-      "authenticated_dashboard_acceptance": "PASS_32363682812",
-      "offline_bundle": "PASS_32363682463",
-      "acquisition_scale": "PASS_32363682454"
+      "verified_product_head_sha": "5a4da3974d44efd3fd5fa9d5523c4d28e077e94b",
+      "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE",
+      "core_ci": "PASS_32411093778",
+      "authenticated_dashboard_acceptance": "PASS_32411094072_RERUN",
+      "offline_bundle": "PASS_32411094258",
+      "acquisition_scale": "PASS_32411093918",
+      "device_agent_fleet": "PASS_32411095164",
+      "refrigeration_browser": "PASS_32411094752",
+      "container_supply_chain": "PASS_32411093905",
+      "mqtt_tls_fleet": "PASS_32411093449",
+      "disaster_recovery_tls": "PASS_32411094005",
+      "edge_image": "PASS_32411093799",
+      "arm64_workflow": "PASS_32411213218",
+      "arm64_artifact_id": 9422408464,
+      "arm64_artifact_digest": "sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766",
+      "hardware_evidence": "runtime/acceptance/issue-627-final-5a4da397",
+      "artifact_import": "PASS",
+      "candidate_routes": "PASS_5_OF_5_HTTP_200",
+      "overview_hide_108_01": "PASS_DISPLAY_ONLY_NO_MUTATIONS",
+      "registry_revision": "PASS_9_TO_9",
+      "configured_targets": "PASS_33_TO_33",
+      "physical_requests_browser_closed": "PASS_91_TO_157_DELTA_66",
+      "postgres_browser_closed": "PASS_5116749_TO_5117087_DELTA_338",
+      "production_preserved": true,
+      "candidate_port_3100_cleaned": true,
+      "device_agent_restart_context": "STARTED_2026-08-20T16:17:57Z_BEFORE_UI_PROOF",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false,
+      "arm64_build_id": "lEMKAWa6inRxQdcp095oY",
+      "review_threads": "PASS_ALL_RESOLVED"
     },
     "issue_606": {
       "issue": 606,
@@ -211,7 +236,7 @@
   "active_work": {
     "issue_627": {
       "issue": 627,
-      "status": "ACTIVE_PENDING_MAIN_SYNC_ARM64_ARTIFACT_PI_ACCEPTANCE",
+      "status": "FINAL_ACCEPTANCE_GREEN_PENDING_STATE_CI_MERGE",
       "modbus_write": "none",
       "hardware_write": "none"
     }

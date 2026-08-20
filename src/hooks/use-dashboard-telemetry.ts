@@ -99,20 +99,6 @@ function securedAdapter(config: TelemetryRuntimeConfig, organizationId: string |
   });
 }
 
-function filterTemperatureScope(
-  view: DashboardTelemetryView,
-  allowedChannels: ReadonlySet<string> | null,
-): DashboardTelemetryView {
-  if (allowedChannels === null) return view;
-  const visible = (sample: TelemetrySample) =>
-    !isTemperatureProbeSample(sample) || allowedChannels.has(sample.channel_id);
-  const samples = view.samples.filter(visible);
-  const freshSamples = view.freshSamples.filter(visible);
-  const lastCapturedAt = samples[0]?.captured_at ?? null;
-  const ageMs = lastCapturedAt ? Math.max(0, Date.now() - Date.parse(lastCapturedAt)) : null;
-  return { ...view, samples, freshSamples, lastCapturedAt, ageMs };
-}
-
 function advanceHistoryWindow(
   current: TelemetryHistoryWindow,
   incoming: readonly TelemetrySample[],
@@ -394,19 +380,15 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
       return null;
     }
-    return filterTemperatureScope(
-      deriveDashboardTelemetry(store, {
-        now: clock,
-        staleAfterMs: STALE_AFTER_MS,
-        hasLoadedSnapshot,
-        connectionState,
-        error,
-      }),
-      allowedTemperatureChannels,
-    );
+    return deriveDashboardTelemetry(store, {
+      now: clock,
+      staleAfterMs: STALE_AFTER_MS,
+      hasLoadedSnapshot,
+      connectionState,
+      error,
+    });
   }, [
     activeScopeKey,
-    allowedTemperatureChannels,
     clock,
     connectionState,
     enabled,
@@ -487,7 +469,9 @@ export function useDashboardTelemetry(options: DashboardTelemetryOptions = {}): 
     status: resolvedView.status,
     view: resolvedView,
     kpis: buildLiveDashboardKpis(resolvedView),
-    temperatures: selectProductionTemperatures(resolvedView),
+    temperatures: selectProductionTemperatures(resolvedView).filter(
+      (sample) => allowedTemperatureChannels === null || allowedTemperatureChannels.has(sample.channel_id),
+    ),
     historySamples: visibleHistory,
     historyRange,
     historyStatus: visibleHistoryStatus,
