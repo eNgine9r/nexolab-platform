@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 import type {
   EquipmentDiscoveryOverview,
   EquipmentDiscoveryRepository,
+  EquipmentDiscoveryScan,
 } from "@/features/equipment/discovery-repository";
 
 import { EquipmentDiscoveryInbox, suggestEquipmentMatches } from "./equipment-discovery-inbox";
@@ -50,13 +51,12 @@ function overview(): EquipmentDiscoveryOverview {
   };
 }
 
-function repository() {
-  const getOverview = vi.fn(async () => overview());
-  const startScan = vi.fn<EquipmentDiscoveryRepository["startScan"]>(async (input) => ({
+function runningScan(): EquipmentDiscoveryScan {
+  return {
     id: "scan-2",
     status: "running",
-    requestedCidrs: input.cidrs,
-    requestedPorts: input.ports,
+    requestedCidrs: ["192.168.50.0/30"],
+    requestedPorts: [80, 443],
     hostBudget: 2,
     probeBudget: 4,
     hostsConsidered: 0,
@@ -76,6 +76,15 @@ function repository() {
     completedAt: null,
     errorCode: null,
     errorMessage: null,
+  };
+}
+
+function repository() {
+  const getOverview = vi.fn(async () => overview());
+  const startScan = vi.fn<EquipmentDiscoveryRepository["startScan"]>(async (input) => ({
+    ...runningScan(),
+    requestedCidrs: input.cidrs,
+    requestedPorts: input.ports,
   }));
   const cancelScan = vi.fn<EquipmentDiscoveryRepository["cancelScan"]>();
   const actOnCandidate = vi.fn<EquipmentDiscoveryRepository["actOnCandidate"]>();
@@ -116,6 +125,47 @@ describe("EquipmentDiscoveryInbox", () => {
 
     await screen.findByText("Вкажіть хоча б один явний CIDR для ручного scan.");
     expect(repo.startScan).not.toHaveBeenCalled();
+  });
+
+  it("continues active-scan polling after a transient overview failure", async () => {
+    vi.useFakeTimers();
+    try {
+      const repo = repository();
+      const active = { ...overview(), activeScan: runningScan() };
+      const completed = {
+        ...overview(),
+        activeScan: null,
+        lastScan: {
+          ...runningScan(),
+          status: "completed" as const,
+          completedAt: "2026-08-20T06:01:00Z",
+        },
+      };
+      repo.getOverview.mockReset();
+      repo.getOverview
+        .mockResolvedValueOnce(active)
+        .mockRejectedValueOnce(new Error("temporary overview failure"))
+        .mockResolvedValueOnce(completed);
+
+      render(<EquipmentDiscoveryInbox repository={repo.value} canManage assets={[]} />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(repo.getOverview).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(repo.getOverview).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(repo.getOverview).toHaveBeenCalledTimes(3);
+      expect(screen.getByRole("button", { name: "Запустити scan" })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps viewer discovery evidence read-only", async () => {

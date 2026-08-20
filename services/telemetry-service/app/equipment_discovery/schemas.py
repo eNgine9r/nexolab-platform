@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class DiscoveryScanRequest(BaseModel):
@@ -75,6 +75,16 @@ class DiscoveryCandidateActionRequest(BaseModel):
     action: Literal["review", "ignore", "link_existing", "adopt"]
     display_name: str | None = Field(default=None, min_length=1, max_length=255)
     linked_equipment_key: str | None = Field(default=None, min_length=1, max_length=255)
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("display_name must contain non-whitespace characters")
+        return normalized
 
     @model_validator(mode="after")
     def validate_action_payload(self) -> "DiscoveryCandidateActionRequest":

@@ -6,7 +6,7 @@ from pathlib import Path
 import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import event, func, select
 from sqlalchemy.orm import Session
 
 from app.climate_catalog.models import MeasurementDevice
@@ -181,13 +181,18 @@ def observation(
     )
 
 
-def start_repo_scan(repository: EquipmentDiscoveryRepository, *, actor: str = "engineer") -> str:
+def start_repo_scan(
+    repository: EquipmentDiscoveryRepository,
+    *,
+    actor: str = "engineer",
+    ports: tuple[int, ...] = (80, 443),
+) -> str:
     row = repository.start_scan(
         organization_id=ORGANIZATION_ID,
         requested_cidrs=("192.168.50.0/29",),
-        requested_ports=(80, 443),
+        requested_ports=ports,
         host_budget=6,
-        probe_budget=12,
+        probe_budget=6 * len(ports),
         actor_subject=actor,
         audit_event=audit("equipment_discovery.scan_started", "equipment_discovery_scan", "pending"),
     )
@@ -310,6 +315,81 @@ def test_repository_persists_scan_diff_and_disappeared_lifecycle(tmp_path: Path)
     assert observation_count == 3
 
 
+def test_partial_port_scan_does_not_mark_unobserved_candidate_disappeared(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80,))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="1" * 64, port=80),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+
+    partial_id = start_repo_scan(repository, ports=(443,))
+    partial = repository.apply_scan_result(
+        partial_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert partial.disappeared_candidates == 0
+    assert candidate.present is True
+    assert candidate.lifecycle == "new"
+
+    comparable_id = start_repo_scan(repository, ports=(80,))
+    comparable = repository.apply_scan_result(
+        comparable_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert comparable.disappeared_candidates == 1
+    assert candidate.present is False
+    assert candidate.lifecycle == "disappeared"
+
+
+def test_list_candidates_batches_recent_observation_lookup(tmp_path: Path) -> None:
+    _, database, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation("192.168.50.2", fingerprint="2" * 64),
+                observation("192.168.50.3", fingerprint="3" * 64),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    observation_selects: list[str] = []
+
+    def capture_observation_select(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        normalized = statement.lower().lstrip()
+        if normalized.startswith("select") and "equipment_discovery_observations" in normalized:
+            observation_selects.append(statement)
+
+    event.listen(database.engine, "before_cursor_execute", capture_observation_select)
+    try:
+        candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    finally:
+        event.remove(database.engine, "before_cursor_execute", capture_observation_select)
+
+    assert len(candidates) == 2
+    assert len(observation_selects) == 1
+
+
 def test_candidate_actions_are_versioned_audited_and_adoption_is_admin_only(tmp_path: Path) -> None:
     api, database, security, repository, _ = build_fixture(tmp_path)
     scan_id = start_repo_scan(repository)
@@ -356,10 +436,17 @@ def test_candidate_actions_are_versioned_audited_and_adoption_is_admin_only(tmp_
     with Session(database.engine) as session:
         device_count_before = int(session.scalar(select(func.count()).select_from(MeasurementDevice)) or 0)
 
+    blank_name = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": 'W/"equipment-discovery-candidate-v2"'},
+        json={"action": "adopt", "display_name": "   "},
+    )
+    assert blank_name.status_code == 422
+
     adopted = api.patch(
         f"/api/v1/equipment-discovery/candidates/{candidate.id}",
         headers={**headers("engineer"), "If-Match": 'W/"equipment-discovery-candidate-v2"'},
-        json={"action": "adopt", "display_name": "LAB network device"},
+        json={"action": "adopt", "display_name": "  LAB network device  "},
     )
     assert adopted.status_code == 200
     assert adopted.json()["candidate"]["lifecycle"] == "adopted"

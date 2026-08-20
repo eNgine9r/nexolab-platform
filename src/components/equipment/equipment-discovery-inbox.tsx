@@ -64,11 +64,21 @@ export function EquipmentDiscoveryInbox({
   }, [refresh, repository]);
 
   const activeScan = overview?.activeScan ?? null;
+  const activeScanId = activeScan?.id ?? null;
   useEffect(() => {
-    if (!repository || !activeScan) return;
-    const id = window.setTimeout(() => void refresh(), 1000);
-    return () => window.clearTimeout(id);
-  }, [activeScan, refresh, repository]);
+    if (!repository || !activeScanId) return;
+    let cancelled = false;
+    let timer: number | null = null;
+    const poll = async () => {
+      await refresh();
+      if (!cancelled) timer = window.setTimeout(() => void poll(), 1000);
+    };
+    timer = window.setTimeout(() => void poll(), 1000);
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [activeScanId, refresh, repository]);
 
   const sortedCandidates = useMemo(
     () =>

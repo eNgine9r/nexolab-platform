@@ -69,6 +69,67 @@ describe("HttpEquipmentDiscoveryRepository", () => {
     );
   });
 
+  it("rejects non-boolean candidate contract fields", async () => {
+    for (const field of ["present", "changed_since_previous_scan"] as const) {
+      const payload = rawOverview();
+      Object.assign(payload.candidates[0]!, { [field]: "false" });
+      const repository = new HttpEquipmentDiscoveryRepository({
+        apiBaseUrl: "http://127.0.0.1:8082",
+        fetchImpl: vi.fn<typeof fetch>(
+          async () =>
+            new Response(JSON.stringify(payload), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+        ),
+      });
+
+      await expect(repository.getOverview()).rejects.toMatchObject({ code: "invalid_response" });
+    }
+  });
+
+  it("rejects non-boolean scan cancellation state", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: "scan-2",
+            status: "running",
+            requested_cidrs: ["192.168.50.0/30"],
+            requested_ports: [443],
+            host_budget: 2,
+            probe_budget: 2,
+            hosts_considered: 0,
+            probes_attempted: 0,
+            responsive_hosts: 0,
+            duration_ms: 0,
+            process_cpu_ms: 0,
+            network_connect_attempts: 0,
+            network_payload_bytes: 0,
+            trigger: "manual",
+            new_candidates: 0,
+            changed_candidates: 0,
+            disappeared_candidates: 0,
+            cancel_requested: "false",
+            requested_by: "engineer",
+            started_at: "2026-08-20T06:00:00Z",
+            completed_at: null,
+            error_code: null,
+            error_message: null,
+          }),
+          { status: 202 },
+        ),
+    );
+    const repository = new HttpEquipmentDiscoveryRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      fetchImpl,
+    });
+
+    await expect(repository.startScan({ cidrs: ["192.168.50.0/30"], ports: [443] })).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+  });
+
   it("sends bounded scan scope and optimistic candidate actions", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
       const method = init?.method;

@@ -256,11 +256,13 @@ function parseScan(value: unknown): EquipmentDiscoveryScan {
   const requestedBy = readString(record?.requested_by);
   const startedAt = readString(record?.started_at);
   const trigger = record?.trigger;
+  const cancelRequested = record?.cancel_requested;
   if (
     !id ||
     (status !== "running" && status !== "completed" && status !== "cancelled" && status !== "failed") ||
     !requestedBy ||
     !startedAt ||
+    typeof cancelRequested !== "boolean" ||
     (trigger !== "manual" && trigger !== "scheduled")
   ) {
     throw invalidResponse();
@@ -283,7 +285,7 @@ function parseScan(value: unknown): EquipmentDiscoveryScan {
     newCandidates: requiredInteger(record.new_candidates),
     changedCandidates: requiredInteger(record.changed_candidates),
     disappearedCandidates: requiredInteger(record.disappeared_candidates),
-    cancelRequested: Boolean(record.cancel_requested),
+    cancelRequested,
     requestedBy,
     startedAt,
     completedAt: readOptionalString(record.completed_at),
@@ -304,6 +306,8 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
   const lastSeenAt = readString(record?.last_seen_at);
   const lastScanId = readString(record?.last_scan_id);
   const version = readPositiveInteger(record?.version);
+  const present = record?.present;
+  const changedSincePreviousScan = record?.changed_since_previous_scan;
   if (
     !id ||
     !candidateKey ||
@@ -313,7 +317,9 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
     !firstSeenAt ||
     !lastSeenAt ||
     !lastScanId ||
-    version === null
+    version === null ||
+    typeof present !== "boolean" ||
+    typeof changedSincePreviousScan !== "boolean"
   ) {
     throw invalidResponse();
   }
@@ -326,7 +332,7 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
     sourceInterface: readOptionalString(record.source_interface),
     sourceSubnet,
     lifecycle,
-    present: Boolean(record.present),
+    present,
     firstSeenAt,
     lastSeenAt,
     lastScanId,
@@ -334,7 +340,7 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
     version,
     services: readArray(record.services).map(parseServiceEvidence),
     evidence: asRecord(record.evidence) ?? {},
-    changedSincePreviousScan: Boolean(record.changed_since_previous_scan),
+    changedSincePreviousScan,
   };
 }
 

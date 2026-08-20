@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv4Network, ip_address, ip_network
@@ -420,6 +421,7 @@ class EquipmentDiscoveryRepository:
                 scan_networks = tuple(
                     ip_network(value, strict=False) for value in scan.requested_cidrs
                 )
+                scan_ports = set(scan.requested_ports)
                 present_candidates = list(
                     session.scalars(
                         select(EquipmentDiscoveryCandidate)
@@ -430,6 +432,12 @@ class EquipmentDiscoveryRepository:
                         .with_for_update()
                     )
                 )
+                previous_observations = self._recent_observations_by_candidate(
+                    session,
+                    organization_id=organization_id,
+                    candidate_ids=[item.id for item in present_candidates],
+                    per_candidate=1,
+                )
                 for candidate in present_candidates:
                     if candidate.id in observed_candidate_ids:
                         continue
@@ -437,6 +445,14 @@ class EquipmentDiscoveryRepository:
                     if not isinstance(parsed_ip, IPv4Address):
                         continue
                     if not any(parsed_ip in network for network in scan_networks):
+                        continue
+                    latest = previous_observations.get(candidate.id, ())
+                    prior_open_ports = {
+                        int(service["port"])
+                        for service in (latest[0].services if latest else [])
+                        if isinstance(service, dict) and isinstance(service.get("port"), int)
+                    }
+                    if not prior_open_ports or not prior_open_ports.issubset(scan_ports):
                         continue
                     candidate.present = False
                     if candidate.lifecycle not in {"ignored", "adopted"}:
@@ -480,7 +496,16 @@ class EquipmentDiscoveryRepository:
                     .limit(limit)
                 )
             )
-            return tuple(self._candidate_record(session, item) for item in candidates)
+            observations = self._recent_observations_by_candidate(
+                session,
+                organization_id=organization_id,
+                candidate_ids=[item.id for item in candidates],
+                per_candidate=2,
+            )
+            return tuple(
+                self._candidate_record_from_observations(item, observations.get(item.id, ()))
+                for item in candidates
+            )
 
     def list_network_assets(
         self,
@@ -606,20 +631,65 @@ class EquipmentDiscoveryRepository:
         session: Session,
         candidate: EquipmentDiscoveryCandidate,
     ) -> CandidateRecord:
-        observations = list(
+        observations = self._recent_observations_by_candidate(
+            session,
+            organization_id=candidate.organization_id,
+            candidate_ids=[candidate.id],
+            per_candidate=2,
+        ).get(candidate.id, ())
+        return self._candidate_record_from_observations(candidate, observations)
+
+    def _recent_observations_by_candidate(
+        self,
+        session: Session,
+        *,
+        organization_id: str,
+        candidate_ids: list[str],
+        per_candidate: int,
+    ) -> dict[str, tuple[EquipmentDiscoveryObservation, ...]]:
+        if not candidate_ids:
+            return {}
+        ranked = (
+            select(
+                EquipmentDiscoveryObservation.id.label("observation_id"),
+                EquipmentDiscoveryObservation.candidate_id.label("candidate_id"),
+                func.row_number()
+                .over(
+                    partition_by=EquipmentDiscoveryObservation.candidate_id,
+                    order_by=(
+                        EquipmentDiscoveryObservation.observed_at.desc(),
+                        EquipmentDiscoveryObservation.id.desc(),
+                    ),
+                )
+                .label("row_number"),
+            )
+            .where(
+                EquipmentDiscoveryObservation.organization_id == organization_id,
+                EquipmentDiscoveryObservation.candidate_id.in_(candidate_ids),
+            )
+            .subquery()
+        )
+        rows = list(
             session.scalars(
                 select(EquipmentDiscoveryObservation)
-                .where(
-                    EquipmentDiscoveryObservation.organization_id == candidate.organization_id,
-                    EquipmentDiscoveryObservation.candidate_id == candidate.id,
+                .join(
+                    ranked,
+                    EquipmentDiscoveryObservation.id == ranked.c.observation_id,
                 )
-                .order_by(
-                    EquipmentDiscoveryObservation.observed_at.desc(),
-                    EquipmentDiscoveryObservation.id.desc(),
-                )
-                .limit(2)
+                .where(ranked.c.row_number <= per_candidate)
+                .order_by(ranked.c.candidate_id, ranked.c.row_number)
             )
         )
+        grouped: defaultdict[str, list[EquipmentDiscoveryObservation]] = defaultdict(list)
+        for row in rows:
+            grouped[row.candidate_id].append(row)
+        return {candidate_id: tuple(items) for candidate_id, items in grouped.items()}
+
+    @staticmethod
+    def _candidate_record_from_observations(
+        candidate: EquipmentDiscoveryCandidate,
+        observations: tuple[EquipmentDiscoveryObservation, ...],
+    ) -> CandidateRecord:
         latest = observations[0] if observations else None
         changed = (
             len(observations) > 1
