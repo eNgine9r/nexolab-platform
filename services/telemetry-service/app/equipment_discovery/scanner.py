@@ -221,7 +221,7 @@ async def tcp_connect(ip: str, port: int, timeout_seconds: float) -> bool:
             timeout=timeout_seconds,
         )
         return True
-    except (TimeoutError, OSError, asyncio.TimeoutError):
+    except (TimeoutError, asyncio.TimeoutError, ConnectionRefusedError):
         return False
     finally:
         if writer is not None:
