@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 import time
 from contextlib import suppress
 from dataclasses import dataclass
@@ -24,6 +25,8 @@ _SERVICE_LABELS = {
     8081: "http-alt",
     8082: "nexolab-api-port",
 }
+_MAC_ADDRESS_RE = re.compile(r"^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$")
+_ARP_HEADER_FIELDS = ("IP address", "HW type", "Flags", "HW address", "Mask", "Device")
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +75,10 @@ class ScanCancelledError(RuntimeError):
     def __init__(self, result: DiscoveryScanResult) -> None:
         super().__init__("equipment discovery scan was cancelled")
         self.result = result
+
+
+class NeighborSnapshotError(RuntimeError):
+    """Raised when an explicitly configured neighbor snapshot is unusable."""
 
 
 TcpConnector = Callable[[str, int, float], Awaitable[bool]]
@@ -233,20 +240,44 @@ async def tcp_connect(ip: str, port: int, timeout_seconds: float) -> bool:
 def read_ipv4_neighbors(path: Path) -> dict[str, NeighborEvidence]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeError):
-        return {}
+    except (OSError, UnicodeError) as error:
+        raise NeighborSnapshotError(f"unable to read neighbor snapshot: {path}") from error
+
+    if not lines or not all(field in lines[0] for field in _ARP_HEADER_FIELDS):
+        raise NeighborSnapshotError(f"invalid neighbor snapshot header: {path}")
+
     neighbors: dict[str, NeighborEvidence] = {}
-    for line in lines[1:]:
+    for line_number, line in enumerate(lines[1:], start=2):
+        if not line.strip():
+            continue
         fields = line.split()
         if len(fields) < 6:
-            continue
+            raise NeighborSnapshotError(
+                f"invalid neighbor snapshot row {line_number}: expected six fields"
+            )
         ip_value, _, flags, mac_address, _, interface = fields[:6]
         try:
             parsed = ip_address(ip_value)
-        except ValueError:
+        except ValueError as error:
+            raise NeighborSnapshotError(
+                f"invalid neighbor snapshot address on row {line_number}: {ip_value}"
+            ) from error
+        if not isinstance(parsed, IPv4Address):
+            raise NeighborSnapshotError(
+                f"neighbor snapshot row {line_number} is not IPv4: {ip_value}"
+            )
+        try:
+            flags_value = int(flags, 0)
+        except ValueError as error:
+            raise NeighborSnapshotError(
+                f"invalid neighbor snapshot flags on row {line_number}: {flags}"
+            ) from error
+        if flags_value == 0:
             continue
-        if not isinstance(parsed, IPv4Address) or flags == "0x0":
-            continue
+        if not _MAC_ADDRESS_RE.fullmatch(mac_address):
+            raise NeighborSnapshotError(
+                f"invalid neighbor snapshot MAC on row {line_number}: {mac_address}"
+            )
         normalized_mac = mac_address.lower()
         if normalized_mac == "00:00:00:00:00:00":
             continue
