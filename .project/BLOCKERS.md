@@ -10,6 +10,14 @@ Issue #641 is a state-only post-merge reconciliation package. It changes only `.
 
 There is no remaining #606 product, software, CI, review, LAN, or hardware-acceptance blocker.
 
+## Security maintenance — CVE-2026-14456 deadline
+
+Issue #598 is closed, but its four exact temporary `CVE-2026-14456` exceptions remain active in `security/vulnerability-exceptions.json` and expire on **2026-08-26**.
+
+Owner: `platform-security`.
+
+Required maintenance action: re-check Debian/fixed-package availability and remove the exceptions immediately when a fixed package becomes available, or review before 2026-08-26. If the exceptions expire unchanged, the Container Supply Chain policy gate is expected to fail closed. Any introduction of a QUIC/HTTP3 listener also invalidates the current reachability justification.
+
 ## Issue #633 — Ready
 
 The successful 2026-08-21 Raspberry Pi production deployment left an isolated frontend candidate listening on `127.0.0.1:3100` after `DEPLOYMENT PASSED`. It was manually stopped and production remained healthy.
@@ -39,6 +47,15 @@ Operator cadence controls remain blocked on the authoritative persisted cadence/
 Restoring LE-01MP W2 / Unit 201 remains blocked until the Product Owner confirms that the external controller no longer owns the W2 RS-485 interface and explicitly approves any required physical handback.
 
 The review window is not authorization for hardware changes.
+
+## Required evidence / validation lanes
+
+- #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance remains open.
+- #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance remains open.
+- #201 — `status:needs-validation`, priority high: approved restart/power-cycle boundary for LE-01MP cumulative energy remains unverified.
+- #189 — `status:blocked`, priority high: full backup/restore/rollback/power-loss recovery requires controlled central-host/Raspberry Pi evidence; missing hardware evidence must remain explicit.
+
+These lanes are not silently completed by unrelated software CI and must remain visible in Sprint planning.
 
 ## Non-blocking maintenance
 
