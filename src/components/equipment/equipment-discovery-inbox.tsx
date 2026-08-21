@@ -162,7 +162,32 @@ export function EquipmentDiscoveryInbox({
     setPendingCandidateId(candidate.id);
     setError(null);
     try {
-      await repository.actOnCandidate(candidate.id, action, candidate.version);
+      const result = await repository.actOnCandidate(candidate.id, action, candidate.version);
+      setOverviewState((current) => {
+        if (!current || current.repository !== repository) return current;
+        const assetAlreadyKnown = result.networkAsset
+          ? current.value.networkAssets.some((asset) => asset.id === result.networkAsset?.id)
+          : false;
+        return {
+          repository,
+          value: {
+            ...current.value,
+            candidates: current.value.candidates.map((item) =>
+              item.id === result.candidate.id ? result.candidate : item,
+            ),
+            networkAssetTotal:
+              result.networkAsset && !assetAlreadyKnown
+                ? current.value.networkAssetTotal + 1
+                : current.value.networkAssetTotal,
+            networkAssets: result.networkAsset
+              ? [
+                  result.networkAsset,
+                  ...current.value.networkAssets.filter((asset) => asset.id !== result.networkAsset?.id),
+                ].slice(0, 100)
+              : current.value.networkAssets,
+          },
+        };
+      });
       await refresh();
     } catch (actionError) {
       setError(discoveryErrorMessage(actionError));
@@ -208,10 +233,7 @@ export function EquipmentDiscoveryInbox({
         <>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <DiscoveryMetric label="Кандидати" value={overview.candidateTotal} />
-            <DiscoveryMetric
-              label="Активні network assets"
-              value={overview.networkAssets.filter((item) => item.status === "active").length}
-            />
+            <DiscoveryMetric label="Активні network assets" value={overview.networkAssetTotal} />
             <DiscoveryMetric label="Макс. hosts" value={overview.policy.maxHosts} />
             <DiscoveryMetric label="Payload bytes / probe" value={overview.policy.payloadBytesSentPerProbe} />
           </div>
@@ -490,13 +512,19 @@ function CandidateCard({
             <input
               value={adoptName}
               onChange={(event) => onAdoptNameChange(event.target.value)}
+              disabled={pending || !candidate.present}
               className={inputClass}
               aria-label={`Adopted asset name for ${candidate.ipAddress}`}
             />
+            {!candidate.present ? (
+              <span className="mt-1 block text-[11px] text-slate-500">
+                Для Adopt пристрій має бути повторно виявлений у поточному scan.
+              </span>
+            ) : null}
           </label>
           <button
             type="button"
-            disabled={pending || !adoptName.trim()}
+            disabled={pending || !candidate.present || !adoptName.trim()}
             onClick={() => onAction({ action: "adopt", displayName: adoptName.trim() })}
             className={primaryButtonClass}
           >
