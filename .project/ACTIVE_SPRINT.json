@@ -25,7 +25,7 @@
   "selection_state": {
     "selected_issue": null,
     "selection_status": "issue_606_completed_product_owner_planning_pending",
-    "reason": "Issue #606 merged GREEN in PR #632 and is closed status:done. No next product Work Package is selected. Issue #633 is Ready/high but remains not started pending Product Owner priority review."
+    "reason": "Issue #606 merged GREEN in PR #632 and is closed status:done. No next product Work Package is selected. Issue #633 is Ready/high but remains not started pending the post-merge state reconciliation and fresh Ready audit."
   },
   "tasks": [
     {
@@ -91,6 +91,34 @@
       "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
       "status": "blocked_product_owner_physical_handback_confirmation",
       "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-444",
+      "issue": 444,
+      "title": "Restore LOCAL_LAN user administration API availability",
+      "status": "needs_validation",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-245",
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "status": "needs_validation",
+      "priority": "critical"
+    },
+    {
+      "id": "NEXOLAB-201",
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy, scale and rollover",
+      "status": "needs_validation_hardware_power_cycle",
+      "priority": "high"
+    },
+    {
+      "id": "NEXOLAB-189",
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "status": "blocked_actual_host_recovery_evidence",
+      "priority": "high"
     }
   ],
   "active_work_package": null,
@@ -125,6 +153,16 @@
     "issue_606_production_non_regression": "PASS",
     "issue_606_boot_continuity": "PASS"
   },
+  "maintenance_actions": [
+    {
+      "source_issue": 598,
+      "title": "Review/remove CVE-2026-14456 temporary exceptions",
+      "status": "due",
+      "due_on": "2026-08-26",
+      "owner": "platform-security",
+      "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+    }
+  ],
   "independent_pending_lanes": [
     {
       "issue": 633,
@@ -149,6 +187,22 @@
     {
       "issue": 585,
       "status": "blocked"
+    },
+    {
+      "issue": 444,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 201,
+      "status": "needs_validation_hardware_power_cycle"
+    },
+    {
+      "issue": 189,
+      "status": "blocked_actual_host_recovery_evidence"
     }
   ],
   "safety": {
