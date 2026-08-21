@@ -14,6 +14,7 @@ from app.climate_catalog.repository import PostgresClimateCatalogRepository
 from app.db import Database
 from app.equipment_discovery.api import create_equipment_discovery_router
 from app.equipment_discovery.models import (
+    EquipmentDiscoveryCandidate,
     EquipmentDiscoveryObservation,
     EquipmentNetworkAsset,
 )
@@ -182,6 +183,30 @@ def observation(
     )
 
 
+def neighbor_observation(
+    ip: str,
+    *,
+    fingerprint: str,
+    when: datetime | None = None,
+) -> DiscoveryObservationInput:
+    return DiscoveryObservationInput(
+        ip_address=ip,
+        mac_address="aa:bb:cc:dd:ee:10",
+        hostname=None,
+        source_interface="eth0",
+        source_subnet="192.168.50.0/29",
+        services=(),
+        evidence={
+            "neighbor_table": True,
+            "tcp_connect_only": True,
+            "payload_bytes_sent": 0,
+            "open_ports": [],
+        },
+        observed_at=when or datetime.now(UTC),
+        fingerprint_sha256=fingerprint,
+    )
+
+
 def start_repo_scan(
     repository: EquipmentDiscoveryRepository,
     *,
@@ -209,6 +234,9 @@ def test_discovery_api_is_readable_but_mutations_require_equipment_manage(tmp_pa
     assert overview.json()["policy"]["probe_mode"] == "tcp-connect-only"
     assert overview.json()["policy"]["payload_bytes_sent_per_probe"] == 0
     assert overview.json()["policy"]["schedule_interval_seconds"] == 0
+    assert overview.json()["candidate_total"] == 0
+    assert overview.json()["candidate_offset"] == 0
+    assert overview.json()["candidate_limit"] == 100
 
     denied = api.post(
         "/api/v1/equipment-discovery/scans",
@@ -351,9 +379,40 @@ def test_mac_evidence_enriches_ip_candidate_without_duplicate_identity(tmp_path:
     assert len(candidates) == 1
     enriched = candidates[0]
     assert enriched.id == original.id
-    assert enriched.candidate_key == "mac:aa:bb:cc:dd:ee:02"
+    assert enriched.candidate_key == "ip:192.168.50.2"
     assert enriched.mac_address == "aa:bb:cc:dd:ee:02"
     assert enriched.present is True
+
+
+def test_same_mac_on_two_ips_remains_two_candidates(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation(
+                    "192.168.50.2",
+                    fingerprint="6" * 64,
+                    mac_address="aa:bb:cc:dd:ee:ff",
+                ),
+                observation(
+                    "192.168.50.3",
+                    fingerprint="7" * 64,
+                    mac_address="aa:bb:cc:dd:ee:ff",
+                ),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    assert {item.candidate_key for item in candidates} == {
+        "ip:192.168.50.2",
+        "ip:192.168.50.3",
+    }
+    assert {item.mac_address for item in candidates} == {"aa:bb:cc:dd:ee:ff"}
 
 
 def test_partial_port_scan_does_not_mark_unobserved_candidate_disappeared(tmp_path: Path) -> None:
@@ -390,6 +449,123 @@ def test_partial_port_scan_does_not_mark_unobserved_candidate_disappeared(tmp_pa
     assert comparable.disappeared_candidates == 1
     assert candidate.present is False
     assert candidate.lifecycle == "disappeared"
+
+
+def test_change_detection_compares_only_equivalent_scan_scope(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80, 443))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="a" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+
+    partial_id = start_repo_scan(repository, ports=(443,))
+    partial = repository.apply_scan_result(
+        partial_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="b" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+    assert partial.changed_candidates == 0
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.changed_since_previous_scan is False
+
+    comparable_id = start_repo_scan(repository, ports=(80, 443))
+    comparable = repository.apply_scan_result(
+        comparable_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="c" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    assert comparable.changed_candidates == 1
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.changed_since_previous_scan is True
+
+
+def test_neighbor_only_candidate_expires_when_neighbor_evidence_disappears(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80,))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(neighbor_observation("192.168.50.2", fingerprint="d" * 64),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.present is True
+    assert candidate.services == ()
+
+    second_id = start_repo_scan(repository, ports=(443,))
+    second = repository.apply_scan_result(
+        second_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert second.disappeared_candidates == 1
+    assert candidate.present is False
+    assert candidate.lifecycle == "disappeared"
+
+
+def test_overview_paginates_candidates_beyond_first_500_rows(tmp_path: Path) -> None:
+    api, database, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    observed_at = datetime.now(UTC)
+    with Session(database.engine) as session, session.begin():
+        session.add_all(
+            [
+                EquipmentDiscoveryCandidate(
+                    id=f"candidate-{index:04d}",
+                    organization_id=ORGANIZATION_ID,
+                    candidate_key=f"ip:10.0.{index // 250}.{index % 250 + 1}",
+                    ip_address=f"10.0.{index // 250}.{index % 250 + 1}",
+                    mac_address=None,
+                    hostname=None,
+                    source_interface=None,
+                    source_subnet="10.0.0.0/16",
+                    lifecycle="new",
+                    present=True,
+                    first_seen_at=observed_at,
+                    last_seen_at=observed_at,
+                    last_scan_id=scan_id,
+                    linked_equipment_key=None,
+                    version=1,
+                )
+                for index in range(501)
+            ]
+        )
+
+    first_page = api.get(
+        "/api/v1/equipment-discovery?candidate_offset=0&candidate_limit=500",
+        headers=headers("viewer"),
+    )
+    assert first_page.status_code == 200
+    assert first_page.json()["candidate_total"] == 501
+    assert len(first_page.json()["candidates"]) == 500
+
+    second_page = api.get(
+        "/api/v1/equipment-discovery?candidate_offset=500&candidate_limit=100",
+        headers=headers("viewer"),
+    )
+    assert second_page.status_code == 200
+    assert second_page.json()["candidate_total"] == 501
+    assert second_page.json()["candidate_offset"] == 500
+    assert second_page.json()["candidate_limit"] == 100
+    assert len(second_page.json()["candidates"]) == 1
 
 
 def test_list_candidates_batches_recent_observation_lookup(tmp_path: Path) -> None:

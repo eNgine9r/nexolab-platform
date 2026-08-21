@@ -121,6 +121,9 @@ function discoveryFixture() {
     },
     active_scan: null,
     last_scan: scanCompleted ? scan("completed") : null,
+    candidate_total: 1,
+    candidate_offset: 0,
+    candidate_limit: 50,
     candidates: [candidate()],
     network_assets: networkAssetCreated
       ? [

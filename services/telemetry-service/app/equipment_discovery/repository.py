@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -333,28 +334,39 @@ class EquipmentDiscoveryRepository:
                         f"scan {scan_id} is no longer running"
                     )
 
-                for observation in result.observations:
-                    candidate = session.scalar(
-                        select(EquipmentDiscoveryCandidate)
-                        .where(
-                            EquipmentDiscoveryCandidate.organization_id == organization_id,
-                            EquipmentDiscoveryCandidate.candidate_key == observation.candidate_key,
-                        )
-                        .with_for_update()
+                observation_keys = [item.candidate_key for item in result.observations]
+                if len(observation_keys) != len(set(observation_keys)):
+                    raise CandidateActionConflictError(
+                        "scan produced duplicate discovery candidate identities"
                     )
-                    if candidate is None and observation.mac_address is not None:
-                        candidate = session.scalar(
+                existing_candidates = (
+                    list(
+                        session.scalars(
                             select(EquipmentDiscoveryCandidate)
                             .where(
                                 EquipmentDiscoveryCandidate.organization_id == organization_id,
-                                EquipmentDiscoveryCandidate.candidate_key
-                                == f"ip:{observation.ip_address}",
+                                EquipmentDiscoveryCandidate.candidate_key.in_(observation_keys),
                             )
                             .with_for_update()
                         )
-                        if candidate is not None:
-                            candidate.candidate_key = observation.candidate_key
-                    previous_fingerprint: str | None = None
+                    )
+                    if observation_keys
+                    else []
+                )
+                candidates_by_key = {item.candidate_key: item for item in existing_candidates}
+                scan_scope_key = _scan_scope_key(
+                    tuple(scan.requested_cidrs), tuple(scan.requested_ports)
+                )
+                previous_comparable = self._latest_comparable_observations_by_candidate(
+                    session,
+                    organization_id=organization_id,
+                    candidate_ids=[item.id for item in existing_candidates],
+                    scan_scope_key=scan_scope_key,
+                )
+
+                for observation in result.observations:
+                    candidate = candidates_by_key.get(observation.candidate_key)
+                    changed_since_previous_scan = False
                     if candidate is None:
                         candidate = EquipmentDiscoveryCandidate(
                             id=str(uuid4()),
@@ -374,25 +386,15 @@ class EquipmentDiscoveryRepository:
                             version=1,
                         )
                         session.add(candidate)
-                        session.flush()
+                        candidates_by_key[candidate.candidate_key] = candidate
                         new_count += 1
                     else:
-                        previous_fingerprint = session.scalar(
-                            select(EquipmentDiscoveryObservation.fingerprint_sha256)
-                            .where(
-                                EquipmentDiscoveryObservation.organization_id == organization_id,
-                                EquipmentDiscoveryObservation.candidate_id == candidate.id,
-                            )
-                            .order_by(
-                                EquipmentDiscoveryObservation.observed_at.desc(),
-                                EquipmentDiscoveryObservation.id.desc(),
-                            )
-                            .limit(1)
+                        previous = previous_comparable.get(candidate.id)
+                        changed_since_previous_scan = (
+                            previous is not None
+                            and previous.fingerprint_sha256 != observation.fingerprint_sha256
                         )
-                        if (
-                            previous_fingerprint is not None
-                            and previous_fingerprint != observation.fingerprint_sha256
-                        ):
+                        if changed_since_previous_scan:
                             changed_count += 1
                         candidate.ip_address = observation.ip_address
                         candidate.mac_address = observation.mac_address
@@ -409,9 +411,11 @@ class EquipmentDiscoveryRepository:
                                 else "new"
                             )
                         candidate.version += 1
-                        session.flush()
 
                     observed_candidate_ids.add(candidate.id)
+                    evidence = dict(observation.evidence)
+                    evidence["scan_scope_key"] = scan_scope_key
+                    evidence["changed_since_previous_scan"] = changed_since_previous_scan
                     session.add(
                         EquipmentDiscoveryObservation(
                             id=str(uuid4()),
@@ -425,7 +429,7 @@ class EquipmentDiscoveryRepository:
                             source_interface=observation.source_interface,
                             source_subnet=observation.source_subnet,
                             services=[dict(item) for item in observation.services],
-                            evidence=dict(observation.evidence),
+                            evidence=evidence,
                             fingerprint_sha256=observation.fingerprint_sha256,
                         )
                     )
@@ -459,12 +463,19 @@ class EquipmentDiscoveryRepository:
                     if not any(parsed_ip in network for network in scan_networks):
                         continue
                     latest = previous_observations.get(candidate.id, ())
+                    if not latest:
+                        continue
+                    latest_observation = latest[0]
                     prior_open_ports = {
                         int(service["port"])
-                        for service in (latest[0].services if latest else [])
+                        for service in latest_observation.services
                         if isinstance(service, dict) and isinstance(service.get("port"), int)
                     }
-                    if not prior_open_ports or not prior_open_ports.issubset(scan_ports):
+                    prior_neighbor_evidence = latest_observation.evidence.get("neighbor_table") is True
+                    if prior_open_ports:
+                        if not prior_open_ports.issubset(scan_ports):
+                            continue
+                    elif not prior_neighbor_evidence:
                         continue
                     candidate.present = False
                     if candidate.lifecycle not in {"ignored", "adopted"}:
@@ -489,11 +500,23 @@ class EquipmentDiscoveryRepository:
                 session.flush()
                 return _scan_record(scan)
 
+    def count_candidates(self, *, organization_id: str) -> int:
+        with Session(self._engine) as session:
+            return int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(EquipmentDiscoveryCandidate)
+                    .where(EquipmentDiscoveryCandidate.organization_id == organization_id)
+                )
+                or 0
+            )
+
     def list_candidates(
         self,
         *,
         organization_id: str,
         limit: int = 500,
+        offset: int = 0,
     ) -> tuple[CandidateRecord, ...]:
         with Session(self._engine, expire_on_commit=False) as session:
             candidates = list(
@@ -505,6 +528,7 @@ class EquipmentDiscoveryRepository:
                         EquipmentDiscoveryCandidate.last_seen_at.desc(),
                         EquipmentDiscoveryCandidate.id.asc(),
                     )
+                    .offset(offset)
                     .limit(limit)
                 )
             )
@@ -512,7 +536,7 @@ class EquipmentDiscoveryRepository:
                 session,
                 organization_id=organization_id,
                 candidate_ids=[item.id for item in candidates],
-                per_candidate=2,
+                per_candidate=1,
             )
             return tuple(
                 self._candidate_record_from_observations(item, observations.get(item.id, ()))
@@ -651,6 +675,50 @@ class EquipmentDiscoveryRepository:
         ).get(candidate.id, ())
         return self._candidate_record_from_observations(candidate, observations)
 
+    def _latest_comparable_observations_by_candidate(
+        self,
+        session: Session,
+        *,
+        organization_id: str,
+        candidate_ids: list[str],
+        scan_scope_key: str,
+    ) -> dict[str, EquipmentDiscoveryObservation]:
+        if not candidate_ids:
+            return {}
+        ranked = (
+            select(
+                EquipmentDiscoveryObservation.id.label("observation_id"),
+                EquipmentDiscoveryObservation.candidate_id.label("candidate_id"),
+                func.row_number()
+                .over(
+                    partition_by=EquipmentDiscoveryObservation.candidate_id,
+                    order_by=(
+                        EquipmentDiscoveryObservation.observed_at.desc(),
+                        EquipmentDiscoveryObservation.id.desc(),
+                    ),
+                )
+                .label("row_number"),
+            )
+            .where(
+                EquipmentDiscoveryObservation.organization_id == organization_id,
+                EquipmentDiscoveryObservation.candidate_id.in_(candidate_ids),
+                EquipmentDiscoveryObservation.evidence["scan_scope_key"].as_string()
+                == scan_scope_key,
+            )
+            .subquery()
+        )
+        rows = list(
+            session.scalars(
+                select(EquipmentDiscoveryObservation)
+                .join(
+                    ranked,
+                    EquipmentDiscoveryObservation.id == ranked.c.observation_id,
+                )
+                .where(ranked.c.row_number == 1)
+            )
+        )
+        return {row.candidate_id: row for row in rows}
+
     def _recent_observations_by_candidate(
         self,
         session: Session,
@@ -704,8 +772,8 @@ class EquipmentDiscoveryRepository:
     ) -> CandidateRecord:
         latest = observations[0] if observations else None
         changed = (
-            len(observations) > 1
-            and observations[0].fingerprint_sha256 != observations[1].fingerprint_sha256
+            latest is not None
+            and latest.evidence.get("changed_since_previous_scan") is True
         )
         return CandidateRecord(
             id=candidate.id,
@@ -817,6 +885,17 @@ class EquipmentDiscoveryRepository:
                 row.completed_at = datetime.now(UTC)
                 row.error_code = error_code
                 row.error_message = error_message
+
+
+def _scan_scope_key(requested_cidrs: tuple[str, ...], requested_ports: tuple[int, ...]) -> str:
+    return json.dumps(
+        {
+            "cidrs": sorted(requested_cidrs),
+            "ports": sorted(requested_ports),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def _scan_record(row: EquipmentDiscoveryScan) -> ScanRecord:

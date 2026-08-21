@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ban,
   CheckCircle2,
@@ -23,6 +23,8 @@ import {
   type EquipmentDiscoveryRepository,
 } from "@/features/equipment/discovery-repository";
 
+const CANDIDATE_PAGE_SIZE = 50;
+
 export function EquipmentDiscoveryInbox({
   repository,
   canManage,
@@ -32,30 +34,64 @@ export function EquipmentDiscoveryInbox({
   canManage: boolean;
   assets: EquipmentRegistryAsset[];
 }) {
-  const [overview, setOverview] = useState<EquipmentDiscoveryOverview | null>(null);
+  const [overviewState, setOverviewState] = useState<{
+    repository: EquipmentDiscoveryRepository;
+    value: EquipmentDiscoveryOverview;
+  } | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [cidrs, setCidrs] = useState("");
   const [ports, setPorts] = useState("");
+  const [candidateOffset, setCandidateOffset] = useState(0);
   const [pendingCandidateId, setPendingCandidateId] = useState<string | null>(null);
   const [adoptNames, setAdoptNames] = useState<Record<string, string>>({});
   const [linkTargets, setLinkTargets] = useState<Record<string, string>>({});
+  const repositoryRef = useRef(repository);
+  const requestSequenceRef = useRef(0);
+  const overview = overviewState?.repository === repository ? overviewState.value : null;
+
+  useEffect(() => {
+    repositoryRef.current = repository;
+    requestSequenceRef.current += 1;
+    const resetId = window.setTimeout(() => {
+      setCandidateOffset(0);
+      setCidrs("");
+      setPorts("");
+      setPendingCandidateId(null);
+      setAdoptNames({});
+      setLinkTargets({});
+      setError(null);
+      setState(repository ? "loading" : "idle");
+    }, 0);
+    return () => window.clearTimeout(resetId);
+  }, [repository]);
 
   const refresh = useCallback(async () => {
     if (!repository) return;
+    const requestedRepository = repository;
+    const requestSequence = ++requestSequenceRef.current;
     setState((current) => (current === "ready" ? "ready" : "loading"));
     setError(null);
     try {
-      const next = await repository.getOverview();
-      setOverview(next);
+      const next = await requestedRepository.getOverview({
+        candidateOffset,
+        candidateLimit: CANDIDATE_PAGE_SIZE,
+      });
+      if (repositoryRef.current !== requestedRepository || requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+      setOverviewState({ repository: requestedRepository, value: next });
       setCidrs((current) => current || next.policy.allowedCidrs.join(", "));
       setPorts((current) => current || next.policy.allowedPorts.join(", "));
       setState("ready");
     } catch (loadError) {
+      if (repositoryRef.current !== requestedRepository || requestSequenceRef.current !== requestSequence) {
+        return;
+      }
       setState("error");
       setError(discoveryErrorMessage(loadError));
     }
-  }, [repository]);
+  }, [candidateOffset, repository]);
 
   useEffect(() => {
     if (!repository) return;
@@ -171,7 +207,7 @@ export function EquipmentDiscoveryInbox({
       {overview ? (
         <>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <DiscoveryMetric label="Кандидати" value={overview.candidates.length} />
+            <DiscoveryMetric label="Кандидати" value={overview.candidateTotal} />
             <DiscoveryMetric
               label="Активні network assets"
               value={overview.networkAssets.filter((item) => item.status === "active").length}
@@ -252,7 +288,38 @@ export function EquipmentDiscoveryInbox({
             <ScanSummary overview={overview} />
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+            <span>
+              {overview.candidateTotal === 0
+                ? "Кандидатів немає"
+                : `Показано ${overview.candidateOffset + 1}–${Math.min(
+                    overview.candidateOffset + overview.candidates.length,
+                    overview.candidateTotal,
+                  )} з ${overview.candidateTotal}`}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={overview.candidateOffset === 0}
+                onClick={() =>
+                  setCandidateOffset(Math.max(0, overview.candidateOffset - CANDIDATE_PAGE_SIZE))
+                }
+                className={secondaryButtonClass}
+              >
+                Назад
+              </button>
+              <button
+                type="button"
+                disabled={overview.candidateOffset + overview.candidates.length >= overview.candidateTotal}
+                onClick={() => setCandidateOffset(overview.candidateOffset + CANDIDATE_PAGE_SIZE)}
+                className={secondaryButtonClass}
+              >
+                Далі
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-3">
             {sortedCandidates.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-500">
                 Кандидатів ще немає. Scan не запускається автоматично — потрібна явна дія оператора.

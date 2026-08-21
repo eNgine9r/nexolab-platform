@@ -88,8 +88,16 @@ export type EquipmentDiscoveryOverview = {
   policy: EquipmentDiscoveryPolicy;
   activeScan: EquipmentDiscoveryScan | null;
   lastScan: EquipmentDiscoveryScan | null;
+  candidateTotal: number;
+  candidateOffset: number;
+  candidateLimit: number;
   candidates: EquipmentDiscoveryCandidate[];
   networkAssets: EquipmentNetworkAsset[];
+};
+
+export type EquipmentDiscoveryOverviewQuery = {
+  candidateOffset?: number;
+  candidateLimit?: number;
 };
 
 export type EquipmentDiscoveryCandidateAction =
@@ -98,7 +106,7 @@ export type EquipmentDiscoveryCandidateAction =
   | { action: "adopt"; displayName: string };
 
 export interface EquipmentDiscoveryRepository {
-  getOverview(): Promise<EquipmentDiscoveryOverview>;
+  getOverview(input?: EquipmentDiscoveryOverviewQuery): Promise<EquipmentDiscoveryOverview>;
   startScan(input: { cidrs: string[]; ports: number[] }): Promise<EquipmentDiscoveryScan>;
   cancelScan(scanId: string): Promise<EquipmentDiscoveryScan>;
   actOnCandidate(
@@ -128,8 +136,16 @@ export class HttpEquipmentDiscoveryRepository implements EquipmentDiscoveryRepos
     this.fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   }
 
-  async getOverview(): Promise<EquipmentDiscoveryOverview> {
-    return parseOverview(await this.request("/api/v1/equipment-discovery", { method: "GET" }));
+  async getOverview(input: EquipmentDiscoveryOverviewQuery = {}): Promise<EquipmentDiscoveryOverview> {
+    const params = new URLSearchParams();
+    if (input.candidateOffset !== undefined) {
+      params.set("candidate_offset", String(input.candidateOffset));
+    }
+    if (input.candidateLimit !== undefined) {
+      params.set("candidate_limit", String(input.candidateLimit));
+    }
+    const query = params.size > 0 ? `?${params.toString()}` : "";
+    return parseOverview(await this.request(`/api/v1/equipment-discovery${query}`, { method: "GET" }));
   }
 
   async startScan(input: { cidrs: string[]; ports: number[] }): Promise<EquipmentDiscoveryScan> {
@@ -205,10 +221,19 @@ export class HttpEquipmentDiscoveryRepository implements EquipmentDiscoveryRepos
 function parseOverview(value: unknown): EquipmentDiscoveryOverview {
   const record = asRecord(value);
   if (!record) throw invalidResponse();
+  const candidateTotal = readNonNegativeInteger(record.candidate_total);
+  const candidateOffset = readNonNegativeInteger(record.candidate_offset);
+  const candidateLimit = readPositiveInteger(record.candidate_limit);
+  if (candidateTotal === null || candidateOffset === null || candidateLimit === null) {
+    throw invalidResponse();
+  }
   return {
     policy: parsePolicy(record.policy),
     activeScan: record.active_scan === null ? null : parseScan(record.active_scan),
     lastScan: record.last_scan === null ? null : parseScan(record.last_scan),
+    candidateTotal,
+    candidateOffset,
+    candidateLimit,
     candidates: readArray(record.candidates).map(parseCandidate),
     networkAssets: readArray(record.network_assets).map(parseNetworkAsset),
   };

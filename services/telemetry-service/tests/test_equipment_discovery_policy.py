@@ -100,7 +100,7 @@ def test_scanner_uses_only_connect_probes_and_neighbor_evidence(tmp_path: Path) 
         assert result.network_connect_attempts == 4
         assert result.network_payload_bytes == 0
         neighbor, connected = result.observations
-        assert neighbor.candidate_key == "mac:aa:bb:cc:dd:ee:01"
+        assert neighbor.candidate_key == "ip:192.168.50.1"
         assert neighbor.services == ()
         assert neighbor.evidence["neighbor_table"] is True
         assert connected.candidate_key == "ip:192.168.50.2"

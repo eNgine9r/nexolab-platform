@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 
 from app.equipment_discovery.policy import (
     DiscoveryBudgetExceededError,
@@ -69,22 +69,30 @@ def create_equipment_discovery_router(
 
     @router.get("", response_model=DiscoveryOverviewResponse)
     def overview(
+        candidate_offset: int = Query(default=0, ge=0),
+        candidate_limit: int = Query(default=100, ge=1, le=500),
         authorized: AuthorizedRequest = Depends(read_access),
     ) -> DiscoveryOverviewResponse:
         organization_id = authorized.principal.organization_id
         scans = repository.list_scans(organization_id=organization_id, limit=20)
         active_scan = next((item for item in scans if item.status == "running"), None)
         last_scan = next((item for item in scans if item.status != "running"), None)
+        candidate_total = repository.count_candidates(organization_id=organization_id)
+        candidate_page = repository.list_candidates(
+            organization_id=organization_id,
+            offset=candidate_offset,
+            limit=candidate_limit,
+        )
         return DiscoveryOverviewResponse(
             policy=_policy_response(
                 policy, schedule_interval_seconds=service.schedule_interval_seconds
             ),
             active_scan=_scan_response(active_scan) if active_scan else None,
             last_scan=_scan_response(last_scan) if last_scan else None,
-            candidates=[
-                _candidate_response(item)
-                for item in repository.list_candidates(organization_id=organization_id)
-            ],
+            candidate_total=candidate_total,
+            candidate_offset=candidate_offset,
+            candidate_limit=candidate_limit,
+            candidates=[_candidate_response(item) for item in candidate_page],
             network_assets=[
                 _network_asset_response(item)
                 for item in repository.list_network_assets(organization_id=organization_id)

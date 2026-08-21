@@ -20,7 +20,11 @@ Cancellation is checked between bounded host batches. Scheduled scans are disabl
 
 ## Persisted evidence and tenant isolation
 
-Each scan stores its requested scope, budgets, completion metrics and result counts. Candidates preserve first/last seen state and lifecycle, while each scan observation is immutable and retains the observed network/service evidence plus a deterministic fingerprint.
+Each scan stores its requested scope, budgets, completion metrics and result counts. Candidates preserve first/last seen state and lifecycle, while each scan observation is immutable and retains the observed network/service evidence plus a deterministic fingerprint. Candidate identity is the observed IP endpoint (`ip:<address>`); MAC addresses remain evidence rather than identity because proxy ARP and multi-address devices may legitimately expose the same MAC for multiple IP endpoints.
+
+Change detection compares fingerprints only against the most recent observation from the same deterministic scan scope (CIDR set plus requested TCP-port set). Partial-port rescans therefore cannot manufacture a change event by omitting untested services. Neighbor-only evidence is not treated as permanently present: if a later covering scan sees neither the neighbor entry nor an open requested service, the candidate is marked disappeared.
+
+The discovery overview exposes bounded candidate pagination and a total count so every persisted candidate remains reachable even when a scan produces more than one UI page. The frontend renders one server-side page at a time and rejects obsolete responses when the active organization/repository changes.
 
 Database ownership is organization-scoped. Candidate-to-scan, observation-to-scan, observation-to-candidate and adopted network-asset-to-candidate relationships enforce matching `organization_id` values at the database layer. A partial PostgreSQL unique index allows at most one running scan per organization.
 

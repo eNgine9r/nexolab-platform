@@ -51,8 +51,9 @@ class DiscoveryObservationInput:
 
     @property
     def candidate_key(self) -> str:
-        if self.mac_address:
-            return f"mac:{self.mac_address.lower()}"
+        # Endpoint identity stays IP-stable. MAC is observed evidence only:
+        # proxy ARP or multi-address devices can legitimately expose one MAC
+        # for multiple scanned IPs and must not collapse distinct candidates.
         return f"ip:{self.ip_address}"
 
 

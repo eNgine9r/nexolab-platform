@@ -26,6 +26,9 @@ function overview(): EquipmentDiscoveryOverview {
     },
     activeScan: null,
     lastScan: null,
+    candidateTotal: 1,
+    candidateOffset: 0,
+    candidateLimit: 50,
     candidates: [
       {
         id: "candidate-1",
@@ -80,7 +83,7 @@ function runningScan(): EquipmentDiscoveryScan {
 }
 
 function repository() {
-  const getOverview = vi.fn(async () => overview());
+  const getOverview = vi.fn<EquipmentDiscoveryRepository["getOverview"]>(async () => overview());
   const startScan = vi.fn<EquipmentDiscoveryRepository["startScan"]>(async (input) => ({
     ...runningScan(),
     requestedCidrs: input.cidrs,
@@ -166,6 +169,77 @@ describe("EquipmentDiscoveryInbox", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("paginates the candidate inbox through the repository contract", async () => {
+    const repo = repository();
+    const firstPage = { ...overview(), candidateTotal: 51 };
+    const secondCandidate = {
+      ...overview().candidates[0]!,
+      id: "candidate-51",
+      candidateKey: "ip:192.168.50.51",
+      ipAddress: "192.168.50.51",
+    };
+    const secondPage = {
+      ...overview(),
+      candidateTotal: 51,
+      candidateOffset: 50,
+      candidates: [secondCandidate],
+    };
+    repo.getOverview.mockImplementation(async (input) =>
+      input?.candidateOffset === 50 ? secondPage : firstPage,
+    );
+
+    render(<EquipmentDiscoveryInbox repository={repo.value} canManage assets={[]} />);
+    await screen.findByText("192.168.50.2");
+    expect(screen.getByText("Показано 1–1 з 51")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Далі" }));
+
+    await screen.findByText("192.168.50.51");
+    expect(repo.getOverview).toHaveBeenLastCalledWith({
+      candidateOffset: 50,
+      candidateLimit: 50,
+    });
+    expect(screen.getByText("Показано 51–51 з 51")).toBeInTheDocument();
+  });
+
+  it("discards an in-flight overview response from the previous repository", async () => {
+    let resolveOld: ((value: EquipmentDiscoveryOverview) => void) | null = null;
+    const oldRepository = repository();
+    oldRepository.getOverview.mockReset();
+    oldRepository.getOverview.mockImplementation(
+      () =>
+        new Promise<EquipmentDiscoveryOverview>((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    const nextRepository = repository();
+    const nextCandidate = {
+      ...overview().candidates[0]!,
+      id: "candidate-next",
+      candidateKey: "ip:192.168.50.9",
+      ipAddress: "192.168.50.9",
+    };
+    nextRepository.getOverview.mockResolvedValue({
+      ...overview(),
+      candidates: [nextCandidate],
+    });
+
+    const rendered = render(
+      <EquipmentDiscoveryInbox repository={oldRepository.value} canManage assets={[]} />,
+    );
+    await waitFor(() => expect(oldRepository.getOverview).toHaveBeenCalledTimes(1));
+    rendered.rerender(<EquipmentDiscoveryInbox repository={nextRepository.value} canManage assets={[]} />);
+    await screen.findByText("192.168.50.9");
+
+    await act(async () => {
+      resolveOld?.(overview());
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("192.168.50.9")).toBeInTheDocument();
+    expect(screen.queryByText("192.168.50.2")).not.toBeInTheDocument();
   });
 
   it("keeps viewer discovery evidence read-only", async () => {

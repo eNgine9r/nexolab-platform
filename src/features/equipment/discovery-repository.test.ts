@@ -18,6 +18,9 @@ function rawOverview() {
     },
     active_scan: null,
     last_scan: null,
+    candidate_total: 1,
+    candidate_offset: 0,
+    candidate_limit: 50,
     candidates: [
       {
         id: "candidate-1",
@@ -57,14 +60,14 @@ describe("HttpEquipmentDiscoveryRepository", () => {
       fetchImpl,
     });
 
-    const overview = await repository.getOverview();
+    const overview = await repository.getOverview({ candidateOffset: 50, candidateLimit: 50 });
 
     expect(overview.policy.probeMode).toBe("tcp-connect-only");
     expect(overview.policy.payloadBytesSentPerProbe).toBe(0);
     expect(overview.policy.scheduleIntervalSeconds).toBe(0);
     expect(overview.candidates[0]?.services[0]?.port).toBe(443);
     expect(fetchImpl).toHaveBeenCalledWith(
-      "http://127.0.0.1:8082/api/v1/equipment-discovery",
+      "http://127.0.0.1:8082/api/v1/equipment-discovery?candidate_offset=50&candidate_limit=50",
       expect.objectContaining({ method: "GET", credentials: "same-origin" }),
     );
   });
