@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from types import SimpleNamespace
 
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.config import Settings
 from app.equipment_discovery.policy import DiscoveryPolicy
 from app.equipment_discovery.repository import ScanAlreadyRunningError
-from app.equipment_discovery.scanner import DiscoveryScanResult
+from app.equipment_discovery.scanner import (
+    DiscoveryScanResult,
+    LocalLanDiscoveryScanner,
+    ScanCancelledError,
+)
 from app.equipment_discovery.service import EquipmentDiscoveryService
 
 
@@ -102,10 +107,17 @@ def test_scheduled_scan_skips_when_one_is_already_running() -> None:
     asyncio.run(run())
 
 
+class TransientConnectionError(RuntimeError):
+    sqlstate = "08006"
+
+
 class FinalizationRepository:
-    def __init__(self) -> None:
+    def __init__(self, *, permanent_apply_failure: bool = False) -> None:
         self.apply_calls = 0
         self.completed = False
+        self.failed = False
+        self.cancelled_result: DiscoveryScanResult | None = None
+        self.permanent_apply_failure = permanent_apply_failure
 
     def cancel_requested(self, _scan_id: str, *, organization_id: str) -> bool:
         assert organization_id == ORGANIZATION_ID
@@ -121,9 +133,38 @@ class FinalizationRepository:
         assert organization_id == ORGANIZATION_ID
         assert result.network_payload_bytes == 0
         self.apply_calls += 1
+        if self.permanent_apply_failure:
+            raise IntegrityError("UPDATE equipment_discovery_scans", {}, RuntimeError("constraint"))
         if self.apply_calls == 1:
-            raise OperationalError("UPDATE equipment_discovery_scans", {}, RuntimeError("offline"))
+            raise OperationalError(
+                "UPDATE equipment_discovery_scans",
+                {},
+                TransientConnectionError("offline"),
+            )
         self.completed = True
+
+    def finish_cancelled(
+        self,
+        _scan_id: str,
+        *,
+        organization_id: str,
+        result: DiscoveryScanResult,
+    ) -> None:
+        assert organization_id == ORGANIZATION_ID
+        self.cancelled_result = result
+
+    def finish_failed(
+        self,
+        _scan_id: str,
+        *,
+        organization_id: str,
+        error_code: str,
+        error_message: str,
+    ) -> None:
+        assert organization_id == ORGANIZATION_ID
+        assert error_code == "equipment_discovery_scan_failed"
+        assert error_message
+        self.failed = True
 
 
 class SuccessfulScanner:
@@ -135,6 +176,22 @@ class SuccessfulScanner:
             probes_attempted=4,
             network_connect_attempts=4,
             network_payload_bytes=0,
+        )
+
+
+class CancelledScanner:
+    async def scan(self, _scope: object, *, cancel_check: object) -> DiscoveryScanResult:
+        assert callable(cancel_check)
+        raise ScanCancelledError(
+            DiscoveryScanResult(
+                observations=(),
+                hosts_considered=1,
+                probes_attempted=2,
+                duration_ms=7,
+                process_cpu_ms=3,
+                network_connect_attempts=2,
+                network_payload_bytes=0,
+            )
         )
 
 
@@ -155,5 +212,90 @@ def test_scan_finalization_retries_after_transient_database_outage() -> None:
         )
         assert repository.apply_calls == 2
         assert repository.completed is True
+
+    asyncio.run(run())
+
+
+def test_permanent_database_failure_is_not_retried_and_scan_is_failed() -> None:
+    async def run() -> None:
+        repository = FinalizationRepository(permanent_apply_failure=True)
+        policy = configured_policy()
+        service = EquipmentDiscoveryService(
+            repository,  # type: ignore[arg-type]
+            policy,
+            scanner=SuccessfulScanner(),  # type: ignore[arg-type]
+            database_retry_seconds=0,
+        )
+        await service._run_scan(  # noqa: SLF001
+            "scan-1",
+            organization_id=ORGANIZATION_ID,
+            scope=policy.resolve(),
+        )
+        assert repository.apply_calls == 1
+        assert repository.failed is True
+        assert repository.completed is False
+
+    asyncio.run(run())
+
+
+def test_cancelled_scan_passes_partial_metrics_to_finalization() -> None:
+    async def run() -> None:
+        repository = FinalizationRepository()
+        policy = configured_policy()
+        service = EquipmentDiscoveryService(
+            repository,  # type: ignore[arg-type]
+            policy,
+            scanner=CancelledScanner(),  # type: ignore[arg-type]
+            database_retry_seconds=0,
+        )
+        await service._run_scan(  # noqa: SLF001
+            "scan-1",
+            organization_id=ORGANIZATION_ID,
+            scope=policy.resolve(),
+        )
+        result = repository.cancelled_result
+        assert result is not None
+        assert result.hosts_considered == 1
+        assert result.probes_attempted == 2
+        assert result.network_connect_attempts == 2
+        assert result.network_payload_bytes == 0
+        assert result.duration_ms == 7
+        assert result.process_cpu_ms == 3
+
+    asyncio.run(run())
+
+
+def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: Path) -> None:
+    async def run() -> None:
+        policy = configured_policy()
+        scope = policy.resolve()
+        checks = 0
+
+        async def cancel_check() -> bool:
+            nonlocal checks
+            checks += 1
+            return checks > 1
+
+        async def connector(_ip: str, _port: int, _timeout: float) -> bool:
+            return False
+
+        scanner = LocalLanDiscoveryScanner(
+            connect_timeout_seconds=0.01,
+            concurrency=1,
+            tcp_connector=connector,
+            neighbor_table_path=tmp_path / "missing-arp",
+        )
+        try:
+            await scanner.scan(scope, cancel_check=cancel_check)
+        except ScanCancelledError as error:
+            result = error.result
+        else:
+            raise AssertionError("scan should have been cancelled after the first batch")
+
+        assert result.hosts_considered == 1
+        assert result.probes_attempted == 2
+        assert result.network_connect_attempts == 2
+        assert result.network_payload_bytes == 0
+        assert result.observations == ()
 
     asyncio.run(run())
