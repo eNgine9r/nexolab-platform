@@ -12,6 +12,7 @@ from app.equipment_discovery.policy import ResolvedDiscoveryScope
 from app.equipment_discovery.scanner import (
     LocalLanDiscoveryScanner,
     NeighborSnapshotError,
+    ScanFailedError,
     read_ipv4_neighbors,
     tcp_connect,
 )
@@ -61,6 +62,34 @@ def test_tcp_connect_propagates_process_resource_failure(monkeypatch) -> None:
         assert error.errno == errno.EMFILE
     else:
         raise AssertionError("process resource failure must abort discovery instead of looking closed")
+
+
+def test_scanner_carries_completed_batch_metrics_when_transport_fails() -> None:
+    async def connector(ip: str, _port: int, _timeout: float) -> bool:
+        if ip == "192.168.50.2":
+            raise OSError(errno.ENETUNREACH, "network unreachable")
+        return False
+
+    scope = ResolvedDiscoveryScope(
+        networks=(ip_network("192.168.50.0/30"),),
+        ports=(443,),
+        addresses=(ip_address("192.168.50.1"), ip_address("192.168.50.2")),
+        probe_budget=2,
+    )
+    scanner = LocalLanDiscoveryScanner(
+        connect_timeout_seconds=0.1,
+        concurrency=1,
+        tcp_connector=connector,
+    )
+
+    with pytest.raises(ScanFailedError) as captured:
+        asyncio.run(scanner.scan(scope))
+
+    assert isinstance(captured.value.cause, OSError)
+    assert captured.value.result.hosts_considered == 1
+    assert captured.value.result.probes_attempted == 1
+    assert captured.value.result.network_connect_attempts == 1
+    assert captured.value.result.network_payload_bytes == 0
 
 
 def test_explicit_neighbor_snapshot_failure_aborts_before_probes(tmp_path: Path) -> None:
