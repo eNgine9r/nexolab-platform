@@ -60,22 +60,15 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — GREEN; state reconciliation and merge only
+## Issue #606 — final software hardening complete; merge gate only
 
-PR #632 product head `804d0b44045a5099c59149c87b70cbf63ca047f8` is GREEN in all 22 pull-request
-workflows. Real Product Owner-authorized bounded Raspberry Pi / LOCAL_LAN
-acceptance is PASS: five explicit hosts, two allowed TCP ports, 10 connect
-attempts, zero application payload, production healthy before/after and no
-increase in physical acquisition cadence. Raspberry Pi boot continuity also
-passed.
+PR #632 hardware/LAN-accepted product head `804d0b44045a5099c59149c87b70cbf63ca047f8` remains fully accepted: five explicit hosts, two allowed TCP ports, 10 connect attempts, zero application payload, production healthy before/after, unchanged Raspberry Pi boot identity and no increase in physical acquisition cadence. Pre-final software head `69a9ae0072cd279ff905a1a4e918b0a1efa041a1` completed all 22 pull-request workflows GREEN.
 
-There is no remaining product, software, LAN or hardware-acceptance blocker
-for #606. Remaining work is state-only: commit reconciliation, resolve the
-stale sprint-state review thread, verify the resulting state-head checks and
-merge PR #632.
+Post-acceptance review hardening is complete at software head `e94f140906589c8f23ae3c1d915fa709c50acc6f`. The latest change bounds cancellation by total probe count and checks cancellation between bounded port batches; it does not add application payload, Modbus access, hardware writes, broader scan scope or deployment behavior. No repeat physical LAN acceptance is required for this software-only correction.
 
-No Modbus read/write command, hardware write, unrestricted scan, credential
-attempt, production deployment or site cutover was performed.
+There is no product, LAN or hardware blocker for #606. Remaining work is the single final state-head CI/review merge gate for PR #632, followed by Issue #606 closure.
+
+No Modbus read/write command, hardware write, unrestricted scan, credential attempt, production deployment or site cutover was performed.
 
 ## Issue #626 — completed, no longer blocking
 
@@ -109,7 +102,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
-- #606 discovery/adoption inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
+- #606 discovery/adoption inbox — hardware/LAN acceptance GREEN and final software hardening complete; one final state-head CI/review gate before merge;
 - #633 frontend candidate cleanup — Ready after #606;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
@@ -120,7 +113,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
+- #606 LOCAL_LAN discovery inbox — final software hardening complete; single final merge gate remains;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
 - #633 frontend candidate cleanup — queued after #606;
