@@ -4,11 +4,19 @@ Updated: 2026-08-21
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Software implementation through `f5c8a1e6eae289c4882664972a786fcfc3f2deb9` now isolates the candidate in an exact process group, confirms the actual PGID before publishing it, falls back to exact-PID termination during the pre-handshake race window, performs bounded group cleanup on success/error/exit paths, treats zombie-only group members as terminated, and verifies candidate port `3100` is free before continuing.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software behavior before the state checkpoint is `24390ea3fa490a90fb4aa964f17191e12af53b14`.
 
-Initial Core CI run `32514504593` on `87afc111...` passed. Review findings for stale state, zombie-only PGID handling, and the pre-`setsid` PGID publication race are addressed in the current branch. Final exact-head CI/review remains the software merge gate.
+The candidate lifecycle now uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup, zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
 
-The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted while the Pi is offline.
+Verified intermediate software gates:
+
+- Core CI `32514504593` on `87afc111...`: PASS;
+- Core CI `32517056093` on `08884615...`: PASS;
+- Core CI `32519957941` on `a7d91af1...`: PASS, including candidate-cleanup regression execution.
+
+Review findings through startup publication, handshake-window cleanup, fixture isolation, EXIT failure reporting, zombie handling and CI integration are addressed in `24390ea3...`. Final exact-head CI and fresh review on the state-checkpoint head remain the only software merge gates.
+
+The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
 
 ## Security maintenance — CVE-2026-14456 deadline
 

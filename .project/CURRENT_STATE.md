@@ -14,32 +14,35 @@ Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f
 
 Issue #633 — **Stop isolated frontend candidate after successful Raspberry Pi deployment** — is active `status:in-progress` in branch `fix/633-frontend-candidate-cleanup` with PR #643.
 
-Software implementation boundary before this state checkpoint is `f5c8a1e6eae289c4882664972a786fcfc3f2deb9`.
+Final software implementation boundary before this state checkpoint is `24390ea3fa490a90fb4aa964f17191e12af53b14`.
 
 Implemented behavior:
 
 - isolated frontend candidate starts in its own session/process group;
-- the deployment tracks the exact candidate PID and publishes the PGID only after a `ps` handshake confirms the child actually entered that isolated process group;
-- before the PGID handshake completes, cleanup falls back to terminating only the exact candidate PID, preventing an EXIT/HUP/TERM race from orphaning the candidate;
+- a parent/child startup gate prevents the candidate from executing `setsid` or Next.js until the parent has published the exact background PID;
+- the child also stops waiting if the deployment parent disappears before gate release, preventing an untracked candidate from escaping during the `$!` publication window;
+- after gate release, the deployment publishes the PGID only after a `ps` handshake confirms the tracked PID is the isolated group leader;
+- if cleanup runs before PGID publication, it re-checks the exact tracked PID: an already-established candidate group is terminated as a group; otherwise only the exact tracked PID is terminated;
 - established candidate groups use bounded TERM → KILL cleanup;
-- EXIT/error paths perform idempotent candidate cleanup;
-- zombie-only group members are classified as terminated and cannot create a false cleanup failure;
+- zombie-only group members are classified as terminated rather than executable work;
+- EXIT cleanup failures are surfaced while preserving the original deployment failure code;
 - candidate port `3100` is verified free before backend/activation work proceeds;
-- broad `pkill`/process-name matching is not introduced;
-- production Dashboard process semantics are unchanged.
+- the candidate-cleanup regression module is executed by the standalone runtime CI entry point;
+- broad `pkill`/process-name matching is not introduced and production Dashboard process semantics are unchanged.
 
 Verification status:
 
 - initial exact-head `87afc1116bbb393c748d9bd666cbcbc1da959969` Core CI run `32514504593`: PASS;
-- review P2 findings for zombie-only PGID handling and pre-`setsid` PGID publication race are addressed through `f5c8a1e6...` with focused regression coverage;
-- repository-backed state now marks #633 active instead of `ready_not_started`;
-- final exact-head CI/review on the state-checkpoint head remains pending before merge;
+- exact-head `08884615decb4d55a9c4faabaea26d32d5e6a650` Core CI run `32517056093`: PASS;
+- exact-head `a7d91af104474c0fec604767a818bd9cfb6a27dd` Core CI run `32519957941`: PASS, including the cleanup regression suite through the standalone runtime contract;
+- review findings through the handshake-window, fixture-isolation, EXIT-reporting and CI-coverage gaps are addressed in software through `24390ea3...`;
+- this state checkpoint records the final software behavior; final exact-head CI and fresh review on the state-checkpoint head remain the merge gates;
 - real Raspberry Pi post-deployment verification is **hardware/runtime unverified** because `nexolab-edge-01` is currently offline;
 - no production deployment/site cutover has been authorized or performed by #633.
 
 ## Current planning boundary
 
-Issue #633 is the single active Work Package. Do not select it again as Ready while PR #643 is in its final CI/review gate.
+Issue #633 is the single active Work Package. Do not select it again as Ready while PR #643 is in its final exact-head CI/review gate.
 
 Known queue after #633:
 
