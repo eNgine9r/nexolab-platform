@@ -42,6 +42,7 @@ function rawOverview() {
         changed_since_previous_scan: false,
       },
     ],
+    network_asset_total: 0,
     network_assets: [],
   };
 }
@@ -65,6 +66,7 @@ describe("HttpEquipmentDiscoveryRepository", () => {
     expect(overview.policy.probeMode).toBe("tcp-connect-only");
     expect(overview.policy.payloadBytesSentPerProbe).toBe(0);
     expect(overview.policy.scheduleIntervalSeconds).toBe(0);
+    expect(overview.networkAssetTotal).toBe(0);
     expect(overview.candidates[0]?.services[0]?.port).toBe(443);
     expect(fetchImpl).toHaveBeenCalledWith(
       "http://127.0.0.1:8082/api/v1/equipment-discovery?candidate_offset=50&candidate_limit=50",
@@ -89,6 +91,23 @@ describe("HttpEquipmentDiscoveryRepository", () => {
 
       await expect(repository.getOverview()).rejects.toMatchObject({ code: "invalid_response" });
     }
+  });
+
+  it("rejects invalid network asset totals", async () => {
+    const payload = rawOverview();
+    Object.assign(payload, { network_asset_total: -1 });
+    const repository = new HttpEquipmentDiscoveryRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      fetchImpl: vi.fn<typeof fetch>(
+        async () =>
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+      ),
+    });
+
+    await expect(repository.getOverview()).rejects.toMatchObject({ code: "invalid_response" });
   });
 
   it("rejects non-boolean scan cancellation state", async () => {
