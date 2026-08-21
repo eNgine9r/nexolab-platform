@@ -77,6 +77,13 @@ class ScanCancelledError(RuntimeError):
         self.result = result
 
 
+class ScanFailedError(RuntimeError):
+    def __init__(self, result: DiscoveryScanResult, cause: Exception) -> None:
+        super().__init__(str(cause) or cause.__class__.__name__)
+        self.result = result
+        self.cause = cause
+
+
 class NeighborSnapshotError(RuntimeError):
     """Raised when an explicitly configured neighbor snapshot is unusable."""
 
@@ -136,26 +143,31 @@ class LocalLanDiscoveryScanner:
                 network_payload_bytes=0,
             )
 
-        for start in range(0, len(scope.addresses), batch_size):
-            if await cancel():
-                raise ScanCancelledError(snapshot())
-            batch = scope.addresses[start : start + batch_size]
-            results = await asyncio.gather(
-                *(
-                    self._probe_host(address, scope, neighbors, semaphore)
-                    for address in batch
+        try:
+            for start in range(0, len(scope.addresses), batch_size):
+                if await cancel():
+                    raise ScanCancelledError(snapshot())
+                batch = scope.addresses[start : start + batch_size]
+                results = await asyncio.gather(
+                    *(
+                        self._probe_host(address, scope, neighbors, semaphore)
+                        for address in batch
+                    )
                 )
-            )
-            hosts_considered += len(batch)
-            for observation, attempts in results:
-                probes_attempted += attempts
-                if observation is not None:
-                    observations.append(observation)
+                hosts_considered += len(batch)
+                for observation, attempts in results:
+                    probes_attempted += attempts
+                    if observation is not None:
+                        observations.append(observation)
 
-        result = snapshot()
-        if await cancel():
-            raise ScanCancelledError(result)
-        return result
+            result = snapshot()
+            if await cancel():
+                raise ScanCancelledError(result)
+            return result
+        except ScanCancelledError:
+            raise
+        except Exception as error:
+            raise ScanFailedError(snapshot(), error) from error
 
     async def _probe_host(
         self,
