@@ -14,13 +14,14 @@ Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f
 
 Issue #633 — **Stop isolated frontend candidate after successful Raspberry Pi deployment** — is active `status:in-progress` in branch `fix/633-frontend-candidate-cleanup` with PR #643.
 
-Software implementation boundary before this state checkpoint is `f6f08792a515d05305497fa3eff52ac4c5ae5d6e`.
+Software implementation boundary before this state checkpoint is `f5c8a1e6eae289c4882664972a786fcfc3f2deb9`.
 
 Implemented behavior:
 
 - isolated frontend candidate starts in its own session/process group;
-- the deployment tracks the exact candidate PID/PGID it created;
-- cleanup targets only that process group with bounded TERM → KILL escalation;
+- the deployment tracks the exact candidate PID and publishes the PGID only after a `ps` handshake confirms the child actually entered that isolated process group;
+- before the PGID handshake completes, cleanup falls back to terminating only the exact candidate PID, preventing an EXIT/HUP/TERM race from orphaning the candidate;
+- established candidate groups use bounded TERM → KILL cleanup;
 - EXIT/error paths perform idempotent candidate cleanup;
 - zombie-only group members are classified as terminated and cannot create a false cleanup failure;
 - candidate port `3100` is verified free before backend/activation work proceeds;
@@ -30,7 +31,8 @@ Implemented behavior:
 Verification status:
 
 - initial exact-head `87afc1116bbb393c748d9bd666cbcbc1da959969` Core CI run `32514504593`: PASS;
-- review P2 identified zombie-only PGID handling; software fix and targeted regression coverage are now present through `f6f08792...`;
+- review P2 findings for zombie-only PGID handling and pre-`setsid` PGID publication race are addressed through `f5c8a1e6...` with focused regression coverage;
+- repository-backed state now marks #633 active instead of `ready_not_started`;
 - final exact-head CI/review on the state-checkpoint head remains pending before merge;
 - real Raspberry Pi post-deployment verification is **hardware/runtime unverified** because `nexolab-edge-01` is currently offline;
 - no production deployment/site cutover has been authorized or performed by #633.

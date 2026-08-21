@@ -4,9 +4,9 @@ Updated: 2026-08-21
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Software implementation through `f6f08792a515d05305497fa3eff52ac4c5ae5d6e` now isolates the candidate in an exact process group, performs bounded group cleanup on success/error/exit paths, treats zombie-only group members as terminated, and verifies candidate port `3100` is free before continuing.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Software implementation through `f5c8a1e6eae289c4882664972a786fcfc3f2deb9` now isolates the candidate in an exact process group, confirms the actual PGID before publishing it, falls back to exact-PID termination during the pre-handshake race window, performs bounded group cleanup on success/error/exit paths, treats zombie-only group members as terminated, and verifies candidate port `3100` is free before continuing.
 
-Initial Core CI run `32514504593` on `87afc111...` passed, but review identified a zombie-only process-group false failure and stale project-state reporting. Both findings are addressed in the current branch. Final exact-head CI/review remains the software merge gate.
+Initial Core CI run `32514504593` on `87afc111...` passed. Review findings for stale state, zombie-only PGID handling, and the pre-`setsid` PGID publication race are addressed in the current branch. Final exact-head CI/review remains the software merge gate.
 
 The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted while the Pi is offline.
 

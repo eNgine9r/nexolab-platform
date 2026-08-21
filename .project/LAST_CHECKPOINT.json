@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T18:50:00Z",
+  "timestamp": "2026-08-21T19:02:00Z",
   "actor": "ChatGPT",
   "event": "issue_633_candidate_cleanup_final_verification_gate",
   "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
@@ -13,11 +13,13 @@
     "pull_request": 643,
     "branch": "fix/633-frontend-candidate-cleanup",
     "status": "FINAL_CI_REVIEW_GATE",
-    "software_head_before_state_checkpoint_sha": "f6f08792a515d05305497fa3eff52ac4c5ae5d6e",
+    "software_head_before_state_checkpoint_sha": "f5c8a1e6eae289c4882664972a786fcfc3f2deb9",
     "implemented": [
       "dedicated candidate session/process group",
-      "exact PID/PGID tracking",
-      "bounded TERM to KILL group cleanup",
+      "exact candidate PID tracking",
+      "PGID publication only after ps handshake confirms the isolated group",
+      "exact-PID cleanup fallback before the PGID handshake completes",
+      "bounded TERM to KILL group cleanup after handshake",
       "idempotent EXIT/error cleanup",
       "zombie-only process groups classified as terminated",
       "candidate port 3100 release verification",
@@ -26,7 +28,8 @@
     "initial_ci": "PASS_32514504593_AT_87AFC111",
     "review_findings": {
       "P1_state_sync": "ADDRESSED_IN_STATE_CHECKPOINT",
-      "P2_zombie_group_liveness": "ADDRESSED_IN_F6F08792"
+      "P2_zombie_group_liveness": "ADDRESSED",
+      "P2_pre_setsid_pgid_race": "ADDRESSED_IN_F5C8A1E6"
     },
     "final_exact_head_ci": "PENDING",
     "final_review": "PENDING",
@@ -77,7 +80,7 @@
     "issue_618": "Saved Dashboard CSV browser-download reliability lane",
     "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite"
   },
-  "next_action": "Run exact-head CI and fresh PR #643 review after the zombie-liveness and state fixes. If GREEN and review-clean, squash merge #643. Then reconcile post-merge state, record Raspberry Pi runtime verification as unverified until separately authorized/available, and perform a fresh Ready audit.",
+  "next_action": "Run exact-head CI and fresh PR #643 review after the zombie-liveness, PGID-handshake and state fixes. If GREEN and review-clean, squash merge #643. Then reconcile post-merge state, record Raspberry Pi runtime verification as unverified until separately authorized/available, and perform a fresh Ready audit.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
