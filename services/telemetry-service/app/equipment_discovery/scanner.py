@@ -96,6 +96,10 @@ class NeighborSnapshotError(RuntimeError):
     """Raised when an explicitly configured neighbor snapshot is unusable."""
 
 
+class _ScanCancellationRequested(RuntimeError):
+    """Internal signal used to preserve scanner metrics on operator cancellation."""
+
+
 TcpConnector = Callable[[str, int, float], Awaitable[bool]]
 CancelCheck = Callable[[], Awaitable[bool]]
 ProbeStarted = Callable[[IPv4Address], None]
@@ -137,7 +141,8 @@ class LocalLanDiscoveryScanner:
         observations: list[DiscoveryObservationInput] = []
         attempted_hosts: set[IPv4Address] = set()
         probes_attempted = 0
-        batch_size = max(1, min(self._concurrency, 32))
+        probes_per_host_round = min(len(scope.ports), self._concurrency)
+        batch_size = max(1, min(32, self._concurrency // probes_per_host_round))
 
         def record_probe_started(address: IPv4Address) -> None:
             nonlocal probes_attempted
@@ -169,6 +174,7 @@ class LocalLanDiscoveryScanner:
                             scope,
                             neighbors,
                             semaphore,
+                            cancel_check=cancel,
                             on_probe_started=record_probe_started,
                         )
                     )
@@ -185,6 +191,8 @@ class LocalLanDiscoveryScanner:
             return result
         except ScanCancelledError:
             raise
+        except _ScanCancellationRequested:
+            raise ScanCancelledError(snapshot()) from None
         except Exception as error:
             raise ScanFailedError(snapshot(), error) from error
 
@@ -195,6 +203,7 @@ class LocalLanDiscoveryScanner:
         neighbors: dict[str, NeighborEvidence],
         semaphore: asyncio.Semaphore,
         *,
+        cancel_check: CancelCheck,
         on_probe_started: ProbeStarted,
     ) -> DiscoveryObservationInput | None:
         rendered = str(address)
@@ -209,8 +218,17 @@ class LocalLanDiscoveryScanner:
                     self._connect_timeout_seconds,
                 )
 
-        tasks = tuple(asyncio.create_task(probe(port)) for port in scope.ports)
-        port_results = await _gather_cancel_on_error(tasks)
+        port_results: list[tuple[int, bool]] = []
+        port_batch_size = max(1, min(len(scope.ports), self._concurrency))
+        for start in range(0, len(scope.ports), port_batch_size):
+            if start > 0 and await cancel_check():
+                raise _ScanCancellationRequested()
+            tasks = tuple(
+                asyncio.create_task(probe(port))
+                for port in scope.ports[start : start + port_batch_size]
+            )
+            port_results.extend(await _gather_cancel_on_error(tasks))
+
         open_ports = tuple(port for port, opened in port_results if opened)
         if neighbor is None and not open_ports:
             return None
