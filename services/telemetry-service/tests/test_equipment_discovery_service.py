@@ -313,7 +313,12 @@ def test_permanent_database_failure_is_not_retried_and_scan_is_failed() -> None:
         assert repository.apply_calls == 1
         assert repository.failed is True
         assert repository.completed is False
-        assert repository.failed_result is None
+        result = repository.failed_result
+        assert result is not None
+        assert result.hosts_considered == 2
+        assert result.probes_attempted == 4
+        assert result.network_connect_attempts == 4
+        assert result.network_payload_bytes == 0
 
     asyncio.run(run())
 
