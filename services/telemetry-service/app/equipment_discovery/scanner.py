@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 import hashlib
 import json
 import re
@@ -27,6 +28,12 @@ _SERVICE_LABELS = {
 }
 _MAC_ADDRESS_RE = re.compile(r"^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$")
 _ARP_HEADER_FIELDS = ("IP address", "HW type", "Flags", "HW address", "Mask", "Device")
+_TARGET_UNREACHABLE_ERRNOS = frozenset(
+    {
+        errno.EHOSTUNREACH,
+        getattr(errno, "EHOSTDOWN", errno.EHOSTUNREACH),
+    }
+)
 _T = TypeVar("_T")
 
 
@@ -290,6 +297,10 @@ async def tcp_connect(ip: str, port: int, timeout_seconds: float) -> bool:
         return True
     except (TimeoutError, asyncio.TimeoutError, ConnectionRefusedError):
         return False
+    except OSError as error:
+        if error.errno in _TARGET_UNREACHABLE_ERRNOS:
+            return False
+        raise
     finally:
         if writer is not None:
             writer.close()

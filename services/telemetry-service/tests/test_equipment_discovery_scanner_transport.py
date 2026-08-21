@@ -36,6 +36,15 @@ def test_tcp_connect_treats_timeout_as_no_response(monkeypatch) -> None:
     assert asyncio.run(tcp_connect("192.168.50.2", 443, 0.1)) is False
 
 
+def test_tcp_connect_treats_host_unreachable_as_no_response(monkeypatch) -> None:
+    async def host_unreachable(_ip: str, _port: int):
+        raise OSError(errno.EHOSTUNREACH, "no route to host")
+
+    monkeypatch.setattr(scanner_module.asyncio, "open_connection", host_unreachable)
+
+    assert asyncio.run(tcp_connect("192.168.50.2", 443, 0.1)) is False
+
+
 def test_tcp_connect_propagates_systemic_network_failure(monkeypatch) -> None:
     async def unreachable(_ip: str, _port: int):
         raise OSError(errno.ENETUNREACH, "network unreachable")
