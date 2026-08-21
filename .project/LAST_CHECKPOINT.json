@@ -41,6 +41,7 @@
   },
   "state_reconciliation": {
     "issue": 641,
+    "pull_request": 642,
     "branch": "chore/reconcile-606-post-merge-state",
     "scope": [
       ".project/CURRENT_STATE.md",
@@ -61,16 +62,30 @@
     "status": "READY_HIGH_EXPECTED_NEXT_AFTER_STATE_MERGE",
     "started": false
   },
+  "maintenance_actions": {
+    "cve_2026_14456": {
+      "source_issue": 598,
+      "status": "DUE_BY_2026_08_26",
+      "owner": "platform-security",
+      "action": "Re-check fixed package availability and remove four temporary exceptions immediately when fixed, or review before expiry."
+    }
+  },
   "blocked_work": {
     "issue_585": "Product Owner confirmation and explicit physical W2/Unit 201 handback approval required",
     "issue_589": "Depends on Issue #607 dual RS-485 bus architecture",
-    "issue_590": "Depends on Issue #589 persisted cadence/capacity contract"
+    "issue_590": "Depends on Issue #589 persisted cadence/capacity contract",
+    "issue_189": "Controlled central-host/Raspberry Pi backup, restore, rollback and power-loss recovery evidence remains outstanding"
+  },
+  "validation_work": {
+    "issue_444": "LOCAL_LAN user-administration API acceptance remains status:needs-validation",
+    "issue_245": "Standalone loopback-only Raspberry Pi acceptance remains status:needs-validation",
+    "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation"
   },
   "independent_work": {
     "issue_618": "Saved Dashboard CSV browser-download reliability lane",
     "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite"
   },
-  "next_action": "Create and verify the focused state-only PR for Issue #641, merge it GREEN, close #641, perform a fresh Ready audit, then select the highest-priority unblocked Work Package with #633 currently expected next.",
+  "next_action": "Finish PR #642 GREEN and merge it, close #641, perform a fresh Ready audit including unresolved maintenance/evidence lanes, then select the highest-priority unblocked Work Package with #633 currently expected next.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
