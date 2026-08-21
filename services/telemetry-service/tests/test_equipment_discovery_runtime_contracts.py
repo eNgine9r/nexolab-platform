@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from ipaddress import ip_address, ip_network
 from pathlib import Path
 
 from app.equipment_discovery.models import EquipmentDiscoveryObservation
+from app.equipment_discovery.repository import _network_includes_scannable_host
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +57,20 @@ def test_discovery_overview_uses_bounded_asset_page_and_separate_total() -> None
     assert "limit: int = 100" in repository_source
     assert ".offset(offset)" in repository_source
     assert ".limit(limit)" in repository_source
+
+
+def test_disappearance_scope_matches_ipv4network_hosts_semantics() -> None:
+    network = ip_network("192.168.51.0/24")
+    assert _network_includes_scannable_host(network, ip_address("192.168.51.1")) is True
+    assert _network_includes_scannable_host(network, ip_address("192.168.51.0")) is False
+    assert _network_includes_scannable_host(network, ip_address("192.168.51.255")) is False
+
+    point_to_point = ip_network("192.168.51.0/31")
+    assert _network_includes_scannable_host(point_to_point, ip_address("192.168.51.0")) is True
+    assert _network_includes_scannable_host(point_to_point, ip_address("192.168.51.1")) is True
+
+    single_host = ip_network("192.168.51.9/32")
+    assert _network_includes_scannable_host(single_host, ip_address("192.168.51.9")) is True
 
 
 def test_discovery_result_finalization_honors_persisted_cancellation() -> None:
