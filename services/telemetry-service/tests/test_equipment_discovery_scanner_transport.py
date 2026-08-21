@@ -12,6 +12,7 @@ from app.equipment_discovery.policy import ResolvedDiscoveryScope
 from app.equipment_discovery.scanner import (
     LocalLanDiscoveryScanner,
     NeighborSnapshotError,
+    ScanCancelledError,
     ScanFailedError,
     read_ipv4_neighbors,
     tcp_connect,
@@ -153,6 +154,44 @@ def test_scanner_cancels_and_counts_started_siblings_when_batch_fails() -> None:
             ("192.168.50.2", 80),
             ("192.168.50.2", 443),
         ]
+
+    asyncio.run(run())
+
+
+def test_scanner_checks_cancel_between_bounded_port_batches() -> None:
+    async def run() -> None:
+        checks = 0
+        started: list[int] = []
+
+        async def cancel_check() -> bool:
+            nonlocal checks
+            checks += 1
+            return checks > 1
+
+        async def connector(_ip: str, port: int, _timeout: float) -> bool:
+            started.append(port)
+            return False
+
+        scope = ResolvedDiscoveryScope(
+            networks=(ip_network("192.168.50.2/32"),),
+            ports=(80, 81, 82, 83),
+            addresses=(ip_address("192.168.50.2"),),
+            probe_budget=4,
+        )
+        scanner = LocalLanDiscoveryScanner(
+            connect_timeout_seconds=0.1,
+            concurrency=2,
+            tcp_connector=connector,
+        )
+
+        with pytest.raises(ScanCancelledError) as captured:
+            await scanner.scan(scope, cancel_check=cancel_check)
+
+        assert sorted(started) == [80, 81]
+        assert captured.value.result.hosts_considered == 1
+        assert captured.value.result.probes_attempted == 2
+        assert captured.value.result.network_connect_attempts == 2
+        assert captured.value.result.network_payload_bytes == 0
 
     asyncio.run(run())
 
