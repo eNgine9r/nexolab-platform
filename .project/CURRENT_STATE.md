@@ -14,16 +14,17 @@ Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f
 
 Issue #633 — **Stop isolated frontend candidate after successful Raspberry Pi deployment** — is active `status:in-progress` in branch `fix/633-frontend-candidate-cleanup` with PR #643.
 
-Final software implementation boundary before this state checkpoint is `24390ea3fa490a90fb4aa964f17191e12af53b14`.
+Final software implementation boundary before this state checkpoint is `2e7a88ded70afee31760747ac402bb7dd7dde306`.
 
 Implemented behavior:
 
 - isolated frontend candidate starts in its own session/process group;
 - a parent/child startup gate prevents the candidate from executing `setsid` or Next.js until the parent has published the exact background PID;
-- the child also stops waiting if the deployment parent disappears before gate release, preventing an untracked candidate from escaping during the `$!` publication window;
-- after gate release, the deployment publishes the PGID only after a `ps` handshake confirms the tracked PID is the isolated group leader;
-- if cleanup runs before PGID publication, it re-checks the exact tracked PID: an already-established candidate group is terminated as a group; otherwise only the exact tracked PID is terminated;
+- the child stops waiting if the deployment parent disappears before gate release;
+- after gate release, PGID publication occurs only after `ps` confirms the tracked PID is the isolated group leader;
+- cleanup re-checks an unpublished PID for an already-established exact process group before exact-PID fallback;
 - established candidate groups use bounded TERM → KILL cleanup;
+- candidate child reaping is also bounded, so an uninterruptible process cannot turn cleanup into an indefinite `wait`;
 - zombie-only group members are classified as terminated rather than executable work;
 - EXIT cleanup failures are surfaced while preserving the original deployment failure code;
 - candidate port `3100` is verified free before backend/activation work proceeds;
@@ -34,9 +35,10 @@ Verification status:
 
 - initial exact-head `87afc1116bbb393c748d9bd666cbcbc1da959969` Core CI run `32514504593`: PASS;
 - exact-head `08884615decb4d55a9c4faabaea26d32d5e6a650` Core CI run `32517056093`: PASS;
-- exact-head `a7d91af104474c0fec604767a818bd9cfb6a27dd` Core CI run `32519957941`: PASS, including the cleanup regression suite through the standalone runtime contract;
-- review findings through the handshake-window, fixture-isolation, EXIT-reporting and CI-coverage gaps are addressed in software through `24390ea3...`;
-- this state checkpoint records the final software behavior; final exact-head CI and fresh review on the state-checkpoint head remain the merge gates;
+- exact-head `a7d91af104474c0fec604767a818bd9cfb6a27dd` Core CI run `32519957941`: PASS;
+- exact-head `b3420a3be7b1b7b3060d484ca30c0aa4fa4c21ee` Core CI run `32521673945`: PASS;
+- fresh review then identified the unbounded child-reap wait; software head `2e7a88de...` bounds that wait without changing production or hardware behavior;
+- final exact-head CI and fresh review on the state-checkpoint head remain the merge gates;
 - real Raspberry Pi post-deployment verification is **hardware/runtime unverified** because `nexolab-edge-01` is currently offline;
 - no production deployment/site cutover has been authorized or performed by #633.
 
@@ -54,7 +56,7 @@ Known queue after #633:
 
 Required maintenance/evidence lanes remain explicit:
 
-- #598 follow-up — four temporary `CVE-2026-14456` exceptions expire **2026-08-26**; remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes;
+- #598 follow-up — four temporary `CVE-2026-14456` exceptions expire **2026-08-26**;
 - #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance;
 - #245 — `status:needs-validation`, priority critical: standalone loopback-only Raspberry Pi acceptance;
 - #200 — hardware-validation lane: physical RS-485 topology, stable adapter paths, Unit IDs, termination/biasing, latency and safe polling envelope remain unverified beyond retained narrow pilot evidence;
