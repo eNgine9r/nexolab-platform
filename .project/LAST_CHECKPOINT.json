@@ -3,11 +3,38 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T18:14:00Z",
+  "timestamp": "2026-08-21T18:50:00Z",
   "actor": "ChatGPT",
-  "event": "issue_606_post_merge_state_reconciliation",
-  "repository_product_baseline_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
+  "event": "issue_633_candidate_cleanup_final_verification_gate",
+  "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+  "active_work": {
+    "issue": 633,
+    "pull_request": 643,
+    "branch": "fix/633-frontend-candidate-cleanup",
+    "status": "FINAL_CI_REVIEW_GATE",
+    "software_head_before_state_checkpoint_sha": "f6f08792a515d05305497fa3eff52ac4c5ae5d6e",
+    "implemented": [
+      "dedicated candidate session/process group",
+      "exact PID/PGID tracking",
+      "bounded TERM to KILL group cleanup",
+      "idempotent EXIT/error cleanup",
+      "zombie-only process groups classified as terminated",
+      "candidate port 3100 release verification",
+      "regression coverage preserving unrelated process"
+    ],
+    "initial_ci": "PASS_32514504593_AT_87AFC111",
+    "review_findings": {
+      "P1_state_sync": "ADDRESSED_IN_STATE_CHECKPOINT",
+      "P2_zombie_group_liveness": "ADDRESSED_IN_F6F08792"
+    },
+    "final_exact_head_ci": "PENDING",
+    "final_review": "PENDING",
+    "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
+    "production_cutover_authorized": false,
+    "modbus_write": "none",
+    "hardware_write": "none"
+  },
   "completed_work": {
     "issue_606": {
       "issue": 606,
@@ -16,51 +43,14 @@
       "final_software_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
       "merge_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
       "exact_head_workflows": "PASS_22_OF_22",
-      "core_ci": "PASS_32490226544",
-      "telemetry_service": "PASS_32490226340",
-      "authenticated_dashboard_acceptance": "PASS_32490226813",
-      "offline_bundle": "PASS_32490226383",
-      "offline_auth_acceptance": "PASS_32490226880",
-      "acquisition_scale_acceptance": "PASS_32490226435",
-      "container_supply_chain": "PASS_32490226447",
-      "observability": "PASS_32490226480",
-      "capacity_release_gate": "PASS_32490226536",
-      "device_agent_fleet_acceptance": "PASS_32490226271",
-      "review_threads": "PASS_ALL_RESOLVED",
-      "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
-      "real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD",
-      "network_connect_attempts": 10,
-      "network_payload_bytes": 0,
-      "acquisition_invariant": "PASS_NO_RATE_INCREASE",
-      "production_non_regression": "PASS",
-      "boot_continuity": "PASS",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "production_cutover": false
+      "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
+    },
+    "issue_641": {
+      "issue": 641,
+      "pull_request": 642,
+      "status": "COMPLETED_GREEN_MERGED",
+      "merge_sha": "7bb2115ef739daf2406c71110162b6d68c713f95"
     }
-  },
-  "state_reconciliation": {
-    "issue": 641,
-    "pull_request": 642,
-    "branch": "chore/reconcile-606-post-merge-state",
-    "scope": [
-      ".project/CURRENT_STATE.md",
-      ".project/ACTIVE_SPRINT.json",
-      ".project/BLOCKERS.md",
-      ".project/LAST_CHECKPOINT.json"
-    ],
-    "product_runtime_changed": false,
-    "dependencies_changed": false,
-    "migration_changed": false,
-    "modbus_behavior_changed": false,
-    "hardware_behavior_changed": false,
-    "deployment_changed": false
-  },
-  "next_ready_candidate": {
-    "issue": 633,
-    "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-    "status": "READY_HIGH_EXPECTED_NEXT_AFTER_STATE_MERGE",
-    "started": false
   },
   "maintenance_actions": {
     "cve_2026_14456": {
@@ -87,14 +77,13 @@
     "issue_618": "Saved Dashboard CSV browser-download reliability lane",
     "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite"
   },
-  "next_action": "Finish PR #642 GREEN and merge it, close #641, perform a fresh Ready audit including unresolved maintenance/evidence lanes, then select the highest-priority unblocked Work Package with #633 currently expected next.",
+  "next_action": "Run exact-head CI and fresh PR #643 review after the zombie-liveness and state fixes. If GREEN and review-clean, squash merge #643. Then reconcile post-merge state, record Raspberry Pi runtime verification as unverified until separately authorized/available, and perform a fresh Ready audit.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "dual_rs485_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   }
 }
