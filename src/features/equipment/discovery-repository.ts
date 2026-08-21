@@ -341,6 +341,7 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
   const version = readPositiveInteger(record?.version);
   const present = record?.present;
   const changedSincePreviousScan = record?.changed_since_previous_scan;
+  const evidence = asRecord(record.evidence);
   if (
     !id ||
     !candidateKey ||
@@ -352,7 +353,8 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
     !lastScanId ||
     version === null ||
     typeof present !== "boolean" ||
-    typeof changedSincePreviousScan !== "boolean"
+    typeof changedSincePreviousScan !== "boolean" ||
+    !evidence
   ) {
     throw invalidResponse();
   }
@@ -372,7 +374,7 @@ function parseCandidate(value: unknown): EquipmentDiscoveryCandidate {
     linkedEquipmentKey: readOptionalString(record.linked_equipment_key),
     version,
     services: readArray(record.services).map(parseServiceEvidence),
-    evidence: asRecord(record.evidence) ?? {},
+    evidence,
     changedSincePreviousScan,
   };
 }
@@ -479,7 +481,9 @@ function readString(value: unknown): string | null {
 }
 
 function readOptionalString(value: unknown): string | null {
-  return value === null || value === undefined ? null : readString(value);
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") throw invalidResponse();
+  return value.trim() ? value : null;
 }
 
 function readStringArray(value: unknown): string[] {
