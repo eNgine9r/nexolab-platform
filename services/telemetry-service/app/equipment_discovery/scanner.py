@@ -26,10 +26,6 @@ _SERVICE_LABELS = {
 }
 
 
-class ScanCancelledError(RuntimeError):
-    pass
-
-
 @dataclass(frozen=True, slots=True)
 class NeighborEvidence:
     ip_address: str
@@ -72,6 +68,12 @@ class DiscoveryScanResult:
         return len(self.observations)
 
 
+class ScanCancelledError(RuntimeError):
+    def __init__(self, result: DiscoveryScanResult) -> None:
+        super().__init__("equipment discovery scan was cancelled")
+        self.result = result
+
+
 TcpConnector = Callable[[str, int, float], Awaitable[bool]]
 CancelCheck = Callable[[], Awaitable[bool]]
 
@@ -103,11 +105,25 @@ class LocalLanDiscoveryScanner:
         semaphore = asyncio.Semaphore(self._concurrency)
         observations: list[DiscoveryObservationInput] = []
         probes_attempted = 0
+        hosts_considered = 0
         batch_size = max(1, min(self._concurrency, 32))
+
+        def snapshot() -> DiscoveryScanResult:
+            return DiscoveryScanResult(
+                observations=tuple(
+                    sorted(observations, key=lambda item: int(ip_address(item.ip_address)))
+                ),
+                hosts_considered=hosts_considered,
+                probes_attempted=probes_attempted,
+                duration_ms=max(0, round((time.perf_counter() - started) * 1000)),
+                process_cpu_ms=max(0, round((time.process_time() - cpu_started) * 1000)),
+                network_connect_attempts=probes_attempted,
+                network_payload_bytes=0,
+            )
 
         for start in range(0, len(scope.addresses), batch_size):
             if await cancel():
-                raise ScanCancelledError("equipment discovery scan was cancelled")
+                raise ScanCancelledError(snapshot())
             batch = scope.addresses[start : start + batch_size]
             results = await asyncio.gather(
                 *(
@@ -115,22 +131,16 @@ class LocalLanDiscoveryScanner:
                     for address in batch
                 )
             )
+            hosts_considered += len(batch)
             for observation, attempts in results:
                 probes_attempted += attempts
                 if observation is not None:
                     observations.append(observation)
 
+        result = snapshot()
         if await cancel():
-            raise ScanCancelledError("equipment discovery scan was cancelled")
-        return DiscoveryScanResult(
-            observations=tuple(sorted(observations, key=lambda item: int(ip_address(item.ip_address)))),
-            hosts_considered=len(scope.addresses),
-            probes_attempted=probes_attempted,
-            duration_ms=max(0, round((time.perf_counter() - started) * 1000)),
-            process_cpu_ms=max(0, round((time.process_time() - cpu_started) * 1000)),
-            network_connect_attempts=probes_attempted,
-            network_payload_bytes=0,
-        )
+            raise ScanCancelledError(result)
+        return result
 
     async def _probe_host(
         self,
