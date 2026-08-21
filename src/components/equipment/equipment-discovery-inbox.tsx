@@ -140,7 +140,17 @@ export function EquipmentDiscoveryInbox({
       if (parsedPorts.length === 0) {
         throw new Error("Вкажіть хоча б один явний TCP port для ручного scan.");
       }
-      await repository.startScan({ cidrs: parsedCidrs, ports: parsedPorts });
+      const scan = await repository.startScan({ cidrs: parsedCidrs, ports: parsedPorts });
+      setOverviewState((current) => {
+        if (!current || current.repository !== repository) return current;
+        return {
+          repository,
+          value: {
+            ...current.value,
+            activeScan: scan,
+          },
+        };
+      });
       await refresh();
     } catch (scanError) {
       setError(discoveryErrorMessage(scanError));
