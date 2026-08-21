@@ -126,12 +126,30 @@
     "issue_606_boot_continuity": "PASS"
   },
   "independent_pending_lanes": [
-    {"issue": 633, "status": "ready_not_started"},
-    {"issue": 618, "status": "open_independent_reliability_lane"},
-    {"issue": 607, "status": "queued_before_589"},
-    {"issue": 589, "status": "blocked_bus_architecture_607"},
-    {"issue": 590, "status": "blocked_dependency_589"},
-    {"issue": 585, "status": "blocked"}
+    {
+      "issue": 633,
+      "status": "ready_not_started"
+    },
+    {
+      "issue": 618,
+      "status": "open_independent_reliability_lane"
+    },
+    {
+      "issue": 607,
+      "status": "queued_before_589"
+    },
+    {
+      "issue": 589,
+      "status": "blocked_bus_architecture_607"
+    },
+    {
+      "issue": 590,
+      "status": "blocked_dependency_589"
+    },
+    {
+      "issue": 585,
+      "status": "blocked"
+    }
   ],
   "safety": {
     "modbus_write": "none",
