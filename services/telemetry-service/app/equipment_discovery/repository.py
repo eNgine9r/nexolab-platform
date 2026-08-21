@@ -341,6 +341,20 @@ class EquipmentDiscoveryRepository:
                     raise CandidateActionConflictError(
                         f"scan {scan_id} is no longer running"
                     )
+                if scan.cancel_requested:
+                    scan.status = "cancelled"
+                    scan.completed_at = now
+                    scan.hosts_considered = result.hosts_considered
+                    scan.probes_attempted = result.probes_attempted
+                    scan.responsive_hosts = result.responsive_hosts
+                    scan.duration_ms = result.duration_ms
+                    scan.process_cpu_ms = result.process_cpu_ms
+                    scan.network_connect_attempts = result.network_connect_attempts
+                    scan.network_payload_bytes = result.network_payload_bytes
+                    scan.error_code = None
+                    scan.error_message = None
+                    session.flush()
+                    return _scan_record(scan)
 
                 observation_keys = [item.candidate_key for item in result.observations]
                 if len(observation_keys) != len(set(observation_keys)):
@@ -551,11 +565,30 @@ class EquipmentDiscoveryRepository:
                 for item in candidates
             )
 
+    def count_network_assets(
+        self,
+        *,
+        organization_id: str,
+        include_inactive: bool = False,
+    ) -> int:
+        filters = [EquipmentNetworkAsset.organization_id == organization_id]
+        if not include_inactive:
+            filters.append(EquipmentNetworkAsset.status == "active")
+        with Session(self._engine) as session:
+            return int(
+                session.scalar(
+                    select(func.count()).select_from(EquipmentNetworkAsset).where(*filters)
+                )
+                or 0
+            )
+
     def list_network_assets(
         self,
         *,
         organization_id: str,
         include_inactive: bool = False,
+        limit: int = 100,
+        offset: int = 0,
     ) -> tuple[NetworkAssetRecord, ...]:
         filters = [EquipmentNetworkAsset.organization_id == organization_id]
         if not include_inactive:
@@ -566,6 +599,8 @@ class EquipmentDiscoveryRepository:
                     select(EquipmentNetworkAsset)
                     .where(*filters)
                     .order_by(EquipmentNetworkAsset.display_name, EquipmentNetworkAsset.id)
+                    .offset(offset)
+                    .limit(limit)
                 )
             )
             return tuple(_network_asset_record(row) for row in rows)
