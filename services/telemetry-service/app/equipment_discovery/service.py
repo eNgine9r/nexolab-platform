@@ -18,6 +18,7 @@ from app.security.repository import AuditEventInput
 
 _LOGGER = logging.getLogger(__name__)
 _SCHEDULED_ACTOR = "system:equipment-discovery-scheduler"
+_RETRYABLE_TRANSACTION_SQLSTATES = frozenset({"40001", "40P01", "57P01", "57P02", "57P03"})
 
 
 class EquipmentDiscoveryService:
@@ -163,12 +164,13 @@ class EquipmentDiscoveryService:
                     result=result,
                 ),
             )
-        except ScanCancelledError:
+        except ScanCancelledError as error:
             await self._persist_with_database_retry(
                 "finalize cancelled discovery scan",
                 lambda: self._repository.finish_cancelled(
                     scan_id,
                     organization_id=organization_id,
+                    result=error.result,
                 ),
             )
         except asyncio.CancelledError:
@@ -206,9 +208,20 @@ class EquipmentDiscoveryService:
             try:
                 await asyncio.to_thread(operation)
                 return
-            except DBAPIError:
+            except DBAPIError as error:
+                if not _is_retryable_database_error(error):
+                    raise
                 _LOGGER.warning(
-                    "%s deferred because the discovery database is unavailable",
+                    "%s deferred because the discovery database is temporarily unavailable",
                     operation_name,
                 )
                 await asyncio.sleep(self._database_retry_seconds)
+
+
+def _is_retryable_database_error(error: DBAPIError) -> bool:
+    if error.connection_invalidated:
+        return True
+    sqlstate = getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
+    if not isinstance(sqlstate, str):
+        return False
+    return sqlstate.startswith("08") or sqlstate in _RETRYABLE_TRANSACTION_SQLSTATES
