@@ -644,6 +644,7 @@ class EquipmentDiscoveryRepository:
                     if candidate.lifecycle == "adopted":
                         raise CandidateActionConflictError("adopted candidates cannot return to review")
                     candidate.lifecycle = "reviewed"
+                    candidate.linked_equipment_key = None
                 elif action == "ignore":
                     if candidate.lifecycle == "adopted":
                         raise CandidateActionConflictError("adopted candidates cannot be ignored")
