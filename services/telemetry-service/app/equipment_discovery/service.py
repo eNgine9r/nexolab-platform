@@ -12,7 +12,11 @@ from app.equipment_discovery.repository import (
     EquipmentDiscoveryRepository,
     ScanAlreadyRunningError,
 )
-from app.equipment_discovery.scanner import LocalLanDiscoveryScanner, ScanCancelledError
+from app.equipment_discovery.scanner import (
+    LocalLanDiscoveryScanner,
+    ScanCancelledError,
+    ScanFailedError,
+)
 from app.security.authorization import Role
 from app.security.repository import AuditEventInput
 
@@ -171,6 +175,17 @@ class EquipmentDiscoveryService:
                 lambda: self._repository.finish_cancelled(
                     scan_id,
                     organization_id=organization_id,
+                    result=error.result,
+                ),
+            )
+        except ScanFailedError as error:
+            await self._persist_with_database_retry(
+                "finalize failed discovery scan with partial metrics",
+                lambda: self._repository.finish_failed(
+                    scan_id,
+                    organization_id=organization_id,
+                    error_code="equipment_discovery_scan_failed",
+                    error_message=str(error.cause) or error.cause.__class__.__name__,
                     result=error.result,
                 ),
             )
