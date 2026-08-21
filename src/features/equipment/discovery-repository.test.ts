@@ -93,6 +93,44 @@ describe("HttpEquipmentDiscoveryRepository", () => {
     }
   });
 
+  it("rejects malformed optional candidate strings", async () => {
+    for (const field of ["mac_address", "hostname", "source_interface", "linked_equipment_key"] as const) {
+      const payload = rawOverview();
+      Object.assign(payload.candidates[0]!, { [field]: 123 });
+      const repository = new HttpEquipmentDiscoveryRepository({
+        apiBaseUrl: "http://127.0.0.1:8082",
+        fetchImpl: vi.fn<typeof fetch>(
+          async () =>
+            new Response(JSON.stringify(payload), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+        ),
+      });
+
+      await expect(repository.getOverview()).rejects.toMatchObject({ code: "invalid_response" });
+    }
+  });
+
+  it("rejects malformed candidate evidence instead of erasing it", async () => {
+    for (const evidence of [null, [], "missing"] as const) {
+      const payload = rawOverview();
+      Object.assign(payload.candidates[0]!, { evidence });
+      const repository = new HttpEquipmentDiscoveryRepository({
+        apiBaseUrl: "http://127.0.0.1:8082",
+        fetchImpl: vi.fn<typeof fetch>(
+          async () =>
+            new Response(JSON.stringify(payload), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+        ),
+      });
+
+      await expect(repository.getOverview()).rejects.toMatchObject({ code: "invalid_response" });
+    }
+  });
+
   it("rejects invalid network asset totals", async () => {
     const payload = rawOverview();
     Object.assign(payload, { network_asset_total: -1 });
@@ -138,6 +176,48 @@ describe("HttpEquipmentDiscoveryRepository", () => {
             completed_at: null,
             error_code: null,
             error_message: null,
+          }),
+          { status: 202 },
+        ),
+    );
+    const repository = new HttpEquipmentDiscoveryRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      fetchImpl,
+    });
+
+    await expect(repository.startScan({ cidrs: ["192.168.50.0/30"], ports: [443] })).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+  });
+
+  it("rejects malformed optional scan diagnostics", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: "scan-2",
+            status: "failed",
+            requested_cidrs: ["192.168.50.0/30"],
+            requested_ports: [443],
+            host_budget: 2,
+            probe_budget: 2,
+            hosts_considered: 1,
+            probes_attempted: 1,
+            responsive_hosts: 0,
+            duration_ms: 1,
+            process_cpu_ms: 1,
+            network_connect_attempts: 1,
+            network_payload_bytes: 0,
+            trigger: "manual",
+            new_candidates: 0,
+            changed_candidates: 0,
+            disappeared_candidates: 0,
+            cancel_requested: false,
+            requested_by: "engineer",
+            started_at: "2026-08-20T06:00:00Z",
+            completed_at: "2026-08-20T06:00:01Z",
+            error_code: "transport_failure",
+            error_message: 503,
           }),
           { status: 202 },
         ),
