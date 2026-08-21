@@ -303,6 +303,7 @@ class EquipmentDiscoveryRepository:
         organization_id: str,
         error_code: str,
         error_message: str,
+        result: DiscoveryScanResult | None = None,
     ) -> None:
         self._finish_without_results(
             scan_id,
@@ -310,7 +311,7 @@ class EquipmentDiscoveryRepository:
             status="failed",
             error_code=error_code[:128],
             error_message=error_message[:1024],
-            result=None,
+            result=result,
         )
 
     def apply_scan_result(
