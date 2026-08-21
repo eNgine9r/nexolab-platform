@@ -125,6 +125,7 @@ function discoveryFixture() {
     candidate_offset: 0,
     candidate_limit: 50,
     candidates: [candidate()],
+    network_asset_total: networkAssetCreated ? 1 : 0,
     network_assets: networkAssetCreated
       ? [
           {
