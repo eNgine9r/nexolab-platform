@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-  "last_reconciled_repository_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100",
+  "last_reconciled_repository_sha": "aab4b1e805507be05e90eb19766bd176a4000828",
   "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
     "selected_issue": 606,
-    "selection_status": "pr_632_head_804d0b44_software_and_pi_lan_acceptance_green_state_reconciliation",
+    "selection_status": "pr_632_final_software_hardening_state_and_merge_gate",
     "ready_issue_count": 2,
-    "reason": "Issue #606 PR #632 product head 804d0b44045a5099c59149c87b70cbf63ca047f8 is GREEN in all 22 pull-request workflows and passed real Product Owner-authorized bounded Raspberry Pi/LOCAL_LAN acceptance with 10 TCP connect attempts, zero application payload and no acquisition cadence increase. Repository state reconciliation and final state-head checks remain before merge. Issue #633 is next."
+    "reason": "Issue #606 hardware/LAN acceptance remains PASS at 804d0b44045a5099c59149c87b70cbf63ca047f8. Pre-final software head 69a9ae0072cd279ff905a1a4e918b0a1efa041a1 is 22/22 GREEN and post-acceptance review hardening is complete at e94f140906589c8f23ae3c1d915fa709c50acc6f. The remaining gate is one reconciled final PR head CI/review pass and merge; no repeat LAN scan is required. Issue #633 is next."
   },
   "tasks": [
     {
@@ -218,12 +218,15 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "pr_632_software_and_real_pi_lan_acceptance_green_state_reconciliation",
+      "status": "pr_632_final_software_hardening_state_and_merge_gate",
       "priority": "high",
       "branch": "feat/606-local-lan-discovery",
-      "checkpoint_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+      "checkpoint_sha": "e94f140906589c8f23ae3c1d915fa709c50acc6f",
       "pull_request": 632,
-      "exact_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+      "exact_head_sha": "e94f140906589c8f23ae3c1d915fa709c50acc6f",
+      "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+      "pre_final_green_head_sha": "69a9ae0072cd279ff905a1a4e918b0a1efa041a1",
+      "pre_final_software_workflows": "PASS_22_OF_22",
       "focused_backend_tests": "PASS_20_OF_20",
       "focused_frontend_tests": "PASS_12_OF_12",
       "typecheck": "PASS",
@@ -233,21 +236,21 @@
       "alembic_head": "PASS_20260820_0026_SINGLE_HEAD",
       "alembic_offline_sql": "PASS",
       "compose_validation": "PASS",
-      "real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD",
-      "core_ci": "PASS_32457840253",
-      "authenticated_dashboard_acceptance": "PASS_32457840318",
-      "offline_bundle": "PASS_32457840431",
-      "telemetry_service_ci": "PASS_32457840365_RERUN",
-      "acquisition_scale": "PASS_32457840260",
-      "device_agent_fleet": "PASS_32457840303",
-      "container_supply_chain": "PASS_32457840308",
-      "offline_auth": "PASS_32457840354",
+      "real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD_AT_804D0B44",
+      "core_ci": "PASS_32482107239_PRE_FINAL",
+      "authenticated_dashboard_acceptance": "PASS_32482107160_PRE_FINAL",
+      "offline_bundle": "PASS_32482107009_PRE_FINAL",
+      "telemetry_service_ci": "PASS_32482106996_PRE_FINAL",
+      "acquisition_scale": "PASS_32482106997_PRE_FINAL",
+      "device_agent_fleet": "PASS_32482107182_PRE_FINAL",
+      "container_supply_chain": "PASS_32482107003_PRE_FINAL",
+      "offline_auth": "PASS_32482107028_PRE_FINAL",
       "modbus_write": "NONE",
       "hardware_write": "NONE",
-      "real_network_scan": "PASS_BOUNDED_5_HOSTS_2_PORTS",
-      "observability": "PASS_32457840273",
-      "capacity_release_gate": "PASS_32457840350",
-      "all_exact_product_head_workflows": "PASS_22_OF_22",
+      "real_network_scan": "PASS_BOUNDED_5_HOSTS_2_PORTS_AT_804D0B44",
+      "observability": "PASS_32482106988_PRE_FINAL",
+      "capacity_release_gate": "PASS_32482107192_PRE_FINAL",
+      "all_exact_product_head_workflows": "PASS_22_OF_22_PRE_FINAL_69A9AE00",
       "approved_parent_cidr": "172.18.48.0/21",
       "requested_host_count": 5,
       "requested_ports": [502, 8082],
@@ -474,10 +477,12 @@
     "issue": 606,
     "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
     "type": "local_lan_discovery_adoption_inbox",
-    "status": "pr_632_software_and_pi_lan_acceptance_green_state_reconciliation",
+    "status": "pr_632_final_software_hardening_state_and_merge_gate",
     "branch": "feat/606-local-lan-discovery",
     "pull_request": 632,
-    "exact_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
+    "exact_head_sha": "e94f140906589c8f23ae3c1d915fa709c50acc6f",
+    "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+    "pre_final_green_head_sha": "69a9ae0072cd279ff905a1a4e918b0a1efa041a1"
   },
   "next_work_package": {
     "issue": 633,
@@ -723,13 +728,17 @@
     "production_settings_xjp60d_bundle_marker": "PASS",
     "production_browser_visual_acceptance": "NOT_RUN_OPERA_CONNECTOR_DISCONNECTED",
     "issue_606_pull_request": 632,
-    "issue_606_exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
-    "issue_606_real_pi_lan_acceptance": "PENDING",
+    "issue_606_exact_head_sha": "e94f140906589c8f23ae3c1d915fa709c50acc6f",
+    "issue_606_real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD_AT_804D0B44",
+    "issue_606_hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+    "issue_606_pre_final_green_head_sha": "69a9ae0072cd279ff905a1a4e918b0a1efa041a1",
+    "issue_606_pre_final_all_workflows": "PASS_22_OF_22",
+    "issue_606_final_state_head_workflows": "PENDING_SINGLE_BRANCH_REF_MOVE",
     "issue_633_status": "OPEN_READY_HIGH",
-    "issue_606_ci": "PASS_32421147273",
-    "issue_606_authenticated_dashboard": "PASS_32421147345",
-    "issue_606_offline_bundle": "PASS_32421147237",
-    "issue_606_all_exact_head_workflows": "PASS",
+    "issue_606_ci": "PASS_32482107239_PRE_FINAL",
+    "issue_606_authenticated_dashboard": "PASS_32482107160_PRE_FINAL",
+    "issue_606_offline_bundle": "PASS_32482107009_PRE_FINAL",
+    "issue_606_all_exact_head_workflows": "PASS_22_OF_22_PRE_FINAL_69A9AE00",
     "issue_606_product_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
     "issue_606_all_product_head_workflows": "PASS_22_OF_22",
     "issue_606_pi_lan_acceptance": "PASS",
@@ -741,94 +750,28 @@
     "issue_637_merge_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100"
   },
   "independent_pending_lanes": [
-    {
-      "issue": 585,
-      "status": "blocked"
-    },
-    {
-      "issue": 587,
-      "status": "completed"
-    },
-    {
-      "issue": 444,
-      "status": "needs_validation"
-    },
-    {
-      "issue": 201,
-      "status": "needs_validation"
-    },
-    {
-      "issue": 245,
-      "status": "needs_validation"
-    },
-    {
-      "issue": 189,
-      "status": "blocked"
-    },
-    {
-      "issue": 588,
-      "status": "completed"
-    },
-    {
-      "issue": 604,
-      "status": "completed"
-    },
-    {
-      "issue": 605,
-      "status": "completed_green"
-    },
-    {
-      "issue": 606,
-      "status": "active_pr_632_all_ci_green_runtime_acceptance_pending"
-    },
-    {
-      "issue": 607,
-      "status": "queued_before_589"
-    },
-    {
-      "issue": 589,
-      "status": "blocked_user_priority_and_bus_architecture_607"
-    },
-    {
-      "issue": 590,
-      "status": "blocked_dependency_589"
-    },
-    {
-      "issue": 608,
-      "status": "completed"
-    },
-    {
-      "issue": 611,
-      "status": "completed"
-    },
-    {
-      "issue": 615,
-      "status": "open_non_blocking_tooling_bug"
-    },
-    {
-      "issue": 618,
-      "status": "open_independent_reliability_lane"
-    },
-    {
-      "issue": 619,
-      "status": "completed_green"
-    },
-    {
-      "issue": 620,
-      "status": "completed_controlled_merge_exception"
-    },
-    {
-      "issue": 626,
-      "status": "done_merged_green"
-    },
-    {
-      "issue": 627,
-      "status": "completed_green_production_cutover_pass"
-    },
-    {
-      "issue": 633,
-      "status": "ready_after_issue_606"
-    }
+    {"issue": 585, "status": "blocked"},
+    {"issue": 587, "status": "completed"},
+    {"issue": 444, "status": "needs_validation"},
+    {"issue": 201, "status": "needs_validation"},
+    {"issue": 245, "status": "needs_validation"},
+    {"issue": 189, "status": "blocked"},
+    {"issue": 588, "status": "completed"},
+    {"issue": 604, "status": "completed"},
+    {"issue": 605, "status": "completed_green"},
+    {"issue": 606, "status": "active_pr_632_final_software_and_lan_acceptance_green_merge_gate"},
+    {"issue": 607, "status": "queued_before_589"},
+    {"issue": 589, "status": "blocked_user_priority_and_bus_architecture_607"},
+    {"issue": 590, "status": "blocked_dependency_589"},
+    {"issue": 608, "status": "completed"},
+    {"issue": 611, "status": "completed"},
+    {"issue": 615, "status": "open_non_blocking_tooling_bug"},
+    {"issue": 618, "status": "open_independent_reliability_lane"},
+    {"issue": 619, "status": "completed_green"},
+    {"issue": 620, "status": "completed_controlled_merge_exception"},
+    {"issue": 626, "status": "done_merged_green"},
+    {"issue": 627, "status": "completed_green_production_cutover_pass"},
+    {"issue": 633, "status": "ready_after_issue_606"}
   ],
   "safety": {
     "modbus_write": "none",
