@@ -3,258 +3,31 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T07:33:54Z",
+  "timestamp": "2026-08-21T17:46:00Z",
   "actor": "ChatGPT",
-  "event": "issue_606_software_and_real_pi_lan_acceptance_green_state_reconciliation",
-  "repository_main_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100",
+  "event": "issue_606_post_merge_state_reconciliation",
+  "repository_product_baseline_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "completed_work": {
-    "issue_608": {
-      "issue": 608,
-      "pull_request": 609,
-      "status": "COMPLETED_GREEN_CI_RELIABILITY",
-      "merge_sha": "3e13800f413eb2255b992b6ff9f3aec935acf602",
-      "exact_head_sha": "6ee2919d784048bf737e6d6f67427a08be0a228d",
-      "final_gates": {
-        "core_ci": "PASS_32237282201",
-        "authenticated_dashboard_acceptance": "PASS_32237282110",
-        "refrigeration_browser_acceptance": "PASS_32237282106",
-        "acquisition_scale": "PASS_32237282105"
-      },
-      "playwright_system_chrome": true,
-      "playwright_with_deps_apt_removed": true,
-      "runtime_changed": false,
-      "hardware_changed": false
-    },
-    "issue_611": {
-      "issue": 611,
-      "pull_request": 612,
-      "status": "COMPLETED_GREEN_BROWSER_READINESS_RELIABILITY",
-      "merge_sha": "57908efc7f27598f5a991e2a009aaab0f6b92676",
-      "exact_head_sha": "60bc5ac749abe52107d358b85e4302f29f6d46be",
-      "final_gates": {
-        "core_ci": "PASS_32242665739",
-        "authenticated_dashboard_acceptance": "PASS_32242665728",
-        "refrigeration_browser_acceptance": "PASS_32242665724",
-        "acquisition_scale": "PASS_32242665721"
-      },
-      "runtime_changed": false,
-      "hardware_changed": false
-    },
-    "issue_588": {
-      "issue": 588,
-      "pull_request": 602,
-      "status": "COMPLETED_GREEN_ENERGY_CANONICAL_CHART",
-      "merge_sha": "62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7",
-      "exact_head_sha": "0da49e2ac1037efab78367cf76e201ce5a5133a4",
-      "final_gates": {
-        "core_ci": "PASS_32246136302",
-        "refrigeration_browser_acceptance": "PASS_32246136115",
-        "authenticated_dashboard_acceptance": "PASS_32246136164",
-        "offline_bundle": "PASS_32246136097"
-      },
-      "acquisition_mutations": 0,
-      "modbus_writes": 0,
-      "runtime_changed": false,
-      "hardware_changed": false
-    },
-    "issue_604": {
-      "issue": 604,
-      "status": "COMPLETED_GREEN_EQUIPMENT_OPERATOR_WORKSPACE",
-      "branch": "feat/604-equipment-workspace",
-      "exact_implementation_sha": "ad06911d",
-      "backend_endpoint_added": false,
-      "final_local_gates": {
-        "format_check": "PASS",
-        "lint": "PASS",
-        "typecheck": "PASS",
-        "unit_tests": "PASS_513_OF_513",
-        "production_build": "PASS",
-        "equipment_registry_browser_acceptance": "PASS",
-        "acquisition_invariant_browser_acceptance": "PASS_3_OF_3"
-      },
-      "equipment_browser_evidence": "runtime/evidence/issue-604-equipment-registry",
-      "acquisition_invariant_evidence": "runtime/evidence/issue-604-acquisition-invariant",
-      "acquisition_mutations": 0,
-      "modbus_writes": 0,
-      "runtime_changed": false,
-      "hardware_changed": false,
-      "pull_request": 616,
-      "merge_sha": "f1d13bc2401ba16ef76b95bec5f31e9a9d969c76",
-      "exact_head_sha": "94bfbeb141fe4abb12b393d7c7fdc4fd6aa05237",
-      "final_gates": {
-        "core_ci": "PASS_32263137097",
-        "refrigeration_browser_acceptance": "PASS_32263134788",
-        "offline_bundle": "PASS_32263135467",
-        "equipment_registry_browser_acceptance": "PASS",
-        "acquisition_invariant_browser_acceptance": "PASS_3_OF_3",
-        "unit_tests": "PASS_513_OF_513",
-        "production_build": "PASS"
-      }
-    },
-    "issue_620": {
-      "issue": 620,
-      "pull_request": 622,
-      "merge_sha": "9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f",
-      "result": "COMPLETED_CONTROLLED_MERGE_EXCEPTION",
-      "core_ci": "PASS_32296176882",
-      "offline_bundle": "PASS_32296176711",
-      "product_owner_exception_approved": true,
-      "runtime_changed": false
-    },
-    "issue_619": {
-      "issue": 619,
-      "pull_request": 623,
-      "exact_head_sha": "dea599312172cab8132782f7db2fef2239db2e02",
-      "merge_sha": "4ab72f1c3c51a8822723e9a53c4881b0415ee9c1",
-      "result": "COMPLETED_GREEN",
-      "core_ci": "PASS_32329087115",
-      "authenticated_dashboard_acceptance": "PASS_32329087128",
-      "refrigeration_browser_acceptance": "PASS_32329087103",
-      "disaster_recovery_browser": "PASS_32329087134",
-      "offline_bundle": "PASS_32329087175",
-      "local_unit_tests": "PASS_514_OF_514",
-      "navigation_browser": "PASS_3_OF_3",
-      "acquisition_invariant": "PASS_2_OF_2_IN_FULL_MATRIX",
-      "runtime_deployed": false
-    },
-    "issue_605": {
-      "issue": 605,
-      "pull_request": 621,
-      "exact_head_sha": "5e7ff9bdc34cf3fa2c495ada51608116b3b52e3b",
-      "merge_sha": "ad2a49473c9798dc8e4f374ec031b2144c0606e2",
-      "result": "COMPLETED_GREEN_PERMISSIONED_METADATA_EDITING",
-      "core_ci": "PASS_32334582905",
-      "telemetry_service": "PASS_32334582949",
-      "authenticated_dashboard_acceptance": "PASS_32334582859",
-      "refrigeration_browser_acceptance": "PASS_32334582959",
-      "offline_bundle": "PASS_32334582980",
-      "offline_auth_acceptance": "PASS_32334583017",
-      "security_browser_acceptance": "PASS_32334582871",
-      "backend_metadata_tests": "PASS_5_OF_5",
-      "full_unit_tests": "PASS_519_OF_519",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "runtime_deployed": false
-    },
-    "issue_626": {
-      "issue": 626,
-      "pull_request": 629,
-      "result": "COMPLETED_GREEN_ATOMIC_PI_FRONTEND_DEPLOYMENT",
-      "merge_sha": "6bc73390b5fa5e41aa1cebcbfdb833f917346525",
-      "exact_head_sha": "a4584db8b52c354b56598e4fd8ab910f56116a5f",
-      "core_ci": "PASS_32377664739",
-      "telemetry_service": "PASS_32377664704",
-      "final_arm64_artifact_id": 9410009481,
-      "final_arm64_artifact_digest": "sha256:a9a7c6667060f974a4765180a2d74fa7ffd4c3b58c291d9f4063fd68bea12366",
-      "hardware_runtime_proof_head": "9a443e1001e2fc7e375d235be41a933d66781c75",
-      "hardware_evidence": "runtime/deployments/issue-626-arm64-20260820T133849Z",
-      "pi_candidate_routes": "PASS_5_OF_5_HTTP_200",
-      "pi_production_preserved": true,
-      "post_activation_rollback_contract": "PASS",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "production_cutover": false
-    },
-    "issue_627": {
-      "issue": 627,
-      "pull_request": 628,
-      "verified_product_head_sha": "5a4da3974d44efd3fd5fa9d5523c4d28e077e94b",
-      "status": "COMPLETED_GREEN_MERGED",
-      "core_ci": "PASS_32411093778",
-      "authenticated_dashboard_acceptance": "PASS_32411094072_RERUN",
-      "offline_bundle": "PASS_32411094258",
-      "acquisition_scale": "PASS_32411093918",
-      "device_agent_fleet": "PASS_32411095164",
-      "refrigeration_browser": "PASS_32411094752",
-      "container_supply_chain": "PASS_32411093905",
-      "mqtt_tls_fleet": "PASS_32411093449",
-      "disaster_recovery_tls": "PASS_32411094005",
-      "edge_image": "PASS_32411093799",
-      "arm64_workflow": "PASS_32411213218",
-      "arm64_artifact_id": 9422408464,
-      "arm64_artifact_digest": "sha256:dad45820f3842e4cf955995cee551d51999cf87e993bf14a90ee615821b1e766",
-      "hardware_evidence": "runtime/acceptance/issue-627-final-5a4da397",
-      "artifact_import": "PASS",
-      "candidate_routes": "PASS_5_OF_5_HTTP_200",
-      "overview_hide_108_01": "PASS_DISPLAY_ONLY_NO_MUTATIONS",
-      "registry_revision": "PASS_9_TO_9",
-      "configured_targets": "PASS_33_TO_33",
-      "physical_requests_browser_closed": "PASS_91_TO_157_DELTA_66",
-      "postgres_browser_closed": "PASS_5116749_TO_5117087_DELTA_338",
-      "production_preserved": true,
-      "candidate_port_3100_cleaned": true,
-      "device_agent_restart_context": "STARTED_2026-08-20T16:17:57Z_BEFORE_UI_PROOF",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "production_cutover": false,
-      "arm64_build_id": "lEMKAWa6inRxQdcp095oY",
-      "review_threads": "PASS_ALL_RESOLVED",
-      "result": "COMPLETED_GREEN_MONITORING_DISPLAY_DECOUPLING",
-      "final_state_head_sha": "d848848994d1c346c2ed614da24597ad78683111",
-      "merge_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-      "final_state_core_ci": "PASS_32415131893",
-      "final_state_authenticated_dashboard": "PASS_32415131935",
-      "final_state_offline_bundle": "PASS_32415132995",
-      "final_state_required_checks": "PASS_ALL_GREEN"
-    },
-    "issue_637": {
-      "issue": 637,
-      "pull_request": 638,
-      "status": "COMPLETED_GREEN_SUPPLY_CHAIN_REPAIR",
-      "merge_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100",
-      "exact_head_sha": "969c121bd0e766c21356f8b1997d82955fbe13e4",
-      "production_cutover": false,
-      "modbus_write": "none",
-      "hardware_write": "none"
-    }
-  },
-  "blocked_work": {
-    "issue_585": {
-      "issue": 585,
-      "reason": "Product Owner confirmation of external W2 RS-485 handback is required before restoration"
-    },
-    "issue_589": {
-      "issue": 589,
-      "reason": "Held behind Product Owner Equipment priority and bus-aware #607 architecture"
-    },
-    "issue_590": {
-      "issue": 590,
-      "reason": "Depends on Issue #589 authoritative persisted cadence/capacity contract"
-    }
-  },
-  "current_boundary": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "status": "PR_632_PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
-    "pull_request": 632,
-    "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
-  },
-  "next_action": "Publish this state-only reconciliation, resolve the stale ACTIVE_SPRINT review thread, verify the resulting PR #632 state-head checks, merge #632, close Issue #606, then perform a fresh Ready audit with Issue #633 expected next.",
-  "planned_queue": [606, 633, 607, 589, 590],
-  "safety": {
-    "modbus_write": "none",
-    "hardware_write": "none",
-    "persistent_data_deletion": "none",
-    "volume_deletion": "none",
-    "mandatory_public_runtime_dependency": "none",
-    "dual_rs485_cutover_authorized": false
-  },
-  "known_non_blocking_issues": {
-    "issue_615": "Authenticated dashboard default generated Compose project name remains invalid on current Docker Compose; use explicit lowercase override locally until its separate repair.",
-    "issue_618": "Saved Dashboard CSV download can time out locally on the Raspberry Pi full browser matrix, but final PR #623 GitHub Authenticated Dashboard Acceptance passed; keep #618 isolated unless it blocks a later required check.",
-    "issue_633": "Successful production cutover left an orphan frontend candidate on 127.0.0.1:3100. It was manually stopped with production remaining healthy; Issue #633 tracks deterministic cleanup before the next deployment."
-  },
-  "in_progress_work": {
     "issue_606": {
       "issue": 606,
-      "branch": "feat/606-local-lan-discovery",
       "pull_request": 632,
-      "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
-      "status": "PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
-      "focused_backend_tests": "PASS_20_OF_20",
-      "focused_frontend_tests": "PASS_12_OF_12",
-      "all_product_head_workflows": "PASS_22_OF_22",
+      "status": "COMPLETED_GREEN_MERGED",
+      "final_software_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
+      "merge_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
+      "exact_head_workflows": "PASS_22_OF_22",
+      "core_ci": "PASS_32490226544",
+      "telemetry_service": "PASS_32490226340",
+      "authenticated_dashboard_acceptance": "PASS_32490226813",
+      "offline_bundle": "PASS_32490226383",
+      "offline_auth_acceptance": "PASS_32490226880",
+      "acquisition_scale_acceptance": "PASS_32490226435",
+      "container_supply_chain": "PASS_32490226447",
+      "observability": "PASS_32490226480",
+      "capacity_release_gate": "PASS_32490226536",
+      "device_agent_fleet_acceptance": "PASS_32490226271",
+      "review_threads": "PASS_ALL_RESOLVED",
+      "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
       "real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD",
       "network_connect_attempts": 10,
       "network_payload_bytes": 0,
@@ -266,46 +39,45 @@
       "production_cutover": false
     }
   },
-  "active_work": {
-    "issue_606": {
-      "issue": 606,
-      "status": "PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
-      "branch": "feat/606-local-lan-discovery",
-      "pull_request": 632,
-      "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "real_network_scan": "PASS_BOUNDED_ZERO_PAYLOAD"
-    }
+  "state_reconciliation": {
+    "issue": 641,
+    "branch": "chore/reconcile-606-post-merge-state",
+    "scope": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
+    ],
+    "product_runtime_changed": false,
+    "dependencies_changed": false,
+    "migration_changed": false,
+    "modbus_behavior_changed": false,
+    "hardware_behavior_changed": false,
+    "deployment_changed": false
   },
-  "production_cutover": {
-    "source_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
-    "runtime_mode": "lan",
-    "result": "PASS",
-    "evidence": "runtime/deployments/20260820T214127Z",
-    "frontend_release": "runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z",
-    "frontend_build_id": "wb6SYt8RD2_XAcyPcyZP2",
-    "dashboard_routes": "PASS_6_OF_6_HTTP_200",
-    "telemetry_database_mqtt": "PASS_READY",
-    "telemetry_persistence": "PASS_ADVANCING",
-    "registry_revision": 9,
-    "poll_eligible_targets": 33,
-    "service_operations": "EMPTY",
-    "candidate_cleanup": "MANUAL_PASS_TRACKED_ISSUE_633",
-    "settings_xjp60d_bundle_marker": "PASS",
-    "browser_visual_acceptance": "NOT_RUN_OPERA_CONNECTOR_DISCONNECTED",
+  "next_ready_candidate": {
+    "issue": 633,
+    "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
+    "status": "READY_HIGH_EXPECTED_NEXT_AFTER_STATE_MERGE",
+    "started": false
+  },
+  "blocked_work": {
+    "issue_585": "Product Owner confirmation and explicit physical W2/Unit 201 handback approval required",
+    "issue_589": "Depends on Issue #607 dual RS-485 bus architecture",
+    "issue_590": "Depends on Issue #589 persisted cadence/capacity contract"
+  },
+  "independent_work": {
+    "issue_618": "Saved Dashboard CSV browser-download reliability lane",
+    "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite"
+  },
+  "next_action": "Create and verify the focused state-only PR for Issue #641, merge it GREEN, close #641, perform a fresh Ready audit, then select the highest-priority unblocked Work Package with #633 currently expected next.",
+  "safety": {
     "modbus_write": "none",
-    "hardware_write": "none"
-  },
-  "issue_606_ci": {
-    "core_ci": "PASS_32421147273",
-    "authenticated_dashboard_acceptance": "PASS_32421147345",
-    "offline_bundle": "PASS_32421147237",
-    "telemetry_service": "PASS_32421147379",
-    "acquisition_scale": "PASS_32421147349",
-    "device_agent_fleet": "PASS_32421147234",
-    "container_supply_chain": "PASS_32421147290",
-    "offline_auth": "PASS_32421147289",
-    "all_exact_head_workflows": "PASS"
+    "hardware_write": "none",
+    "persistent_data_deletion": "none",
+    "volume_deletion": "none",
+    "production_cutover_authorized": false,
+    "dual_rs485_cutover_authorized": false,
+    "mandatory_public_runtime_dependency": "none"
   }
 }
