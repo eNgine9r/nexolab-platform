@@ -15,6 +15,7 @@ from app.equipment_discovery.scanner import (
     DiscoveryScanResult,
     LocalLanDiscoveryScanner,
     ScanCancelledError,
+    ScanFailedError,
 )
 from app.equipment_discovery.service import EquipmentDiscoveryService
 
@@ -125,6 +126,7 @@ class FinalizationRepository:
         self.completed = False
         self.failed = False
         self.cancelled_result: DiscoveryScanResult | None = None
+        self.failed_result: DiscoveryScanResult | None = None
         self.permanent_apply_failure = permanent_apply_failure
         self.initial_connection_failure = initial_connection_failure
 
@@ -175,11 +177,13 @@ class FinalizationRepository:
         organization_id: str,
         error_code: str,
         error_message: str,
+        result: DiscoveryScanResult | None = None,
     ) -> None:
         assert organization_id == ORGANIZATION_ID
         assert error_code == "equipment_discovery_scan_failed"
         assert error_message
         self.failed = True
+        self.failed_result = result
 
 
 class SuccessfulScanner:
@@ -208,6 +212,21 @@ class CancelledScanner:
                 network_payload_bytes=0,
             )
         )
+
+
+class FailedScanner:
+    async def scan(self, _scope: object, *, cancel_check: object) -> DiscoveryScanResult:
+        assert callable(cancel_check)
+        result = DiscoveryScanResult(
+            observations=(),
+            hosts_considered=1,
+            probes_attempted=2,
+            duration_ms=9,
+            process_cpu_ms=4,
+            network_connect_attempts=2,
+            network_payload_bytes=0,
+        )
+        raise ScanFailedError(result, OSError("network unreachable"))
 
 
 def test_scan_finalization_retries_after_transient_database_outage() -> None:
@@ -271,6 +290,7 @@ def test_permanent_database_failure_is_not_retried_and_scan_is_failed() -> None:
         assert repository.apply_calls == 1
         assert repository.failed is True
         assert repository.completed is False
+        assert repository.failed_result is None
 
     asyncio.run(run())
 
@@ -298,6 +318,34 @@ def test_cancelled_scan_passes_partial_metrics_to_finalization() -> None:
         assert result.network_payload_bytes == 0
         assert result.duration_ms == 7
         assert result.process_cpu_ms == 3
+
+    asyncio.run(run())
+
+
+def test_failed_scan_passes_partial_metrics_to_finalization() -> None:
+    async def run() -> None:
+        repository = FinalizationRepository()
+        policy = configured_policy()
+        service = EquipmentDiscoveryService(
+            repository,  # type: ignore[arg-type]
+            policy,
+            scanner=FailedScanner(),  # type: ignore[arg-type]
+            database_retry_seconds=0,
+        )
+        await service._run_scan(  # noqa: SLF001
+            "scan-1",
+            organization_id=ORGANIZATION_ID,
+            scope=policy.resolve(),
+        )
+        result = repository.failed_result
+        assert repository.failed is True
+        assert result is not None
+        assert result.hosts_considered == 1
+        assert result.probes_attempted == 2
+        assert result.network_connect_attempts == 2
+        assert result.network_payload_bytes == 0
+        assert result.duration_ms == 9
+        assert result.process_cpu_ms == 4
 
     asyncio.run(run())
 
