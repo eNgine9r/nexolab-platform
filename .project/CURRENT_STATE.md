@@ -4,7 +4,7 @@ Updated: 2026-08-21
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` and `origin/main` are now `6e387485b68fb862d9f82ae7f6000b1f5b672764`, the state-only reconciliation merge PR #631. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629).
+Accepted product-code baseline remains `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` and `origin/main` are now `bf9105cbdef6f614d50d8bff60d245980b89c100`, the GREEN merge of PR #638 / Issue #637 restoring the telemetry Debian security baseline. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629).
 
 The Product Owner authorized and completed the controlled LOCAL_LAN production cutover on 2026-08-21. Production now runs exact source `6e387485b68fb862d9f82ae7f6000b1f5b672764` from immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z` with BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`; deployment evidence is `runtime/deployments/20260820T214127Z` and records `DEPLOYMENT PASSED`. Post-cutover Dashboard routes `/`, `/nodes`, `/live`, `/energy`, `/sessions`, and `/settings` returned HTTP 200; Telemetry, database and MQTT were ready with queue `0` and advancing persistence; Device Agent remained `ok`/MQTT-connected with AcquisitionRegistry revision **9**, **33 poll-eligible targets**, healthy bus worker and service operations `{}`. The monitored XJP60D set remains `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`; `le01mp-201` remains intentionally disabled while W2 is externally owned. The deployed Settings bundle contains `Моніторинг XJP60D`; browser visual acceptance was not run because Opera Browser Connector was disconnected. An orphan isolated candidate remained on `127.0.0.1:3100` after the successful deployment, was stopped without affecting production, and is tracked independently as Issue #633.
 
@@ -185,9 +185,74 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
-## Issue #606 — PR #632 review hardening published
+## Issue #637 — complete GREEN supply-chain repair
 
-Issue #606 remains the active product Work Package. PR #632 now contains implementation hardening at `628e34725fe116c4f38e2b0862769d296afa3666` on top of current `main` `f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f`. The review fixes make candidate identity IP-endpoint stable with MAC as evidence, preserve partial-scan presence semantics, expire stale neighbor-only evidence, compare fingerprints only across equivalent scan scopes, paginate the candidate inbox beyond 500 rows, reject obsolete organization responses, and retain the earlier bounded-policy/database-recovery/strict-contract fixes. Focused backend discovery tests are 20/20 PASS; focused frontend discovery tests are 12/12 PASS; `npm run typecheck`, touched ESLint, Prettier and `git diff --check` are PASS. The new exact-head GitHub workflow matrix is running; prior-head GREEN results are historical evidence only and are not being reused as final-head acceptance. Real Raspberry Pi/LAN discovery acceptance has not been run and remains PENDING until the Product Owner approves exact CIDR(s) and TCP port(s). No real scan, Modbus/device write, acquisition mutation or hardware write was performed.
+Issue #637 is closed `status:done`. PR #638 merged GREEN as `bf9105cbdef6f614d50d8bff60d245980b89c100`.
+
+The telemetry image now performs the bounded Debian security upgrade required
+to consume fixed base-image packages, and exactly the stale CVE-2026-53615
+exceptions were removed. No Trivy severity/exit policy, Python application
+dependency, discovery runtime behavior, Modbus behavior or hardware behavior
+was weakened or changed.
+
+The #606 branch was synchronized with this main baseline before final
+verification. Production remains intentionally deployed from
+`6e387485b68fb862d9f82ae7f6000b1f5b672764`; neither #637 nor #606 has been deployed by this Work Package.
+
+## Issue #606 — software and real Raspberry Pi/LAN acceptance GREEN
+
+Issue #606 remains the active Work Package only for final state reconciliation
+and merge. PR #632 product implementation head `804d0b44045a5099c59149c87b70cbf63ca047f8` is software
+verified and real Raspberry Pi / LOCAL_LAN verified.
+
+Final product-head software evidence:
+
+- all 22 pull-request workflows on `804d0b44045a5099c59149c87b70cbf63ca047f8` are GREEN;
+- Core CI `32457840253`: PASS;
+- Telemetry Service `32457840365`: PASS after one rerun of the known
+  PostgreSQL planner-shape nondeterministic assertion;
+- Authenticated Dashboard Acceptance `32457840318`: PASS;
+- Acquisition Scale Acceptance `32457840260`: PASS;
+- Device Agent Fleet `32457840303`: PASS;
+- Container Supply Chain `32457840308`: PASS;
+- Offline Auth `32457840354`: PASS;
+- Observability `32457840273`: PASS;
+- Capacity Release Gate `32457840350`: PASS;
+- Offline Bundle `32457840431`: PASS;
+- all remaining triggered browser, MQTT, disaster-recovery and report gates:
+  PASS.
+
+Real Product Owner-authorized Raspberry Pi / physical LOCAL_LAN acceptance
+completed on 2026-08-21:
+
+- physical LAN allowlist confirmed from the host routing table as
+  `172.18.48.0/21`;
+- scan scope was deliberately bounded to five explicit /32 hosts and TCP
+  ports 502 and 8082;
+- `hosts_considered=5`;
+- `probes_attempted=10`;
+- `network_connect_attempts=10`;
+- `network_payload_bytes=0`;
+- only the local NEXOLAB API endpoint on TCP 8082 responded;
+- port 502 received TCP-connect testing only: no Modbus application request
+  or payload was sent;
+- baseline 10-second acquisition delta: physical requests `+74`, retries
+  `+16`, bus busy `+7.615496 s`;
+- discovery 10-second acquisition delta: physical requests `+64`, retries
+  `+16`, bus busy `+7.067059 s`;
+- production containers were healthy before and after discovery;
+- Raspberry Pi boot ID remained unchanged across the acceptance window;
+- no AcquisitionRegistry mutation, Modbus read/write command, hardware write,
+  credential attempt, deployment or site cutover occurred.
+
+The production discovery evidence boundary remains intentionally TCP-connect
+only. Container `/proc/net/arp` is not treated as authoritative physical-LAN
+neighbor evidence.
+
+The remaining #606 path is state-only: publish this reconciliation, resolve
+the stale sprint-state review thread, verify the final state head checks, then
+merge PR #632. Production remains on `6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separate
+authorized deployment/cutover.
 
 ## Issue #626 — completed GREEN and merged
 

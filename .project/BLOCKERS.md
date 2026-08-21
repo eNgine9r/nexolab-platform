@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Issue #584 — complete
 
@@ -60,9 +60,22 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — active PR #632; final CI and runtime acceptance pending
+## Issue #606 — GREEN; state reconciliation and merge only
 
-PR #632 implementation hardening is published at `628e34725fe116c4f38e2b0862769d296afa3666` against current `main` `f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f`. Local focused verification is GREEN: backend 20/20, frontend 12/12, typecheck, touched ESLint, Prettier and diff check. The new exact-head GitHub workflow matrix is in progress, so previous-head GREEN workflow results are not final acceptance for this head. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified and is blocked on Product Owner approval of exact CIDR(s) and TCP port(s). No real scan has been run. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
+PR #632 product head `804d0b44045a5099c59149c87b70cbf63ca047f8` is GREEN in all 22 pull-request
+workflows. Real Product Owner-authorized bounded Raspberry Pi / LOCAL_LAN
+acceptance is PASS: five explicit hosts, two allowed TCP ports, 10 connect
+attempts, zero application payload, production healthy before/after and no
+increase in physical acquisition cadence. Raspberry Pi boot continuity also
+passed.
+
+There is no remaining product, software, LAN or hardware-acceptance blocker
+for #606. Remaining work is state-only: commit reconciliation, resolve the
+stale sprint-state review thread, verify the resulting state-head checks and
+merge PR #632.
+
+No Modbus read/write command, hardware write, unrestricted scan, credential
+attempt, production deployment or site cutover was performed.
 
 ## Issue #626 — completed, no longer blocking
 
@@ -96,7 +109,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
-- #606 discovery/adoption inbox — active PR #632 implementation head `628e3472`; exact-head CI/runtime acceptance pending;
+- #606 discovery/adoption inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
 - #633 frontend candidate cleanup — Ready after #606;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
@@ -107,7 +120,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — active PR #632; real Pi/LAN acceptance pending;
+- #606 LOCAL_LAN discovery inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
 - #633 frontend candidate cleanup — queued after #606;
