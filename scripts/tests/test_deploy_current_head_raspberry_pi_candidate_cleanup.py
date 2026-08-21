@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "scripts" / "deploy-current-head-raspberry-pi.sh"
 LIVENESS = ROOT / "scripts" / "lib" / "frontend-candidate-liveness.sh"
+RUNTIME_CONTRACT = ROOT / "scripts" / "tests" / "standalone-offline-runtime-contract.sh"
 
 
 def _extract_cleanup_function(text: str) -> str:
@@ -17,9 +18,16 @@ def _extract_cleanup_function(text: str) -> str:
     return text[start:end].rstrip()
 
 
+def _extract_on_exit_function(text: str) -> str:
+    start = text.index("on_exit() {")
+    end = text.index("\non_error() {", start)
+    return text[start:end].rstrip()
+
+
 class RaspberryPiCandidateCleanupTests(unittest.TestCase):
-    def test_candidate_runs_in_dedicated_process_group_and_all_exits_cleanup(self) -> None:
+    def test_candidate_runs_in_dedicated_process_group_and_cleanup_is_in_ci(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
+        contract = RUNTIME_CONTRACT.read_text(encoding="utf-8")
         self.assertIn('FRONTEND_CANDIDATE_PID=""', text)
         self.assertIn('FRONTEND_CANDIDATE_PGID=""', text)
         self.assertIn('source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"', text)
@@ -28,10 +36,15 @@ class RaspberryPiCandidateCleanupTests(unittest.TestCase):
         self.assertIn('FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid=', text)
         self.assertIn('FRONTEND_CANDIDATE_PGID="$FRONTEND_CANDIDATE_ACTUAL_PGID"', text)
         self.assertNotIn('FRONTEND_CANDIDATE_PGID="$FRONTEND_CANDIDATE_PID"', text)
+        self.assertIn('actual_pgid="$(ps -o pgid= -p "$pid"', text)
         self.assertIn('kill -TERM -- "-$pgid"', text)
         self.assertIn('kill -KILL -- "-$pgid"', text)
         self.assertIn('nexolab_frontend_candidate_group_has_live_processes "$pgid"', text)
         self.assertNotIn("pkill", text)
+        self.assertIn(
+            'python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_candidate_cleanup.py"',
+            contract,
+        )
 
         handshake = text.index('FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid=')
         ready = text.index("FRONTEND_CANDIDATE_READY=false")
@@ -73,7 +86,7 @@ nexolab_frontend_candidate_group_has_live_processes 4343
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_cleanup_falls_back_to_exact_pid_before_group_handshake(self) -> None:
+    def test_cleanup_falls_back_to_exact_pid_before_group_exists(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         cleanup_function = _extract_cleanup_function(text)
         helper = LIVENESS.read_text(encoding="utf-8")
@@ -95,16 +108,68 @@ cleanup_fixture() {{
   fi
 }}
 trap cleanup_fixture EXIT
-python3 -c 'import time; time.sleep(30)' &
+(trap - EXIT; exec python3 -c 'import time; time.sleep(30)') &
 production_pid=$!
-python3 -c 'import time; time.sleep(30)' &
+(trap - EXIT; exec python3 -c 'import time; time.sleep(30)') &
 candidate_pid=$!
+sleep 0.1
 FRONTEND_CANDIDATE_PID="$candidate_pid"
 FRONTEND_CANDIDATE_PGID=""
 cleanup_frontend_candidate
 [[ -z "$FRONTEND_CANDIDATE_PID" ]]
 [[ -z "$FRONTEND_CANDIDATE_PGID" ]]
 ! kill -0 "$candidate_pid" >/dev/null 2>&1
+kill -0 "$production_pid" >/dev/null 2>&1
+candidate_pid=""
+"""
+        result = subprocess.run(
+            ["bash", "-c", script],
+            cwd=ROOT,
+            env=os.environ.copy(),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_cleanup_detects_established_group_before_pgid_is_published(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        cleanup_function = _extract_cleanup_function(text)
+        helper = LIVENESS.read_text(encoding="utf-8")
+        script = f"""
+set -euo pipefail
+log() {{ :; }}
+{helper}
+{cleanup_function}
+production_pid=""
+candidate_pid=""
+cleanup_fixture() {{
+  if [[ -n "$production_pid" ]]; then
+    kill "$production_pid" >/dev/null 2>&1 || true
+    wait "$production_pid" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$candidate_pid" ]]; then
+    kill -KILL -- "-$candidate_pid" >/dev/null 2>&1 || true
+    wait "$candidate_pid" >/dev/null 2>&1 || true
+  fi
+}}
+trap cleanup_fixture EXIT
+(trap - EXIT; exec python3 -c 'import time; time.sleep(30)') &
+production_pid=$!
+(trap - EXIT; exec setsid python3 -c 'import subprocess,sys,time; subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); time.sleep(30)') &
+candidate_pid=$!
+sleep 0.2
+candidate_pgid="$(ps -o pgid= -p "$candidate_pid" | tr -d ' ')"
+[[ "$candidate_pgid" == "$candidate_pid" ]]
+FRONTEND_CANDIDATE_PID="$candidate_pid"
+FRONTEND_CANDIDATE_PGID=""
+cleanup_frontend_candidate
+[[ -z "$FRONTEND_CANDIDATE_PID" ]]
+[[ -z "$FRONTEND_CANDIDATE_PGID" ]]
+if nexolab_frontend_candidate_group_has_live_processes "$candidate_pgid"; then
+  exit 1
+fi
 kill -0 "$production_pid" >/dev/null 2>&1
 candidate_pid=""
 """
@@ -141,9 +206,9 @@ cleanup_fixture() {{
   fi
 }}
 trap cleanup_fixture EXIT
-python3 -c 'import time; time.sleep(30)' &
+(trap - EXIT; exec python3 -c 'import time; time.sleep(30)') &
 production_pid=$!
-setsid python3 -c 'import subprocess,sys,time; subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); time.sleep(30)' &
+(trap - EXIT; exec setsid python3 -c 'import subprocess,sys,time; subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); time.sleep(30)') &
 candidate_pid=$!
 sleep 0.2
 candidate_pgid="$(ps -o pgid= -p "$candidate_pid" | tr -d ' ')"
@@ -171,6 +236,30 @@ candidate_pid=""
             timeout=10,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_exit_cleanup_failure_is_logged_and_preserves_original_failure(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        on_exit = _extract_on_exit_function(text)
+        script = f"""
+set +e
+log() {{ printf '%s\\n' "$*"; }}
+cleanup_frontend_candidate() {{ return 7; }}
+{on_exit}
+false
+on_exit
+"""
+        result = subprocess.run(
+            ["bash", "-c", script],
+            cwd=ROOT,
+            env=os.environ.copy(),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("frontend candidate cleanup failed during exit", result.stdout)
+        self.assertIn("original exit code: 1", result.stdout)
 
 
 if __name__ == "__main__":

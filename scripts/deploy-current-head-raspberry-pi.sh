@@ -110,16 +110,34 @@ fail() {
 cleanup_frontend_candidate() {
   local pid="${FRONTEND_CANDIDATE_PID:-}"
   local pgid="${FRONTEND_CANDIDATE_PGID:-}"
+  local actual_pgid=""
   local attempt
+
+  if [[ -z "$pgid" && -n "$pid" ]]; then
+    actual_pgid="$(ps -o pgid= -p "$pid" 2>/dev/null | awk 'NF {print $1; exit}')"
+    if [[ "$actual_pgid" == "$pid" ]]; then
+      pgid="$actual_pgid"
+      FRONTEND_CANDIDATE_PGID="$actual_pgid"
+    fi
+  fi
 
   if [[ -z "$pgid" ]]; then
     if [[ -n "$pid" ]]; then
       kill -TERM "$pid" >/dev/null 2>&1 || true
-      sleep 0.1
+      for attempt in $(seq 1 20); do
+        if ! kill -0 "$pid" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 0.1
+      done
       if kill -0 "$pid" >/dev/null 2>&1; then
         kill -KILL "$pid" >/dev/null 2>&1 || true
       fi
       wait "$pid" >/dev/null 2>&1 || true
+      if kill -0 "$pid" >/dev/null 2>&1; then
+        log "ERROR: frontend candidate process did not terminate: $pid"
+        return 1
+      fi
     fi
     FRONTEND_CANDIDATE_PID=""
     FRONTEND_CANDIDATE_PGID=""
@@ -159,8 +177,19 @@ cleanup_frontend_candidate() {
 
 on_exit() {
   local rc=$?
-  trap - EXIT
-  cleanup_frontend_candidate >/dev/null 2>&1 || true
+  local cleanup_rc=0
+  trap - EXIT ERR
+  if cleanup_frontend_candidate; then
+    cleanup_rc=0
+  else
+    cleanup_rc=$?
+  fi
+  if ((cleanup_rc != 0)); then
+    log "ERROR: frontend candidate cleanup failed during exit; original exit code: $rc"
+    if ((rc == 0)); then
+      rc=$cleanup_rc
+    fi
+  fi
   exit "$rc"
 }
 
