@@ -64,7 +64,7 @@ def test_tcp_connect_propagates_process_resource_failure(monkeypatch) -> None:
         raise AssertionError("process resource failure must abort discovery instead of looking closed")
 
 
-def test_scanner_carries_completed_batch_metrics_when_transport_fails() -> None:
+def test_scanner_counts_failing_probe_in_partial_metrics() -> None:
     async def connector(ip: str, _port: int, _timeout: float) -> bool:
         if ip == "192.168.50.2":
             raise OSError(errno.ENETUNREACH, "network unreachable")
@@ -86,10 +86,66 @@ def test_scanner_carries_completed_batch_metrics_when_transport_fails() -> None:
         asyncio.run(scanner.scan(scope))
 
     assert isinstance(captured.value.cause, OSError)
-    assert captured.value.result.hosts_considered == 1
-    assert captured.value.result.probes_attempted == 1
-    assert captured.value.result.network_connect_attempts == 1
+    assert captured.value.result.hosts_considered == 2
+    assert captured.value.result.probes_attempted == 2
+    assert captured.value.result.network_connect_attempts == 2
     assert captured.value.result.network_payload_bytes == 0
+
+
+def test_scanner_cancels_and_counts_started_siblings_when_batch_fails() -> None:
+    async def run() -> None:
+        all_started = asyncio.Event()
+        blocker = asyncio.Event()
+        started: list[tuple[str, int]] = []
+        cancelled: list[tuple[str, int]] = []
+
+        async def connector(ip: str, port: int, _timeout: float) -> bool:
+            started.append((ip, port))
+            if len(started) == 4:
+                all_started.set()
+            await all_started.wait()
+            if ip == "192.168.50.1" and port == 80:
+                raise OSError(errno.ENETUNREACH, "network unreachable")
+            try:
+                await blocker.wait()
+            except asyncio.CancelledError:
+                cancelled.append((ip, port))
+                raise
+            return False
+
+        scope = ResolvedDiscoveryScope(
+            networks=(ip_network("192.168.50.0/30"),),
+            ports=(80, 443),
+            addresses=(ip_address("192.168.50.1"), ip_address("192.168.50.2")),
+            probe_budget=4,
+        )
+        scanner = LocalLanDiscoveryScanner(
+            connect_timeout_seconds=0.1,
+            concurrency=4,
+            tcp_connector=connector,
+        )
+
+        with pytest.raises(ScanFailedError) as captured:
+            await scanner.scan(scope)
+
+        assert isinstance(captured.value.cause, OSError)
+        assert captured.value.result.hosts_considered == 2
+        assert captured.value.result.probes_attempted == 4
+        assert captured.value.result.network_connect_attempts == 4
+        assert captured.value.result.network_payload_bytes == 0
+        assert sorted(started) == [
+            ("192.168.50.1", 80),
+            ("192.168.50.1", 443),
+            ("192.168.50.2", 80),
+            ("192.168.50.2", 443),
+        ]
+        assert sorted(cancelled) == [
+            ("192.168.50.1", 443),
+            ("192.168.50.2", 80),
+            ("192.168.50.2", 443),
+        ]
+
+    asyncio.run(run())
 
 
 def test_explicit_neighbor_snapshot_failure_aborts_before_probes(tmp_path: Path) -> None:

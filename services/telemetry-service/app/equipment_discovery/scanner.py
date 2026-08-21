@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv4Network, ip_address
 from pathlib import Path
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, TypeVar
 
 from app.equipment_discovery.policy import ResolvedDiscoveryScope
 
@@ -27,6 +27,7 @@ _SERVICE_LABELS = {
 }
 _MAC_ADDRESS_RE = re.compile(r"^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$")
 _ARP_HEADER_FIELDS = ("IP address", "HW type", "Flags", "HW address", "Mask", "Device")
+_T = TypeVar("_T")
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +91,7 @@ class NeighborSnapshotError(RuntimeError):
 
 TcpConnector = Callable[[str, int, float], Awaitable[bool]]
 CancelCheck = Callable[[], Awaitable[bool]]
+ProbeStarted = Callable[[IPv4Address], None]
 
 
 class LocalLanDiscoveryScanner:
@@ -126,16 +128,21 @@ class LocalLanDiscoveryScanner:
         )
         semaphore = asyncio.Semaphore(self._concurrency)
         observations: list[DiscoveryObservationInput] = []
+        attempted_hosts: set[IPv4Address] = set()
         probes_attempted = 0
-        hosts_considered = 0
         batch_size = max(1, min(self._concurrency, 32))
+
+        def record_probe_started(address: IPv4Address) -> None:
+            nonlocal probes_attempted
+            attempted_hosts.add(address)
+            probes_attempted += 1
 
         def snapshot() -> DiscoveryScanResult:
             return DiscoveryScanResult(
                 observations=tuple(
                     sorted(observations, key=lambda item: int(ip_address(item.ip_address)))
                 ),
-                hosts_considered=hosts_considered,
+                hosts_considered=len(attempted_hosts),
                 probes_attempted=probes_attempted,
                 duration_ms=max(0, round((time.perf_counter() - started) * 1000)),
                 process_cpu_ms=max(0, round((time.process_time() - cpu_started) * 1000)),
@@ -148,15 +155,20 @@ class LocalLanDiscoveryScanner:
                 if await cancel():
                     raise ScanCancelledError(snapshot())
                 batch = scope.addresses[start : start + batch_size]
-                results = await asyncio.gather(
-                    *(
-                        self._probe_host(address, scope, neighbors, semaphore)
-                        for address in batch
+                tasks = tuple(
+                    asyncio.create_task(
+                        self._probe_host(
+                            address,
+                            scope,
+                            neighbors,
+                            semaphore,
+                            on_probe_started=record_probe_started,
+                        )
                     )
+                    for address in batch
                 )
-                hosts_considered += len(batch)
-                for observation, attempts in results:
-                    probes_attempted += attempts
+                results = await _gather_cancel_on_error(tasks)
+                for observation in results:
                     if observation is not None:
                         observations.append(observation)
 
@@ -175,22 +187,26 @@ class LocalLanDiscoveryScanner:
         scope: ResolvedDiscoveryScope,
         neighbors: dict[str, NeighborEvidence],
         semaphore: asyncio.Semaphore,
-    ) -> tuple[DiscoveryObservationInput | None, int]:
+        *,
+        on_probe_started: ProbeStarted,
+    ) -> DiscoveryObservationInput | None:
         rendered = str(address)
         neighbor = neighbors.get(rendered)
 
         async def probe(port: int) -> tuple[int, bool]:
             async with semaphore:
+                on_probe_started(address)
                 return port, await self._tcp_connector(
                     rendered,
                     port,
                     self._connect_timeout_seconds,
                 )
 
-        port_results = await asyncio.gather(*(probe(port) for port in scope.ports))
+        tasks = tuple(asyncio.create_task(probe(port)) for port in scope.ports)
+        port_results = await _gather_cancel_on_error(tasks)
         open_ports = tuple(port for port, opened in port_results if opened)
         if neighbor is None and not open_ports:
-            return None, len(scope.ports)
+            return None
 
         source_subnet = _source_subnet(address, scope.networks)
         services = tuple(
@@ -216,20 +232,52 @@ class LocalLanDiscoveryScanner:
             source_subnet=source_subnet,
             services=services,
         )
-        return (
-            DiscoveryObservationInput(
-                ip_address=rendered,
-                mac_address=neighbor.mac_address if neighbor else None,
-                hostname=None,
-                source_interface=neighbor.interface if neighbor else None,
-                source_subnet=source_subnet,
-                services=services,
-                evidence=evidence,
-                observed_at=datetime.now(UTC),
-                fingerprint_sha256=fingerprint,
-            ),
-            len(scope.ports),
+        return DiscoveryObservationInput(
+            ip_address=rendered,
+            mac_address=neighbor.mac_address if neighbor else None,
+            hostname=None,
+            source_interface=neighbor.interface if neighbor else None,
+            source_subnet=source_subnet,
+            services=services,
+            evidence=evidence,
+            observed_at=datetime.now(UTC),
+            fingerprint_sha256=fingerprint,
         )
+
+
+async def _gather_cancel_on_error(tasks: tuple[asyncio.Task[_T], ...]) -> list[_T]:
+    if not tasks:
+        return []
+
+    try:
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+    except asyncio.CancelledError:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+
+    cancelled = next((task for task in tasks if task in done and task.cancelled()), None)
+    failure: BaseException | None = None
+    for task in tasks:
+        if task not in done or task.cancelled():
+            continue
+        error = task.exception()
+        if error is not None:
+            failure = error
+            break
+
+    if cancelled is not None or failure is not None:
+        for task in pending:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        if cancelled is not None:
+            raise asyncio.CancelledError()
+        assert failure is not None
+        raise failure
+
+    return [task.result() for task in tasks]
 
 
 async def tcp_connect(ip: str, port: int, timeout_seconds: float) -> bool:
