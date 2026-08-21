@@ -2,9 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import errno
+from ipaddress import ip_address, ip_network
+from pathlib import Path
+
+import pytest
 
 import app.equipment_discovery.scanner as scanner_module
-from app.equipment_discovery.scanner import tcp_connect
+from app.equipment_discovery.policy import ResolvedDiscoveryScope
+from app.equipment_discovery.scanner import (
+    LocalLanDiscoveryScanner,
+    NeighborSnapshotError,
+    read_ipv4_neighbors,
+    tcp_connect,
+)
 
 
 def test_tcp_connect_treats_connection_refused_as_closed_port(monkeypatch) -> None:
@@ -51,3 +61,60 @@ def test_tcp_connect_propagates_process_resource_failure(monkeypatch) -> None:
         assert error.errno == errno.EMFILE
     else:
         raise AssertionError("process resource failure must abort discovery instead of looking closed")
+
+
+def test_explicit_neighbor_snapshot_failure_aborts_before_probes(tmp_path: Path) -> None:
+    connect_attempts = 0
+
+    async def connector(_ip: str, _port: int, _timeout: float) -> bool:
+        nonlocal connect_attempts
+        connect_attempts += 1
+        return False
+
+    scope = ResolvedDiscoveryScope(
+        networks=(ip_network("192.168.50.2/32"),),
+        ports=(443,),
+        addresses=(ip_address("192.168.50.2"),),
+        probe_budget=1,
+    )
+    scanner = LocalLanDiscoveryScanner(
+        connect_timeout_seconds=0.1,
+        concurrency=1,
+        tcp_connector=connector,
+        neighbor_table_path=tmp_path / "missing-neighbors",
+    )
+
+    with pytest.raises(NeighborSnapshotError, match="unable to read neighbor snapshot"):
+        asyncio.run(scanner.scan(scope))
+
+    assert connect_attempts == 0
+
+
+def test_malformed_neighbor_snapshot_fails_closed(tmp_path: Path) -> None:
+    path = tmp_path / "neighbors"
+    path.write_text("not a proc arp snapshot\n", encoding="utf-8")
+
+    with pytest.raises(NeighborSnapshotError, match="invalid neighbor snapshot header"):
+        read_ipv4_neighbors(path)
+
+
+def test_invalid_completed_neighbor_row_fails_closed(tmp_path: Path) -> None:
+    path = tmp_path / "neighbors"
+    path.write_text(
+        "IP address       HW type     Flags       HW address            Mask     Device\n"
+        "192.168.50.2     0x1         0x2         not-a-mac             *        eth0\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(NeighborSnapshotError, match="invalid neighbor snapshot MAC"):
+        read_ipv4_neighbors(path)
+
+
+def test_valid_empty_neighbor_snapshot_is_not_a_failure(tmp_path: Path) -> None:
+    path = tmp_path / "neighbors"
+    path.write_text(
+        "IP address       HW type     Flags       HW address            Mask     Device\n",
+        encoding="utf-8",
+    )
+
+    assert read_ipv4_neighbors(path) == {}
