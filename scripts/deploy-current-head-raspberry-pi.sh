@@ -9,6 +9,8 @@ source "$SCRIPT_DIR/lib/raspberry-pi-runtime-mode.sh"
 source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 # shellcheck source=lib/raspberry-pi-frontend-release.sh
 source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
+# shellcheck source=lib/frontend-candidate-liveness.sh
+source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 
 usage() {
   cat <<'USAGE'
@@ -114,16 +116,16 @@ cleanup_frontend_candidate() {
 
   kill -TERM -- "-$pgid" >/dev/null 2>&1 || true
   for attempt in $(seq 1 20); do
-    if ! kill -0 -- "-$pgid" >/dev/null 2>&1; then
+    if ! nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
       break
     fi
     sleep 0.1
   done
 
-  if kill -0 -- "-$pgid" >/dev/null 2>&1; then
+  if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
     kill -KILL -- "-$pgid" >/dev/null 2>&1 || true
     for attempt in $(seq 1 10); do
-      if ! kill -0 -- "-$pgid" >/dev/null 2>&1; then
+      if ! nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
         break
       fi
       sleep 0.1
@@ -133,7 +135,7 @@ cleanup_frontend_candidate() {
   if [[ -n "$pid" ]]; then
     wait "$pid" >/dev/null 2>&1 || true
   fi
-  if kill -0 -- "-$pgid" >/dev/null 2>&1; then
+  if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
     log "ERROR: frontend candidate process group did not terminate: $pgid"
     return 1
   fi
@@ -188,7 +190,7 @@ require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid; do
+for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
   require "$command"
 done
 
