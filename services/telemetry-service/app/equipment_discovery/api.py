@@ -84,6 +84,7 @@ def create_equipment_discovery_router(
             offset=candidate_offset,
             limit=candidate_limit,
         )
+        network_asset_total = repository.count_network_assets(organization_id=organization_id)
         return DiscoveryOverviewResponse(
             policy=_policy_response(
                 policy, schedule_interval_seconds=service.schedule_interval_seconds
@@ -94,6 +95,7 @@ def create_equipment_discovery_router(
             candidate_offset=candidate_offset,
             candidate_limit=candidate_limit,
             candidates=[_candidate_response(item) for item in candidate_page],
+            network_asset_total=network_asset_total,
             network_assets=[
                 _network_asset_response(item)
                 for item in repository.list_network_assets(organization_id=organization_id)
