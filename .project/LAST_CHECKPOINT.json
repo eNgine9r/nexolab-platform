@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T19:50:00Z",
+  "timestamp": "2026-08-21T20:20:00Z",
   "actor": "ChatGPT",
   "event": "issue_633_candidate_cleanup_final_exact_head_gate",
   "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
@@ -13,7 +13,7 @@
     "pull_request": 643,
     "branch": "fix/633-frontend-candidate-cleanup",
     "status": "FINAL_EXACT_HEAD_CI_REVIEW_GATE",
-    "final_software_head_before_state_checkpoint_sha": "24390ea3fa490a90fb4aa964f17191e12af53b14",
+    "final_software_head_before_state_checkpoint_sha": "2e7a88ded70afee31760747ac402bb7dd7dde306",
     "implemented": [
       "parent-child startup gate prevents candidate execution before exact PID publication",
       "child abandons startup if deployment parent disappears before gate release",
@@ -23,6 +23,7 @@
       "cleanup re-checks an unpublished PID for an already-established exact process group",
       "exact-PID fallback only when the candidate group is not established",
       "bounded TERM to KILL group cleanup after handshake",
+      "bounded candidate child reaping prevents indefinite wait after escalation",
       "zombie-only process groups classified as terminated",
       "EXIT cleanup failures surfaced while preserving the original deployment failure code",
       "candidate port 3100 release verification",
@@ -32,7 +33,8 @@
     "ci_history": [
       "PASS_32514504593_AT_87AFC111",
       "PASS_32517056093_AT_08884615",
-      "PASS_32519957941_AT_A7D91AF1"
+      "PASS_32519957941_AT_A7D91AF1",
+      "PASS_32521673945_AT_B3420A3B"
     ],
     "review_findings": {
       "P1_state_sync": "ADDRESSED",
@@ -43,6 +45,7 @@
       "P2_exit_cleanup_failure_reporting": "ADDRESSED",
       "P2_cleanup_suite_ci_integration": "ADDRESSED",
       "P2_pre_pid_publication_startup_window": "ADDRESSED_IN_24390EA3",
+      "P2_unbounded_candidate_reap": "ADDRESSED_IN_2E7A88DE",
       "P2_final_state_checkpoint": "ADDRESSED_IN_STATE_CHECKPOINT"
     },
     "final_exact_head_ci": "PENDING_STATE_CHECKPOINT_HEAD",
