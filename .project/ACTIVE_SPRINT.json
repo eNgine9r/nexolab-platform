@@ -50,10 +50,7 @@
       "branch": "fix/633-frontend-candidate-cleanup",
       "final_software_head_before_state_checkpoint_sha": "24390ea3fa490a90fb4aa964f17191e12af53b14",
       "initial_ci": "PASS_32514504593_AT_87AFC111",
-      "intermediate_ci": [
-        "PASS_32517056093_AT_08884615",
-        "PASS_32519957941_AT_A7D91AF1"
-      ],
+      "intermediate_ci": ["PASS_32517056093_AT_08884615", "PASS_32519957941_AT_A7D91AF1"],
       "final_exact_head_ci": "PENDING_STATE_CHECKPOINT_HEAD",
       "review": "PENDING_FRESH_REVIEW_ON_STATE_CHECKPOINT_HEAD",
       "candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
@@ -163,10 +160,7 @@
     "issue_633_pull_request": 643,
     "issue_633_final_software_head_before_state_checkpoint_sha": "24390ea3fa490a90fb4aa964f17191e12af53b14",
     "issue_633_initial_ci": "PASS_32514504593_AT_87AFC111",
-    "issue_633_intermediate_ci": [
-      "PASS_32517056093_AT_08884615",
-      "PASS_32519957941_AT_A7D91AF1"
-    ],
+    "issue_633_intermediate_ci": ["PASS_32517056093_AT_08884615", "PASS_32519957941_AT_A7D91AF1"],
     "issue_633_final_exact_head_ci": "PENDING_STATE_CHECKPOINT_HEAD",
     "issue_633_review": "PENDING_FRESH_REVIEW",
     "issue_633_candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
