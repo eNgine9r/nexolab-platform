@@ -87,6 +87,7 @@ Required maintenance/evidence lanes remain visible and are not completed by #606
 - #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance;
 - #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance;
 - #201 — `status:needs-validation`, priority high: approved LE-01MP restart/power-cycle boundary;
+- #202 — open hardware-validation lane: extended XJP60D portability, KK2 representative evidence, and actual Unit ID 115 presence/absence remain unverified;
 - #189 — `status:blocked`, priority high: actual-host backup/restore/rollback/power-loss recovery evidence.
 
 After #641 is merged, perform a fresh Ready audit across GitHub and the machine-readable Sprint state before selecting the next Work Package. #633 is the current expected Ready candidate, not a pre-authorized hardware/deployment action.

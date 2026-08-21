@@ -114,6 +114,13 @@
       "priority": "high"
     },
     {
+      "id": "NEXOLAB-202",
+      "issue": 202,
+      "title": "Validate extended XJP60D semantics and firmware portability",
+      "status": "hardware_validation_pending_unit_115_kk2",
+      "priority": "high"
+    },
+    {
       "id": "NEXOLAB-189",
       "issue": 189,
       "title": "Prove backup, restore, rollback and power-loss recovery",
@@ -199,6 +206,10 @@
     {
       "issue": 201,
       "status": "needs_validation_hardware_power_cycle"
+    },
+    {
+      "issue": 202,
+      "status": "hardware_validation_pending_unit_115_kk2"
     },
     {
       "issue": 189,

@@ -79,7 +79,8 @@
   "validation_work": {
     "issue_444": "LOCAL_LAN user-administration API acceptance remains status:needs-validation",
     "issue_245": "Standalone loopback-only Raspberry Pi acceptance remains status:needs-validation",
-    "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation"
+    "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation",
+    "issue_202": "Extended XJP60D portability, representative KK2 evidence, and actual Unit ID 115 presence/absence remain hardware-unverified"
   },
   "independent_work": {
     "issue_618": "Saved Dashboard CSV browser-download reliability lane",
