@@ -5,7 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Refresh packages already inherited from the mutable Debian base tag before
+# installing runtime additions. This keeps fixed Debian security updates in the
+# produced image instead of relying on a future upstream base-image rebuild.
 RUN apt-get update \
+    && apt-get upgrade --yes --no-install-recommends \
     && apt-get install --yes --no-install-recommends \
         fonts-dejavu-core \
         mosquitto \
