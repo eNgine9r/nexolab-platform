@@ -186,6 +186,29 @@ class FinalizationRepository:
         self.failed_result = result
 
 
+class ShutdownRepository:
+    def __init__(self) -> None:
+        self.failed_result: DiscoveryScanResult | None = None
+
+    def cancel_requested(self, _scan_id: str, *, organization_id: str) -> bool:
+        assert organization_id == ORGANIZATION_ID
+        return False
+
+    def finish_failed(
+        self,
+        _scan_id: str,
+        *,
+        organization_id: str,
+        error_code: str,
+        error_message: str,
+        result: DiscoveryScanResult | None = None,
+    ) -> None:
+        assert organization_id == ORGANIZATION_ID
+        assert error_code == "equipment_discovery_service_stopped"
+        assert error_message
+        self.failed_result = result
+
+
 class SuccessfulScanner:
     async def scan(self, _scope: object, *, cancel_check: object) -> DiscoveryScanResult:
         assert callable(cancel_check)
@@ -346,6 +369,52 @@ def test_failed_scan_passes_partial_metrics_to_finalization() -> None:
         assert result.network_payload_bytes == 0
         assert result.duration_ms == 9
         assert result.process_cpu_ms == 4
+
+    asyncio.run(run())
+
+
+def test_service_shutdown_preserves_started_probe_metrics() -> None:
+    async def run() -> None:
+        repository = ShutdownRepository()
+        policy = configured_policy()
+        scope = policy.resolve(requested_cidrs=["192.168.50.1/32"], requested_ports=[80])
+        probe_started = asyncio.Event()
+        block_probe = asyncio.Event()
+
+        async def connector(_ip: str, _port: int, _timeout: float) -> bool:
+            probe_started.set()
+            await block_probe.wait()
+            return False
+
+        scanner = LocalLanDiscoveryScanner(
+            connect_timeout_seconds=0.1,
+            concurrency=1,
+            tcp_connector=connector,
+        )
+        service = EquipmentDiscoveryService(
+            repository,  # type: ignore[arg-type]
+            policy,
+            scanner=scanner,
+            database_retry_seconds=0,
+        )
+        task = asyncio.create_task(
+            service._run_scan(  # noqa: SLF001
+                "scan-1",
+                organization_id=ORGANIZATION_ID,
+                scope=scope,
+            )
+        )
+        await probe_started.wait()
+        task.cancel()
+        result = await asyncio.gather(task, return_exceptions=True)
+        assert isinstance(result[0], asyncio.CancelledError)
+
+        failed_result = repository.failed_result
+        assert failed_result is not None
+        assert failed_result.hosts_considered == 1
+        assert failed_result.probes_attempted == 1
+        assert failed_result.network_connect_attempts == 1
+        assert failed_result.network_payload_bytes == 0
 
     asyncio.run(run())
 
