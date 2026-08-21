@@ -134,6 +134,7 @@ class DiscoveryOverviewResponse(BaseModel):
     candidate_offset: int = Field(ge=0)
     candidate_limit: int = Field(ge=1, le=500)
     candidates: list[DiscoveryCandidateResponse]
+    network_asset_total: int = Field(ge=0)
     network_assets: list[NetworkAssetResponse]
 
 
