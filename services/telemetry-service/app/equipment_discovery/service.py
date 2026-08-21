@@ -218,6 +218,7 @@ class EquipmentDiscoveryService:
                     organization_id=organization_id,
                     error_code="equipment_discovery_scan_failed",
                     error_message=str(error) or error.__class__.__name__,
+                    result=completed_result,
                 ),
             )
 
