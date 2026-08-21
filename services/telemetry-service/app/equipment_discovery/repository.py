@@ -280,13 +280,20 @@ class EquipmentDiscoveryRepository:
             )
             return bool(value)
 
-    def finish_cancelled(self, scan_id: str, *, organization_id: str) -> None:
+    def finish_cancelled(
+        self,
+        scan_id: str,
+        *,
+        organization_id: str,
+        result: DiscoveryScanResult,
+    ) -> None:
         self._finish_without_results(
             scan_id,
             organization_id=organization_id,
             status="cancelled",
             error_code=None,
             error_message=None,
+            result=result,
         )
 
     def finish_failed(
@@ -303,6 +310,7 @@ class EquipmentDiscoveryRepository:
             status="failed",
             error_code=error_code[:128],
             error_message=error_message[:1024],
+            result=None,
         )
 
     def apply_scan_result(
@@ -866,6 +874,7 @@ class EquipmentDiscoveryRepository:
         status: str,
         error_code: str | None,
         error_message: str | None,
+        result: DiscoveryScanResult | None,
     ) -> None:
         with Session(self._engine, expire_on_commit=False) as session:
             with session.begin():
@@ -885,6 +894,14 @@ class EquipmentDiscoveryRepository:
                 row.completed_at = datetime.now(UTC)
                 row.error_code = error_code
                 row.error_message = error_message
+                if result is not None:
+                    row.hosts_considered = result.hosts_considered
+                    row.probes_attempted = result.probes_attempted
+                    row.responsive_hosts = result.responsive_hosts
+                    row.duration_ms = result.duration_ms
+                    row.process_cpu_ms = result.process_cpu_ms
+                    row.network_connect_attempts = result.network_connect_attempts
+                    row.network_payload_bytes = result.network_payload_bytes
 
 
 def _scan_scope_key(requested_cidrs: tuple[str, ...], requested_ports: tuple[int, ...]) -> str:
