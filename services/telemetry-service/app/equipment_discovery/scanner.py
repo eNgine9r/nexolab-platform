@@ -85,11 +85,15 @@ class LocalLanDiscoveryScanner:
         connect_timeout_seconds: float,
         concurrency: int,
         tcp_connector: TcpConnector | None = None,
-        neighbor_table_path: Path = Path("/proc/net/arp"),
+        neighbor_table_path: Path | None = None,
     ) -> None:
         self._connect_timeout_seconds = connect_timeout_seconds
         self._concurrency = concurrency
         self._tcp_connector = tcp_connector or tcp_connect
+        # Production telemetry runs in a bridge-network namespace, so its
+        # /proc/net/arp is not authoritative physical-LAN evidence. Neighbor
+        # evidence is therefore opt-in only from an explicitly supplied,
+        # trustworthy read-only snapshot source.
         self._neighbor_table_path = neighbor_table_path
 
     async def scan(
@@ -101,7 +105,11 @@ class LocalLanDiscoveryScanner:
         cancel = cancel_check or _never_cancelled
         started = time.perf_counter()
         cpu_started = time.process_time()
-        neighbors = read_ipv4_neighbors(self._neighbor_table_path)
+        neighbors = (
+            read_ipv4_neighbors(self._neighbor_table_path)
+            if self._neighbor_table_path is not None
+            else {}
+        )
         semaphore = asyncio.Semaphore(self._concurrency)
         observations: list[DiscoveryObservationInput] = []
         probes_attempted = 0
