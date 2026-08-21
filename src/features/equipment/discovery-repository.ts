@@ -92,6 +92,7 @@ export type EquipmentDiscoveryOverview = {
   candidateOffset: number;
   candidateLimit: number;
   candidates: EquipmentDiscoveryCandidate[];
+  networkAssetTotal: number;
   networkAssets: EquipmentNetworkAsset[];
 };
 
@@ -224,7 +225,13 @@ function parseOverview(value: unknown): EquipmentDiscoveryOverview {
   const candidateTotal = readNonNegativeInteger(record.candidate_total);
   const candidateOffset = readNonNegativeInteger(record.candidate_offset);
   const candidateLimit = readPositiveInteger(record.candidate_limit);
-  if (candidateTotal === null || candidateOffset === null || candidateLimit === null) {
+  const networkAssetTotal = readNonNegativeInteger(record.network_asset_total);
+  if (
+    candidateTotal === null ||
+    candidateOffset === null ||
+    candidateLimit === null ||
+    networkAssetTotal === null
+  ) {
     throw invalidResponse();
   }
   return {
@@ -235,6 +242,7 @@ function parseOverview(value: unknown): EquipmentDiscoveryOverview {
     candidateOffset,
     candidateLimit,
     candidates: readArray(record.candidates).map(parseCandidate),
+    networkAssetTotal,
     networkAssets: readArray(record.network_assets).map(parseNetworkAsset),
   };
 }
