@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
+import tempfile
+import time
 import unittest
 
 
@@ -30,6 +32,7 @@ class RaspberryPiCandidateCleanupTests(unittest.TestCase):
         contract = RUNTIME_CONTRACT.read_text(encoding="utf-8")
         self.assertIn('FRONTEND_CANDIDATE_PID=""', text)
         self.assertIn('FRONTEND_CANDIDATE_PGID=""', text)
+        self.assertIn('FRONTEND_CANDIDATE_START_GATE=""', text)
         self.assertIn('source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"', text)
         self.assertIn('trap on_exit EXIT', text)
         self.assertIn('exec setsid env \\', text)
@@ -46,9 +49,21 @@ class RaspberryPiCandidateCleanupTests(unittest.TestCase):
             contract,
         )
 
-        handshake = text.index('FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid=')
+        launch = text.index(
+            'FRONTEND_CANDIDATE_START_GATE="$AUDIT_DIR/frontend-candidate-start.gate"'
+        )
+        pid_publish = text.index("FRONTEND_CANDIDATE_PID=$!", launch)
+        gate_release = text.index(': > "$FRONTEND_CANDIDATE_START_GATE"', pid_publish)
+        handshake = text.index('FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid=', gate_release)
         ready = text.index("FRONTEND_CANDIDATE_READY=false")
+        self.assertLess(pid_publish, gate_release)
+        self.assertLess(gate_release, handshake)
         self.assertLess(handshake, ready)
+        self.assertIn('FRONTEND_CANDIDATE_PARENT_PID="$BASHPID"', text[launch:pid_publish])
+        self.assertIn(
+            '[[ -f "$FRONTEND_CANDIDATE_START_GATE" ]] || exit 75',
+            text[launch:pid_publish],
+        )
 
         cleanup = text.index("if ! cleanup_frontend_candidate; then")
         port_check = text.index(
@@ -57,6 +72,53 @@ class RaspberryPiCandidateCleanupTests(unittest.TestCase):
         backend_start = text.index('log "Starting central backend, MinIO and observability"')
         self.assertLess(cleanup, port_check)
         self.assertLess(port_check, backend_start)
+
+    def test_start_gate_blocks_child_until_parent_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = Path(tmp) / "start.gate"
+            started = Path(tmp) / "started"
+            script = r"""
+set -euo pipefail
+gate=$1
+started=$2
+parent_pid=$BASHPID
+(
+  trap - EXIT ERR
+  for _ in $(seq 1 100); do
+    if [[ -f "$gate" ]]; then
+      break
+    fi
+    if ! kill -0 "$parent_pid" >/dev/null 2>&1; then
+      exit 75
+    fi
+    sleep 0.01
+  done
+  [[ -f "$gate" ]] || exit 75
+  : > "$started"
+  exec python3 -c 'import time; time.sleep(30)'
+) &
+child_pid=$!
+sleep 0.05
+[[ ! -e "$started" ]]
+: > "$gate"
+for _ in $(seq 1 100); do
+  [[ -e "$started" ]] && break
+  sleep 0.01
+done
+[[ -e "$started" ]]
+kill "$child_pid" >/dev/null 2>&1 || true
+wait "$child_pid" >/dev/null 2>&1 || true
+"""
+            result = subprocess.run(
+                ["bash", "-c", script, "bash", str(gate), str(started)],
+                cwd=ROOT,
+                env=os.environ.copy(),
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_zombie_only_group_is_not_classified_as_live(self) -> None:
         helper = LIVENESS.read_text(encoding="utf-8")
@@ -115,6 +177,7 @@ candidate_pid=$!
 sleep 0.1
 FRONTEND_CANDIDATE_PID="$candidate_pid"
 FRONTEND_CANDIDATE_PGID=""
+FRONTEND_CANDIDATE_START_GATE=""
 cleanup_frontend_candidate
 [[ -z "$FRONTEND_CANDIDATE_PID" ]]
 [[ -z "$FRONTEND_CANDIDATE_PGID" ]]
@@ -164,6 +227,7 @@ candidate_pgid="$(ps -o pgid= -p "$candidate_pid" | tr -d ' ')"
 [[ "$candidate_pgid" == "$candidate_pid" ]]
 FRONTEND_CANDIDATE_PID="$candidate_pid"
 FRONTEND_CANDIDATE_PGID=""
+FRONTEND_CANDIDATE_START_GATE=""
 cleanup_frontend_candidate
 [[ -z "$FRONTEND_CANDIDATE_PID" ]]
 [[ -z "$FRONTEND_CANDIDATE_PGID" ]]
@@ -215,6 +279,7 @@ candidate_pgid="$(ps -o pgid= -p "$candidate_pid" | tr -d ' ')"
 [[ "$candidate_pgid" == "$candidate_pid" ]]
 FRONTEND_CANDIDATE_PID="$candidate_pid"
 FRONTEND_CANDIDATE_PGID="$candidate_pgid"
+FRONTEND_CANDIDATE_START_GATE=""
 cleanup_frontend_candidate
 [[ -z "$FRONTEND_CANDIDATE_PID" ]]
 [[ -z "$FRONTEND_CANDIDATE_PGID" ]]

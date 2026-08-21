@@ -80,6 +80,7 @@ FRONTEND_RELEASES_DIR="$REPO/runtime/frontend-releases"
 FRONTEND_RELEASE_DIR=""
 FRONTEND_CANDIDATE_PID=""
 FRONTEND_CANDIDATE_PGID=""
+FRONTEND_CANDIDATE_START_GATE=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -112,6 +113,11 @@ cleanup_frontend_candidate() {
   local pgid="${FRONTEND_CANDIDATE_PGID:-}"
   local actual_pgid=""
   local attempt
+
+  if [[ -n "${FRONTEND_CANDIDATE_START_GATE:-}" ]]; then
+    rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+    FRONTEND_CANDIDATE_START_GATE=""
+  fi
 
   if [[ -z "$pgid" && -n "$pid" ]]; then
     actual_pgid="$(ps -o pgid= -p "$pid" 2>/dev/null | awk 'NF {print $1; exit}')"
@@ -647,7 +653,21 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
   fail "frontend candidate verification port is already in use: $FRONTEND_CANDIDATE_PORT"
 fi
 log "Starting frontend candidate on isolated port $FRONTEND_CANDIDATE_PORT"
+FRONTEND_CANDIDATE_START_GATE="$AUDIT_DIR/frontend-candidate-start.gate"
+rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+FRONTEND_CANDIDATE_PARENT_PID="$BASHPID"
 (
+  trap - EXIT ERR
+  for _ in $(seq 1 100); do
+    if [[ -f "$FRONTEND_CANDIDATE_START_GATE" ]]; then
+      break
+    fi
+    if ! kill -0 "$FRONTEND_CANDIDATE_PARENT_PID" >/dev/null 2>&1; then
+      exit 75
+    fi
+    sleep 0.01
+  done
+  [[ -f "$FRONTEND_CANDIDATE_START_GATE" ]] || exit 75
   cd "$FRONTEND_RELEASE_DIR"
   exec setsid env \
     NEXT_PUBLIC_NEXOLAB_DATA_MODE=live \
@@ -660,6 +680,7 @@ log "Starting frontend candidate on isolated port $FRONTEND_CANDIDATE_PORT"
       --hostname 127.0.0.1 --port "$FRONTEND_CANDIDATE_PORT"
 ) > "$AUDIT_DIR/frontend-candidate.txt" 2>&1 &
 FRONTEND_CANDIDATE_PID=$!
+: > "$FRONTEND_CANDIDATE_START_GATE"
 FRONTEND_CANDIDATE_PGID=""
 for _ in $(seq 1 20); do
   FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid= -p "$FRONTEND_CANDIDATE_PID" 2>/dev/null | awk 'NF {print $1; exit}')"
@@ -672,6 +693,8 @@ for _ in $(seq 1 20); do
   fi
   sleep 0.05
 done
+rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+FRONTEND_CANDIDATE_START_GATE=""
 if [[ -z "$FRONTEND_CANDIDATE_PGID" ]]; then
   fail "frontend candidate did not establish its isolated process group; active dashboard was not touched"
 fi
