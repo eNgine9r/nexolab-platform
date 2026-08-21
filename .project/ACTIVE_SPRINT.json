@@ -21,13 +21,13 @@
   },
   "repository_product_baseline_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
   "accepted_product_sha": "0533e01e6f345100ee37521ea6810c95e1ed2202",
-  "last_reconciled_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+  "last_reconciled_repository_sha": "f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f",
   "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
-    "selected_issue": 606,
-    "selection_status": "pr_632_all_ci_green_runtime_acceptance_pending",
+    "selected_issue": 637,
+    "selection_status": "security_interrupt_pr_638_implementation_green_state_reconciliation",
     "ready_issue_count": 2,
-    "reason": "Issue #606 is published as PR #632 at e641262edba98c94b0b11641774fc8cd7c461a37 with all exact-head GitHub workflows GREEN. Real Pi/LAN discovery acceptance remains required. Issue #633 is the next independent high-priority deployment-reliability repair."
+    "reason": "Issue #637 is the isolated high-priority security interrupt discovered by PR #632. PR #638 implementation head 167149ea447e40618c68e1e0e7a4080d99772bb6 is GREEN in all triggered workflows; state reconciliation and final-state-head CI remain. Issue #606 resumes immediately after #637 merge."
   },
   "tasks": [
     {
@@ -218,13 +218,14 @@
       "id": "NEXOLAB-606",
       "issue": 606,
       "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "status": "pr_632_all_ci_green_runtime_acceptance_pending",
+      "status": "pr_632_security_interrupt_637_then_runtime_acceptance",
       "priority": "high",
       "branch": "feat/606-local-lan-discovery",
       "checkpoint_sha": "af52c19ff67538f21399e258fbcc6aeef7ba96ab",
       "pull_request": 632,
-      "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
-      "focused_backend_tests": "PASS_12_OF_12",
+      "hardening_implementation_sha": "628e34725fe116c4f38e2b0862769d296afa3666",
+      "exact_head_sha": "4b3b9a081e859f5de58deb3f791d2bde754e741a",
+      "focused_backend_tests": "PASS_20_OF_20",
       "focused_frontend_tests": "PASS_12_OF_12",
       "typecheck": "PASS",
       "touched_lint": "PASS",
@@ -233,15 +234,10 @@
       "alembic_head": "PASS_20260820_0026_SINGLE_HEAD",
       "alembic_offline_sql": "PASS",
       "compose_validation": "PASS",
-      "real_pi_lan_acceptance": "PENDING",
-      "core_ci": "PASS_32421147273",
-      "authenticated_dashboard_acceptance": "PASS_32421147345",
-      "offline_bundle": "PASS_32421147237",
-      "telemetry_service_ci": "PASS_32421147379",
-      "acquisition_scale": "PASS_32421147349",
-      "device_agent_fleet": "PASS_32421147234",
-      "container_supply_chain": "PASS_32421147290",
-      "offline_auth": "PASS_32421147289"
+      "real_pi_lan_acceptance": "PENDING_PRODUCT_OWNER_APPROVED_SCOPE",
+      "capacity_release_gate": "PASS_POLICY_AUTHORIZED_RERUN_32449653140",
+      "container_supply_chain": "FAIL_32449653153_INDEPENDENT_SECURITY_DRIFT_ISSUE_637",
+      "software_product_gates": "PASS"
     },
     {
       "id": "NEXOLAB-607",
@@ -424,6 +420,26 @@
       "production_cutover_result": "PASS_CONTROLLED_LOCAL_LAN_2026_08_21"
     },
     {
+      "id": "NEXOLAB-637",
+      "issue": 637,
+      "title": "Restore telemetry container supply-chain gate after Debian security drift",
+      "status": "pr_638_implementation_ci_green_state_reconciliation",
+      "priority": "high",
+      "branch": "fix/637-telemetry-debian-security-drift",
+      "pull_request": 638,
+      "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6",
+      "local_security_policy_tests": "PASS_27_OF_27",
+      "container_supply_chain": "PASS_32450852390",
+      "telemetry_service": "PASS_32450852369",
+      "offline_bundle": "PASS_32450852368",
+      "core_ci": "PASS_32450852393",
+      "capacity_release_gate": "PASS_32450852377",
+      "all_implementation_head_workflows": "PASS",
+      "final_state_head_ci": "PENDING",
+      "modbus_writes": 0,
+      "hardware_writes": 0
+    },
+    {
       "id": "NEXOLAB-633",
       "issue": 633,
       "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
@@ -435,18 +451,18 @@
     }
   ],
   "active_work_package": {
-    "issue": 606,
-    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-    "type": "local_lan_discovery_adoption_inbox",
-    "status": "pr_632_all_ci_green_runtime_acceptance_pending",
-    "branch": "feat/606-local-lan-discovery",
-    "pull_request": 632,
-    "exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37"
+    "issue": 637,
+    "title": "Restore telemetry container supply-chain gate after Debian security drift",
+    "type": "security_container_supply_chain_interrupt",
+    "status": "pr_638_implementation_ci_green_state_reconciliation",
+    "branch": "fix/637-telemetry-debian-security-drift",
+    "pull_request": 638,
+    "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6"
   },
   "next_work_package": {
-    "issue": 633,
-    "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-    "status": "ready_after_issue_606",
+    "issue": 606,
+    "title": "Resume read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "status": "resume_after_issue_637_merge",
     "hardware_cutover_authorized": false
   },
   "verification": {
@@ -687,13 +703,21 @@
     "production_settings_xjp60d_bundle_marker": "PASS",
     "production_browser_visual_acceptance": "NOT_RUN_OPERA_CONNECTOR_DISCONNECTED",
     "issue_606_pull_request": 632,
-    "issue_606_exact_head_sha": "e641262edba98c94b0b11641774fc8cd7c461a37",
-    "issue_606_real_pi_lan_acceptance": "PENDING",
-    "issue_633_status": "OPEN_READY_HIGH",
-    "issue_606_ci": "PASS_32421147273",
-    "issue_606_authenticated_dashboard": "PASS_32421147345",
-    "issue_606_offline_bundle": "PASS_32421147237",
-    "issue_606_all_exact_head_workflows": "PASS"
+    "issue_606_exact_head_sha": "4b3b9a081e859f5de58deb3f791d2bde754e741a",
+    "issue_606_hardening_implementation_sha": "628e34725fe116c4f38e2b0862769d296afa3666",
+    "issue_606_real_pi_lan_acceptance": "PENDING_PRODUCT_OWNER_APPROVED_SCOPE",
+    "issue_606_capacity_release_gate": "PASS_POLICY_AUTHORIZED_RERUN_32449653140",
+    "issue_606_container_supply_chain": "FAIL_32449653153_TRACKED_ISSUE_637",
+    "issue_637_pull_request": 638,
+    "issue_637_exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6",
+    "issue_637_container_supply_chain": "PASS_32450852390",
+    "issue_637_telemetry_service": "PASS_32450852369",
+    "issue_637_offline_bundle": "PASS_32450852368",
+    "issue_637_core_ci": "PASS_32450852393",
+    "issue_637_capacity_release_gate": "PASS_32450852377",
+    "issue_637_all_implementation_head_workflows": "PASS",
+    "issue_637_final_state_head_ci": "PENDING",
+    "issue_633_status": "OPEN_READY_HIGH"
   },
   "independent_pending_lanes": [
     {

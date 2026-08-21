@@ -187,7 +187,7 @@ The Raspberry Pi verification host was hard-reset after repository-wide ESLint e
 
 ## Issue #606 — implementation published in PR #632
 
-Issue #606 is the active product Work Package. Branch `feat/606-local-lan-discovery` is clean and published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37` against `main`. The old checkpoint `invalid_response` note was superseded by exact-checkpoint reproduction: frontend repository tests were 2/2 PASS, while backend discovery reproduced the real `NameError: service is not defined` defect; the implementation now passes the interval explicitly and strengthens tenant-integrity composite foreign keys. Focused backend discovery tests are 12/12 PASS, focused Equipment frontend tests 12/12 PASS, typecheck/touched lint/Prettier/diff check/Alembic offline SQL/Compose validation are PASS. All exact-head GitHub workflows are GREEN, including Core CI `32421147273`, Authenticated Dashboard `32421147345`, Offline Bundle `32421147237`, Telemetry Service `32421147379`, Acquisition Scale `32421147349`, Device Agent Fleet `32421147234`, Container Supply Chain `32421147290`, Offline Auth `32421147289` and the remaining browser/TLS/observability gates. Real Raspberry Pi/LAN discovery acceptance is not yet claimed and remains the final #606 runtime evidence gate.
+Issue #606 remains the primary product Work Package, temporarily interrupted only by security Issue #637. Branch `feat/606-local-lan-discovery` is clean and published as PR #632 at exact state head `4b3b9a081e859f5de58deb3f791d2bde754e741a` against `main`; the hardening implementation head before state reconciliation is `628e34725fe116c4f38e2b0862769d296afa3666`. Focused backend discovery tests are 20/20 PASS, focused Equipment frontend tests 12/12 PASS, and typecheck/touched lint/Prettier/diff checks are PASS. The final-head product/browser/acquisition gates passed; Capacity Release Gate had one latency-only hosted-runner failure and then passed the policy-authorized exact-job rerun `32449653140` without threshold changes. Container Supply Chain run `32449653153` independently exposed Debian base-image security drift already present on `main`; that repository-wide security blocker is isolated in Issue #637 / PR #638 rather than being hidden or mixed into discovery code. Real Raspberry Pi/LAN discovery acceptance is not claimed: no real network scan has been run, exact CIDR/port authorization is still required, and hardware status remains unverified.
 
 ## Issue #626 — completed GREEN and merged
 
@@ -207,13 +207,19 @@ The exact final Overview invariant is PASS for monitored `108-01`: display prefe
 
 No production credentials/secrets were read, no enrollment mutation occurred, and no Modbus/controller/hardware write or site cutover occurred.
 
+## Issue #637 — security interrupt, implementation GREEN in PR #638
+
+Issue #637 is the current critical security interrupt discovered while finalizing #606. PR #638 is open from `fix/637-telemetry-debian-security-drift`; implementation head `167149ea447e40618c68e1e0e7a4080d99772bb6` keeps the existing `python:3.13-slim-trixie` runtime contract, applies repository-available Debian security upgrades at image build time, and removes exactly nine telemetry-service exceptions that became stale after `CVE-2026-53615` disappeared from the fresh image. No Trivy severity, threshold, exit code or ignore policy was weakened.
+
+Local focused verification passed: container vulnerability/supply-chain policy regressions 27/27, supply-chain policy validator, Dockerfile build check, repository Prettier contract and `git diff --check`. All 11 implementation-head GitHub workflows are GREEN: Core CI `32450852393`, Container Supply Chain `32450852390`, Telemetry Service `32450852369`, Offline Bundle `32450852368`, Capacity Release Gate `32450852377`, Offline Auth `32450852403`, Device Agent Fleet `32450852440`, MQTT TLS Fleet `32450852376`, Disaster Recovery TLS `32450852461`, Disaster Recovery Browser `32450852394`, and Broker Control `32450852367`. Offline Bundle proved disconnected startup with container egress blocked, pull disabled, and update/rollback persistence. No production deployment, Modbus/device/hardware write or site cutover occurred. State reconciliation is the only remaining pre-final-head step for #638.
+
 ## Current execution boundary
 
-Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 open at `e641262edba98c94b0b11641774fc8cd7c461a37`**.
+Current critical Work Package: **Issue #637 — telemetry container security drift, PR #638 implementation head `167149ea447e40618c68e1e0e7a4080d99772bb6` GREEN**. This is an isolated security interrupt; Issue #606 remains the primary product Work Package and resumes immediately after #637 merges.
 
-Next action: finish exact-head PR #632 CI, then run the bounded real Raspberry Pi/approved-LAN discovery acceptance required by #606, verify acquisition invariance and offline behavior, reconcile #606 state, and merge only when required checks and runtime evidence are GREEN.
+Next action: publish this state-only reconciliation to PR #638, require exact final-state-head CI to remain GREEN, merge #638, update `main`, then sync #606 PR #632 from the repaired `main` and rerun its exact-head matrix. Real #606 LAN/hardware acceptance remains pending explicit Product Owner approval of exact CIDR(s) and TCP port(s).
 
-Planned sequence: **#606 → #633 → #607 → #589 → #590**. #633 is a high-priority deployment-reliability repair for deterministic candidate cleanup, but current production is healthy after manual cleanup. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
+Planned sequence: **#637 → #606 → #633 → #607 → #589 → #590**. #633 is a high-priority deployment-reliability repair for deterministic candidate cleanup, but current production is healthy after manual cleanup. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
 ## Safety boundaries
 
