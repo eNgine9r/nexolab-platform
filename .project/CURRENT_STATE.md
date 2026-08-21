@@ -4,7 +4,7 @@ Updated: 2026-08-21
 
 ## Repository and runtime baseline
 
-Accepted product-code baseline remains `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` and `origin/main` are now `bf9105cbdef6f614d50d8bff60d245980b89c100`, the GREEN merge of PR #638 / Issue #637 restoring the telemetry Debian security baseline. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629).
+Accepted product-code baseline remains `0533e01e6f345100ee37521ea6810c95e1ed2202`, the GREEN squash merge of PR #628 for Issue #627. Exact repository `main` and `origin/main` are now `aab4b1e805507be05e90eb19766bd176a4000828`, the GREEN merge of PR #640 / Issue #639 stabilizing the Offline Auth PostgreSQL startup gate on top of the PR #638 / Issue #637 security baseline. The underlying #626 implementation merge remains `6bc73390b5fa5e41aa1cebcbfdb833f917346525` (PR #629).
 
 The Product Owner authorized and completed the controlled LOCAL_LAN production cutover on 2026-08-21. Production now runs exact source `6e387485b68fb862d9f82ae7f6000b1f5b672764` from immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z` with BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`; deployment evidence is `runtime/deployments/20260820T214127Z` and records `DEPLOYMENT PASSED`. Post-cutover Dashboard routes `/`, `/nodes`, `/live`, `/energy`, `/sessions`, and `/settings` returned HTTP 200; Telemetry, database and MQTT were ready with queue `0` and advancing persistence; Device Agent remained `ok`/MQTT-connected with AcquisitionRegistry revision **9**, **33 poll-eligible targets**, healthy bus worker and service operations `{}`. The monitored XJP60D set remains `104-03`, `106-01`, `106-04`, `108-01`, `108-02`, `126-04`; `le01mp-201` remains intentionally disabled while W2 is externally owned. The deployed Settings bundle contains `Моніторинг XJP60D`; browser visual acceptance was not run because Opera Browser Connector was disconnected. An orphan isolated candidate remained on `127.0.0.1:3100` after the successful deployment, was stopped without affecting production, and is tracked independently as Issue #633.
 
@@ -201,9 +201,12 @@ verification. Production remains intentionally deployed from
 
 ## Issue #606 — software and real Raspberry Pi/LAN acceptance GREEN
 
-Issue #606 remains the active Work Package only for final state reconciliation
-and merge. PR #632 product implementation head `804d0b44045a5099c59149c87b70cbf63ca047f8` is software
-verified and real Raspberry Pi / LOCAL_LAN verified.
+Issue #606 remains the active Work Package only for the final PR merge gate.
+Hardware/LAN acceptance remains anchored to product head `804d0b44045a5099c59149c87b70cbf63ca047f8`. Post-acceptance
+review hardening is complete at software head `e94f140906589c8f23ae3c1d915fa709c50acc6f`; this later head changes only
+software transport/cancellation handling and does not add application payload, Modbus access,
+hardware writes, broader discovery scope, or production cutover behavior. A repeat physical
+LAN scan is therefore neither required nor authorized by this reconciliation.
 
 Final product-head software evidence:
 
@@ -249,10 +252,11 @@ The production discovery evidence boundary remains intentionally TCP-connect
 only. Container `/proc/net/arp` is not treated as authoritative physical-LAN
 neighbor evidence.
 
-The remaining #606 path is state-only: publish this reconciliation, resolve
-the stale sprint-state review thread, verify the final state head checks, then
-merge PR #632. Production remains on `6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separate
-authorized deployment/cutover.
+The pre-final software head `69a9ae0072cd279ff905a1a4e918b0a1efa041a1` completed all 22 pull-request workflows GREEN.
+The final software hardening head is `e94f140906589c8f23ae3c1d915fa709c50acc6f`. The only remaining #606 path is to publish
+the reconciled final branch head once, run its exact-head required checks, confirm review is clean,
+then merge PR #632 and close Issue #606. Production remains on
+`6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separately authorized deployment/cutover.
 
 ## Issue #626 — completed GREEN and merged
 
@@ -274,9 +278,9 @@ No production credentials/secrets were read, no enrollment mutation occurred, an
 
 ## Current execution boundary
 
-Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 implementation head `628e34725fe116c4f38e2b0862769d296afa3666` with exact-head CI in progress**.
+Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 final software hardening head `e94f140906589c8f23ae3c1d915fa709c50acc6f`**. Real Product Owner-authorized Raspberry Pi/LAN acceptance is already complete on hardware-accepted head `804d0b44045a5099c59149c87b70cbf63ca047f8`; pre-final software head `69a9ae0072cd279ff905a1a4e918b0a1efa041a1` is 22/22 GREEN.
 
-Next action: complete final exact-head PR #632 CI/review, then obtain Product Owner approval for the exact LAN CIDR(s) and TCP port(s) before any real discovery scan. Run bounded Raspberry Pi/LAN acceptance only inside that approved scope, prove acquisition invariance/offline behavior, and merge only when required checks and runtime evidence are GREEN.
+Next action: publish the single reconciled final PR #632 branch head, run its exact-head required checks, resolve only genuinely fixed review threads, confirm no new P1/P2 blocker, then squash-merge PR #632 and close Issue #606. Do **not** repeat the completed LAN acceptance for this software-only hardening.
 
 Planned sequence: **#606 → #633 → #607 → #589 → #590**. #633 is a high-priority deployment-reliability repair for deterministic candidate cleanup, but current production is healthy after manual cleanup. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 
