@@ -4,17 +4,18 @@ Updated: 2026-08-21
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software behavior before the state checkpoint is `24390ea3fa490a90fb4aa964f17191e12af53b14`.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software behavior before the state checkpoint is `2e7a88ded70afee31760747ac402bb7dd7dde306`.
 
-The candidate lifecycle now uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup, zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
+The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup, candidate child reaping is bounded so uninterruptible I/O cannot cause an indefinite `wait`, zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
 
 Verified intermediate software gates:
 
 - Core CI `32514504593` on `87afc111...`: PASS;
 - Core CI `32517056093` on `08884615...`: PASS;
-- Core CI `32519957941` on `a7d91af1...`: PASS, including candidate-cleanup regression execution.
+- Core CI `32519957941` on `a7d91af1...`: PASS;
+- Core CI `32521673945` on `b3420a3b...`: PASS.
 
-Review findings through startup publication, handshake-window cleanup, fixture isolation, EXIT failure reporting, zombie handling and CI integration are addressed in `24390ea3...`. Final exact-head CI and fresh review on the state-checkpoint head remain the only software merge gates.
+Fresh review after `b3420a3b...` identified the unbounded child-reap wait; it is addressed in `2e7a88de...`. Final exact-head CI and fresh review on the state-checkpoint head remain the only software merge gates.
 
 The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
 
