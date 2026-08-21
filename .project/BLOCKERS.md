@@ -2,141 +2,49 @@
 
 Updated: 2026-08-21
 
-## Issue #584 — complete
+## Current Work Package boundary
 
-Temporary exclusion of LE-01MP W2 / Unit 201 from active NEXOLAB polling is complete. Evidence remains `runtime/deployments/issue-584-20260818T185455Z`.
+Issue #606 is complete. PR #632 merged GREEN into `main` as `dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc`; Issue #606 is closed `status:done`.
 
-## Issue #585 — blocked physical restoration lane
+Issue #641 is a state-only post-merge reconciliation package. It changes only `.project/CURRENT_STATE.md`, `.project/ACTIVE_SPRINT.json`, `.project/BLOCKERS.md`, and `.project/LAST_CHECKPOINT.json`. It introduces no product/runtime, dependency, migration, Modbus, hardware, or deployment behavior.
 
-Restoring W2 / Unit 201 to NEXOLAB is blocked until the Product Owner confirms that the external controller/system no longer owns the W2 RS-485 interface and approves any physical handback required to return bus ownership to NEXOLAB.
+There is no remaining #606 product, software, CI, review, LAN, or hardware-acceptance blocker.
 
-The 2026-08-21 through 2026-08-23 review window is a review window only; it is not authorization to perform physical or hardware changes.
+## Issue #633 — Ready
 
-## Issue #586 — complete
+The successful 2026-08-21 Raspberry Pi production deployment left an isolated frontend candidate listening on `127.0.0.1:3100` after `DEPLOYMENT PASSED`. It was manually stopped and production remained healthy.
 
-PR #592 merged GREEN as `75c6f5471d77d781b124fbd40c33ba924aec26f8`. Browser-closed Raspberry Pi evidence, Core CI, Authenticated Dashboard Acceptance and Offline Bundle are all PASS. There is no remaining #586 blocker.
+Issue #633 is Ready/high and is the expected next Work Package after #641 is merged and the Ready audit confirms no higher-priority dependency change.
 
-## Issue #598 — complete security prerequisite
-
-PR #599 merged GREEN as `b25ae18e196eb84fc56ae951003d0820a22dc579`. Container Supply Chain `32219772068`, Core CI `32219771902` and Telemetry Service `32219771893` all PASS. The exact CVE-2026-14456 decisions expire 2026-08-26 and must be removed earlier if Debian publishes a fixed package or QUIC runtime reachability changes.
-
-There is no remaining #598 blocker.
-
-## Issue #587 — complete
-
-PR #597 merged GREEN as `84584640246f8985c0c303654def99365c8458c4`. Core CI, Telemetry Service, Authenticated Dashboard Acceptance, Offline Bundle, Acquisition Scale and Container Supply Chain are PASS. There is no remaining #587 blocker.
-
-## Issue #588 — complete
-
-PR #602 merged GREEN as `62e94ea02b2f4c7da03d1a5fa11cc1e24459f6f7`. Core CI, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance and Offline Bundle are PASS. There is no remaining #588 blocker.
-
-## Issue #594 — complete
-
-PR #593 merged GREEN as `b46e518f8769f83ba22c608bacd5a368776e1701`. Dedicated MCP identity provisioning and authenticated Raspberry Pi acceptance are complete. The supported `laboratory_technician` account has only `telemetry.read` and `nodes.read`; all six read-only MCP tools and token refresh passed against the real LOCAL_LAN runtime. There is no remaining Issue #594 blocker.
-
-Persistent MCP service enablement, production credential relocation, and any external tunnel/reverse-proxy exposure remain separate production/site cutover actions requiring their own approval; they are not part of the merged implementation.
-
-## Issue #608 — complete CI reliability interrupt
-
-PR #609 merged GREEN as `3e13800f413eb2255b992b6ff9f3aec935acf602`. The blocking Playwright `--with-deps` / Ubuntu APT bootstrap dependency is removed from Authenticated Dashboard and Refrigeration Browser acceptance. There is no remaining #608 blocker.
-
-## Issue #611 — complete browser-readiness reliability interrupt
-
-PR #612 merged GREEN as `57908efc7f27598f5a991e2a009aaab0f6b92676`. Live retry browser acceptance now proves one routed WebSocket plus a fresh local telemetry sample before requiring the truthful Live state, and changes to that test now trigger Authenticated Dashboard Acceptance. There is no remaining #611 blocker.
-
-## Issue #604 — complete
-
-PR #616 merged GREEN as `f1d13bc2401ba16ef76b95bec5f31e9a9d969c76`. Core CI `32263137097`, Refrigeration Browser Acceptance `32263134788`, Offline Bundle `32263135467`, focused large-inventory Equipment browser acceptance and acquisition-invariant acceptance all PASS. There is no remaining #604 blocker.
-
-## Issue #619 — complete
-
-PR #623 merged fully GREEN as `4ab72f1c3c51a8822723e9a53c4881b0415ee9c1`. Core CI `32329087115`, Authenticated Dashboard `32329087128`, Refrigeration Browser `32329087103`, Disaster Recovery `32329087134` and Offline Bundle `32329087175` all passed. There is no remaining #619 blocker.
-
-## Issue #620 / PR #622 — complete controlled exception
-
-PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Product Owner-approved controlled exception. The known #619 Auth failure was subsequently repaired and PR #623 merged fully GREEN. There is no remaining #620 blocker.
-
-## Issue #605 / PR #621 — complete GREEN
-
-PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
-
-## Issue #606 — GREEN; state reconciliation and merge only
-
-PR #632 product head `804d0b44045a5099c59149c87b70cbf63ca047f8` is GREEN in all 22 pull-request
-workflows. Real Product Owner-authorized bounded Raspberry Pi / LOCAL_LAN
-acceptance is PASS: five explicit hosts, two allowed TCP ports, 10 connect
-attempts, zero application payload, production healthy before/after and no
-increase in physical acquisition cadence. Raspberry Pi boot continuity also
-passed.
-
-There is no remaining product, software, LAN or hardware-acceptance blocker
-for #606. Remaining work is state-only: commit reconciliation, resolve the
-stale sprint-state review thread, verify the resulting state-head checks and
-merge PR #632.
-
-No Modbus read/write command, hardware write, unrestricted scan, credential
-attempt, production deployment or site cutover was performed.
-
-## Issue #626 — completed, no longer blocking
-
-PR #629 merged GREEN as `6bc73390b5fa5e41aa1cebcbfdb833f917346525`. The safe self-contained ARM64 artifact path is hardware-proven and the final post-activation readiness rollback contract is merged. Unsafe in-place Next.js builds remain prohibited on the 4 GiB Raspberry Pi.
-
-## Issue #627 — completed GREEN
-
-No implementation, CI, ARM64 or hardware blocker remains. Final product head `5a4da3974d44efd3fd5fa9d5523c4d28e077e94b` is GREEN in all 10 required workflows and exact Pi acceptance is PASS: registry `9 -> 9`, targets `33 -> 33`, no service/acquisition mutations, `108-01` physical requests +66 after browser close, PostgreSQL latest samples +338 with final quality `valid`, production Dashboard preserved, candidate `:3100` stopped. PR #628 merged GREEN as `0533e01e6f345100ee37521ea6810c95e1ed2202` from final state head `d848848994d1c346c2ed614da24597ad78683111`; Issue #627 is closed `status:done`. There is no remaining #627 blocker.
-
-## Issue #633 — Ready deployment-reliability repair
-
-The successful 2026-08-21 production cutover left the isolated Next.js candidate listening on `127.0.0.1:3100` after `DEPLOYMENT PASSED`. The candidate was manually terminated and production remained healthy. This is not a current runtime blocker, but it can waste memory and block the next candidate bind; #633 is Ready immediately after #606.
-
-## Issue #634 — state reconciliation
-
-State-only reconciliation records the successful production cutover to `6e387485b68fb862d9f82ae7f6000b1f5b672764`, evidence `runtime/deployments/20260820T214127Z`, the #633 candidate-cleanup finding, and the actual #606 PR #632 boundary. No product/runtime code is in scope.
+No production cutover is required to implement the deterministic cleanup behavior. Any real deployment/cutover remains separately controlled.
 
 ## Issue #618 — independent reliability lane
 
-Saved Dashboard CSV browser download can time out in the local Raspberry Pi full dashboard matrix. Final #623 GitHub Authenticated Dashboard Acceptance passed, so #618 does not currently block #605. Keep it isolated unless a required #605 check makes it a direct dependency.
+Saved Dashboard CSV browser-download reliability remains an independent open lane. It does not block #641 or #633 unless a required verification gate demonstrates a direct dependency.
 
-## Issue #615 — non-blocking acceptance tooling defect
+## Issue #607 — queued architecture prerequisite
 
-The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` contains uppercase timestamp characters rejected by current Docker Compose. Issue #615 tracks the isolated repair; explicit lowercase overrides remain the local workaround.
+Dual RS-485 KK1/KK2 software isolation is queued before #589. Software architecture may proceed independently when selected, but any physical bus cutover/hardware action remains unapproved.
 
-## Planned product queue
+## Issue #589 — blocked on #607
 
-- #619 telemetry-navigation/read-model reliability — complete in PR #623;
-- #620 persisted Live Dashboard deterministic clock repair — complete in PR #622;
-- #605 / PR #621 permissioned equipment metadata editing — complete GREEN;
-- #618 Saved Dashboard CSV export — independent reliability lane;
-- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
-- #627 monitoring/display boundary — complete GREEN in PR #628;
-- #606 discovery/adoption inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
-- #633 frontend candidate cleanup — Ready after #606;
-- #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
-- #589 persisted cadence/capacity — held behind #607;
-- #590 Settings cadence controls — blocked on #589.
+Persistent device-scoped acquisition cadence/capacity work remains blocked until the #607 dual-bus architecture is established.
 
-## Deferred software lanes
+## Issue #590 — blocked on #589
 
-- #588 Energy Monitoring chart parity — complete in PR #602;
-- #604 Equipment workspace — complete in PR #616;
-- #605 Equipment metadata editing — complete GREEN in PR #621;
-- #606 LOCAL_LAN discovery inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
-- #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
-- #627 monitoring/display boundary — complete GREEN in PR #628;
-- #633 frontend candidate cleanup — queued after #606;
-- #607 dual RS-485 KK1/KK2 architecture — queued after #633 and before #589;
-- #589 persisted acquisition cadence/capacity validation — held behind #607 and current product priority;
-- #590 Settings acquisition cadence controls — blocked on #589;
+Operator cadence controls remain blocked on the authoritative persisted cadence/capacity contract from #589.
 
-## Remaining evidence lanes
+## Issue #585 — hard physical handback blocker
 
-- #585 W2/Unit 201 physical ownership restoration — blocked;
-- #444 end-to-end local user-management acceptance;
-- #201 restart/power-cycle and rollover/reset/discontinuity validation;
-- #245 standalone loopback-only Raspberry Pi acceptance;
-- #189 backup/restore/rollback/power-loss acceptance;
-- KK2/Unit 115 field retest.
+Restoring LE-01MP W2 / Unit 201 remains blocked until the Product Owner confirms that the external controller no longer owns the W2 RS-485 interface and explicitly approves any required physical handback.
+
+The review window is not authorization for hardware changes.
+
+## Non-blocking maintenance
+
+- #615 tracks the authenticated-dashboard generated Compose project-name defect; explicit lowercase overrides remain the local workaround.
+- Existing production remains deployed from `6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separately authorized deployment/cutover.
 
 ## Safety boundaries
 
-No Modbus/controller write, actuator/hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation or mandatory cloud runtime dependency is authorized.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by the current state-only reconciliation.
