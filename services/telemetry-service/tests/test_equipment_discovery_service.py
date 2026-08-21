@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 
+import app.equipment_discovery.scanner as scanner_module
 from app.config import Settings
 from app.equipment_discovery.policy import DiscoveryPolicy
 from app.equipment_discovery.repository import ScanAlreadyRunningError
@@ -297,5 +298,26 @@ def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: P
         assert result.network_connect_attempts == 2
         assert result.network_payload_bytes == 0
         assert result.observations == ()
+
+    asyncio.run(run())
+
+
+def test_scanner_does_not_read_container_neighbor_table_by_default(monkeypatch) -> None:
+    async def run() -> None:
+        async def connector(_ip: str, _port: int, _timeout: float) -> bool:
+            return False
+
+        def unexpected_neighbor_read(_path: Path) -> dict[str, object]:
+            raise AssertionError("default production scanner must not read container /proc/net/arp")
+
+        monkeypatch.setattr(scanner_module, "read_ipv4_neighbors", unexpected_neighbor_read)
+        scanner = LocalLanDiscoveryScanner(
+            connect_timeout_seconds=0.01,
+            concurrency=1,
+            tcp_connector=connector,
+        )
+        result = await scanner.scan(configured_policy().resolve())
+        assert result.observations == ()
+        assert result.network_payload_bytes == 0
 
     asyncio.run(run())
