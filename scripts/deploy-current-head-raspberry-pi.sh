@@ -112,7 +112,19 @@ cleanup_frontend_candidate() {
   local pgid="${FRONTEND_CANDIDATE_PGID:-}"
   local attempt
 
-  [[ -n "$pgid" ]] || return 0
+  if [[ -z "$pgid" ]]; then
+    if [[ -n "$pid" ]]; then
+      kill -TERM "$pid" >/dev/null 2>&1 || true
+      sleep 0.1
+      if kill -0 "$pid" >/dev/null 2>&1; then
+        kill -KILL "$pid" >/dev/null 2>&1 || true
+      fi
+      wait "$pid" >/dev/null 2>&1 || true
+    fi
+    FRONTEND_CANDIDATE_PID=""
+    FRONTEND_CANDIDATE_PGID=""
+    return 0
+  fi
 
   kill -TERM -- "-$pgid" >/dev/null 2>&1 || true
   for attempt in $(seq 1 20); do
@@ -619,7 +631,21 @@ log "Starting frontend candidate on isolated port $FRONTEND_CANDIDATE_PORT"
       --hostname 127.0.0.1 --port "$FRONTEND_CANDIDATE_PORT"
 ) > "$AUDIT_DIR/frontend-candidate.txt" 2>&1 &
 FRONTEND_CANDIDATE_PID=$!
-FRONTEND_CANDIDATE_PGID="$FRONTEND_CANDIDATE_PID"
+FRONTEND_CANDIDATE_PGID=""
+for _ in $(seq 1 20); do
+  FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid= -p "$FRONTEND_CANDIDATE_PID" 2>/dev/null | awk 'NF {print $1; exit}')"
+  if [[ "$FRONTEND_CANDIDATE_ACTUAL_PGID" == "$FRONTEND_CANDIDATE_PID" ]]; then
+    FRONTEND_CANDIDATE_PGID="$FRONTEND_CANDIDATE_ACTUAL_PGID"
+    break
+  fi
+  if ! kill -0 "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.05
+done
+if [[ -z "$FRONTEND_CANDIDATE_PGID" ]]; then
+  fail "frontend candidate did not establish its isolated process group; active dashboard was not touched"
+fi
 FRONTEND_CANDIDATE_READY=false
 for _ in $(seq 1 30); do
   if curl -fsS --max-time 2 "http://127.0.0.1:$FRONTEND_CANDIDATE_PORT/" >/dev/null; then
