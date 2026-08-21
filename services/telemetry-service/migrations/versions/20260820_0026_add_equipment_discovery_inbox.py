@@ -15,6 +15,13 @@ down_revision = "20260819_0025"
 branch_labels = None
 depends_on = None
 
+# Scheduled discovery cannot run faster than every five minutes. Retaining the
+# latest 2,016 observations per candidate therefore preserves at least one week
+# of maximum-frequency scheduled evidence while placing a deterministic bound
+# on the JSON-bearing observation history. Manual scans may shorten the wall-
+# clock horizon, but the retained evidence count remains bounded and recent.
+DISCOVERY_OBSERVATION_RETENTION_PER_CANDIDATE = 2016
+
 
 def upgrade() -> None:
     op.create_table(
@@ -108,7 +115,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("scan_id", "candidate_id", name="uq_equipment_discovery_observations_scan_candidate"),
     )
-    op.create_index("ix_equipment_discovery_observations_candidate_time", "equipment_discovery_observations", ["organization_id", "candidate_id", "observed_at"], unique=False)
+    op.create_index("ix_equipment_discovery_observations_candidate_time", "equipment_discovery_observations", ["organization_id", "candidate_id", "observed_at", "id"], unique=False)
 
     op.create_table(
         "equipment_network_assets",
@@ -136,11 +143,18 @@ def upgrade() -> None:
     )
     op.create_index("ix_equipment_network_assets_organization_status", "equipment_network_assets", ["organization_id", "status", "display_name"], unique=False)
 
+    # Retained observation rows are immutable to application/user DML. The only
+    # permitted delete path is a nested delete issued by the AFTER INSERT
+    # retention trigger below; a direct DELETE executes at trigger depth 1 and
+    # is rejected just like UPDATE.
     op.execute(
         """
         CREATE FUNCTION reject_equipment_discovery_observation_mutation()
         RETURNS trigger AS $$
         BEGIN
+            IF TG_OP = 'DELETE' AND pg_trigger_depth() > 1 THEN
+                RETURN OLD;
+            END IF;
             RAISE EXCEPTION 'equipment discovery observations are immutable';
         END;
         $$ LANGUAGE plpgsql;
@@ -153,9 +167,39 @@ def upgrade() -> None:
         FOR EACH ROW EXECUTE FUNCTION reject_equipment_discovery_observation_mutation();
         """
     )
+    op.execute(
+        f"""
+        CREATE FUNCTION prune_equipment_discovery_observations()
+        RETURNS trigger AS $$
+        BEGIN
+            DELETE FROM equipment_discovery_observations
+            WHERE organization_id = NEW.organization_id
+              AND candidate_id = NEW.candidate_id
+              AND id IN (
+                  SELECT id
+                  FROM equipment_discovery_observations
+                  WHERE organization_id = NEW.organization_id
+                    AND candidate_id = NEW.candidate_id
+                  ORDER BY observed_at DESC, id DESC
+                  OFFSET {DISCOVERY_OBSERVATION_RETENTION_PER_CANDIDATE}
+              );
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_equipment_discovery_observations_retention
+        AFTER INSERT ON equipment_discovery_observations
+        FOR EACH ROW EXECUTE FUNCTION prune_equipment_discovery_observations();
+        """
+    )
 
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS trg_equipment_discovery_observations_retention ON equipment_discovery_observations")
+    op.execute("DROP FUNCTION IF EXISTS prune_equipment_discovery_observations()")
     op.execute("DROP TRIGGER IF EXISTS trg_equipment_discovery_observations_immutable ON equipment_discovery_observations")
     op.execute("DROP FUNCTION IF EXISTS reject_equipment_discovery_observation_mutation()")
     op.drop_index("ix_equipment_network_assets_organization_status", table_name="equipment_network_assets")
