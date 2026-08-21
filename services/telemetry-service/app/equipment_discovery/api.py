@@ -196,7 +196,7 @@ def create_equipment_discovery_router(
         payload: DiscoveryCandidateActionRequest,
         request: Request,
         response: Response,
-        if_match: str = Header(alias="If-Match"),
+        if_match: str | None = Header(default=None, alias="If-Match"),
         audit_reason: str | None = Header(
             default=None,
             alias="X-Audit-Reason",
@@ -241,8 +241,8 @@ def candidate_etag(version: int) -> str:
     return f'W/"equipment-discovery-candidate-v{version}"'
 
 
-def parse_candidate_if_match(value: str) -> int:
-    match = _CANDIDATE_ETAG_PATTERN.fullmatch(value.strip())
+def parse_candidate_if_match(value: str | None) -> int:
+    match = _CANDIDATE_ETAG_PATTERN.fullmatch(value.strip()) if value is not None else None
     if match is None:
         raise HTTPException(
             status_code=428,
