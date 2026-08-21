@@ -13,9 +13,11 @@ from app.equipment_discovery.repository import (
     ScanAlreadyRunningError,
 )
 from app.equipment_discovery.scanner import (
+    DiscoveryScanResult,
     LocalLanDiscoveryScanner,
     ScanCancelledError,
     ScanFailedError,
+    ScanInterruptedError,
 )
 from app.security.authorization import Role
 from app.security.repository import AuditEventInput
@@ -159,8 +161,10 @@ class EquipmentDiscoveryService:
                 organization_id=organization_id,
             )
 
+        completed_result: DiscoveryScanResult | None = None
         try:
             result = await self._scanner.scan(scope, cancel_check=cancel_check)
+            completed_result = result
             await self._persist_with_database_retry(
                 "apply discovery scan result",
                 lambda: self._repository.apply_scan_result(
@@ -189,7 +193,8 @@ class EquipmentDiscoveryService:
                     result=error.result,
                 ),
             )
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as error:
+            partial_result = error.result if isinstance(error, ScanInterruptedError) else completed_result
             try:
                 await asyncio.to_thread(
                     self._repository.finish_failed,
@@ -197,6 +202,7 @@ class EquipmentDiscoveryService:
                     organization_id=organization_id,
                     error_code="equipment_discovery_service_stopped",
                     error_message="Discovery service stopped before the scan completed",
+                    result=partial_result,
                 )
             except Exception:
                 _LOGGER.exception(
