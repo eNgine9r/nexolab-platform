@@ -50,6 +50,7 @@ function overview(): EquipmentDiscoveryOverview {
         changedSincePreviousScan: false,
       },
     ],
+    networkAssetTotal: 0,
     networkAssets: [],
   };
 }
@@ -169,6 +170,57 @@ describe("EquipmentDiscoveryInbox", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("preserves a successful candidate mutation when overview reconciliation fails", async () => {
+    const repo = repository();
+    const reviewedCandidate = {
+      ...overview().candidates[0]!,
+      lifecycle: "reviewed" as const,
+      version: 2,
+    };
+    const ignoredCandidate = {
+      ...reviewedCandidate,
+      lifecycle: "ignored" as const,
+      version: 3,
+    };
+    repo.getOverview.mockReset();
+    repo.getOverview.mockResolvedValueOnce(overview()).mockRejectedValueOnce(new Error("refresh failed"));
+    repo.actOnCandidate
+      .mockResolvedValueOnce({ candidate: reviewedCandidate, networkAsset: null })
+      .mockResolvedValueOnce({ candidate: ignoredCandidate, networkAsset: null });
+
+    render(<EquipmentDiscoveryInbox repository={repo.value} canManage assets={[]} />);
+    await screen.findByText("192.168.50.2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Переглянуто" }));
+    await waitFor(() => expect(repo.actOnCandidate).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getAllByText("Переглянуто")).toHaveLength(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Ігнорувати" }));
+    await waitFor(() => expect(repo.actOnCandidate).toHaveBeenCalledTimes(2));
+    expect(repo.actOnCandidate).toHaveBeenLastCalledWith("candidate-1", { action: "ignore" }, 2);
+  });
+
+  it("disables adoption until a disappeared candidate is rediscovered", async () => {
+    const repo = repository();
+    repo.getOverview.mockResolvedValue({
+      ...overview(),
+      candidates: [
+        {
+          ...overview().candidates[0]!,
+          lifecycle: "disappeared",
+          present: false,
+        },
+      ],
+    });
+
+    render(<EquipmentDiscoveryInbox repository={repo.value} canManage assets={[]} />);
+    await screen.findByText("192.168.50.2");
+
+    expect(screen.getByRole("button", { name: "Adopt" })).toBeDisabled();
+    expect(screen.getByText(/повторно виявлений у поточному scan/i)).toBeInTheDocument();
+    expect(repo.actOnCandidate).not.toHaveBeenCalled();
   });
 
   it("paginates the candidate inbox through the repository contract", async () => {
