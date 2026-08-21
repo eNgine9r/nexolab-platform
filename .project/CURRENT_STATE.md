@@ -185,9 +185,9 @@ Final exact-head GitHub gates were GREEN: Core CI `32334582905`, Telemetry servi
 
 The Raspberry Pi verification host was hard-reset after repository-wide ESLint exhausted host resources; post-reboot repository/worktree integrity was clean. Full repository lint/build is therefore kept on GitHub CI for heavy gates on this 4 GiB host.
 
-## Issue #606 — implementation published in PR #632
+## Issue #606 — PR #632 review hardening published
 
-Issue #606 is the active product Work Package. Branch `feat/606-local-lan-discovery` is clean and published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37` against `main`. The old checkpoint `invalid_response` note was superseded by exact-checkpoint reproduction: frontend repository tests were 2/2 PASS, while backend discovery reproduced the real `NameError: service is not defined` defect; the implementation now passes the interval explicitly and strengthens tenant-integrity composite foreign keys. Focused backend discovery tests are 12/12 PASS, focused Equipment frontend tests 12/12 PASS, typecheck/touched lint/Prettier/diff check/Alembic offline SQL/Compose validation are PASS. All exact-head GitHub workflows are GREEN, including Core CI `32421147273`, Authenticated Dashboard `32421147345`, Offline Bundle `32421147237`, Telemetry Service `32421147379`, Acquisition Scale `32421147349`, Device Agent Fleet `32421147234`, Container Supply Chain `32421147290`, Offline Auth `32421147289` and the remaining browser/TLS/observability gates. Real Raspberry Pi/LAN discovery acceptance is not yet claimed and remains the final #606 runtime evidence gate.
+Issue #606 remains the active product Work Package. PR #632 now contains implementation hardening at `628e34725fe116c4f38e2b0862769d296afa3666` on top of current `main` `f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f`. The review fixes make candidate identity IP-endpoint stable with MAC as evidence, preserve partial-scan presence semantics, expire stale neighbor-only evidence, compare fingerprints only across equivalent scan scopes, paginate the candidate inbox beyond 500 rows, reject obsolete organization responses, and retain the earlier bounded-policy/database-recovery/strict-contract fixes. Focused backend discovery tests are 20/20 PASS; focused frontend discovery tests are 12/12 PASS; `npm run typecheck`, touched ESLint, Prettier and `git diff --check` are PASS. The new exact-head GitHub workflow matrix is running; prior-head GREEN results are historical evidence only and are not being reused as final-head acceptance. Real Raspberry Pi/LAN discovery acceptance has not been run and remains PENDING until the Product Owner approves exact CIDR(s) and TCP port(s). No real scan, Modbus/device write, acquisition mutation or hardware write was performed.
 
 ## Issue #626 — completed GREEN and merged
 
@@ -209,9 +209,9 @@ No production credentials/secrets were read, no enrollment mutation occurred, an
 
 ## Current execution boundary
 
-Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 open at `e641262edba98c94b0b11641774fc8cd7c461a37`**.
+Current product Work Package: **Issue #606 — LOCAL_LAN discovery/adoption inbox, PR #632 implementation head `628e34725fe116c4f38e2b0862769d296afa3666` with exact-head CI in progress**.
 
-Next action: finish exact-head PR #632 CI, then run the bounded real Raspberry Pi/approved-LAN discovery acceptance required by #606, verify acquisition invariance and offline behavior, reconcile #606 state, and merge only when required checks and runtime evidence are GREEN.
+Next action: complete final exact-head PR #632 CI/review, then obtain Product Owner approval for the exact LAN CIDR(s) and TCP port(s) before any real discovery scan. Run bounded Raspberry Pi/LAN acceptance only inside that approved scope, prove acquisition invariance/offline behavior, and merge only when required checks and runtime evidence are GREEN.
 
 Planned sequence: **#606 → #633 → #607 → #589 → #590**. #633 is a high-priority deployment-reliability repair for deterministic candidate cleanup, but current production is healthy after manual cleanup. #618 remains an independent Saved Dashboard CSV reliability lane; #585 remains blocked on physical W2/Unit 201 handback.
 

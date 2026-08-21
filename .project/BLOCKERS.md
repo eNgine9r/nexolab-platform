@@ -60,9 +60,9 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — active PR #632; runtime acceptance pending
+## Issue #606 — active PR #632; final CI and runtime acceptance pending
 
-Issue #606 is published as PR #632 at exact head `e641262edba98c94b0b11641774fc8cd7c461a37`. Focused backend/frontend/schema/Compose verification is GREEN and all exact-head GitHub workflows are GREEN, including Core CI `32421147273`, Authenticated Dashboard `32421147345` and Offline Bundle `32421147237`. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
+PR #632 implementation hardening is published at `628e34725fe116c4f38e2b0862769d296afa3666` against current `main` `f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f`. Local focused verification is GREEN: backend 20/20, frontend 12/12, typecheck, touched ESLint, Prettier and diff check. The new exact-head GitHub workflow matrix is in progress, so previous-head GREEN workflow results are not final acceptance for this head. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified and is blocked on Product Owner approval of exact CIDR(s) and TCP port(s). No real scan has been run. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
 
 ## Issue #626 — completed, no longer blocking
 
@@ -96,7 +96,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
-- #606 discovery/adoption inbox — active PR #632 at `e641262e`; CI/runtime acceptance pending;
+- #606 discovery/adoption inbox — active PR #632 implementation head `628e3472`; exact-head CI/runtime acceptance pending;
 - #633 frontend candidate cleanup — Ready after #606;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
