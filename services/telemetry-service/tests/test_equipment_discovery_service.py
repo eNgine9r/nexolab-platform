@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 
+from psycopg import OperationalError as PsycopgOperationalError
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 import app.equipment_discovery.scanner as scanner_module
@@ -113,12 +114,18 @@ class TransientConnectionError(RuntimeError):
 
 
 class FinalizationRepository:
-    def __init__(self, *, permanent_apply_failure: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        permanent_apply_failure: bool = False,
+        initial_connection_failure: bool = False,
+    ) -> None:
         self.apply_calls = 0
         self.completed = False
         self.failed = False
         self.cancelled_result: DiscoveryScanResult | None = None
         self.permanent_apply_failure = permanent_apply_failure
+        self.initial_connection_failure = initial_connection_failure
 
     def cancel_requested(self, _scan_id: str, *, organization_id: str) -> bool:
         assert organization_id == ORGANIZATION_ID
@@ -136,6 +143,12 @@ class FinalizationRepository:
         self.apply_calls += 1
         if self.permanent_apply_failure:
             raise IntegrityError("UPDATE equipment_discovery_scans", {}, RuntimeError("constraint"))
+        if self.initial_connection_failure and self.apply_calls == 1:
+            raise OperationalError(
+                "UPDATE equipment_discovery_scans",
+                {},
+                PsycopgOperationalError("connection failed: connection refused"),
+            )
         if self.apply_calls == 1:
             raise OperationalError(
                 "UPDATE equipment_discovery_scans",
@@ -213,6 +226,28 @@ def test_scan_finalization_retries_after_transient_database_outage() -> None:
         )
         assert repository.apply_calls == 2
         assert repository.completed is True
+
+    asyncio.run(run())
+
+
+def test_scan_finalization_retries_initial_psycopg_connection_failure() -> None:
+    async def run() -> None:
+        repository = FinalizationRepository(initial_connection_failure=True)
+        policy = configured_policy()
+        service = EquipmentDiscoveryService(
+            repository,  # type: ignore[arg-type]
+            policy,
+            scanner=SuccessfulScanner(),  # type: ignore[arg-type]
+            database_retry_seconds=0,
+        )
+        await service._run_scan(  # noqa: SLF001
+            "scan-1",
+            organization_id=ORGANIZATION_ID,
+            scope=policy.resolve(),
+        )
+        assert repository.apply_calls == 2
+        assert repository.completed is True
+        assert repository.failed is False
 
     asyncio.run(run())
 
