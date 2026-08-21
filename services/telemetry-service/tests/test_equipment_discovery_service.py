@@ -20,6 +20,7 @@ from app.equipment_discovery.service import EquipmentDiscoveryService
 
 
 ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111"
+EMPTY_ARP_SNAPSHOT = "IP address       HW type     Flags       HW address            Mask     Device\n"
 
 
 class StubRepository:
@@ -306,6 +307,8 @@ def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: P
         policy = configured_policy()
         scope = policy.resolve()
         checks = 0
+        arp = tmp_path / "empty-arp"
+        arp.write_text(EMPTY_ARP_SNAPSHOT, encoding="utf-8")
 
         async def cancel_check() -> bool:
             nonlocal checks
@@ -319,7 +322,7 @@ def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: P
             connect_timeout_seconds=0.01,
             concurrency=1,
             tcp_connector=connector,
-            neighbor_table_path=tmp_path / "missing-arp",
+            neighbor_table_path=arp,
         )
         try:
             await scanner.scan(scope, cancel_check=cancel_check)
