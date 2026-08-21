@@ -377,7 +377,7 @@ def test_service_shutdown_preserves_started_probe_metrics() -> None:
     async def run() -> None:
         repository = ShutdownRepository()
         policy = configured_policy()
-        scope = policy.resolve(cidrs=("192.168.50.1/32",), ports=(80,))
+        scope = policy.resolve(requested_cidrs=["192.168.50.1/32"], requested_ports=[80])
         probe_started = asyncio.Event()
         block_probe = asyncio.Event()
 
