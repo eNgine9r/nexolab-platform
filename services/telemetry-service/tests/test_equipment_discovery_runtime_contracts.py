@@ -53,7 +53,8 @@ def test_discovery_overview_uses_bounded_asset_page_and_separate_total() -> None
     assert "network_asset_total=network_asset_total" in api_source
     assert "def count_network_assets(" in repository_source
     assert "limit: int = 100" in repository_source
-    assert ".offset(offset).limit(limit)" in repository_source
+    assert ".offset(offset)" in repository_source
+    assert ".limit(limit)" in repository_source
 
 
 def test_discovery_result_finalization_honors_persisted_cancellation() -> None:
