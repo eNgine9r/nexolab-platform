@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Callable
 
@@ -115,7 +116,8 @@ def create_equipment_discovery_router(
                 requested_cidrs=payload.cidrs,
                 requested_ports=payload.ports,
             )
-            scan = repository.start_scan(
+            scan = await asyncio.to_thread(
+                repository.start_scan,
                 organization_id=organization_id,
                 requested_cidrs=scope.cidrs,
                 requested_ports=scope.ports,
@@ -141,7 +143,8 @@ def create_equipment_discovery_router(
         try:
             service.launch(scan.id, organization_id=organization_id, scope=scope)
         except Exception as error:
-            repository.finish_failed(
+            await asyncio.to_thread(
+                repository.finish_failed,
                 scan.id,
                 organization_id=organization_id,
                 error_code="equipment_discovery_launch_failed",
