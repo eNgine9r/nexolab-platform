@@ -350,7 +350,7 @@ def test_failed_scan_passes_partial_metrics_to_finalization() -> None:
     asyncio.run(run())
 
 
-def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: Path) -> None:
+def test_scanner_cancellation_carries_metrics_from_completed_probe_batch(tmp_path: Path) -> None:
     async def run() -> None:
         policy = configured_policy()
         scope = policy.resolve()
@@ -377,11 +377,11 @@ def test_scanner_cancellation_carries_metrics_from_completed_batches(tmp_path: P
         except ScanCancelledError as error:
             result = error.result
         else:
-            raise AssertionError("scan should have been cancelled after the first batch")
+            raise AssertionError("scan should have been cancelled after the first bounded probe batch")
 
         assert result.hosts_considered == 1
-        assert result.probes_attempted == 2
-        assert result.network_connect_attempts == 2
+        assert result.probes_attempted == 1
+        assert result.network_connect_attempts == 1
         assert result.network_payload_bytes == 0
         assert result.observations == ()
 
