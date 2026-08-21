@@ -15,6 +15,9 @@ from app.equipment_discovery.policy import (
 from app.equipment_discovery.scanner import LocalLanDiscoveryScanner, ScanCancelledError
 
 
+EMPTY_ARP_SNAPSHOT = "IP address       HW type     Flags       HW address            Mask     Device\n"
+
+
 def policy(**overrides: object) -> DiscoveryPolicy:
     values: dict[str, object] = {
         "equipment_discovery_allowed_cidrs": "192.168.50.0/29,10.20.0.0/30",
@@ -111,9 +114,11 @@ def test_scanner_uses_only_connect_probes_and_neighbor_evidence(tmp_path: Path) 
     asyncio.run(run())
 
 
-def test_scanner_honors_cancellation_between_bounded_batches() -> None:
+def test_scanner_honors_cancellation_between_bounded_batches(tmp_path: Path) -> None:
     async def run() -> None:
         checks = 0
+        arp = tmp_path / "empty-arp"
+        arp.write_text(EMPTY_ARP_SNAPSHOT, encoding="utf-8")
 
         async def connector(ip: str, port: int, timeout: float) -> bool:
             return False
@@ -127,7 +132,7 @@ def test_scanner_honors_cancellation_between_bounded_batches() -> None:
             connect_timeout_seconds=0.1,
             concurrency=1,
             tcp_connector=connector,
-            neighbor_table_path=Path("/definitely/missing"),
+            neighbor_table_path=arp,
         )
         scope = policy().resolve(requested_cidrs=["192.168.50.0/29"], requested_ports=[80])
         with pytest.raises(ScanCancelledError):
