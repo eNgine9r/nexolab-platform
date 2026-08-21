@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T17:46:00Z",
+  "timestamp": "2026-08-21T18:14:00Z",
   "actor": "ChatGPT",
   "event": "issue_606_post_merge_state_reconciliation",
   "repository_product_baseline_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
@@ -79,6 +79,7 @@
   "validation_work": {
     "issue_444": "LOCAL_LAN user-administration API acceptance remains status:needs-validation",
     "issue_245": "Standalone loopback-only Raspberry Pi acceptance remains status:needs-validation",
+    "issue_200": "Physical RS-485 topology, stable adapter paths, active Unit IDs, termination/biasing, latency and safe polling envelope remain hardware-unverified beyond narrow pilot evidence",
     "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation",
     "issue_202": "Extended XJP60D portability, representative KK2 evidence, and actual Unit ID 115 presence/absence remain hardware-unverified"
   },

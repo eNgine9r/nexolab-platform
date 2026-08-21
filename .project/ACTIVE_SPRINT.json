@@ -107,6 +107,13 @@
       "priority": "critical"
     },
     {
+      "id": "NEXOLAB-200",
+      "issue": 200,
+      "title": "Verify the physical RS-485 topology and portable polling envelope",
+      "status": "hardware_validation_pending_topology_envelope",
+      "priority": "high"
+    },
+    {
       "id": "NEXOLAB-201",
       "issue": 201,
       "title": "Validate LE-01MP cumulative energy, scale and rollover",
@@ -202,6 +209,10 @@
     {
       "issue": 245,
       "status": "needs_validation"
+    },
+    {
+      "issue": 200,
+      "status": "hardware_validation_pending_topology_envelope"
     },
     {
       "issue": 201,

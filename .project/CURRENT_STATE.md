@@ -86,6 +86,7 @@ Required maintenance/evidence lanes remain visible and are not completed by #606
 - #598 follow-up — four temporary `CVE-2026-14456` exceptions expire **2026-08-26**; remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes;
 - #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance;
 - #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance;
+- #200 — open hardware-validation lane: physical RS-485 topology, stable adapter paths, Unit IDs, termination/biasing, latency and safe polling envelope remain unverified beyond the retained narrow pilot evidence;
 - #201 — `status:needs-validation`, priority high: approved LE-01MP restart/power-cycle boundary;
 - #202 — open hardware-validation lane: extended XJP60D portability, KK2 representative evidence, and actual Unit ID 115 presence/absence remain unverified;
 - #189 — `status:blocked`, priority high: actual-host backup/restore/rollback/power-loss recovery evidence.

@@ -52,6 +52,7 @@ The review window is not authorization for hardware changes.
 
 - #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance remains open.
 - #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance remains open.
+- #200 — open hardware-validation lane: full physical RS-485 topology, stable adapter paths, active Unit IDs, duplicate-ID isolation, termination/biasing, latency and safe polling envelope remain unverified beyond the narrow retained pilot evidence.
 - #201 — `status:needs-validation`, priority high: approved restart/power-cycle boundary for LE-01MP cumulative energy remains unverified.
 - #202 — open hardware-validation lane: representative KK1/KK2 XJP60D evidence, firmware portability, and actual Unit ID 115 presence/absence remain unverified; no unsupported semantics may be assumed.
 - #189 — `status:blocked`, priority high: full backup/restore/rollback/power-loss recovery requires controlled central-host/Raspberry Pi evidence; missing hardware evidence must remain explicit.
