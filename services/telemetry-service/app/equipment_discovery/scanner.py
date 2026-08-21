@@ -85,6 +85,12 @@ class ScanCancelledError(RuntimeError):
         self.result = result
 
 
+class ScanInterruptedError(asyncio.CancelledError):
+    def __init__(self, result: DiscoveryScanResult) -> None:
+        super().__init__("equipment discovery scan interrupted")
+        self.result = result
+
+
 class ScanFailedError(RuntimeError):
     def __init__(self, result: DiscoveryScanResult, cause: Exception) -> None:
         super().__init__(str(cause) or cause.__class__.__name__)
@@ -193,6 +199,8 @@ class LocalLanDiscoveryScanner:
             raise
         except _ScanCancellationRequested:
             raise ScanCancelledError(snapshot()) from None
+        except asyncio.CancelledError:
+            raise ScanInterruptedError(snapshot()) from None
         except Exception as error:
             raise ScanFailedError(snapshot(), error) from error
 
